@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client.js';
-import AWS from './awsConfig.js';
+import AWS from '../awsConfig.js';
 
 // Pull in the environment variables from either the .env file or the ENV variables
 dotenv.config();
@@ -12,11 +12,11 @@ interface Key {
 
 // Establish the DynamoDB Table names based on the environment
 export const dynamoDBTables = {
-  dmps: process.env.DMPS_TABLE !== undefined ? process.env.DMPS_TABLE : 'dmps-local',
+  DMSPs: process.env.DMSP_TABLE!,
 }
 
 // Generic DynamoDB service. The caller defines which table when initializing the service
-export class DynamoDBService {
+export class DynamoDBSource {
   private dynamoDB: DocumentClient;
   private tableName: string;
 

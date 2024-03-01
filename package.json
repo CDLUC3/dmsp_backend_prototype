@@ -7,18 +7,28 @@
     "compile": "tsc",
     "start": "npm run compile && node ./dist/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CDLUC3/dmsp_backend_prototype.git"
+  },
+  "author": "University of California Curation Center (UC3)<dmptool@ucop.edu>",
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=21.6.2",
+    "npm": ">=10.2.4"
+  },
   "dependencies": {
     "@apollo/server": "^4.10.0",
+    "@graphql-tools/load-files": "^7.0.0",
+    "@graphql-tools/merge": "^9.0.3",
     "aws-sdk": "^2.1568.0",
     "dotenv": "^16.4.5",
     "graphql": "^16.8.1"
   },
   "devDependencies": {
-    "@types/node": "^20.11.23",
+    "@types/node": "^20.11.24",
     "typescript": "^5.3.3"
   }
 }
