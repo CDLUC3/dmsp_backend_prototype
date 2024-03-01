@@ -1,0 +1,8 @@
+# Ignore the Dotenv file
+.env
+
+# Skip all of the dependencies in node_modules
+node_modules/
+
+# Skip the compile distribution files
+dist/
