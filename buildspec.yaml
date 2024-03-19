@@ -1,0 +1,79 @@
+# Build specifications for AWS CodeBuild
+#   See: https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html
+
+# Each input artifact is extracted to its own directory by CodePipeline, the locations of which
+# are stored in environment variables. The directory for the primary source artifact (this repo)
+# is made available with $CODEBUILD_SRC_DIR. The directory for the DMPTool push artifacts is
+# made available with $CODEBUILD_SRC_DIR_dmptool-commit.
+# Do not change version. This is the version of aws buildspec, not the version of your buldspec file.
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 21
+    commands:
+      # Install any libraries necessary for testing and compilation
+      # - echo Installing Mocha...
+      # - npm install -g mocha
+  pre_build:
+    commands:
+      # Set some ENV variables here because CF only allows a limit of 1000 characters in the
+      # EnvironmentVariable config for the Pipeline action :(
+      - export AWS_VERSION=$(aws --version)
+
+      # Fetch the ECR repository name
+      - echo $ECR_REPOSITORY_URI >> .ecr
+      - export SHORT_ECR_URI=$(awk '{gsub("$ECR_REPOSITORY_NAME", "");print}' .ecr)
+      - rm .ecr
+
+      # Set the repository URI to your ECR image and add an image tag with the first seven characters of the Git
+      # commit ID of the source.
+      - echo Logging in to Amazon ECR ...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $SHORT_ECR_URI
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+
+      # Install the app dependencies
+      - echo Installing source NPM dependencies...
+      - npm install
+      # Install any other packages required for building and testing the app
+      # - npm install unit.js
+  build:
+    commands:
+      - echo Build started on `date`
+      # - echo Compiling the Node.js code
+      # - npm run compile
+
+      # Run any tests here
+      # - mocha test.js
+
+      - echo Building the Docker image...
+      - cd $CODEBUILD_SRC_DIR
+      - docker build -f Dockerfile.aws -t $SHORT_ECR_URI:latest .
+      - docker tag $ECR_REPOSITORY_URI:latest $SHORT_ECR_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      # Push the Docker image to the ECR repository. Fargate will pick it up an deploy automatically
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - cd $CODEBUILD_SRC_DIR
+      - docker push $SHORT_ECR_URI:latest
+      - docker push $SHORT_ECR_URI:$IMAGE_TAG
+
+      - echo Writing image definitions file...
+      - printf '[{"name":"dmptool","imageUri":"%s"}]' $ECR_REPOSITORY_URI:$IMAGE_TAG > dmptool_image.json
+      - cat dmptool_image.json
+
+      - echo Build completed on `date`
+
+# Include only the files required for your application to run.
+# Do not use recursively include artifacts from node_modules directory as it will include unnecessary packages
+# used only for building and testing.
+# ExpressJS apps will need other artifact directories included (bin/*, public/*, routes/*, views/* etc).
+# artifacts:
+#   files:
+#     - app.js
+#     - index.html
+#     - package.json
+#     - node_modules/async/*
+#     - node_modules/lodash/*

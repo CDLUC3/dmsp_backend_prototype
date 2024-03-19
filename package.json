@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "compile": "tsc",
-    "start": "npm run compile && node ./dist/index.js"
+    "build": "npm run compile",
+    "start": "npm run compile && node ./dist/index.js",
+    "aws_start": "node ./dist/index.js"
   },
   "repository": {
     "type": "git",
