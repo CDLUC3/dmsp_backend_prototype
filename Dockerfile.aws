@@ -2,8 +2,6 @@
 
 # This version of the Dockerfile is used by the buildspec.yaml within the AWS environment
 
-# Make sure RUBY_VERSION matches the Ruby version in .ruby-version and Gemfile
-ARG NODE_VERSION=21.6.2
 FROM public.ecr.aws/docker/library/node:current-bookworm-slim
 
 EXPOSE 4000
