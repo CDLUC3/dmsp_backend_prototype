@@ -1,26 +1,18 @@
+import { Dmsp } from '../data-models/Dmsp.js'
 import { dynamoDBTables, DynamoDBSource } from '../data-sources/DynamoDBSource.js';
-
-interface DMSP {
-  PK: string;
-  SK: string;
-  title: string;
-  modified: string;
-  created: string;
-  // ... other fields
-}
 
 // Swap these out if you are not using AWS DynamoDB for your DMSP metadata
 const dmpDBService = new DynamoDBSource(dynamoDBTables.DMSPs);
 
-const DMSPResolver = {
+const DmspResolver = {
   Query: {
     // Get the DMSP
-    getDMSP: async (_: any, { PK, SK }: { PK: string, SK: string }): Promise<DMSP | null> => {
+    getDMSP: async (_: any, { PK, SK }: { PK: string, SK: string }): Promise<Dmsp | null> => {
       SK = SK == undefined ? 'VERSION#latest' : SK
       const item = await dmpDBService.getItem({ PK: PK, SK: SK });
-      return item as DMSP;
+      return item as Dmsp;
     },
   },
 };
 
-export default DMSPResolver;
+export default DmspResolver;

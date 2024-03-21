@@ -5,8 +5,8 @@ import AWS from 'aws-sdk';
 // You may need to update clients outside of this file, if they use global config.
 AWS.config.update({
   region: process.env.AWS_REGION,
-  // accessKeyId: 'your-access-key-id',
-  // secretAccessKey: 'your-secret-access-key',
+  // accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  // secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
 export default AWS;

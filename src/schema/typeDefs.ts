@@ -7,6 +7,7 @@ export const typeDefs = `#graphql
   # case, the "books" query returns an array of zero or more Books (defined above).
   type Query {
     getDMSP(PK: String!, SK: String): DMSP
+    getUser(token: String!): User
   }
 
   type Mutation {
@@ -48,6 +49,15 @@ export const typeDefs = `#graphql
 
   input DMSPDatasetInput {
     title: String!
+  }
+
+  type User {
+    email: String!
+    givenName: String
+    surname: String
+    created: String
+    modified: String
+    lastSignIn: String
   }
 
   "A Data Management and Sharing Plan (DMSP)"
