@@ -40,7 +40,7 @@ phases:
       # - npm install unit.js
 
       - yum list | grep postgres
-      - yum install @postgresql:16/client
+      - yum install @postgresql:15/client
   build:
     commands:
       - echo Build started on `date`
