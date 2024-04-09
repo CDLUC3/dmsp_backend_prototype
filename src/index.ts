@@ -1,15 +1,17 @@
 import { ApolloServer } from '@apollo/server';
+import { IResolvers } from '@graphql-tools/utils';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
-import { typeDefs } from './schema/typeDefs.js';
-import resolvers from './resolvers/DMSPResolver.js';
 
-// Incoming User context
+import { typeDefs, resolvers } from './schema/index.js';
+
+// Incoming User context from the JWT token
 interface MyContext {
-  token?: String;
+  // user?: UserInfo;
+  token: string;
 }
 
 // Required logic for integrating with Express
@@ -23,33 +25,30 @@ const httpServer = http.createServer(app);
 // for our httpServer.
 const server = new ApolloServer<MyContext>({
   typeDefs,
-  resolvers,
+  resolvers: resolvers as IResolvers<any, any> | IResolvers<any, MyContext>[] | undefined,
   plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
 
 // Ensure we wait for our server to start
 await server.start();
 
-// Trying to disable CORS here :/
-// const corsOptions = {
-//  origin: ['http://localhost:4000'],
-// }
-
-// Healthcheck endpoint
+// Healthcheck endpoint (skips CORS check because AWS ELB doesn't allow passing headers!)
+//   See: https://community.apollographql.com/t/recommended-health-check-strategy-is-impossible-using-aws-load-balancer/6323/3
 app.get('/up', (_req, res) => {
-  server.executeOperation({ query: '{ __typename }' })
-        .then((data) => {
-          if (data.body.kind === 'single') {
-            if (data.body.singleResult.errors) {
-              res.status(400).send(JSON.stringify(data.body.singleResult.errors));
-            } else {
-              res.status(200).send(JSON.stringify(data.body.singleResult.data));
-            }
-          }
-        })
-        .catch((error) => {
-          res.status(400).send(JSON.stringify(error));
-        });
+  server
+    .executeOperation({ query: '{ __typename }' })
+    .then((data) => {
+      if (data.body.kind === 'single') {
+        if (data.body.singleResult.errors) {
+          res.status(400).send(JSON.stringify(data.body.singleResult.errors));
+        } else {
+          res.status(200).send(JSON.stringify(data.body.singleResult.data));
+        }
+      }
+    })
+    .catch((error) => {
+      res.status(400).send(JSON.stringify(error));
+    });
 });
 
 // Set up our Express middleware to handle CORS, body parsing, and our expressMiddleware function.
@@ -61,11 +60,11 @@ app.use(
   // expressMiddleware accepts the same arguments:
   //   an Apollo Server instance and optional configuration options
   expressMiddleware(server, {
-    context: async ({ req }) => ({ token: req.headers.token }),
+    context: async ({ req }) => ({ token: req.headers?.authentication as string }),
   }),
 );
 
 // Modified server startup
 await new Promise<void>((resolve) => httpServer.listen({ port: 4000 }, resolve));
 
-console.log(`🚀  Server ready at: http://localhost:4000/`);
+console.log(`🚀  Server ready at: http://localhost:4000`);

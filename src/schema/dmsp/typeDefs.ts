@@ -5,11 +5,11 @@ export const typeDefs = `#graphql
   # The "Query" type is special: it lists all of the available queries that
   # clients can execute, along with the return type for each. In this
   # case, the "books" query returns an array of zero or more Books (defined above).
-  type Query {
+  extend type Query {
     getDMSP(PK: String!, SK: String): DMSP
   }
 
-  type Mutation {
+  extend type Mutation {
     createDSMP(input: DMSPInput!): DMSP
     updateDSMP(PK: String!, input: DMSPInput!): DMSP
     deleteDSMP(PK: String!): String
