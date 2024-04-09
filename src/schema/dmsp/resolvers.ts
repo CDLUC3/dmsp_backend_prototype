@@ -1,4 +1,4 @@
-import { dynamoDBTables, DynamoDBSource } from '../data-sources/DynamoDBSource.js';
+import { dynamoDBTables, DynamoDBSource } from '../../data-sources/DynamoDBSource.js';
 
 interface DMSP {
   PK: string;

@@ -25,12 +25,21 @@
     "@apollo/server": "^4.10.0",
     "@graphql-tools/load-files": "^7.0.0",
     "@graphql-tools/merge": "^9.0.3",
-    "aws-sdk": "^2.1568.0",
+    "apollo-server-express": "^3.13.0",
+    "aws-sdk": "^2.1594.0",
     "dotenv": "^16.4.5",
-    "graphql": "^16.8.1"
+    "graphql": "^16.8.1",
+    "graphql-scalars": "^1.23.0",
+    "mysql": "^2.18.1",
+    "mysql-promise": "^5.0.0",
+    "pg": "^8.11.5",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/mysql": "^2.15.26",
     "@types/node": "^20.11.24",
+    "@types/pg": "^8.11.4",
+    "@types/uuid": "^9.0.8",
     "typescript": "^5.3.3"
   }
 }

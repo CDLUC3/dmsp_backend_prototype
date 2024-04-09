@@ -6,3 +6,6 @@ node_modules/
 
 # Skip the compile distribution files
 dist/
+
+# Ignore the persisted data sources for the local Docker dev env
+docker/
