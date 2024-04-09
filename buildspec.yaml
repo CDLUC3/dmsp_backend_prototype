@@ -39,8 +39,9 @@ phases:
       # Install any other packages required for building and testing the app
       # - npm install unit.js
 
-      - yum list | grep postgres
-      - yum install @postgresql:15/client
+      # Install Postgres so we can run DB migrations
+      # - yum list | grep postgres
+      - yum install postgresql15.x86_64
   build:
     commands:
       - echo Build started on `date`
