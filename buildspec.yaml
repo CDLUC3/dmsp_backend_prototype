@@ -33,15 +33,15 @@ phases:
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $SHORT_ECR_URI
       - IMAGE_TAG=${COMMIT_HASH:=latest}
 
+      # Install Postgres so we can run DB migrations
+      # - yum list | grep postgres
+      - yum -y install postgresql15.x86_64
+
       # Install the app dependencies
       - echo Installing source NPM dependencies...
       - npm install
       # Install any other packages required for building and testing the app
       # - npm install unit.js
-
-      # Install Postgres so we can run DB migrations
-      # - yum list | grep postgres
-      - yum install postgresql15.x86_64
   build:
     commands:
       - echo Build started on `date`
