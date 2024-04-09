@@ -9,5 +9,7 @@ PASSWORD=$(echo $SECRET_RESPONSE | jq '.SecretString | fromjson' | jq -r .passwo
 for i in *.sql; do
   [ -f "$i" ] || break
   echo "Found a migration file: ${i} ..."
+  echo "PGPASSWORD=${PASSWORD} psql -h ${HOST} -p ${PORT} -U ${USER} -d ${DB} -a -f ${i}"
+  echo $(which psql)
   $(PGPASSWORD=${PASSWORD} psql -h ${HOST} -p ${PORT} -U ${USER} -d ${DB} -a -f ${i})
 done
