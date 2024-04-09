@@ -38,6 +38,9 @@ phases:
       - npm install
       # Install any other packages required for building and testing the app
       # - npm install unit.js
+
+      - yum list | grep postgres
+      - yum install @postgresql:16/client
   build:
     commands:
       - echo Build started on `date`
