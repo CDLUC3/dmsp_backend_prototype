@@ -1,11 +1,11 @@
 # SECRET_RESPONSE=$(aws secretsmanager get-secret-value --secret-id ${SECRETS_MANAGER_ARN})
 
 # HOST=$(echo $SECRET_RESPONSE | jq '.SecretString | fromjson' | jq -r .host)
-HOST=$(echo aws ssm get-parameter --name /uc3/dmp/hub/dev/DbHost | jq -r .Parameter.Value )
-PORT=$(echo aws ssm get-parameter --name /uc3/dmp/hub/dev/DbPort | jq -r .Parameter.Value )
-DB=$(echo aws ssm get-parameter --name /uc3/dmp/hub/dev/DbName | jq -r .Parameter.Value )
-USER=$(echo aws ssm get-parameter --name /uc3/dmp/hub/dev/DbUsername | jq -r .Parameter.Value )
-PASSWORD=$(echo aws ssm get-parameter --name /uc3/dmp/hub/dev/DbPassword | jq -r .Parameter.Value )
+HOST=$(echo aws ssm get-parameter --name /uc3/dmp/hub/${1}/DbHost | jq -r .Parameter.Value )
+PORT=$(echo aws ssm get-parameter --name /uc3/dmp/hub/${1}/DbPort | jq -r .Parameter.Value )
+DB=$(echo aws ssm get-parameter --name /uc3/dmp/hub/${1}/DbName | jq -r .Parameter.Value )
+USER=$(echo aws ssm get-parameter --name /uc3/dmp/hub/${1}/DbUsername | jq -r .Parameter.Value )
+PASSWORD=$(echo aws ssm get-parameter --name /uc3/dmp/hub/${1}/DbPassword | jq -r .Parameter.Value )
 
 for i in *.sql; do
   [ -f "$i" ] || break
