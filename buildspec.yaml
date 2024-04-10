@@ -46,8 +46,11 @@ phases:
     commands:
       - echo Build started on `date`
 
+      - echo $ENV
+      - aws ssm get-parameter --name /uc3/dmp/hub/dev/DbHost | jq -r .Parameter.Value
+
       - echo Checking for DB migrations
-      - cd data-migrations && ./process.sh && cd ..
+      - cd data-migrations && ./process.sh $ENV && cd ..
 
       # - echo Compiling the Node.js code
       # - npm run compile
