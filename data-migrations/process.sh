@@ -14,3 +14,7 @@ for i in *.sql; do
   echo $(which psql)
   $(PGPASSWORD=${PASSWORD} psql -h ${HOST} -p ${PORT} -U ${USER} -d ${DB} -a -f ${i})
 done
+
+# If you want to migrate files within your local docker instance, startup the system with `docker-compose up`
+# and then run the following from terminal:
+#    PGPASSWORD=dockerSecr3t psql -h localhost -p 5432 -U dmspuser -d dmsp -a -f create-contributor-roles.sql

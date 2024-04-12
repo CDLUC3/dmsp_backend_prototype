@@ -4,9 +4,13 @@
   "description": "Prototype backend for the new DMSP system",
   "main": "index.js",
   "scripts": {
+    "postinstall": "npm run generate",
     "compile": "tsc",
-    "build": "npm run compile",
-    "start": "npm run compile && node ./dist/index.js",
+    "copy-graphql": "mkdir ./dist/schemas && cp ./src/schemas/*.graphql ./dist/schemas/",
+    "build": "rm -rf ./dist && npm run compile",
+    "generate": "graphql-codegen",
+    "dev": "ts-node-dev --respawn ./src/index.ts",
+    "start": "npm run build && nodemon ./dist/index.js",
     "aws_start": "node ./dist/index.js"
   },
   "repository": {
@@ -16,30 +20,29 @@
   "author": "University of California Curation Center (UC3)<dmptool@ucop.edu>",
   "keywords": [],
   "license": "MIT",
-  "type": "module",
   "engines": {
     "node": ">=21.6.2",
     "npm": ">=10.2.4"
   },
   "dependencies": {
+    "@apollo/datasource-rest": "^6.0.1",
     "@apollo/server": "^4.10.0",
-    "@graphql-tools/load-files": "^7.0.0",
     "@graphql-tools/merge": "^9.0.3",
-    "apollo-server-express": "^3.13.0",
-    "aws-sdk": "^2.1594.0",
-    "dotenv": "^16.4.5",
+    "@graphql-tools/mock": "^9.0.0",
+    "@graphql-tools/schema": "^10.0.0",
+    "aws-sdk": "^2.1598.0",
+    "datasource-sql": "^2.1.0",
     "graphql": "^16.8.1",
-    "graphql-scalars": "^1.23.0",
-    "mysql": "^2.18.1",
-    "mysql-promise": "^5.0.0",
-    "pg": "^8.11.5",
-    "uuid": "^9.0.1"
+    "graphql-tag": "^2.12.6",
+    "pg": "^8.11.5"
   },
   "devDependencies": {
-    "@types/mysql": "^2.15.26",
-    "@types/node": "^20.11.24",
-    "@types/pg": "^8.11.4",
-    "@types/uuid": "^9.0.8",
+    "@graphql-codegen/cli": "^4.0.1",
+    "@graphql-codegen/typescript": "^4.0.1",
+    "@graphql-codegen/typescript-resolvers": "^4.0.1",
+    "dotenv": "^16.4.5",
+    "nodemon": "^3.1.0",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   }
 }
