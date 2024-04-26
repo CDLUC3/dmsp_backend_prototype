@@ -1,4 +1,4 @@
-import { ContributorRole } from './ContributorRole';
+import { ContributorRoleModel } from './ContributorRole';
 
 export type DmspModel = {
   id: string;
@@ -28,7 +28,7 @@ type Contributor = {
   orcid: string;
   name: string;
   mbox: string;
-  role: [ContributorRole]
+  role: [ContributorRoleModel]
   affiliation: Affiliation;
 }
 

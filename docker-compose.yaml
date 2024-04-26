@@ -37,35 +37,35 @@ services:
       - POSTGRES_USER=dmspuser
       - POSTGRES_DB=dmsp
 
-  apollo:
-    depends_on:
-      # - dmsp-mysql
-      - apollo-postgres
-    build:
-      context: .
-      dockerfile: Dockerfile
-    links:
-      # - dmsp-mysql
-      - apollo-postgres
-    ports:
-      - "3000:4000"
-    expose:
-      - "3000"
-    environment:
-      - POSTGRES_POOL_SIZE=5
-      - POSTGRESS_IDLE_TIMEOUT=30000
-      - POSTGRES_CONNECTION_TIMEOUT=10000
-      - POSTGRES_HOST=apollo-postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DATABASE=dmsp
-      - POSTGRES_USER=dmspuser
-      - POSTGRES_PASSWORD=dockerSecr3t
-      # - MYSQL_HOST=dmsp-mysql
-      # - MYSQL_PORT=3306
-      # - MYSQL_USER=dmspuser
-      # - MYSQL_PASSWORD=abcdefghij
-      # - MYSQL_DB_NAME=dmsp_prototype
-    env_file:
-      - .env
-    volumes:
-      - .:/app
+  # apollo:
+  #   depends_on:
+  #     # - dmsp-mysql
+  #     - apollo-postgres
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   links:
+  #     # - dmsp-mysql
+  #     - apollo-postgres
+  #   ports:
+  #     - "3000:4000"
+  #   expose:
+  #     - "3000"
+  #   environment:
+  #     - POSTGRES_POOL_SIZE=5
+  #     - POSTGRESS_IDLE_TIMEOUT=30000
+  #     - POSTGRES_CONNECTION_TIMEOUT=10000
+  #     - POSTGRES_HOST=apollo-postgres
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_DATABASE=dmsp
+  #     - POSTGRES_USER=dmspuser
+  #     - POSTGRES_PASSWORD=dockerSecr3t
+  #     # - MYSQL_HOST=dmsp-mysql
+  #     # - MYSQL_PORT=3306
+  #     # - MYSQL_USER=dmspuser
+  #     # - MYSQL_PASSWORD=abcdefghij
+  #     # - MYSQL_DB_NAME=dmsp_prototype
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - .:/app

@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
+import { mergeTypeDefs } from '@graphql-tools/merge';
 
-import fs from 'fs';
-import path from 'path';
+import { typeDefs as baseTypeDefs } from './schemas/base';
+import { typeDefs as contributorRoleTypeDefs } from './schemas/contributorRole';
+import { typeDefs as dmspTypeDefs } from './schemas/dmsp';
 
-export const typeDefs = gql`
-  ${fs.readFileSync(path.resolve(__dirname, "./schemas/*.graphql").toString())}
-`;
+export const typeDefs = mergeTypeDefs([baseTypeDefs, dmspTypeDefs, contributorRoleTypeDefs]);

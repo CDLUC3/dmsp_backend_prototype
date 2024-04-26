@@ -2,7 +2,7 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   // schema: "./src/schema.ts",
-  schema: "./src/schemas/*.graphql",
+  schema: "./src/schemas/*.ts",
   generates: {
     "./src/types.ts": {
       plugins: ["typescript", "typescript-resolvers"],
@@ -12,7 +12,7 @@ const config: CodegenConfig = {
         // namingConvention: 'keep',
         mappers: {
           Dmsp: "./models/Dmsp#DmspModel",
-          //ContributorRole: "./models#ContributorRoleModel",
+          ContributorRole: "./models/ContributorRole#ContributorRoleModel",
         },
       },
     },

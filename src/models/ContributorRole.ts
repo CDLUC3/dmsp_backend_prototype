@@ -1,5 +1,5 @@
-export type ContributorRole = {
-  id: string;
+export type ContributorRoleModel = {
+  id: number;
   url: string;
   label: string;
   description: string;

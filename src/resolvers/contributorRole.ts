@@ -4,18 +4,30 @@ export const resolvers: Resolvers = {
   Query: {
     // returns an array of all contributor roles
     contributorRoles: (_, __, { dataSources }) => {
-      const sql = 'SELECT * FROM contributor_roles ORDER BY label';
-      return dataSources.postgresDataSource.query(sql, []);
+      return new Promise((resolve, reject) => {
+        const sql = 'SELECT * FROM contributor_roles ORDER BY label';
+        dataSources.mysqlDataSource.query(sql, [])
+                                   .then(rows => resolve(rows))
+                                   .catch(error => reject(error));
+      });
     },
     // returns a contributor role that matches the specified ID
     contributorRoleById: (_, { contributorRoleId }, { dataSources }) => {
-      const sql = 'SELECT * FROM contributor_roles WHERE id = $1';
-      return dataSources.postgresDataSource.query(sql, [encodeURIComponent(contributorRoleId)])[0];
+      return new Promise((resolve, reject) => {
+        const sql = 'SELECT * FROM contributor_roles WHERE id = ?';
+        dataSources.mysqlDataSource.query(sql, [contributorRoleId])
+                                   .then(rows => resolve(rows[0]))
+                                   .catch(error => reject(error));
+      });
     },
     // returns the contributor role that matches the specified URL
     contributorRoleByURL: (_, { contributorRoleURL }, { dataSources }) => {
-      const sql = 'SELECT * FROM contributor_roles WHERE url = $1';
-      return dataSources.postgresDataSource.query(sql, [encodeURIComponent(contributorRoleURL)])[0];
+      return new Promise((resolve, reject) => {
+        const sql = 'SELECT * FROM contributor_roles WHERE url = ?';
+        dataSources.mysqlDataSource.query(sql, [contributorRoleURL])
+                                   .then(rows => resolve(rows[0]))
+                                   .catch(error => reject(error));
+      });
     },
   },
 };

@@ -1,6 +1,6 @@
-import AWS from 'aws-sdk';
 import * as dotenv from 'dotenv';
 import { pgConfig } from './datasources/postgresDB';
+import { PoolConfig } from './datasources/mysqlDB';
 
 dotenv.config();
 
@@ -16,12 +16,11 @@ export const postgresConfig: pgConfig = {
   password: process.env.POSTGRES_PASSWORD,
 };
 
-// JS SDK v3 does not support global configuration.
-// Codemod has attempted to pass values to each service client in this file.
-// You may need to update clients outside of this file, if they use global config.
-AWS.config.update({
-  region: process.env.AWS_REGION,
-  // accessKeyId: 'your-access-key-id',
-  // secretAccessKey: 'your-secret-access-key',
-});
-export const aws = AWS;
+export const mysqlConfig: PoolConfig = {
+  connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT),
+  host: process.env.MYSQL_HOST,
+  port: Number(process.env.MYSQL_PORT),
+  database: process.env.MYSQL_DATABASE,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+};
