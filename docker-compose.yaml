@@ -52,6 +52,9 @@ services:
     expose:
       - "3000"
     environment:
+      - POSTGRES_POOL_SIZE=5
+      - POSTGRESS_IDLE_TIMEOUT=30000
+      - POSTGRES_CONNECTION_TIMEOUT=10000
       - POSTGRES_HOST=apollo-postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DATABASE=dmsp

@@ -1,7 +1,7 @@
-import { ContributorRole } from './ContributorRoleModel';
+import { ContributorRole } from './ContributorRole';
 
-export type DMP = {
-  dmpID: string;
+export type DmspModel = {
+  id: string;
   primaryContact: PrimaryContact;
   created: string;
   modified: string;

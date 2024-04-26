@@ -34,7 +34,10 @@
     "datasource-sql": "^2.1.0",
     "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6",
-    "pg": "^8.11.5"
+    "http-cache-semantics": "^4.1.1",
+    "knex": "^3.1.0",
+    "pg": "^8.11.5",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^4.0.1",

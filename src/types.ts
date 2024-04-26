@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { ContributorRoleModel, DMPModel } from './models';
+import { DmspModel } from './models/Dmsp';
 import { DataSourceContext } from './context';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -8,7 +8,6 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
-export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -51,15 +50,15 @@ export type ContributorRole = {
   url: Scalars['URL']['output'];
 };
 
-export type Dmp = {
-  __typename?: 'DMP';
+export type Dmsp = {
+  __typename?: 'Dmsp';
   contributors?: Maybe<Array<Maybe<Contributor>>>;
   created: Scalars['DateTimeISO']['output'];
   description: Scalars['String']['output'];
-  dmpID: Scalars['String']['output'];
   ethicalConcernsDescription?: Maybe<Scalars['String']['output']>;
   ethicalConcernsReportURL?: Maybe<Scalars['URL']['output']>;
   hasEthicalConcerns: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
   isFeatured: Scalars['Boolean']['output'];
   language?: Maybe<Scalars['String']['output']>;
   modified: Scalars['DateTimeISO']['output'];
@@ -70,7 +69,7 @@ export type Dmp = {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  _dummy?: Maybe<Scalars['String']['output']>;
+  _empty?: Maybe<Scalars['String']['output']>;
   /** Add a new contributor role (URL and label must be unique!) */
   addContributorRole?: Maybe<ContributorRole>;
   /** Delete the contributor role */
@@ -109,15 +108,15 @@ export type PrimaryContact = {
 
 export type Query = {
   __typename?: 'Query';
-  _dummy?: Maybe<Scalars['String']['output']>;
+  _empty?: Maybe<Scalars['String']['output']>;
   /** Get the contributor role by it's ID */
   contributorRoleById?: Maybe<ContributorRole>;
   /** Get the contributor role by it's URL */
   contributorRoleByURL?: Maybe<ContributorRole>;
   /** Get all of the contributor role types */
   contributorRoles?: Maybe<Array<Maybe<ContributorRole>>>;
-  /** Get the contributor role by it's ID */
-  getDMP?: Maybe<Dmp>;
+  /** Get the DMSP by its DMP ID */
+  dmspById?: Maybe<Dmsp>;
 };
 
 
@@ -131,8 +130,8 @@ export type QueryContributorRoleByUrlArgs = {
 };
 
 
-export type QueryGetDmpArgs = {
-  dmpId: Scalars['String']['input'];
+export type QueryDmspByIdArgs = {
+  dmspId: Scalars['ID']['input'];
 };
 
 
@@ -208,10 +207,10 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 export type ResolversTypes = {
   Affiliation: ResolverTypeWrapper<Affiliation>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  Contributor: ResolverTypeWrapper<Omit<Contributor, 'role'> & { role: Array<ResolversTypes['ContributorRole']> }>;
-  ContributorRole: ResolverTypeWrapper<ContributorRoleModel>;
-  DMP: ResolverTypeWrapper<DMPModel>;
+  Contributor: ResolverTypeWrapper<Contributor>;
+  ContributorRole: ResolverTypeWrapper<ContributorRole>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
+  Dmsp: ResolverTypeWrapper<DmspModel>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
   PrimaryContact: ResolverTypeWrapper<PrimaryContact>;
@@ -224,10 +223,10 @@ export type ResolversTypes = {
 export type ResolversParentTypes = {
   Affiliation: Affiliation;
   Boolean: Scalars['Boolean']['output'];
-  Contributor: Omit<Contributor, 'role'> & { role: Array<ResolversParentTypes['ContributorRole']> };
-  ContributorRole: ContributorRoleModel;
-  DMP: DMPModel;
+  Contributor: Contributor;
+  ContributorRole: ContributorRole;
   DateTimeISO: Scalars['DateTimeISO']['output'];
+  Dmsp: DmspModel;
   ID: Scalars['ID']['output'];
   Mutation: {};
   PrimaryContact: PrimaryContact;
@@ -261,14 +260,18 @@ export type ContributorRoleResolvers<ContextType = DataSourceContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type DmpResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['DMP'] = ResolversParentTypes['DMP']> = {
+export interface DateTimeIsoScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTimeISO'], any> {
+  name: 'DateTimeISO';
+}
+
+export type DmspResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Dmsp'] = ResolversParentTypes['Dmsp']> = {
   contributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['Contributor']>>>, ParentType, ContextType>;
   created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   description?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  dmpID?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   ethicalConcernsDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   ethicalConcernsReportURL?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
   hasEthicalConcerns?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isFeatured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   language?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
@@ -278,12 +281,8 @@ export type DmpResolvers<ContextType = DataSourceContext, ParentType extends Res
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export interface DateTimeIsoScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTimeISO'], any> {
-  name: 'DateTimeISO';
-}
-
 export type MutationResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
-  _dummy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'label' | 'url'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'id'>>;
@@ -298,11 +297,11 @@ export type PrimaryContactResolvers<ContextType = DataSourceContext, ParentType 
 };
 
 export type QueryResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
-  _dummy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
-  getDMP?: Resolver<Maybe<ResolversTypes['DMP']>, ParentType, ContextType, RequireFields<QueryGetDmpArgs, 'dmpId'>>;
+  dmspById?: Resolver<Maybe<ResolversTypes['Dmsp']>, ParentType, ContextType, RequireFields<QueryDmspByIdArgs, 'dmspId'>>;
 };
 
 export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['URL'], any> {
@@ -313,8 +312,8 @@ export type Resolvers<ContextType = DataSourceContext> = {
   Affiliation?: AffiliationResolvers<ContextType>;
   Contributor?: ContributorResolvers<ContextType>;
   ContributorRole?: ContributorRoleResolvers<ContextType>;
-  DMP?: DmpResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;
+  Dmsp?: DmspResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   PrimaryContact?: PrimaryContactResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;

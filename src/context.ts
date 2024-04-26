@@ -1,9 +1,9 @@
 import { DMPHubAPI } from './datasources/dmphub-api';
-import { PostgresDB } from './datasources/postgres-db';
+import { PostgresDataSource } from './datasources/postgresDB';
 
 export type DataSourceContext = {
   dataSources: {
-    dmphubAPI: DMPHubAPI;
-    postgresDB: PostgresDB;
+    dmphubAPIDataSource: DMPHubAPI;
+    postgresDataSource: PostgresDataSource;
   };
 }

@@ -1,16 +1,18 @@
 import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
+  // schema: "./src/schema.ts",
   schema: "./src/schemas/*.graphql",
   generates: {
     "./src/types.ts": {
       plugins: ["typescript", "typescript-resolvers"],
       config: {
-        federation: "true",
+        // federation: "true",
         contextType: "./context#DataSourceContext",
+        // namingConvention: 'keep',
         mappers: {
-          ContributorRole: "./models#ContributorRoleModel",
-          DMP: "./models#DMPModel"
+          Dmsp: "./models/Dmsp#DmspModel",
+          //ContributorRole: "./models#ContributorRoleModel",
         },
       },
     },

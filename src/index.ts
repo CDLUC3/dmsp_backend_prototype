@@ -1,32 +1,20 @@
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
-import { knexConfig } from './config';
-
-import { PostgresDB } from './datasources/postgres-db';
-// import { DMPHubAPI } from './datasources/dmphub-api';
-
-import { typeDefs } from './schemas';
-import { resolvers } from './resolvers';
-
-// Setup the context object which gets passed through to the Resolvers
-interface MyContext {
-  // user?: UserInfo;
-  token?: string;
-  dataSources?: {
-    // dmphubAPI: DMPHubAPI;
-    postgresDB: PostgresDB;
-  };
-}
+import { postgresConfig } from './config';
+import { PostgresDataSource } from './datasources/postgresDB';
+import { DMPHubAPI } from './datasources/dmphub-api';
+import { typeDefs } from './schema';
+import { resolvers } from './resolver';
 
 async function startApolloServer() {
-  const server = new ApolloServer<MyContext>({ typeDefs, resolvers });
+  const server = new ApolloServer({ typeDefs, resolvers });
 
   const { url } = await startStandaloneServer(server, {
     context: async ({ req, res }) => ({
-      token: req.headers.authorization,
       dataSources: {
-        // dmphubAPI: await new DMPHubAPI({ token, cache }),
-        postgesDB: new PostgresDB(knexConfig)
+        token: req.headers?.authentication as string,
+        dmphubAPI: await new DMPHubAPI({ token: req.headers.authorization, cache: null }),
+        postgresDataSource: new PostgresDataSource({ config: postgresConfig })
       }
     }),
   });

@@ -1,6 +1,6 @@
 import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
-import { DMP } from "../models/DMPModel"
+import { DmspModel as Dmsp } from "../models/Dmsp"
 
 export class DMPHubAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
@@ -19,11 +19,11 @@ export class DMPHubAPI extends RESTDataSource {
   /**
    * TODO: Tie this into OpenSearch
    */
-  getDMPs() {
-    return this.get<DMP[]>("dmps");
+  getDMSPs() {
+    return this.get<Dmsp[]>("dmps");
   }
 
-  getDMP(dmpID: string) {
-    return this.get<DMP>(`dmps/${encodeURIComponent(dmpID)}`);
+  getDMSP(dmspID: string) {
+    return this.get<Dmsp>(`dmps/${encodeURIComponent(dmspID)}`);
   }
 }
