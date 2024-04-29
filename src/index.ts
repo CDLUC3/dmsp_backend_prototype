@@ -1,8 +1,7 @@
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 
-import { postgresConfig, mysqlConfig } from './config';
-import { PostgresDataSource } from './datasources/postgresDB';
+import { mysqlConfig } from './config';
 import { MysqlDataSource } from './datasources/mysqlDB';
 import { DMPHubAPI } from './datasources/dmphub-api';
 
@@ -15,9 +14,9 @@ async function startApolloServer() {
   const { url } = await startStandaloneServer(server, {
     context: async ({ req }) => ({
       dataSources: {
-        // token: null, // req.headers?.authentication as string,
-        // dmphubAPI: new DMPHubAPI({ token: '', cache: null }), //req.headers.authorization, cache: null }),
-        // postgresDataSource: await new PostgresDataSource({ config: postgresConfig })
+        // token: req.headers?.authentication
+        // cache: ???
+        dmphubAPIDataSource: await new DMPHubAPI({}),
         mysqlDataSource: await new MysqlDataSource({ config: mysqlConfig }),
       }
     }),

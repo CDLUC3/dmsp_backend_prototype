@@ -24,17 +24,17 @@ export type Scalars = {
 
 export type Affiliation = {
   __typename?: 'Affiliation';
+  affiliationId?: Maybe<Identifier>;
   name: Scalars['String']['output'];
-  ror?: Maybe<Scalars['URL']['output']>;
 };
 
 export type Contributor = {
   __typename?: 'Contributor';
   affiliation?: Maybe<Affiliation>;
+  contributorId?: Maybe<Identifier>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
-  orcid?: Maybe<Scalars['URL']['output']>;
-  role: Array<ContributorRole>;
+  role: Array<Scalars['String']['output']>;
 };
 
 export type ContributorRole = {
@@ -52,32 +52,54 @@ export type ContributorRole = {
   url: Scalars['URL']['output'];
 };
 
+export type ContributorRoleMutationResponse = {
+  __typename?: 'ContributorRoleMutationResponse';
+  /** Similar to HTTP status code, represents the status of the mutation */
+  code: Scalars['Int']['output'];
+  /**
+   * The contributor role that was impacted by the mutation.
+   * The new one if we were adding, the one that was updated when updating, or the one deletd when removing
+   */
+  contributorRole?: Maybe<ContributorRole>;
+  /** Human-readable message for the UI */
+  message: Scalars['String']['output'];
+  /** Indicates whether the mutation was successful */
+  success: Scalars['Boolean']['output'];
+};
+
 export type Dmsp = {
   __typename?: 'Dmsp';
-  contributors?: Maybe<Array<Maybe<Contributor>>>;
+  contact: PrimaryContact;
+  contributor?: Maybe<Array<Maybe<Contributor>>>;
   created: Scalars['DateTimeISO']['output'];
-  description: Scalars['String']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  dmpId: Identifier;
   ethicalConcernsDescription?: Maybe<Scalars['String']['output']>;
   ethicalConcernsReportURL?: Maybe<Scalars['URL']['output']>;
   hasEthicalConcerns: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
-  isFeatured: Scalars['Boolean']['output'];
+  isFeatured?: Maybe<Scalars['Boolean']['output']>;
   language?: Maybe<Scalars['String']['output']>;
   modified: Scalars['DateTimeISO']['output'];
-  primaryContact: PrimaryContact;
   title: Scalars['String']['output'];
-  visibility: Scalars['String']['output'];
+  visibility?: Maybe<Scalars['String']['output']>;
+};
+
+export type Identifier = {
+  __typename?: 'Identifier';
+  identifier: Scalars['String']['output'];
+  type: Scalars['String']['output'];
 };
 
 export type Mutation = {
   __typename?: 'Mutation';
   _empty?: Maybe<Scalars['String']['output']>;
   /** Add a new contributor role (URL and label must be unique!) */
-  addContributorRole?: Maybe<ContributorRole>;
+  addContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Delete the contributor role */
-  removeContributorRole?: Maybe<Scalars['Boolean']['output']>;
+  removeContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Update the contributor role */
-  updateContributorRole?: Maybe<ContributorRole>;
+  updateContributorRole?: Maybe<ContributorRoleMutationResponse>;
 };
 
 
@@ -103,9 +125,9 @@ export type MutationUpdateContributorRoleArgs = {
 export type PrimaryContact = {
   __typename?: 'PrimaryContact';
   affiliation?: Maybe<Affiliation>;
+  contactId?: Maybe<Identifier>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
-  orcid?: Maybe<Scalars['URL']['output']>;
 };
 
 export type Query = {
@@ -118,7 +140,7 @@ export type Query = {
   /** Get all of the contributor role types */
   contributorRoles?: Maybe<Array<Maybe<ContributorRole>>>;
   /** Get the DMSP by its DMP ID */
-  dmspById?: Maybe<Dmsp>;
+  dmspById?: Maybe<SingleDmspResponse>;
 };
 
 
@@ -134,6 +156,18 @@ export type QueryContributorRoleByUrlArgs = {
 
 export type QueryDmspByIdArgs = {
   dmspId: Scalars['ID']['input'];
+};
+
+export type SingleDmspResponse = {
+  __typename?: 'SingleDmspResponse';
+  /** Similar to HTTP status code, represents the status of the mutation */
+  code: Scalars['Int']['output'];
+  /** The DMSP */
+  dmsp?: Maybe<Dmsp>;
+  /** Human-readable message for the UI */
+  message: Scalars['String']['output'];
+  /** Indicates whether the mutation was successful */
+  success: Scalars['Boolean']['output'];
 };
 
 
@@ -209,14 +243,18 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 export type ResolversTypes = {
   Affiliation: ResolverTypeWrapper<Affiliation>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  Contributor: ResolverTypeWrapper<Omit<Contributor, 'role'> & { role: Array<ResolversTypes['ContributorRole']> }>;
+  Contributor: ResolverTypeWrapper<Contributor>;
   ContributorRole: ResolverTypeWrapper<ContributorRoleModel>;
+  ContributorRoleMutationResponse: ResolverTypeWrapper<Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversTypes['ContributorRole']> }>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   Dmsp: ResolverTypeWrapper<DmspModel>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  Identifier: ResolverTypeWrapper<Identifier>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
   PrimaryContact: ResolverTypeWrapper<PrimaryContact>;
   Query: ResolverTypeWrapper<{}>;
+  SingleDmspResponse: ResolverTypeWrapper<Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversTypes['Dmsp']> }>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
 };
@@ -225,30 +263,34 @@ export type ResolversTypes = {
 export type ResolversParentTypes = {
   Affiliation: Affiliation;
   Boolean: Scalars['Boolean']['output'];
-  Contributor: Omit<Contributor, 'role'> & { role: Array<ResolversParentTypes['ContributorRole']> };
+  Contributor: Contributor;
   ContributorRole: ContributorRoleModel;
+  ContributorRoleMutationResponse: Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversParentTypes['ContributorRole']> };
   DateTimeISO: Scalars['DateTimeISO']['output'];
   Dmsp: DmspModel;
   ID: Scalars['ID']['output'];
+  Identifier: Identifier;
+  Int: Scalars['Int']['output'];
   Mutation: {};
   PrimaryContact: PrimaryContact;
   Query: {};
+  SingleDmspResponse: Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversParentTypes['Dmsp']> };
   String: Scalars['String']['output'];
   URL: Scalars['URL']['output'];
 };
 
 export type AffiliationResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Affiliation'] = ResolversParentTypes['Affiliation']> = {
+  affiliationId?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  ror?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ContributorResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Contributor'] = ResolversParentTypes['Contributor']> = {
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  contributorId?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  orcid?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
-  role?: Resolver<Array<ResolversTypes['ContributorRole']>, ParentType, ContextType>;
+  role?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -262,39 +304,54 @@ export type ContributorRoleResolvers<ContextType = DataSourceContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ContributorRoleMutationResponseResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['ContributorRoleMutationResponse'] = ResolversParentTypes['ContributorRoleMutationResponse']> = {
+  code?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  contributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export interface DateTimeIsoScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTimeISO'], any> {
   name: 'DateTimeISO';
 }
 
 export type DmspResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Dmsp'] = ResolversParentTypes['Dmsp']> = {
-  contributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['Contributor']>>>, ParentType, ContextType>;
+  contact?: Resolver<ResolversTypes['PrimaryContact'], ParentType, ContextType>;
+  contributor?: Resolver<Maybe<Array<Maybe<ResolversTypes['Contributor']>>>, ParentType, ContextType>;
   created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
-  description?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  dmpId?: Resolver<ResolversTypes['Identifier'], ParentType, ContextType>;
   ethicalConcernsDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   ethicalConcernsReportURL?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
   hasEthicalConcerns?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  isFeatured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isFeatured?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   language?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
-  primaryContact?: Resolver<ResolversTypes['PrimaryContact'], ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  visibility?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  visibility?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type IdentifierResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Identifier'] = ResolversParentTypes['Identifier']> = {
+  identifier?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type MutationResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'label' | 'url'>>;
-  removeContributorRole?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
-  updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'id'>>;
+  addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'label' | 'url'>>;
+  removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
+  updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'id'>>;
 };
 
 export type PrimaryContactResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['PrimaryContact'] = ResolversParentTypes['PrimaryContact']> = {
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  contactId?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  orcid?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -303,7 +360,15 @@ export type QueryResolvers<ContextType = DataSourceContext, ParentType extends R
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
-  dmspById?: Resolver<Maybe<ResolversTypes['Dmsp']>, ParentType, ContextType, RequireFields<QueryDmspByIdArgs, 'dmspId'>>;
+  dmspById?: Resolver<Maybe<ResolversTypes['SingleDmspResponse']>, ParentType, ContextType, RequireFields<QueryDmspByIdArgs, 'dmspId'>>;
+};
+
+export type SingleDmspResponseResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['SingleDmspResponse'] = ResolversParentTypes['SingleDmspResponse']> = {
+  code?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  dmsp?: Resolver<Maybe<ResolversTypes['Dmsp']>, ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['URL'], any> {
@@ -314,11 +379,14 @@ export type Resolvers<ContextType = DataSourceContext> = {
   Affiliation?: AffiliationResolvers<ContextType>;
   Contributor?: ContributorResolvers<ContextType>;
   ContributorRole?: ContributorRoleResolvers<ContextType>;
+  ContributorRoleMutationResponse?: ContributorRoleMutationResponseResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;
   Dmsp?: DmspResolvers<ContextType>;
+  Identifier?: IdentifierResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   PrimaryContact?: PrimaryContactResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  SingleDmspResponse?: SingleDmspResponseResolvers<ContextType>;
   URL?: GraphQLScalarType;
 };
 

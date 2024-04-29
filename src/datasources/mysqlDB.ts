@@ -20,15 +20,22 @@ export class MysqlDataSource {
     }
   }
 
+  // Helper function to sanitize a string before sending it to the database
+  sanitizeValue(value: string): string {
+    return encodeURIComponent(value);
+  }
+
+  // Send the specified query to the database
   async query(sql: string, values: string[]): Promise<any> {
     try {
-      const [rows] = await this.pool.query(sql, values);
-      // console.log(rows);
+      const vals = values.map((val) => this.sanitizeValue(val));
+      const [rows] = await this.pool.execute(sql, vals);
+      console.log(rows);
       return rows;
     } catch(err) {
       console.log('Error when querying the MySQL database.');
       console.log(err);
-      return null;
+      throw err;
     }
   }
 }

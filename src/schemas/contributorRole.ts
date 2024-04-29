@@ -12,11 +12,25 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Add a new contributor role (URL and label must be unique!)"
-    addContributorRole(url: URL!, label: String!, description: String): ContributorRole
+    addContributorRole(url: URL!, label: String!, description: String): ContributorRoleMutationResponse
     "Update the contributor role"
-    updateContributorRole(id: ID!, url: URL, label: String, description: String): ContributorRole
+    updateContributorRole(id: ID!, url: URL, label: String, description: String): ContributorRoleMutationResponse
     "Delete the contributor role"
-    removeContributorRole(id: ID!): Boolean
+    removeContributorRole(id: ID!): ContributorRoleMutationResponse
+  }
+
+  type ContributorRoleMutationResponse {
+    "Similar to HTTP status code, represents the status of the mutation"
+    code: Int!
+    "Indicates whether the mutation was successful"
+    success: Boolean!
+    "Human-readable message for the UI"
+    message: String!
+    """
+    The contributor role that was impacted by the mutation.
+    The new one if we were adding, the one that was updated when updating, or the one deletd when removing
+    """
+    contributorRole: ContributorRole
   }
 
   type ContributorRole {
