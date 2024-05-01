@@ -24,14 +24,14 @@ export type Scalars = {
 
 export type Affiliation = {
   __typename?: 'Affiliation';
-  affiliationId?: Maybe<Identifier>;
+  affiliation_id?: Maybe<Identifier>;
   name: Scalars['String']['output'];
 };
 
-export type Contributor = {
+export type Contributor = Person & {
   __typename?: 'Contributor';
-  affiliation?: Maybe<Affiliation>;
   contributorId?: Maybe<Identifier>;
+  dmproadmap_affiliation?: Maybe<Affiliation>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   role: Array<Scalars['String']['output']>;
@@ -122,10 +122,16 @@ export type MutationUpdateContributorRoleArgs = {
   url?: InputMaybe<Scalars['URL']['input']>;
 };
 
-export type PrimaryContact = {
+export type Person = {
+  dmproadmap_affiliation?: Maybe<Affiliation>;
+  mbox?: Maybe<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
+};
+
+export type PrimaryContact = Person & {
   __typename?: 'PrimaryContact';
-  affiliation?: Maybe<Affiliation>;
-  contactId?: Maybe<Identifier>;
+  contact_id?: Maybe<Identifier>;
+  dmproadmap_affiliation?: Maybe<Affiliation>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
 };
@@ -169,6 +175,12 @@ export type SingleDmspResponse = {
   /** Indicates whether the mutation was successful */
   success: Scalars['Boolean']['output'];
 };
+
+export enum YesNoUnknown {
+  No = 'no',
+  Unknown = 'unknown',
+  Yes = 'yes'
+}
 
 
 
@@ -238,6 +250,10 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 ) => TResult | Promise<TResult>;
 
 
+/** Mapping of interface types */
+export type ResolversInterfaceTypes<RefType extends Record<string, unknown>> = {
+  Person: ( Contributor ) | ( PrimaryContact );
+};
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
@@ -252,11 +268,13 @@ export type ResolversTypes = {
   Identifier: ResolverTypeWrapper<Identifier>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
+  Person: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Person']>;
   PrimaryContact: ResolverTypeWrapper<PrimaryContact>;
   Query: ResolverTypeWrapper<{}>;
   SingleDmspResponse: ResolverTypeWrapper<Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversTypes['Dmsp']> }>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
+  YesNoUnknown: YesNoUnknown;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -272,6 +290,7 @@ export type ResolversParentTypes = {
   Identifier: Identifier;
   Int: Scalars['Int']['output'];
   Mutation: {};
+  Person: ResolversInterfaceTypes<ResolversParentTypes>['Person'];
   PrimaryContact: PrimaryContact;
   Query: {};
   SingleDmspResponse: Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversParentTypes['Dmsp']> };
@@ -280,14 +299,14 @@ export type ResolversParentTypes = {
 };
 
 export type AffiliationResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Affiliation'] = ResolversParentTypes['Affiliation']> = {
-  affiliationId?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
+  affiliation_id?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ContributorResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Contributor'] = ResolversParentTypes['Contributor']> = {
-  affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   contributorId?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
+  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   role?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
@@ -347,9 +366,16 @@ export type MutationResolvers<ContextType = DataSourceContext, ParentType extend
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'id'>>;
 };
 
+export type PersonResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Person'] = ResolversParentTypes['Person']> = {
+  __resolveType: TypeResolveFn<'Contributor' | 'PrimaryContact', ParentType, ContextType>;
+  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
 export type PrimaryContactResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['PrimaryContact'] = ResolversParentTypes['PrimaryContact']> = {
-  affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
-  contactId?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
+  contact_id?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
+  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -384,6 +410,7 @@ export type Resolvers<ContextType = DataSourceContext> = {
   Dmsp?: DmspResolvers<ContextType>;
   Identifier?: IdentifierResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
+  Person?: PersonResolvers<ContextType>;
   PrimaryContact?: PrimaryContactResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   SingleDmspResponse?: SingleDmspResponseResolvers<ContextType>;

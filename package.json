@@ -31,13 +31,10 @@
     "@graphql-tools/mock": "^9.0.0",
     "@graphql-tools/schema": "^10.0.0",
     "aws-sdk": "^2.1598.0",
-    "datasource-sql": "^2.1.0",
     "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6",
     "http-cache-semantics": "^4.1.1",
-    "knex": "^3.1.0",
     "mysql2": "^3.9.7",
-    "pg": "^8.11.5",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
