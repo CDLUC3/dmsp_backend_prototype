@@ -28,6 +28,10 @@ export const resolvers: Resolvers = {
     contributorRoles: (_, __, { dataSources }) => {
       return new Promise((resolve, reject) => {
         const sql = 'SELECT * FROM contributor_roles ORDER BY label';
+
+console.log(sql)
+console.log(dataSources.sqlDataSource)
+
         dataSources.sqlDataSource.query(sql, [])
           .then(rows => resolve(rows))
           .catch(error => reject(error));
@@ -36,8 +40,7 @@ export const resolvers: Resolvers = {
     // returns a contributor role that matches the specified ID
     contributorRoleById: (_, { contributorRoleId }, { dataSources }) => {
       return new Promise((resolve, reject) => {
-        const sql = 'SELECT * FROM contributor_roles WHERE id = ?';
-        dataSources.sqlDataSource.query(sql, [contributorRoleId])
+        fetchContributorRole(dataSources, contributorRoleId)
           .then(rows => resolve(rows[0]))
           .catch(error => reject(error));
       });

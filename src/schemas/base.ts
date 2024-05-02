@@ -1,9 +1,10 @@
 import gql from "graphql-tag";
 
 export const typeDefs = gql`
-  # Specialized scalars from graphql-tools
-  scalar URL
+  # Specialized scalars from graphql-tools: https://the-guild.dev/graphql/scalars/docs/scalars
   scalar DateTimeISO
+  scalar EmailAddress
+  scalar URL
 
   # Base Query and Mutation objects are defined here because names must be unique and each
   # individual GraphQL file has its own Queries and Mutations, so we have those extend these

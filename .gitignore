@@ -1,6 +1,9 @@
 # Ignore the Dotenv file
 .env
 
+# Ignore the local data-migration log.
+data-migrations/processed.log
+
 # Skip all of the dependencies in node_modules
 node_modules/
 
