@@ -11,19 +11,19 @@ WORKDIR /app
 
 # Copy package.json and package-lock.json
 # to the /app working directory
-COPY package*.json ./
+COPY package*.json tsconfig.json codegen.ts ./
 
 # Install dependencies in /app
 RUN npm install
 
-# Copy the rest of our Next.js folder into /app
+# Copy the rest of our Apollo Server folder into /app
 COPY . .
 
 # Ensure port 3000 is accessible to our system
 EXPOSE 4000
 
 # Command to run the Next.js app in development mode
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "dev"]
 
 
 #EXPOSE 4000
