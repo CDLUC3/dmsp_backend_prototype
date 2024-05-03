@@ -6,6 +6,11 @@ export const typeDefs = gql`
   scalar EmailAddress
   scalar URL
 
+  # Our custom scalars
+  scalar Orcid
+  scalar Ror
+  scalar DmspId
+
   # Base Query and Mutation objects are defined here because names must be unique and each
   # individual GraphQL file has its own Queries and Mutations, so we have those extend these
   # base definitions

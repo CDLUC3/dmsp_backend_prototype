@@ -30,7 +30,7 @@ export class MysqlDataSource {
     try {
       const vals = values.map((val) => this.sanitizeValue(val));
       const [rows] = await this.pool.execute(sql, vals);
-      console.log(rows);
+      // console.log(rows);
       return rows;
     } catch(err) {
       console.log('Error when querying the MySQL database.');

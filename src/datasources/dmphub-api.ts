@@ -55,6 +55,7 @@ export class DMPHubAPI extends RESTDataSource {
     } else {
       ret['dmsp'] = dmsps[0];
     }
+    // console.log(ret);
     return ret;
   }
 

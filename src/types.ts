@@ -19,7 +19,10 @@ export type Scalars = {
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
   DateTimeISO: { input: any; output: any; }
+  DmspId: { input: any; output: any; }
   EmailAddress: { input: any; output: any; }
+  Orcid: { input: any; output: any; }
+  Ror: { input: any; output: any; }
   URL: { input: any; output: any; }
 };
 
@@ -184,6 +187,7 @@ export type User = {
   email: Scalars['EmailAddress']['output'];
   givenName: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  orcid?: Maybe<Scalars['Orcid']['output']>;
   role: UserRole;
   surName: Scalars['String']['output'];
 };
@@ -282,14 +286,17 @@ export type ResolversTypes = {
   ContributorRoleMutationResponse: ResolverTypeWrapper<Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversTypes['ContributorRole']> }>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   Dmsp: ResolverTypeWrapper<DmspModel>;
+  DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Identifier: ResolverTypeWrapper<Identifier>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
+  Orcid: ResolverTypeWrapper<Scalars['Orcid']['output']>;
   Person: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Person']>;
   PrimaryContact: ResolverTypeWrapper<PrimaryContact>;
   Query: ResolverTypeWrapper<{}>;
+  Ror: ResolverTypeWrapper<Scalars['Ror']['output']>;
   SingleDmspResponse: ResolverTypeWrapper<Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversTypes['Dmsp']> }>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
@@ -307,14 +314,17 @@ export type ResolversParentTypes = {
   ContributorRoleMutationResponse: Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversParentTypes['ContributorRole']> };
   DateTimeISO: Scalars['DateTimeISO']['output'];
   Dmsp: DmspModel;
+  DmspId: Scalars['DmspId']['output'];
   EmailAddress: Scalars['EmailAddress']['output'];
   ID: Scalars['ID']['output'];
   Identifier: Identifier;
   Int: Scalars['Int']['output'];
   Mutation: {};
+  Orcid: Scalars['Orcid']['output'];
   Person: ResolversInterfaceTypes<ResolversParentTypes>['Person'];
   PrimaryContact: PrimaryContact;
   Query: {};
+  Ror: Scalars['Ror']['output'];
   SingleDmspResponse: Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversParentTypes['Dmsp']> };
   String: Scalars['String']['output'];
   URL: Scalars['URL']['output'];
@@ -376,6 +386,10 @@ export type DmspResolvers<ContextType = DataSourceContext, ParentType extends Re
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export interface DmspIdScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DmspId'], any> {
+  name: 'DmspId';
+}
+
 export interface EmailAddressScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['EmailAddress'], any> {
   name: 'EmailAddress';
 }
@@ -392,6 +406,10 @@ export type MutationResolvers<ContextType = DataSourceContext, ParentType extend
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'id'>>;
 };
+
+export interface OrcidScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Orcid'], any> {
+  name: 'Orcid';
+}
 
 export type PersonResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Person'] = ResolversParentTypes['Person']> = {
   __resolveType: TypeResolveFn<'Contributor' | 'PrimaryContact', ParentType, ContextType>;
@@ -418,6 +436,10 @@ export type QueryResolvers<ContextType = DataSourceContext, ParentType extends R
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
 };
 
+export interface RorScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Ror'], any> {
+  name: 'Ror';
+}
+
 export type SingleDmspResponseResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['SingleDmspResponse'] = ResolversParentTypes['SingleDmspResponse']> = {
   code?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   dmsp?: Resolver<Maybe<ResolversTypes['Dmsp']>, ParentType, ContextType>;
@@ -434,6 +456,7 @@ export type UserResolvers<ContextType = DataSourceContext, ParentType extends Re
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
   givenName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
   role?: Resolver<ResolversTypes['UserRole'], ParentType, ContextType>;
   surName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -446,12 +469,15 @@ export type Resolvers<ContextType = DataSourceContext> = {
   ContributorRoleMutationResponse?: ContributorRoleMutationResponseResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;
   Dmsp?: DmspResolvers<ContextType>;
+  DmspId?: GraphQLScalarType;
   EmailAddress?: GraphQLScalarType;
   Identifier?: IdentifierResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
+  Orcid?: GraphQLScalarType;
   Person?: PersonResolvers<ContextType>;
   PrimaryContact?: PrimaryContactResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  Ror?: GraphQLScalarType;
   SingleDmspResponse?: SingleDmspResponseResolvers<ContextType>;
   URL?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;

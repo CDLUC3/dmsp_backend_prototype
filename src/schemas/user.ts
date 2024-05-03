@@ -18,5 +18,6 @@ export const typeDefs = gql`
     surName: String!
     email: EmailAddress!
     role: UserRole!
+    orcid: Orcid
   }
 `;
