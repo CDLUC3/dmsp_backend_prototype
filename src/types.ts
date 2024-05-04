@@ -49,7 +49,7 @@ export type ContributorRole = {
   description?: Maybe<Scalars['String']['output']>;
   /** The order in which to display these items when displayed in the UI */
   displayOrder: Scalars['Int']['output'];
-  id: Scalars['ID']['output'];
+  id: Scalars['Int']['output'];
   /** The Ui label to display for the contributor role */
   label: Scalars['String']['output'];
   /** The timestamp of when the contributor role last modified */
@@ -214,9 +214,11 @@ export type SingleDmspResponse = {
 
 export type User = {
   __typename?: 'User';
+  created: Scalars['DateTimeISO']['output'];
   email: Scalars['EmailAddress']['output'];
   givenName: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
+  id: Scalars['Int']['output'];
+  modified: Scalars['DateTimeISO']['output'];
   orcid?: Maybe<Scalars['Orcid']['output']>;
   role: UserRole;
   surName: Scalars['String']['output'];
@@ -388,7 +390,7 @@ export type ContributorRoleResolvers<ContextType = DataSourceContext, ParentType
   created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['URL'], ParentType, ContextType>;
@@ -518,9 +520,11 @@ export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 }
 
 export type UserResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
+  created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
   givenName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
   role?: Resolver<ResolversTypes['UserRole'], ParentType, ContextType>;
   surName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

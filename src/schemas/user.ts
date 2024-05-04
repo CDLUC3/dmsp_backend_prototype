@@ -13,11 +13,13 @@ export const typeDefs = gql`
   }
 
   type User {
-    id: ID!
+    id: Int!
     givenName: String!
     surName: String!
     email: EmailAddress!
     role: UserRole!
     orcid: Orcid
+    created: DateTimeISO!
+    modified: DateTimeISO!
   }
 `;

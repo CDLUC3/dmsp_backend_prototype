@@ -17,7 +17,7 @@ function getTokenFromRequest(request) {
 }
 
 function serverConfig() {
-  // If we are running in offline mode
+  // If we are running in offline mode then we will use mocks
   if (process.env?.USE_MOCK_DATA) {
     return {
       schema: addMocksToSchema({
@@ -26,6 +26,7 @@ function serverConfig() {
       }),
     };
   }
+  // Otherwise use the normal resolvers connected to our data sources
   return { typeDefs, resolvers };
 }
 

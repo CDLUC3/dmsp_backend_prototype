@@ -8,7 +8,7 @@ export function validateDmspId(val) {
   if (val.startsWith(DMSP_BASE_URL) && id.match(DMSP_REGEX).length > 0) {
     return val;
   }
-  throw new Error(`Invalid DMSP ID. Expected: "${DMSP_BASE_URL}A1B2C3D4"`);
+  throw new Error(`Invalid DMSP ID format. Expected: "${DMSP_BASE_URL}A1B2C3D4"`);
 };
 
 // GraphQL Scalar definition for a DMSP ID

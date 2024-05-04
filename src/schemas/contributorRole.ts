@@ -34,7 +34,7 @@ export const typeDefs = gql`
   }
 
   type ContributorRole {
-    id: ID!
+    id: Int!
     "The order in which to display these items when displayed in the UI"
     displayOrder: Int!
     "The Ui label to display for the contributor role"

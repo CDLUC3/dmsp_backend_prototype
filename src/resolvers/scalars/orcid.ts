@@ -11,7 +11,7 @@ export function validateOrcid(val) {
     // Prepend the ORCID URL to the id if it doesn't have it
     return val.startsWith('http') ? val : `${ORCID_DOMAIN}${val}`;
   }
-  throw new Error(`Invalid ORCID. Expected: "https://orcid.org/0000-0000-0000-0000" or "0000-0000-0000-0000"`);
+  throw new Error(`Invalid ORCID format. Expected: "https://orcid.org/0000-0000-0000-0000" or "0000-0000-0000-0000"`);
 };
 
 // GraphQL Scalar definition for a researcher ORCID

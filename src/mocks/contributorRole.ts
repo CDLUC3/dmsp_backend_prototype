@@ -1,7 +1,9 @@
+// Just define what is unique here. Any fields you skip will end up using the defaults
+// for their respective type as defined in ./src/mocks.ts
 const data = [
   {
     id: 1,
-    url: 'https://credit.niso.org/contributor-roles/project-administration/',
+    url: 'https://credit.niso.org/contributor-roles/investigation/',
     label: 'Principal Investigator (PI)',
     description: 'An individual conducting a research and investigation process, specifically performing the experiments, or data/evidence collection.',
     displayOrder: 1,
