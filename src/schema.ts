@@ -6,5 +6,8 @@ import { typeDefs as dmspTypeDefs } from './schemas/dmsp';
 import { typeDefs as userTypeDefs } from './schemas/user';
 
 export const typeDefs = mergeTypeDefs([
-  baseTypeDefs, contributorRoleTypeDefs, dmspTypeDefs, userTypeDefs
+  baseTypeDefs,
+  contributorRoleTypeDefs,
+  dmspTypeDefs,
+  userTypeDefs
 ]);
