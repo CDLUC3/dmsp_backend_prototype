@@ -4,7 +4,7 @@ import { ContributorRoleModel } from "../models/ContributorRole";
 // Extracting this particular query because we call it after mutations
 async function fetchContributorRole(dataSources, contributorRoleId) : Promise<ContributorRoleModel> {
   return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM contributor_roles WHERE id = ?';
+    const sql = 'SELECT * FROM contributorRoles WHERE id = ?';
     dataSources.sqlDataSource.query(sql, [contributorRoleId])
                                .then(rows => resolve(rows[0]))
                                .catch(error => reject(error));
@@ -27,11 +27,7 @@ export const resolvers: Resolvers = {
     // returns an array of all contributor roles
     contributorRoles: (_, __, { dataSources }) => {
       return new Promise((resolve, reject) => {
-        const sql = 'SELECT * FROM contributor_roles ORDER BY label';
-
-console.log(sql)
-console.log(dataSources.sqlDataSource)
-
+        const sql = 'SELECT * FROM contributorRoles ORDER BY label';
         dataSources.sqlDataSource.query(sql, [])
           .then(rows => resolve(rows))
           .catch(error => reject(error));
@@ -48,7 +44,7 @@ console.log(dataSources.sqlDataSource)
     // returns the contributor role that matches the specified URL
     contributorRoleByURL: (_, { contributorRoleURL }, { dataSources }) => {
       return new Promise((resolve, reject) => {
-        const sql = 'SELECT * FROM contributor_roles WHERE url = ?';
+        const sql = 'SELECT * FROM contributorRoles WHERE url = ?';
         dataSources.sqlDataSource.query(sql, [contributorRoleURL])
           .then(rows => resolve(rows[0]))
           .catch(error => reject(error));
@@ -58,10 +54,10 @@ console.log(dataSources.sqlDataSource)
 
   Mutation: {
     // add a new ContributorRole
-    addContributorRole: (_, { url, label, description }, { dataSources }) => {
+    addContributorRole: (_, { url, label, displayOrder, description }, { dataSources }) => {
       return new Promise((resolve, reject) => {
-        const sql = 'INSERT INTO contributor_roles (url, label, description) VALUES (?, ?, ?)';
-        dataSources.sqlDataSource.query(sql, [url, label, description])
+        const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
+        dataSources.sqlDataSource.query(sql, [url, label, description, displayOrder])
           .then(rows => {
             resolve({
               code: 201,
@@ -73,10 +69,10 @@ console.log(dataSources.sqlDataSource)
           .catch(error => reject(handleMutationError(error)));
       });
     },
-    updateContributorRole: (_, { id, url, label, description }, { dataSources }) => {
+    updateContributorRole: (_, { id, url, label, displayOrder, description }, { dataSources }) => {
       return new Promise((resolve, reject) => {
-        const sql = 'UPDATE contributor_roles SET url = ?, label = ?, description = ?) WHERE id = ?';
-        dataSources.sqlDataSource.query(sql, [url, label, description, id])
+        const sql = 'UPDATE contributorRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
+        dataSources.sqlDataSource.query(sql, [url, label, description, displayOrder, id])
           .then(rows => {
             resolve({
               code: 200,
@@ -90,7 +86,7 @@ console.log(dataSources.sqlDataSource)
     },
     removeContributorRole: (_, { id }, { dataSources }) => {
       return new Promise((resolve, reject) => {
-        const sql = 'DELETE FROM contributor_roles WHERE id = ?';
+        const sql = 'DELETE FROM contributorRoles WHERE id = ?';
         const original = fetchContributorRole(dataSources, id);
         dataSources.sqlDataSource.query(sql, [id])
           .then(rows => {

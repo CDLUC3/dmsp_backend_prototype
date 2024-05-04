@@ -1,33 +1,67 @@
+#!/bin/bash
+
 # =============================================================
 # = This script is meant to be run in the AWS CodeBuild step! =
 # =============================================================
 # Load the variables from dotenv
 . .env
 
-# The log file that records which migrations have already been run
-LOG_FILE=./data-migrations/processed.log
+MIGRATIONS_TABLE="CREATE TABLE dataMigrations (
+  migrationFile varchar(255) NOT NULL,
+  created timestamp DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (migrationFile),
+  CONSTRAINT unique_migration_files UNIQUE (migrationFile)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;"
 
-# This is intended to be run during the AWS CodeBuild process to migrate new database changes
-for i in ./data-migrations/*.sql; do
-  # Make sure the processed.log file exists
-  touch $LOG_FILE
+# Run the migration using the env variable defined in the dotenv file
+if [$MYSQL_PASSWORD == '']; then
+  MYSQL_ARGS="-h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER}"
+else
+  MYSQL_ARGS="-h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD}"
+fi
 
-  [ -f "$i" ] || break
-  echo "Found a migration file: ${i} ..."
+process_migration() {
+  # See if the migration was already processed
+  echo "Checking to see if $1 has been run ..."
+  EXISTS=$(mysql ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile = '$1';")
+  if [ -z "$EXISTS" ]; then
+    # If not run it
+    echo "NEW MIGRATION - $1. Processing migration ..."
+    mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} < $1
+    WAS_PROCESSED=$?
 
-  # If we have already processed the file, skip it
-  if cat $LOG_FILE | grep -q $i; then
-    echo "    skipping ${i}, it has already been processed"
-  else
-    # Run the migration using the env variable defined in the dotenv file
-    if [$MYSQL_PASSWORD == '']; then
-      mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} ${MYSQL_DATABASE} < ${i}
+    # If it worked then update the data-migrations table so we don't run it again!
+    if [ $WAS_PROCESSED -eq 0 ]; then
+      mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< "INSERT INTO dataMigrations (migrationFile) VALUES ('$1');"
+      echo "    done"
     else
-      mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < ${i}
+      echo "    Something went wrong!"
     fi
-    echo "    processed ${i}"
-
-    # Record the file name in the log
-    echo "${i}" >> $LOG_FILE
+  else
+    echo "    already processed."
   fi
+}
+
+# Check to see if we have already run the migration file
+echo "Checking to see if the database has been initialized"
+mysql ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile;"
+INIT_CHECK=$?
+
+# If the above failed, then it's a brand new DB, so we need to create the migrations table
+if [ $INIT_CHECK -eq 1 ]; then
+  echo '    it has not, initializing table ...'
+  echo ''
+  mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< $MIGRATIONS_TABLE
+else
+  echo '    it has.'
+fi
+echo ''
+
+# Run this script to process any new SQL migrations on youor local DB.
+for i in ./data-migrations/*.sql; do
+  [ -f "$i" ] || break
+
+  process_migration $i
+  echo ''
+  echo ''
 done

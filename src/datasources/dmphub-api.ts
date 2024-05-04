@@ -1,6 +1,7 @@
 import AWS from 'aws-sdk';
 import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
-// import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
+import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
+
 import { DmspModel as Dmsp } from "../models/Dmsp"
 
 // JS SDK v3 does not support global configuration.
@@ -18,26 +19,24 @@ export class DMPHubAPI extends RESTDataSource {
 
   private token: string;
 
-  constructor(options) {
+  constructor(options: { cache: KeyValueCache, token: string }) {
     super(options);
+
+    this.token = options.token;
   }
-  // constructor(options: { token: string; cache: KeyValueCache }) {
-  //  // this sends our server's `cache` through
-  //  super(options);
 
-  //  // TODO: We can override the default cache and logger here.
-  //  // See: https://github.com/apollographql/datasource-rest
-  // }
-
-  // Remove the protocol from the DMSP ID
+  // Remove the protocol from the DMSP ID and encode it but preserve the `/` characters
   dmspIdWithoutProtocol(dmspId) {
-    return dmspId.toString().replace(/^(https?:\/\/|https?%3A%2F%2F)/i, '');
+    return dmspId.toString().replace(/^(https?:\/\/|https?%3A%2F%2F)/i, '').replace(/%2F/g, '/');
   }
 
   // Search for DMSPs
   getDMSPs() {
     return this.get<Dmsp[]>("dmps");
   }
+
+  // TODO: Use the Fetcher to set the API auth token
+  //   See: https://www.apollographql.com/docs/apollo-server/data/fetching-rest#intercepting-fetches
 
   // Standard response handler
   handleResponse(response, resultAsArray = false) {
@@ -64,7 +63,7 @@ export class DMPHubAPI extends RESTDataSource {
     console.log(`Calling DMPHub: ${this.baseURL}`);
     try {
       const id = this.dmspIdWithoutProtocol(dmspID);
-      const response = await this.get<Dmsp>(`dmps/${id}`);
+      const response = await this.get<Dmsp>(`dmps/${encodeURI(id)}`);
       return this.handleResponse(response);
     } catch(error) {
       console.log(error);
