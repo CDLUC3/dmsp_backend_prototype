@@ -3,6 +3,7 @@ import { DMSP_BASE_URL, validateDmspId } from './resolvers/scalars/dmspId';
 import { validateOrcid } from './resolvers/scalars/orcid';
 import { Ror } from './resolvers/scalars/ror';
 import { mock as userMock } from './mocks/user';
+import { mock as contributorRoleMock } from './mocks/contributorRole';
 
 // Mock resolvers for our custom Scalars
 function mockOrcid() {
@@ -31,4 +32,8 @@ export const scalarMocks = {
   DmspId: () => mockDmspId(),
 };
 
-export const mocks = { ...scalarMocks, ...userMock };
+export const mocks = {
+  ...contributorRoleMock,
+  ...scalarMocks,
+  ...userMock
+};
