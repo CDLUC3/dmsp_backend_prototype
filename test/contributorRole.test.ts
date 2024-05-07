@@ -42,3 +42,5 @@ it('fetches all of the contributor roles', async () => {
   expect(assertTimestamp(results[0].created)).toBe(true);
   expect(assertTimestamp(results[0].modified)).toBe(true);
 });
+
+// TODO: add a test to make sure MockStore is working
