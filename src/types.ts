@@ -28,13 +28,13 @@ export type Scalars = {
 
 export type Affiliation = {
   __typename?: 'Affiliation';
-  affiliation_id?: Maybe<Identifier>;
+  affiliation_id?: Maybe<OrganizationIdentifier>;
   name: Scalars['String']['output'];
 };
 
 export type Contributor = Person & {
   __typename?: 'Contributor';
-  contributorId?: Maybe<Identifier>;
+  contributorId?: Maybe<PersonIdentifier>;
   dmproadmap_affiliation?: Maybe<Affiliation>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
@@ -47,7 +47,9 @@ export type ContributorRole = {
   created: Scalars['DateTimeISO']['output'];
   /** A longer description of the contributor role useful for tooltips */
   description?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
+  /** The order in which to display these items when displayed in the UI */
+  displayOrder: Scalars['Int']['output'];
+  id: Scalars['Int']['output'];
   /** The Ui label to display for the contributor role */
   label: Scalars['String']['output'];
   /** The timestamp of when the contributor role last modified */
@@ -77,16 +79,22 @@ export type Dmsp = {
   contributor?: Maybe<Array<Maybe<Contributor>>>;
   created: Scalars['DateTimeISO']['output'];
   description?: Maybe<Scalars['String']['output']>;
-  dmpId: Identifier;
-  ethicalConcernsDescription?: Maybe<Scalars['String']['output']>;
-  ethicalConcernsReportURL?: Maybe<Scalars['URL']['output']>;
-  hasEthicalConcerns: Scalars['Boolean']['output'];
-  id: Scalars['ID']['output'];
-  isFeatured?: Maybe<Scalars['Boolean']['output']>;
+  dmp_id: DmspIdentifier;
+  dmproadmap_featured?: Maybe<Scalars['String']['output']>;
+  dmproadmap_related_identifiers?: Maybe<Array<Maybe<RelatedIdentifier>>>;
+  dmproadmap_visibility?: Maybe<Scalars['String']['output']>;
+  ethical_issues_description?: Maybe<Scalars['String']['output']>;
+  ethical_issues_exist: YesNoUnknown;
+  ethical_issues_report?: Maybe<Scalars['URL']['output']>;
   language?: Maybe<Scalars['String']['output']>;
   modified: Scalars['DateTimeISO']['output'];
   title: Scalars['String']['output'];
-  visibility?: Maybe<Scalars['String']['output']>;
+};
+
+export type DmspIdentifier = {
+  __typename?: 'DmspIdentifier';
+  identifier: Scalars['DmspId']['output'];
+  type: Scalars['String']['output'];
 };
 
 export type Identifier = {
@@ -109,6 +117,7 @@ export type Mutation = {
 
 export type MutationAddContributorRoleArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
+  displayOrder: Scalars['Int']['input'];
   label: Scalars['String']['input'];
   url: Scalars['URL']['input'];
 };
@@ -121,15 +130,28 @@ export type MutationRemoveContributorRoleArgs = {
 
 export type MutationUpdateContributorRoleArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
+  displayOrder: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
-  url?: InputMaybe<Scalars['URL']['input']>;
+  label: Scalars['String']['input'];
+  url: Scalars['URL']['input'];
+};
+
+export type OrganizationIdentifier = {
+  __typename?: 'OrganizationIdentifier';
+  identifier: Scalars['Ror']['output'];
+  type: Scalars['String']['output'];
 };
 
 export type Person = {
   dmproadmap_affiliation?: Maybe<Affiliation>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
+};
+
+export type PersonIdentifier = {
+  __typename?: 'PersonIdentifier';
+  identifier: Scalars['Orcid']['output'];
+  type: Scalars['String']['output'];
 };
 
 export type PrimaryContact = Person & {
@@ -167,7 +189,15 @@ export type QueryContributorRoleByUrlArgs = {
 
 
 export type QueryDmspByIdArgs = {
-  dmspId: Scalars['ID']['input'];
+  dmspId: Scalars['DmspId']['input'];
+};
+
+export type RelatedIdentifier = {
+  __typename?: 'RelatedIdentifier';
+  descriptor: Scalars['String']['output'];
+  identifier: Scalars['URL']['output'];
+  type: Scalars['String']['output'];
+  work_type: Scalars['String']['output'];
 };
 
 export type SingleDmspResponse = {
@@ -184,9 +214,11 @@ export type SingleDmspResponse = {
 
 export type User = {
   __typename?: 'User';
+  created: Scalars['DateTimeISO']['output'];
   email: Scalars['EmailAddress']['output'];
   givenName: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
+  id: Scalars['Int']['output'];
+  modified: Scalars['DateTimeISO']['output'];
   orcid?: Maybe<Scalars['Orcid']['output']>;
   role: UserRole;
   surName: Scalars['String']['output'];
@@ -287,15 +319,19 @@ export type ResolversTypes = {
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   Dmsp: ResolverTypeWrapper<DmspModel>;
   DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
+  DmspIdentifier: ResolverTypeWrapper<DmspIdentifier>;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Identifier: ResolverTypeWrapper<Identifier>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   Mutation: ResolverTypeWrapper<{}>;
   Orcid: ResolverTypeWrapper<Scalars['Orcid']['output']>;
+  OrganizationIdentifier: ResolverTypeWrapper<OrganizationIdentifier>;
   Person: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Person']>;
+  PersonIdentifier: ResolverTypeWrapper<PersonIdentifier>;
   PrimaryContact: ResolverTypeWrapper<PrimaryContact>;
   Query: ResolverTypeWrapper<{}>;
+  RelatedIdentifier: ResolverTypeWrapper<RelatedIdentifier>;
   Ror: ResolverTypeWrapper<Scalars['Ror']['output']>;
   SingleDmspResponse: ResolverTypeWrapper<Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversTypes['Dmsp']> }>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
@@ -315,15 +351,19 @@ export type ResolversParentTypes = {
   DateTimeISO: Scalars['DateTimeISO']['output'];
   Dmsp: DmspModel;
   DmspId: Scalars['DmspId']['output'];
+  DmspIdentifier: DmspIdentifier;
   EmailAddress: Scalars['EmailAddress']['output'];
   ID: Scalars['ID']['output'];
   Identifier: Identifier;
   Int: Scalars['Int']['output'];
   Mutation: {};
   Orcid: Scalars['Orcid']['output'];
+  OrganizationIdentifier: OrganizationIdentifier;
   Person: ResolversInterfaceTypes<ResolversParentTypes>['Person'];
+  PersonIdentifier: PersonIdentifier;
   PrimaryContact: PrimaryContact;
   Query: {};
+  RelatedIdentifier: RelatedIdentifier;
   Ror: Scalars['Ror']['output'];
   SingleDmspResponse: Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversParentTypes['Dmsp']> };
   String: Scalars['String']['output'];
@@ -332,13 +372,13 @@ export type ResolversParentTypes = {
 };
 
 export type AffiliationResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Affiliation'] = ResolversParentTypes['Affiliation']> = {
-  affiliation_id?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
+  affiliation_id?: Resolver<Maybe<ResolversTypes['OrganizationIdentifier']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ContributorResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Contributor'] = ResolversParentTypes['Contributor']> = {
-  contributorId?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
+  contributorId?: Resolver<Maybe<ResolversTypes['PersonIdentifier']>, ParentType, ContextType>;
   dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -349,7 +389,8 @@ export type ContributorResolvers<ContextType = DataSourceContext, ParentType ext
 export type ContributorRoleResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['ContributorRole'] = ResolversParentTypes['ContributorRole']> = {
   created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['URL'], ParentType, ContextType>;
@@ -373,22 +414,28 @@ export type DmspResolvers<ContextType = DataSourceContext, ParentType extends Re
   contributor?: Resolver<Maybe<Array<Maybe<ResolversTypes['Contributor']>>>, ParentType, ContextType>;
   created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  dmpId?: Resolver<ResolversTypes['Identifier'], ParentType, ContextType>;
-  ethicalConcernsDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  ethicalConcernsReportURL?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
-  hasEthicalConcerns?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  isFeatured?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  dmp_id?: Resolver<ResolversTypes['DmspIdentifier'], ParentType, ContextType>;
+  dmproadmap_featured?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  dmproadmap_related_identifiers?: Resolver<Maybe<Array<Maybe<ResolversTypes['RelatedIdentifier']>>>, ParentType, ContextType>;
+  dmproadmap_visibility?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ethical_issues_description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ethical_issues_exist?: Resolver<ResolversTypes['YesNoUnknown'], ParentType, ContextType>;
+  ethical_issues_report?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
   language?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  visibility?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export interface DmspIdScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DmspId'], any> {
   name: 'DmspId';
 }
+
+export type DmspIdentifierResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['DmspIdentifier'] = ResolversParentTypes['DmspIdentifier']> = {
+  identifier?: Resolver<ResolversTypes['DmspId'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
 
 export interface EmailAddressScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['EmailAddress'], any> {
   name: 'EmailAddress';
@@ -402,20 +449,32 @@ export type IdentifierResolvers<ContextType = DataSourceContext, ParentType exte
 
 export type MutationResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'label' | 'url'>>;
+  addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'displayOrder' | 'label' | 'url'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
-  updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'id'>>;
+  updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
 };
 
 export interface OrcidScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Orcid'], any> {
   name: 'Orcid';
 }
 
+export type OrganizationIdentifierResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['OrganizationIdentifier'] = ResolversParentTypes['OrganizationIdentifier']> = {
+  identifier?: Resolver<ResolversTypes['Ror'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type PersonResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['Person'] = ResolversParentTypes['Person']> = {
   __resolveType: TypeResolveFn<'Contributor' | 'PrimaryContact', ParentType, ContextType>;
   dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+};
+
+export type PersonIdentifierResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['PersonIdentifier'] = ResolversParentTypes['PersonIdentifier']> = {
+  identifier?: Resolver<ResolversTypes['Orcid'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type PrimaryContactResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['PrimaryContact'] = ResolversParentTypes['PrimaryContact']> = {
@@ -436,6 +495,14 @@ export type QueryResolvers<ContextType = DataSourceContext, ParentType extends R
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
 };
 
+export type RelatedIdentifierResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['RelatedIdentifier'] = ResolversParentTypes['RelatedIdentifier']> = {
+  descriptor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  identifier?: Resolver<ResolversTypes['URL'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  work_type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export interface RorScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Ror'], any> {
   name: 'Ror';
 }
@@ -453,9 +520,11 @@ export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 }
 
 export type UserResolvers<ContextType = DataSourceContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
+  created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
   givenName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
   role?: Resolver<ResolversTypes['UserRole'], ParentType, ContextType>;
   surName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -470,13 +539,17 @@ export type Resolvers<ContextType = DataSourceContext> = {
   DateTimeISO?: GraphQLScalarType;
   Dmsp?: DmspResolvers<ContextType>;
   DmspId?: GraphQLScalarType;
+  DmspIdentifier?: DmspIdentifierResolvers<ContextType>;
   EmailAddress?: GraphQLScalarType;
   Identifier?: IdentifierResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Orcid?: GraphQLScalarType;
+  OrganizationIdentifier?: OrganizationIdentifierResolvers<ContextType>;
   Person?: PersonResolvers<ContextType>;
+  PersonIdentifier?: PersonIdentifierResolvers<ContextType>;
   PrimaryContact?: PrimaryContactResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
+  RelatedIdentifier?: RelatedIdentifierResolvers<ContextType>;
   Ror?: GraphQLScalarType;
   SingleDmspResponse?: SingleDmspResponseResolvers<ContextType>;
   URL?: GraphQLScalarType;

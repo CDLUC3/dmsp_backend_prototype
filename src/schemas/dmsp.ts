@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get the DMSP by its DMP ID"
-    dmspById(dmspId: ID!): SingleDmspResponse
+    dmspById(dmspId: DmspId!): SingleDmspResponse
   }
 
   type SingleDmspResponse {
@@ -18,20 +18,20 @@ export const typeDefs = gql`
   }
 
   type Dmsp {
-    id: ID!
-    dmpId: Identifier!
-    title: String!
     contact: PrimaryContact!
     created: DateTimeISO!
+    dmp_id: DmspIdentifier!
+    ethical_issues_exist: YesNoUnknown!
     modified: DateTimeISO!
+    title: String!
 
     contributor: [Contributor]
     description: String
-    isFeatured: Boolean
-    visibility: String
-    hasEthicalConcerns: Boolean!
-    ethicalConcernsDescription: String
-    ethicalConcernsReportURL: URL
+    dmproadmap_featured: String
+    dmproadmap_related_identifiers: [RelatedIdentifier]
+    dmproadmap_visibility: String
+    ethical_issues_description: String
+    ethical_issues_report: URL
     language: String
   }
 
@@ -49,12 +49,34 @@ export const typeDefs = gql`
     dmproadmap_affiliation: Affiliation
 
     role: [String!]!
-    contributorId: Identifier
+    contributorId: PersonIdentifier
+  }
+
+  type RelatedIdentifier {
+    descriptor: String!
+    identifier: URL!
+    type: String!
+    work_type: String!
   }
 
   type Affiliation {
     name: String!
-    affiliation_id: Identifier
+    affiliation_id: OrganizationIdentifier
+  }
+
+  type DmspIdentifier {
+    type: String!
+    identifier: DmspId!
+  }
+
+  type OrganizationIdentifier {
+    type: String!
+    identifier: Ror!
+  }
+
+  type PersonIdentifier {
+    type: String!
+    identifier: Orcid!
   }
 
   type Identifier {

@@ -1,24 +1,19 @@
 # NOTE::
-#
 # The services, settings and environment setup in this compose file is for DEVELOPMENT ONLY!
 #
-# It is intended to provide backend resources when the local system does not have (or want) them installed
-# locally. You will need to create and update your .env file to match any credentials defined in this file.
+# It is intended to run the Apollo server in an "offline" mode. All data will be mocked.
 #
 services:
-  db:
-    restart: always
-    command: --default-authentication-plugin=caching_sha2_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    image: mysql/mysql-server:latest
-    container_name: mysql
+  apollo:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "3307:3306"
+      - "4000:4000"
     expose:
-      - "3307"
+      - "4000"
     environment:
-      MYSQL_DATABASE: 'dmsp'
-      MYSQL_ROOT_PASSWORD: 'dockerSecr3t'
-      MYSQL_USER: 'dmspuser'
-      MYSQL_PASSWORD: 'abcdefghij'
+      - USE_MOCK_DATA=true
+      - DMSP_BASE_URL=https://localhost:3000/10.11111/ZZ
     volumes:
-      - "./docker/mysql:/var/lib/mysql"
+      - .:/app

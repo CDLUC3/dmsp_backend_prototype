@@ -12,9 +12,9 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Add a new contributor role (URL and label must be unique!)"
-    addContributorRole(url: URL!, label: String!, description: String): ContributorRoleMutationResponse
+    addContributorRole(url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRoleMutationResponse
     "Update the contributor role"
-    updateContributorRole(id: ID!, url: URL, label: String, description: String): ContributorRoleMutationResponse
+    updateContributorRole(id: ID!, url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRoleMutationResponse
     "Delete the contributor role"
     removeContributorRole(id: ID!): ContributorRoleMutationResponse
   }
@@ -34,7 +34,9 @@ export const typeDefs = gql`
   }
 
   type ContributorRole {
-    id: ID!
+    id: Int!
+    "The order in which to display these items when displayed in the UI"
+    displayOrder: Int!
     "The Ui label to display for the contributor role"
     label: String!
     "The URL for the contributor role"

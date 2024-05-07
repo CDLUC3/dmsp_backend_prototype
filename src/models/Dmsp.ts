@@ -1,7 +1,6 @@
 import { ContributorRoleModel } from './ContributorRole';
 
 export type DmspModel = {
-  id: string;
   primaryContact: PrimaryContact;
   created: string;
   modified: string;
@@ -28,11 +27,12 @@ type Contributor = {
   orcid: string;
   name: string;
   mbox: string;
-  role: [ContributorRoleModel]
+  role: [string]
   affiliation: Affiliation;
 }
 
 type Affiliation = {
   ror: string;
   name: string;
+  affiliation_id: string;
 }
