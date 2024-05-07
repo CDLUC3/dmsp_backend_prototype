@@ -12,3 +12,4 @@
 - Mocks for User
 - Data migration mechanism `./data-migrations/process.sh`
 - Documentation!
+- Local Docker Compose config
