@@ -4,8 +4,10 @@ import { addMocksToSchema } from '@graphql-tools/mock';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 
 import { mysqlConfig } from './config';
+import { logger } from './logger';
 import { MysqlDataSource } from './datasources/mysqlDB';
 import { DMPHubAPI } from './datasources/dmphub-api';
+import { loggerPlugin } from './plugins/logger';
 
 import { typeDefs } from './schema';
 import { resolvers } from './resolver';
@@ -32,6 +34,9 @@ function serverConfig() {
 
 async function startApolloServer() {
   const apolloConfig = { ...serverConfig(), ...{
+    // The LoggerPlugin is used by Apollo server to record events in the request/response
+    // lifecycle as well as handling any GraphQL errors
+    plugins: [loggerPlugin(logger)],
     // Mitigation for an issue that causes Apollo server v4 to return a 200 when a query
     // includes invalid variables.
     //    See: https://www.apollographql.com/docs/apollo-server/migration/#known-regressions
@@ -45,6 +50,8 @@ async function startApolloServer() {
       const token = getTokenFromRequest(req);
 
       return {
+        // Pass the logger in so it is available to our resolvers and dataSources
+        logger,
         dataSources: {
           dmphubAPIDataSource: await new DMPHubAPI({ cache, token }),
           sqlDataSource: await new MysqlDataSource({ config: mysqlConfig }),

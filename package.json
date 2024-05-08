@@ -29,6 +29,7 @@
   "dependencies": {
     "@apollo/datasource-rest": "^6.0.1",
     "@apollo/server": "^4.10.0",
+    "@elastic/ecs-pino-format": "^1.5.0",
     "@graphql-tools/merge": "^9.0.3",
     "@graphql-tools/mock": "^9.0.0",
     "@graphql-tools/schema": "^10.0.0",
@@ -37,6 +38,7 @@
     "graphql-tag": "^2.12.6",
     "http-cache-semantics": "^4.1.1",
     "mysql2": "^3.9.7",
+    "pino": "^9.0.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
