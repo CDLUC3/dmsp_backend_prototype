@@ -18,7 +18,7 @@ export const resolvers: Resolvers = {
             resolve(rows)
           })
           .catch(err => {
-            formatLogMessage(logger, { err, dmspId }).debug(`ERROR: ${logMessage} - ${err.message}`);
+            formatLogMessage(logger, { err, dmspId }).error(`ERROR: ${logMessage} - ${err.message}`);
             reject(err)
           });
       });
