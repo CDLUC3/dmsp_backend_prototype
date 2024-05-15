@@ -42,6 +42,7 @@ phases:
       - echo "Running build in ${BUILD_ENV} mode - started on `date`"
 
       - echo Checking for DB migrations
+      - cd $CODEBUILD_SRC_DIR
       - cd data-migrations && ./process-aws.sh $BUILD_ENV && cd ..
 
       # Run any tests here
