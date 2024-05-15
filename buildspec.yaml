@@ -34,8 +34,8 @@ phases:
       - IMAGE_TAG=${COMMIT_HASH:=latest}
 
       # Install MySQL so we can run DB migrations
-      # - yum repolist all | grep mysql
-      - yum -y install mysql84-community-release-el7-1.noarch.rpm
+      - dnf repolist all | grep mysql
+      - dnf -y install mysql84-community-release-el7-1.noarch.rpm
   build:
     commands:
       - echo "Running build in ${BUILD_ENV} mode - started on `date`"
