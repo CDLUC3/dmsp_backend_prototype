@@ -36,7 +36,7 @@ phases:
       # Install MySQL so we can run DB migrations
       # - dnf repolist all | grep mysql
       # - dnf -y install mysql84-community-release-el7-1.noarch.rpm
-      - dnf install mariadb105
+      - dnf -y install mariadb105
   build:
     commands:
       - echo "Running build in ${BUILD_ENV} mode - started on `date`"
