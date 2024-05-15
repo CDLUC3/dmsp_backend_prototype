@@ -11,7 +11,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 20
+      nodejs: 21
     commands:
       # Install any libraries necessary for testing and compilation
       # - echo Installing Mocha...
@@ -33,27 +33,18 @@ phases:
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $SHORT_ECR_URI
       - IMAGE_TAG=${COMMIT_HASH:=latest}
 
-      # Install Postgres so we can run DB migrations
-      # - yum list | grep postgres
-      - yum -y install postgresql15.x86_64
-
-      # Install the app dependencies
-      - echo Installing source NPM dependencies...
-      - npm install
-      # Install any other packages required for building and testing the app
-      # - npm install unit.js
+      # Install MySQL so we can run DB migrations
+      - yum repolist all | grep mysql
+      - yum -y install mysql84-community-release-el7-1.noarch.rpm
   build:
     commands:
       - echo "Running build in ${BUILD_ENV} mode - started on `date`"
 
       - echo Checking for DB migrations
-      - cd data-migrations && ./process.sh $BUILD_ENV && cd ..
-
-      # - echo Compiling the Node.js code
-      # - npm run compile
+      - cd data-migrations && ./process-aws.sh $BUILD_ENV && cd ..
 
       # Run any tests here
-      # - mocha test.js
+      # - npm run test
 
       - echo Building the Docker image...
       - cd $CODEBUILD_SRC_DIR
