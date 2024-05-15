@@ -13,3 +13,6 @@
 - Data migration mechanism `./data-migrations/process.sh`
 - Documentation!
 - Local Docker Compose config
+- Pino logger with ECS formatter
+- Plugin to log request/response lifecycle events
+- Logger to the context and then used it in the resolvers

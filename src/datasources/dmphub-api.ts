@@ -30,6 +30,8 @@ export class DMPHubAPI extends RESTDataSource {
     return dmspId.toString().replace(/^(https?:\/\/|https?%3A%2F%2F)/i, '').replace(/%2F/g, '/');
   }
 
+
+  // TODO: Pass the sessionId along to the API so it can be added to the API logs
   // Search for DMSPs
   getDMSPs() {
     return this.get<Dmsp[]>("dmps");

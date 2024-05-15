@@ -1,61 +1,48 @@
 import { ApolloServer } from '@apollo/server';
-import { startStandaloneServer, } from '@apollo/server/standalone';
-import { addMocksToSchema } from '@graphql-tools/mock';
-import { makeExecutableSchema } from '@graphql-tools/schema';
 
-import { mysqlConfig } from './config';
-import { MysqlDataSource } from './datasources/mysqlDB';
-import { DMPHubAPI } from './datasources/dmphub-api';
+import express from 'express';
+import http from 'http';
 
-import { typeDefs } from './schema';
-import { resolvers } from './resolver';
-import { mocks } from './mocks';
+import { logger } from './logger';
+import { serverConfig } from './config';
+import { healthcheck } from './pages/healthcheck';
+import { handleCors } from './middleware/cors';
+import { attachApolloServer } from './middleware/express';
 
-// TODO: We likely want to switch this up to validate the token and return the User in the JWT
-function getTokenFromRequest(request) {
-  return request.headers?.authentication || '';
+// Required logic for integrating with Express
+const app = express();
+// Our httpServer handles incoming requests to our Express app.
+const httpServer = http.createServer(app);
+
+// Added this generic wrapper function to accomodate the fact that Typescript doesn't
+// allow a top level await
+async function startup(config): Promise<void> {
+  // Ensure we wait for our server to start
+  const apolloServer = new ApolloServer(config);
+  await apolloServer.start();
+
+  const { cache } = apolloServer;
+
+  // Healthcheck endpoint (declare this BEFORE CORS definition due to AWS ALB limitations)
+  app.get('/up', (_request, response) => healthcheck(apolloServer, response, logger));
+
+  // Express middleware
+  app.use(
+    '/',
+    // 50mb is the limit that Apollo `startStandaloneServer` uses.
+    express.json({ limit: '50mb' }),
+    // CORS config
+    handleCors(),
+    // Attach Apollo server
+    attachApolloServer(apolloServer, cache, logger),
+  );
+
+  // TODO: Add our auth and token endpoints here
+
+  // Modified server startup
+  await new Promise<void>((resolve) => httpServer.listen({ port: 4000 }, resolve));
+
+  console.log(`🚀  Server ready at: http://localhost:4000/`);
 }
 
-function serverConfig() {
-  // If we are running in offline mode then we will use mocks
-  if (process.env?.USE_MOCK_DATA) {
-    return {
-      schema: addMocksToSchema({
-        schema: makeExecutableSchema({ typeDefs, resolvers }),
-        mocks,
-      }),
-    };
-  }
-  // Otherwise use the normal resolvers connected to our data sources
-  return { typeDefs, resolvers };
-}
-
-async function startApolloServer() {
-  const apolloConfig = { ...serverConfig(), ...{
-    // Mitigation for an issue that causes Apollo server v4 to return a 200 when a query
-    // includes invalid variables.
-    //    See: https://www.apollographql.com/docs/apollo-server/migration/#known-regressions
-    status400ForVariableCoercionErrors: true
-  }};
-
-  const server = new ApolloServer(apolloConfig);
-  const { cache } = server;
-  const { url } = await startStandaloneServer(server, {
-    context: async ({ req }) => {
-      const token = getTokenFromRequest(req);
-
-      return {
-        dataSources: {
-          dmphubAPIDataSource: await new DMPHubAPI({ cache, token }),
-          sqlDataSource: await new MysqlDataSource({ config: mysqlConfig }),
-        },
-      }
-    },
-  });
-  console.log(`
-    🚀  Server is running!
-    📭  Query at ${url}
-  `);
-}
-
-startApolloServer();
+startup(serverConfig(logger, httpServer));

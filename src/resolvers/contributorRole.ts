@@ -1,3 +1,5 @@
+
+import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 import { ContributorRoleModel } from "../models/ContributorRole";
 
@@ -12,12 +14,14 @@ async function fetchContributorRole(dataSources, contributorRoleId) : Promise<Co
 }
 
 // Generic error handler for mutations
-function handleMutationError(err) {
-  console.log(err);
+function handleMutationError(logger, args) {
+  const errorLogger = logger.child({ ...args })
+  errorLogger.error(`ERROR: Resolving a ContributorRole query/mutation - ${args?.err?.sqlMessage}`);
+
   return {
     code: 400,
     success: false,
-    message: err?.sqlMessage || 'Fatal error occurred while trying to run the query.',
+    message: args?.err?.sqlMessage || 'Fatal error occurred while trying to run the query.',
     contributorRole: null,
   };
 }
@@ -25,40 +29,65 @@ function handleMutationError(err) {
 export const resolvers: Resolvers = {
   Query: {
     // returns an array of all contributor roles
-    contributorRoles: (_, __, { dataSources }) => {
+    contributorRoles: (_, __, { logger, dataSources }) => {
       return new Promise((resolve, reject) => {
         const sql = 'SELECT * FROM contributorRoles ORDER BY label';
+        const logMessage = 'Resolving query contributorRoles';
+
         dataSources.sqlDataSource.query(sql, [])
-          .then(rows => resolve(rows))
-          .catch(error => reject(error));
+          .then(rows => {
+            formatLogMessage(logger).debug(logMessage);
+            resolve(rows)
+          })
+          .catch(err => {
+            handleMutationError(logger, { err });
+            reject(err)
+          });
       });
     },
     // returns a contributor role that matches the specified ID
-    contributorRoleById: (_, { contributorRoleId }, { dataSources }) => {
+    contributorRoleById: (_, { contributorRoleId }, { logger, dataSources }) => {
       return new Promise((resolve, reject) => {
+        const logMessage = `Resolving query contributorRoleById(id: '${contributorRoleId}')`
         fetchContributorRole(dataSources, contributorRoleId)
-          .then(rows => resolve(rows[0]))
-          .catch(error => reject(error));
+          .then(rows => {
+            formatLogMessage(logger, { contributorRoleId }).debug(logMessage);
+            resolve(rows[0])
+          })
+          .catch(err => {
+            handleMutationError(logger, { err, contributorRoleId });
+            reject(err);
+          });
       });
     },
     // returns the contributor role that matches the specified URL
-    contributorRoleByURL: (_, { contributorRoleURL }, { dataSources }) => {
+    contributorRoleByURL: (_, { contributorRoleURL }, { logger, dataSources }) => {
       return new Promise((resolve, reject) => {
         const sql = 'SELECT * FROM contributorRoles WHERE url = ?';
+        const logMessage = `Resolved query contirbutorRoleByURL(url: '${contributorRoleURL}')`
         dataSources.sqlDataSource.query(sql, [contributorRoleURL])
-          .then(rows => resolve(rows[0]))
-          .catch(error => reject(error));
+          .then(rows => {
+            formatLogMessage(logger, { contributorRoleURL }).debug(logMessage);
+            resolve(rows[0]);
+          })
+          .catch(err => {
+            handleMutationError(logger, { err, contributorRoleURL });
+            reject(err);
+          });
       });
     },
   },
 
   Mutation: {
     // add a new ContributorRole
-    addContributorRole: (_, { url, label, displayOrder, description }, { dataSources }) => {
+    addContributorRole: (_, { url, label, displayOrder, description }, { logger, dataSources }) => {
       return new Promise((resolve, reject) => {
         const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
+        const logArgs = { url, label, displayOrder, description };
+        const logMessage = `Resolving mutation addContributorRole`;
         dataSources.sqlDataSource.query(sql, [url, label, description, displayOrder])
           .then(rows => {
+            formatLogMessage(logger, logArgs).debug(logMessage);
             resolve({
               code: 201,
               success: true,
@@ -66,14 +95,17 @@ export const resolvers: Resolvers = {
               contributorRole: fetchContributorRole(dataSources, rows.insertId),
             });
           })
-          .catch(error => reject(handleMutationError(error)));
+          .catch(err => reject(handleMutationError(logger, { err, ...logArgs })));
       });
     },
-    updateContributorRole: (_, { id, url, label, displayOrder, description }, { dataSources }) => {
+    updateContributorRole: (_, { id, url, label, displayOrder, description }, { logger, dataSources }) => {
       return new Promise((resolve, reject) => {
         const sql = 'UPDATE contributorRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
+        const logArgs = { id, url, label, displayOrder, description };
+        const logMessage = `Resolving mutation updateContributorRole`;
         dataSources.sqlDataSource.query(sql, [url, label, description, displayOrder, id])
           .then(rows => {
+            formatLogMessage(logger, logArgs).debug(logMessage);
             resolve({
               code: 200,
               success: true,
@@ -81,15 +113,17 @@ export const resolvers: Resolvers = {
               contributorRole: fetchContributorRole(dataSources, id),
             });
           })
-          .catch(error => reject(handleMutationError(error)));
+          .catch(err => reject(handleMutationError(logger, { err, ...logArgs })));
       });
     },
-    removeContributorRole: (_, { id }, { dataSources }) => {
+    removeContributorRole: (_, { id }, { logger, dataSources }) => {
       return new Promise((resolve, reject) => {
         const sql = 'DELETE FROM contributorRoles WHERE id = ?';
+        const logMessage = `Resolving mutation removeContributorRole`;
         const original = fetchContributorRole(dataSources, id);
         dataSources.sqlDataSource.query(sql, [id])
           .then(rows => {
+            formatLogMessage(logger, { id }).debug(logMessage);
             resolve({
               code: 200,
               success: true,
@@ -97,7 +131,7 @@ export const resolvers: Resolvers = {
               contributorRole: original,
             });
           })
-          .catch(error => reject(handleMutationError(error)));
+          .catch(err => reject(handleMutationError(logger, { err, id })));
       });
     },
   },

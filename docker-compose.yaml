@@ -14,6 +14,7 @@ services:
       - "4000"
     environment:
       - USE_MOCK_DATA=true
+      - LOG_LEVEL=info
       - DMSP_BASE_URL=https://localhost:3000/10.11111/ZZ
     volumes:
       - .:/app
