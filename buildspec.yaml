@@ -34,7 +34,7 @@ phases:
       - IMAGE_TAG=${COMMIT_HASH:=latest}
 
       # Install MySQL so we can run DB migrations
-      - dnf repolist all | grep mysql
+      # - dnf repolist all | grep mysql
       - dnf -y install mysql84-community-release-el7-1.noarch.rpm
   build:
     commands:
