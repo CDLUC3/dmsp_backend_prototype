@@ -10,5 +10,6 @@
 for i in *.sql; do
   [ -f "$i" ] || break
   echo "Found a database migration file: ${i} ..."
+  echo "mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < $i"
   mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < $i
 done
