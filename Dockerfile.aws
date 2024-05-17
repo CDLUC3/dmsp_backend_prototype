@@ -15,10 +15,10 @@ COPY package*.json ./
 RUN npm install
 
 # SET the Working dir to dist/
-WORKDIR /dist
+# WORKDIR /dist
 
 # The app was built in the CodeBuild buildspec.yaml, so just copy dist/ in
-COPY dist/ .
+COPY dist/ ./dist
 
 # RUN npm install typescript -g
 
@@ -33,4 +33,4 @@ RUN ls
 
 EXPOSE 4000
 
-CMD ["node", "index.js"]
+CMD ["node", "dist/index.js"]
