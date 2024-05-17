@@ -12,22 +12,8 @@ COPY package*.json ./
 # Build the node_modules for production mode
 RUN npm install
 
-# SET the Working dir to dist/
-# WORKDIR /dist
-
 # The app was built in the CodeBuild buildspec.yaml, so just copy dist/ in
 COPY dist/ ./dist
-
-# RUN npm install typescript -g
-
-# RUN echo 'WORKDIR SET'
-
-RUN ls
-
-# RUN npm install
-
-# Build the app
-# RUN npm run build
 
 EXPOSE 4000
 
