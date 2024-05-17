@@ -3,8 +3,6 @@
 # This version of the Dockerfile is used by the buildspec.yaml within the AWS environment
 FROM public.ecr.aws/docker/library/node:current-alpine
 
-ENV NODE_ENV="production"
-
 # Create the directory on the node image where our Apollo server will live
 RUN mkdir -p /dist
 

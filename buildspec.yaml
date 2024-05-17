@@ -38,16 +38,15 @@ phases:
       # - dnf -y install mariadb105
   build:
     commands:
-      - echo "Running build in ${BUILD_ENV} mode - started on `date`"
-      - NODE_ENV=development
+      - echo "Running build in ${NODE_ENV} mode - started on `date`"
       - cd $CODEBUILD_SRC_DIR
 
       # - echo Checking for DB migrations
       # - cd $CODEBUILD_SRC_DIR
-      # - cd data-migrations && ./process-aws.sh $BUILD_ENV && cd ..
+      # - cd data-migrations && ./process-aws.sh $NODE_ENV && cd ..
 
-      # Install all of the dependencies
-      - npm install
+      # Install all of the dependencies (including dev so we can compile TS)
+      - npm install --production=false
 
       # Generate all of the GraphQL schema types
       - npm run generate
