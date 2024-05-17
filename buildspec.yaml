@@ -11,7 +11,8 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 20
+      # Apollo gives error when building on < 21
+      nodejs: 21
     commands:
       # Install any libraries necessary for testing and compilation
       # - echo Installing Mocha...
