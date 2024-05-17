@@ -2,7 +2,7 @@
 
 # This version of the Dockerfile is used by the buildspec.yaml within the AWS environment
 
-FROM public.ecr.aws/docker/library/node:current-bookworm-slim
+FROM public.ecr.aws/docker/library/node:lts-alpine3.19
 
 EXPOSE 4000
 
@@ -12,6 +12,8 @@ WORKDIR /app
 
 # RUN npm install typescript -g
 RUN npm install
+
+RUN npm run generate
 
 RUN npm run build
 
