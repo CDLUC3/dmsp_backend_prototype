@@ -7,12 +7,14 @@ FROM public.ecr.aws/docker/library/node:current-alpine
 RUN mkdir -p /dist
 
 # Copy package.json and package-lock.json to the /app working directory
-COPY package*.json ./
+# COPY package*.json ./
 
 # Copy the tsconfig.json, codegen.ts and src/ dir to the
-COPY tsconfig.json ./
-COPY codegen.ts ./
-COPY src ./
+# COPY tsconfig.json ./
+# COPY codegen.ts ./
+# COPY src ./
+
+COPY . .
 
 RUN ls
 
