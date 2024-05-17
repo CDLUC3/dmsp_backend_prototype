@@ -6,15 +6,18 @@ FROM public.ecr.aws/docker/library/node:current-alpine
 
 EXPOSE 4000
 
-COPY src/ codegen.ts tsconfig.json package.json package-lock.json  app/
+# Copy package.json, package-lock.json, tsconfig.json and codegen.ts
+# to the /app working directory
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY codegen.ts ./
+# COPY src/ tsconfig.json package.json package-lock.json  app/
 
 WORKDIR /app
 
-# Install all of the dependencies
-RUN npm install
+# RUN npm install typescript -g
 
-# Generate all of the Types
-RUN npm run generate
+RUN npm install
 
 # Build the app
 RUN npm run build
