@@ -14,9 +14,14 @@ COPY tsconfig.json ./
 COPY codegen.ts ./
 COPY src/**/* ./
 
+RUN ls
+
 WORKDIR /dist
 
 # RUN npm install typescript -g
+
+RUN echo 'WORKDIR SET'
+RUN lis
 
 RUN npm install
 
