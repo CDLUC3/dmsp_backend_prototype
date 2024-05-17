@@ -11,7 +11,7 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 21
+      nodejs: 20
     commands:
       # Install any libraries necessary for testing and compilation
       # - echo Installing Mocha...
@@ -34,16 +34,14 @@ phases:
       - IMAGE_TAG=${COMMIT_HASH:=latest}
 
       # Install MySQL so we can run DB migrations
-      # - dnf repolist all | grep mysql
-      # - dnf -y install mysql84-community-release-el7-1.noarch.rpm
-      - dnf -y install mariadb105
+      # - dnf -y install mariadb105
   build:
     commands:
       - echo "Running build in ${BUILD_ENV} mode - started on `date`"
 
-      - echo Checking for DB migrations
-      - cd $CODEBUILD_SRC_DIR
-      - cd data-migrations && ./process-aws.sh $BUILD_ENV && cd ..
+      # - echo Checking for DB migrations
+      # - cd $CODEBUILD_SRC_DIR
+      # - cd data-migrations && ./process-aws.sh $BUILD_ENV && cd ..
 
       # Run any tests here
       # - npm run test
