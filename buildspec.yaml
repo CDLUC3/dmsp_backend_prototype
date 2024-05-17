@@ -39,18 +39,18 @@ phases:
   build:
     commands:
       - echo "Running build in ${BUILD_ENV} mode - started on `date`"
-      - NODE_ENV=production
+      - NODE_ENV=development
       - cd $CODEBUILD_SRC_DIR
 
       # - echo Checking for DB migrations
       # - cd $CODEBUILD_SRC_DIR
       # - cd data-migrations && ./process-aws.sh $BUILD_ENV && cd ..
 
-      # Run any tests here
-      # - npm run test
-
       # Install all of the dependencies
       - npm install
+
+      # Run any tests here
+      - npm run test
 
       # Build the Apollo server which writes to the ./dist dir
       - npm run build

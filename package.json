@@ -4,6 +4,7 @@
   "description": "Prototype backend for the new DMSP system",
   "main": "index.js",
   "scripts": {
+    "postinstall": "npm run generate",
     "compile": "tsc",
     "copy-graphql": "mkdir ./dist/schemas && cp ./src/schemas/*.graphql ./dist/schemas/",
     "build": "rm -rf ./dist && npm run compile",
