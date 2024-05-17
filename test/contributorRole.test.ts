@@ -33,7 +33,7 @@ it('fetches all of the contributor roles', async () => {
 
   // Now validate the User that was returned
   const results = res.body.singleResult.data?.contributorRoles as [ContributorRole];
-  // console.log(results);
+  console.log(results);
 
   expect(results[0].id).toBeGreaterThan(0);
   expect(results[0].displayOrder).toBeGreaterThan(0);

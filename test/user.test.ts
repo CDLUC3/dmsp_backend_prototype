@@ -34,6 +34,9 @@ describe('User queries', () => {
     );
     // Validate that Apollo returned a result
     assert(res.body.kind === 'single');
+
+console.log(res.body);
+
     expect(res.body.singleResult.errors).toBeUndefined();
     expect(res.body.singleResult.data).toBeDefined();
     expect(res.body.singleResult.data?.users).toBeDefined();
