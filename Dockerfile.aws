@@ -12,7 +12,7 @@ COPY package*.json ./
 # Copy the tsconfig.json, codegen.ts and src/ dir to the
 COPY tsconfig.json ./
 COPY codegen.ts ./
-COPY src/**/* ./
+COPY src ./
 
 RUN ls
 
@@ -21,7 +21,7 @@ WORKDIR /dist
 # RUN npm install typescript -g
 
 RUN echo 'WORKDIR SET'
-RUN lis
+RUN ls
 
 RUN npm install
 
