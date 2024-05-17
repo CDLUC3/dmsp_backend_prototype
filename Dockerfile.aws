@@ -14,21 +14,20 @@ RUN mkdir -p /dist
 # COPY codegen.ts ./
 # COPY src ./
 
-COPY . .
-
-RUN ls
-
 WORKDIR /dist
+
+COPY dist/ .
 
 # RUN npm install typescript -g
 
-RUN echo 'WORKDIR SET'
+# RUN echo 'WORKDIR SET'
+
 RUN ls
 
-RUN npm install
+# RUN npm install
 
 # Build the app
-RUN npm run build
+# RUN npm run build
 
 EXPOSE 4000
 
