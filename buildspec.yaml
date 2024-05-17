@@ -74,6 +74,10 @@ phases:
       - cat apollo-server-image.json
 
       - echo Build completed on `date`
+      - printf '[{"name":"$TASK_DEFINITION_CONTAINER_NAME","imageUri":"%s"}]' $ECR_REPOSITORY_URI:$IMAGE_TAG > apollo-server-image.json
+
+artifacts:
+  files: apollo-server-image.json
 
 # Include only the files required for your application to run.
 # Do not use recursively include artifacts from node_modules directory as it will include unnecessary packages
