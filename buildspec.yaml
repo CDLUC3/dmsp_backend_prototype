@@ -70,7 +70,7 @@ phases:
       - docker push $SHORT_ECR_URI:$IMAGE_TAG
 
       - echo Writing image definitions file...
-      - printf '[{"name":"apollo-server","imageUri":"%s"}]' $ECR_REPOSITORY_URI:$IMAGE_TAG > dmptool_image.json
+      - printf '[{"name":"apollo-server","imageUri":"%s"}]' $ECR_REPOSITORY_URI:$IMAGE_TAG > apollo-server-image.json
       - cat apollo-server-image.json
 
       - echo Build completed on `date`
