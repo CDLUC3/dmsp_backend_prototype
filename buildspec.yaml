@@ -70,23 +70,10 @@ phases:
       - docker push $SHORT_ECR_URI:$IMAGE_TAG
 
       - echo Writing image definitions file...
-      - printf '[{"name":"apollo-server","imageUri":"%s"}]' $ECR_REPOSITORY_URI:$IMAGE_TAG > apollo-server-image.json
-      - cat apollo-server-image.json
+      - printf '[{"name":"$TASK_DEFINITION_CONTAINER_NAME","imageUri":"%s"}]' $ECR_REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
 
       - echo Build completed on `date`
-      - printf '[{"name":"$TASK_DEFINITION_CONTAINER_NAME","imageUri":"%s"}]' $ECR_REPOSITORY_URI:$IMAGE_TAG > apollo-server-image.json
 
 artifacts:
-  files: apollo-server-image.json
-
-# Include only the files required for your application to run.
-# Do not use recursively include artifacts from node_modules directory as it will include unnecessary packages
-# used only for building and testing.
-# ExpressJS apps will need other artifact directories included (bin/*, public/*, routes/*, views/* etc).
-# artifacts:
-#   files:
-#     - app.js
-#     - index.html
-#     - package.json
-#     - node_modules/async/*
-#     - node_modules/lodash/*
+  # The Deploy step is expecting this name
+  files: imagedefinitions.json
