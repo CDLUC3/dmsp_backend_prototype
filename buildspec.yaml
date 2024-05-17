@@ -49,6 +49,9 @@ phases:
       # Install all of the dependencies
       - npm install
 
+      # Generate all of the GraphQL schema types
+      - npm run generate
+
       # Run any tests here
       - npm run test
 
