@@ -39,6 +39,7 @@ phases:
   build:
     commands:
       - echo "Running build in ${BUILD_ENV} mode - started on `date`"
+      - NODE_ENV=production
       - cd $CODEBUILD_SRC_DIR
 
       # - echo Checking for DB migrations
