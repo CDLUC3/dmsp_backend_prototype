@@ -25,7 +25,7 @@ export const mysqlConfig: PoolConfig = {
 // Base Apollo server configuration
 function baseConfig() {
   // If we are running in offline mode then we will use mocks
-  if (process.env?.USE_MOCK_DATA) {
+  if (['true', '1'].includes(process.env?.USE_MOCK_DATA?.toString()?.toLowerCase())) {
     return {
       schema: addMocksToSchema({
         schema: makeExecutableSchema({ typeDefs, resolvers }),
