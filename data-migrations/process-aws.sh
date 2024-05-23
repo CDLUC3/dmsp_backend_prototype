@@ -51,7 +51,7 @@ process_migration() {
 
 # Check to see if we have already run the migration file
 echo "Checking to see if the database has been initialized"
-mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile;"
+mysql ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile;"
 INIT_CHECK=$?
 
 # If the above failed, then it's a brand new DB, so we need to create the migrations table

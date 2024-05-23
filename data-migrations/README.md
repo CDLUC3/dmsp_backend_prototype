@@ -16,20 +16,18 @@ The `process-aws.sh` file is meant to be run from the AWS Clou9 instance only!
 ## Running from the Cloud9 bastion server
 
 ### Cloud9 initialization
-If this is the first time the Cloud9 instance has been started up you will need to install MySQL devel tools:
-
-- `sudo yum install -y vim curl`
-- `sudo yum groupinstall -y "Development Tools"`
-- `sudo yum install -y mariadb105-devel`
-
-Then clone the Apollo server repository so that we have access to the latest DB migrations:
-
+First clone the Apollo server repository so that we have access to the latest DB migrations:
 - `git clone https://github.com/CDLUC3/dmsp_backend_prototype.git`
-- `cd dmsp_backend_prototype`
+
+Then run the initialization script to install the necessary packages to be able to run MySQL commands
+- `~/dmsp_backend_prototype/data-migrations/bastion-init.sh`
+
+Checkout the version you want to work with (e.g. development)
+- `cd ~/dmsp_backend_prototype/dmsp_backend_prototype`
 - `git pull origin [branch]`
 - `git checkout [branch]`
 
 ### Running the DB migrations
 Make sure you are on the correct branch. Then run the following:
-- `cd data-migrations`
+- `cd ~/dmsp_backend_prototype/data-migrations`
 - `./process-aws.sh [ENV]`
