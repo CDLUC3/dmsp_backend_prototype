@@ -19,13 +19,13 @@ The `process-aws.sh` file is meant to be run from the AWS Clou9 instance only!
 First clone the Apollo server repository so that we have access to the latest DB migrations:
 - `git clone https://github.com/CDLUC3/dmsp_backend_prototype.git`
 
-Then run the initialization script to install the necessary packages to be able to run MySQL commands
-- `~/dmsp_backend_prototype/data-migrations/bastion-init.sh`
-
 Checkout the version you want to work with (e.g. development)
 - `cd ~/dmsp_backend_prototype/dmsp_backend_prototype`
 - `git pull origin [branch]`
 - `git checkout [branch]`
+
+Then run the initialization script to install the necessary packages to be able to run MySQL commands
+- `~/dmsp_backend_prototype/data-migrations/bastion-init.sh`
 
 ### Running the DB migrations
 Make sure you are on the correct branch. Then run the following:
