@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv';
-import { addMocksToSchema } from '@graphql-tools/mock';
+import { addMocksToSchema, createMockStore } from '@graphql-tools/mock';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
@@ -21,6 +21,9 @@ export const mysqlConfig: PoolConfig = {
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
 };
+
+const schema = makeExecutableSchema({ typeDefs, resolvers });
+export const store = createMockStore({ mocks, schema })
 
 // Base Apollo server configuration
 function baseConfig() {

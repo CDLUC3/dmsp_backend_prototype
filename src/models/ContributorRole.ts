@@ -1,5 +1,5 @@
 export type ContributorRoleModel = {
-  id: number;
+  id: string;
   displayOrder: number;
   url: string;
   label: string;

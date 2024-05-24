@@ -63,9 +63,10 @@ export const resolvers: Resolvers = {
     // returns the contributor role that matches the specified URL
     contributorRoleByURL: (_, { contributorRoleURL }, { logger, dataSources }) => {
       return new Promise((resolve, reject) => {
+        const url: string = contributorRoleURL.toString();
         const sql = 'SELECT * FROM contributorRoles WHERE url = ?';
-        const logMessage = `Resolved query contirbutorRoleByURL(url: '${contributorRoleURL}')`
-        dataSources.sqlDataSource.query(sql, [contributorRoleURL])
+        const logMessage = `Resolved query contributorRoleByURL(url: '${url}')`
+        dataSources.sqlDataSource.query(sql, [url])
           .then(rows => {
             formatLogMessage(logger, { contributorRoleURL }).debug(logMessage);
             resolve(rows[0]);
@@ -82,7 +83,7 @@ export const resolvers: Resolvers = {
     // add a new ContributorRole
     addContributorRole: (_, { url, label, displayOrder, description }, { logger, dataSources }) => {
       return new Promise((resolve, reject) => {
-        const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
+        const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?, ?)';
         const logArgs = { url, label, displayOrder, description };
         const logMessage = `Resolving mutation addContributorRole`;
         dataSources.sqlDataSource.query(sql, [url, label, description, displayOrder])

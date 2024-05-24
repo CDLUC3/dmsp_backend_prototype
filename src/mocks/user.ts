@@ -8,5 +8,5 @@ export const mock = {
     surName: casual.last_name,
     email: casual.email,
     role: casual.integer(0, 1) == 1 ? 'ADMIN' : 'RESEARCHER'
-  })
+  }),
 };

@@ -5,9 +5,9 @@ export const typeDefs = gql`
     "Get all of the contributor role types"
     contributorRoles: [ContributorRole]
     "Get the contributor role by it's ID"
-    contributorRoleById(contributorRoleId: ID!): ContributorRole
+    contributorRoleById(contributorRoleId: ContributorRoleByIdInput!): ContributorRole
     "Get the contributor role by it's URL"
-    contributorRoleByURL(contributorRoleURL: URL!): ContributorRole
+    contributorRoleByURL(contributorRoleURL: ContributorRoleByUrlInput!): ContributorRole
   }
 
   extend type Mutation {
@@ -17,6 +17,14 @@ export const typeDefs = gql`
     updateContributorRole(id: ID!, url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRoleMutationResponse
     "Delete the contributor role"
     removeContributorRole(id: ID!): ContributorRoleMutationResponse
+  }
+
+  input ContributorRoleByIdInput {
+    contributorRoleId: ID!
+  }
+
+  type ContributorRoleByUrlInput {
+    contributorRoleURL: String!
   }
 
   type ContributorRoleMutationResponse {
@@ -34,7 +42,7 @@ export const typeDefs = gql`
   }
 
   type ContributorRole {
-    id: Int!
+    id: ID!
     "The order in which to display these items when displayed in the UI"
     displayOrder: Int!
     "The Ui label to display for the contributor role"

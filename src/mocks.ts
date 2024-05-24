@@ -2,6 +2,7 @@ import casual from 'casual';
 import { DMSP_BASE_URL, validateDmspId } from './resolvers/scalars/dmspId';
 import { validateOrcid } from './resolvers/scalars/orcid';
 import { ROR_DOMAIN, validateRor } from './resolvers/scalars/ror';
+
 import { mock as userMock } from './mocks/user';
 import { mock as contributorRoleMock } from './mocks/contributorRole';
 
@@ -33,8 +34,31 @@ const scalarMocks = {
   DmspId: () => mockDmspId(),
 };
 
+// Gather all of the mock defintions
 export const mocks = {
   ...scalarMocks,
   ...contributorRoleMock,
   ...userMock
 };
+
+export function mockDate(): String {
+  return casual.date('YYYY-MM-DD HH:mm:ss');
+}
+
+// Simulated Success response from a Mutation
+export function mockSuccess(code: Number, message: String) {
+  return {
+    code: code || casual.integer(200, 201),
+    success: true,
+    message: message || casual.sentence
+  }
+}
+
+// Simulated Error response from a Mutation
+export function mockError(code: Number, message: String) {
+  return {
+    code: code || casual.integer(400, 500),
+    success: false,
+    message: message || casual.sentence
+  }
+}

@@ -49,13 +49,22 @@ export type ContributorRole = {
   description?: Maybe<Scalars['String']['output']>;
   /** The order in which to display these items when displayed in the UI */
   displayOrder: Scalars['Int']['output'];
-  id: Scalars['Int']['output'];
+  id: Scalars['ID']['output'];
   /** The Ui label to display for the contributor role */
   label: Scalars['String']['output'];
   /** The timestamp of when the contributor role last modified */
   modified: Scalars['DateTimeISO']['output'];
   /** The URL for the contributor role */
   url: Scalars['URL']['output'];
+};
+
+export type ContributorRoleByIdInput = {
+  contributorRoleId: Scalars['ID']['input'];
+};
+
+export type ContributorRoleByUrlInput = {
+  __typename?: 'ContributorRoleByUrlInput';
+  contributorRoleURL: Scalars['String']['output'];
 };
 
 export type ContributorRoleMutationResponse = {
@@ -179,12 +188,12 @@ export type Query = {
 
 
 export type QueryContributorRoleByIdArgs = {
-  contributorRoleId: Scalars['ID']['input'];
+  contributorRoleId: ContributorRoleByIdInput;
 };
 
 
 export type QueryContributorRoleByUrlArgs = {
-  contributorRoleURL: Scalars['URL']['input'];
+  contributorRoleURL: ContributorRoleByUrlInput;
 };
 
 
@@ -305,7 +314,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 
 /** Mapping of interface types */
-export type ResolversInterfaceTypes<RefType extends Record<string, unknown>> = {
+export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
   Person: ( Contributor ) | ( PrimaryContact );
 };
 
@@ -315,6 +324,8 @@ export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Contributor: ResolverTypeWrapper<Contributor>;
   ContributorRole: ResolverTypeWrapper<ContributorRoleModel>;
+  ContributorRoleByIdInput: ContributorRoleByIdInput;
+  ContributorRoleByUrlInput: ResolverTypeWrapper<ContributorRoleByUrlInput>;
   ContributorRoleMutationResponse: ResolverTypeWrapper<Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversTypes['ContributorRole']> }>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   Dmsp: ResolverTypeWrapper<DmspModel>;
@@ -347,6 +358,8 @@ export type ResolversParentTypes = {
   Boolean: Scalars['Boolean']['output'];
   Contributor: Contributor;
   ContributorRole: ContributorRoleModel;
+  ContributorRoleByIdInput: ContributorRoleByIdInput;
+  ContributorRoleByUrlInput: ContributorRoleByUrlInput;
   ContributorRoleMutationResponse: Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversParentTypes['ContributorRole']> };
   DateTimeISO: Scalars['DateTimeISO']['output'];
   Dmsp: DmspModel;
@@ -390,10 +403,15 @@ export type ContributorRoleResolvers<ContextType = MyContext, ParentType extends
   created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['URL'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ContributorRoleByUrlInputResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ContributorRoleByUrlInput'] = ResolversParentTypes['ContributorRoleByUrlInput']> = {
+  contributorRoleURL?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -535,6 +553,7 @@ export type Resolvers<ContextType = MyContext> = {
   Affiliation?: AffiliationResolvers<ContextType>;
   Contributor?: ContributorResolvers<ContextType>;
   ContributorRole?: ContributorRoleResolvers<ContextType>;
+  ContributorRoleByUrlInput?: ContributorRoleByUrlInputResolvers<ContextType>;
   ContributorRoleMutationResponse?: ContributorRoleMutationResponseResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;
   Dmsp?: DmspResolvers<ContextType>;
