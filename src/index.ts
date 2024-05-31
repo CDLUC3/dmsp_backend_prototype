@@ -17,6 +17,9 @@ const httpServer = http.createServer(app);
 // Added this generic wrapper function to accomodate the fact that Typescript doesn't
 // allow a top level await
 async function startup(config): Promise<void> {
+
+console.log(config);
+
   // Ensure we wait for our server to start
   const apolloServer = new ApolloServer(config);
   await apolloServer.start();

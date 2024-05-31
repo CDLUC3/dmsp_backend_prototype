@@ -1,6 +1,4 @@
 import * as dotenv from 'dotenv';
-import { addMocksToSchema, createMockStore } from '@graphql-tools/mock';
-import { makeExecutableSchema } from '@graphql-tools/schema';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled';
@@ -22,19 +20,14 @@ export const mysqlConfig: PoolConfig = {
   password: process.env.MYSQL_PASSWORD,
 };
 
-const schema = makeExecutableSchema({ typeDefs, resolvers });
-export const store = createMockStore({ mocks, schema })
+// const schema = makeExecutableSchema({ typeDefs, resolvers });
+// export const store = createMockStore({ mocks, schema })
 
 // Base Apollo server configuration
 function baseConfig() {
   // If we are running in offline mode then we will use mocks
   if (['true', '1'].includes(process.env?.USE_MOCK_DATA?.toString()?.toLowerCase())) {
-    return {
-      schema: addMocksToSchema({
-        schema: makeExecutableSchema({ typeDefs, resolvers }),
-        mocks,
-      }),
-    };
+    return { typeDefs, resolvers: mocks };
   }
   // Otherwise use the normal resolvers connected to our data sources
   return { typeDefs, resolvers };

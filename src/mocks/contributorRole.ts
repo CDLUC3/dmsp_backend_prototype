@@ -1,8 +1,9 @@
-import { prepareNewMySQLRecord, prepareUpdatedMySQLRecord, mockError, mockSuccess } from '../mocks';
-import { ContributorRole, ContributorRoleMutationResponse } from '../types';
+import { Resolvers } from "../types";
+import { MockMySQLTable } from './MockMySQLTable';
+// import { ContributorRole, ContributorRoleMutationResponse } from '../types';
 
 // Seed records for the ContributorRoles table
-const recs = [
+const mockItems = [
   {
     displayOrder: 1,
     url: 'https://credit.niso.org/contributor-roles/investigation/',
@@ -28,80 +29,76 @@ const recs = [
     displayOrder: 4,
   },
 ]
+export const mockStore = new MockMySQLTable(mockItems);
 
-// Pass the mockRecords through our helper method that will assign the ID and other boilerplate fields
-// that our MySQL uses like `created` and `modified`
-const data: ContributorRole[] = recs.map((rec, idx) => {
-  return prepareNewMySQLRecord({ id: (idx + 1).toString(), ...rec });
-});
-
-export const mock = {
-  // Return a random item from the data array
-  ContributorRole: () => data[Math.floor(Math.random() * data.length)],
-
+export const resolvers: Resolvers = {
   Query: {
     // returns an array of all contributor roles
-    contributorRoles: () => data,
-
-    // No idea why this does not work without including `_other` here. Results in a Typescript error
-    contributorRoleById: ({ contributorRoleId }: { contributorRoleId: string }, _other): ContributorRole | null => {
-      console.log(contributorRoleId);
-      return data.find((item) => item.id === contributorRoleId) || null;
+    contributorRoles: (_, __, { mockStores }) => {
+      return mockStores.contributorRoles.items();
     },
 
-    contributorRoleByURL: ({ contributorRoleURL }: { contributorRoleURL: string }, _other): ContributorRole | null => {
-      return data.find((item) => item.url?.toLowerCase() === contributorRoleURL.toLowerCase()) || null;
+    // No idea why this does not work without including `_other` here. Results in a Typescript error
+    // contributorRoleById: ({ contributorRoleId }: { contributorRoleId: string }, _other): ContributorRole | null => {
+      contributorRoleById: (_, { contributorRoleId }, { mockStores }) => {
+      return mockStores.contributorRoles.findItemById(contributorRoleId);
+    },
+
+    // contributorRoleByURL: ({ contributorRoleURL }: { contributorRoleURL: string }, _other): ContributorRole | null => {
+    contributorRoleByURL: (_, { contributorRoleURL }, { mockStores }) => {
+      return mockStores.contributorRoles.findItemByProperty('url', contributorRoleURL);
     },
   },
 
   Mutation: {
-    addContributorRole: (args, _other): ContributorRoleMutationResponse => {
-      const existing = data.find((item) => item.url?.toLowerCase() === args?.url?.toLowerCase()) || null;
+    // addContributorRole: (args, _other): ContributorRoleMutationResponse => {
+    addContributorRole: (_, args, { mockStores }) => {
+      const existing = mockStores.contributorRoles.findItemByProperty('url', args?.url);
       if (existing) {
-        return mockError(400, 'ContributorRole already exists!');
+        return mockStores.contributorRoles.getMutationError(400, 'ContributorRole already exists!');
 
       } else {
-        const newContributorRole = prepareNewMySQLRecord(args);
-        data.push(newContributorRole);
-
-        const successResponse = mockSuccess(201, `Successfully added ContributorRole ${newContributorRole.id}`);
-        return {
-          contributorRole: newContributorRole,
-          ...successResponse
+        const newItem = mockStores.contributorRoles.addItem(args);
+        if (newItem) {
+          const resp = mockStores.contributorRoles.getMutationSuccess(201, `Successfully added ContributorRole ${newItem.id}`);
+          return {
+            contributorRole: newItem,
+            ...resp
+          }
         }
+        return mockStores.contributorRoles.getMutationError(500, 'Unable to add the ContributorRole!!');
       }
     },
 
-    updateContributorRole: (args, _other): ContributorRoleMutationResponse => {
-      let existing = data.find((item) => item.id?.toLowerCase() === args?.id?.toLowerCase()) || null;
-      if (!existing) {
-        return mockError(404, 'ContributorRole does not exist!');
-
-      } else {
-        existing = prepareUpdatedMySQLRecord({ ...existing, ...args });
-
-        const successResponse = mockSuccess(200, `Successfully update ContributorRole ${args?.id}`);
+    // updateContributorRole: (args, _other): ContributorRoleMutationResponse => {
+    updateContributorRole: (_, args, { mockStores }) => {
+      const updated = mockStores.contributorRoles.updateItem(args);
+      if (updated) {
+        const resp = mockStores.contributorRoles.getMutationSuccess(200, `Successfully update ContributorRole ${args?.id}`);
         return {
-          contributorRole: existing,
-          ...successResponse
+          contributorRole: updated,
+          ...resp
         }
       }
+      return mockStores.contributorRoles.getMutationError(500, 'Unable to update the ContributorRole!!');
     },
 
-    removeContributorRole: (args, _other): ContributorRoleMutationResponse => {
-      let existing = data.find((item) => item.id?.toLowerCase() === args?.id?.toLowerCase()) || null;
+    // removeContributorRole: (args, _other): ContributorRoleMutationResponse => {
+    removeContributorRole: (_, { id }, { mockStores }) => {
+      let existing = mockStores.contributorRoles.findItemById(id);
       if (!existing) {
-        return mockError(404, 'ContributorRole does not exist!');
+        return mockStores.contributorRoles.getMutationError(404, 'ContributorRole does not exist!');
 
       } else {
-        const idx = data.indexOf(existing);
-        delete data[idx];
-
-        const successResponse = mockSuccess(200, `Successfully deleted ContributorRole ${args?.id}`);
-        return {
-          contributorRole: existing,
-          ...successResponse
+        const success = mockStores.contributorRoles.removeItem(id);
+        if (success) {
+          const resp = mockStores.contributorRoles.getMutationSuccess(200, `Successfully removed ContributorRole ${id}`);
+          return {
+            contributorRole: existing,
+            ...resp
+          }
         }
+        return mockStores.contributorRoles.getMutationError(500, 'Unable to remove the ContributorRole!!');
       }
     },
   }

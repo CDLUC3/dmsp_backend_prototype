@@ -1,12 +1,40 @@
-import casual from 'casual';
+import { Resolvers } from "../types";
+import { MockMySQLTable } from './MockMySQLTable';
 
-export const mock = {
-  // User account mock
-  User: () => ({
-    id: casual.integer(1, 10000),
-    givenName: casual.first_name,
-    surName: casual.last_name,
-    email: casual.email,
-    role: casual.integer(0, 1) == 1 ? 'ADMIN' : 'RESEARCHER'
-  }),
-};
+// Seed records for the ContributorRoles table
+const mockItems = [
+  {
+    id: '1',
+    givenName: 'Mose',
+    surName: 'Allison',
+    email: 'mose@example.com',
+    role: 'RESEARCHER'
+  },
+  {
+    id: '2',
+    givenName: 'Paul',
+    surName: 'Desmond',
+    email: 'paul@example.com',
+    role: 'ADMIN'
+  },
+  {
+    id: '3',
+    givenName: 'Nina',
+    surName: 'Simone',
+    email: 'nina@example.com',
+    role: 'SUPER'
+  },
+];
+
+export const mockStore = new MockMySQLTable(mockItems);
+
+export const resolvers: Resolvers = {
+  Query: {
+    me: (_, __, { mockStores }) => {
+      return mockStores.users.randomItem();
+    },
+    users: (_, __, { mockStores }) => {
+      return mockStores.users.items();
+    },
+  },
+}
