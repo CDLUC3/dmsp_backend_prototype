@@ -30,8 +30,6 @@ export const resolvers: Resolvers = {
   Query: {
     // returns an array of all contributor roles
     contributorRoles: (_, __, { logger, dataSources }) => {
-      console.log('WHY!?');
-
       return new Promise((resolve, reject) => {
         const sql = 'SELECT * FROM contributorRoles ORDER BY label';
         const logMessage = 'Resolving query contributorRoles';

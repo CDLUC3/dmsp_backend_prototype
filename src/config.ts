@@ -20,9 +20,6 @@ export const mysqlConfig: PoolConfig = {
   password: process.env.MYSQL_PASSWORD,
 };
 
-// const schema = makeExecutableSchema({ typeDefs, resolvers });
-// export const store = createMockStore({ mocks, schema })
-
 // Base Apollo server configuration
 function baseConfig() {
   // If we are running in offline mode then we will use mocks
