@@ -5,9 +5,9 @@ export const typeDefs = gql`
     "Get all of the contributor role types"
     contributorRoles: [ContributorRole]
     "Get the contributor role by it's ID"
-    contributorRoleById(contributorRoleId: ContributorRoleByIdInput!): ContributorRole
+    contributorRoleById(contributorRoleId: String!): ContributorRole
     "Get the contributor role by it's URL"
-    contributorRoleByURL(contributorRoleURL: ContributorRoleByUrlInput!): ContributorRole
+    contributorRoleByURL(contributorRoleURL: String!): ContributorRole
   }
 
   extend type Mutation {
@@ -17,14 +17,6 @@ export const typeDefs = gql`
     updateContributorRole(id: ID!, url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRoleMutationResponse
     "Delete the contributor role"
     removeContributorRole(id: ID!): ContributorRoleMutationResponse
-  }
-
-  input ContributorRoleByIdInput {
-    contributorRoleId: ID!
-  }
-
-  type ContributorRoleByUrlInput {
-    contributorRoleURL: String!
   }
 
   type ContributorRoleMutationResponse {

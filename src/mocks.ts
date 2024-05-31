@@ -42,23 +42,42 @@ export const mocks = {
 };
 
 export function mockDate(): String {
-  return casual.date('YYYY-MM-DD HH:mm:ss');
+  return casual.date('YYYY-MM-DD HH:mm:ss.123Z');
 }
 
 // Simulated Success response from a Mutation
 export function mockSuccess(code: Number, message: String) {
   return {
-    code: code || casual.integer(200, 201),
-    success: true,
-    message: message || casual.sentence
+    code: code as number || casual.integer(200, 201),
+    success: true as boolean,
+    message: message as string || casual.sentence
   }
 }
+
+// TODO: Consider making a class that our Mocks can use for all this!
 
 // Simulated Error response from a Mutation
 export function mockError(code: Number, message: String) {
   return {
-    code: code || casual.integer(400, 500),
-    success: false,
-    message: message || casual.sentence
+    code: code as number || casual.integer(400, 500),
+    success: false as boolean,
+    message: message as string || casual.sentence
+  }
+}
+
+// Standardized way to create a new mock record for a MySQL table
+export function prepareNewMySQLRecord(args) {
+  return {
+    id: casual.uuid,
+    created: new Date().toISOString(),
+    modified: new Date().toISOString(),
+    ...args
+  }
+}
+
+export function prepareUpdatedMySQLRecord(args) {
+  return {
+    modified: new Date().toISOString(),
+    ...args
   }
 }

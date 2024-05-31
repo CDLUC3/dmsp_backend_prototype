@@ -58,15 +58,6 @@ export type ContributorRole = {
   url: Scalars['URL']['output'];
 };
 
-export type ContributorRoleByIdInput = {
-  contributorRoleId: Scalars['ID']['input'];
-};
-
-export type ContributorRoleByUrlInput = {
-  __typename?: 'ContributorRoleByUrlInput';
-  contributorRoleURL: Scalars['String']['output'];
-};
-
 export type ContributorRoleMutationResponse = {
   __typename?: 'ContributorRoleMutationResponse';
   /** Similar to HTTP status code, represents the status of the mutation */
@@ -188,12 +179,12 @@ export type Query = {
 
 
 export type QueryContributorRoleByIdArgs = {
-  contributorRoleId: ContributorRoleByIdInput;
+  contributorRoleId: Scalars['String']['input'];
 };
 
 
 export type QueryContributorRoleByUrlArgs = {
-  contributorRoleURL: ContributorRoleByUrlInput;
+  contributorRoleURL: Scalars['String']['input'];
 };
 
 
@@ -324,8 +315,6 @@ export type ResolversTypes = {
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Contributor: ResolverTypeWrapper<Contributor>;
   ContributorRole: ResolverTypeWrapper<ContributorRoleModel>;
-  ContributorRoleByIdInput: ContributorRoleByIdInput;
-  ContributorRoleByUrlInput: ResolverTypeWrapper<ContributorRoleByUrlInput>;
   ContributorRoleMutationResponse: ResolverTypeWrapper<Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversTypes['ContributorRole']> }>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   Dmsp: ResolverTypeWrapper<DmspModel>;
@@ -358,8 +347,6 @@ export type ResolversParentTypes = {
   Boolean: Scalars['Boolean']['output'];
   Contributor: Contributor;
   ContributorRole: ContributorRoleModel;
-  ContributorRoleByIdInput: ContributorRoleByIdInput;
-  ContributorRoleByUrlInput: ContributorRoleByUrlInput;
   ContributorRoleMutationResponse: Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversParentTypes['ContributorRole']> };
   DateTimeISO: Scalars['DateTimeISO']['output'];
   Dmsp: DmspModel;
@@ -407,11 +394,6 @@ export type ContributorRoleResolvers<ContextType = MyContext, ParentType extends
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['URL'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ContributorRoleByUrlInputResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ContributorRoleByUrlInput'] = ResolversParentTypes['ContributorRoleByUrlInput']> = {
-  contributorRoleURL?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -553,7 +535,6 @@ export type Resolvers<ContextType = MyContext> = {
   Affiliation?: AffiliationResolvers<ContextType>;
   Contributor?: ContributorResolvers<ContextType>;
   ContributorRole?: ContributorRoleResolvers<ContextType>;
-  ContributorRoleByUrlInput?: ContributorRoleByUrlInputResolvers<ContextType>;
   ContributorRoleMutationResponse?: ContributorRoleMutationResponseResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;
   Dmsp?: DmspResolvers<ContextType>;
