@@ -4,8 +4,8 @@ export const typeDefs = gql`
   extend type Query {
     "Get all of the contributor role types"
     contributorRoles: [ContributorRole]
-    "Get the contributor role by it's ID"
-    contributorRoleById(contributorRoleId: ID!): ContributorRole
+    "Get the contributor role by it's id"
+    contributorRoleById(contributorRoleId: Int!): ContributorRole
     "Get the contributor role by it's URL"
     contributorRoleByURL(contributorRoleURL: URL!): ContributorRole
   }
