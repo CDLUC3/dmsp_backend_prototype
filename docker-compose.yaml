@@ -10,11 +10,16 @@ services:
       dockerfile: Dockerfile
     ports:
       - "4000:4000"
+      - "3006:3006"
     expose:
       - "4000"
+    # environment:
+    #   - USE_MOCK_DATA=true
+    #   - LOG_LEVEL=info
+    #   - DMSP_BASE_URL=https://localhost:3000/10.11111/ZZ
+    env_file:
+      - .env
     environment:
-      - USE_MOCK_DATA=true
-      - LOG_LEVEL=info
-      - DMSP_BASE_URL=https://localhost:3000/10.11111/ZZ
+      MYSQL_HOST: 'host.docker.internal'
     volumes:
       - .:/app

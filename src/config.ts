@@ -30,6 +30,7 @@ function baseConfig() {
       schema: addMocksToSchema({
         schema: makeExecutableSchema({ typeDefs, resolvers }),
         mocks,
+        preserveResolvers: true
       }),
     };
   }

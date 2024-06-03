@@ -11,14 +11,10 @@ Our Apollo server installation consists of:
 ## Installation
 - Make a local copy of the example dotenv file: `cp .env-example .env`
 - Setup MySQL:
-  - If you have MySQL already installed on your machine
-    - Create a database called `dmsp`
-    - Update the newly created `.env` file with the port, user, pwd for your local MySQL
-  - If you do not have MySQL installed locally
-    - Startup MySQL in a Docker container: `docker-compose up` (you must have Docker installed and running)
-  - Copy all of the files within the data migrations so that we can run them to build the DB: `cp ./data-migrations/processed/*.sql ./data-migrations/`
-  - Run the script to process all of the migrations: `./data-migrations/process.sh`
-  - Copy the processed files back into processed folder: `cp ./data-migrations/*.sql ./data-migrations/processed`
+  - If you are running on a Mac:
+    - If you have homebrew installed, run `brew install mysql` and then start it `brew services start mysql`
+  - Initialize the Database and the dataMigrations table: `./data-migrations/database-init.sh`
+  - Run all database migrations: `./data-migrations/process.sh`
 - Install all of the dependencies: `npm install`
 - Generate the Typescript types: `npm run generate`
 - Startup the application in development mode: `npm run dev`

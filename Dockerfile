@@ -11,7 +11,7 @@ WORKDIR /app
 
 # Copy package.json and package-lock.json
 # to the /app working directory
-COPY package*.json tsconfig.json codegen.ts ./
+COPY package*.json tsconfig.json codegen.ts .env ./
 
 # Copy the rest of our Apollo Server folder into /app
 COPY . .
