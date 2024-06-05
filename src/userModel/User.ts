@@ -29,13 +29,12 @@ class User {
 
     async login(): Promise<boolean> {
         this.cleanup();
+        const connection = await createConnection();
+        const query = 'SELECT * from users where email = ?';
+        const email = this.data.email || '';
         try {
-            const connection = await createConnection();
-            const query = 'SELECT * from users where email = ?';
-            const email = this.data.email || '';
             const [rows] = await connection.query(query, [email]);
 
-            await connection.end(); // Close connection
             if (rows && bcrypt.compareSync(this.data.password, rows[0].password)) {
                 this.data = rows[0];
                 console.log("Its a match")
@@ -46,6 +45,8 @@ class User {
         } catch (err) {
             console.error('Please try again later');
             throw err;
+        } finally {
+            await connection.end();
         }
     }
 
