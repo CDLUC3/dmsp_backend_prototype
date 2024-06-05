@@ -2,7 +2,7 @@ const User = require('../userModel/User').default;
 const jwt = require('jsonwebtoken');
 
 const tokenLasts = '1d';
-const secret = Buffer.from('Zn8Q5tyZ/G1MHltc4F/gTkVJMlrbKiZt', 'base64');
+const secret = process.env.JWTSECRET;
 
 exports.apiLogin = async (req, res) => {
     let user = new User(req.body);
@@ -35,4 +35,5 @@ exports.apiRegister = async (req, res) => {
         console.log('Signup error:', err)
         res.status(500).json({ success: false, message: 'Internal server error' })
     }
+
 };

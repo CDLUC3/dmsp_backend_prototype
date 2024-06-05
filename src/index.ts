@@ -29,9 +29,11 @@ const startServer = async () => {
 
   // Express middleware
 
-  app.use(express.urlencoded({ extended: false }));
-  app.use(express.json({ limit: '50mb' }));
-  app.use(cors())
+  app.use(
+    cors(),
+    express.urlencoded({ extended: false }),
+    express.json({ limit: '50mb' }),
+  )
 
   app.use('/graphql', attachApolloServer(apolloServer, cache, logger))
 
