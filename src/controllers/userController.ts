@@ -2,7 +2,7 @@ const User = require('../userModel/User').default;
 const jwt = require('jsonwebtoken');
 
 const tokenLasts = '1d';
-const secret = process.env.JWTSECRET;
+const secret = Buffer.from('Zn8Q5tyZ/G1MHltc4F/gTkVJMlrbKiZt', 'base64');
 
 exports.apiLogin = async (req, res) => {
     let user = new User(req.body);

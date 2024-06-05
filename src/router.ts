@@ -2,7 +2,7 @@ const router = require("express").Router();
 const { expressjwt } = require('express-jwt');
 const userController = require("./controllers/userController")
 
-const secret = process.env.JWTSECRET;
+const secret = Buffer.from('Zn8Q5tyZ/G1MHltc4F/gTkVJMlrbKiZt', 'base64');
 
 const authMiddleware = expressjwt({
     algorithms: ['HS256'],
