@@ -1,4 +1,4 @@
-const createConnection = require('../db.js');
+const createConnection = require('../db');
 const bcrypt = require('bcryptjs');
 
 interface UserData {
