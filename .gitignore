@@ -12,3 +12,6 @@ dist/
 
 # Ignore the persisted data sources for the local Docker dev env
 docker/
+
+# Ignore VS Code files, like the launch.json file
+.vscode/
