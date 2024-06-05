@@ -30,6 +30,7 @@ exports.apiRegister = async (req, res) => {
         const result = await user.register();
         if (result) {
             const token = jwt.sign({ email: req.body.email }, secret, { expiresIn: tokenLasts });
+            res.json({ success: true, token })
         }
     } catch (err) {
         console.log('Signup error:', err)

@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const expressjwt = require('express-jwt');
+const { expressjwt } = require('express-jwt');
 const userController = require("./controllers/userController")
 
 const secret = process.env.JWTSECRET;
