@@ -7,4 +7,4 @@ const dbConfiguration = {
     password: process.env.MYSQL_PASSWORD,
 };
 
-module.exports = dbConfiguration;
+export default dbConfiguration;
