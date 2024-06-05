@@ -2,47 +2,49 @@ import { ApolloServer } from '@apollo/server';
 
 import express from 'express';
 import http from 'http';
+import cors from 'cors';
 
 import { logger } from './logger';
 import { serverConfig } from './config';
 import { healthcheck } from './pages/healthcheck';
-import { handleCors } from './middleware/cors';
 import { attachApolloServer } from './middleware/express';
+import router from './router';
+
+const PORT = 4000;
 
 // Required logic for integrating with Express
 const app = express();
 // Our httpServer handles incoming requests to our Express app.
 const httpServer = http.createServer(app);
 
-// Added this generic wrapper function to accomodate the fact that Typescript doesn't
-// allow a top level await
-async function startup(config): Promise<void> {
-  // Ensure we wait for our server to start
-  const apolloServer = new ApolloServer(config);
-  await apolloServer.start();
 
+const apolloServer = new ApolloServer(serverConfig(logger, httpServer));
+
+const startServer = async () => {
+  await apolloServer.start();
   const { cache } = apolloServer;
 
   // Healthcheck endpoint (declare this BEFORE CORS definition due to AWS ALB limitations)
   app.get('/up', (_request, response) => healthcheck(apolloServer, response, logger));
 
   // Express middleware
-  app.use(
-    '/',
-    // 50mb is the limit that Apollo `startStandaloneServer` uses.
-    express.json({ limit: '50mb' }),
-    // CORS config
-    handleCors(),
-    // Attach Apollo server
-    attachApolloServer(apolloServer, cache, logger),
-  );
 
-  // TODO: Add our auth and token endpoints here
+  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(cors())
 
-  // Modified server startup
-  await new Promise<void>((resolve) => httpServer.listen({ port: 4000 }, resolve));
+  app.use('/graphql', attachApolloServer(apolloServer, cache, logger))
 
-  console.log(`🚀  Server ready at: http://localhost:4000/`);
+  app.use('/', router);
+  httpServer.listen({ port: 4000 }, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`GraphQL endpoint: http://localhost:${PORT}/graphql`)
+  })
 }
 
-startup(serverConfig(logger, httpServer));
+
+startServer().catch((error) => {
+  console.log('Error starting server:', error)
+})
+
+
