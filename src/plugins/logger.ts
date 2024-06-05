@@ -14,7 +14,7 @@ function setupLogger(loggerInstance: Logger, context = null, errors = null) {
   const errs = errors instanceof Array ? errors : [errors];
 
   return loggerInstance.child({
-    httpMethod: context?.request.http?.method,
+    httpMethod: context?.request?.http?.method,
     httpReferer: hdrs?.get('referer'),
     httpSecFetchSite: hdrs?.get('sec-fetch-site'),
     httpUserAgent: hdrs?.get('user-agent'),
