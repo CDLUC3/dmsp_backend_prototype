@@ -1,11 +1,12 @@
 import { ApolloServer } from '@apollo/server';
-
 import express from 'express';
+
 import http from 'http';
 
 import { logger } from './logger';
 import { serverConfig } from './config';
-import { healthcheck } from './pages/healthcheck';
+import { healthcheck } from './controllers/healthcheck';
+import { initOAuthServer } from './middleware/auth';
 import { handleCors } from './middleware/cors';
 import { attachApolloServer } from './middleware/express';
 
@@ -23,12 +24,16 @@ async function startup(config): Promise<void> {
 
   const { cache } = apolloServer;
 
-  // Healthcheck endpoint (declare this BEFORE CORS definition due to AWS ALB limitations)
+  // Healthcheck endpoint (declare this BEFORE Oauth2 and CORS definition due to AWS ALB limitations)
   app.get('/up', (_request, response) => healthcheck(apolloServer, response, logger));
+
+  // Initialize the OAuth2 server
+  initOAuthServer(app);
 
   // Express middleware
   app.use(
     '/',
+    express.urlencoded({ extended: false }),
     // 50mb is the limit that Apollo `startStandaloneServer` uses.
     express.json({ limit: '50mb' }),
     // CORS config

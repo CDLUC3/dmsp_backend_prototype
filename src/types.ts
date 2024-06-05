@@ -165,7 +165,7 @@ export type PrimaryContact = Person & {
 export type Query = {
   __typename?: 'Query';
   _empty?: Maybe<Scalars['String']['output']>;
-  /** Get the contributor role by it's ID */
+  /** Get the contributor role by it's id */
   contributorRoleById?: Maybe<ContributorRole>;
   /** Get the contributor role by it's URL */
   contributorRoleByURL?: Maybe<ContributorRole>;
@@ -179,7 +179,7 @@ export type Query = {
 
 
 export type QueryContributorRoleByIdArgs = {
-  contributorRoleId: Scalars['ID']['input'];
+  contributorRoleId: Scalars['Int']['input'];
 };
 
 
@@ -305,7 +305,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 
 /** Mapping of interface types */
-export type ResolversInterfaceTypes<RefType extends Record<string, unknown>> = {
+export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
   Person: ( Contributor ) | ( PrimaryContact );
 };
 
