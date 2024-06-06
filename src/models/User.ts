@@ -1,17 +1,19 @@
 import bcrypt from 'bcryptjs';
 import { createConnection } from '../db';
 
-// TODO: UPdate this to use the datasource defined and the connection pool
+// TODO: Update this to use the datasource defined and the connection pool
 
 interface UserData {
-  email?: string;
-  password?: string;
+  id: string;
+  email: string;
+  password: string;
+  role: string;
 
   givenName?: string;
   surName?: string;
 }
 
-class User {
+export class User {
   data: UserData;
   errors: string[];
 
@@ -22,8 +24,10 @@ class User {
 
   cleanup() {
     this.data = {
+      id: this.data.id,
       email: this.data.email.trim().toLowerCase(),
-      password: this.data.password
+      password: this.data.password,
+      role: this.data.role || 'RESEARCHER'
     }
   }
 
@@ -78,5 +82,3 @@ class User {
     }
   }
 }
-
-export default User;
