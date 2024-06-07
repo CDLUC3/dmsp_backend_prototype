@@ -44,7 +44,8 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.9.7",
     "pino": "^9.0.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "uuid-random": "^1.3.2"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^4.0.1",

@@ -8,7 +8,7 @@
 //   redirectUri: process.env.REDIRECT_URI as string,
 // }
 
-export default {
+export const oauthConfig = {
   authorizationCodeLifetime: 600, // 10 minutes
   accessTokenLifetime: 3600, // 1 hour
   refreshTokenLifetime: 604800, // 7 days

@@ -1,0 +1,148 @@
+import { Client } from 'oauth2-server';
+import { v6 as uuidv6 } from 'uuid';
+import uuidRandom from 'uuid-random';
+import { stringToArray } from '../helpers';
+import { User } from './User';
+import { mysqlConfig } from '../config/mysqlConfig';
+import { MysqlDataSource } from '../datasources/mysqlDB';
+
+// TODO: Is this the right place to create our Pool?
+const mysql = new MysqlDataSource({ config: mysqlConfig });
+
+export class OAuthClient implements Client {
+  public id: string;
+  public name: string;
+  public redirectUris: string[];
+  public grants: any[];
+  public clientId: string;
+  public clientSecret: string;
+  public user: User;
+  public errors: string[];
+
+  // Initialize a new client
+  constructor(options) {
+    this.id = options.id;
+    this.name = options.name;
+    this.redirectUris = stringToArray(options.redirectUris) || [];
+    this.grants = stringToArray(options.grants) || [];
+    this.clientId = options.clientId;
+    this.clientSecret = options.clientSecret;
+    this.user = options.user;
+    this.errors = [];
+  }
+
+  // Find the OAuth2 Client by it's Client ID and Secret
+  static async findOne(clientId: string, clientSecret: string): Promise<OAuthClient | null> {
+    const sql = 'SELECT * FROM oauthClients WHERE clientId = ? AND clientSecret = ?';
+    try {
+      const [rows] = await mysql.query(sql, [clientId, clientSecret]);
+      const user = await User.findById(rows[0].userId);
+
+      return rows.length === 0 ? null : new OAuthClient({
+        ...OAuthClient._SqlFieldsToProperties(rows[0]),
+        user: user,
+      });
+    } catch (err) {
+      console.error('Error trying to find OAuthClient by id');
+      throw err;
+    }
+  }
+
+  // Find the OAuth2 Client by it's id
+  static async findById(oauthClientId: string): Promise<OAuthClient | null> {
+    const sql = 'SELECT * FROM oauthClients WHERE id = ?';
+    try {
+      const [rows] = await mysql.query(sql, [oauthClientId]);
+      const user = await User.findById(rows[0].userId);
+
+      return rows.length === 0 ? null : new OAuthClient({
+        ...OAuthClient._SqlFieldsToProperties(rows[0]),
+        user: user,
+      });
+    } catch (err) {
+      console.error('Error trying to find OAuthClient by id');
+      throw err;
+    }
+  }
+
+  // Function to help ensure data integrity
+  cleanup(): void {
+    this.name = this.name?.toLowerCase();
+    this.redirectUris = this.redirectUris || [];
+    this.grants = this.grants || [];
+    this.clientId = this.clientId || this.generateClientId();
+    this.clientSecret = this.clientSecret || this.generateClientSecret();
+  }
+
+  // Generate a random ClientId
+  generateClientId(): string {
+    return uuidv6(256);
+  }
+
+  // Generate a random ClientSecret
+  generateClientSecret(): string {
+    return uuidRandom();
+  }
+
+  // Register/Save a new OAuthClient
+  async save(): Promise<boolean> {
+    this.cleanup();
+
+    let sql = `
+      INSERT INTO aouthClients (name, redirectUris, grants, clientId, clientSecret, userId)
+      VALUES(?,?,?,?,?,?)
+    `;
+    const vals = [
+      this.name,
+      this.redirectUris?.join(', '),
+      this.grants?.join(', '),
+      this.clientId,
+      this.clientSecret,
+      this.user?.id?.toString(),
+    ];
+
+    // If the OAuthClient already has an id then update it instead
+    if (this.id) {
+      vals.push(this.id);
+      vals.push(new Date().toISOString());
+      sql = `
+        UPDATE aouthClients
+        SET name = ?, redirectUris = ?, grants = ?, clientId = ?, clientSecret = ?, userId = ?, modified = ?
+        WHERE id = ?
+      `;
+    }
+
+    try {
+      const [result] = await mysql.query(sql, vals);
+      this.id = (result as any).insertId;
+      console.log('OAuth Client was created: ', (result as any).insertId)
+      return true;
+    } catch (err) {
+      console.log('Error creating OAuthClient: ', err)
+      throw err;
+    }
+  }
+
+  // Register/Save a new OAuthClient
+  async delete(): Promise<boolean> {
+    try {
+      const [result] = await mysql.query(`DELETE FROM aouthClients WHERE id = ?`, [this.id]);
+      console.log(`OAuth Client was deleted: ${this.id}`)
+      return true;
+    } catch (err) {
+      console.log('Error deleting OAuthClient: ', err)
+      throw err;
+    }
+  }
+
+  static _SqlFieldsToProperties(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      redirectUris: stringToArray(row.redirectUris),
+      grants: stringToArray(row.grants),
+      clientId: row.clientId,
+      clientSecret: row.clientSecret,
+    }
+  }
+}

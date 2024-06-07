@@ -1,9 +1,8 @@
+import bcrypt from 'bcryptjs';
 import { ApolloServer } from '@apollo/server';
 import express from 'express';
-
 import http from 'http';
 import cors from 'cors';
-
 import { logger } from './logger';
 import { serverConfig } from './config';
 import { healthcheck } from './controllers/healthcheck';

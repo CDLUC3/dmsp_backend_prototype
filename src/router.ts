@@ -1,7 +1,9 @@
 import express from 'express';
 import { expressjwt } from 'express-jwt';
-import { authenticate, authorize, token } from './controllers/oauth2Controller';
-import { signIn, signUp } from './controllers/userController';
+import { generalConfig } from './config/generalConfig';
+import { signinController } from './controllers/signinController';
+import { signupController } from './controllers/signupController';
+import { oauthServer, castRequest, castResponse } from './middleware/oauthServer';
 
 const router = express.Router();
 
@@ -11,20 +13,20 @@ const secret = process.env.JWTSECRET;
 const authMiddleware = expressjwt({
   algorithms: ['HS256'],
   credentialsRequired: false,
-  secret,
+  secret: generalConfig.jwtSecret as string,
 });
 
-// OAuth2 authorization check
-router.use('/graphql', authorize);
+// Support for email+password
+router.post('/signin', (req, res) => signinController(req, res));
+router.post('/signup', (req, res) => signupController(req, res));
 
-// Standard email+password authentication
-router.post("/login", signIn);
-// User account creation
-router.post("/register", signUp);
-// OAuth2 authentication endpoint for Code and ClientCredential flows
-router.get('/authenticate', authenticate);
-// OAuth2 endpoint to exchange an authorized Code for a Token
-router.get('/token', token);
+// Support for OAuth2
+router.get('/authorize', (req, res) => oauthServer.authorize(castRequest(req), castResponse(res)));
+router.post('/authenticate', (req, res) => oauthServer.authenticate(castRequest(req), castResponse(res)));
+router.post('/token', (req, res) => oauthServer.token(castRequest(req), castResponse(res)));
+
+// GraphQL operations
+router.use('/graphql', authMiddleware);
 
 // Sample protected endpoint
 router.post("/protected", authMiddleware, (req, res) => {

@@ -47,10 +47,6 @@ export const resolvers: Resolvers = {
       const logMessage = `Resolving query contributorRoleById(id: '${contributorRoleId}')`
       try {
         const resp = await fetchContributorRole(dataSources, contributorRoleId);
-
-console.log(`Looking for ID: ${contributorRoleId}`);
-console.log(resp);
-
         formatLogMessage(logger, { contributorRoleId }).debug(logMessage);
         return resp[0];
       } catch(err) {

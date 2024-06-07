@@ -32,6 +32,7 @@ process_migration() {
       echo "    done"
     else
       echo "    Something went wrong!"
+      exit 1
     fi
   else
     echo "    already processed."
