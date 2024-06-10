@@ -15,8 +15,7 @@ async function fetchContributorRole(dataSources, contributorRoleId) : Promise<Co
 
 // Generic error handler for mutations
 function handleMutationError(logger, args) {
-  const errorLogger = logger.child({ ...args })
-  errorLogger.error(`ERROR: Resolving a ContributorRole query/mutation - ${args?.err?.sqlMessage}`);
+  formatLogMessage(logger, args)
 
   return {
     code: 400,

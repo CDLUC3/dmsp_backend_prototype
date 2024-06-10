@@ -1,7 +1,7 @@
 import { AuthorizationCode } from 'oauth2-server';
 import { v4 as uuidv4 } from 'uuid';
 import { oauthConfig } from '../config/oauthConfig';
-import { stringToArray } from '../helpers';
+import { stringToArray } from '../utils/helpers';
 import { OAuthClient } from './OAuthClient';
 import { OAuthToken } from './OAuthToken'
 import { User } from '../models/User';
@@ -27,7 +27,7 @@ export class OAuthCode implements AuthorizationCode {
     this.authorizationCode = options.authorizationCode;
     this.expiresAt = options.expiresAt;
     this.redirectUri = options.redirectUri;
-    this.scope = stringToArray(options.scope);
+    this.scope = stringToArray(options.scope, ',');
     this.client = options.client;
     this.user = options.user;
     this.codeChallenge = options.codeChallenge;
@@ -123,7 +123,7 @@ export class OAuthCode implements AuthorizationCode {
       this.authorizationCode,
       this.expiresAt.toISOString(),
       this.redirectUri,
-      stringToArray(this.scope).join(', '),
+      stringToArray(this.scope, ',').join(', '),
       this.client.id.toString(),
       this.user.id.toString(),
       this.codeChallenge,
@@ -163,7 +163,7 @@ export class OAuthCode implements AuthorizationCode {
   static _SqlFieldsToProperties(row) {
     const scopeArray = typeof row.scope === 'string' ? row.scope.split(' ') : row.scope;
     return {
-      authorzationCode: row.code,
+      authorizationCode: row.code,
       expiresAt: new Date(row.expiresAt),
       redirectUri: row.redirectUri,
       scope: scopeArray,

@@ -103,7 +103,7 @@ export function castRequest(req: Request): OAuth2Request {
 export function castResponse(res: Response): OAuth2Response {
   return new OAuth2Response({
     headers: res.getHeaders(),
-    // body: res.get('Content-Type') === 'application/json' ? res['body'] : undefined,
+    //body: res.get('Content-Type') === 'application/json' ? res['body'] : undefined,
     status: res.statusCode,
     redirect: res.get('Location'),
   });

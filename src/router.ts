@@ -33,8 +33,8 @@ router.post("/protected", authMiddleware, (req, res) => {
   // TODO: Someday fix this so we aren't using `any`
   if (!(req as any).auth.admin) {
     return res.sendStatus(401);
-    res.sendStatus(200);
   }
+  res.sendStatus(200);
 });
 
 export default router;

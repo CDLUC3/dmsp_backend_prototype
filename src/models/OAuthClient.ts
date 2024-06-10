@@ -1,7 +1,7 @@
 import { Client } from 'oauth2-server';
 import { v6 as uuidv6 } from 'uuid';
 import uuidRandom from 'uuid-random';
-import { stringToArray } from '../helpers';
+import { stringToArray } from '../utils/helpers';
 import { User } from './User';
 import { mysqlConfig } from '../config/mysqlConfig';
 import { MysqlDataSource } from '../datasources/mysqlDB';
@@ -23,8 +23,8 @@ export class OAuthClient implements Client {
   constructor(options) {
     this.id = options.id;
     this.name = options.name;
-    this.redirectUris = stringToArray(options.redirectUris) || [];
-    this.grants = stringToArray(options.grants) || [];
+    this.redirectUris = stringToArray(options.redirectUris, ',') || [];
+    this.grants = stringToArray(options.grants, ',') || [];
     this.clientId = options.clientId;
     this.clientSecret = options.clientSecret;
     this.user = options.user;
@@ -89,7 +89,7 @@ export class OAuthClient implements Client {
     this.cleanup();
 
     let sql = `
-      INSERT INTO aouthClients (name, redirectUris, grants, clientId, clientSecret, userId)
+      INSERT INTO oauthClients (name, redirectUris, grants, clientId, clientSecret, userId)
       VALUES(?,?,?,?,?,?)
     `;
     const vals = [
@@ -106,7 +106,7 @@ export class OAuthClient implements Client {
       vals.push(this.id);
       vals.push(new Date().toISOString());
       sql = `
-        UPDATE aouthClients
+        UPDATE oauthClients
         SET name = ?, redirectUris = ?, grants = ?, clientId = ?, clientSecret = ?, userId = ?, modified = ?
         WHERE id = ?
       `;
@@ -126,7 +126,7 @@ export class OAuthClient implements Client {
   // Register/Save a new OAuthClient
   async delete(): Promise<boolean> {
     try {
-      const [result] = await mysql.query(`DELETE FROM aouthClients WHERE id = ?`, [this.id]);
+      const [result] = await mysql.query(`DELETE FROM oauthClients WHERE id = ?`, [this.id]);
       console.log(`OAuth Client was deleted: ${this.id}`)
       return true;
     } catch (err) {
@@ -139,8 +139,8 @@ export class OAuthClient implements Client {
     return {
       id: row.id,
       name: row.name,
-      redirectUris: stringToArray(row.redirectUris),
-      grants: stringToArray(row.grants),
+      redirectUris: stringToArray(row.redirectUris, ','),
+      grants: stringToArray(row.grants, ','),
       clientId: row.clientId,
       clientSecret: row.clientSecret,
     }

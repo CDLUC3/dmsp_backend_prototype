@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { mysqlConfig } from '../config/mysqlConfig';
 import { MysqlDataSource } from '../datasources/mysqlDB';
-import { validateEmail } from '../helpers';
+import { validateEmail } from '../utils/helpers';
 import { generalConfig } from '../config/generalConfig';
 
 // TODO: Is this the right place to create our Pool?
@@ -48,18 +48,14 @@ export class User {
     const existing = await User.findByEmail(this.email);
     if (existing) {
       this.errors.push('Email address already in use');
-      return false;
     } else if (!this.role) {
       this.errors.push('Invalid role');
-      return false;
     } else if (!validateEmail(this.email)) {
       this.errors.push('Invalid email address');
-      return false;
     } else if (!this.password) {
       this.errors.push('Password is required');
-      return false;
     }
-    return true;
+    return this.errors.length === 0;
   }
 
   // Find the User by their Id
@@ -105,8 +101,8 @@ export class User {
   // Register the User if the data is valid
   async register(): Promise<boolean> {
     this.cleanup();
-    let salt = bcrypt.genSaltSync(10);
-    this.password = bcrypt.hashSync(this.password, generalConfig.salt);
+    const salt = bcrypt.genSaltSync(10);
+    this.password = bcrypt.hashSync(this.password, salt);
 
     const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
     const vals = [this.email, this.password, this.role, this.givenName, this.surName]

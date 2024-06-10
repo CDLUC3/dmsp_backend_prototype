@@ -4,7 +4,7 @@ import { OAuthClient } from './OAuthClient';
 import { OAuthRefreshToken } from './OAuthRefreshToken';
 import { User } from './User';
 import { oauthConfig } from '../config/oauthConfig';
-import { stringToArray } from '../helpers';
+import { stringToArray } from '../utils/helpers';
 import { generateToken } from '../services/tokenService';
 import { mysqlConfig } from '../config/mysqlConfig';
 import { MysqlDataSource } from '../datasources/mysqlDB';
@@ -83,7 +83,7 @@ export class OAuthToken implements Token {
     this.accessTokenExpiresAt = this.accessTokenExpiresAt || this.generateExpiryDate();
     this.refreshToken = this.refreshToken || await this.generateRefreshToken();
     this.refreshTokenExpiresAt = this.refreshTokenExpiresAt || this.generateExpiryDate(false);
-    this.scope = stringToArray(this.scope, ['read']);
+    this.scope = stringToArray(this.scope, ',', ['read']);
     this.client = this.client;
     this.user = this.user;
   }
@@ -134,7 +134,7 @@ export class OAuthToken implements Token {
       this.accessTokenExpiresAt.toISOString(),
       this.refreshToken,
       this.refreshTokenExpiresAt.toISOString(),
-      stringToArray(this.scope).join(', '),
+      stringToArray(this.scope, ',').join(', '),
       this.client.id.toString(),
       this.user.id.toString()
     ]

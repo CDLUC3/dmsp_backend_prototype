@@ -3,6 +3,7 @@ import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 
 import { DmspModel as Dmsp } from "../models/Dmsp"
+import { JWTToken } from '../services/tokenService';
 
 // JS SDK v3 does not support global configuration.
 // Codemod has attempted to pass values to each service client in this file.
@@ -17,9 +18,9 @@ const aws = AWS;
 export class DMPHubAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
-  private token: string;
+  private token: JWTToken;
 
-  constructor(options: { cache: KeyValueCache, token: string }) {
+  constructor(options: { cache: KeyValueCache, token: JWTToken }) {
     super(options);
 
     this.token = options.token;

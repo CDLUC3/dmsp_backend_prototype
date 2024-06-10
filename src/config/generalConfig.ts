@@ -1,5 +1,5 @@
 
 export const generalConfig = {
-  salt: process.env.SALT,
   jwtSecret: process.env.JWT_SECRET,
+  jwtTtl: process.env.JWT_TTL
 }
