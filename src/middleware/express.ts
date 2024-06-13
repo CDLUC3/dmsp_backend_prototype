@@ -1,7 +1,6 @@
 import { expressMiddleware } from '@apollo/server/express4';
-import { mysqlConfig } from '../config';
 import { DMPHubAPI } from '../datasources/dmphub-api';
-import { MysqlDataSource } from '../datasources/mysqlDB';
+import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { JWTToken, verifyToken } from '../services/tokenService';
 
 export function attachApolloServer(apolloServer, cache, logger) {
@@ -10,8 +9,9 @@ export function attachApolloServer(apolloServer, cache, logger) {
   return expressMiddleware(apolloServer, {
     context: async ({ req }) => {
       // Extract the token from the incoming request so we can pass it on to the resolvers
-      const authHeader = req?.headers?.authorization;
-      const token: JWTToken = authHeader ? verifyToken(authHeader, logger) : null;
+      const authHeader: string = req?.headers?.authorization || '';
+      const hdrToken: string = authHeader.split(' ')[1];
+      const token: JWTToken = authHeader ? verifyToken(hdrToken, logger) : null;
 
       return {
         token,
@@ -19,7 +19,7 @@ export function attachApolloServer(apolloServer, cache, logger) {
         logger,
         dataSources: {
           dmphubAPIDataSource: await new DMPHubAPI({ cache, token }),
-          sqlDataSource: await new MysqlDataSource({ config: mysqlConfig }),
+          sqlDataSource: await MySQLDataSource.getInstance(),
         },
       }
     },

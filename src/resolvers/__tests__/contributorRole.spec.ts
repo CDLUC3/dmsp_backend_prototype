@@ -1,10 +1,7 @@
 import gql from "graphql-tag";
 import assert from "assert";
-
-import { server } from '../setup';
-import { assertTimestamp, assertUrl } from '../helpers';
-
-import { ContributorRole } from '../../src/types';
+import { assertTimestamp, assertUrl, server } from '../../../test/helpers';
+import { ContributorRole } from '../../types';
 
 it('fetches all of the contributor roles', async () => {
   // run the query against the server and snapshot the output

@@ -6,13 +6,11 @@ import { User } from './User';
 import { oauthConfig } from '../config/oauthConfig';
 import { stringToArray } from '../utils/helpers';
 import { generateToken } from '../services/tokenService';
-import { mysqlConfig } from '../config/mysqlConfig';
-import { MysqlDataSource } from '../datasources/mysqlDB';
-
-// TODO: Is this the right place to create our Pool?
-const mysql = new MysqlDataSource({ config: mysqlConfig });
+import { MySQLDataSource } from '../datasources/mySQLDataSource';
 
 export class OAuthToken implements Token {
+  private mysql: MySQLDataSource;
+
   public accessToken: string;
   public accessTokenExpiresAt?: Date | undefined;
   public refreshToken?: string | undefined;
@@ -24,6 +22,8 @@ export class OAuthToken implements Token {
 
   // Initialize a new access token
   constructor(options) {
+    this.mysql = MySQLDataSource.getInstance();
+
     this.accessToken = options.accessToken;
     this.accessTokenExpiresAt = options.accessToken;
     this.refreshToken = options.refreshToken;
@@ -37,6 +37,7 @@ export class OAuthToken implements Token {
   // Locate and access token by its id
   static async findOne(accessToken: string): Promise<OAuthToken | null> {
     try {
+      const mysql = MySQLDataSource.getInstance();
       const [rows] = await mysql.query('SELECT * FROM oauthTokens WHERE code = ?', [accessToken]);
       if (rows.length === 0) {
         return null;
@@ -61,6 +62,7 @@ export class OAuthToken implements Token {
   // Locate an access token by the Client and User
   static async findByClientUser(client: Client, user: User): Promise<OAuthToken | null> {
     try {
+      const mysql = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM oauthTokens WHERE clientId = ? AND userId = ?'
       const [rows] = await mysql.query(sql, [client.id, user.id.toString()]);
       if (rows.length === 0) {
@@ -139,8 +141,7 @@ export class OAuthToken implements Token {
       this.user.id.toString()
     ]
     try {
-      const [result] = await mysql.query(sql, vals);
-      // TODO: Fix this Type issue, we should able to define one here
+      const [result] = await this.mysql.query(sql, vals);
       console.log(`OAuthToken was created: User: ${this.user.id}, token: ${this.accessToken}`);
       return true;
     } catch (err) {
@@ -158,8 +159,7 @@ export class OAuthToken implements Token {
     `;
     const vals = [currentDate.toISOString(), this.accessToken];
     try {
-      const [result] = await mysql.query(sql, vals);
-      // TODO: Fix this Type issue, we should able to define one here
+      const [result] = await this.mysql.query(sql, vals);
       console.log(`Access token was revoked: ${this.accessToken}`);
       return true;
     } catch (err) {

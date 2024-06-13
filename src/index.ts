@@ -8,6 +8,7 @@ import { serverConfig } from './config';
 import { healthcheck } from './controllers/healthcheck';
 import { attachApolloServer } from './middleware/express';
 import router from './router';
+import { MySQLDataSource } from './datasources/mySQLDataSource';
 
 // TODO: Make this configurable and pass in as ENV variable
 const PORT = 4000;
@@ -45,6 +46,15 @@ const startServer = async () => {
   })
 }
 
+// Handle graceful shutdown
+const shutdown = async () => {
+  console.log('Shutting down server...');
+  const pool = MySQLDataSource.getInstance();
+  await pool.close();
+  process.exit(0);
+};
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 startServer().catch((error) => {
   console.log('Error starting server:', error)

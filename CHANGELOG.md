@@ -1,5 +1,6 @@
 
 ### Added
+- Added editor config
 - initial Apollo server config
 - Initial Schema for ContributorRole
 - Initial Schema for DMSP
@@ -15,4 +16,4 @@
 - Local Docker Compose config
 - Pino logger with ECS formatter
 - Plugin to log request/response lifecycle events
-- Logger to the context and then used it in the resolvers
+- Add Logger to the context and then used it in the resolvers

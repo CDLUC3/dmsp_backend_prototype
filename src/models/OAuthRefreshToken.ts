@@ -3,13 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { OAuthClient } from './OAuthClient';
 import { User } from './User';
 import { oauthConfig } from '../config/oauthConfig';
-import { mysqlConfig } from '../config/mysqlConfig';
-import { MysqlDataSource } from '../datasources/mysqlDB';
-
-// TODO: Is this the right place to create our Pool?
-const mysql = new MysqlDataSource({ config: mysqlConfig });
+import { MySQLDataSource } from '../datasources/mySQLDataSource';
 
 export class OAuthRefreshToken implements RefreshToken {
+  private mysql: MySQLDataSource;
+
   public refreshToken: string | undefined;
   public refreshTokenExpiresAt?: Date | undefined;
   public client: OAuthClient;
@@ -18,6 +16,8 @@ export class OAuthRefreshToken implements RefreshToken {
 
   // Initialize a new refresh token
   constructor(options) {
+    this.mysql = MySQLDataSource.getInstance();
+
     this.refreshToken = options.refreshToken;
     this.refreshTokenExpiresAt = options.refreshTokenExpiresAt;
     this.client = options.client;
@@ -28,6 +28,7 @@ export class OAuthRefreshToken implements RefreshToken {
   // Locate and refresh token by its id
   static async findOne(refreshToken: string): Promise<OAuthRefreshToken | null> {
     try {
+      const mysql = MySQLDataSource.getInstance();
       const [rows] = await mysql.query('SELECT * FROM oauthRefreshTokens WHERE token = ?', [refreshToken]);
       if (rows.length === 0) {
         return null;
@@ -96,7 +97,7 @@ export class OAuthRefreshToken implements RefreshToken {
       this.user.id.toString()
     ]
     try {
-      const [result] = await mysql.query(sql, vals);
+      const [result] = await this.mysql.query(sql, vals);
       // TODO: Fix this Type issue, we should able to define one here
       console.log(`OAuthRefreshToken was created: User: ${this.user.id}, token: ${this.refreshToken}`);
       return true;
@@ -115,7 +116,7 @@ export class OAuthRefreshToken implements RefreshToken {
     `;
     const vals = [currentDate.toISOString(), currentDate.toISOString(), this.refreshToken];
     try {
-      const [result] = await mysql.query(sql, vals);
+      const [result] = await this.mysql.query(sql, vals);
       // TODO: Fix this Type issue, we should able to define one here
       console.log(`Refresh token was revoked: ${this.refreshToken}`);
       return true;

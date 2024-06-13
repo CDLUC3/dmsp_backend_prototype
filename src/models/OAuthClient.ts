@@ -3,13 +3,11 @@ import { v6 as uuidv6 } from 'uuid';
 import uuidRandom from 'uuid-random';
 import { stringToArray } from '../utils/helpers';
 import { User } from './User';
-import { mysqlConfig } from '../config/mysqlConfig';
-import { MysqlDataSource } from '../datasources/mysqlDB';
-
-// TODO: Is this the right place to create our Pool?
-const mysql = new MysqlDataSource({ config: mysqlConfig });
+import { MySQLDataSource } from '../datasources/mySQLDataSource';
 
 export class OAuthClient implements Client {
+  private mysql: MySQLDataSource;
+
   public id: string;
   public name: string;
   public redirectUris: string[];
@@ -21,6 +19,8 @@ export class OAuthClient implements Client {
 
   // Initialize a new client
   constructor(options) {
+    this.mysql = MySQLDataSource.getInstance();
+
     this.id = options.id;
     this.name = options.name;
     this.redirectUris = stringToArray(options.redirectUris, ',') || [];
@@ -33,6 +33,7 @@ export class OAuthClient implements Client {
 
   // Find the OAuth2 Client by it's Client ID and Secret
   static async findOne(clientId: string, clientSecret: string): Promise<OAuthClient | null> {
+    const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * FROM oauthClients WHERE clientId = ? AND clientSecret = ?';
     try {
       const [rows] = await mysql.query(sql, [clientId, clientSecret]);
@@ -50,6 +51,7 @@ export class OAuthClient implements Client {
 
   // Find the OAuth2 Client by it's id
   static async findById(oauthClientId: string): Promise<OAuthClient | null> {
+    const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * FROM oauthClients WHERE id = ?';
     try {
       const [rows] = await mysql.query(sql, [oauthClientId]);
@@ -113,7 +115,7 @@ export class OAuthClient implements Client {
     }
 
     try {
-      const [result] = await mysql.query(sql, vals);
+      const [result] = await this.mysql.query(sql, vals);
       this.id = (result as any).insertId;
       console.log('OAuth Client was created: ', (result as any).insertId)
       return true;
@@ -126,7 +128,7 @@ export class OAuthClient implements Client {
   // Register/Save a new OAuthClient
   async delete(): Promise<boolean> {
     try {
-      const [result] = await mysql.query(`DELETE FROM oauthClients WHERE id = ?`, [this.id]);
+      const [result] = await this.mysql.query(`DELETE FROM oauthClients WHERE id = ?`, [this.id]);
       console.log(`OAuth Client was deleted: ${this.id}`)
       return true;
     } catch (err) {

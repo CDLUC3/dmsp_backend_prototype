@@ -5,13 +5,11 @@ import { stringToArray } from '../utils/helpers';
 import { OAuthClient } from './OAuthClient';
 import { OAuthToken } from './OAuthToken'
 import { User } from '../models/User';
-
-import { mysqlConfig } from '../config/mysqlConfig';
-import { MysqlDataSource } from '../datasources/mysqlDB';
-
-const mysql = new MysqlDataSource({ config: mysqlConfig });
+import { MySQLDataSource } from '../datasources/mySQLDataSource';
 
 export class OAuthCode implements AuthorizationCode {
+  private mysql: MySQLDataSource;
+
   public authorizationCode: string;
   public expiresAt: Date | undefined;
   public redirectUri: string;
@@ -24,6 +22,8 @@ export class OAuthCode implements AuthorizationCode {
 
   // Initialize a new authorization code
   constructor(options) {
+    this.mysql = MySQLDataSource.getInstance();
+
     this.authorizationCode = options.authorizationCode;
     this.expiresAt = options.expiresAt;
     this.redirectUri = options.redirectUri;
@@ -38,6 +38,7 @@ export class OAuthCode implements AuthorizationCode {
   // Locate the authorization code by its id
   static async findOne(authorizationCode: string): Promise<OAuthCode | null> {
     try {
+      const mysql = MySQLDataSource.getInstance();
       const [rows] = await mysql.query('SELECT * FROM oauthCodes WHERE code = ?', [authorizationCode]);
       if (rows.length === 0) {
         return null;
@@ -131,7 +132,7 @@ export class OAuthCode implements AuthorizationCode {
     ];
 
     try {
-      const [result] = await mysql.query(sql, vals);
+      const [result] = await this.mysql.query(sql, vals);
       if (result[0]) {
         console.log(`Authorization code created: User: ${this.user.id}, Code: ${result.insertId}`);
         return true;
@@ -149,7 +150,7 @@ export class OAuthCode implements AuthorizationCode {
     const sql = `UPDATE oauthCodes SET expiresAt = ?, modified = ? WHERE code = ?`;
     const vals = [currentDate.toISOString(), currentDate.toISOString(), this.authorizationCode];
     try {
-      const [result] = await mysql.query(sql, vals);
+      const [result] = await this.mysql.query(sql, vals);
       // TODO: Fix this Type issue, we should able to define one here
       console.log(`Authorization code was revoked: ${this.authorizationCode}`);
       return true;

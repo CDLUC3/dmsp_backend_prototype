@@ -1,10 +1,7 @@
 import gql from "graphql-tag";
 import assert from "assert";
-
-import { server} from '../setup';
-import { assertEmailAddress, assertOrcid, assertTimestamp } from '../helpers';
-
-import { User } from '../../src/types';
+import { assertEmailAddress, assertOrcid, assertTimestamp, server } from '../../../test/helpers';
+import { User } from '../../types';
 
 describe('User queries', () => {
   test('fetches a list of users', async () => {
