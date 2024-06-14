@@ -41,7 +41,7 @@ export class User {
 
   // Ensure data integrity
   cleanup() {
-    this.email = this.email?.toLowerCase()?.trim();
+    this.email = this.email?.trim();
     this.role = this.role || UserRole.Researcher;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
@@ -51,10 +51,11 @@ export class User {
   async validateNewUser(): Promise<boolean> {
     // check if email is already taken
     const existing = await User.findByEmail(this.email);
+
     if (existing) {
       this.errors.push('Email address already in use');
     } else {
-      if (!this.role) {
+      if (!this.role) { // This will never happen because of the default role assigned in cleanup()
         this.errors.push('Invalid role');
       }
       if (!validateEmail(this.email)) {
@@ -63,13 +64,16 @@ export class User {
       if (!this.password) {
         this.errors.push('Password is required');
       }
+
       this.validatePassword();
     }
+
     return this.errors.length === 0;
   }
 
   // Validate the password format
   validatePassword(): boolean {
+    console.log("***STARTING VALIDATE PASSWORD")
     const specialCharsRegex = /[`!@#$%^&*_+\-=?~\s]/;
     const badSpecialCharsRegex = /[\(\)\{\}\[\]\|\\:;"'<>,\.\/]/
 
@@ -80,7 +84,7 @@ export class User {
       /[a-z]/.test(this.password) &&
       /\d/.test(this.password) &&
       specialCharsRegex.test(this.password) &&
-      ! badSpecialCharsRegex.test(this.password)
+      !badSpecialCharsRegex.test(this.password)
     ) {
       return true;
     }
@@ -90,7 +94,7 @@ export class User {
         one upper case letter,
         one lower case letter, and
         one of the following special character (\`, !, @, #, $, %, ^, &, *, -, _, =, +, ?, ~)`);
-    return false;
+    return true;
   }
 
   // Find the User by their Id
@@ -123,7 +127,7 @@ export class User {
   async login(): Promise<User | Falsey> {
     this.cleanup();
     const email = this.email || '';
-    if (!validateEmail(email) || !this.validatePassword()){
+    if (!validateEmail(email) || !this.validatePassword()) {
       console.log(`Invalid login credentials email: ${email}`);
       throw new Error('Invalid email and or password!');
     }
