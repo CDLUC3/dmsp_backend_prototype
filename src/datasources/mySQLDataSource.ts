@@ -19,12 +19,12 @@ export class MySQLDataSource {
   private constructor() {
     try {
       this.pool = mysql.createPool({ ...mysqlConfig, waitForConnections: true, queueLimit: 0 });
-    } catch(err) {
+    } catch (err) {
       console.log('Unable to establish the MySQL connection pool.')
     }
   }
 
-  // Retrieve the the instance of this class
+  // Retrieve the instance of this class
   public static getInstance(): MySQLDataSource {
     if (!MySQLDataSource.instance) {
       MySQLDataSource.instance = new MySQLDataSource();
@@ -44,7 +44,7 @@ export class MySQLDataSource {
       const [rows] = await this.pool.execute(sql, values);
       // console.log(rows);
       return rows;
-    } catch(err) {
+    } catch (err) {
       console.log('Error when querying the MySQL database.');
       console.log(err);
       throw err;

@@ -55,17 +55,14 @@ export class User {
     if (existing) {
       this.errors.push('Email address already in use');
     } else {
-      if (!this.role) { // This will never happen because of the default role assigned in cleanup()
-        this.errors.push('Invalid role');
-      }
       if (!validateEmail(this.email)) {
         this.errors.push('Invalid email address');
       }
       if (!this.password) {
         this.errors.push('Password is required');
+      } else {
+        this.validatePassword();
       }
-
-      this.validatePassword();
     }
 
     return this.errors.length === 0;
@@ -73,13 +70,12 @@ export class User {
 
   // Validate the password format
   validatePassword(): boolean {
-    console.log("***STARTING VALIDATE PASSWORD")
     const specialCharsRegex = /[`!@#$%^&*_+\-=?~\s]/;
     const badSpecialCharsRegex = /[\(\)\{\}\[\]\|\\:;"'<>,\.\/]/
 
     // Test the string against the regular expression
     if (
-      this.password.length >= 8 &&
+      this.password?.length >= 8 &&
       /[A-Z]/.test(this.password) &&
       /[a-z]/.test(this.password) &&
       /\d/.test(this.password) &&
@@ -94,13 +90,14 @@ export class User {
         one upper case letter,
         one lower case letter, and
         one of the following special character (\`, !, @, #, $, %, ^, &, *, -, _, =, +, ?, ~)`);
-    return true;
+    return false;
   }
 
   // Find the User by their Id
   static async findById(userId: string): Promise<User | Falsey> {
     const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * FROM users WHERE id = ?';
+    console.log("USERID", userId)
     try {
       const [rows] = await mysql.query(sql, [userId]);
       return rows.length === 0 ? null : new User(rows[0]);
@@ -127,9 +124,9 @@ export class User {
   async login(): Promise<User | Falsey> {
     this.cleanup();
     const email = this.email || '';
+
     if (!validateEmail(email) || !this.validatePassword()) {
-      console.log(`Invalid login credentials email: ${email}`);
-      throw new Error('Invalid email and or password!');
+      this.errors.push('Login failed');
     }
 
     try {
@@ -140,7 +137,7 @@ export class User {
       return null;
     } catch (err) {
       console.error(`Error logging in User: ${this.email}`);
-      throw err;
+      return null;
     }
   }
 
@@ -153,19 +150,21 @@ export class User {
       const salt = bcrypt.genSaltSync(10);
       this.password = bcrypt.hashSync(this.password, salt);
 
+      const mysql = MySQLDataSource.getInstance();
       const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
-      const vals = [this.email, this.password, this.role, this.givenName, this.surName]
       try {
-        const result = await this.mysql.query(sql, vals);
-        console.log(`User was created: ${this.email}, id: ${result.insertId}`);
-        return await User.findById(result.insertId);
+        const vals = [this.email, this.password, this.role, this.givenName, this.surName]
+        const result = await mysql.query(sql, vals);
+
+        console.log(`User was created: ${this.email}, id: ${result.id}`);
+        return await User.findById(result.id);
       } catch (err) {
-        console.log(`Error creating User: ${this.email}`, err)
-        throw err;
+        console.log(`Error creating User: ${this.email}`, err);
+        return null;
       }
     } else {
       console.log(`Invalid user: ${this.email}`);
-      throw new Error(this.errors.join(', '))
+      return null;
     }
   }
 }
