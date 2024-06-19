@@ -8,7 +8,7 @@ const logLevel = process.env.LOG_LEVEL || 'info';
  * standardization across all log messaging. This format will allow us
  * to more easily debug and track requests in OpenSearch.
  */
-export const logger: Logger = pino({ level: logLevel,  ...ecsFormat })
+export const logger: Logger = pino({ level: logLevel, ...ecsFormat })
 
 // Add the additional args to the ECS logger so that they are queryable fields.
 // At least you should send the sessionId if available and the error (if applicable)

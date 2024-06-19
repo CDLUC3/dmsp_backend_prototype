@@ -1,5 +1,6 @@
 
 ### Added
+- Added unit tests for User model and contributorRole resolver, and added @types/pino
 - Added editor config
 - initial Apollo server config
 - Initial Schema for ContributorRole
