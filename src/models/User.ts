@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { capitalizeFirstLetter, validateEmail } from '../utils/helpers';
 import { Falsey } from 'oauth2-server';
+import { logger } from '../logger';
 
 // TODO: Is this the right place to create our Pool?
 // const mysql = new MysqlDataSource({ config: mysqlConfig });
@@ -97,12 +98,12 @@ export class User {
   static async findById(userId: string): Promise<User | Falsey> {
     const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * FROM users WHERE id = ?';
-    console.log("USERID", userId)
+    logger.debug(`User.findById: ${userId}`);
     try {
       const [rows] = await mysql.query(sql, [userId]);
       return rows.length === 0 ? null : new User(rows[0]);
     } catch (err) {
-      console.error('Error trying to find User by id');
+      logger.error(`Error trying to find User by id ${userId}`);
       throw err;
     }
   }
@@ -111,11 +112,12 @@ export class User {
   static async findByEmail(email: string): Promise<User | Falsey> {
     const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * from users where email = ?';
+    logger.debug(`User.findByEmail: ${email}`);
     try {
       const [rows] = await mysql.query(sql, [email]);
       return rows?.length === 0 ? null : new User(rows[0]);
     } catch (err) {
-      console.log('Error trying to find User by email');
+      logger.error('Error trying to find User by email');
       throw err;
     }
   }
@@ -130,13 +132,14 @@ export class User {
     }
 
     try {
+      logger.debug(`User.login: ${this.email}`);
       const user = await User.findByEmail(email);
       if (user && bcrypt.compareSync(this.password, user.password)) {
         return user;
       }
       return null;
     } catch (err) {
-      console.error(`Error logging in User: ${this.email}`);
+      logger.error(`Error logging in User: ${this.email}`);
       return null;
     }
   }
@@ -152,18 +155,19 @@ export class User {
 
       const mysql = MySQLDataSource.getInstance();
       const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
+      logger.debug(`User.register: ${this.email}`);
       try {
         const vals = [this.email, this.password, this.role, this.givenName, this.surName]
         const result = await mysql.query(sql, vals);
 
-        console.log(`User was created: ${this.email}, id: ${result.id}`);
+        logger.debug(`User was created: ${this.email}, id: ${result.id}`);
         return await User.findById(result.id);
       } catch (err) {
-        console.log(`Error creating User: ${this.email}`, err);
+        logger.error(`Error creating User: ${this.email}`, err);
         return null;
       }
     } else {
-      console.log(`Invalid user: ${this.email}`);
+      logger.warn(`Invalid user: ${this.email}`);
       return null;
     }
   }

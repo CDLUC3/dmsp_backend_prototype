@@ -6,6 +6,7 @@ import { OAuthClient } from './OAuthClient';
 import { OAuthToken } from './OAuthToken'
 import { User } from '../models/User';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
+import { logger } from '../logger';
 
 export class OAuthCode implements AuthorizationCode {
   private mysql: MySQLDataSource;
@@ -56,7 +57,7 @@ export class OAuthCode implements AuthorizationCode {
       });
 
     } catch(err) {
-      console.log('Unable to fetch AuthorizationCode from OAuthCodes');
+      logger.error('Unable to fetch AuthorizationCode from OAuthCodes');
       throw(err);
     }
   }
@@ -134,12 +135,12 @@ export class OAuthCode implements AuthorizationCode {
     try {
       const [result] = await this.mysql.query(sql, vals);
       if (result[0]) {
-        console.log(`Authorization code created: User: ${this.user.id}, Code: ${result.insertId}`);
+        logger.debug(`Authorization code created: User: ${this.user.id}, Code: ${result.insertId}`);
         return true;
       }
       return false;
     } catch(err) {
-      console.log('Error creating OAuthCode: ', err)
+      logger.error('Error creating OAuthCode: ', err)
       throw err;
     }
   }
@@ -152,10 +153,10 @@ export class OAuthCode implements AuthorizationCode {
     try {
       const [result] = await this.mysql.query(sql, vals);
       // TODO: Fix this Type issue, we should able to define one here
-      console.log(`Authorization code was revoked: ${this.authorizationCode}`);
+      logger.debug(`Authorization code was revoked: ${this.authorizationCode}`);
       return true;
     } catch (err) {
-      console.log('Error revoking OAuthCode: ', err)
+      logger.error('Error revoking OAuthCode: ', err)
       throw err;
     }
   }

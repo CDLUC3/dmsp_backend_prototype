@@ -1,6 +1,7 @@
 import gql from "graphql-tag";
 import assert from "assert";
-import { assertEmailAddress, assertOrcid, assertTimestamp, server } from '../../../test/helpers';
+import server from '../../__tests__/mockApolloServer';
+import { assertEmailAddress, assertOrcid, assertTimestamp } from '../../__tests__/helpers';
 import { User } from '../../types';
 
 describe('User queries', () => {

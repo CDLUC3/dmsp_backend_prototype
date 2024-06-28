@@ -48,8 +48,6 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
 
     // Fires whenever a GraphQL request is received from a client.
     async requestDidStart(initialContext: GraphQLRequestContext<BaseContext>): Promise<GraphQLRequestListener<BaseContext> | void> {
-      const req = initialContext;
-
       // Skip schema introspection queries. They run incessantly in the Apollo server explorer!
       if (initialContext?.request?.operationName === 'IntrospectionQuery') {
         return {};
@@ -59,32 +57,32 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
         return {};
       }
 
-      setupLogger(logger, initialContext).info('Request started!');
+      setupLogger(logger, initialContext).info('Request started');
 
       return {
         // Fires when Apollo Server was able to understand the incoming request
         async didResolveSource(context) {
-          setupLogger(logger, context).debug('Resolved source!');
+          setupLogger(logger, context).debug('Resolved source');
         },
 
         // Fires whenever Apollo Server starts parsing the query/mutation
         async parsingDidStart(context) {
-          setupLogger(logger, context).debug('Parsing started!');
+          setupLogger(logger, context).debug('Parsing started');
         },
 
         // Fires whenever Apollo Server will validates the query/mutation
         async validationDidStart(context) {
-          setupLogger(logger, context).debug('Validation started!');
+          setupLogger(logger, context).debug('Validation started');
         },
 
         // Fires whenever Apollo Server figures out what query/mutation to use
         async didResolveOperation(context) {
-          setupLogger(logger, context).debug('Resolved operation!');
+          setupLogger(logger, context).debug('Resolved operation');
         },
 
         // Fires right before Apollo server starts to process the operation
         async responseForOperation(context): Promise<GraphQLResponse | null> {
-          setupLogger(logger, context).debug('Ready to start operation!');
+          setupLogger(logger, context).debug('Ready to start operation');
           // This is an opportunity to interrupt the operation!
           // If its return value resolves to a non-null GraphQLResponse, that result
           // is used instead of executing the query
@@ -99,7 +97,7 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
           return {
             willResolveField({ source, args, contextValue, info }) {
               const start = process.hrtime.bigint();
-              const fld = `${info.parentType.name}.${info.fieldName}`;
+              const fld = `${info?.parentType?.name}.${info?.fieldName}`;
 
               return (error, result) => {
                 const end = process.hrtime.bigint();
@@ -120,17 +118,17 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
 
         // Fires only when using incremental delivery methods like @defer
         async didEncounterSubsequentErrors(context, requestErrors) {
-          setupLogger(logger, context, requestErrors).error('Subsequent errors!');
+          setupLogger(logger, context, requestErrors).error('Encountered subsequent errors!');
         },
 
         // Fires right before Apollo server sends its response
         async willSendResponse(context) {
-          setupLogger(logger, context).info('Sending response!');
+          setupLogger(logger, context).info('Ready to send response');
         },
 
         // Fires only when using incremental delivery methods like @defer
         async willSendSubsequentPayload(context, _payload) {
-          setupLogger(logger, context).info('Ready to send subsequent responses!');
+          setupLogger(logger, context).info('Ready to send subsequent responses');
         },
       };
     },

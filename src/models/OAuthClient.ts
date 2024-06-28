@@ -4,6 +4,7 @@ import uuidRandom from 'uuid-random';
 import { stringToArray } from '../utils/helpers';
 import { User } from './User';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
+import { logger } from '../logger';
 
 export class OAuthClient implements Client {
   private mysql: MySQLDataSource;
@@ -117,10 +118,10 @@ export class OAuthClient implements Client {
     try {
       const [result] = await this.mysql.query(sql, vals);
       this.id = (result as any).insertId;
-      console.log('OAuth Client was created: ', (result as any).insertId)
+      logger.debug('OAuth Client was created: ', (result as any).insertId)
       return true;
     } catch (err) {
-      console.log('Error creating OAuthClient: ', err)
+      logger.error('Error creating OAuthClient: ', err)
       throw err;
     }
   }
@@ -129,10 +130,10 @@ export class OAuthClient implements Client {
   async delete(): Promise<boolean> {
     try {
       const [result] = await this.mysql.query(`DELETE FROM oauthClients WHERE id = ?`, [this.id]);
-      console.log(`OAuth Client was deleted: ${this.id}`)
+      logger.debug(`OAuth Client was deleted: ${this.id}`)
       return true;
     } catch (err) {
-      console.log('Error deleting OAuthClient: ', err)
+      logger.error('Error deleting OAuthClient: ', err)
       throw err;
     }
   }

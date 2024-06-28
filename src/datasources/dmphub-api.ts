@@ -1,7 +1,7 @@
 import AWS from 'aws-sdk';
-import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
+import { RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
-
+import { logger } from '../logger';
 import { DmspModel as Dmsp } from "../models/Dmsp"
 import { JWTToken } from '../services/tokenService';
 
@@ -69,7 +69,7 @@ export class DMPHubAPI extends RESTDataSource {
       const response = await this.get<Dmsp>(`dmps/${encodeURI(id)}`);
       return this.handleResponse(response);
     } catch(error) {
-      console.log(error);
+      logger.error(error?.message);
       throw(error);
     }
   }

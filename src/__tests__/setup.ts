@@ -1,13 +1,17 @@
+import mockLogger from "./mockLogger";
+
+// Mock the Pino logger
+jest.mock('pino', () => () => mockLogger);
 
 // Always mock out our config files
-jest.mock('../src/config/generalConfig', () => ({
+jest.mock('../config/generalConfig', () => ({
   generalConfig: {
     jwtSecret: 'testing',
     jwtTtl: 5,
   }
 }));
 
-jest.mock('../src/config/oauthConfig', () => ({
+jest.mock('../config/oauthConfig', () => ({
   oauthConfig: {
     authorizationCodeLifetime: 10,
     accessTokenLifetime: 30,

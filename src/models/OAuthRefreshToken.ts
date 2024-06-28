@@ -4,6 +4,7 @@ import { OAuthClient } from './OAuthClient';
 import { User } from './User';
 import { oauthConfig } from '../config/oauthConfig';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
+import { logger } from '../logger';
 
 export class OAuthRefreshToken implements RefreshToken {
   private mysql: MySQLDataSource;
@@ -45,7 +46,7 @@ export class OAuthRefreshToken implements RefreshToken {
         user: await User.findById(row.userId),
       });
     } catch(err) {
-      console.log(`Unable to fetch RefreshToken from OAuthRefreshToken by token: ${refreshToken}`);
+      logger.error(`Unable to fetch RefreshToken from OAuthRefreshToken by token: ${refreshToken}`);
       throw(err);
     }
   }
@@ -99,10 +100,10 @@ export class OAuthRefreshToken implements RefreshToken {
     try {
       const [result] = await this.mysql.query(sql, vals);
       // TODO: Fix this Type issue, we should able to define one here
-      console.log(`OAuthRefreshToken was created: User: ${this.user.id}, token: ${this.refreshToken}`);
+      logger.debug(`OAuthRefreshToken was created: User: ${this.user.id}, token: ${this.refreshToken}`);
       return true;
     } catch (err) {
-      console.log('Error creating OAuthRefreshToken: ', err)
+      logger.error('Error creating OAuthRefreshToken: ', err)
       throw err;
     }
   }
@@ -118,10 +119,10 @@ export class OAuthRefreshToken implements RefreshToken {
     try {
       const [result] = await this.mysql.query(sql, vals);
       // TODO: Fix this Type issue, we should able to define one here
-      console.log(`Refresh token was revoked: ${this.refreshToken}`);
+      logger.debug(`Refresh token was revoked: ${this.refreshToken}`);
       return true;
     } catch (err) {
-      console.log('Error revoking OAuthRefreshToken: ', err)
+      logger.error('Error revoking OAuthRefreshToken: ', err)
       throw err;
     }
   }

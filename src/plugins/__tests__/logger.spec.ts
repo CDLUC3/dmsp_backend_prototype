@@ -1,0 +1,183 @@
+import { GraphQLError } from 'graphql';
+import {
+  GraphQLRequestContextDidEncounterSubsequentErrors,
+  GraphQLRequestContextWillSendSubsequentPayload,
+} from '@apollo/server/dist/esm/externalTypes/requestPipeline';
+import {
+  BaseContext,
+  GraphQLRequestContext,
+  GraphQLRequestContextDidEncounterErrors,
+  GraphQLRequestContextDidResolveOperation,
+  GraphQLRequestContextDidResolveSource,
+  GraphQLRequestContextExecutionDidStart,
+  GraphQLRequestContextResponseForOperation,
+  GraphQLRequestContextValidationDidStart,
+  GraphQLRequestContextWillSendResponse,
+  GraphQLRequestExecutionListener,
+  GraphQLRequestListenerDidResolveField,
+  GraphQLExperimentalFormattedSubsequentIncrementalExecutionResult,
+  GraphQLRequestListener,
+} from '@apollo/server';
+import mockLogger from '../../__tests__/mockLogger';
+import { loggerPlugin } from '../logger';
+
+const mockIntrospectionRequestContext = {
+  request: {
+    operationName: 'IntrospectionQuery',
+  }
+} as undefined as GraphQLRequestContext<BaseContext>;
+
+const mockHealthCheckRequestContext = {
+  request: {
+    query: '{ __typename }',
+  }
+} as undefined as GraphQLRequestContext<BaseContext>;
+
+const mockRequestContext = {
+  request: {
+    operationName: 'Me',
+    query: '{ User(id: 123) { id } }',
+    http: {
+      method: 'PUT'
+    }
+  }
+} as undefined as GraphQLRequestContext<BaseContext>;
+
+const mockRequestError = {
+  error: new Error(),
+}
+
+let debugSpy: jest.SpyInstance;
+let errorSpy: jest.SpyInstance;
+let infoSpy: jest.SpyInstance;
+
+const logger = loggerPlugin(mockLogger);
+
+describe('loggerPlugin', () => {
+  beforeEach(() => {
+    debugSpy = jest.spyOn(mockLogger, 'debug');
+    errorSpy = jest.spyOn(mockLogger, 'error');
+    infoSpy = jest.spyOn(mockLogger, 'info');
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    errorSpy.mockRestore();
+  });
+
+  test('invalidRequestWasReceived logs the expected error message', async () => {
+    await logger.invalidRequestWasReceived(mockRequestError);
+    expect(errorSpy).toHaveBeenCalledWith('Invalid request error!');
+  });
+
+  test('unexpectedErrorProcessingRequest logs the expected error message', async () => {
+    await logger.unexpectedErrorProcessingRequest({
+      requestContext: mockRequestContext,
+      error: mockRequestError.error
+    });
+    expect(errorSpy).toHaveBeenCalledWith('Server error!');
+  });
+
+  describe('requestDidStart', () => {
+    test('skips introspection queries', async() => {
+      expect(await logger.requestDidStart(mockIntrospectionRequestContext)).toEqual({});
+    });
+
+    test('skips healthcheck queries', async() => {
+      expect(await logger.requestDidStart(mockHealthCheckRequestContext)).toEqual({});
+    });
+
+    test('logs the expected message', async () => {
+      await logger.requestDidStart(mockRequestContext);
+      expect(infoSpy).toHaveBeenCalledWith('Request started');
+    });
+
+    test('returns a GraphQLRequestListener', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext);
+      expect(typeof listener).toEqual('object');
+      expect(listener).toHaveProperty('didResolveSource');
+    });
+  });
+
+  describe('GraphQLRequestListener', () => {
+    test('didResolveSource logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.didResolveSource(mockRequestContext as GraphQLRequestContextDidResolveSource<BaseContext>);
+      expect(debugSpy).toHaveBeenCalledWith('Resolved source');
+    });
+
+    test('parsingDidStart logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.parsingDidStart(mockRequestContext as GraphQLRequestContextDidResolveSource<BaseContext>);
+      expect(debugSpy).toHaveBeenCalledWith('Parsing started');
+    });
+
+    test('validationDidStart logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.validationDidStart(mockRequestContext as GraphQLRequestContextValidationDidStart<BaseContext>);
+      expect(debugSpy).toHaveBeenCalledWith('Validation started');
+    });
+
+    test('didResolveOperation logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.didResolveOperation(mockRequestContext as GraphQLRequestContextDidResolveOperation<BaseContext>);
+      expect(debugSpy).toHaveBeenCalledWith('Resolved operation');
+    });
+
+    test('responseForOperation logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.responseForOperation(mockRequestContext as GraphQLRequestContextResponseForOperation<BaseContext>);
+      expect(debugSpy).toHaveBeenCalledWith('Ready to start operation');
+    });
+
+    test('didEncounterErrors logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.didEncounterErrors(mockRequestContext as GraphQLRequestContextDidEncounterErrors<BaseContext>);
+      expect(errorSpy).toHaveBeenCalledWith('Encountered errors!');
+    });
+
+    test('didEncounterSubsequentErrors logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.didEncounterSubsequentErrors(
+        mockRequestContext as GraphQLRequestContextDidEncounterSubsequentErrors<BaseContext>,
+        [] as GraphQLError[]
+      );
+      expect(errorSpy).toHaveBeenCalledWith('Encountered subsequent errors!');
+    });
+
+    test('willSendResponse logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.willSendResponse(mockRequestContext as GraphQLRequestContextWillSendResponse<BaseContext>);
+      expect(infoSpy).toHaveBeenCalledWith('Ready to send response');
+    });
+
+    test('willSendSubsequentPayload logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.willSendSubsequentPayload(
+        mockRequestContext as GraphQLRequestContextWillSendSubsequentPayload<BaseContext>,
+        {} as GraphQLExperimentalFormattedSubsequentIncrementalExecutionResult
+      );
+      expect(infoSpy).toHaveBeenCalledWith('Ready to send subsequent responses');
+    });
+
+    test('executionDidStart logs expected message', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      listener.executionDidStart(mockRequestContext as GraphQLRequestContextExecutionDidStart<BaseContext>);
+      expect(debugSpy).toHaveBeenCalledWith('Operation execution started');
+    });
+
+    test('willResolveField logs expected error', async () => {
+      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const fieldListener = await listener.executionDidStart(
+        mockRequestContext as GraphQLRequestContextExecutionDidStart<BaseContext>
+      ) as GraphQLRequestExecutionListener<BaseContext>;
+      const resp = fieldListener.willResolveField(
+        { source: {}, args: {}, contextValue: {}, info: undefined }
+      ) as GraphQLRequestListenerDidResolveField
+
+      resp(mockRequestError.error, {});
+      expect(debugSpy).toHaveBeenCalledWith(expect.stringMatching(/Field undefined.undefined took [\d]+ns/i));
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/Field undefined.undefined failed/i));
+    });
+  });
+});

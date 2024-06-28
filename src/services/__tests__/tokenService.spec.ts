@@ -1,5 +1,5 @@
 import { User, UserRole } from '../../models/User';
-import { generateToken, JWTToken, verifyToken } from '../tokenService';
+import { generateToken, verifyToken } from '../tokenService';
 
 describe('generateToken', () => {
   test('it returns a new JWT', () => {

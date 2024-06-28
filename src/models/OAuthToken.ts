@@ -7,6 +7,7 @@ import { oauthConfig } from '../config/oauthConfig';
 import { stringToArray } from '../utils/helpers';
 import { generateToken } from '../services/tokenService';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
+import { logger } from '../logger';
 
 export class OAuthToken implements Token {
   private mysql: MySQLDataSource;
@@ -54,7 +55,7 @@ export class OAuthToken implements Token {
         user: await User.findById(row.userId),
       });
     } catch(err) {
-      console.log(`Unable to fetch AccessToken from OAuthToken by token: ${accessToken}`);
+      logger.error(`Unable to fetch AccessToken from OAuthToken by token: ${accessToken}`);
       throw(err);
     }
   }
@@ -74,7 +75,7 @@ export class OAuthToken implements Token {
         user,
       });
     } catch(err) {
-      console.log(`Unable to fetch AccessToken from OAuthToken for client: ${client.id}, user: ${user.id}`);
+      logger.error(`Unable to fetch AccessToken from OAuthToken for client: ${client.id}, user: ${user.id}`);
       throw(err);
     }
   }
@@ -142,10 +143,10 @@ export class OAuthToken implements Token {
     ]
     try {
       const [result] = await this.mysql.query(sql, vals);
-      console.log(`OAuthToken was created: User: ${this.user.id}, token: ${this.accessToken}`);
+      logger.debug(`OAuthToken was created: User: ${this.user.id}, token: ${this.accessToken}`);
       return true;
     } catch (err) {
-      console.log('Error creating OAuthToken: ', err)
+      logger.error('Error creating OAuthToken: ', err)
       throw err;
     }
   }
@@ -160,10 +161,10 @@ export class OAuthToken implements Token {
     const vals = [currentDate.toISOString(), this.accessToken];
     try {
       const [result] = await this.mysql.query(sql, vals);
-      console.log(`Access token was revoked: ${this.accessToken}`);
+      logger.debug(`Access token was revoked: ${this.accessToken}`);
       return true;
     } catch (err) {
-      console.log('Error revoking OAuthToken: ', err)
+      logger.error('Error revoking OAuthToken: ', err)
       throw err;
     }
   }

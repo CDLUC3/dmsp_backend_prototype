@@ -1,5 +1,6 @@
 import * as mysql from 'mysql2/promise';
 import { mysqlConfig } from "../config/mysqlConfig";
+import { logger } from '../logger';
 
 export type PoolConfig = {
   connectionLimit: number;
@@ -20,7 +21,7 @@ export class MySQLDataSource {
     try {
       this.pool = mysql.createPool({ ...mysqlConfig, waitForConnections: true, queueLimit: 0 });
     } catch (err) {
-      console.log('Unable to establish the MySQL connection pool.')
+      logger.error('Unable to establish the MySQL connection pool.');
     }
   }
 
@@ -45,8 +46,8 @@ export class MySQLDataSource {
       // console.log(rows);
       return rows;
     } catch (err) {
-      console.log('Error when querying the MySQL database.');
-      console.log(err);
+      logger.error('Error when querying the MySQL database.');
+      logger.error(err);
       throw err;
     }
   }
