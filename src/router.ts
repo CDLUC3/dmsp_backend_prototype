@@ -7,9 +7,6 @@ import { oauthServer, castRequest, castResponse } from './middleware/oauthServer
 
 const router = express.Router();
 
-// TODO: Make this configurable and pass in as ENV variable
-const secret = process.env.JWTSECRET;
-
 const authMiddleware = expressjwt({
   algorithms: ['HS256'],
   credentialsRequired: false,
@@ -30,7 +27,7 @@ router.use('/graphql', authMiddleware);
 
 // Sample protected endpoint
 router.post("/protected", authMiddleware, (req, res) => {
-  // TODO: Someday fix this so we aren't using `any`
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!(req as any).auth.admin) {
     return res.sendStatus(401);
   }

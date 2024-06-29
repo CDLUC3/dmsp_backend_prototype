@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import { ApolloServer } from '@apollo/server';
 import express from 'express';
 import http from 'http';

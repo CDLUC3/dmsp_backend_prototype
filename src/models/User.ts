@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { capitalizeFirstLetter, validateEmail } from '../utils/helpers';
 import { Falsey } from 'oauth2-server';
-import { logger } from '../logger';
+import { logger, formatLogMessage } from '../logger';
 
 // TODO: Is this the right place to create our Pool?
 // const mysql = new MysqlDataSource({ config: mysqlConfig });
@@ -72,7 +72,8 @@ export class User {
   // Validate the password format
   validatePassword(): boolean {
     const specialCharsRegex = /[`!@#$%^&*_+\-=?~\s]/;
-    const badSpecialCharsRegex = /[\(\)\{\}\[\]\|\\:;"'<>,\.\/]/
+    // eslint-disable-next-line no-useless-escape
+    const badSpecialCharsRegex = /[\(\)\{\}\[\]\|\\:;"'<>\,\.\/]/
 
     // Test the string against the regular expression
     if (
@@ -98,12 +99,12 @@ export class User {
   static async findById(userId: string): Promise<User | Falsey> {
     const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * FROM users WHERE id = ?';
-    logger.debug(`User.findById: ${userId}`);
+    formatLogMessage(logger)?.debug(`User.findById: ${userId}`);
     try {
       const [rows] = await mysql.query(sql, [userId]);
       return rows.length === 0 ? null : new User(rows[0]);
     } catch (err) {
-      logger.error(`Error trying to find User by id ${userId}`);
+      formatLogMessage(logger, { err })?.error(`Error trying to find User by id ${userId}`);
       throw err;
     }
   }
@@ -112,12 +113,12 @@ export class User {
   static async findByEmail(email: string): Promise<User | Falsey> {
     const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * from users where email = ?';
-    logger.debug(`User.findByEmail: ${email}`);
+    formatLogMessage(logger)?.debug(`User.findByEmail: ${email}`);
     try {
       const [rows] = await mysql.query(sql, [email]);
       return rows?.length === 0 ? null : new User(rows[0]);
     } catch (err) {
-      logger.error('Error trying to find User by email');
+      formatLogMessage(logger, { err })?.error(`Error trying to find User by email: ${email}`);
       throw err;
     }
   }
@@ -132,14 +133,14 @@ export class User {
     }
 
     try {
-      logger.debug(`User.login: ${this.email}`);
+      formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const user = await User.findByEmail(email);
       if (user && bcrypt.compareSync(this.password, user.password)) {
         return user;
       }
       return null;
     } catch (err) {
-      logger.error(`Error logging in User: ${this.email}`);
+      formatLogMessage(logger, { err })?.error(`Error logging in User: ${this.email}`);
       return null;
     }
   }
@@ -155,7 +156,7 @@ export class User {
 
       const mysql = MySQLDataSource.getInstance();
       const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
-      logger.debug(`User.register: ${this.email}`);
+      formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
       try {
         const vals = [this.email, this.password, this.role, this.givenName, this.surName]
         const result = await mysql.query(sql, vals);
@@ -163,11 +164,11 @@ export class User {
         logger.debug(`User was created: ${this.email}, id: ${result.id}`);
         return await User.findById(result.id);
       } catch (err) {
-        logger.error(`Error creating User: ${this.email}`, err);
+        formatLogMessage(logger, { err })?.error(`Error creating User: ${this.email}`);
         return null;
       }
     } else {
-      logger.warn(`Invalid user: ${this.email}`);
+      formatLogMessage(logger)?.debug(`Invalid user: ${this.email}`);
       return null;
     }
   }

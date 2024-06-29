@@ -13,7 +13,6 @@ AWS.config.update({
   // accessKeyId: 'your-access-key-id',
   // secretAccessKey: 'your-secret-access-key',
 });
-const aws = AWS;
 
 export class DMPHubAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
@@ -47,7 +46,7 @@ export class DMPHubAPI extends RESTDataSource {
     const errors = response?.errors || [];
     const dmsps = response?.items?.map((dmsp) => dmsp['dmp']) || [];
 
-    let ret = {
+    const ret = {
       code: response?.status,
       success: success,
       message: success ? 'Ok' : errors.join(', ')

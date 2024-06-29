@@ -1,48 +1,23 @@
-import { Logger } from 'pino';
-import { RESTDataSource } from "@apollo/datasource-rest";
 import * as loggerMethods from "../../logger";
+import { ContributorRolesResolver, MockDMPHubAPI } from '../../__tests__/mockApolloContext';
+import logger from '../../__tests__/mockLogger';
+import { MySQLDataSource } from "../../datasources/mySQLDataSource";
 import { resolvers } from "../contributorRole";
 import { DMPHubAPI } from "../../datasources/dmphub-api";
-import { MySQLDataSource } from "../../datasources/mySQLDataSource";
 import { MyContext } from "../../context";
 
-// Mock the DMPHubAPI data source
-class MockDMPHubAPI extends RESTDataSource {
-  getData = jest.fn();
-  getDMSPs = jest.fn();
-  handleResponse = jest.fn();
-  getDMSP = jest.fn();
-  baseURL = '';
-
-  // Mocking the private properties
-  token = jest.fn();
-  dmspIdWithoutProtocol = jest.fn();
-}
-
-// Mocking MySQL connection pool
-jest.mock('../../datasources/mySQLDataSource', () => ({
-  __esModule: true,
-  MySQLDataSource: {
-    getInstance: jest.fn().mockReturnValue({
-      query: jest.fn(),
-    }),
-  },
-}))
-
-// Set this debugMock so I can test what logger.debug() is called with
-const debugMock = jest.fn();
-
-const logger: Logger = {
-  debug: debugMock,
-  error: jest.fn(),
-  child: jest.fn().mockReturnValue({
-    debug: debugMock,
-    error: jest.fn(),
-    child: jest.fn(),
-  })
-} as any;
+let debugSpy: jest.SpyInstance;
 
 describe('contributorRoles query resolver', () => {
+  beforeEach(() => {
+    debugSpy = jest.spyOn(logger, 'debug');
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    debugSpy.mockRestore();
+  });
+
   let mockQuery: jest.MockedFunction<typeof MySQLDataSource.prototype.query>;
   const formatLog = jest.spyOn(loggerMethods, 'formatLogMessage');
 
@@ -71,12 +46,12 @@ describe('contributorRoles query resolver', () => {
       },
     };
 
-    const contributorRolesResolver = resolvers.Query.contributorRoles as unknown as Function;
-    const result = await contributorRolesResolver({}, {}, context);
+    const contributorRolesResolver = resolvers.Query.contributorRoles as ContributorRolesResolver;
+    const result = await contributorRolesResolver({}, {}, context, null);
 
     expect(result).toEqual(mockQueryResponse);
     expect(formatLog).toHaveBeenCalledWith(logger);
-    expect(debugMock).toHaveBeenCalledWith('Resolving query contributorRoles');
+    expect(debugSpy).toHaveBeenCalledWith('Resolving query contributorRoles');
     expect(mockQuery).toHaveBeenCalledWith('SELECT * FROM contributorRoles ORDER BY label', []);
 
     formatLog.mockRestore();
@@ -93,8 +68,8 @@ describe('contributorRoles query resolver', () => {
     const mockError = new Error('Query failed');
     mockQuery.mockRejectedValueOnce(mockError);
 
-    const contributorRolesResolver = resolvers.Query.contributorRoles as unknown as Function;
-    await expect(contributorRolesResolver({}, {}, context)).rejects.toThrow('Query failed');
+    const contributorRolesResolver = resolvers.Query.contributorRoles as ContributorRolesResolver;
+    await expect(contributorRolesResolver({}, {}, context, null)).rejects.toThrow('Query failed');
 
   })
 
@@ -113,12 +88,12 @@ describe('contributorRoles query resolver', () => {
       },
     };
 
-    const contributorRolesByIdResolver = resolvers.Query.contributorRoleById as unknown as Function;
+    const contributorRolesByIdResolver = resolvers.Query.contributorRoleById as ContributorRolesResolver;
     const contributorRoleId = 1;
-    const result = await contributorRolesByIdResolver({}, { contributorRoleId: 1 }, context);
+    const result = await contributorRolesByIdResolver({}, { contributorRoleId: 1 }, context, null);
     expect(result).toEqual(mockIdQueryResponse[0]);
     expect(formatLog).toHaveBeenCalledWith(logger, { contributorRoleId });
-    expect(debugMock).toHaveBeenCalledWith("Resolving query contributorRoleById(id: '1')");
+    expect(debugSpy).toHaveBeenCalledWith("Resolving query contributorRoleById(id: '1')");
   })
 
   it('should log and throw an error when contributorRoleById query fails', async () => {
@@ -132,8 +107,8 @@ describe('contributorRoles query resolver', () => {
     const mockError = new Error('Query failed');
     mockQuery.mockRejectedValueOnce(mockError);
 
-    const contributorRolesByIdResolver = resolvers.Query.contributorRoleById as unknown as Function;
-    await expect(contributorRolesByIdResolver({}, {}, context)).rejects.toThrow('Query failed');
+    const contributorRolesByIdResolver = resolvers.Query.contributorRoleById as ContributorRolesResolver;
+    await expect(contributorRolesByIdResolver({}, {}, context, null)).rejects.toThrow('Query failed');
   })
 
   it('should return a contributor role for contributorRoleByURL query', async () => {
@@ -151,12 +126,12 @@ describe('contributorRoles query resolver', () => {
       },
     };
 
-    const contributorRolesByUrlResolver = resolvers.Query.contributorRoleByURL as unknown as Function;
+    const contributorRolesByUrlResolver = resolvers.Query.contributorRoleByURL as ContributorRolesResolver;
     const contributorRoleURL = 'https://credit.niso.org/contributor-roles/investigation/';
-    const result = await contributorRolesByUrlResolver({}, { contributorRoleURL }, context);
+    const result = await contributorRolesByUrlResolver({}, { contributorRoleURL }, context, null);
     expect(result).toEqual(mockUrlQueryResponse);
     expect(formatLog).toHaveBeenCalledWith(logger, { contributorRoleURL });
-    expect(debugMock).toHaveBeenCalledWith("Resolved query contirbutorRoleByURL(url: 'https://credit.niso.org/contributor-roles/investigation/')");
+    expect(debugSpy).toHaveBeenCalledWith("Resolved query contirbutorRoleByURL(url: 'https://credit.niso.org/contributor-roles/investigation/')");
   })
 
   it('should log and throw an error when contributorRoleByURL query fails', async () => {
@@ -170,8 +145,8 @@ describe('contributorRoles query resolver', () => {
     const mockError = new Error('Query failed');
     mockQuery.mockRejectedValueOnce(mockError);
 
-    const contributorRolesByUrlResolver = resolvers.Query.contributorRoleByURL as unknown as Function;
-    await expect(contributorRolesByUrlResolver({}, {}, context)).rejects.toThrow('Query failed');
+    const contributorRolesByUrlResolver = resolvers.Query.contributorRoleByURL as ContributorRolesResolver;
+    await expect(contributorRolesByUrlResolver({}, {}, context, null)).rejects.toThrow('Query failed');
   })
 })
 
@@ -207,7 +182,7 @@ describe('contributorRoles mutation resolver', () => {
       },
     };
 
-    const addContributorRoleMutation = resolvers.Mutation.addContributorRole as unknown as Function;
+    const addContributorRoleMutation = resolvers.Mutation.addContributorRole as ContributorRolesResolver;
     const params = {
       url: 'https://credit.niso.org/contributor-roles/data-curation/',
       label: 'Data Manager',
@@ -220,7 +195,7 @@ describe('contributorRoles mutation resolver', () => {
       message: 'Successfully added ContributorRole 1',
       contributorRole: mockMutationResponse
     }
-    const result = await addContributorRoleMutation({}, params, context);
+    const result = await addContributorRoleMutation({}, params, context, null);
 
     expect(result).toEqual(expected);
 
@@ -250,8 +225,8 @@ describe('contributorRoles mutation resolver', () => {
     mockQuery.mockRejectedValueOnce(mockError);
     mockQuery.mockRejectedValueOnce(mockError);
 
-    const addContributorRoleMutation = resolvers.Mutation.addContributorRole as unknown as Function;
-    const result = await addContributorRoleMutation({}, params, context);
+    const addContributorRoleMutation = resolvers.Mutation.addContributorRole as ContributorRolesResolver;
+    const result = await addContributorRoleMutation({}, params, context, null);
     expect(result).toEqual(expected);
     mockQuery.mockClear();
   })

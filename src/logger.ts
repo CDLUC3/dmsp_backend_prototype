@@ -12,7 +12,8 @@ export const logger: Logger = pino({ level: logLevel, ...ecsFormat })
 
 // Add the additional args to the ECS logger so that they are queryable fields.
 // At least you should send the sessionId if available and the error (if applicable)
-export function formatLogMessage(logger: Logger, args: Object | void): Logger {
+// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+export function formatLogMessage(logger: Logger, args: object | void): Logger {
   if (args) {
     // Add the args to the ECS logger
     return logger.child({ ...args });

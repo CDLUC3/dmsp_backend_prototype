@@ -3,7 +3,7 @@ import { validateOrcid } from '../resolvers/scalars/orcid';
 import { validateRor } from '../resolvers/scalars/ror';
 
 const emailRegex = new RegExp(/^[a-zA-Z0–9._-]+@[a-zA-Z0–9.-]+\.[a-zA-Z]{2,4}$/);
-const timestampRegex = new RegExp(/[0-9]{4}\-[0-9]{2}\-[0-9]{2}\s([0-9]{2}:){2}[0-9]{2}/);
+const timestampRegex = new RegExp(/[0-9]{4}-[0-9]{2}-[0-9]{2}\s([0-9]{2}:){2}[0-9]{2}/);
 const urlRegex = new RegExp(/(https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\/)?[a-zA-Z0-9]{2,}(\.[a-zA-Z0-9]{2,})(\.[a-zA-Z0-9]{2,})?/);
 
 // Assertion helpers

@@ -1,10 +1,6 @@
 import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 
-function prepareLogger(logger, session = null) {
-
-}
-
 export const resolvers: Resolvers = {
   Query: {
     // returns a DMSP that matches the specified DMP ID

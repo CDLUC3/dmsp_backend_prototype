@@ -7,7 +7,7 @@ import { oauthConfig } from '../config/oauthConfig';
 import { stringToArray } from '../utils/helpers';
 import { generateToken } from '../services/tokenService';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { logger } from '../logger';
+import { logger, formatLogMessage } from '../logger';
 
 export class OAuthToken implements Token {
   private mysql: MySQLDataSource;
@@ -43,6 +43,7 @@ export class OAuthToken implements Token {
       if (rows.length === 0) {
         return null;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = (rows as any[])[0];
       const client = await OAuthClient.findById(row.clientId);
       const user = await User.findById(row.userId);
@@ -55,7 +56,8 @@ export class OAuthToken implements Token {
         user: await User.findById(row.userId),
       });
     } catch(err) {
-      logger.error(`Unable to fetch AccessToken from OAuthToken by token: ${accessToken}`);
+      formatLogMessage(logger, { err })
+        .error(`Unable to fetch AccessToken from OAuthToken by token: ${accessToken}`);
       throw(err);
     }
   }
@@ -75,7 +77,8 @@ export class OAuthToken implements Token {
         user,
       });
     } catch(err) {
-      logger.error(`Unable to fetch AccessToken from OAuthToken for client: ${client.id}, user: ${user.id}`);
+      formatLogMessage(logger, { err })
+        .error(`Unable to fetch AccessToken from OAuthToken for client: ${client.id}, user: ${user.id}`);
       throw(err);
     }
   }
@@ -87,8 +90,6 @@ export class OAuthToken implements Token {
     this.refreshToken = this.refreshToken || await this.generateRefreshToken();
     this.refreshTokenExpiresAt = this.refreshTokenExpiresAt || this.generateExpiryDate(false);
     this.scope = stringToArray(this.scope, ',', ['read']);
-    this.client = this.client;
-    this.user = this.user;
   }
 
   // Generate the token
@@ -142,11 +143,12 @@ export class OAuthToken implements Token {
       this.user.id.toString()
     ]
     try {
-      const [result] = await this.mysql.query(sql, vals);
-      logger.debug(`OAuthToken was created: User: ${this.user.id}, token: ${this.accessToken}`);
+      await this.mysql.query(sql, vals);
+      formatLogMessage(logger)
+        .debug(`OAuthToken was created: User: ${this.user.id}, token: ${this.accessToken}`);
       return true;
     } catch (err) {
-      logger.error('Error creating OAuthToken: ', err)
+      formatLogMessage(logger, { err }).error('Error saving OAuthToken');
       throw err;
     }
   }
@@ -160,11 +162,11 @@ export class OAuthToken implements Token {
     `;
     const vals = [currentDate.toISOString(), this.accessToken];
     try {
-      const [result] = await this.mysql.query(sql, vals);
-      logger.debug(`Access token was revoked: ${this.accessToken}`);
+      await this.mysql.query(sql, vals);
+      formatLogMessage(logger).debug(`Access token was revoked: ${this.accessToken}`);
       return true;
     } catch (err) {
-      logger.error('Error revoking OAuthToken: ', err)
+      formatLogMessage(logger, { err }).error('Error revoking OAuthToken');
       throw err;
     }
   }

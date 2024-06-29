@@ -4,7 +4,7 @@ import uuidRandom from 'uuid-random';
 import { stringToArray } from '../utils/helpers';
 import { User } from './User';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { logger } from '../logger';
+import { logger, formatLogMessage } from '../logger';
 
 export class OAuthClient implements Client {
   private mysql: MySQLDataSource;
@@ -12,6 +12,7 @@ export class OAuthClient implements Client {
   public id: string;
   public name: string;
   public redirectUris: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public grants: any[];
   public clientId: string;
   public clientSecret: string;
@@ -45,7 +46,7 @@ export class OAuthClient implements Client {
         user: user,
       });
     } catch (err) {
-      console.error('Error trying to find OAuthClient by id');
+      formatLogMessage(logger, { err }).error('Error trying to find OAuthClient by id');
       throw err;
     }
   }
@@ -63,7 +64,7 @@ export class OAuthClient implements Client {
         user: user,
       });
     } catch (err) {
-      console.error('Error trying to find OAuthClient by id');
+      formatLogMessage(logger, { err }).error('Error trying to find OAuthClient by id');
       throw err;
     }
   }
@@ -117,11 +118,12 @@ export class OAuthClient implements Client {
 
     try {
       const [result] = await this.mysql.query(sql, vals);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.id = (result as any).insertId;
-      logger.debug('OAuth Client was created: ', (result as any).insertId)
+      formatLogMessage(logger).debug(`OAuth Client was saved: ${result.insertId}`);
       return true;
     } catch (err) {
-      logger.error('Error creating OAuthClient: ', err)
+      formatLogMessage(logger, { err }).error('Error saving OAuthClient');
       throw err;
     }
   }
@@ -129,11 +131,11 @@ export class OAuthClient implements Client {
   // Register/Save a new OAuthClient
   async delete(): Promise<boolean> {
     try {
-      const [result] = await this.mysql.query(`DELETE FROM oauthClients WHERE id = ?`, [this.id]);
-      logger.debug(`OAuth Client was deleted: ${this.id}`)
+      await this.mysql.query(`DELETE FROM oauthClients WHERE id = ?`, [this.id]);
+      formatLogMessage(logger).debug(`OAuth Client was deleted: ${this.id}`);
       return true;
     } catch (err) {
-      logger.error('Error deleting OAuthClient: ', err)
+      formatLogMessage(logger, { err }).error('Error deleting OAuthClient');
       throw err;
     }
   }

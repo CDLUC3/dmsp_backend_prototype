@@ -47,7 +47,7 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
     },
 
     // Fires whenever a GraphQL request is received from a client.
-    async requestDidStart(initialContext: GraphQLRequestContext<BaseContext>): Promise<GraphQLRequestListener<BaseContext> | void> {
+    async requestDidStart(initialContext: GraphQLRequestContext<BaseContext>): Promise<GraphQLRequestListener<BaseContext>> {
       // Skip schema introspection queries. They run incessantly in the Apollo server explorer!
       if (initialContext?.request?.operationName === 'IntrospectionQuery') {
         return {};
@@ -95,11 +95,11 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
           localLogger.debug('Operation execution started');
 
           return {
-            willResolveField({ source, args, contextValue, info }) {
+            willResolveField({ info }) {
               const start = process.hrtime.bigint();
               const fld = `${info?.parentType?.name}.${info?.fieldName}`;
 
-              return (error, result) => {
+              return (error) => {
                 const end = process.hrtime.bigint();
                 localLogger.debug(`Field ${fld} took ${end - start}ns`);
 
@@ -127,7 +127,7 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
         },
 
         // Fires only when using incremental delivery methods like @defer
-        async willSendSubsequentPayload(context, _payload) {
+        async willSendSubsequentPayload(context) {
           setupLogger(logger, context).info('Ready to send subsequent responses');
         },
       };

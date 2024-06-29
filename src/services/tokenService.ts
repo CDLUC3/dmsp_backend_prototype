@@ -4,7 +4,6 @@ import { formatLogMessage } from '../logger';
 import { User } from '../models/User';
 import { generalConfig } from '../config/generalConfig';
 import { UserRole } from '../types';
-import { logger } from '../logger';
 
 export interface JWTToken extends JwtPayload {
   id: number,

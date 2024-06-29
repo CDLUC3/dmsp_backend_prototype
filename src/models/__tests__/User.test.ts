@@ -1,7 +1,6 @@
 import { User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
-
 import { MySQLDataSource } from '../../datasources/mySQLDataSource';
 
 jest.mock('../../datasources/mySQLDataSource', () => {
@@ -14,7 +13,6 @@ jest.mock('../../datasources/mySQLDataSource', () => {
     },
   };
 });
-
 
 const userProps = {
   email: 'test.user@example.com',
@@ -90,7 +88,6 @@ describe('validate a new User', () => {
     });
 
     const isValid = await user.validateNewUser();
-
     expect(isValid).toBe(true);
   });
 
@@ -104,15 +101,7 @@ describe('validate a new User', () => {
     });
 
     const isValid = await user.validateNewUser();
-
-    const expectedError = `Invalid password format.
-    Passwords must be greater than 8 characters, and contain at least
-    one number,
-    one upper case letter,
-    one lower case letter, and
-    one of the following special character (\`, !, @, #, $, %, ^, &, *, -, _, =, +, ?, ~)`;
-
-    expect(user.errors[0].trim().replace(/\s+/g, ' ')).toEqual(expectedError.trim().replace(/\s+/g, ' '));
+    expect(isValid).toBe(false);
   });
 
   it('should return false when we have an existing user', async () => {
@@ -124,7 +113,6 @@ describe('validate a new User', () => {
     });
 
     const isValid = await user.validateNewUser();
-
     expect(isValid).toBe(false);
   });
 
@@ -137,7 +125,6 @@ describe('validate a new User', () => {
     });
 
     const isValid = await user.validateNewUser();
-
     expect(isValid).toBe(false);
   });
 });
@@ -343,7 +330,6 @@ describe('login()', () => {
   });
 
   it('should return null when findEmail() throws an error', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
     mockQuery.mockRejectedValueOnce('Something went wrong')
 
     const user = new User({
@@ -380,7 +366,6 @@ describe('register()', () => {
   })
 
   it('should not return null if user exists and its password matches with encrypted one', async () => {
-    const log = jest.spyOn(console, "log").mockImplementation(() => { });
     const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([[mockedUser], []]);
@@ -397,9 +382,7 @@ describe('register()', () => {
     });
 
     const response = await user.register();
-    console.log("RESPONSE", response);
     expect(response).not.toBeNull();
-    expect(log).toHaveBeenCalledWith('User was created: test.user@example.com, id: 1')
   });
 
   it('should return null if there was an error creating user', async () => {

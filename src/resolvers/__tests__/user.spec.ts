@@ -1,7 +1,7 @@
 import gql from "graphql-tag";
 import assert from "assert";
 import server from '../../__tests__/mockApolloServer';
-import { assertEmailAddress, assertOrcid, assertTimestamp } from '../../__tests__/helpers';
+import { assertEmailAddress, assertTimestamp } from '../../__tests__/helpers';
 import { User } from '../../types';
 
 describe('User queries', () => {
@@ -32,9 +32,6 @@ describe('User queries', () => {
     );
     // Validate that Apollo returned a result
     assert(res.body.kind === 'single');
-
-console.log(res.body);
-
     expect(res.body.singleResult.errors).toBeUndefined();
     expect(res.body.singleResult.data).toBeDefined();
     expect(res.body.singleResult.data?.users).toBeDefined();

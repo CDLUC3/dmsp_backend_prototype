@@ -39,10 +39,11 @@ export class MySQLDataSource {
   }
 
   // Execute a SQL query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async query(sql: string, values?: string[]): Promise<any> {
     try {
       const vals = values.map((val) => this.sanitizeValue(val));
-      const [rows] = await this.pool.execute(sql, values);
+      const [rows] = await this.pool.execute(sql, vals);
       // console.log(rows);
       return rows;
     } catch (err) {

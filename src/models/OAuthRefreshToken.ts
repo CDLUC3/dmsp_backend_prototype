@@ -4,7 +4,7 @@ import { OAuthClient } from './OAuthClient';
 import { User } from './User';
 import { oauthConfig } from '../config/oauthConfig';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { logger } from '../logger';
+import { logger, formatLogMessage } from '../logger';
 
 export class OAuthRefreshToken implements RefreshToken {
   private mysql: MySQLDataSource;
@@ -34,6 +34,7 @@ export class OAuthRefreshToken implements RefreshToken {
       if (rows.length === 0) {
         return null;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = (rows as any[])[0];
       const client = await OAuthClient.findById(row.clientId);
       const user = await User.findById(row.userId);
@@ -46,7 +47,8 @@ export class OAuthRefreshToken implements RefreshToken {
         user: await User.findById(row.userId),
       });
     } catch(err) {
-      logger.error(`Unable to fetch RefreshToken from OAuthRefreshToken by token: ${refreshToken}`);
+      formatLogMessage(logger, { err })
+        .error(`Unable to fetch RefreshToken from OAuthRefreshToken by token: ${refreshToken}`);
       throw(err);
     }
   }
@@ -55,8 +57,6 @@ export class OAuthRefreshToken implements RefreshToken {
   cleanup(): void {
     this.refreshToken = this.refreshToken || this.generateRefreshToken();
     this.refreshTokenExpiresAt = this.refreshTokenExpiresAt || this.generateExpiryDate(false);
-    this.client = this.client;
-    this.user = this.user;
   }
 
   // Generate the token
@@ -98,12 +98,13 @@ export class OAuthRefreshToken implements RefreshToken {
       this.user.id.toString()
     ]
     try {
-      const [result] = await this.mysql.query(sql, vals);
-      // TODO: Fix this Type issue, we should able to define one here
-      logger.debug(`OAuthRefreshToken was created: User: ${this.user.id}, token: ${this.refreshToken}`);
+      await this.mysql.query(sql, vals);
+      // TODO: Fix this Type issue, we should able to define one here);
+      formatLogMessage(logger)
+        .debug(`OAuthRefreshToken was created: User: ${this.user.id}, token: ${this.refreshToken}`);
       return true;
     } catch (err) {
-      logger.error('Error creating OAuthRefreshToken: ', err)
+      formatLogMessage(logger, { err }).error('Error saving OAuthRefreshToken');
       throw err;
     }
   }
@@ -117,19 +118,18 @@ export class OAuthRefreshToken implements RefreshToken {
     `;
     const vals = [currentDate.toISOString(), currentDate.toISOString(), this.refreshToken];
     try {
-      const [result] = await this.mysql.query(sql, vals);
+      await this.mysql.query(sql, vals);
       // TODO: Fix this Type issue, we should able to define one here
-      logger.debug(`Refresh token was revoked: ${this.refreshToken}`);
+      formatLogMessage(logger).debug(`Refresh token was revoked: ${this.refreshToken}`);
       return true;
     } catch (err) {
-      logger.error('Error revoking OAuthRefreshToken: ', err)
+      formatLogMessage(logger, { err }).error('Error revoking OAuthRefreshToken');
       throw err;
     }
   }
 
   // Convert the DB fields to properties of this call (except client and user)
   static _SqlFieldsToProperties(row) {
-    const scopeArray = typeof row.scope === 'string' ? row.scope.split(' ') : row.scope;
     return {
       refreshToken: row.refreshToken,
       refreshTokenExpiresAt: new Date(row.refreshTokenExpiresAt),

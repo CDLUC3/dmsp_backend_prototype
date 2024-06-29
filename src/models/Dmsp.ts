@@ -27,7 +27,7 @@ type Contributor = {
   orcid: string;
   name: string;
   mbox: string;
-  role: [string]
+  role: [ContributorRoleModel]
   affiliation: Affiliation;
 }
 

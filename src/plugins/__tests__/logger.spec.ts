@@ -1,4 +1,4 @@
-import { GraphQLError } from 'graphql';
+import { GraphQLError, GraphQLResolveInfo } from 'graphql';
 import {
   GraphQLRequestContextDidEncounterSubsequentErrors,
   GraphQLRequestContextWillSendSubsequentPayload,
@@ -22,31 +22,33 @@ import mockLogger from '../../__tests__/mockLogger';
 import { loggerPlugin } from '../logger';
 
 const mockIntrospectionRequestContext = {
-  request: {
-    operationName: 'IntrospectionQuery',
-  }
+  request: { operationName: 'IntrospectionQuery' }
 } as undefined as GraphQLRequestContext<BaseContext>;
 
 const mockHealthCheckRequestContext = {
-  request: {
-    query: '{ __typename }',
-  }
+  request: { query: '{ __typename }' },
 } as undefined as GraphQLRequestContext<BaseContext>;
 
 const mockRequestContext = {
   request: {
     operationName: 'Me',
     query: '{ User(id: 123) { id } }',
-    http: {
-      method: 'PUT'
-    }
-  }
+    variables: [],
+    http: { method: 'PUT' },
+  },
+  response: { http: { status: 200 } },
 } as undefined as GraphQLRequestContext<BaseContext>;
+
+const mockResolverInfo = {
+  fieldName: 'fieldName',
+  parentType: { name: 'parentTypeName' }
+} as undefined as GraphQLResolveInfo;
 
 const mockRequestError = {
   error: new Error(),
 }
 
+// Define spies
 let debugSpy: jest.SpyInstance;
 let errorSpy: jest.SpyInstance;
 let infoSpy: jest.SpyInstance;
@@ -62,7 +64,9 @@ describe('loggerPlugin', () => {
   });
 
   afterEach(() => {
+    debugSpy.mockRestore();
     errorSpy.mockRestore();
+    infoSpy.mockRestore();
   });
 
   test('invalidRequestWasReceived logs the expected error message', async () => {
@@ -171,13 +175,22 @@ describe('loggerPlugin', () => {
       const fieldListener = await listener.executionDidStart(
         mockRequestContext as GraphQLRequestContextExecutionDidStart<BaseContext>
       ) as GraphQLRequestExecutionListener<BaseContext>;
-      const resp = fieldListener.willResolveField(
-        { source: {}, args: {}, contextValue: {}, info: undefined }
-      ) as GraphQLRequestListenerDidResolveField
 
+      const mockGraphQLResolverParams = {
+        source: null,
+        args: {},
+        contextValue: {},
+        info: mockResolverInfo
+      }
+
+      const resp = fieldListener.willResolveField(mockGraphQLResolverParams) as GraphQLRequestListenerDidResolveField
       resp(mockRequestError.error, {});
-      expect(debugSpy).toHaveBeenCalledWith(expect.stringMatching(/Field undefined.undefined took [\d]+ns/i));
-      expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/Field undefined.undefined failed/i));
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/Field parentTypeName.fieldName took [\d]+ns/i)
+      );
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/Field parentTypeName.fieldName failed/i)
+      );
     });
   });
 });

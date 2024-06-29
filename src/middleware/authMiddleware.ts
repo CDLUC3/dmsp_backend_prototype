@@ -13,7 +13,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 
   try {
     const decoded = jwt.verify(token, generalConfig.jwtSecret as string);
-    // TODO: Figure out how to type this ... maybe we need to define and interface
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (req as any).user = decoded;
     next();
   } catch (error) {

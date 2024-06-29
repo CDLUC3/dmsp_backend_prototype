@@ -6,7 +6,7 @@ import { OAuthClient } from './OAuthClient';
 import { OAuthToken } from './OAuthToken'
 import { User } from '../models/User';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { logger } from '../logger';
+import { logger, formatLogMessage } from '../logger';
 
 export class OAuthCode implements AuthorizationCode {
   private mysql: MySQLDataSource;
@@ -44,6 +44,7 @@ export class OAuthCode implements AuthorizationCode {
       if (rows.length === 0) {
         return null;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = (rows as any[])[0];
       const client = await OAuthClient.findById(row.clientId);
       const user = await User.findById(row.userId);
@@ -57,7 +58,7 @@ export class OAuthCode implements AuthorizationCode {
       });
 
     } catch(err) {
-      logger.error('Unable to fetch AuthorizationCode from OAuthCodes');
+      formatLogMessage(logger, { err }).error('Unable to fetch AuthorizationCode from OAuthCodes');
       throw(err);
     }
   }
@@ -135,12 +136,13 @@ export class OAuthCode implements AuthorizationCode {
     try {
       const [result] = await this.mysql.query(sql, vals);
       if (result[0]) {
-        logger.debug(`Authorization code created: User: ${this.user.id}, Code: ${result.insertId}`);
+        formatLogMessage(logger)
+          .debug(`Authorization code created: User: ${this.user.id}, Code: ${result.insertId}`);
         return true;
       }
       return false;
     } catch(err) {
-      logger.error('Error creating OAuthCode: ', err)
+      formatLogMessage(logger, { err }).error('Error saving OAuthCode');
       throw err;
     }
   }
@@ -151,12 +153,11 @@ export class OAuthCode implements AuthorizationCode {
     const sql = `UPDATE oauthCodes SET expiresAt = ?, modified = ? WHERE code = ?`;
     const vals = [currentDate.toISOString(), currentDate.toISOString(), this.authorizationCode];
     try {
-      const [result] = await this.mysql.query(sql, vals);
-      // TODO: Fix this Type issue, we should able to define one here
-      logger.debug(`Authorization code was revoked: ${this.authorizationCode}`);
+      await this.mysql.query(sql, vals);
+      formatLogMessage(logger).debug(`Authorization code was revoked: ${this.authorizationCode}`);
       return true;
     } catch (err) {
-      logger.error('Error revoking OAuthCode: ', err)
+      formatLogMessage(logger, { err }).error('Error revoking OAuthCode');
       throw err;
     }
   }
