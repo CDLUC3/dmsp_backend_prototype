@@ -3,11 +3,13 @@ import { User } from '../models/User';
 import { generateToken } from '../services/tokenService';
 
 export const signinController = async (req: Request, res: Response) => {
-  const user = new User(req.body);
-
+  let user = new User(req.body);
   try {
-    const success = await user.login();
-    if (success) {
+    user = await user.login() || null;
+
+console.log(user)
+
+    if (user) {
       const token = generateToken(user);
       res.json({ success: true, token });
     } else {

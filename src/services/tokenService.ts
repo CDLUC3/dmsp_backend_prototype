@@ -7,6 +7,9 @@ import { UserRole } from '../types';
 
 export interface JWTToken extends JwtPayload {
   id: number,
+  email: string,
+  givenName: string,
+  surName: string,
   role: string,
 }
 
@@ -16,6 +19,8 @@ export const generateToken = (user: User): string => {
     const payload: JWTToken = {
       id: user.id,
       email: user.email,
+      givenName: user.givenName,
+      surName: user.surName,
       role: user.role.toString() || UserRole.Researcher,
     }
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTtl });

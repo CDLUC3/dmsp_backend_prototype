@@ -42,7 +42,7 @@ export class User {
 
   // Ensure data integrity
   cleanup() {
-    this.email = this.email?.trim();
+    this.email = this.email?.trim()?.replace('%40', '@');
     this.role = this.role || UserRole.Researcher;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
@@ -95,6 +95,11 @@ export class User {
     return false;
   }
 
+  async hashPassword(password): Promise<string> {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
+  }
+
   // Find the User by their Id
   static async findById(userId: string): Promise<User | Falsey> {
     const mysql = MySQLDataSource.getInstance();
@@ -102,7 +107,7 @@ export class User {
     formatLogMessage(logger)?.debug(`User.findById: ${userId}`);
     try {
       const [rows] = await mysql.query(sql, [userId]);
-      return rows.length === 0 ? null : new User(rows[0]);
+      return rows?.id ? new User(rows) : null;
     } catch (err) {
       formatLogMessage(logger, { err })?.error(`Error trying to find User by id ${userId}`);
       throw err;
@@ -116,7 +121,10 @@ export class User {
     formatLogMessage(logger)?.debug(`User.findByEmail: ${email}`);
     try {
       const [rows] = await mysql.query(sql, [email]);
-      return rows?.length === 0 ? null : new User(rows[0]);
+
+console.log(rows)
+
+      return rows?.id ? new User(rows) : null;
     } catch (err) {
       formatLogMessage(logger, { err })?.error(`Error trying to find User by email: ${email}`);
       throw err;
@@ -134,8 +142,16 @@ export class User {
 
     try {
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
-      const user = await User.findByEmail(email);
-      if (user && bcrypt.compareSync(this.password, user.password)) {
+      const user = await User.findByEmail(email) || null;
+
+console.log('Login')
+console.log(user)
+console.log(this.password)
+console.log(user?.password)
+console.log('crypto')
+console.log(await bcrypt.compare(this.password, user?.password));
+
+      if (user && await bcrypt.compare(this.password, user?.password)) {
         return user;
       }
       return null;
@@ -151,8 +167,10 @@ export class User {
     this.validateNewUser();
 
     if (this.errors.length === 0) {
-      const salt = bcrypt.genSaltSync(10);
-      this.password = bcrypt.hashSync(this.password, salt);
+console.log(this.password);
+      const passwordHash = await this.hashPassword(this.password);
+      this.password = passwordHash
+console.log(passwordHash)
 
       const mysql = MySQLDataSource.getInstance();
       const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
@@ -161,8 +179,8 @@ export class User {
         const vals = [this.email, this.password, this.role, this.givenName, this.surName]
         const result = await mysql.query(sql, vals);
 
-        logger.debug(`User was created: ${this.email}, id: ${result.id}`);
-        return await User.findById(result.id);
+        logger.debug(`User was created: ${this.email}, id: ${result.insertId}`);
+        return await User.findById(result.insertId);
       } catch (err) {
         formatLogMessage(logger, { err })?.error(`Error creating User: ${this.email}`);
         return null;

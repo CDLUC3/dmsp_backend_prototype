@@ -10,8 +10,11 @@ export function attachApolloServer(apolloServer, cache, logger) {
     context: async ({ req }) => {
       // Extract the token from the incoming request so we can pass it on to the resolvers
       const authHeader: string = req?.headers?.authorization || '';
-      const hdrToken: string = authHeader.split(' ')[1];
-      const token: JWTToken = authHeader ? verifyToken(hdrToken, logger) : null;
+      const authHdr: string = authHeader.split(' ')[1] || null;
+      const token: JWTToken = authHeader ? verifyToken(authHdr, logger) : null;
+
+console.log(authHdr);
+console.log(token);
 
       return {
         token,
