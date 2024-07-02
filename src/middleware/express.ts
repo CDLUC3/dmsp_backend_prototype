@@ -13,9 +13,6 @@ export function attachApolloServer(apolloServer, cache, logger) {
       const authHdr: string = authHeader.split(' ')[1] || null;
       const token: JWTToken = authHeader ? verifyToken(authHdr, logger) : null;
 
-console.log(authHdr);
-console.log(token);
-
       return {
         token,
         // Pass the logger in so it is available to our resolvers and dataSources

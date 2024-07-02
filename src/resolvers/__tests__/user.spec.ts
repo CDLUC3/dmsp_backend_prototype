@@ -37,6 +37,7 @@ describe('User queries', () => {
     expect(res.body.singleResult.data?.users).toBeDefined();
 
     const result = res.body.singleResult.data?.users as [User];
+    // console.log(result);
     expect(result instanceof Array).toBe(true);
     expect(result.length > 0).toBe(true);
   });

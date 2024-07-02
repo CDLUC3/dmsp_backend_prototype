@@ -1,7 +1,7 @@
 import AWS from 'aws-sdk';
 import { RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
-import { logger } from '../logger';
+import { logger, formatLogMessage } from '../logger';
 import { DmspModel as Dmsp } from "../models/Dmsp"
 import { JWTToken } from '../services/tokenService';
 
@@ -56,18 +56,18 @@ export class DMPHubAPI extends RESTDataSource {
     } else {
       ret['dmsp'] = dmsps[0];
     }
-    // console.log(ret);
     return ret;
   }
 
   // Fetch a specific DMSP by its DMP ID
   async getDMSP(dmspID: string) {
-    console.log(`Calling DMPHub: ${this.baseURL}`);
+    formatLogMessage(logger).info(`Calling DMPHub: ${this.baseURL}`)
     try {
       const id = this.dmspIdWithoutProtocol(dmspID);
       const response = await this.get<Dmsp>(`dmps/${encodeURI(id)}`);
       return this.handleResponse(response);
     } catch(error) {
+      formatLogMessage(logger, { err: error }).error('Error calling DMPHub API getDMSP.')
       logger.error(error?.message);
       throw(error);
     }
