@@ -66,10 +66,9 @@ export class DMPHubAPI extends RESTDataSource {
       const id = this.dmspIdWithoutProtocol(dmspID);
       const response = await this.get<Dmsp>(`dmps/${encodeURI(id)}`);
       return this.handleResponse(response);
-    } catch(error) {
-      formatLogMessage(logger, { err: error }).error('Error calling DMPHub API getDMSP.')
-      logger.error(error?.message);
-      throw(error);
+    } catch(err) {
+      formatLogMessage(logger, { err }).error('Error calling DMPHub API getDMSP.')
+      throw(err);
     }
   }
 }
