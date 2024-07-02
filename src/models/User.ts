@@ -118,12 +118,10 @@ export class User {
   static async findByEmail(email: string): Promise<User | Falsey> {
     const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * from users where email = ?';
+
     formatLogMessage(logger)?.debug(`User.findByEmail: ${email}`);
     try {
       const [rows] = await mysql.query(sql, [email]);
-
-console.log(rows)
-
       return rows?.id ? new User(rows) : null;
     } catch (err) {
       formatLogMessage(logger, { err })?.error(`Error trying to find User by email: ${email}`);
@@ -143,14 +141,6 @@ console.log(rows)
     try {
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const user = await User.findByEmail(email) || null;
-
-console.log('Login')
-console.log(user)
-console.log(this.password)
-console.log(user?.password)
-console.log('crypto')
-console.log(await bcrypt.compare(this.password, user?.password));
-
       if (user && await bcrypt.compare(this.password, user?.password)) {
         return user;
       }
@@ -167,10 +157,8 @@ console.log(await bcrypt.compare(this.password, user?.password));
     this.validateNewUser();
 
     if (this.errors.length === 0) {
-console.log(this.password);
       const passwordHash = await this.hashPassword(this.password);
       this.password = passwordHash
-console.log(passwordHash)
 
       const mysql = MySQLDataSource.getInstance();
       const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';

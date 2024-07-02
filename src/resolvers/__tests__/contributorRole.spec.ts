@@ -3,10 +3,12 @@ import { ContributorRolesResolver, MockDMPHubAPI } from '../../__tests__/mockApo
 import logger from '../../__tests__/mockLogger';
 import { MySQLDataSource } from "../../datasources/mySQLDataSource";
 import { resolvers } from "../contributorRole";
+import { User } from "../../models/User";
 import { DMPHubAPI } from "../../datasources/dmphub-api";
 import { MyContext } from "../../context";
 
 let debugSpy: jest.SpyInstance;
+const user = new User({ email: 'test@example.com', password: '12345'});
 
 describe('contributorRoles query resolver', () => {
   beforeEach(() => {
@@ -40,6 +42,7 @@ describe('contributorRoles query resolver', () => {
     mockQuery.mockResolvedValueOnce(mockQueryResponse);
     const context: MyContext = {
       logger,
+      user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
         dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
@@ -60,6 +63,7 @@ describe('contributorRoles query resolver', () => {
   it('should log and throw an error if contributorRoles query fails', async () => {
     const context: MyContext = {
       logger,
+      user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
         dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
@@ -82,6 +86,7 @@ describe('contributorRoles query resolver', () => {
     mockQuery.mockResolvedValueOnce([mockIdQueryResponse]);
     const context: MyContext = {
       logger,
+      user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
         dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
@@ -99,6 +104,7 @@ describe('contributorRoles query resolver', () => {
   it('should log and throw an error when contributorRoleById query fails', async () => {
     const context: MyContext = {
       logger,
+      user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
         dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
@@ -120,6 +126,7 @@ describe('contributorRoles query resolver', () => {
     mockQuery.mockResolvedValueOnce([mockUrlQueryResponse]);
     const context: MyContext = {
       logger,
+      user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
         dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
@@ -137,6 +144,7 @@ describe('contributorRoles query resolver', () => {
   it('should log and throw an error when contributorRoleByURL query fails', async () => {
     const context: MyContext = {
       logger,
+      user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
         dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
@@ -176,6 +184,7 @@ describe('contributorRoles mutation resolver', () => {
 
     const context: MyContext = {
       logger,
+      user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
         dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
@@ -204,6 +213,7 @@ describe('contributorRoles mutation resolver', () => {
   it('should return 400 from generic error handler when addContributorRole mutation fails', async () => {
     const context: MyContext = {
       logger,
+      user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
         dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI

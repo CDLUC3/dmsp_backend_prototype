@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { logger, formatLogMessage } from '../logger';
 import { User } from '../models/User';
 import { generateToken } from '../services/tokenService';
 
@@ -7,8 +8,6 @@ export const signinController = async (req: Request, res: Response) => {
   try {
     user = await user.login() || null;
 
-console.log(user)
-
     if (user) {
       const token = generateToken(user);
       res.json({ success: true, token });
@@ -16,7 +15,7 @@ console.log(user)
       res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
   } catch (err) {
-    console.log('Login error:', err);
+    formatLogMessage(logger, { err }).error('Signin error')
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

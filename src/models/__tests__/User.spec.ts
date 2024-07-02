@@ -92,7 +92,6 @@ describe('validate a new User', () => {
   });
 
   it('should return false when we have a new user with an invalid password', async () => {
-
     mockQuery.mockResolvedValueOnce([[], []]);
 
     const user = new User({
@@ -108,7 +107,7 @@ describe('validate a new User', () => {
     mockQuery.mockResolvedValueOnce([[mockUser], []]);
 
     const user = new User({
-      email: 'test.user@example.com',
+      email: 'test@test.com',
       password: '@bcd3fGhijklmnop',
     });
 
@@ -159,6 +158,7 @@ describe('password validation', () => {
     for (let i = 0; i < chars.length; i++) {
       const valid = new User({ password: `Abcd3Fgh1jkL${chars[i]}` }).validatePassword();
       if (!valid) {
+
         console.log(`Failed when testing character ${chars[i]}`);
       }
       expect(valid).toBe(true);
@@ -288,15 +288,10 @@ describe('login()', () => {
   });
 
   it('should not return null if user exists and its password matches with encrypted one', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
-    mockQuery.mockResolvedValueOnce([[mockedUser], []]);
-    mockQuery.mockResolvedValueOnce([[mockedUser], []]);
+    const user = new User({ email: 'testFOOO@test.com', password: '@bcd3fGhij12klmnop' });
+    const hashedPwd = user.hashPassword('@bcd3fGhij12klmnop')
 
-    const user = new User({
-      email: 'test.user@example.com',
-      password: '@bcd3fGhijklmnop',
-    });
-
+    mockQuery.mockResolvedValueOnce({ id: 1, email: 'testFOOO@test.com', password: hashedPwd });
     const response = await user.login();
     expect(response).not.toBeNull();
   });

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Request as OAuth2Request, Response as OAuth2Response } from '@node-oauth/oauth2-server';
 import OAuth2Server from '@node-oauth/oauth2-server';
+import { logger, formatLogMessage } from '../logger';
 import { OAuthClient } from '../models/OAuthClient';
 import { OAuthCode } from '../models/OAuthCode';
 import { OAuthRefreshToken } from '../models/OAuthRefreshToken';
@@ -26,7 +27,7 @@ const model = {
       code.user = user;
       return await code.save();
     } catch(err) {
-      console.log(err);
+      formatLogMessage(logger, { err }).error('Error oauthServer.saveAuthorizationCode')
       return null;
     }
   },
@@ -36,7 +37,7 @@ const model = {
     try {
       return await code.revoke();
     } catch(err) {
-      console.log(err);
+      formatLogMessage(logger, { err }).error('Error oauthServer.revokeAuthorizationCode')
       return null;
     }
   },
@@ -58,7 +59,7 @@ const model = {
     try {
       return await OAuthToken.findOne(accessToken);
     } catch(err) {
-      console.log(err);
+      formatLogMessage(logger, { err }).error('Error oauthServer.getAccessToken')
       return null;
     }
   },
@@ -70,7 +71,7 @@ const model = {
       token.user = user;
       return await token.save();
     } catch (err) {
-      console.log(err);
+      formatLogMessage(logger, { err }).error('Error oauthServer.saveToken')
       return null;
     }
   },
@@ -80,7 +81,7 @@ const model = {
     try {
       return await token.revoke();
     } catch (err) {
-      console.log(err);
+      formatLogMessage(logger, { err }).error('Error oauthServer.revokeToken')
       return null;
     }
   },
