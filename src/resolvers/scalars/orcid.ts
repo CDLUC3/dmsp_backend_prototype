@@ -1,8 +1,8 @@
 import { GraphQLScalarType, Kind } from 'graphql';
 
 export const ORCID_DOMAIN: string = 'https://orcid.org/';
-const ORCID_ID_REGEX: RegExp = /^([0-9a-zA-Z]{4}\-){3}[0-9a-zA-Z]{4}$/;
-const ORCID_URL_REGEX: RegExp = /^https?:\/\/orcid.org\/([0-9a-zA-Z]{4}\-){3}[0-9a-zA-Z]{4}/;
+const ORCID_ID_REGEX: RegExp = /^([0-9a-zA-Z]{4}-){3}[0-9a-zA-Z]{4}$/;
+const ORCID_URL_REGEX: RegExp = /^https?:\/\/orcid.org\/([0-9a-zA-Z]{4}-){3}[0-9a-zA-Z]{4}/;
 
 // Function to ensure the ORCID is properly formatted
 export function validateOrcid(val) {

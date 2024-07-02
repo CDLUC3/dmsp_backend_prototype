@@ -1,25 +1,37 @@
-const router = require("express").Router();
-const { expressjwt } = require('express-jwt');
-const userController = require("./controllers/userController")
+import express from 'express';
+import { expressjwt } from 'express-jwt';
+import { generalConfig } from './config/generalConfig';
+import { signinController } from './controllers/signinController';
+import { signupController } from './controllers/signupController';
+import { oauthServer, castRequest, castResponse } from './middleware/oauthServer';
 
-const secret = Buffer.from('Zn8Q5tyZ/G1MHltc4F/gTkVJMlrbKiZt', 'base64');
+const router = express.Router();
 
 const authMiddleware = expressjwt({
-    algorithms: ['HS256'],
-    credentialsRequired: false,
-    secret,
+  algorithms: ['HS256'],
+  credentialsRequired: false,
+  secret: generalConfig.jwtSecret as string,
 });
 
+// Support for email+password
+router.post('/signin', (req, res) => signinController(req, res));
+router.post('/signup', (req, res, next) => signupController(req, res));
 
+// Support for OAuth2
+router.get('/authorize', (req, res) => oauthServer.authorize(castRequest(req), castResponse(res)));
+router.post('/authenticate', (req, res) => oauthServer.authenticate(castRequest(req), castResponse(res)));
+router.post('/token', (req, res) => oauthServer.token(castRequest(req), castResponse(res)));
 
-router.post("/login", userController.apiLogin);
-router.post("/register", userController.apiRegister);
+// GraphQL operations
+router.use('/graphql', authMiddleware);
+
+// Sample protected endpoint
 router.post("/protected", authMiddleware, (req, res) => {
-    if (!req.auth.admin) {
-        return res.sendStatus(401);
-        res.sendStatus(200);
-    }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!(req as any).auth.admin) {
+    return res.sendStatus(401);
+  }
+  res.sendStatus(200);
 });
-
 
 export default router;

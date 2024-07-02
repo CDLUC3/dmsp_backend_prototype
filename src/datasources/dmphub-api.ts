@@ -1,8 +1,9 @@
 import AWS from 'aws-sdk';
-import { RESTDataSource, AugmentedRequest } from "@apollo/datasource-rest";
+import { RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
-
+import { logger } from '../logger';
 import { DmspModel as Dmsp } from "../models/Dmsp"
+import { JWTToken } from '../services/tokenService';
 
 // JS SDK v3 does not support global configuration.
 // Codemod has attempted to pass values to each service client in this file.
@@ -12,14 +13,13 @@ AWS.config.update({
   // accessKeyId: 'your-access-key-id',
   // secretAccessKey: 'your-secret-access-key',
 });
-const aws = AWS;
 
 export class DMPHubAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
-  private token: string;
+  private token: JWTToken;
 
-  constructor(options: { cache: KeyValueCache, token: string }) {
+  constructor(options: { cache: KeyValueCache, token: JWTToken }) {
     super(options);
 
     this.token = options.token;
@@ -46,7 +46,7 @@ export class DMPHubAPI extends RESTDataSource {
     const errors = response?.errors || [];
     const dmsps = response?.items?.map((dmsp) => dmsp['dmp']) || [];
 
-    let ret = {
+    const ret = {
       code: response?.status,
       success: success,
       message: success ? 'Ok' : errors.join(', ')
@@ -68,7 +68,7 @@ export class DMPHubAPI extends RESTDataSource {
       const response = await this.get<Dmsp>(`dmps/${encodeURI(id)}`);
       return this.handleResponse(response);
     } catch(error) {
-      console.log(error);
+      logger.error(error?.message);
       throw(error);
     }
   }
