@@ -291,14 +291,8 @@ describe('login()', () => {
     const user = new User({ email: 'testFOOO@test.com', password: '@bcd3fGhij12klmnop' });
     const hashedPwd = user.hashPassword('@bcd3fGhij12klmnop')
 
-console.log('TESTING')
-
     mockQuery.mockResolvedValueOnce({ id: 1, email: 'testFOOO@test.com', password: hashedPwd });
     const response = await user.login();
-
-console.log('RESPONSE')
-console.log(response)
-
     expect(response).not.toBeNull();
   });
 

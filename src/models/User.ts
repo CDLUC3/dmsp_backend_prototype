@@ -119,18 +119,9 @@ export class User {
     const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT * from users where email = ?';
 
-console.log(email)
-
     formatLogMessage(logger)?.debug(`User.findByEmail: ${email}`);
     try {
-
-console.log('QUERYING')
-
       const [rows] = await mysql.query(sql, [email]);
-
-console.log('QUERY RESULT')
-console.log(rows)
-
       return rows?.id ? new User(rows) : null;
     } catch (err) {
       formatLogMessage(logger, { err })?.error(`Error trying to find User by email: ${email}`);
@@ -150,11 +141,6 @@ console.log(rows)
     try {
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const user = await User.findByEmail(email) || null;
-
-console.log(`this: ${this.email}, ${this.password}`);
-console.log(`found: ${user?.email}, ${user?.password}`);
-console.log(bcrypt.compare(this.password, user?.password))
-
       if (user && await bcrypt.compare(this.password, user?.password)) {
         return user;
       }
