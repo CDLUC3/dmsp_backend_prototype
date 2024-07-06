@@ -135,7 +135,7 @@ export class User {
     const email = this.email || '';
 
     if (!validateEmail(email) || !this.validatePassword()) {
-      this.errors.push('Login failed');
+      return null;
     }
 
     try {
@@ -154,7 +154,7 @@ export class User {
   // Register the User if the data is valid
   async register(): Promise<User | Falsey> {
     this.cleanup();
-    this.validateNewUser();
+    await this.validateNewUser();
 
     if (this.errors.length === 0) {
       const passwordHash = await this.hashPassword(this.password);
@@ -175,7 +175,7 @@ export class User {
       }
     } else {
       formatLogMessage(logger)?.debug(`Invalid user: ${this.email}`);
-      return null;
+      return this;
     }
   }
 }

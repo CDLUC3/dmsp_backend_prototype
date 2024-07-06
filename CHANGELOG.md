@@ -18,3 +18,6 @@
 - Pino logger with ECS formatter
 - Plugin to log request/response lifecycle events
 - Add Logger to the context and then used it in the resolvers
+
+### Updated
+- Made some updates to auth code based on testing out recent changes with frontend [#34]
