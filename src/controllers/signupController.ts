@@ -9,10 +9,14 @@ export const signupController = async (req: Request, res: Response) => {
     user = await user.register() || null;
     if (user) {
       if (user.errors.length >= 1) {
-        res.status(400).json({ success: false, message: user.errors?.join(', ') });
+        res.status(400).json({ success: false, message: user.errors?.join('| ') });
       } else {
         const token = generateToken(user);
-        res.status(200).json({ success: true, token });
+        if (token) {
+          res.status(200).json({ success: true, token });
+        } else {
+          throw new Error('Signup failed');
+        }
       }
     } else {
       res.status(500).json({ success: false, message: 'Unable to create the account at this time.' });
