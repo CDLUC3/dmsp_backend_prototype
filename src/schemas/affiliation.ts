@@ -1,10 +1,5 @@
 import gql from "graphql-tag";
 
-// type AffiliationSearchOptions {
-//   name: String!
-//   funderOnly: Boolean!
-// }
-
 export const typeDefs = gql`
   extend type Query {
     "Retrieve a specific Affiliation by its ID"

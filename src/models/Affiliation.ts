@@ -25,11 +25,9 @@ export class AffiliationModel {
 
   // Initialize a new Affiliation
   constructor(options) {
-    const ts = options._SOURCE_SYNCED_AT ? Date.parse(options._SOURCE_SYNCED_AT) : Date();
-
     // This is our opportunity to convert ruby variable names over to JS
     this.provenance = options._SOURCE || 'dmptool';
-    this.provenanceSyncDate = ts.toString();
+    this.provenanceSyncDate = options._SOURCE_SYNCED_AT || new Date().toUTCString();
     this.id = options.ID || options.id;
     this.types = options.types || [];
     this.name = options.name;
@@ -44,16 +42,19 @@ export class AffiliationModel {
     this.links = options.links || [];
 
     // If there are any addresses defined, initialize them
+    this.addresses = [];
     if(Array.isArray(options.addresses)) {
       this.addresses = options.addresses.map((addr) => new AffiliationAddress(addr));
     }
 
     // If there are any relationships defined, initialize them
+    this.relationships = [];
     if(Array.isArray(options.relationships)) {
       this.relationships = options.relationships.map((rel) => new AffiliationRelationship(rel));
     }
 
     // If there are any external_ids defined, initialize them and set the FundRef ID
+    this.externalIds = [];
     if (options.hasOwnProperty('external_ids')) {
       this.externalIds = Object.keys(options.external_ids).map((key) => {
         return new ExternalId({
@@ -72,8 +73,10 @@ class ExternalId {
   public id!: string;
 
   constructor(options) {
+    const allIds = Array.isArray(options.all) ? options.all : [options.all]
+
     this.type = options.type?.toLowerCase();
-    this.id = options.preferred ? options.preferred : (Array.isArray(options.all) ? options.all[0] : options.all);
+    this.id = options.preferred ? options.preferred : allIds[0];
   }
 }
 
@@ -107,12 +110,6 @@ export class AffiliationRelationship {
     this.type = options.type;
     this.name = options.label || options.name;
   }
-}
-
-// Possible search options for finding Affiliations
-export interface AffiliationSearchOptions {
-  name: string;
-  funderOnly: boolean;
 }
 
 // A pared down version of the full Affiliation object. This type is returned by

@@ -2,7 +2,7 @@ import { AffiliationModel, AffiliationSearchModel } from '../models/Affiliation'
 
 // Just define what is unique here. Any fields you skip will end up using the defaults
 // for their respective type as defined in ./src/mocks.ts
-const data = [
+export const data = [
   {
     "RESOURCE_TYPE": "AFFILIATION",
     "ID": "https://ror.org/00dmfq477",
@@ -125,7 +125,7 @@ const data = [
    }
 ]
 
-const searchData = [
+export const searchData = [
   {
     "PK": "AFFILIATION",
     "SK": "advancedphotonsciencesunitedstates",
