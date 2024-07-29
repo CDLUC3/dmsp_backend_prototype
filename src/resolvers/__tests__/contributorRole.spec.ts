@@ -1,11 +1,16 @@
 import * as loggerMethods from "../../logger";
-import { ContributorRolesResolver, MockDMPHubAPI } from '../../__tests__/mockApolloContext';
+import {
+  ContributorRolesResolver,
+  MockDMPHubAPI,
+  mockDMPToolAPI,
+} from '../../__tests__/mockApolloContext';
 import logger from '../../__tests__/mockLogger';
 import { MySQLDataSource } from "../../datasources/mySQLDataSource";
 import { resolvers } from "../contributorRole";
 import { User } from "../../models/User";
-import { DMPHubAPI } from "../../datasources/dmphub-api";
+import { DMPHubAPI } from "../../datasources/dmphubAPI";
 import { MyContext } from "../../context";
+import { DMPToolAPI } from "../../datasources/dmptoolAPI";
 
 let debugSpy: jest.SpyInstance;
 const user = new User({ email: 'test@example.com', password: '12345'});
@@ -45,7 +50,8 @@ describe('contributorRoles query resolver', () => {
       user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
-        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
+        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI,
+        dmptoolAPIDataSource: new mockDMPToolAPI() as unknown as DMPToolAPI,
       },
     };
 
@@ -66,7 +72,8 @@ describe('contributorRoles query resolver', () => {
       user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
-        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
+        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI,
+        dmptoolAPIDataSource: new mockDMPToolAPI() as unknown as DMPToolAPI,
       },
     };
     const mockError = new Error('Query failed');
@@ -89,7 +96,8 @@ describe('contributorRoles query resolver', () => {
       user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
-        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
+        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI,
+        dmptoolAPIDataSource: new mockDMPToolAPI() as unknown as DMPToolAPI,
       },
     };
 
@@ -107,7 +115,8 @@ describe('contributorRoles query resolver', () => {
       user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
-        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
+        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI,
+        dmptoolAPIDataSource: new mockDMPToolAPI() as unknown as DMPToolAPI,
       },
     };
     const mockError = new Error('Query failed');
@@ -129,7 +138,8 @@ describe('contributorRoles query resolver', () => {
       user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
-        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
+        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI,
+        dmptoolAPIDataSource: new mockDMPToolAPI() as unknown as DMPToolAPI,
       },
     };
 
@@ -147,7 +157,8 @@ describe('contributorRoles query resolver', () => {
       user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
-        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
+        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI,
+        dmptoolAPIDataSource: new mockDMPToolAPI() as unknown as DMPToolAPI,
       },
     };
     const mockError = new Error('Query failed');
@@ -187,7 +198,8 @@ describe('contributorRoles mutation resolver', () => {
       user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
-        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
+        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI,
+        dmptoolAPIDataSource: new mockDMPToolAPI() as unknown as DMPToolAPI,
       },
     };
 
@@ -216,7 +228,8 @@ describe('contributorRoles mutation resolver', () => {
       user,
       dataSources: {
         sqlDataSource: MySQLDataSource.getInstance(),
-        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI
+        dmphubAPIDataSource: new MockDMPHubAPI() as unknown as DMPHubAPI,
+        dmptoolAPIDataSource: new mockDMPToolAPI() as unknown as DMPToolAPI,
       },
     };
     const params = {

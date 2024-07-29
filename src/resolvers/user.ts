@@ -1,7 +1,6 @@
 
 import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
-// import { User } from "../models/User";
 import { MyContext } from '../context';
 
 export const resolvers: Resolvers = {

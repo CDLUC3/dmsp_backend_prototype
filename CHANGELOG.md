@@ -1,5 +1,15 @@
 
 ### Added
+- Schema, Mocks, Models and Resolvers for Affiliations
+- Added new DataSource for the DmptoolApi with endpoints for Affiliations
+
+### Updated
+- Updated schemas.ts, resolvers.ts, mocks.ts and codegen.ts to use new Affiliation files
+
+## v0.1
+Initial Apollo Server build
+
+### Added
 - Added unit tests for User model and contributorRole resolver, and added @types/pino
 - Added editor config
 - initial Apollo server config
