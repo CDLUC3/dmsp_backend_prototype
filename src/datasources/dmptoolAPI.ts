@@ -1,4 +1,3 @@
-import AWS from 'aws-sdk';
 import { Buffer } from "buffer";
 import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
@@ -6,15 +5,7 @@ import { logger, formatLogMessage } from '../logger';
 import { AffiliationModel, AffiliationSearchModel } from "../models/Affiliation"
 import { JWTToken } from '../services/tokenService';
 
-// JS SDK v3 does not support global configuration.
-// Codemod has attempted to pass values to each service client in this file.
-// You may need to update clients outside of this file, if they use global config.
-AWS.config.update({
-  region: process.env.AWS_REGION,
-  // accessKeyId: 'your-access-key-id',
-  // secretAccessKey: 'your-secret-access-key',
-});
-
+// Singleton class that retrieves an Auth token from the API
 class Authorizer extends RESTDataSource {
   static #instance: Authorizer;
 
@@ -30,11 +21,13 @@ class Authorizer extends RESTDataSource {
     super();
 
     this.env = this.baseURL.includes('uc3prd') ? 'dev' : (this.baseURL.includes('uc3stg') ? 'stg' : 'dev');
+    // Base64 encode the credentials for the auth request
     const hdr = `${process.env.DMPHUB_API_CLIENT_ID}:${process.env.DMPHUB_API_CLIENT_SECRET}`;
     this.creds = Buffer.from(hdr, 'binary').toString('base64');
     this.authenticate();
   }
 
+  // Singleton function to ensure we aren't reauthenticating every time
   public static get instance(): Authorizer {
     if (!Authorizer.#instance) {
       Authorizer.#instance = new Authorizer();
@@ -43,6 +36,7 @@ class Authorizer extends RESTDataSource {
     return Authorizer.#instance;
   }
 
+  // Call the authenticate method and set this class' expiry timestamp
   async authenticate() {
     const response = await this.post(`/oauth2/token`);
     formatLogMessage(logger).info(`Authenticating with DMPHub`);
@@ -52,11 +46,13 @@ class Authorizer extends RESTDataSource {
     this.expiry = new Date(currentDate.getTime() + 600 * 1000);
   }
 
+  // Check if the current token has expired
   hasExpired() {
     const currentDate = new Date();
     return currentDate >= this.expiry;
   }
 
+  // Attach all of the necessary HTTP headers and the body prior to calling the token endpoint
   override willSendRequest(_path: string, request: AugmentedRequest) {
     request.headers['authorization'] =`Basic ${this.creds}`;
     request.headers['content-type'] = 'application/x-www-form-urlencoded';
@@ -64,6 +60,9 @@ class Authorizer extends RESTDataSource {
   }
 }
 
+// DataSource that interacts with the DMPHub API. This file is similar to the DdmphubAPI.ts. It has
+// been separated out because these endpoints will eventually be replaced with queries to
+// OpenSearch once that has been deployed.
 export class DMPToolAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
@@ -78,6 +77,7 @@ export class DMPToolAPI extends RESTDataSource {
     this.authorizer = Authorizer.instance;
   }
 
+  // Add the Authorization token to the headers prior to the request
   override willSendRequest(_path: string, request: AugmentedRequest) {
     // Check the current token's expiry. If it has expired re-authenticate
     if (this.authorizer.hasExpired) {
@@ -91,10 +91,7 @@ export class DMPToolAPI extends RESTDataSource {
     return id.toString().replace(/^(https?:\/\/|https?%3A%2F%2F)/i, '').replace(/%2F/g, '/');
   }
 
-  // TODO: Use the Fetcher to set the API auth token
-  //   See: https://www.apollographql.com/docs/apollo-server/data/fetching-rest#intercepting-fetches
-
-
+  // Retrieve a single affiliation record
   async getAffiliation(affiliationId: string) {
     try {
       const id = this.removeProtocol(affiliationId);
@@ -112,6 +109,7 @@ export class DMPToolAPI extends RESTDataSource {
     }
   }
 
+  // Perform a search for affiliation records
   async getAffiliations({ name, funderOnly = false }: { name: string, funderOnly?: boolean } ) {
     try {
       const sanitizedName = encodeURI(name);

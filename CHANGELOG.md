@@ -1,7 +1,7 @@
 
 ### Added
-- Schema, Mocks, Models and Resolvers for Affiliations
-- Added new DataSource for the DmptoolApi with endpoints for Affiliations
+- Schema, Mocks, Models and Resolvers for Affiliations and tests for the Models and Resolvers
+- Added new DataSource for the DmptoolApi with endpoints for Affiliations and a new mock for this data source for use in tests
 
 ### Updated
 - Updated schemas.ts, resolvers.ts, mocks.ts and codegen.ts to use new Affiliation files
