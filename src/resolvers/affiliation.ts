@@ -30,9 +30,6 @@ export const resolvers: Resolvers = {
         dataSources.dmptoolAPIDataSource.getAffiliation(encodeURIComponent(affiliationId))
           .then(row => {
             formatLogMessage(logger).debug(logMessage);
-
-console.log(row);
-
             resolve(row);
           })
           .catch(err => {
