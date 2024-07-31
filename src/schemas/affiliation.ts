@@ -12,8 +12,10 @@ export const typeDefs = gql`
   type AffiliationSearch {
     "The unique identifer for the affiliation (typically the ROR id)"
     id: String!
-    "The official display name"
+    "The official name of the affiliation from the system of provenance"
     name: String!
+    "The official display name"
+    displayName: String!
     "Whether or not this affiliation is a funder"
     funder: Boolean!
     "The Crossref Funder id"
@@ -26,6 +28,8 @@ export const typeDefs = gql`
     countryName: String
     "URL links associated with the affiliation"
     links: [String]
+    "Localization options for the affiliation name"
+    locales: [AffiliationLocale]
   }
 
   "A respresentation of an institution, organization or company"
@@ -52,6 +56,8 @@ export const typeDefs = gql`
     countryCode: String
     "The country name for the affiliation"
     countryName: String
+    "Localization options for the affiliation name"
+    locales: [AffiliationLocale]
     "URL links associated with the affiliation"
     links: [String]
     "The types of the affiliation (e.g. Company, Education, Government, etc.)"
@@ -62,8 +68,6 @@ export const typeDefs = gql`
     relationships: [AffiliationRelationship]
     "The address(es) for the affiliation"
     addresses: [AffiliationAddress]
-    "Other identifiers associated with the affiliation (e.g. Crossref funder id, GRID, ISNI, etc.)"
-    externalIds: [ExternalId]
     "The system the affiliation's data came from (e.g. ROR, DMPTool, etc.)"
     provenance: String!
     "The last time the data for the affiliation was synced with the system of provenance"
@@ -94,10 +98,10 @@ export const typeDefs = gql`
     lng: Float
   }
 
-  type ExternalId {
-    "The identifier type (e.g. FundRef, GRID, ISNI, etc.)"
-    type: String!
-    "The identifier value"
-    id: String
+  type AffiliationLocale {
+    "The localized name of the affiliation"
+    label: String!
+    "The language code"
+    locale: String!
   }
 `;

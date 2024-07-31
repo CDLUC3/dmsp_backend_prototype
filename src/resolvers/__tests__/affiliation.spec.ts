@@ -82,7 +82,7 @@ describe('Affiliations search queries', () => {
 });
 
 describe('Affiliation fetch queries', () => {
-  test('fetches an affiliations', async () => {
+  test('fetches an affiliation', async () => {
     /*
      * TODO: Update this once we implement user auth so that it:
      *       - does not return a list of users if the current user is a RESEARCHER
@@ -121,10 +121,6 @@ describe('Affiliation fetch queries', () => {
                 lat
                 lng
               }
-              externalIds {
-                type
-                id
-              }
               provenance
               provenanceSyncDate
             }
@@ -136,6 +132,10 @@ describe('Affiliation fetch queries', () => {
 
     // Validate that Apollo returned a result
     assert(res.body.kind === 'single');
+
+console.log('RESULTS:')
+console.log(res.body.singleResult);
+
     expect(res.body.singleResult.errors).toBeUndefined();
     expect(res.body.singleResult.data).toBeDefined();
     expect(res.body.singleResult.data?.affiliation).toBeDefined();

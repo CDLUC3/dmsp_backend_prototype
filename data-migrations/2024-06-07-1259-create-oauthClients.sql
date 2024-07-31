@@ -1,5 +1,5 @@
 CREATE TABLE `oauthClients` (
-  `id` varchar(255) PRIMARY KEY,
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(255) NOT NULL,
   `redirectUris` text NOT NULL,
   `grants` varchar(255) NOT NULL,
@@ -9,4 +9,4 @@ CREATE TABLE `oauthClients` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `modified` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_contributor_name UNIQUE (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
+);

@@ -1,5 +1,3 @@
-import { Affiliation, AffiliationSearch } from "../types";
-
 // Represents an Institution, Organization or Company
 export class AffiliationModel {
   public id!: string;
@@ -13,14 +11,15 @@ export class AffiliationModel {
   public types: string[];
   public acronyms: string[];
   public aliases: string[];
+  public locales: AffiliationLocale[];
   public countryCode: string;
   public countryName: string;
   public domain: string;
   public wikipediaURL: string;
   public links: string[];
   public relationships: AffiliationRelationship[];
-
   public addresses: AffiliationAddress[];
+
   private externalIds: ExternalId[];
 
   // Initialize a new Affiliation
@@ -40,6 +39,12 @@ export class AffiliationModel {
     this.countryName = options.country?.country_name || options.countryName;
     this.domain = options.domain;
     this.links = options.links || [];
+
+    // If there are any labels/locales defined, initialize them
+    this.locales = [];
+    if(Array.isArray(options.locales)) {
+      this.locales = options.labels.map((lbl) => new AffiliationLocale(lbl));
+    }
 
     // If there are any addresses defined, initialize them
     this.addresses = [];
@@ -112,30 +117,51 @@ export class AffiliationRelationship {
   }
 }
 
+export class AffiliationLocale {
+  public label!: string;
+  public locale!: string;
+
+  constructor(options) {
+    this.label = options.label;
+    this.locale = options.iso639;
+  }
+}
+
 // A pared down version of the full Affiliation object. This type is returned by
 // our index searches
 export class AffiliationSearchModel {
   public id!: string;
+  public fetchId!: string;
   public name!: string;
+  public displayName!: string;
   public funder!: boolean;
   public fundref: string;
   public aliases: string[];
   public countryCode: string;
   public countryName: string;
   public links: string[];
+  public locales: AffiliationLocale[];
 
   // Initialize a new AffiliationSearch result
   constructor(options) {
-    const countryParts = options.country_name || [];
+    const suffix = options.domain || options.countryName;
 
     // This is our opportunity to convert ruby variable names over to JS
-    this.id = options.ror_id || options.id;
+    this.id = options.ror_url || options.id;
+    this.fetchId = this.id?.replace(/https?:\/\//g, '');
     this.name = options.name;
+    this.displayName = suffix ? `${options.name} (${suffix})` : options.name;
     this.funder = options.hasOwnProperty('fundref_id');
     this.fundref = options.fundref_url || options.fundref;
     this.aliases = options.aliases || [];
-    this.countryCode = countryParts.find((cntry) => cntry.length <= 3);
-    this.countryName = countryParts.find((cntry) => cntry.length > 3);;
-    this.links = options.links || [];
+    this.countryCode = options.countryCode;
+    this.countryName = options.countryName;
+    this.links = options.links || [options.domain];
+
+    // If there are any labels/locales defined, initialize them
+    this.locales = [];
+    if(Array.isArray(options.locales)) {
+      this.locales = options.labels?.map((lbl) => new AffiliationLocale(lbl));
+    }
   }
 }

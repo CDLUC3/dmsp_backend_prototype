@@ -5,6 +5,7 @@
 
 ### Updated
 - Updated schemas.ts, resolvers.ts, mocks.ts and codegen.ts to use new Affiliation files
+- Updated express.ts middleware file to pull in and initialize the new DmptoolApi datasource
 
 ## v0.1
 Initial Apollo Server build

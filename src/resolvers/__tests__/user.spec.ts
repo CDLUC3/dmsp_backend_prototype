@@ -21,6 +21,9 @@ describe('User queries', () => {
               givenName
               surName
               email
+              affiliation {
+                name
+              }
               role
               orcid
               created
@@ -53,6 +56,9 @@ describe('User queries', () => {
               givenName
               surName
               email
+              affiliation {
+                name
+              }
               role
               orcid
               created

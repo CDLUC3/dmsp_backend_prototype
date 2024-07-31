@@ -23,7 +23,7 @@ export const resolvers: Resolvers = {
     },
 
     // Returns the specified Affiliation
-    affiliation: async (_, { affiliationId }, { logger, dataSources }: MyContext) => {
+    affiliation: async (parent, { affiliationId }, { logger, dataSources }: MyContext) => {
       const logMessage = `Resolving query affiliation(affiliationId: '${affiliationId}')`;
 
       return new Promise((resolve, reject) => {
