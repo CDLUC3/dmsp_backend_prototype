@@ -1,6 +1,6 @@
 import casual from 'casual';
 
-export const mock = {
+export const data = {
   // User account mock
   User: () => ({
     id: casual.integer(1, 10000),

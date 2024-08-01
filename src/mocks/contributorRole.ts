@@ -1,6 +1,6 @@
 // Just define what is unique here. Any fields you skip will end up using the defaults
 // for their respective type as defined in ./src/mocks.ts
-const data = [
+export const data = [
   {
     id: 1,
     url: 'https://credit.niso.org/contributor-roles/investigation/',
@@ -30,8 +30,3 @@ const data = [
     displayOrder: 4,
   },
 ]
-
-export const mock = {
-  // Return a random item from the data array
-  ContributorRole: () => data[Math.floor(Math.random() * data.length)]
-}
