@@ -49,6 +49,8 @@ return new MyModel(response);
 ### Create a Mock
 If you will be unable to create the corresponding resolver(s) at this point because of time constraints or because the data source is not yet ready, then you should add a new Mock file to the `src/schemas/` directory (or update and existing one with your changes). If you add a new mock be sure to update the `src/mocks.ts` to pull in your new mock when the server starts up.
 
+Note that mocks should represent the data structure that will be returned from your resolver to the caller. NOT the dtat structure that the resolver receives from the data source!
+
 ### Create a Resolver
 If your data source is ready and you have the bandwidth, add a new Resolver to the `src/resolvers/` directory (or update one with your new query/mutation). If you add a new Resolver be sure to update the `src/resolvers.ts` file to make sure it is included when the server starts up.
 
