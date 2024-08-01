@@ -4,16 +4,20 @@ import { capitalizeFirstLetter, validateEmail } from '../utils/helpers';
 import { Falsey } from 'oauth2-server';
 import { logger, formatLogMessage } from '../logger';
 
-// TODO: Is this the right place to create our Pool?
-// const mysql = new MysqlDataSource({ config: mysqlConfig });
-
 export enum UserRole {
   Researcher = 'RESEARCHER',
   Admin = 'ADMIN',
-  Super = 'SUPER_ADMIN',
+  SuperAdmin = 'SUPER_ADMIN',
 }
 
 export class User {
+  // NOTE: If you are copying this model as the basis for a new one, the inclusion of
+  //       the MySQLDataSource is unusual here. Normally the datasources are passed
+  //       through by the Apollo server context to a resolver. The resolver performs
+  //       necessary queries NOT the model.
+  //
+  //       Since Users are also involved with our non-GraphQL endpoints, we need to bring
+  //       the datasource in here so we can query for sign in/up tasks.
   private mysql: MySQLDataSource;
 
   public id?: number;
@@ -23,6 +27,8 @@ export class User {
   public givenName?: string;
   public surName?: string;
   public orcid?: string;
+  public created: string;
+  public modified: string;
   public errors: string[];
 
   // Initialize a new User
@@ -35,6 +41,8 @@ export class User {
     this.givenName = options.givenName;
     this.surName = options.surName;
     this.orcid = options.orcid;
+    this.created = options.created || new Date().toUTCString();
+    this.modified = options.modified || new Date().toUTCString();
     this.errors = [];
 
     this.cleanup();
