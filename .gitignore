@@ -6,3 +6,9 @@ node_modules/
 
 # Skip the compile distribution files
 dist/
+
+# testing
+/coverage
+
+# Visual Studio Code
+.vscode
