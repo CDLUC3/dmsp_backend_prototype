@@ -1,5 +1,16 @@
 
 ### Added
+- Initial Template schema, model, mocks and resolver
+- Missing data-migration for the dataMigrations table
+
+### Updated
+- Added MariaDB to docker-compose
+- data-migrations/README.md with instructions on running migrations in the Docker container
+
+## v0.1
+Initial Apollo Server build
+
+### Added
 - Added unit tests for User model and contributorRole resolver, and added @types/pino
 - Added editor config
 - initial Apollo server config

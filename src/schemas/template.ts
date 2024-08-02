@@ -29,8 +29,7 @@ export const typeDefs = gql`
     modified: DateTimeISO!
     "A description of the purpose of the template"
     description: String
+    "The template's visibility setting"
+    visibility: Visibility!
   }
 `;
-
-// "The template's visibility setting"
-// visibility: Visibility!

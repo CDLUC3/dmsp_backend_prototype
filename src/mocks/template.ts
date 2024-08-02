@@ -4,7 +4,7 @@ export const data = [
     "name": "Test Template 1",
     "created": "2024-08-01T13:39:21Z",
     "modified": "2024-08-01T13:39:21Z",
-    "visibility": 0,
+    "visibility": 'Private',
   },
   {
     "id": 2,
@@ -12,14 +12,14 @@ export const data = [
     "description": "Testing template number 2",
     "created": "2024-07-30T10:36:56Z",
     "modified": "2024-08-01T13:39:21Z",
-    "visibility": 1,
+    "visibility": 'Public',
   },
   {
     "id": 3,
     "name": "Test Template 3",
     "created": "2024-08-01T13:39:21Z",
     "modified": "2024-08-01T13:39:21Z",
-    "visibility": 0,
+    "visibility": 'Private',
   },
   {
     "id": 4,
@@ -27,6 +27,6 @@ export const data = [
     "description": "Testing template number 2",
     "created": "2024-07-30T10:36:56Z",
     "modified": "2024-08-01T13:39:21Z",
-    "visibility": 1,
+    "visibility": 'Public',
   }
 ];

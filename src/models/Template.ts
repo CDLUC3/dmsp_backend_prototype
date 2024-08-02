@@ -1,7 +1,7 @@
 
 export enum Visibility {
-  Private,
-  Public,
+  Private = 'Private',
+  Public = 'Public',
 }
 
 export class TemplateModel {
@@ -10,7 +10,7 @@ export class TemplateModel {
   public description?: string;
   public created!: string;
   public modified!: string;
-  // public visibility!: Visibility;
+  public visibility!: Visibility;
   public errors: string[];
 
   // familyId ties like versions together
@@ -21,7 +21,7 @@ export class TemplateModel {
     this.id = options.id;
     this.name = options.name;
     this.description = options.description;
-    // this.visibility = options.visibility || Visibility.Public;
+    this.visibility = options.visibility || Visibility.Public;
     this.created = options.created || new Date().toUTCString;
     this.modified = options.modified || new Date().toUTCString;
   }

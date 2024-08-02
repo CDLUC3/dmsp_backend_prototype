@@ -5,9 +5,9 @@ import { Falsey } from 'oauth2-server';
 import { logger, formatLogMessage } from '../logger';
 
 export enum UserRole {
-  Researcher = 'RESEARCHER',
-  Admin = 'ADMIN',
-  SuperAdmin = 'SUPER_ADMIN',
+  Researcher = 'Researcher',
+  Admin = 'Admin',
+  SuperAdmin = 'SuperAdmin',
 }
 
 export class User {

@@ -7,6 +7,6 @@ export const data = {
     givenName: casual.first_name,
     surName: casual.last_name,
     email: casual.email,
-    role: casual.integer(0, 1) == 1 ? 'ADMIN' : 'RESEARCHER'
+    role: casual.integer(0, 1) == 1 ? 'Admin' : 'Researcher'
   })
 };

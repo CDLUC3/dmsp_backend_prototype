@@ -234,6 +234,8 @@ export type Template = {
   modified: Scalars['DateTimeISO']['output'];
   /** The name/title of the template */
   name: Scalars['String']['output'];
+  /** The template's visibility setting */
+  visibility: Visibility;
 };
 
 export type User = {
@@ -251,7 +253,7 @@ export type User = {
 export enum UserRole {
   Admin = 'ADMIN',
   Researcher = 'RESEARCHER',
-  Superadmin = 'SUPERADMIN'
+  SuperAdmin = 'SUPER_ADMIN'
 }
 
 /** Template visibility */
@@ -558,6 +560,7 @@ export type TemplateResolvers<ContextType = MyContext, ParentType extends Resolv
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  visibility?: Resolver<ResolversTypes['Visibility'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
