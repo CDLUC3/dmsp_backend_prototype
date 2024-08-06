@@ -11,11 +11,11 @@ Our Apollo server installation consists of:
 ## Installation
 - Clone this repository to your local machine
 - Run `docker-compose build` to build the container
-- In a separate tab Run `docker-compose exec apollo bash ./data-migrations/process.sh` to build out the local database
+- In a separate tab run `docker-compose exec apollo bash ./data-migrations/process.sh` to build out the local database
 - Visit `http://localhost:4000/graphql` to load the Apollo server explorer and verify that the system is running.
 
 ## Running current database migrations
-- See the readme file in the `data-migrations` directory for instructions on running data migrations in your local environment.
+- While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh`.
 
 ## Adding a new query/mutation
 You should always start by updating an existing GraphQL Schema file or adding a new one to the `src/schemas` directory.
