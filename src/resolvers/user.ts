@@ -1,35 +1,30 @@
 
 import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
-// import { User } from "../models/User";
 import { MyContext } from '../context';
 
 export const resolvers: Resolvers = {
   Query: {
-    // returns an array of all contributor roles
+    // returns the current user
     me: async (_, __, { logger, token }: MyContext) => {
       const logMessage = 'Resolving query me';
       const user = null;
-      //const user = User.findByEmail(token?.email)
-      if (user) {
-        return user;
-      }
-      return {
-        code: 401,
-        success: false,
-        message: 'Unauthorized',
-        user: null,
-      };
+      // Hard coding for testing for now. Change this out to get the email from the token
+      // const user = User.findByEmail('orgA.user@example.com');
+      return user;
     },
-    // returns a contributor role that matches the specified ID
+
+    // Should only be callable by an Admin. Super returns all users, Admin gets only
+    // the users associated with their affiliationId
     users: async (_, __, { logger, dataSources }) => {
       const logMessage = `Resolving query users`
       try {
         const sql = 'SELECT id, givenName, surName, email, role, created, modified \
-                     FROM users ORDER BY created DESC'
-        const resp = await dataSources.sqlDataSource.query(sql);
+                     FROM users ORDER BY created DESC';
+
+        const resp = await dataSources.sqlDataSource.query(sql, []);
         formatLogMessage(logger).debug(logMessage);
-        return resp[0];
+        return resp;
       } catch (err) {
         return {
           code: 500,

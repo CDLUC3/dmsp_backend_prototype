@@ -2,6 +2,11 @@
 # preferred node version chosen here (22.1.0-alpine3.19 as of 05/04/2024)
 FROM public.ecr.aws/docker/library/node:22.1.0-alpine3.19
 
+# Install MariaDB and Bash so we can run data-migrations/process.sh
+RUN apk update && \
+    apk add mariadb-client && \
+    apk add --no-cache bash
+
 # Create the directory on the node image
 # where our Next.js app will live
 RUN mkdir -p /app

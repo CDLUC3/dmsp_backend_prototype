@@ -9,7 +9,7 @@ export const typeDefs = gql`
   enum UserRole {
     RESEARCHER
     ADMIN
-    SUPERADMIN
+    SUPER_ADMIN
   }
 
   type User {
