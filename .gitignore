@@ -1,14 +1,23 @@
 # Ignore the Dotenv file
 .env
 
+# Ignore the local data-migration log.
+data-migrations/processed.log
+
 # Skip all of the dependencies in node_modules
 node_modules/
 
 # Skip the compile distribution files
 dist/
 
-# testing
-/coverage
+# Skip the Jest code coverage folder
+coverage/
 
-# Visual Studio Code
-.vscode
+# Ignore the persisted data sources for the local Docker dev env
+docker/
+
+# Ignore VS Code files, like the launch.json file
+.vscode/
+
+# OS specific files
+.DS_Store

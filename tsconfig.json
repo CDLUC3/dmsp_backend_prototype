@@ -1,16 +1,12 @@
 {
   "compilerOptions": {
-    "rootDirs": ["src"],
+    "rootDir": "src",
     "outDir": "dist",
-    "lib": ["es2020"],
     "target": "es2020",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "types": ["node"],
-
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-  }
+    "module": "commonjs"
+  },
+  "include": ["src", "src/__tests__"],
+  "exclude": ["node_modules"],
 }
