@@ -1,5 +1,6 @@
 import { expressMiddleware } from '@apollo/server/express4';
-import { DMPHubAPI } from '../datasources/dmphub-api';
+import { DMPHubAPI } from '../datasources/dmphubAPI';
+import { DMPToolAPI } from '../datasources/dmptoolAPI';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { JWTToken, verifyToken } from '../services/tokenService';
 
@@ -19,6 +20,7 @@ export function attachApolloServer(apolloServer, cache, logger) {
         logger,
         dataSources: {
           dmphubAPIDataSource: await new DMPHubAPI({ cache, token }),
+          dmptoolAPIDataSource: await new DMPToolAPI({ cache, token }),
           sqlDataSource: await MySQLDataSource.getInstance(),
         },
       }

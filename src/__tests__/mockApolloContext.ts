@@ -27,3 +27,14 @@ export class MockDMPHubAPI extends RESTDataSource {
   token = jest.fn();
   dmspIdWithoutProtocol = jest.fn();
 }
+
+export class mockDMPToolAPI extends RESTDataSource {
+  getAffiliation = jest.fn();
+  getAffiliations = jest.fn();
+  handleResponse = jest.fn();
+  baseURL = '';
+
+  // Mocking the private properties
+  token = jest.fn();
+  removeProtocol = jest.fn();
+}

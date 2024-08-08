@@ -61,7 +61,7 @@ export class DMPHubAPI extends RESTDataSource {
 
   // Fetch a specific DMSP by its DMP ID
   async getDMSP(dmspID: string) {
-    formatLogMessage(logger).info(`Calling DMPHub: ${this.baseURL}`)
+    formatLogMessage(logger).info(`Calling DMPHub: ${this.baseURL}/dmps/${dmspID}`)
     try {
       const id = this.dmspIdWithoutProtocol(dmspID);
       const response = await this.get<Dmsp>(`dmps/${encodeURI(id)}`);
