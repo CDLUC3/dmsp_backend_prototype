@@ -3,7 +3,7 @@ import { Logger } from 'pino';
 import { formatLogMessage } from '../logger';
 import { User } from '../models/User';
 import { generalConfig } from '../config/generalConfig';
-import { UserRole } from '../types';
+import { UserRole } from '../models/User';
 
 export interface JWTToken extends JwtPayload {
   id: number,

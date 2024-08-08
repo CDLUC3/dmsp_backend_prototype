@@ -7,7 +7,7 @@
 - Added MariaDB to docker-compose
 - data-migrations/README.md with instructions on running migrations in the Docker container
 
-## v0.1
+## v0.0.1
 Initial Apollo Server build
 
 ### Added
@@ -29,6 +29,8 @@ Initial Apollo Server build
 - Pino logger with ECS formatter
 - Plugin to log request/response lifecycle events
 - Add Logger to the context and then used it in the resolvers
+- Schema, Mocks, Models and Resolvers for Affiliations and tests for the Models and Resolvers
+- Added new DataSource for the DmptoolApi with endpoints for Affiliations and a new mock for this data source for use in tests
 
 ### Updated
 - Made some updates to auth code based on testing out recent changes with frontend [#34]

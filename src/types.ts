@@ -26,16 +26,112 @@ export type Scalars = {
   URL: { input: any; output: any; }
 };
 
+/** A respresentation of an institution, organization or company */
 export type Affiliation = {
   __typename?: 'Affiliation';
-  affiliation_id?: Maybe<OrganizationIdentifier>;
+  /** Acronyms for the affiliation */
+  acronyms?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  /** Whether or not the affiliation is active. Inactive records shoould not appear in typeaheads! */
+  active: Scalars['Boolean']['output'];
+  /** The address(es) for the affiliation */
+  addresses?: Maybe<Array<Maybe<AffiliationAddress>>>;
+  /** Alias names for the affiliation */
+  aliases?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  /** The official ISO 2 character country code for the affiliation */
+  countryCode?: Maybe<Scalars['String']['output']>;
+  /** The country name for the affiliation */
+  countryName?: Maybe<Scalars['String']['output']>;
+  /** The display name to help disambiguate similar names (typically with domain or country appended) */
+  displayName: Scalars['String']['output'];
+  /** The official homepage for the affiliation */
+  domain?: Maybe<Scalars['String']['output']>;
+  /** Whether or not this affiliation is a funder */
+  funder: Scalars['Boolean']['output'];
+  /** The Crossref Funder id */
+  fundref?: Maybe<Scalars['String']['output']>;
+  /** The unique identifer for the affiliation (typically the ROR id) */
+  id: Scalars['String']['output'];
+  /** URL links associated with the affiliation */
+  links?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  /** Localization options for the affiliation name */
+  locales?: Maybe<Array<Maybe<AffiliationLocale>>>;
+  /** The official name for the affiliation (defined by the system of provenance) */
+  name: Scalars['String']['output'];
+  /** The system the affiliation's data came from (e.g. ROR, DMPTool, etc.) */
+  provenance: Scalars['String']['output'];
+  /** The last time the data for the affiliation was synced with the system of provenance */
+  provenanceSyncDate: Scalars['String']['output'];
+  /** Other related affiliations */
+  relationships?: Maybe<Array<Maybe<AffiliationRelationship>>>;
+  /** The types of the affiliation (e.g. Company, Education, Government, etc.) */
+  types?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  /** The URL for the affiliation's Wikipedia entry */
+  wikipediaURL?: Maybe<Scalars['URL']['output']>;
+};
+
+export type AffiliationAddress = {
+  __typename?: 'AffiliationAddress';
+  /** The name of the affiliation's city */
+  city?: Maybe<Scalars['String']['output']>;
+  /** The Geonames identify of the affiliation's country */
+  countryGeonamesId?: Maybe<Scalars['Int']['output']>;
+  /** The latitude coordinate */
+  lat?: Maybe<Scalars['Float']['output']>;
+  /** The longitude coordinate */
+  lng?: Maybe<Scalars['Float']['output']>;
+  /** The name of the affiliation's state/province */
+  state?: Maybe<Scalars['String']['output']>;
+  /** The code of the affiliation's state/province */
+  stateCode?: Maybe<Scalars['String']['output']>;
+};
+
+export type AffiliationLocale = {
+  __typename?: 'AffiliationLocale';
+  /** The localized name of the affiliation */
+  label: Scalars['String']['output'];
+  /** The language code */
+  locale: Scalars['String']['output'];
+};
+
+export type AffiliationRelationship = {
+  __typename?: 'AffiliationRelationship';
+  /** The unique identifer for the related affiliation (typically the ROR id) */
+  id: Scalars['String']['output'];
+  /** The official name of the related affiliation */
+  name: Scalars['String']['output'];
+  /** The relationship type (e.g. Parent) */
+  type: Scalars['String']['output'];
+};
+
+/** Search result - An abbreviated version of an Affiliation */
+export type AffiliationSearch = {
+  __typename?: 'AffiliationSearch';
+  /** Alias names and acronyms for the affiliation */
+  aliases?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  /** The official ISO 2 character country code for the affiliation */
+  countryCode?: Maybe<Scalars['String']['output']>;
+  /** The country name for the affiliation */
+  countryName?: Maybe<Scalars['String']['output']>;
+  /** The official display name */
+  displayName: Scalars['String']['output'];
+  /** Whether or not this affiliation is a funder */
+  funder: Scalars['Boolean']['output'];
+  /** The Crossref Funder id */
+  fundref?: Maybe<Scalars['String']['output']>;
+  /** The unique identifer for the affiliation (typically the ROR id) */
+  id: Scalars['String']['output'];
+  /** URL links associated with the affiliation */
+  links?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  /** Localization options for the affiliation name */
+  locales?: Maybe<Array<Maybe<AffiliationLocale>>>;
+  /** The official name of the affiliation from the system of provenance */
   name: Scalars['String']['output'];
 };
 
 export type Contributor = Person & {
   __typename?: 'Contributor';
   contributorId?: Maybe<PersonIdentifier>;
-  dmproadmap_affiliation?: Maybe<Affiliation>;
+  dmproadmap_affiliation?: Maybe<DmpRoadmapAffiliation>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   role: Array<Scalars['String']['output']>;
@@ -71,6 +167,12 @@ export type ContributorRoleMutationResponse = {
   message: Scalars['String']['output'];
   /** Indicates whether the mutation was successful */
   success: Scalars['Boolean']['output'];
+};
+
+export type DmpRoadmapAffiliation = {
+  __typename?: 'DmpRoadmapAffiliation';
+  affiliation_id?: Maybe<OrganizationIdentifier>;
+  name: Scalars['String']['output'];
 };
 
 export type Dmsp = {
@@ -143,7 +245,7 @@ export type OrganizationIdentifier = {
 };
 
 export type Person = {
-  dmproadmap_affiliation?: Maybe<Affiliation>;
+  dmproadmap_affiliation?: Maybe<DmpRoadmapAffiliation>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
 };
@@ -157,7 +259,7 @@ export type PersonIdentifier = {
 export type PrimaryContact = Person & {
   __typename?: 'PrimaryContact';
   contact_id?: Maybe<Identifier>;
-  dmproadmap_affiliation?: Maybe<Affiliation>;
+  dmproadmap_affiliation?: Maybe<DmpRoadmapAffiliation>;
   mbox?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
 };
@@ -165,6 +267,10 @@ export type PrimaryContact = Person & {
 export type Query = {
   __typename?: 'Query';
   _empty?: Maybe<Scalars['String']['output']>;
+  /** Retrieve a specific Affiliation by its ID */
+  affiliation?: Maybe<Affiliation>;
+  /** Perform a search for Affiliations matching the specified name */
+  affiliations?: Maybe<Array<Maybe<AffiliationSearch>>>;
   /** Get the contributor role by it's id */
   contributorRoleById?: Maybe<ContributorRole>;
   /** Get the contributor role by it's URL */
@@ -178,7 +284,19 @@ export type Query = {
   template?: Maybe<Template>;
   /** Return all of the templates */
   templates?: Maybe<Array<Maybe<Template>>>;
+  user?: Maybe<User>;
   users?: Maybe<Array<Maybe<User>>>;
+};
+
+
+export type QueryAffiliationArgs = {
+  affiliationId: Scalars['String']['input'];
+};
+
+
+export type QueryAffiliationsArgs = {
+  funderOnly?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
 };
 
 
@@ -199,6 +317,11 @@ export type QueryDmspByIdArgs = {
 
 export type QueryTemplateArgs = {
   templateId: Scalars['Int']['input'];
+};
+
+
+export type QueryUserArgs = {
+  userId: Scalars['String']['input'];
 };
 
 export type RelatedIdentifier = {
@@ -240,35 +363,33 @@ export type Template = {
 
 export type User = {
   __typename?: 'User';
+  affiliation?: Maybe<Affiliation>;
   created: Scalars['DateTimeISO']['output'];
   email: Scalars['EmailAddress']['output'];
-  givenName: Scalars['String']['output'];
-  id: Scalars['Int']['output'];
+  givenName?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['Int']['output']>;
   modified: Scalars['DateTimeISO']['output'];
   orcid?: Maybe<Scalars['Orcid']['output']>;
   role: UserRole;
-  surName: Scalars['String']['output'];
+  surName?: Maybe<Scalars['String']['output']>;
 };
 
-export enum UserRole {
-  Admin = 'ADMIN',
-  Researcher = 'RESEARCHER',
-  SuperAdmin = 'SUPER_ADMIN'
-}
+export type UserRole =
+  | 'ADMIN'
+  | 'RESEARCHER'
+  | 'SUPER_ADMIN';
 
 /** Template visibility */
-export enum Visibility {
+export type Visibility =
   /** Visible only to users of your institution */
-  Private = 'Private',
+  | 'Private'
   /** Visible to all users */
-  Public = 'Public'
-}
+  | 'Public';
 
-export enum YesNoUnknown {
-  No = 'no',
-  Unknown = 'unknown',
-  Yes = 'yes'
-}
+export type YesNoUnknown =
+  | 'no'
+  | 'unknown'
+  | 'yes';
 
 
 
@@ -346,15 +467,21 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
   Affiliation: ResolverTypeWrapper<Affiliation>;
+  AffiliationAddress: ResolverTypeWrapper<AffiliationAddress>;
+  AffiliationLocale: ResolverTypeWrapper<AffiliationLocale>;
+  AffiliationRelationship: ResolverTypeWrapper<AffiliationRelationship>;
+  AffiliationSearch: ResolverTypeWrapper<AffiliationSearch>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Contributor: ResolverTypeWrapper<Contributor>;
   ContributorRole: ResolverTypeWrapper<ContributorRoleModel>;
   ContributorRoleMutationResponse: ResolverTypeWrapper<Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversTypes['ContributorRole']> }>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
+  DmpRoadmapAffiliation: ResolverTypeWrapper<DmpRoadmapAffiliation>;
   Dmsp: ResolverTypeWrapper<DmspModel>;
   DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
   DmspIdentifier: ResolverTypeWrapper<DmspIdentifier>;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Identifier: ResolverTypeWrapper<Identifier>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
@@ -380,15 +507,21 @@ export type ResolversTypes = {
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
   Affiliation: Affiliation;
+  AffiliationAddress: AffiliationAddress;
+  AffiliationLocale: AffiliationLocale;
+  AffiliationRelationship: AffiliationRelationship;
+  AffiliationSearch: AffiliationSearch;
   Boolean: Scalars['Boolean']['output'];
   Contributor: Contributor;
   ContributorRole: ContributorRoleModel;
   ContributorRoleMutationResponse: Omit<ContributorRoleMutationResponse, 'contributorRole'> & { contributorRole?: Maybe<ResolversParentTypes['ContributorRole']> };
   DateTimeISO: Scalars['DateTimeISO']['output'];
+  DmpRoadmapAffiliation: DmpRoadmapAffiliation;
   Dmsp: DmspModel;
   DmspId: Scalars['DmspId']['output'];
   DmspIdentifier: DmspIdentifier;
   EmailAddress: Scalars['EmailAddress']['output'];
+  Float: Scalars['Float']['output'];
   ID: Scalars['ID']['output'];
   Identifier: Identifier;
   Int: Scalars['Int']['output'];
@@ -409,14 +542,68 @@ export type ResolversParentTypes = {
 };
 
 export type AffiliationResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Affiliation'] = ResolversParentTypes['Affiliation']> = {
-  affiliation_id?: Resolver<Maybe<ResolversTypes['OrganizationIdentifier']>, ParentType, ContextType>;
+  acronyms?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
+  active?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  addresses?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationAddress']>>>, ParentType, ContextType>;
+  aliases?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
+  countryCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  countryName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  domain?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  funder?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  fundref?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  links?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
+  locales?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationLocale']>>>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  provenance?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  provenanceSyncDate?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  relationships?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationRelationship']>>>, ParentType, ContextType>;
+  types?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
+  wikipediaURL?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type AffiliationAddressResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['AffiliationAddress'] = ResolversParentTypes['AffiliationAddress']> = {
+  city?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  countryGeonamesId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  lat?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  lng?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
+  state?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  stateCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type AffiliationLocaleResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['AffiliationLocale'] = ResolversParentTypes['AffiliationLocale']> = {
+  label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type AffiliationRelationshipResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['AffiliationRelationship'] = ResolversParentTypes['AffiliationRelationship']> = {
+  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type AffiliationSearchResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['AffiliationSearch'] = ResolversParentTypes['AffiliationSearch']> = {
+  aliases?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
+  countryCode?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  countryName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  funder?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  fundref?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  links?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
+  locales?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationLocale']>>>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ContributorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Contributor'] = ResolversParentTypes['Contributor']> = {
   contributorId?: Resolver<Maybe<ResolversTypes['PersonIdentifier']>, ParentType, ContextType>;
-  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['DmpRoadmapAffiliation']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   role?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
@@ -445,6 +632,12 @@ export type ContributorRoleMutationResponseResolvers<ContextType = MyContext, Pa
 export interface DateTimeIsoScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTimeISO'], any> {
   name: 'DateTimeISO';
 }
+
+export type DmpRoadmapAffiliationResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['DmpRoadmapAffiliation'] = ResolversParentTypes['DmpRoadmapAffiliation']> = {
+  affiliation_id?: Resolver<Maybe<ResolversTypes['OrganizationIdentifier']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
 
 export type DmspResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Dmsp'] = ResolversParentTypes['Dmsp']> = {
   contact?: Resolver<ResolversTypes['PrimaryContact'], ParentType, ContextType>;
@@ -503,7 +696,7 @@ export type OrganizationIdentifierResolvers<ContextType = MyContext, ParentType 
 
 export type PersonResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Person'] = ResolversParentTypes['Person']> = {
   __resolveType: TypeResolveFn<'Contributor' | 'PrimaryContact', ParentType, ContextType>;
-  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['DmpRoadmapAffiliation']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 };
@@ -516,7 +709,7 @@ export type PersonIdentifierResolvers<ContextType = MyContext, ParentType extend
 
 export type PrimaryContactResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PrimaryContact'] = ResolversParentTypes['PrimaryContact']> = {
   contact_id?: Resolver<Maybe<ResolversTypes['Identifier']>, ParentType, ContextType>;
-  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  dmproadmap_affiliation?: Resolver<Maybe<ResolversTypes['DmpRoadmapAffiliation']>, ParentType, ContextType>;
   mbox?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -524,6 +717,8 @@ export type PrimaryContactResolvers<ContextType = MyContext, ParentType extends 
 
 export type QueryResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationArgs, 'affiliationId'>>;
+  affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
@@ -531,6 +726,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
   templates?: Resolver<Maybe<Array<Maybe<ResolversTypes['Template']>>>, ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
 };
 
@@ -569,23 +765,29 @@ export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 }
 
 export type UserResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
+  affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
-  givenName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
   role?: Resolver<ResolversTypes['UserRole'], ParentType, ContextType>;
-  surName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type Resolvers<ContextType = MyContext> = {
   Affiliation?: AffiliationResolvers<ContextType>;
+  AffiliationAddress?: AffiliationAddressResolvers<ContextType>;
+  AffiliationLocale?: AffiliationLocaleResolvers<ContextType>;
+  AffiliationRelationship?: AffiliationRelationshipResolvers<ContextType>;
+  AffiliationSearch?: AffiliationSearchResolvers<ContextType>;
   Contributor?: ContributorResolvers<ContextType>;
   ContributorRole?: ContributorRoleResolvers<ContextType>;
   ContributorRoleMutationResponse?: ContributorRoleMutationResponseResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;
+  DmpRoadmapAffiliation?: DmpRoadmapAffiliationResolvers<ContextType>;
   Dmsp?: DmspResolvers<ContextType>;
   DmspId?: GraphQLScalarType;
   DmspIdentifier?: DmspIdentifierResolvers<ContextType>;

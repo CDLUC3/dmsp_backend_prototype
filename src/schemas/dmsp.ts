@@ -38,7 +38,7 @@ export const typeDefs = gql`
   type PrimaryContact implements Person {
     name: String!
     mbox: String
-    dmproadmap_affiliation: Affiliation
+    dmproadmap_affiliation: DmpRoadmapAffiliation
 
     contact_id: Identifier
   }
@@ -46,7 +46,7 @@ export const typeDefs = gql`
   type Contributor implements Person {
     name: String!
     mbox: String
-    dmproadmap_affiliation: Affiliation
+    dmproadmap_affiliation: DmpRoadmapAffiliation
 
     role: [String!]!
     contributorId: PersonIdentifier
@@ -59,7 +59,7 @@ export const typeDefs = gql`
     work_type: String!
   }
 
-  type Affiliation {
+  type DmpRoadmapAffiliation {
     name: String!
     affiliation_id: OrganizationIdentifier
   }
@@ -87,7 +87,7 @@ export const typeDefs = gql`
   interface Person {
     name: String!
     mbox: String
-    dmproadmap_affiliation: Affiliation
+    dmproadmap_affiliation: DmpRoadmapAffiliation
   }
 
   enum YesNoUnknown {

@@ -30,6 +30,9 @@ export class User {
   public created: string;
   public modified: string;
   public errors: string[];
+  public affiliationId: string;
+  public created: string;
+  public modified: string;
 
   // Initialize a new User
   constructor(options) {
@@ -41,6 +44,7 @@ export class User {
     this.givenName = options.givenName;
     this.surName = options.surName;
     this.orcid = options.orcid;
+    this.affiliationId = options.affiliationId;
     this.created = options.created || new Date().toUTCString();
     this.modified = options.modified || new Date().toUTCString();
     this.errors = [];
@@ -109,9 +113,10 @@ export class User {
   }
 
   // Find the User by their Id
-  static async findById(userId: string): Promise<User | Falsey> {
+  static async findById(userId: string): Promise<User> {
     const mysql = MySQLDataSource.getInstance();
-    const sql = 'SELECT * FROM users WHERE id = ?';
+    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
+                 FROM users WHERE id = ?';
     formatLogMessage(logger)?.debug(`User.findById: ${userId}`);
     try {
       const [rows] = await mysql.query(sql, [userId]);
@@ -123,9 +128,10 @@ export class User {
   }
 
   // Find the User by their email address
-  static async findByEmail(email: string): Promise<User | Falsey> {
+  static async findByEmail(email: string): Promise<User | null> {
     const mysql = MySQLDataSource.getInstance();
-    const sql = 'SELECT * from users where email = ?';
+    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
+                from users where email = ?';
 
     formatLogMessage(logger)?.debug(`User.findByEmail: ${email}`);
     try {

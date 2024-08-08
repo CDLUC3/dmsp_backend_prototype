@@ -7,6 +7,7 @@ const config: CodegenConfig = {
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         contextType: "./context#MyContext",
+        enumsAsTypes: true,
         mappers: {
           Dmsp: "./models/Dmsp#DmspModel",
           ContributorRole: "./models/ContributorRole#ContributorRoleModel",

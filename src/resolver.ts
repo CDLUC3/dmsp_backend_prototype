@@ -5,6 +5,7 @@ import { dmspIdScalar } from './resolvers/scalars/dmspId';
 import { orcidScalar } from './resolvers/scalars/orcid';
 import { rorScalar } from './resolvers/scalars/ror';
 
+import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as contributorRoleResolvers } from './resolvers/contributorRole';
 import { resolvers as dmspResolvers } from './resolvers/dmsp';
 import { resolvers as templateResolvers } from './resolvers/template';
@@ -18,8 +19,9 @@ const scalarResolvers = {
 
 export const resolvers: IResolvers = mergeResolvers([
   scalarResolvers,
-  contributorRoleResolvers,
+  affiliationResolvers,
   dmspResolvers,
+  contributorRoleResolvers,
   templateResolvers,
   userResolvers,
 ]);
