@@ -6,13 +6,15 @@
   "scripts": {
     "compile": "tsc",
     "copy-graphql": "mkdir ./dist/schemas && cp ./src/schemas/*.graphql ./dist/schemas/",
-    "build": "rm -rf ./dist && npm run compile",
+
     "generate": "graphql-codegen",
-    "dev": "ts-node-dev --respawn ./src/index.ts",
-    "test": "jest --coverage",
-    "test-tsc": "jest -c ./jest.tsc.config.js",
     "lint": "npx eslint . --ignore-pattern dist/ --ignore-pattern src/types.ts",
+    "test": "jest --coverage",
+
+    "build": "rm -rf ./dist && npm run lint && npm run generate && npm run test && npm run compile",
+    "dev": "ts-node-dev --respawn ./src/index.ts",
     "start": "npm run build && nodemon ./dist/index.js",
+
     "aws_start": "node ./dist/index.js"
   },
   "repository": {

@@ -1,3 +1,4 @@
+import 'jest-expect-message';
 import { User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
@@ -253,7 +254,7 @@ describe('password validation', () => {
     const badChars = ['(', ')', '{', '[', '}', ']', '|', '\\', ':', ';', '"', "'", '<', ',', '>', '.', '/'];
     for (const char of badChars) {
       const valid = new User({ password: `Abcd3Fgh1jkL${char}`}).validatePassword();
-      expect(valid, `Failed when testing character ${char}`).toBe(true);
+      expect(valid, `Failed when testing character ${char}`).toBe(false);
     }
   });
 });

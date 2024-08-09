@@ -1,4 +1,3 @@
-import 'jest-expect-message';
 import mockLogger from "./mockLogger";
 
 // Mock the Pino logger

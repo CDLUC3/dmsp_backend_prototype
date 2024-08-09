@@ -9,4 +9,5 @@
   },
   "include": ["src", "src/__tests__"],
   "exclude": ["node_modules"],
+  "files": ["node_modules/jest-expect-message/types/index.d.ts"],
 }
