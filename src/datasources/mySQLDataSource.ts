@@ -2,7 +2,7 @@ import * as mysql from 'mysql2/promise';
 import { mysqlConfig } from "../config/mysqlConfig";
 import { logger, formatLogMessage } from '../logger';
 
-export type PoolConfig = {
+export interface PoolConfig {
   connectionLimit: number;
   host: string;
   port: number;

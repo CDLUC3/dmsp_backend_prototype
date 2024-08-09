@@ -208,7 +208,8 @@ describe('AffiliationSearch constructor', () => {
     expect(affiliation.id).toEqual(rawAffiliationSearchRecord.ror_url);
     expect(affiliation.fetchId).toEqual(affiliation.id.replace(/https?:\/\//g, ''));
     expect(affiliation.name).toEqual(rawAffiliationSearchRecord.name);
-    expect(affiliation.funder).toEqual(rawAffiliationSearchRecord.hasOwnProperty('fundref_id'));
+    const isFunder = Object.prototype.hasOwnProperty.call(rawAffiliationSearchRecord, "fundref_id");
+    expect(affiliation.funder).toEqual(isFunder);
     expect(affiliation.fundref).toEqual(rawAffiliationSearchRecord.fundref_url);
     expect(affiliation.aliases).toEqual(Array.isArray(rawAffiliationSearchRecord.aliases) ? rawAffiliationSearchRecord.aliases : []);
     expect(affiliation.countryCode).toEqual(rawAffiliationSearchRecord.countryCode);

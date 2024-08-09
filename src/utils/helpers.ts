@@ -1,5 +1,7 @@
 // Convert a string into an Array (return the default or an empty array if it is null or undefined)
-export function stringToArray(array: any, delimiter: string = ' ', defaultResponse: string[] = []): string[] {
+//
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function stringToArray(array: any, delimiter = ' ', defaultResponse: string[] = []): string[] {
   if (typeof array === 'string') {
     return array.split(delimiter).map((item) => item.trim());
   }

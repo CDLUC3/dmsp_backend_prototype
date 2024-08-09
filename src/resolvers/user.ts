@@ -7,8 +7,8 @@ import { User } from '../models/User';
 export const resolvers: Resolvers = {
   Query: {
     // returns the current User
-    me: async (_, __, { logger, token }: MyContext) => {
-      const logMessage = 'Resolving query me';
+    me: async (_, __, { logger }: MyContext) => {
+      formatLogMessage(logger).debug('Resolving query me');
       // Hard coding for testing for now. Change this out to get the email from the token
       const user = null;
       // const user = User.findByEmail('orgA.user@example.com');
