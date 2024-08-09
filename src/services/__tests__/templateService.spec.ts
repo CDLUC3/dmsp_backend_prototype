@@ -57,7 +57,7 @@ describe('publish', () => {
     const publisher = casual.integer(1, 999);
     const comment = casual.sentences(10);
 
-    let ver = casual.integer(1, 999);
+    const ver = casual.integer(1, 999);
     const priorVersion = new PublishedTemplate(
       tmplt.id,
       `v${ver}`,

@@ -1,12 +1,6 @@
 
-export const send = async (
-  toAddr: string[],
-  ccAddr: string[],
-  bccAddr: string[],
-  subject: string,
-  message: string,
-): Promise<boolean> => {
+export const send = async (): Promise<boolean> => {
 
-  // TODO: Set this up once we get email working
+  // TODO: Set this up once we get email infrastructure configured in AWS
   return false;
 };

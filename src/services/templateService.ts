@@ -14,7 +14,7 @@ export const publish = async (
   template: Template,
   versions: PublishedTemplate[],
   publisherId: number,
-  comment: string = '',
+  comment = '',
 ): Promise<PublishResult> => {
   // If the template has no idea then it has not yet been saved so throw an error
   if (!template.id) {

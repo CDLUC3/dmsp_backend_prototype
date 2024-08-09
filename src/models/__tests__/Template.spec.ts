@@ -2,14 +2,12 @@ import casual from 'casual';
 import { Template, PublishedTemplate, Visibility } from "../Template";
 
 describe('Template', () => {
-  let id;
   let name;
   let affiliationId;
   let ownerId;
   let template;
 
   beforeEach(() => {
-    id = casual.integer(1, 999);
     name = casual.title;
     affiliationId = casual.url;
     ownerId = casual.integer(1, 999);
