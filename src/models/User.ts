@@ -26,13 +26,11 @@ export class User {
   public role: UserRole;
   public givenName?: string;
   public surName?: string;
+  public affiliationId: string;
   public orcid?: string;
   public created: string;
   public modified: string;
   public errors: string[];
-  public affiliationId: string;
-  public created: string;
-  public modified: string;
 
   // Initialize a new User
   constructor(options) {

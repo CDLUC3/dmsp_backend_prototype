@@ -280,10 +280,6 @@ export type Query = {
   /** Get the DMSP by its DMP ID */
   dmspById?: Maybe<SingleDmspResponse>;
   me?: Maybe<User>;
-  /** Return a specific template */
-  template?: Maybe<Template>;
-  /** Return all of the templates */
-  templates?: Maybe<Array<Maybe<Template>>>;
   user?: Maybe<User>;
   users?: Maybe<Array<Maybe<User>>>;
 };
@@ -315,11 +311,6 @@ export type QueryDmspByIdArgs = {
 };
 
 
-export type QueryTemplateArgs = {
-  templateId: Scalars['Int']['input'];
-};
-
-
 export type QueryUserArgs = {
   userId: Scalars['String']['input'];
 };
@@ -344,23 +335,6 @@ export type SingleDmspResponse = {
   success: Scalars['Boolean']['output'];
 };
 
-/** A Template used to create DMPs */
-export type Template = {
-  __typename?: 'Template';
-  /** The timestamp when the template was created */
-  created: Scalars['DateTimeISO']['output'];
-  /** A description of the purpose of the template */
-  description?: Maybe<Scalars['String']['output']>;
-  /** The unique identifer for the template */
-  id: Scalars['Int']['output'];
-  /** The timestamp when the template was modifed */
-  modified: Scalars['DateTimeISO']['output'];
-  /** The name/title of the template */
-  name: Scalars['String']['output'];
-  /** The template's visibility setting */
-  visibility: Visibility;
-};
-
 export type User = {
   __typename?: 'User';
   affiliation?: Maybe<Affiliation>;
@@ -375,16 +349,9 @@ export type User = {
 };
 
 export type UserRole =
-  | 'ADMIN'
-  | 'RESEARCHER'
-  | 'SUPER_ADMIN';
-
-/** Template visibility */
-export type Visibility =
-  /** Visible only to users of your institution */
-  | 'Private'
-  /** Visible to all users */
-  | 'Public';
+  | 'Admin'
+  | 'Researcher'
+  | 'SuperAdmin';
 
 export type YesNoUnknown =
   | 'no'
@@ -496,11 +463,9 @@ export type ResolversTypes = {
   Ror: ResolverTypeWrapper<Scalars['Ror']['output']>;
   SingleDmspResponse: ResolverTypeWrapper<Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversTypes['Dmsp']> }>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
-  Template: ResolverTypeWrapper<Template>;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
   User: ResolverTypeWrapper<User>;
   UserRole: UserRole;
-  Visibility: Visibility;
   YesNoUnknown: YesNoUnknown;
 };
 
@@ -536,7 +501,6 @@ export type ResolversParentTypes = {
   Ror: Scalars['Ror']['output'];
   SingleDmspResponse: Omit<SingleDmspResponse, 'dmsp'> & { dmsp?: Maybe<ResolversParentTypes['Dmsp']> };
   String: Scalars['String']['output'];
-  Template: Template;
   URL: Scalars['URL']['output'];
   User: User;
 };
@@ -724,8 +688,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
   dmspById?: Resolver<Maybe<ResolversTypes['SingleDmspResponse']>, ParentType, ContextType, RequireFields<QueryDmspByIdArgs, 'dmspId'>>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
-  templates?: Resolver<Maybe<Array<Maybe<ResolversTypes['Template']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
 };
@@ -747,16 +709,6 @@ export type SingleDmspResponseResolvers<ContextType = MyContext, ParentType exte
   dmsp?: Resolver<Maybe<ResolversTypes['Dmsp']>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   success?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type TemplateResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Template'] = ResolversParentTypes['Template']> = {
-  created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
-  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  visibility?: Resolver<ResolversTypes['Visibility'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -803,7 +755,6 @@ export type Resolvers<ContextType = MyContext> = {
   RelatedIdentifier?: RelatedIdentifierResolvers<ContextType>;
   Ror?: GraphQLScalarType;
   SingleDmspResponse?: SingleDmspResponseResolvers<ContextType>;
-  Template?: TemplateResolvers<ContextType>;
   URL?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;
 };

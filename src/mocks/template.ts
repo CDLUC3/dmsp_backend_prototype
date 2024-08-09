@@ -2,9 +2,9 @@ export const data = [
   {
     "id": 1,
     "name": "Test Template 1",
+    "visibility": 'Private',
     "created": "2024-08-01T13:39:21Z",
     "modified": "2024-08-01T13:39:21Z",
-    "visibility": 'Private',
   },
   {
     "id": 2,

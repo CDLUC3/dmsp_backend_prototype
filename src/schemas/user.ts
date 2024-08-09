@@ -8,9 +8,9 @@ export const typeDefs = gql`
   }
 
   enum UserRole {
-    RESEARCHER
-    ADMIN
-    SUPER_ADMIN
+    Researcher
+    Admin
+    SuperAdmin
   }
 
   type User {
@@ -19,9 +19,9 @@ export const typeDefs = gql`
     surName: String
     email: EmailAddress!
     role: UserRole!
+    affiliation: Affiliation
     orcid: Orcid
     created: DateTimeISO!
     modified: DateTimeISO!
-    affiliation: Affiliation
   }
 `;

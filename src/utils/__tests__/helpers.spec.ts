@@ -2,7 +2,8 @@ import {
   validateEmail,
   capitalizeFirstLetter,
   stringToArray,
-  verifyCriticalEnvVariable
+  verifyCriticalEnvVariable,
+  incrementVersionNumber,
 } from '../helpers';
 
 describe('Email validation', () => {
@@ -60,5 +61,23 @@ describe('Verify critical env variables', () => {
     verifyCriticalEnvVariable('TEST_SECRET');
     expect(logSpy).toHaveBeenCalled();
     logSpy.mockRestore();
+  });
+});
+
+describe('Version number incrementer', () => {
+  test('returns the version as-is if it does not have a numeric part', () => {
+    let newVersion = incrementVersionNumber('');
+    expect(newVersion).toEqual('');
+    newVersion = incrementVersionNumber('v');
+    expect(newVersion).toEqual('v');
+  });
+
+  test('can increment a major only version number', () => {
+    let newVersion = incrementVersionNumber('v1');
+    expect(newVersion).toEqual('v2');
+    newVersion = incrementVersionNumber('v12');
+    expect(newVersion).toEqual('v13');
+    newVersion = incrementVersionNumber('v12345');
+    expect(newVersion).toEqual('v12346');
   });
 });

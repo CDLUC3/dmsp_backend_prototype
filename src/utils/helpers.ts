@@ -31,3 +31,21 @@ export function verifyCriticalEnvVariable(variable: string): void {
     console.log(Error(`FATAL ERROR: No ${variable} defined in the environment!`));
   }
 }
+
+// Increment a version number that is a string with a `v` prefix (e.g. v1)
+export function incrementVersionNumber(version: string): string {
+  // Extract the numeric part using a regular expression
+  const match = version.match(/(\d+)$/);
+  if (match) {
+    // Extract the numeric part
+    let numericPart = parseInt(match[0], 10);
+
+    // Increment the numeric part
+    numericPart += 1;
+
+    // Replace the old numeric part with the new one
+    return version.replace(/(\d+)$/, numericPart.toString());
+  }
+  // If no numeric part is found, return the original version string
+  return version;
+}
