@@ -1,6 +1,9 @@
 
 ### Added
-- Initial Template schema, model, mocks and resolver
+- Initial schema, model, mocks and resolver for Templates
+- Initial schema, model, mocks and resolver for Collaborators
+- added templateService to assist with actions that work on a Template and all of it's child objects
+- Added stub emailService as a placeholder for now. We will build that out once the AWS infrastructire is in place
 - Missing data-migration for the dataMigrations table
 
 ### Updated

@@ -3,14 +3,14 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get the Templates that belong to the current user's affiliation (user must be an Admin)"
-    myTemplates(): [Template]
+    myTemplates: [Template]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
     "Get all of the PublishedTemplates for the specified Template (a.k. the Template history)"
-    templateVersions(templateId: number): Promise<PublishedTemplate[]>
+    templateVersions(templateId: Int!): [PublishedTemplate]
 
     "Get the DMPTool Best Practice PublishedTemplates"
-    bestPracticeTemplates(): [PublishedTemplate]
+    bestPracticeTemplates: [PublishedTemplate]
     "Search for PublishedTemplates whose name or owning Org's name contains the search term"
     publishedTemplates(term: String!): [PublishedTemplate]
     "Get the specified PublishedTemplate"
@@ -25,12 +25,12 @@ export const typeDefs = gql`
     "Update a Template"
     updateTemplate(templateId: Int!, name: String!, visibility: Visibility!): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
-    archiveTemplate(templateId: Int!): boolean
+    archiveTemplate(templateId: Int!): Boolean
 
     "Publish a Template"
     publishTemplate(templateId: Int!, comment: String): PublishedTemplate
     "Unpublish the specified PublishedTemplate"
-    unpublishTemplate(publishedTemplateId: Int!): boolean
+    unpublishTemplate(publishedTemplateId: Int!): Boolean
   }
 
   "Template visibility"
@@ -48,13 +48,13 @@ export const typeDefs = gql`
     "The name/title of the template"
     name: String!
     "The affiliation that the template belongs to"
-    affiliation: Affiliation!
+    affiliation: Affiliation
     "The owner of the Template"
-    owner: User!
+    owner: User
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
     visibility: Visibility!
     "The current published version"
-    currentVersion: Int!
+    currentVersion: String
     "Whether or not the Template has had any changes since it was last published"
     isDirty: Boolean!
     "The timestamp when the template was created"

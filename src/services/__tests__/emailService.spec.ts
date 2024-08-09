@@ -1,4 +1,3 @@
-import casual from "casual";
 import { send } from "../emailService";
 
 describe('send', () => {

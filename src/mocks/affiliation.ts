@@ -1,204 +1,88 @@
+import casual from 'casual';
 import { AffiliationModel, AffiliationSearchModel } from '../models/Affiliation';
+
+const names = [casual.title, casual.title, casual.title, casual.title, casual.title]
+const urls = [casual.url, casual.url, casual.url, casual.url, casual.url]
+
+export const mockRor = () => {
+  return `https://ror.org/${casual.integer(1, 99999)}`
+}
 
 // Just define what is unique here. Any fields you skip will end up using the defaults
 // for their respective type as defined in ./src/mocks.ts
 export const data = [
   {
-    "id": "https://ror.org/01nrxwf90",
-    "provenance": "ROR",
-    "provenanceSyncDate": "2024-07-22T07:43:26Z",
-    "name": "University of Edinburgh",
-    "displayName": "University of Edinburgh (ed.ac.uk)",
-    "active": true,
-    "funder": true,
-    "fundref": "http://dx.doi.org/10.13039/501100000848",
-    "types": ["Education"],
-    "acronyms": [],
-    "aliases": [],
-    "labels": [],
-    "countryCode": "GB",
-    "countryName": "United Kingdom",
-    "domain": "ed.ac.uk",
-    "wikipediaURL": "http://en.wikipedia.org/wiki/University_of_Edinburgh",
-    "links": ["http://www.ed.ac.uk/home"],
-    "searchNames": [
-      "University of Edinburgh",
-      "ed.ac.uk",
-    ],
-    "relationships": [
-      {
-        "id": "https://ror.org/05a7t9b67",
-        "type": "Child",
-        "name": "Edinburgh Cancer Research",
-      },
-      {
-        "id": "https://ror.org/009bsy196",
-        "type": "Related",
-        "name": "Edinburgh Royal Infirmary",
-      }
-    ],
-    "addresses": [
-      {
-        "city": "Edinburgh",
-        "state": null,
-        "stateCode": null,
-        "countryGeonamesId": 2635167,
-        "lat": 55.95206,
-        "lng": -3.19648,
-      }
-    ]
+    provenance: "ROR",
+    provenanceSyncDate: new Date(casual.date('YYYY-MM-DD')).toISOString(),
+    name: names[0],
+    displayName: `${names[0]} ${urls[0]}`,
+    active: true,
+    funder: true,
+    fundref: `http://dx.doi.org/10.${casual.integer(1, 99999)}/${casual.integer(1, 999999)}`,
+    types: casual.array_of_words(1),
+    acronyms: casual.array_of_words(1),
+    aliases: casual.array_of_words(2),
+    countryCode: casual.country_code,
+    countryName: casual.country,
+    domain: urls[0],
   },
   {
-    "id": "https://ror.org/01tm6cn81",
-    "provenance": "ROR",
-    "provenanceSyncDate": "2024-07-27T12:44:13Z",
-    "name": "University of Gothenburg",
-    "displayName": "University of Gothenburg (gu.se)",
-    "active": true,
-    "funder": false,
-    "fundref": null,
-    "types": ["Education"],
-    "acronyms": [],
-    "aliases": [],
-    "labels": [
-      {
-        "label": "Göteborgin yliopisto",
-        "iso639": "fi",
-      },
-      {
-        "label": "Göteborgs universitet",
-        "iso639": "sv",
-      }
-    ],
-    "countryCode": "SE",
-    "countryName": "Sweden",
-    "domain": "gu.se",
-    "wikipediaURL": "http://en.wikipedia.org/wiki/University_of_Gothenburg",
-    "links": ["http://www.gu.se/english"],
-    "relationships": [
-      {
-        "id": "https://ror.org/04vgqjj36",
-        "type": "Related",
-        "name": "Sahlgrenska University Hospital",
-      }
-    ],
-    "searchNames": [
-      "Göteborgs universitet",
-      "Göteborgin yliopisto",
-      "University of Gothenburg",
-      "gu.se",
-    ],
-    "addresses": [
-      {
-        "city": "Gothenburg",
-        "state": null,
-        "stateCode": null,
-        "countryGeonamesId": 2661886,
-        "lat": 57.70716,
-        "lng": 11.96679,
-      }
-    ]
+    provenance: "ROR",
+    provenanceSyncDate: new Date(casual.date('YYYY-MM-DD')).toISOString(),
+    name: names[1],
+    displayName: `${names[1]} ${urls[1]}`,
+    active: true,
+    funder: false,
+    types: casual.array_of_words(1),
+    acronyms: [],
+    aliases: casual.array_of_words(1),
+    countryCode: casual.country_code,
+    countryName: casual.country,
+    domain: urls[1],
   },
   {
-    "id": "https://ror.org/00dmfq477",
-    "provenance": "ROR",
-    "provenanceSyncDate": "2024-07-30T15:12:45Z",
-    "name": "University of California Office of the President",
-    "displayName": "University of California Office of the President (ucop.edu)",
-    "active": true,
-    "funder": true,
-    "fundref": "http://dx.doi.org/10.13039/100014576",
-    "types": ["Education"],
-    "acronyms": ["UCOP"],
-    "aliases": [],
-    "countryCode": "US",
-    "countryName": "United States",
-    "domain": "ucop.edu",
-    "wikipediaURL": null,
-    "links": ["https://www.ucop.edu"],
-    "searchNames": [
-      "University of California, Office of the President",
-      "ucop.edu",
-      "ucop",
-    ],
-    "relationships": [
-      {
-        "id": "https://ror.org/033jnv181",
-        "type": "Parent",
-        "name": "United States Department of Health and Human Services",
-      }
-    ],
-    "addresses": [
-      {
-        "city": "Oakland",
-        "state": "California",
-        "stateCode": "MD",
-        "countryGeonamesId": 6252001,
-        "lat": 37.80437,
-        "lng": -122.2708,
-      }
-    ]
+    provenance: "ROR",
+    provenanceSyncDate: new Date(casual.date('YYYY-MM-DD')).toISOString(),
+    name: names[2],
+    displayName: `${names[2]} ${urls[2]}`,
+    active: true,
+    funder: true,
+    fundref: `http://dx.doi.org/10.${casual.integer(1, 99999)}/${casual.integer(1, 999999)}`,
+    types: casual.array_of_words(1),
+    acronyms: [],
+    aliases: [],
+    countryCode: casual.country_code,
+    countryName: casual.country,
+    domain: urls[2],
   },
   {
-    "id": "https://ror.org/01cwqze88",
-    "provenance": "ROR",
-    "provenanceSyncDate": "2024-07-30T15:12:45Z",
-    "name": "National Institutes of Health",
-    "displayName": "National Institutes of Health (nih.gov)",
-    "active": true,
-    "funder": true,
-    "fundref": "http://dx.doi.org/10.13039/100000002",
-    "types": ["Government"],
-    "acronyms": ["NIH"],
-    "aliases": [],
-    "countryCode": "US",
-    "countryName": "United States",
-    "domain": "nih.gov",
-    "wikipediaURL": "http://en.wikipedia.org/wiki/National_Institutes_of_Health",
-    "links": ["http://www.nih.gov/"],
-    "searchNames": [
-      "National Institutes of Health",
-      "nih.gov",
-    ],
-    "relationships": [
-      {
-        "id": "https://ror.org/033jnv181",
-        "type": "Parent",
-        "name": "United States Department of Health and Human Services",
-      }
-    ],
-    "addresses": [
-      {
-        "city": "Bethesda",
-        "state": "Maryland",
-        "stateCode": "MD",
-        "countryGeonamesId": 6252001,
-        "lat": 38.98067,
-        "lng": -77.10026,
-      }
-    ]
+    provenance: "ROR",
+    provenanceSyncDate: new Date(casual.date('YYYY-MM-DD')).toISOString(),
+    name: names[3],
+    displayName: `${names[3]} ${urls[3]}`,
+    active: true,
+    funder: true,
+    fundref: `http://dx.doi.org/10.${casual.integer(1, 99999)}/${casual.integer(1, 999999)}`,
+    types: casual.array_of_words(2),
+    acronyms: casual.array_of_words(2),
+    aliases: casual.array_of_words(4),
+    countryCode: casual.country_code,
+    countryName: casual.country,
+    domain: urls[3],
   },
   {
-    "id": "https://dmptool.org/orgs/12345",
-    "provenance": "DMPTool",
-    "provenanceSyncDate": "2021-03-07T12:13:41Z",
-    "name": "Example University",
-    "displayName": "Example University (example.edu)",
-    "active": true,
-    "funder": false,
-    "fundref": null,
-    "types": ["Education"],
-    "acronyms": ["EU"],
-    "aliases": ["Example"],
-    "countryCode": "US",
-    "countryName": "United States",
-    "domain": "example.edu",
-    "wikipediaURL": null,
-    "links": ["http://www.example.edu/library/"],
-    "searchNames": [
-      "Example University",
-      "example.edu",
-    ],
+    provenance: "ROR",
+    provenanceSyncDate: new Date(casual.date('YYYY-MM-DD')).toISOString(),
+    name: names[4],
+    displayName: `${names[4]} ${urls[4]}`,
+    active: true,
+    funder: false,
+    types: [],
+    acronyms: [],
+    aliases: [],
+    countryCode: casual.country_code,
+    countryName: casual.country,
+    domain: urls[4],
   },
 ]
 

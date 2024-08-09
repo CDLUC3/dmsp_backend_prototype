@@ -12,8 +12,8 @@ export class Template {
 
   constructor(
     public name: string,
-    public affiliationId: string,
-    public ownerId: number,
+    public affiliationId: string = null,
+    public ownerId: number = null,
     public visibility: Visibility = Visibility.Private,
     public currentVersion = '',
     public isDirty = true,
