@@ -1,4 +1,4 @@
-export type ContributorRoleModel = {
+export interface ContributorRoleModel {
   id: number;
   displayOrder: number;
   url: string;

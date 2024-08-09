@@ -60,7 +60,7 @@ export class AffiliationModel {
 
     // If there are any external_ids defined, initialize them and set the FundRef ID
     this.externalIds = [];
-    if (options.hasOwnProperty('external_ids')) {
+    if (Object.prototype.hasOwnProperty.call(options, "external_ids")) {
       this.externalIds = Object.keys(options.external_ids).map((key) => {
         return new ExternalId({
           type: key,
@@ -151,7 +151,7 @@ export class AffiliationSearchModel {
     this.fetchId = this.id?.replace(/https?:\/\//g, '');
     this.name = options.name;
     this.displayName = suffix ? `${options.name} (${suffix})` : options.name;
-    this.funder = options.hasOwnProperty('fundref_id');
+    this.funder = Object.prototype.hasOwnProperty.call(options, "fundref_id");
     this.fundref = options.fundref_url || options.fundref;
     this.aliases = options.aliases || [];
     this.countryCode = options.countryCode;

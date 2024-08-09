@@ -15,7 +15,7 @@ const authMiddleware = expressjwt({
 
 // Support for email+password
 router.post('/signin', (req, res) => signinController(req, res));
-router.post('/signup', (req, res, next) => signupController(req, res));
+router.post('/signup', (req, res) => signupController(req, res));
 
 // Support for OAuth2
 router.get('/authorize', (req, res) => oauthServer.authorize(castRequest(req), castResponse(res)));

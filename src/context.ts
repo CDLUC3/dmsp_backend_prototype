@@ -4,9 +4,9 @@ import { DMPToolAPI } from './datasources/dmptoolAPI';
 import { MySQLDataSource } from './datasources/mySQLDataSource';
 import { User } from './models/User';
 
-export type MyContext = {
-  token?: string | undefined;
-  user: User | undefined;
+export interface MyContext {
+  token: string;
+  user: User;
   logger: Logger;
 
   dataSources: {

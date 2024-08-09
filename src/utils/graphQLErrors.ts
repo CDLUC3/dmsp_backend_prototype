@@ -1,10 +1,10 @@
 import {  GraphQLError } from 'graphql';
 
-export const AUTHENTICATION_ERROR_CODE: string = 'UNAUTHENTICATED';
-export const FORBIDDEN_ERROR_CODE: string = 'FORBIDDEN';
+export const AUTHENTICATION_ERROR_CODE = 'UNAUTHENTICATED';
+export const FORBIDDEN_ERROR_CODE = 'FORBIDDEN';
 
-export const DEFAULT_AUNAUTHORIZED_MESSAGE: string = 'Unauthorized';
-export const DEFAULT_FORBIDDEN_MESSAGE: string = 'Forbidden';
+export const DEFAULT_AUNAUTHORIZED_MESSAGE = 'Unauthorized';
+export const DEFAULT_FORBIDDEN_MESSAGE = 'Forbidden';
 
 export function AuthenticationError(errMessage = DEFAULT_AUNAUTHORIZED_MESSAGE) {
   return new GraphQLError(errMessage, {

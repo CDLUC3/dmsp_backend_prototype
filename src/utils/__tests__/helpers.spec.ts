@@ -51,13 +51,13 @@ describe('Convert a string into an Array', () => {
 
 describe('Verify critical env variables', () => {
   test('does not log an error if the specified variable exist', () => {
-    const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { });
+    const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { return null });
     verifyCriticalEnvVariable('NODE_ENV');
     expect(logSpy).not.toHaveBeenCalled();
     logSpy.mockRestore();
   });
   test('logs an error if the specified variable does not exist', () => {
-    const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { });
+    const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { return null });
     verifyCriticalEnvVariable('TEST_SECRET');
     expect(logSpy).toHaveBeenCalled();
     logSpy.mockRestore();

@@ -1,8 +1,8 @@
+import 'jest-expect-message';
 import { User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { MySQLDataSource } from '../../datasources/mySQLDataSource';
-import { logger, formatLogMessage } from '../../logger';
 
 jest.mock('../../datasources/mySQLDataSource', () => {
   return {
@@ -161,14 +161,10 @@ describe('password validation', () => {
 
   it('should allow all of the approved special characters', () => {
     const chars = ['~', '`', '!', '@', '#', '$', '%', '^', '&', '*', '-', "_", '+', '=', '?', ' '];
-    for (let i = 0; i < chars.length; i++) {
-      const valid = new User({ password: `Abcd3Fgh1jkL${chars[i]}` }).validatePassword();
-      if (!valid) {
-
-        console.log(`Failed when testing character ${chars[i]}`);
-      }
-      expect(valid).toBe(true);
-    };
+    for (const char of chars) {
+      const valid = new User({ password: `Abcd3Fgh1jkL${char}`}).validatePassword();
+      expect(valid, `Failed when testing character ${char}`).toBe(true);
+    }
   });
 
   it('should fail for a new user with a password that is too short', async () => {
@@ -256,19 +252,10 @@ describe('password validation', () => {
     mockQuery.mockResolvedValueOnce([{}, []]);
 
     const badChars = ['(', ')', '{', '[', '}', ']', '|', '\\', ':', ';', '"', "'", '<', ',', '>', '.', '/'];
-    for (let i = 0; i < badChars.length; i++) {
-      const user = new User({
-        email: 'test.user@example.com',
-        password: `Abcd3Fgh1jkL$${badChars[i]}`,
-      });
-
-      const valid = user.validatePassword();
-      if (valid) {
-        console.log(`Failed when testing character ${badChars[i]}`);
-      }
-      expect(valid).toBe(false)
-    };
-
+    for (const char of badChars) {
+      const valid = new User({ password: `Abcd3Fgh1jkL${char}`}).validatePassword();
+      expect(valid, `Failed when testing character ${char}`).toBe(false);
+    }
   });
 });
 
