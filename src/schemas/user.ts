@@ -4,7 +4,7 @@ export const typeDefs = gql`
   extend type Query {
     me: User
     users: [User]
-    user(userId: String!): User
+    user(userId: Int!): User
   }
 
   enum UserRole {

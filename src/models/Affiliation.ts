@@ -1,3 +1,7 @@
+import { logger, formatLogMessage } from "../logger";
+import { DMPToolAPI } from "../datasources/dmptoolAPI";
+import { Affiliation } from "../types";
+
 // Represents an Institution, Organization or Company
 export class AffiliationModel {
   public id!: string;
@@ -69,6 +73,22 @@ export class AffiliationModel {
       });
       this.fundref = this.externalIds?.find(id => id.type === 'fundref')?.id;
     }
+  }
+
+  static async findById(caller: string, dataSource: DMPToolAPI, id: string): Promise<Affiliation | null> {
+    const logMessage = `Affiliation.findById query for ${caller}, affiliation: ${id}`;
+    const affiliationId = id.replace(/https?:\/\//g, '')
+    return new Promise((resolve, reject) => {
+      dataSource.getAffiliation(affiliationId)
+        .then(row => {
+          formatLogMessage(logger).debug(logMessage);
+          resolve(row);
+        })
+        .catch(err => {
+          formatLogMessage(logger).error(`Affiliation.findById ERROR for ${caller}, affiliation: ${id} - ${err.message}`);
+          reject(err)
+        });
+    });
   }
 }
 

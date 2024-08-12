@@ -8,8 +8,8 @@ export const mockRor = () => {
   return `https://ror.org/${casual.integer(1, 99999)}`
 }
 
-// Just define what is unique here. Any fields you skip will end up using the defaults
-// for their respective type as defined in ./src/mocks.ts
+// The true resolver for affiliations has already been implemented. This is left here as an
+// example of how to constuct a mock.
 export const data = [
   {
     provenance: "ROR",

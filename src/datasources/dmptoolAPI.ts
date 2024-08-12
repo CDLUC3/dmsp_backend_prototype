@@ -100,6 +100,11 @@ export class DMPToolAPI extends RESTDataSource {
       const response = await this.get(`affiliations/${encodeURI(id)}`);
       if (response) {
         const affiliation = new AffiliationModel(response);
+
+
+console.log(`******************************** ${affiliationId}`)
+console.log(affiliation);
+
         return affiliation ? affiliation : null;
       }
       return null;

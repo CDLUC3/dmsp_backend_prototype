@@ -35,7 +35,7 @@ process_migration() {
       exit 1
     fi
   else
-    echo "    already processed."
+    echo "    it has."
   fi
 }
 

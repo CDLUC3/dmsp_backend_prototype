@@ -1,18 +1,8 @@
-import AWS from 'aws-sdk';
 import { RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { logger, formatLogMessage } from '../logger';
 import { DmspModel as Dmsp } from "../models/Dmsp"
 import { JWTToken } from '../services/tokenService';
-
-// JS SDK v3 does not support global configuration.
-// Codemod has attempted to pass values to each service client in this file.
-// You may need to update clients outside of this file, if they use global config.
-AWS.config.update({
-  region: process.env.AWS_REGION,
-  // accessKeyId: 'your-access-key-id',
-  // secretAccessKey: 'your-secret-access-key',
-});
 
 export class DMPHubAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;

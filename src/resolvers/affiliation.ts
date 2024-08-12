@@ -2,6 +2,9 @@
 import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 import { MyContext } from '../context';
+import { AffiliationModel } from '../models/Affiliation';
+
+
 
 export const resolvers: Resolvers = {
   Query: {
@@ -23,20 +26,8 @@ export const resolvers: Resolvers = {
     },
 
     // Returns the specified Affiliation
-    affiliation: async (parent, { affiliationId }, { logger, dataSources }: MyContext) => {
-      const logMessage = `Resolving query affiliation(affiliationId: '${affiliationId}')`;
-
-      return new Promise((resolve, reject) => {
-        dataSources.dmptoolAPIDataSource.getAffiliation(encodeURIComponent(affiliationId))
-          .then(row => {
-            formatLogMessage(logger).debug(logMessage);
-            resolve(row);
-          })
-          .catch(err => {
-            formatLogMessage(logger, { err, affiliationId }).error(`ERROR: ${logMessage} - ${err.message}`);
-            reject(err)
-          });
-      });
+    affiliation: async (_, { affiliationId }, { logger, dataSources }: MyContext) => {
+      return AffiliationModel.findById('Query affiliation', dataSources.dmptoolAPIDataSource, affiliationId);
     },
   }
 }

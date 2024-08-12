@@ -7,6 +7,7 @@ import { typeDefs as contributorRoleTypeDefs } from './schemas/contributorRole';
 import { typeDefs as dmspTypeDefs } from './schemas/dmsp';
 import { typeDefs as templateTypeDefs } from './schemas/template';
 import { typeDefs as userTypeDefs } from './schemas/user';
+import { typeDefs as versionedTemplateTypeDefs } from './schemas/versionedTemplate';
 
 export const typeDefs = mergeTypeDefs([
   baseTypeDefs,
@@ -15,5 +16,6 @@ export const typeDefs = mergeTypeDefs([
   contributorRoleTypeDefs,
   dmspTypeDefs,
   templateTypeDefs,
-  userTypeDefs
+  userTypeDefs,
+  versionedTemplateTypeDefs,
 ]);

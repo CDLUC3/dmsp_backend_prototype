@@ -6,15 +6,15 @@ export const typeDefs = gql`
     myTemplates: [Template]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
-    "Get all of the PublishedTemplates for the specified Template (a.k. the Template history)"
-    templateVersions(templateId: Int!): [PublishedTemplate]
+    "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
+    templateVersions(templateId: Int!): [VersionedTemplate]
 
-    "Get the DMPTool Best Practice PublishedTemplates"
-    bestPracticeTemplates: [PublishedTemplate]
-    "Search for PublishedTemplates whose name or owning Org's name contains the search term"
-    publishedTemplates(term: String!): [PublishedTemplate]
-    "Get the specified PublishedTemplate"
-    publishedTemplate(publishedTemplateId: Int!): PublishedTemplate
+    "Get the DMPTool Best Practice VersionedTemplate"
+    bestPracticeTemplates: [VersionedTemplate]
+    "Search for VersionedTemplate whose name or owning Org's name contains the search term"
+    publishedTemplates(term: String!): [VersionedTemplate]
+    "Get the specified VersionedTemplate"
+    publishedTemplate(publishedTemplateId: Int!): VersionedTemplate
   }
 
   extend type Mutation {
@@ -27,8 +27,10 @@ export const typeDefs = gql`
     "Archive a Template (unpublishes any associated PublishedTemplate"
     archiveTemplate(templateId: Int!): Boolean
 
+    "Save a Draft"
+    draftTemplate(templateId: Int!, comment: String): VersionedTemplate
     "Publish a Template"
-    publishTemplate(templateId: Int!, comment: String): PublishedTemplate
+    publishTemplate(templateId: Int!, comment: String): VersionedTemplate
     "Unpublish the specified PublishedTemplate"
     unpublishTemplate(publishedTemplateId: Int!): Boolean
   }
@@ -57,35 +59,12 @@ export const typeDefs = gql`
     currentVersion: String
     "Whether or not the Template has had any changes since it was last published"
     isDirty: Boolean!
+    "Whether or not this Template is designated as a 'Best Practice' template"
+    bestPractice: Boolean!
+
     "The timestamp when the template was created"
     created: DateTimeISO!
     "The timestamp when the template was modifed"
     modified: DateTimeISO!
-  }
-
-  "A snapshot of a Template when it became published. DMPs are created from published templates"
-  type PublishedTemplate {
-    "The unique identifer for the template"
-    id: Int!
-    "The template that this published version stems from"
-    template: Template!
-    "The major.minor semantic version"
-    version: String!
-    "The name/title of the template"
-    name: String!
-    "The affiliation that the template belongs to"
-    affiliation: Affiliation!
-    "The owner of the Template"
-    owner: User!
-    "The publisher of the Template"
-    publishedBy: User!
-    "The template's availability setting: Public is available to everyone, Private only your affiliation"
-    visibility: Visibility!
-    "A comment/note the user enters when publishing the Template"
-    comment: String
-    "Whether or not this is the version provided when users create a new DMP"
-    active: Boolean!
-    "The timestamp when the template was created"
-    created: DateTimeISO!
   }
 `;

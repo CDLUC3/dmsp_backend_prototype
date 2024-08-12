@@ -6,15 +6,12 @@
   "scripts": {
     "compile": "tsc",
     "copy-graphql": "mkdir ./dist/schemas && cp ./src/schemas/*.graphql ./dist/schemas/",
-
     "generate": "graphql-codegen",
     "lint": "npx eslint . --ignore-pattern dist/ --ignore-pattern src/types.ts",
     "test": "jest --coverage",
-
     "build": "rm -rf ./dist && npm run lint && npm run generate && npm run test && npm run compile",
     "dev": "ts-node-dev --respawn ./src/index.ts",
     "start": "npm run build && nodemon ./dist/index.js",
-
     "aws_start": "node ./dist/index.js"
   },
   "repository": {
@@ -36,7 +33,6 @@
     "@graphql-tools/mock": "^9.0.0",
     "@graphql-tools/schema": "^10.0.0",
     "@node-oauth/express-oauth-server": "^4.0.0",
-    "aws-sdk": "^2.1598.0",
     "bcryptjs": "^2.4.3",
     "casual": "^1.6.2",
     "dotenv": "^16.4.5",

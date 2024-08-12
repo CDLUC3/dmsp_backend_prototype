@@ -1,9 +1,9 @@
-// Template visibility
-//     Private - Template is only available to Researchers that share the same affiliation
-//     Public  - Template is available to everyone
+import { logger, formatLogMessage } from "../logger";
+import { MySQLDataSource } from "../datasources/mySQLDataSource";
+
 export enum Visibility {
-  Private = 'Private',
-  Public = 'Public',
+  Private = 'Private', // Template is only available to Researchers that belong to the same affiliation
+  Public = 'Public', // Template is available to everyone creating a DMP
 }
 
 // A Template for creating a DMP
@@ -11,32 +11,31 @@ export class Template {
   public errors: string[];
 
   constructor(
+    public id: number,
     public name: string,
-    public affiliationId: string = null,
-    public ownerId: number = null,
+    public affiliationId: string,
+    public ownerId: number,
     public visibility: Visibility = Visibility.Private,
     public currentVersion = '',
     public isDirty = true,
+    public bestPractice = false,
+
     public created: string = new Date().toUTCString(),
     public modified: string = new Date().toUTCString(),
-    public id: number = null,
   ){
     this.errors = [];
   }
-}
 
-// A Snapshot/Published copy of a Template
-export class PublishedTemplate {
-  constructor(
-    public templateId: number,
-    public version: string,
-    public name: string,
-    public affiliationId: string,
-    public publishedById: number,
-    public visibility: Visibility = Visibility.Private,
-    public comment = '',
-    public active = false,
-    public created: string = new Date().toUTCString(),
-    public id: number = null,
-  ){}
+  static async findById(caller: string, dataSource: MySQLDataSource, id: number): Promise<Template | null> {
+    const logMessage = `Template.findById query for ${caller}, template: ${id}`;
+    try {
+      const sql = 'SELECT * FROM templates WHERE templateId = ?';
+      const resp = await dataSource.query(sql, [id.toString()]);
+      formatLogMessage(logger).debug(logMessage);
+      return resp;
+    } catch (err) {
+      formatLogMessage(logger).error(`Template.findById ERROR for ${caller}, template: ${id} - ${err.message}`);
+      return null;
+    }
+  }
 }

@@ -11,6 +11,7 @@ import { resolvers as contributorRoleResolvers } from './resolvers/contributorRo
 import { resolvers as dmspResolvers } from './resolvers/dmsp';
 import { resolvers as templateResolvers } from './resolvers/template';
 import { resolvers as userResolvers } from './resolvers/user';
+import { resolvers as versionedTemplateResolvers } from './resolvers/versionedTemplate';
 
 const scalarResolvers = {
   DmspId: dmspIdScalar,
@@ -26,4 +27,5 @@ export const resolvers: IResolvers = mergeResolvers([
   contributorRoleResolvers,
   templateResolvers,
   userResolvers,
+  versionedTemplateResolvers,
 ]);

@@ -111,13 +111,13 @@ export class User {
   }
 
   // Find the User by their Id
-  static async findById(userId: string): Promise<User> {
+  static async findById(userId: number): Promise<User> {
     const mysql = MySQLDataSource.getInstance();
     const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
                  FROM users WHERE id = ?';
     formatLogMessage(logger)?.debug(`User.findById: ${userId}`);
     try {
-      const [rows] = await mysql.query(sql, [userId]);
+      const [rows] = await mysql.query(sql, [userId.toString()]);
       return rows?.id ? new User(rows) : null;
     } catch (err) {
       formatLogMessage(logger, { err })?.error(`Error trying to find User by id ${userId}`);

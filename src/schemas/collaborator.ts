@@ -16,11 +16,11 @@ export const typeDefs = gql`
   "A user that that belongs to a different affiliation that can edit the Template"
   type TemplateCollaborator {
     "The template the collaborator may edit"
-    template: Template
+    template: Template!
     "The collaborator's email"
     email: String!
     "The person who invited the collaborator"
-    invitedBy: User
+    invitedBy: User!
     "The collaborator (if they have an account)"
     user: User
     "The timestamp when the collaborator was added"

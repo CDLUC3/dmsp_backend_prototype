@@ -1,60 +1,65 @@
-import casual from "casual";
 import { Resolvers } from "../types";
-import { data as collaborators } from '../mocks/collaborator';
-import { data as templates } from '../mocks/template';
-import { data as users } from '../mocks/user';
+import { logger, formatLogMessage } from "../logger";
 import { TemplateCollaborator } from "../models/Collaborator";
-import { Template } from "../models/Template";
-import  { User, UserRole } from '../models/User';
+import  { User } from '../models/User';
+import { MyContext } from "../context";
 
 // TODO: Convert this to use the MySQL DataSource that is passed in via the Apollo server
 //       context once we are happy with the schema.
 export const resolvers: Resolvers = {
   Query: {
     // Get all of the Users that belong to another affiliation that can edit the Template
-    templateCollaborators: async (_, { templateId }) => {
-      const nbrItems = Math.floor(Math.random() * collaborators.length);
-      if (nbrItems <= 0) {
+    templateCollaborators: async (_, { templateId }, { dataSources }: MyContext): Promise<TemplateCollaborator[] | null> => {
+      const logMessage = `Resolving query templateCollaborators: ${templateId}`;
+      try {
+        const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
+        const resp = await dataSources.sqlDataSource.query(sql, [templateId.toString()]);
+        formatLogMessage(logger).debug(logMessage);
+        return resp;
+      } catch (err) {
+        formatLogMessage(logger).error(`Failure in templateCollaborators query: ${templateId} - ${err.message}`);
         return [];
       }
-
-      const items = collaborators.slice(0, nbrItems);
-      return await items.map(({ email, created, userId, invitedById }) => {
-        return new TemplateCollaborator(templateId, email, invitedById, userId, created)
-      });
     },
   },
 
   TemplateCollaborator: {
-    template: async (parent: TemplateCollaborator) => {
-      const { id, name, visibility, currentVersion, isDirty, created, modified } = templates[0];
-      const tmplt = new Template(
-        name, casual.url, parent.invitedById, visibility, currentVersion, isDirty, created, modified
-      );
-      tmplt.id = parent.templateId;
-      return tmplt;
+    template: async (parent: TemplateCollaborator, _, { dataSources }: MyContext) => {
+      const logMessage = `Resolving chained query for templateCollaborator template for id ${parent.templateId}`;
+      try {
+        const sql = 'SELECT * FROM templates WHERE templateId = ?';
+        const resp = await dataSources.sqlDataSource.query(sql, [parent.templateId.toString()]);
+        formatLogMessage(logger).debug(logMessage);
+        return resp;
+      } catch (err) {
+        formatLogMessage(logger).error(`Error fetching templateCollaborator template: ${parent.templateId} - ${err.message}`);
+        return null;
+      }
     },
 
     // Chained resolver to fetch the Affiliation info for the user
     invitedBy: async (parent: TemplateCollaborator) => {
-      const userNbr = Math.floor(Math.random() * users.length);
-      const { email, givenName, surName, affiliationId, orcid, created, modified } = users[userNbr];
-      const user = new User({ email, givenName, surName, affiliationId, orcid, created, modified});
-      user.id = parent.userId;
-      user.role = UserRole.Admin;
-      return user;
+      const logMessage = `Resolving chained query for templateCollaborator invitedBy for id ${parent.invitedById}`
+      try {
+        const user = await User.findById(parent.invitedById);
+        formatLogMessage(logger).debug(logMessage);
+        return user;
+      } catch (err) {
+        formatLogMessage(logger).error(`Error fetching templateCollaborator invitedBy ${parent.invitedById} - ${err.message}`);
+        return null;
+      }
     },
 
     user: async (parent: TemplateCollaborator) => {
-      if (parent.userId) {
-        const userNbr = Math.floor(Math.random() * users.length);
-        const { email, givenName, surName, affiliationId, orcid, created, modified } = users[userNbr];
-        const user = new User({ email, givenName, surName, affiliationId, orcid, created, modified });
-        user.id = parent.userId;
-        user.role = UserRole.Admin;
+      const logMessage = `Resolving chained query for templateCollaborator user for id ${parent.userId}`
+      try {
+        const user = await User.findById(parent.userId);
+        formatLogMessage(logger).debug(logMessage);
         return user;
+      } catch (err) {
+        formatLogMessage(logger).error(`Error fetching templateCollaborator user ${parent.userId} - ${err.message}`);
+        return null;
       }
-      return null;
     },
-  }
+  },
 };
