@@ -1,5 +1,5 @@
-import { logger, formatLogMessage } from "../logger";
-import { MySQLDataSource } from "../datasources/mySQLDataSource";
+import { MyContext } from "../context";
+import { MySqlModel } from "./MySqlModel";
 
 export enum Visibility {
   Private = 'Private', // Template is only available to Researchers that belong to the same affiliation
@@ -7,35 +7,50 @@ export enum Visibility {
 }
 
 // A Template for creating a DMP
-export class Template {
+export class Template extends MySqlModel {
+  public id: number;
+  public name: string;
+  public ownerId: string;
+  public createdById: number;
+  public modifiedById: number;
+  public visibility: Visibility = Visibility.Private;
+  public currentVersion: string;
+  public isDirty: boolean;
+  public bestPractice: boolean;
+
+  public created: string;
+  public modified: string;
+
   public errors: string[];
 
-  constructor(
-    public id: number,
-    public name: string,
-    public affiliationId: string,
-    public ownerId: number,
-    public visibility: Visibility = Visibility.Private,
-    public currentVersion = '',
-    public isDirty = true,
-    public bestPractice = false,
+  constructor(options) {
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
-    public created: string = new Date().toUTCString(),
-    public modified: string = new Date().toUTCString(),
-  ){
+    this.name = options.name;
+    this.ownerId = options.ownerId;
+    this.visibility = options.visibility || Visibility.Private;
+    this.currentVersion = options.currentVersion || '';
+    this.isDirty = options.isDirty || true;
+    this.bestPractice = options.bestPractice || false;
+
     this.errors = [];
   }
 
-  static async findById(caller: string, dataSource: MySQLDataSource, id: number): Promise<Template | null> {
-    const logMessage = `Template.findById query for ${caller}, template: ${id}`;
-    try {
-      const sql = 'SELECT * FROM templates WHERE templateId = ?';
-      const resp = await dataSource.query(sql, [id.toString()]);
-      formatLogMessage(logger).debug(logMessage);
-      return resp;
-    } catch (err) {
-      formatLogMessage(logger).error(`Template.findById ERROR for ${caller}, template: ${id} - ${err.message}`);
-      return null;
-    }
+  // Return the specified Template
+  static async findById(reference: string, context: MyContext, templateId: number) {
+    // TODO: Update this to include the User's affiliation once its in the context
+    const sql = 'SELECT * FROM templates WHERE id = ?';
+    const results = await Template.query(context, sql, [templateId.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  }
+
+  // Find all of the templates associated with the context's User's affiliation
+  static async findByUser(reference: string, context: MyContext) {
+    // TODO: Swap this hard-coded version out once we have the User in the context
+    const sql = `SELECT * FROM templates \
+                 WHERE ownerId = \'https://ror.org/01cwqze88\' \
+                 ORDER BY modified DESC`;
+    // return await Template.mysqlQuery(context, sql, [context.user?.affiliationId], reference);
+    return await Template.query(context, sql, [], reference);
   }
 }

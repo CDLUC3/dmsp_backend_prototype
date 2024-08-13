@@ -4,7 +4,7 @@ import { OAuthClient } from './OAuthClient';
 import { OAuthRefreshToken } from './OAuthRefreshToken';
 import { User } from './User';
 import { oauthConfig } from '../config/oauthConfig';
-import { stringToArray } from '../utils/helpers';
+import { buildContext, stringToArray } from '../utils/helpers';
 import { generateToken } from '../services/tokenService';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { logger, formatLogMessage } from '../logger';
@@ -46,14 +46,14 @@ export class OAuthToken implements Token {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = (rows as any[])[0];
       const client = await OAuthClient.findById(row.clientId);
-      const user = await User.findById(row.userId);
+      const user = await User.findById('OAuthToken.findOne', buildContext(logger), row.userId);
       if (!client || !user) {
         return null;
       }
       return new OAuthToken({
         ...OAuthToken._SqlFieldsToProperties(row),
         client: await OAuthClient.findById(row.clientId),
-        user: await User.findById(row.userId),
+        user: await User.findById('OAuthToken.findOne', buildContext(logger), row.userId),
       });
     } catch(err) {
       formatLogMessage(logger, { err })

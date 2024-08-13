@@ -1,9 +1,10 @@
 import { logger, formatLogMessage } from "../logger";
 import { DMPToolAPI } from "../datasources/dmptoolAPI";
-import { Affiliation } from "../types";
+import { MyContext } from "../context";
+// import { Affiliation } from "../types";
 
 // Represents an Institution, Organization or Company
-export class AffiliationModel {
+export class Affiliation {
   public id!: string;
   public provenance!: string;
   public provenanceSyncDate!: string;
@@ -75,11 +76,12 @@ export class AffiliationModel {
     }
   }
 
-  static async findById(caller: string, dataSource: DMPToolAPI, id: string): Promise<Affiliation | null> {
+  static async findById(caller: string, context: MyContext, id: string): Promise<Affiliation | null> {
+    const { logger, dataSources } = context;
     const logMessage = `Affiliation.findById query for ${caller}, affiliation: ${id}`;
     const affiliationId = id.replace(/https?:\/\//g, '')
     return new Promise((resolve, reject) => {
-      dataSource.getAffiliation(affiliationId)
+      dataSources.dmptoolAPIDataSource.getAffiliation(affiliationId)
         .then(row => {
           formatLogMessage(logger).debug(logMessage);
           resolve(row);
@@ -149,7 +151,7 @@ export class AffiliationLocale {
 
 // A pared down version of the full Affiliation object. This type is returned by
 // our index searches
-export class AffiliationSearchModel {
+export class AffiliationSearch {
   public id!: string;
   public fetchId!: string;
   public name!: string;
@@ -183,5 +185,22 @@ export class AffiliationSearchModel {
     if(Array.isArray(options.locales)) {
       this.locales = options.labels?.map((lbl) => new AffiliationLocale(lbl));
     }
+  }
+
+  static async search(context: MyContext, options: { name: string, funderOnly: boolean }): Promise<AffiliationSearch[] | null> {
+    const { logger, dataSources } = context;
+    const logMessage = `Resolving query affiliations(options: '${options}')`;
+
+    return new Promise((resolve, reject) => {
+      dataSources.dmptoolAPIDataSource.getAffiliations(options)
+        .then(rows => {
+          formatLogMessage(logger).debug(logMessage);
+          resolve(rows)
+        })
+        .catch(err => {
+          formatLogMessage(logger, { err, options }).error(`ERROR: ${logMessage} - ${err.message}`);
+          reject(err)
+        });
+    });
   }
 }

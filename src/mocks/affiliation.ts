@@ -1,5 +1,5 @@
 import casual from 'casual';
-import { AffiliationModel, AffiliationSearchModel } from '../models/Affiliation';
+import { Affiliation, AffiliationSearch } from '../models/Affiliation';
 
 const names = [casual.title, casual.title, casual.title, casual.title, casual.title]
 const urls = [casual.url, casual.url, casual.url, casual.url, casual.url]
@@ -165,7 +165,7 @@ export const searchData = [
 
 export const mock = {
   // Return a random item from the data array
-  Affiliation: () => new AffiliationModel(data[Math.floor(Math.random() * data.length)]),
+  Affiliation: () => new Affiliation(data[Math.floor(Math.random() * data.length)]),
 
-  Affiliations: () => searchData.map((rec) => new AffiliationSearchModel(rec)),
+  Affiliations: () => searchData.map((rec) => new AffiliationSearch(rec)),
 }

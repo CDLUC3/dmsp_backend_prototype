@@ -10,7 +10,6 @@ const config: CodegenConfig = {
         enumsAsTypes: true,
         mappers: {
           Dmsp: "./models/Dmsp#DmspModel",
-          ContributorRole: "./models/ContributorRole#ContributorRoleModel",
         },
       },
     },

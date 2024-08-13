@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get the Templates that belong to the current user's affiliation (user must be an Admin)"
-    myTemplates: [Template]
+    templates: [Template]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
     "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
@@ -50,9 +50,7 @@ export const typeDefs = gql`
     "The name/title of the template"
     name: String!
     "The affiliation that the template belongs to"
-    affiliation: Affiliation
-    "The owner of the Template"
-    owner: User
+    owner: Affiliation
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
     visibility: Visibility!
     "The current published version"
@@ -62,8 +60,12 @@ export const typeDefs = gql`
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
 
+    "The user who created the Template"
+    createdById: Int
     "The timestamp when the template was created"
     created: DateTimeISO!
+    "The user who modified the Template"
+    modifiedById: Int
     "The timestamp when the template was modifed"
     modified: DateTimeISO!
   }

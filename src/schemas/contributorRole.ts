@@ -45,7 +45,11 @@ export const typeDefs = gql`
     description: String
     "The timestamp of when the contributor role was created"
     created: DateTimeISO!
+    "The user who created the contributor role"
+    createdById: Int
     "The timestamp of when the contributor role last modified"
     modified: DateTimeISO!
+    "The user who modified the contributor role"
+    modifiedById: Int
   }
 `;

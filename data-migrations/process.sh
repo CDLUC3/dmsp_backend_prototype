@@ -12,8 +12,6 @@ else
   MYSQL_ARGS="-h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER} -p${MYSQL_PASSWORD}"
 fi
 
-echo $MYSQL_ARGS
-
 process_migration() {
   # See if the migration was already processed
   echo "Checking to see if $1 has been run ..."

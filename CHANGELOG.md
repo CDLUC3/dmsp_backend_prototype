@@ -5,6 +5,7 @@
 - added templateService to assist with actions that work on a Template and all of it's child objects
 - Added stub emailService as a placeholder for now. We will build that out once the AWS infrastructire is in place
 - Missing data-migration for the dataMigrations table
+- Script to nuke the DB so it can be easily rebuilt from scratch
 
 ### Updated
 - Added MariaDB to docker-compose

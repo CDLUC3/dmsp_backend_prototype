@@ -1,4 +1,4 @@
-import { ContributorRoleModel } from './ContributorRole';
+import { ContributorRole } from './ContributorRole';
 
 export interface DmspModel {
   primaryContact: PrimaryContact;
@@ -27,7 +27,7 @@ interface Contributor {
   orcid: string;
   name: string;
   mbox: string;
-  role: [ContributorRoleModel]
+  role: [ContributorRole]
   affiliation: Affiliation;
 }
 

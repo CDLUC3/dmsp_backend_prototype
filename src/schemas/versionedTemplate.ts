@@ -31,11 +31,11 @@ export const typeDefs = gql`
     "The unique identifer for the template"
     id: Int!
     "The template that this published version stems from"
-    template: Template!
+    template: Template
     "The major.minor semantic version"
     version: String!
     "The publisher of the Template"
-    versionedBy: User!
+    versionedBy: User
     "The type of version: Published or Draft (default: Draft)"
     versionType: VersionType
     "A comment/note the user enters when publishing the Template"
@@ -45,18 +45,20 @@ export const typeDefs = gql`
 
     "The name/title of the template"
     name: String!
-    "The affiliation that the template belongs to"
-    affiliation: Affiliation!
     "The owner of the Template"
-    owner: User!
+    owner: Affiliation
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
     visibility: Visibility!
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
 
-    "The timestamp when the template was created"
+    "The timestamp when the version was created"
     created: DateTimeISO!
-    "The timestamp when the template was modified (typically when its 'active' flag changes)"
+    "The user who created the version"
+    createdById: Int
+    "The timestamp when the version was modified (typically when its 'active' flag changes)"
     modified: DateTimeISO!
+    "The user who modfiied the version"
+    modifiedById: Int
   }
 `;

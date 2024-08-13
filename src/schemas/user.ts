@@ -23,5 +23,10 @@ export const typeDefs = gql`
     orcid: Orcid
     created: DateTimeISO!
     modified: DateTimeISO!
+
+    "The user who created the user (created via registration if null)"
+    createdById: Int
+    "The user who modified the user"
+    modifiedById: Int
   }
 `;

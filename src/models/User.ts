@@ -1,26 +1,18 @@
 import bcrypt from 'bcryptjs';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { capitalizeFirstLetter, validateEmail } from '../utils/helpers';
+import { buildContext, capitalizeFirstLetter, validateEmail } from '../utils/helpers';
 import { Falsey } from 'oauth2-server';
 import { logger, formatLogMessage } from '../logger';
+import { MySqlModel } from './MySqlModel';
+import { MyContext } from '../context';
 
 export enum UserRole {
   Researcher = 'Researcher',
   Admin = 'Admin',
   SuperAdmin = 'SuperAdmin',
 }
-
-export class User {
-  // NOTE: If you are copying this model as the basis for a new one, the inclusion of
-  //       the MySQLDataSource is unusual here. Normally the datasources are passed
-  //       through by the Apollo server context to a resolver. The resolver performs
-  //       necessary queries NOT the model.
-  //
-  //       Since Users are also involved with our non-GraphQL endpoints, we need to bring
-  //       the datasource in here so we can query for sign in/up tasks.
-  private mysql: MySQLDataSource;
-
-  public id?: number;
+export class User extends MySqlModel {
+  public id: number;
   public email: string;
   public password: string;
   public role: UserRole;
@@ -34,7 +26,8 @@ export class User {
 
   // Initialize a new User
   constructor(options) {
-    this.mysql = MySQLDataSource.getInstance();
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+
     this.id = options.id;
     this.email = options.email;
     this.password = options.password;
@@ -43,8 +36,6 @@ export class User {
     this.surName = options.surName;
     this.orcid = options.orcid;
     this.affiliationId = options.affiliationId;
-    this.created = options.created || new Date().toUTCString();
-    this.modified = options.modified || new Date().toUTCString();
     this.errors = [];
 
     this.cleanup();
@@ -61,7 +52,7 @@ export class User {
   // Verify that the email does not already exist and that the required fields have values
   async validateNewUser(): Promise<boolean> {
     // check if email is already taken
-    const existing = await User.findByEmail(this.email);
+    const existing = await User.findByEmail('User.validateNewUser', buildContext(logger), this.email);
 
     if (existing) {
       this.errors.push('Email address already in use');
@@ -111,34 +102,19 @@ export class User {
   }
 
   // Find the User by their Id
-  static async findById(userId: number): Promise<User> {
-    const mysql = MySQLDataSource.getInstance();
+  static async findById(reference: string, context: MyContext, userId: number) {
     const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
-                 FROM users WHERE id = ?';
-    formatLogMessage(logger)?.debug(`User.findById: ${userId}`);
-    try {
-      const [rows] = await mysql.query(sql, [userId.toString()]);
-      return rows?.id ? new User(rows) : null;
-    } catch (err) {
-      formatLogMessage(logger, { err })?.error(`Error trying to find User by id ${userId}`);
-      throw err;
-    }
+                 password FROM users WHERE id = ?';
+    const results = await User.query(context, sql, [userId.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Find the User by their email address
-  static async findByEmail(email: string): Promise<User | null> {
-    const mysql = MySQLDataSource.getInstance();
+  static async findByEmail(reference: string, context: MyContext, email: string) {
     const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
-                from users where email = ?';
-
-    formatLogMessage(logger)?.debug(`User.findByEmail: ${email}`);
-    try {
-      const [rows] = await mysql.query(sql, [email]);
-      return rows?.id ? new User(rows) : null;
-    } catch (err) {
-      formatLogMessage(logger, { err })?.error(`Error trying to find User by email: ${email}`);
-      throw err;
-    }
+                 FROM users WHERE email = ?';
+    const results = await User.query(context, sql, [email], reference);
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Login making sure that the passwords match
@@ -152,7 +128,7 @@ export class User {
 
     try {
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
-      const user = await User.findByEmail(email) || null;
+      const user = await User.findByEmail('User.login', buildContext(logger), email) || null;
       if (user && await bcrypt.compare(this.password, user?.password)) {
         return user;
       }
@@ -180,7 +156,10 @@ export class User {
         const result = await mysql.query(sql, vals);
 
         logger.debug(`User was created: ${this.email}, id: ${result.insertId}`);
-        return await User.findById(result.insertId);
+        const user = await User.findById('User.register', buildContext(logger), result.insertId);
+        // Blank out the password when returning so as not to expose it
+        user.password = null;
+        return user;
       } catch (err) {
         formatLogMessage(logger, { err })?.error(`Error creating User: ${this.email}`);
         return null;

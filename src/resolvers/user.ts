@@ -3,6 +3,7 @@ import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 import { MyContext } from '../context';
 import { User } from '../models/User';
+import { Affiliation } from '../models/Affiliation';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -45,31 +46,15 @@ export const resolvers: Resolvers = {
 
     // This query should only be available to Admins. Super can get any user and Admin can get
     // only users associated with their affiliationId
-    user: async (_, { userId }, { logger }) => {
-      const logMessage = `Resolving query user for id ${userId}`
-      try {
-        const user = await User.findById(userId);
-        formatLogMessage(logger).debug(logMessage);
-        return user;
-      } catch (err) {
-        formatLogMessage(logger).error(`Error fetching user ${userId} - ${err.message}`);
-        return null;
-      }
+    user: async (_, { userId }, context: MyContext): Promise<User | null> => {
+      return await User.findById(`user resolver`, context, userId);
     },
   },
 
   User: {
     // Chained resolver to fetch the Affiliation info for the user
-    affiliation: async (parent: User, _, { logger, dataSources }) => {
-      const logMessage = 'Chaining resolver for affiliation';
-      const rorId = parent.affiliationId.replace(/https?:\/\//g, '')
-      try {
-        formatLogMessage(logger).debug(logMessage);
-        return dataSources.dmptoolAPIDataSource.getAffiliation(rorId);
-      } catch(err) {
-        formatLogMessage(logger).error(`Error fetching affiliation ${rorId} for user ${parent.id} - ${err.message}`);
-        return null;
-      }
+    affiliation: async (parent: User, _, context) => {
+      return Affiliation.findById('Chained User.affiliation', context, parent.affiliationId);
     },
   },
 };
