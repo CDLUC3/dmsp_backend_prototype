@@ -1,5 +1,4 @@
 import { Resolvers } from "../types";
-import { logger, formatLogMessage } from "../logger";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { User } from '../models/User';
 import { MyContext } from "../context";
@@ -34,15 +33,17 @@ export const resolvers: Resolvers = {
 
   VersionedTemplate: {
     // Chained resolver to fetch the Affiliation info for the user
-    template: async (parent: VersionedTemplate, _, context: MyContext) => {
+    template: async (parent: VersionedTemplate, _, context: MyContext): Promise<Template | null> => {
       return Template.findById('Chained VersionedTemplate.template', context, parent.templateId);
     },
 
-    owner: async (parent: VersionedTemplate, _, context: MyContext) => {
+    // Chained resolver to return the Affiliation that owns the Template
+    owner: async (parent: VersionedTemplate, _, context: MyContext): Promise<Affiliation | null> => {
       return Affiliation.findById('Chained VersionedTemplate.owner', context, parent.ownerId);
     },
 
-    versionedBy: async (parent: VersionedTemplate, _, context: MyContext) => {
+    // Chained resolver to return the User who created the version
+    versionedBy: async (parent: VersionedTemplate, _, context: MyContext): Promise<User | null> => {
       return User.findById('Chained VersionedTemplate.versionedBy', context, parent.versionedById);
     },
   },

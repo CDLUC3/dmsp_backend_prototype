@@ -8,5 +8,6 @@ CREATE TABLE `contributorRoles` (
   `createdById` int NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` int NOT NULL,
-  CONSTRAINT unique_contributor_role_url UNIQUE (`url`)
+  CONSTRAINT unique_contributor_role_url UNIQUE (`url`),
+  CONSTRAINT unique_contributor_role_order UNIQUE (`displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;

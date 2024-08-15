@@ -1,20 +1,22 @@
 import { incrementVersionNumber } from "../utils/helpers";
-import { Template, PublishedTemplate } from "../models/Template";
+import { Template } from "../models/Template";
+import { VersionedTemplate, VersionType } from "../models/VersionedTemplate";
 
 export interface PublishResult {
   template: Template;
-  versions: PublishedTemplate[];
+  versions: VersionedTemplate[];
 }
 
-// Publishes the specified Template (as a point in time snapshot)
+// Creates a new Version/Snapshot the specified Template (as a point in time snapshot)
 //    - bumps the `currentVersion` on the specified `template`
-//    - deactivates all of the existing PublishedTemplates in the `versions` array
-//    - creates a new PublishedTemplate that is active and adds it to the `versions` array
-export const publish = async (
+//    - deactivates all of the existing VersionedTemplates in the `versions` array
+//    - creates a new VersionedTemplate that is active and adds it to the `versions` array
+export const generateVersion = async (
   template: Template,
-  versions: PublishedTemplate[],
-  publisherId: number,
+  versions: VersionedTemplate[],
+  versionerId: number,
   comment = '',
+  versionType = VersionType.Draft,
 ): Promise<PublishResult> => {
   // If the template has no idea then it has not yet been saved so throw an error
   if (!template.id) {
@@ -34,39 +36,45 @@ export const publish = async (
   }
 
   // Intialize the new Version
-  const publishedTemplate = new PublishedTemplate(
-    template.id,
-    newVersion,
-    template.name,
-    template.affiliationId,
-    publisherId,
-    template.visibility,
+  const versionedTemplate = new VersionedTemplate({
+    version: newVersion,
+    templateId: template.id,
+    name: template.name,
+    description: template.description,
+    ownerId: template.ownerId,
+    versionedById: versionerId,
+    visibility: template.visibility,
+    bestPactice: template.bestPractice,
+    createdById: versionerId,
+    versionType,
     comment,
-    true,
-  );
+    active: true,
+});
 
-  if (publishedTemplate) {
+  if (versionedTemplate) {
     // Deactivate the old versions
     versions.forEach((prior) => prior.active = false );
 
     // Bump the version number and add the new version
     template.currentVersion = newVersion;
-    versions.push(publishedTemplate);
+    versions.push(versionedTemplate);
   }
   return { template, versions };
 }
 
 // Make a copy of the specified Template or PublishedTemplate
 export const clone = (
-  ownerId: number,
-  affiliationId: string,
-  template: Template | PublishedTemplate
+  clonedById: number,
+  newOwnerId: string,
+  template: Template | VersionedTemplate
 ): Template => {
-  const templateCopy = new Template(
-    `Copy of ${template.name}`,
-    affiliationId,
-    ownerId,
-  );
+  const templateCopy = new Template({
+    name: `Copy of ${template.name}`,
+    description: template.description,
+    ownerId: newOwnerId,
+  });
+  // Fo some reason this doesn't work when passing in the constructor.
+  templateCopy.createdById = clonedById;
 
   // TODO: Copy all of the Sections and Questions
 

@@ -45,8 +45,10 @@ export const typeDefs = gql`
 
     "The name/title of the template"
     name: String!
+    "A description of the purpose of the template"
+    description: String
     "The owner of the Template"
-    owner: Affiliation
+    owner: Affiliation!
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
     visibility: Visibility!
     "Whether or not this Template is designated as a 'Best Practice' template"

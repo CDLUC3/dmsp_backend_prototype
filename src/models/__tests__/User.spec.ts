@@ -1,65 +1,72 @@
 import 'jest-expect-message';
 import { User, UserRole } from '../User';
-import bcrypt from 'bcryptjs';
+import bcrypt, { hash } from 'bcryptjs';
 import casual from 'casual';
 import { MySQLDataSource } from '../../datasources/mySQLDataSource';
+import mockLogger from '../../__tests__/mockLogger';
+import { buildContext } from '../../context';
+import { mockToken } from '../../__mocks__/context';
+import { MySqlModel } from '../MySqlModel';
 
-jest.mock('../../datasources/mySQLDataSource', () => {
-  return {
-    __esModule: true,
-    MySQLDataSource: {
-      getInstance: jest.fn().mockReturnValue({
-        query: jest.fn(), // Initialize the query mock function
-      }),
-    },
-  };
-});
+jest.mock('../../context.ts');
+jest.mock('../MySqlModel');
 
-jest.mock('../../logger', () => ({
-  __esModule: true,
-  formatLogMessage: jest.fn()
-}))
-
-const userProps = {
-  email: 'test.user@example.com',
-  password: 'abcdefghijklmnop',
-}
-const mockUser = { id: 1, email: 'test@test.com', name: 'John Doe' };
-let mockQuery: jest.MockedFunction<typeof MySQLDataSource.prototype.query>;
+let logger;
+let mockDebug;
+let mockError;
+let mockContext;
+let mockQuery;
+let mockUser;
 
 describe('constructor', () => {
   it('should set the expected properties', () => {
     const props = {
       id: casual.integer(1, 99999),
-      email: 'test@test.com',
-      password: 'password123',
+      email: casual.email,
+      password: casual.password,
+      affiliationId: casual.url,
       role: UserRole.Admin,
       givenName: casual.first_name,
       surName: casual.last_name,
       orcid: '0000-0000-0000-000X',
     }
 
-    const user = new User({ ...userProps, ...props });
+    const user = new User(props);
     expect(user.id).toEqual(props.id);
     expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
+    expect(user.affiliationId).toEqual(props.affiliationId);
     expect(user.givenName).toEqual(props.givenName);
     expect(user.surName).toEqual(props.surName);
     expect(user.orcid).toEqual(props.orcid);
     expect(user.role).toEqual(props.role);
   });
 
+  it('should set the defaults properly', () => {
+    const props = { email: casual.email, password: casual.password };
+    const user = new User(props);
+    expect(user.id).toBeFalsy();
+    expect(user.email).toEqual(props.email);
+    expect(user.password).toEqual(props.password);
+    expect(user.affiliationId).toBeFalsy();
+    expect(user.givenName).toBeFalsy();
+    expect(user.surName).toBeFalsy();
+    expect(user.orcid).toBeFalsy();
+    expect(user.role).toEqual(UserRole.Researcher);
+  });
+
   it('should ignore unexpected properties', () => {
-    const user = new User({ ...userProps, test: 'blah' });
-    expect(user.email).toEqual(userProps.email);
-    expect(user.password).toEqual(userProps.password);
+    const props = { email: casual.email, password: casual.password };
+    const user = new User({ ...props, test: 'blah' });
+    expect(user.email).toEqual(props.email);
+    expect(user.password).toEqual(props.password);
     expect(user['test']).toBeUndefined();
   });
 });
 
 describe('cleanup standardizes the format of properties', () => {
   it('should properly format the properties', () => {
-    const user = new User({ email: 'TESTer@exaMPle.cOm', givenName: ' Test ', surName: '  user  ' });
+    const user = new User({ email: 'TESTer%40exaMPle.cOm', givenName: ' Test ', surName: '  user  ' });
     user.cleanup();
     expect(user.email).toEqual('TESTer@exaMPle.cOm');
     expect(user.givenName).toEqual('Test');
@@ -69,88 +76,73 @@ describe('cleanup standardizes the format of properties', () => {
 });
 
 describe('validate a new User', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
+    mockUser = new User({
+      email: casual.email,
+      password: 'abcd3Fgh!JklM_m0$',
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      affiliationId: casual.url,
+      role: UserRole.Researcher
     });
 
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-  });
+    logger = mockLogger;
+    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
+    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
+    mockQuery = MySqlModel.query as jest.MockedFunction<typeof MySqlModel.query>;
+  })
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
   it('should return true when we have a new user with a valid password', async () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: '@bcd3fGhijklmnop',
-    });
-
-    const isValid = await user.validateNewUser();
-    expect(isValid).toBe(true);
+    expect(await mockUser.isValid()).toBe(true);
   });
 
   it('should return false when we have a new user with an invalid password', async () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: 'abcde',
-    });
-
-    const isValid = await user.validateNewUser();
-    expect(isValid).toBe(false);
+    mockQuery.mockResolvedValueOnce(null);
+    mockUser.password = 'abcde';
+    expect(await mockUser.isValid()).toBe(false);
+    expect(mockUser.errors.length).toBe(1);
+    expect(mockUser.errors[0].includes('Invalid password format')).toBe(true);
   });
 
   it('should return false when we have an existing user', async () => {
-    mockQuery.mockResolvedValueOnce([mockUser, []]);
-
-    const user = new User({
-      email: 'test@test.com',
-      password: '@bcd3fGhijklmnop',
-    });
-
-    const isValid = await user.validateNewUser();
-    expect(isValid).toBe(false);
+    mockQuery.mockResolvedValueOnce([mockUser]);
+    expect(await mockUser.isValid()).toBe(false);
+    expect(mockUser.errors.length).toBe(1);
+    expect(mockUser.errors[0].includes('Email address already in use')).toBe(true);
   });
 
   it('should return false when we have a new user without a valid email format', async () => {
-    mockQuery.mockResolvedValueOnce([mockUser, []]);
+    mockQuery.mockResolvedValueOnce(null);
+    mockUser.email = 'abcde';
+    expect(await mockUser.isValid()).toBe(false);
+    expect(mockUser.errors.length).toBe(1);
+    expect(mockUser.errors[0].includes('Invalid email address')).toBe(true);
+  });
 
-    const user = new User({
-      email: 'test.user',
-      password: '@bcd3fGhijklmnop',
-    });
+  it('should return false when we have a new user without an Affiliation', async () => {
+    mockQuery.mockResolvedValueOnce(null);
+    mockUser.affiliationId = null;
+    expect(await mockUser.isValid()).toBe(false);
+    expect(mockUser.errors.length).toBe(1);
+    expect(mockUser.errors[0].includes('Affiliation')).toBe(true);
+  });
 
-    const isValid = await user.validateNewUser();
-    expect(isValid).toBe(false);
+  it('should return false when we have a new user without a role', async () => {
+    mockQuery.mockResolvedValueOnce(null);
+    mockUser.role = null;
+    expect(await mockUser.isValid()).toBe(false);
+    expect(mockUser.errors.length).toBe(1);
+    expect(mockUser.errors[0].includes('Role')).toBe(true);
   });
 });
 
-describe('password validation', () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
+describe('Password validation', () => {
   it('should return true for a valid passwords', () => {
     expect(new User({ password: 'AbcdefgH1!' }).validatePassword()).toBe(true);
     expect(new User({ password: 'AbcdefgH1@#$%^&*-_+=?' }).validatePassword()).toBe(true);
@@ -168,89 +160,49 @@ describe('password validation', () => {
   });
 
   it('should fail for a new user with a password that is too short', async () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: 'abcde',
-    });
-
-    await user.validateNewUser();
-
+    const user = new User({ email: 'test.user@example.com', password: 'abcde' });
+    expect(user.validatePassword()).toBe(false);
     expect(user.errors.length === 1);
     expect(user.errors[0].includes('Invalid password'));
   });
 
   it('should fail for a new user if the password does not contain at least 1 uppercase letter', async () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
     const user = new User({ password: 'abcd3fgh1jk' });
-
-    await user.validateNewUser();
-
+    expect(user.validatePassword()).toBe(false);
     expect(user.errors.length === 1);
     expect(user.errors[0].includes('Invalid password'));
   });
 
 
   it('should return error if password is missing', async () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: null,
-    });
-
-    await user.validateNewUser();
-
+    const user = new User({ email: 'test.user@example.com', password: null });
+    expect(user.validatePassword()).toBe(false);
     expect(user.errors.length === 1);
     expect(user.errors[0].includes('Password is required'));
   });
 
   it('should fail for a new user if the password does not contain at least 1 lowercase letter', async () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: 'ABCD3FGH1JKL',
-    });
-
-    await user.validateNewUser();
-
+    const user = new User({ email: 'test.user@example.com', password: 'ABCD3FGH1JKL' });
+    expect(user.validatePassword()).toBe(false);
     expect(user.errors.length === 1);
     expect(user.errors[0].includes('Invalid password'));
   });
 
   it('should fail for a new user if the password does not contain at least 1 number letter', async () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: 'Abcd$Fgh#jkL',
-    });
-
-    await user.validateNewUser();
+    const user = new User({ email: 'test.user@example.com', password: 'Abcd$Fgh#jkL' });
+    expect(user.validatePassword()).toBe(false);
     expect(user.errors.length === 1);
     expect(user.errors[0].includes('Invalid password'));
   });
 
   it('should fail for a new user if the password does not contain at least 1 special character', async () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: 'Abcd3Fgh1jkL',
-    });
-
-    await user.validateNewUser();
-
+    const user = new User({ email: 'test.user@example.com', password: 'Abcd3Fgh1jkL' });
+    expect(user.validatePassword()).toBe(false);
     expect(user.errors.length === 1);
     expect(user.errors[0].includes('Invalid password'));
   });
 
   it('should fail for a new user if it contains special characters that are not allowed', () => {
-    mockQuery.mockResolvedValueOnce([{}, []]);
-
     const badChars = ['(', ')', '{', '[', '}', ']', '|', '\\', ':', ';', '"', "'", '<', ',', '>', '.', '/'];
     for (const char of badChars) {
       const valid = new User({ password: `Abcd3Fgh1jkL${char}`}).validatePassword();
@@ -260,26 +212,26 @@ describe('password validation', () => {
 });
 
 describe('login()', () => {
+  let bcryptCompare;
+  let bcryptSalt;
+  let bcryptPassword;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    const bcryptCompare = jest.fn().mockResolvedValue(true);
+    bcryptCompare = jest.fn().mockResolvedValue(true);
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
-    const bcryptSalt = jest.fn().mockReturnValue('abc');
+    bcryptSalt = jest.fn().mockReturnValue('abc');
     (bcrypt.genSalt as jest.Mock) = bcryptSalt;
 
-    const bcryptPassword = jest.fn().mockReturnValue('test.user@example.com');
+    bcryptPassword = jest.fn().mockReturnValue('test.user@example.com');
     (bcrypt.hash as jest.Mock) = bcryptPassword;
 
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
+    logger = mockLogger;
+    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
+    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
+    mockQuery = MySqlModel.query as jest.MockedFunction<typeof MySqlModel.query>;
   });
 
   afterEach(() => {
@@ -287,17 +239,21 @@ describe('login()', () => {
   });
 
   it('should not return null if user exists and its password matches with encrypted one', async () => {
-    const user = new User({ email: 'testFOOO@test.com', password: '@bcd3fGhij12klmnop' });
+    const user = new User({
+      email: 'testFOOO@test.com',
+      password: '@bcd3fGhij12klmnop',
+    });
     const hashedPwd = await user.hashPassword('@bcd3fGhij12klmnop')
-
-    mockQuery.mockResolvedValueOnce([{ id: 1, email: 'testFOOO@test.com', password: hashedPwd }, []]);
+    mockQuery.mockResolvedValueOnce([user]);
     const response = await user.login();
     expect(response).not.toBeNull();
+    expect(mockDebug).toHaveBeenCalledTimes(1);
+    expect(mockError).toHaveBeenCalledTimes(0);
   });
 
   it('should return an error when there is an invalid email', async () => {
     const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
-    mockQuery.mockResolvedValueOnce([mockedUser, []]);
+    mockQuery.mockResolvedValueOnce([mockedUser]);
 
     const user = new User({
       email: 'example.com',
@@ -311,7 +267,7 @@ describe('login()', () => {
 
   it('should return an error when there is an invalid password', async () => {
     const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
-    mockQuery.mockResolvedValueOnce([mockedUser, []]);
+    mockQuery.mockResolvedValueOnce([mockedUser]);
 
     const user = new User({
       email: 'test.user@example.com',
@@ -324,15 +280,14 @@ describe('login()', () => {
   });
 
   it('should return null when findEmail() throws an error', async () => {
-    mockQuery.mockRejectedValueOnce('Something went wrong')
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: 'abc',
+    mockQuery.mockImplementation(() => {
+      throw new Error('Testing error handler');
     });
-
+    const user = new User({ email: 'test.user@example.com', password: 'AbcdefgH1!' });
     const response = await user.login();
     expect(response).toBeNull();
+    expect(mockDebug).toHaveBeenCalledTimes(1);
+    expect(mockError).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -417,6 +372,7 @@ describe('register()', () => {
     });
 
     const response = await user.register();
-    expect(response).toBeNull();
+    expect(response).toBeInstanceOf(User);
+    expect((response as User).errors.length > 0).toBe(true);
   });
 });

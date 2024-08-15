@@ -1,10 +1,5 @@
 // Convert a string into an Array (return the default or an empty array if it is null or undefined)
 //
-
-import { Logger } from "pino";
-import { MyContext } from "../context";
-import { MySQLDataSource } from "../datasources/mySQLDataSource";
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function stringToArray(array: any, delimiter = ' ', defaultResponse: string[] = []): string[] {
   if (typeof array === 'string') {
@@ -26,10 +21,25 @@ export function capitalizeFirstLetter(str: string): string {
   return '';
 }
 
+// Date validation
+export function validateDate(date: string): boolean {
+  return date !== null && !isNaN(new Date(date).getTime());
+}
+
 // Email address validation
 export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
+}
+
+// URL validation
+export function validateURL(url: string): boolean {
+  try {
+    new URL(url);
+  } catch {
+    return false;
+  }
+  return true;
 }
 
 // Helper that will log and error and terminate the Node process if a critical env variable is missing.
@@ -55,19 +65,4 @@ export function incrementVersionNumber(version: string): string {
   }
   // If no numeric part is found, return the original version string
   return version;
-}
-
-// This function should only be used when the caller is running a query from outside the
-// Apollo Server GraphQL context. e.g. when calling signup or register
-export function buildContext(logger: Logger): MyContext {
-  return {
-    token: '',
-    logger,
-    user: null,
-    dataSources: {
-      dmphubAPIDataSource: null,
-      dmptoolAPIDataSource: null,
-      sqlDataSource: MySQLDataSource.getInstance(),
-    }
-  }
 }

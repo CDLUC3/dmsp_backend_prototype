@@ -22,7 +22,7 @@ export const typeDefs = gql`
     affiliation: Affiliation
     orcid: Orcid
     created: DateTimeISO!
-    modified: DateTimeISO!
+    modified: DateTimeISO
 
     "The user who created the user (created via registration if null)"
     createdById: Int

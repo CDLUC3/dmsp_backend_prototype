@@ -66,8 +66,8 @@ class Authorizer extends RESTDataSource {
 export class DMPToolAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
-  private token: JWTToken;
-  private authorizer: Authorizer;
+  protected token: JWTToken;
+  protected authorizer: Authorizer;
 
   constructor(options: { cache: KeyValueCache, token: JWTToken }) {
     super(options);

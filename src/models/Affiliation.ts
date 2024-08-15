@@ -1,7 +1,5 @@
-import { logger, formatLogMessage } from "../logger";
-import { DMPToolAPI } from "../datasources/dmptoolAPI";
+import { formatLogMessage } from "../logger";
 import { MyContext } from "../context";
-// import { Affiliation } from "../types";
 
 // Represents an Institution, Organization or Company
 export class Affiliation {
@@ -149,6 +147,11 @@ export class AffiliationLocale {
   }
 }
 
+export interface AffiliationSearchCriteria {
+  name: string;
+  funderOnly: boolean;
+}
+
 // A pared down version of the full Affiliation object. This type is returned by
 // our index searches
 export class AffiliationSearch {
@@ -187,7 +190,8 @@ export class AffiliationSearch {
     }
   }
 
-  static async search(context: MyContext, options: { name: string, funderOnly: boolean }): Promise<AffiliationSearch[] | null> {
+  // Search for Affiliations that match the term and the funder flag
+  static async search(context: MyContext, options: AffiliationSearchCriteria): Promise<AffiliationSearch[] | null> {
     const { logger, dataSources } = context;
     const logMessage = `Resolving query affiliations(options: '${options}')`;
 

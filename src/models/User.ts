@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { buildContext, capitalizeFirstLetter, validateEmail } from '../utils/helpers';
+import { capitalizeFirstLetter, validateEmail, validateURL } from '../utils/helpers';
+import { buildContext } from '../context';
 import { Falsey } from 'oauth2-server';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
@@ -50,9 +51,12 @@ export class User extends MySqlModel {
   }
 
   // Verify that the email does not already exist and that the required fields have values
-  async validateNewUser(): Promise<boolean> {
+  async isValid(): Promise<boolean> {
+    super.isValid();
+
     // check if email is already taken
-    const existing = await User.findByEmail('User.validateNewUser', buildContext(logger), this.email);
+    const context = await buildContext(logger);
+    const existing = await User.findByEmail('User.isValid', context, this.email);
 
     if (existing) {
       this.errors.push('Email address already in use');
@@ -65,9 +69,14 @@ export class User extends MySqlModel {
       } else {
         this.validatePassword();
       }
+      if (!validateURL(this.affiliationId)) {
+        this.errors.push('Affiliation can\'t be blank');
+      }
+      if (!this.role) {
+        this.errors.push('Role can\'t be blank');
+      }
     }
-
-    return this.errors.length === 0;
+    return this.errors.length <= 0;
   }
 
   // Validate the password format
@@ -102,7 +111,7 @@ export class User extends MySqlModel {
   }
 
   // Find the User by their Id
-  static async findById(reference: string, context: MyContext, userId: number) {
+  static async findById(reference: string, context: MyContext, userId: number): Promise<User | null> {
     const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
                  password FROM users WHERE id = ?';
     const results = await User.query(context, sql, [userId.toString()], reference);
@@ -110,11 +119,17 @@ export class User extends MySqlModel {
   }
 
   // Find the User by their email address
-  static async findByEmail(reference: string, context: MyContext, email: string) {
+  static async findByEmail(reference: string, context: MyContext, email: string): Promise<User | null> {
     const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
                  FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  }
+
+  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[] | null> {
+    const sql = 'SELECT id, givenName, surName, email, role, affiliationId, created, modified \
+                 FROM users WHERE affiliationId = ? ORDER BY created DESC';
+    return await User.query(context, sql, [affiliationId], reference);
   }
 
   // Login making sure that the passwords match
@@ -128,13 +143,14 @@ export class User extends MySqlModel {
 
     try {
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
-      const user = await User.findByEmail('User.login', buildContext(logger), email) || null;
+      const context = await buildContext(logger);
+      const user = await User.findByEmail('User.login', context, email) || null;
       if (user && await bcrypt.compare(this.password, user?.password)) {
         return user;
       }
       return null;
     } catch (err) {
-      formatLogMessage(logger, { err })?.error(`Error logging in User: ${this.email}`);
+      formatLogMessage(logger).error(`Error logging in User: ${this.email} - ${err.message}`);
       return null;
     }
   }
@@ -142,7 +158,7 @@ export class User extends MySqlModel {
   // Register the User if the data is valid
   async register(): Promise<User | Falsey> {
     this.cleanup();
-    await this.validateNewUser();
+    await this.isValid();
 
     if (this.errors.length === 0) {
       const passwordHash = await this.hashPassword(this.password);
@@ -156,12 +172,13 @@ export class User extends MySqlModel {
         const result = await mysql.query(sql, vals);
 
         logger.debug(`User was created: ${this.email}, id: ${result.insertId}`);
-        const user = await User.findById('User.register', buildContext(logger), result.insertId);
+        const context = await buildContext(logger);
+        const user = await User.findById('User.register', context, result.insertId);
         // Blank out the password when returning so as not to expose it
         user.password = null;
         return user;
       } catch (err) {
-        formatLogMessage(logger, { err })?.error(`Error creating User: ${this.email}`);
+        formatLogMessage(logger)?.error(`Error creating User: ${this.email} - ${err.message}`);
         return null;
       }
     } else {

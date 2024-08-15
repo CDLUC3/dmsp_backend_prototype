@@ -31,28 +31,44 @@ function handleMutationError(logger, args) {
 export const resolvers: Resolvers = {
   Query: {
     // returns an array of all contributor roles
-    contributorRoles: async (_, __, context: MyContext) => {
+    contributorRoles: async (_, __, context: MyContext): Promise<ContributorRole[] | null> => {
       return await ContributorRole.all('contributorRoles resolver', context);
     },
 
     // returns a contributor role that matches the specified ID
-    contributorRoleById: async (_, { contributorRoleId }, context: MyContext) => {
+    contributorRoleById: async (_, { contributorRoleId }, context: MyContext): Promise<ContributorRole | null> => {
       return await ContributorRole.findById('contributorRoleById resolver', context, contributorRoleId);
     },
 
     // returns the contributor role that matches the specified URL
-    contributorRoleByURL: async (_, { contributorRoleURL }, context: MyContext) => {
+    contributorRoleByURL: async (_, { contributorRoleURL }, context: MyContext): Promise<ContributorRole | null> => {
       return await ContributorRole.findByURL('contributorRoleByURL resolver', context, contributorRoleURL);
     },
   },
 
   Mutation: {
     // add a new ContributorRole
-    addContributorRole: async (_, options, context) => {
-      // const contributorRole = new ContributorRole(options);
-      // const inserted = await contributorRole.create('addContributorRole mutation', context);
-      // return await ContributorRole.findById('addContributorRole mutation', context, inserted?.id);
-      return null;
+    addContributorRole: async (_, { url, label, displayOrder, description }, { logger, dataSources }) => {
+      const logArgs = { url, label, displayOrder, description };
+      const logMessage = `Resolving mutation addContributorRole`;
+
+      try {
+        const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
+        const resp = await dataSources.sqlDataSource.query(sql, [url, label, description, displayOrder]);
+
+        formatLogMessage(logger, logArgs).debug(logMessage);
+
+        const contributor = await fetchContributorRole(dataSources, resp.id);
+
+        return {
+          code: 201,
+          success: true,
+          message: `Successfully added ContributorRole ${resp.id}`,
+          contributorRole: contributor
+        };
+      } catch (err) {
+        return handleMutationError(logger, { err, ...logArgs });
+      }
     },
     updateContributorRole: async (_, { id, url, label, displayOrder, description }, { logger, dataSources }) => {
       const logArgs = { id, url, label, displayOrder, description };

@@ -1,12 +1,9 @@
 import { Resolvers } from "../types";
-import { logger, formatLogMessage } from "../logger";
 import { Template } from "../models/Template";
-import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Affiliation } from "../models/Affiliation";
+import { TemplateCollaborator } from "../models/Collaborator";
 
-// TODO: Convert this to use the MySQL DataSource that is passed in via the Apollo server
-//       context once we are happy with the schema.
 export const resolvers: Resolvers = {
   Query: {
     // Get the Templates that belong to the current user's affiliation (user must be an Admin)
@@ -24,8 +21,13 @@ export const resolvers: Resolvers = {
 
   Template: {
     // Chained resolver to fetch the Affiliation info for the user
-    owner: async (parent: Template, _, context: MyContext) => {
+    owner: async (parent: Template, _, context: MyContext): Promise<Affiliation | null> => {
       return Affiliation.findById('Chained Template.owner', context, parent.ownerId);
     },
+
+    // Chained resolver to fetch the TemplateCollaborators
+    collaborators: async (parent: Template, _, context: MyContext): Promise<TemplateCollaborator[] | null> => {
+      return TemplateCollaborator.findByTemplateId('Chained Template.collaborators', context, parent.id);
+    }
   },
 };

@@ -5,7 +5,7 @@ import { User } from './User';
 import { oauthConfig } from '../config/oauthConfig';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { logger, formatLogMessage } from '../logger';
-import { buildContext } from '../utils/helpers';
+import { buildContext } from '../context';
 
 export class OAuthRefreshToken implements RefreshToken {
   private mysql: MySQLDataSource;
@@ -38,14 +38,15 @@ export class OAuthRefreshToken implements RefreshToken {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = (rows as any[])[0];
       const client = await OAuthClient.findById(row.clientId);
-      const user = await User.findById('OAuthRefreshToken.findOne', buildContext(logger), row.userId);
+      const context = await buildContext(logger);
+      const user = await User.findById('OAuthRefreshToken.findOne', context, row.userId);
       if (!client || !user) {
         return null;
       }
       return new OAuthRefreshToken({
         ...OAuthRefreshToken._SqlFieldsToProperties(row),
-        client: await OAuthClient.findById(row.clientId),
-        user: await User.findById('OAuthRefreshToken.findOne', buildContext(logger), row.userId),
+        client,
+        user,
       });
     } catch(err) {
       formatLogMessage(logger, { err })

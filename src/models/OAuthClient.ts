@@ -1,11 +1,11 @@
 import { Client } from 'oauth2-server';
 import { v6 as uuidv6 } from 'uuid';
 import uuidRandom from 'uuid-random';
-import { buildContext, stringToArray } from '../utils/helpers';
+import { buildContext } from '../context';
+import { stringToArray } from '../utils/helpers';
 import { User } from './User';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { logger, formatLogMessage } from '../logger';
-import { MyContext } from '../context';
 
 export class OAuthClient implements Client {
   private mysql: MySQLDataSource;
@@ -40,7 +40,8 @@ export class OAuthClient implements Client {
     const sql = 'SELECT * FROM oauthClients WHERE clientId = ? AND clientSecret = ?';
     try {
       const [rows] = await mysql.query(sql, [clientId, clientSecret]);
-      const user = await User.findById('OAuthClient.findOne', buildContext(logger), rows[0].userId);
+      const context = await buildContext(logger);
+      const user = await User.findById('OAuthClient.findOne', context, rows[0].userId);
 
       return rows.length === 0 ? null : new OAuthClient({
         ...OAuthClient._SqlFieldsToProperties(rows[0]),
@@ -58,7 +59,8 @@ export class OAuthClient implements Client {
     const sql = 'SELECT * FROM oauthClients WHERE id = ?';
     try {
       const [rows] = await mysql.query(sql, [oauthClientId]);
-      const user = await User.findById('OAuthClient.findById', buildContext(logger), rows[0].userId);
+      const context = await buildContext(logger);
+      const user = await User.findById('OAuthClient.findById', context, rows[0].userId);
 
       return rows.length === 0 ? null : new OAuthClient({
         ...OAuthClient._SqlFieldsToProperties(rows[0]),

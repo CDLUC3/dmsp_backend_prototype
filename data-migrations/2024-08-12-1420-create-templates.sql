@@ -1,5 +1,6 @@
 CREATE TABLE `templates` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `sourceTemplateId` INT,
   `name` TEXT NOT NULL,
   `ownerId` VARCHAR(255) NOT NULL,
   `visibility` VARCHAR(16) NOT NULL,

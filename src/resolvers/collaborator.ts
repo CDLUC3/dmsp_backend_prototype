@@ -4,8 +4,6 @@ import  { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
 
-// TODO: Convert this to use the MySQL DataSource that is passed in via the Apollo server
-//       context once we are happy with the schema.
 export const resolvers: Resolvers = {
   Query: {
     // Get all of the Users that belong to another affiliation that can edit the Template
@@ -15,16 +13,18 @@ export const resolvers: Resolvers = {
   },
 
   TemplateCollaborator: {
-    template: async (parent: TemplateCollaborator, _, context: MyContext) => {
+    // Chained resolver to fetch the Template info
+    template: async (parent: TemplateCollaborator, _, context: MyContext): Promise<Template | null> => {
       return Template.findById('Chained TemplateCollaborator.template', context, parent.templateId);
     },
 
     // Chained resolver to fetch the Affiliation info for the user
-    invitedBy: async (parent: TemplateCollaborator, _, context: MyContext) => {
+    invitedBy: async (parent: TemplateCollaborator, _, context: MyContext): Promise<User | null> => {
       return User.findById('Chained TemplateCollaborator.invitedBy', context, parent.invitedById);
     },
 
-    user: async (parent: TemplateCollaborator, _, context: MyContext) => {
+    // Chained resolver to fetch the User record
+    user: async (parent: TemplateCollaborator, _, context: MyContext): Promise<User | null> => {
       return User.findById('Chained TemplateController.user', context, parent.userId);
     },
   },

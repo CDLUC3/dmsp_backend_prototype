@@ -47,10 +47,14 @@ export const typeDefs = gql`
   type Template {
     "The unique identifer for the template"
     id: Int!
+    "The template that this one was derived from"
+    sourceTemplateId: Int
     "The name/title of the template"
     name: String!
+    "A description of the purpose of the template"
+    description: String
     "The affiliation that the template belongs to"
-    owner: Affiliation
+    owner: Affiliation!
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
     visibility: Visibility!
     "The current published version"
@@ -59,6 +63,9 @@ export const typeDefs = gql`
     isDirty: Boolean!
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
+
+    "Users from different affiliations who have been invited to collaborate on this template"
+    collaborators: [TemplateCollaborator!]
 
     "The user who created the Template"
     createdById: Int

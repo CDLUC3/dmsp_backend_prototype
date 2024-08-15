@@ -1,24 +1,23 @@
 import casual from 'casual';
-import { Template, PublishedTemplate, Visibility } from "../Template";
+import { Template, Visibility } from "../Template";
 
 describe('Template', () => {
   let name;
-  let affiliationId;
+  let createdById;
   let ownerId;
   let template;
 
   beforeEach(() => {
     name = casual.title;
-    affiliationId = casual.url;
-    ownerId = casual.integer(1, 999);
+    ownerId = casual.url;
+    createdById = casual.integer(1, 999);
 
-    template = new Template(name, affiliationId, ownerId);
+    template = new Template({ name, ownerId, createdById });
   });
 
   it('constructor should initialize as expected', () => {
     expect(template.id).toBeFalsy();
     expect(template.name).toEqual(name);
-    expect(template.affiliationId).toEqual(affiliationId);
     expect(template.ownerId).toEqual(ownerId);
     expect(template.visibility).toEqual(Visibility.Private);
     expect(template.created).toBeTruthy();
@@ -27,27 +26,29 @@ describe('Template', () => {
     expect(template.isDirty).toBeTruthy();
     expect(template.errors).toEqual([]);
   });
-});
 
-describe('PublishedTemplate', () => {
-  it('constructor should initialize as expected', () => {
-    const templateId = casual.integer(1, 999);
-    const affiliationId = casual.url;
-    const version = casual.word;
-    const name = casual.sentence;
-    const publishedById = casual.integer(1, 999);
+  it('isValid returns true when the record is valid', async () => {
+    expect(await template.isValid()).toBe(true);
+  });
 
-    const publishedTemplate = new PublishedTemplate(templateId, version, name, affiliationId, publishedById);
+  it('isValid returns false if the ownerId is null', async () => {
+    template.ownerId = null;
+    expect(await template.isValid()).toBe(false);
+    expect(template.errors.length).toBe(1);
+    expect(template.errors[0].includes('Owner')).toBe(true);
+  });
 
-    expect(publishedTemplate.id).toBeFalsy();
-    expect(publishedTemplate.templateId).toEqual(templateId);
-    expect(publishedTemplate.version).toEqual(version);
-    expect(publishedTemplate.name).toEqual(name);
-    expect(publishedTemplate.affiliationId).toEqual(affiliationId);
-    expect(publishedTemplate.publishedById).toEqual(publishedById);
-    expect(publishedTemplate.visibility).toEqual(Visibility.Private);
-    expect(publishedTemplate.created).toBeTruthy();
-    expect(publishedTemplate.active).toBe(false);
-    expect(publishedTemplate.comment).toEqual('');
+  it('isValid returns false if the name is null', async () => {
+    template.name = null;
+    expect(await template.isValid()).toBe(false);
+    expect(template.errors.length).toBe(1);
+    expect(template.errors[0].includes('Name')).toBe(true);
+  });
+
+  it('isValid returns false if the name is blank', async () => {
+    template.name = '';
+    expect(await template.isValid()).toBe(false);
+    expect(template.errors.length).toBe(1);
+    expect(template.errors[0].includes('Name')).toBe(true);
   });
 });
