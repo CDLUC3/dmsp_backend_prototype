@@ -62,8 +62,8 @@ export const mockDataSources = {
   sqlDataSource: mockedMysqlInstance,
 }
 
-
-export async function buildContext(logger: Logger, cache: any = null, token: JWTToken = null): Promise<MyContext> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+export async function buildContext(logger: Logger, _cache: any = null, token: JWTToken = null): Promise<MyContext> {
   return {
     token: token,
     logger: logger || mockLogger,

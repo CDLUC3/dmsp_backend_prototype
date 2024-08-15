@@ -1,11 +1,9 @@
 import 'jest-expect-message';
 import { User, UserRole } from '../User';
-import bcrypt, { hash } from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { MySQLDataSource } from '../../datasources/mySQLDataSource';
 import mockLogger from '../../__tests__/mockLogger';
-import { buildContext } from '../../context';
-import { mockToken } from '../../__mocks__/context';
 import { MySqlModel } from '../MySqlModel';
 
 jest.mock('../../context.ts');
@@ -14,7 +12,6 @@ jest.mock('../MySqlModel');
 let logger;
 let mockDebug;
 let mockError;
-let mockContext;
 let mockQuery;
 let mockUser;
 
@@ -243,7 +240,6 @@ describe('login()', () => {
       email: 'testFOOO@test.com',
       password: '@bcd3fGhij12klmnop',
     });
-    const hashedPwd = await user.hashPassword('@bcd3fGhij12klmnop')
     mockQuery.mockResolvedValueOnce([user]);
     const response = await user.login();
     expect(response).not.toBeNull();
