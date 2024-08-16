@@ -12,10 +12,10 @@ export class Template extends MySqlModel {
   public sourceTemplateId?: number;
   public name: string;
   public description?: string;
-  public ownerId: string;
+  public ownerId?: string;
   public createdById: number;
   public modifiedById?: number;
-  public visibility?: Visibility;
+  public visibility: Visibility;
   public currentVersion?: string;
   public isDirty: boolean;
   public bestPractice: boolean;

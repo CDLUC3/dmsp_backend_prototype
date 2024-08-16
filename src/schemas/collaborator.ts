@@ -15,7 +15,7 @@ export const typeDefs = gql`
 
   "A user that that belongs to a different affiliation that can edit the Template"
   type TemplateCollaborator {
-    id: Int!
+    id: Int
     "The template the collaborator may edit"
     template: Template
     "The collaborator's email"
@@ -25,11 +25,11 @@ export const typeDefs = gql`
     "The user who invited the collaborator"
     invitedBy: User
     "The timestamp when the collaborator was added"
-    created: DateTimeISO!
+    created: DateTimeISO
     "The user who created the collaborator"
     createdById: Int
     "The timestamp when the collaborator was added"
-    modified: DateTimeISO!
+    modified: DateTimeISO
     "The user who last modified the collaborator"
     modifiedById: Int
   }

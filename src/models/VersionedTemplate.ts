@@ -26,7 +26,7 @@ export class VersionedTemplate extends MySqlModel {
   public bestPractice: boolean;
 
   public created: string;
-  public createdById: number;
+  public createdById?: number;
   public modified?: string;
   public modifiedById?: number;
 

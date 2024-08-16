@@ -46,7 +46,7 @@ export const typeDefs = gql`
   "A Template used to create DMPs"
   type Template {
     "The unique identifer for the template"
-    id: Int!
+    id: Int
     "The template that this one was derived from"
     sourceTemplateId: Int
     "The name/title of the template"
@@ -54,7 +54,7 @@ export const typeDefs = gql`
     "A description of the purpose of the template"
     description: String
     "The affiliation that the template belongs to"
-    owner: Affiliation!
+    owner: Affiliation
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
     visibility: Visibility!
     "The current published version"
@@ -70,10 +70,10 @@ export const typeDefs = gql`
     "The user who created the Template"
     createdById: Int
     "The timestamp when the template was created"
-    created: DateTimeISO!
+    created: DateTimeISO
     "The user who modified the Template"
     modifiedById: Int
     "The timestamp when the template was modifed"
-    modified: DateTimeISO!
+    modified: DateTimeISO
   }
 `;

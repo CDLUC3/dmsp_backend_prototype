@@ -10,7 +10,7 @@ export class Collaborator extends MySqlModel {
   constructor(
     public email: string,
     public invitedById: number,
-    public createdById: number,
+    public createdById?: number,
     public modifiedById?: number,
     public userId?: number,
 
@@ -41,7 +41,7 @@ export class TemplateCollaborator extends Collaborator {
   public id: number;
   public email: string;
   public invitedById: number;
-  public createdById: number;
+  public createdById?: number;
   public modifiedById?: number;
   public userId?: number;
 

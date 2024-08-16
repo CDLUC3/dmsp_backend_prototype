@@ -8,10 +8,10 @@ export class ContributorRole extends MySqlModel {
   public url: string;
   public label: string;
   public description?: string;
-  public created: string = new Date().toUTCString();
-  public createdById: number;
-  public modified: string;
-  public modifiedById: number;
+  public created: string;
+  public createdById?: number;
+  public modified?: string;
+  public modifiedById?: number;
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
