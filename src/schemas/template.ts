@@ -45,8 +45,17 @@ export const typeDefs = gql`
 
   "A Template used to create DMPs"
   type Template {
-    "The unique identifer for the template"
+    "The unique identifer for the Object"
     id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: DateTimeISO
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: DateTimeISO
+
     "The template that this one was derived from"
     sourceTemplateId: Int
     "The name/title of the template"
@@ -66,14 +75,5 @@ export const typeDefs = gql`
 
     "Users from different affiliations who have been invited to collaborate on this template"
     collaborators: [TemplateCollaborator!]
-
-    "The user who created the Template"
-    createdById: Int
-    "The timestamp when the template was created"
-    created: DateTimeISO
-    "The user who modified the Template"
-    modifiedById: Int
-    "The timestamp when the template was modifed"
-    modified: DateTimeISO
   }
 `;

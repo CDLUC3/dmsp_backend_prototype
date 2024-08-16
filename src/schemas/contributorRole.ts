@@ -34,7 +34,17 @@ export const typeDefs = gql`
   }
 
   type ContributorRole {
+    "The unique identifer for the Object"
     id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: DateTimeISO
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: DateTimeISO
+
     "The order in which to display these items when displayed in the UI"
     displayOrder: Int!
     "The Ui label to display for the contributor role"
@@ -43,13 +53,5 @@ export const typeDefs = gql`
     url: URL!
     "A longer description of the contributor role useful for tooltips"
     description: String
-    "The timestamp of when the contributor role was created"
-    created: DateTimeISO
-    "The user who created the contributor role"
-    createdById: Int
-    "The timestamp of when the contributor role last modified"
-    modified: DateTimeISO
-    "The user who modified the contributor role"
-    modifiedById: Int
   }
 `;

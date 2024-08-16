@@ -5,22 +5,16 @@ import { MySqlModel } from './MySqlModel';
 // An abstract class that represents a User who has been invited to Collaborate on another
 // entity (e.g. Template or Plan)
 export class Collaborator extends MySqlModel {
-  public errors: string[];
+  public email: string;
+  public invitedById: number;
+  public userId: number;
 
-  constructor(
-    public email: string,
-    public invitedById: number,
-    public createdById?: number,
-    public modifiedById?: number,
-    public userId?: number,
+  constructor(options){
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
-    public id?: number,
-    public created: string = new Date().toUTCString(),
-    public modified: string = new Date().toUTCString(),
-  ){
-    super(createdById, id, created, modified, modifiedById);
-
-    this.errors = [];
+    this.email = options.email;
+    this.invitedById = options.invitedById;
+    this.userId = options.userId || null;
   }
 
   // Validation to be used prior to saving the record
@@ -38,22 +32,23 @@ export class Collaborator extends MySqlModel {
 }
 
 export class TemplateCollaborator extends Collaborator {
-  public id: number;
-  public email: string;
-  public invitedById: number;
-  public createdById?: number;
-  public modifiedById?: number;
-  public userId?: number;
+  // public id: number;
+  // public email: string;
+  // public invitedById: number;
+  // public createdById?: number;
+  // public modifiedById?: number;
+  // public userId?: number;
 
   public templateId: number;
-  public created: string;
-  public modified: string;
+  // public created: string;
+  // public modified: string;
 
-  public errors: string[];
+  // public errors: string[];
 
   constructor(options) {
-    super(options.email, options.invitedById, options.createdById, options.modifiedById,
-      options.userId, options.id, options.created, options.modified);
+    // super(options.email, options.invitedById, options.createdById, options.modifiedById,
+    //       options.userId, options.id, options.created, options.modified);
+    super(options);
 
     this.templateId = options.templateId || null;
     this.errors = [];

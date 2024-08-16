@@ -13,7 +13,6 @@ export enum UserRole {
   SuperAdmin = 'SuperAdmin',
 }
 export class User extends MySqlModel {
-  public id: number;
   public email: string;
   public password: string;
   public role: UserRole;
@@ -21,9 +20,6 @@ export class User extends MySqlModel {
   public surName?: string;
   public affiliationId: string;
   public orcid?: string;
-  public created: string;
-  public modified: string;
-  public errors: string[];
 
   // Initialize a new User
   constructor(options) {

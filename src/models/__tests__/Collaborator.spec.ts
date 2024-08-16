@@ -7,7 +7,7 @@ describe('Collaborator', () => {
     const invitedById = casual.integer(1, 999);
     const createdById = casual.integer(1, 999);
 
-    const collaborator = new Collaborator(email, invitedById, createdById);
+    const collaborator = new Collaborator({ email, invitedById, createdById });
 
     expect(collaborator.email).toEqual(email);
     expect(collaborator.invitedById).toEqual(invitedById);
@@ -19,7 +19,7 @@ describe('Collaborator', () => {
     const invitedById = casual.integer(1, 999);
     const createdById = casual.integer(1, 999);
 
-    const collaborator = new Collaborator(email, invitedById, createdById);
+    const collaborator = new Collaborator({ email, invitedById, createdById });
     expect(await collaborator.isValid()).toBe(true);
   });
 
@@ -28,7 +28,7 @@ describe('Collaborator', () => {
     const invitedById = casual.integer(1, 999);
     const createdById = casual.integer(1, 999);
 
-    const collaborator = new Collaborator(email, invitedById, createdById);
+    const collaborator = new Collaborator({ email, invitedById, createdById });
     collaborator.email = null;
     expect(await collaborator.isValid()).toBe(false);
     expect(collaborator.errors.length).toBe(1);
@@ -40,7 +40,7 @@ describe('Collaborator', () => {
     const invitedById = casual.integer(1, 999);
     const createdById = casual.integer(1, 999);
 
-    const collaborator = new Collaborator(email, invitedById, createdById);
+    const collaborator = new Collaborator({ email, invitedById, createdById });
     collaborator.invitedById = null;
     expect(await collaborator.isValid()).toBe(false);
     expect(collaborator.errors.length).toBe(1);

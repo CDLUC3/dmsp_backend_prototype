@@ -3,15 +3,10 @@ import { validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
 export class ContributorRole extends MySqlModel {
-  public id?: number;
   public displayOrder: number;
   public url: string;
   public label: string;
   public description?: string;
-  public created: string;
-  public createdById?: number;
-  public modified?: string;
-  public modifiedById?: number;
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
@@ -25,8 +20,18 @@ export class ContributorRole extends MySqlModel {
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
-    return super.isValid()
-      && validateURL(this.url) && this.displayOrder !== null && this.label.length > 0;
+    super.isValid();
+
+    if (!validateURL(this.url)) {
+      this.errors.push('URL can\'t be blank');
+    }
+    if (!this.displayOrder || this.displayOrder < 0) {
+      this.errors.push('Display order must be a positive number');
+    }
+    if (!this.label) {
+      this.errors.push('Label can\'t be blank');
+    }
+    return this.errors.length <= 0;
   }
 
   // Return all of the contributor roles

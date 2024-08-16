@@ -13,7 +13,7 @@ export const resolvers: Resolvers = {
     },
 
     // Get the specified Template (user must be an Admin)
-    template: async (_, { templateId }, context: MyContext): Promise<Template | null> => {
+    template: async (_, { templateId }, context: MyContext): Promise<Template> => {
       // TODO: perform a check here to make sure the User within the context is an Admin
       return Template.findById('template resolver', context, templateId);
     },
@@ -28,6 +28,6 @@ export const resolvers: Resolvers = {
     // Chained resolver to fetch the TemplateCollaborators
     collaborators: async (parent: Template, _, context: MyContext): Promise<TemplateCollaborator[] | null> => {
       return TemplateCollaborator.findByTemplateId('Chained Template.collaborators', context, parent.id);
-    }
+    },
   },
 };

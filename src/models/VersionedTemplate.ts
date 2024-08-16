@@ -9,7 +9,6 @@ export enum VersionType {
 
 // A Snapshot/Version of a Template
 export class VersionedTemplate extends MySqlModel {
-  public id?: number;
   public templateId: number;
   public version: string;
   public versionedById: number;
@@ -24,11 +23,6 @@ export class VersionedTemplate extends MySqlModel {
 
   public visibility: Visibility;
   public bestPractice: boolean;
-
-  public created: string;
-  public createdById?: number;
-  public modified?: string;
-  public modifiedById?: number;
 
   constructor(options){
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);

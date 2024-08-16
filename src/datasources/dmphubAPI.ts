@@ -7,7 +7,7 @@ import { JWTToken } from '../services/tokenService';
 export class DMPHubAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
-  protected token: JWTToken;
+  private token: JWTToken;
 
   constructor(options: { cache: KeyValueCache, token: JWTToken }) {
     super(options);

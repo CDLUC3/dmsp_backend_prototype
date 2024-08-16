@@ -7,9 +7,9 @@ export class MySqlModel {
 
   // Initialize with fields common to all MySQL DB tables
   constructor(
-    public createdById?: number,
     public id?: number,
     public created: string = new Date().toUTCString(),
+    public createdById?: number,
     public modified?: string,
     public modifiedById?: number,
   ){

@@ -28,8 +28,17 @@ export const typeDefs = gql`
 
   "A snapshot of a Template when it became published. DMPs are created from published templates"
   type VersionedTemplate {
-    "The unique identifer for the template"
+    "The unique identifer for the Object"
     id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: DateTimeISO
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: DateTimeISO
+
     "The template that this published version stems from"
     template: Template
     "The major.minor semantic version"
@@ -53,14 +62,5 @@ export const typeDefs = gql`
     visibility: Visibility!
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
-
-    "The timestamp when the version was created"
-    created: DateTimeISO
-    "The user who created the version"
-    createdById: Int
-    "The timestamp when the version was modified (typically when its 'active' flag changes)"
-    modified: DateTimeISO
-    "The user who modfiied the version"
-    modifiedById: Int
   }
 `;

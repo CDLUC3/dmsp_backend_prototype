@@ -57,7 +57,7 @@ export const mockToken = (user: User): JWTToken => {
 }
 
 export const mockDataSources = {
-  dmphubAPIDataSource: null,
+  dmphubAPIDataSource: new MockDMPHubAPI({ cache: null, token: null}),
   dmptoolAPIDataSource: null,
   sqlDataSource: mockedMysqlInstance,
 }

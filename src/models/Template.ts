@@ -8,22 +8,14 @@ export enum Visibility {
 
 // A Template for creating a DMP
 export class Template extends MySqlModel {
-  public id?: number;
   public sourceTemplateId?: number;
   public name: string;
   public description?: string;
   public ownerId?: string;
-  public createdById: number;
-  public modifiedById?: number;
   public visibility: Visibility;
   public currentVersion?: string;
   public isDirty: boolean;
   public bestPractice: boolean;
-
-  public created: string;
-  public modified?: string;
-
-  public errors: string[];
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
@@ -54,11 +46,11 @@ export class Template extends MySqlModel {
   }
 
   // Return the specified Template
-  static async findById(reference: string, context: MyContext, templateId: number): Promise<Template | null> {
+  static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
     // TODO: Update this to include the User's affiliation once its in the context
     const sql = 'SELECT * FROM templates WHERE id = ?';
     const results = await Template.query(context, sql, [templateId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? results[0] : [];
   }
 
   // Find all of the templates associated with the context's User's affiliation

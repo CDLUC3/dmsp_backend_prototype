@@ -18,7 +18,7 @@ describe('MySqlModel abstract class', () => {
   it('constructor should initialize as expected if it is a new record', () => {
     const createdById = casual.integer(1, 999);
 
-    const model = new MySqlModel(createdById);
+    const model = new MySqlModel(null, new Date().toISOString(), createdById);
 
     expect(model.id).toBeFalsy();
     expect(model.createdById).toEqual(createdById);
@@ -34,7 +34,7 @@ describe('MySqlModel abstract class', () => {
     const modified = new Date().toUTCString();
     const modifiedById = casual.integer(1, 999);
 
-    const model = new MySqlModel(createdById, id, created, modified, modifiedById);
+    const model = new MySqlModel(id, created, createdById, modified, modifiedById);
 
     expect(model.id).toEqual(id);
     expect(model.createdById).toEqual(createdById);
@@ -45,7 +45,7 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return false when the modified date is not a Date', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(createdById);
+    const model = new MySqlModel(null, new Date().toISOString(), createdById);
 
     model.modified = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
@@ -55,7 +55,7 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return false when the created date is not a Date', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(createdById);
+    const model = new MySqlModel(null, new Date().toISOString(), createdById);
 
     model.created = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
@@ -65,7 +65,7 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return false when the createdById is null', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(createdById);
+    const model = new MySqlModel(null, new Date().toISOString(), createdById);
 
     model.createdById = null;
     expect(await model.isValid()).toBe(false);
@@ -75,7 +75,7 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return false when the modifiedById is null', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(createdById);
+    const model = new MySqlModel(null, new Date().toISOString(), createdById);
 
     model.modifiedById = null;
     expect(await model.isValid()).toBe(false);
@@ -85,7 +85,7 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return true when the id is null', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(createdById);
+    const model = new MySqlModel(null, new Date().toISOString(), createdById);
 
     model.id = null;
     expect(await model.isValid()).toBe(true);
