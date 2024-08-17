@@ -13,11 +13,11 @@ export interface PoolConfig {
 
 // Singleton MySQL Connection Pool
 export class MySQLDataSource {
-  protected static instance: MySQLDataSource;
+  private static instance: MySQLDataSource;
   public pool: mysql.Pool;
 
   // Create a new connection pool
-  protected constructor() {
+  private constructor() {
     try {
       this.pool = mysql.createPool({
         ...mysqlConfig,

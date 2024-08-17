@@ -31,17 +31,17 @@ function handleMutationError(logger, args) {
 export const resolvers: Resolvers = {
   Query: {
     // returns an array of all contributor roles
-    contributorRoles: async (_, __, context: MyContext): Promise<ContributorRole[] | null> => {
+    contributorRoles: async (_, __, context: MyContext): Promise<ContributorRole[]> => {
       return await ContributorRole.all('contributorRoles resolver', context);
     },
 
     // returns a contributor role that matches the specified ID
-    contributorRoleById: async (_, { contributorRoleId }, context: MyContext): Promise<ContributorRole | null> => {
+    contributorRoleById: async (_, { contributorRoleId }, context: MyContext): Promise<ContributorRole> => {
       return await ContributorRole.findById('contributorRoleById resolver', context, contributorRoleId);
     },
 
     // returns the contributor role that matches the specified URL
-    contributorRoleByURL: async (_, { contributorRoleURL }, context: MyContext): Promise<ContributorRole | null> => {
+    contributorRoleByURL: async (_, { contributorRoleURL }, context: MyContext): Promise<ContributorRole> => {
       return await ContributorRole.findByURL('contributorRoleByURL resolver', context, contributorRoleURL);
     },
   },

@@ -20,7 +20,7 @@ export class ContributorRole extends MySqlModel {
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
-    super.isValid();
+    await super.isValid();
 
     if (!validateURL(this.url)) {
       this.errors.push('URL can\'t be blank');
@@ -35,7 +35,7 @@ export class ContributorRole extends MySqlModel {
   }
 
   // Return all of the contributor roles
-  static async all(reference: string, context: MyContext): Promise<ContributorRole[] | null> {
+  static async all(reference: string, context: MyContext): Promise<ContributorRole[]> {
     const sql = 'SELECT * FROM contributorRoles ORDER BY label';
     return await ContributorRole.query(context, sql, [], reference);
   }
@@ -45,10 +45,10 @@ export class ContributorRole extends MySqlModel {
     reference: string,
     context: MyContext,
     contributorRoleById: number
-  ): Promise<ContributorRole | null> {
+  ): Promise<ContributorRole> {
     const sql = 'SELECT * FROM contributorRoles WHERE id = ?';
     const results = await ContributorRole.query(context, sql, [contributorRoleById.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return results[0];
   }
 
   // Fetch a contributor role by it's URL
@@ -56,9 +56,9 @@ export class ContributorRole extends MySqlModel {
     reference: string,
     context: MyContext,
     contributorRoleByURL: string
-  ): Promise<ContributorRole | null> {
+  ): Promise<ContributorRole> {
     const sql = 'SELECT * FROM contributorRoles WHERE url = ?';
     const results = await ContributorRole.query(context, sql, [contributorRoleByURL], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return results[0];
   }
 };

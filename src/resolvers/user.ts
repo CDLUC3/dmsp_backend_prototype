@@ -6,7 +6,7 @@ import { Affiliation } from '../models/Affiliation';
 export const resolvers: Resolvers = {
   Query: {
     // returns the current User
-    me: async (_, __, context: MyContext): Promise<User | null> => {
+    me: async (_, __, context: MyContext): Promise<User> => {
       // TODO: remove this hard-coded email once the User is in the context (replace with findById)
       const email = 'orgA.admin@example.com';
       return await User.findByEmail('user resolver', context, email);
@@ -14,7 +14,7 @@ export const resolvers: Resolvers = {
 
     // Should only be callable by an Admin. Super returns all users, Admin gets only
     // the users associated with their affiliationId
-    users: async (_, __, context): Promise<User[] | null> => {
+    users: async (_, __, context): Promise<User[]> => {
       // TODO: remove this hard-coded affiliationId once the User is in the context
       const affiliationId = 'https://ror.org/01nrxwf90';
       return await User.findByAffiliationId('users resolver', context, affiliationId)
@@ -22,14 +22,14 @@ export const resolvers: Resolvers = {
 
     // This query should only be available to Admins. Super can get any user and Admin can get
     // only users associated with their affiliationId
-    user: async (_, { userId }, context: MyContext): Promise<User | null> => {
+    user: async (_, { userId }, context: MyContext): Promise<User> => {
       return await User.findById('user resolver', context, userId);
     },
   },
 
   User: {
     // Chained resolver to fetch the Affiliation info for the user
-    affiliation: async (parent: User, _, context): Promise<Affiliation | null> => {
+    affiliation: async (parent: User, _, context): Promise<Affiliation> => {
       return Affiliation.findById('Chained User.affiliation', context, parent.affiliationId);
     },
   },

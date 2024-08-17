@@ -19,7 +19,7 @@ export class Collaborator extends MySqlModel {
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
-    super.isValid();
+    await super.isValid();
 
     if (!validateEmail(this.email)) {
       this.errors.push('Email can\'t be blank');
@@ -31,23 +31,11 @@ export class Collaborator extends MySqlModel {
   }
 }
 
+// An individual that belongs to another affiliation that has been invited to work on a Template
 export class TemplateCollaborator extends Collaborator {
-  // public id: number;
-  // public email: string;
-  // public invitedById: number;
-  // public createdById?: number;
-  // public modifiedById?: number;
-  // public userId?: number;
-
   public templateId: number;
-  // public created: string;
-  // public modified: string;
-
-  // public errors: string[];
 
   constructor(options) {
-    // super(options.email, options.invitedById, options.createdById, options.modifiedById,
-    //       options.userId, options.id, options.created, options.modified);
     super(options);
 
     this.templateId = options.templateId || null;
@@ -69,7 +57,7 @@ export class TemplateCollaborator extends Collaborator {
     reference: string,
     context: MyContext,
     templateId: number
-  ): Promise<TemplateCollaborator[] | null> {
+  ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
     return await TemplateCollaborator.query(context, sql, [templateId.toString()], reference);
   }

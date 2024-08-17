@@ -1,5 +1,4 @@
 import bcrypt from 'bcryptjs';
-import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { capitalizeFirstLetter, validateEmail, validateURL } from '../utils/helpers';
 import { buildContext } from '../context';
 import { Falsey } from 'oauth2-server';
@@ -12,6 +11,7 @@ export enum UserRole {
   Admin = 'Admin',
   SuperAdmin = 'SuperAdmin',
 }
+
 export class User extends MySqlModel {
   public email: string;
   public password: string;
@@ -25,7 +25,6 @@ export class User extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
-    this.id = options.id;
     this.email = options.email;
     this.password = options.password;
     this.role = options.role;
@@ -33,7 +32,6 @@ export class User extends MySqlModel {
     this.surName = options.surName;
     this.orcid = options.orcid;
     this.affiliationId = options.affiliationId;
-    this.errors = [];
 
     this.cleanup();
   }
@@ -48,7 +46,7 @@ export class User extends MySqlModel {
 
   // Verify that the email does not already exist and that the required fields have values
   async isValid(): Promise<boolean> {
-    super.isValid();
+    await super.isValid();
 
     // check if email is already taken
     const context = await buildContext(logger);
@@ -106,43 +104,68 @@ export class User extends MySqlModel {
     return await bcrypt.hash(password, salt);
   }
 
+  // Find the User by their email for an Auth check (includes the password)
+  static async authCheck(
+    reference: string,
+    context: MyContext,
+    email: string,
+    password: string,
+  ): Promise<number> {
+    const sql = 'SELECT id, email, password FROM users WHERE email = ?';
+    const users = await User.query(context, sql, [email], reference);
+
+    // If the user was found, check the password
+    if (Array.isArray(users) && users.length > 0) {
+      // TODO: Add logic to lock the account after too many failures
+
+      // Otherwise check the password
+      if (users[0] && await bcrypt.compare(password, users[0].password)) {
+        formatLogMessage(context.logger).debug(`Successful authCheck for ${email}`);
+        return users[0].id;
+      }
+    }
+
+    formatLogMessage(context.logger).debug(`Failed authCheck for ${email}`);
+    return null;
+  }
+
   // Find the User by their Id
-  static async findById(reference: string, context: MyContext, userId: number): Promise<User | null> {
+  static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
     const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
-                 password FROM users WHERE id = ?';
+                 FROM users WHERE id = ?';
     const results = await User.query(context, sql, [userId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return results[0];
   }
 
   // Find the User by their email address
-  static async findByEmail(reference: string, context: MyContext, email: string): Promise<User | null> {
+  static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
     const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
                  FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return results[0];
   }
 
-  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[] | null> {
+  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
     const sql = 'SELECT id, givenName, surName, email, role, affiliationId, created, modified \
                  FROM users WHERE affiliationId = ? ORDER BY created DESC';
     return await User.query(context, sql, [affiliationId], reference);
   }
 
   // Login making sure that the passwords match
-  async login(): Promise<User | Falsey> {
+  async login(): Promise<User> {
     this.cleanup();
-    const email = this.email || '';
 
-    if (!validateEmail(email) || !this.validatePassword()) {
+    if (!validateEmail(this.email) || !this.validatePassword()) {
       return null;
     }
 
     try {
-      formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const context = await buildContext(logger);
-      const user = await User.findByEmail('User.login', context, email) || null;
-      if (user && await bcrypt.compare(this.password, user?.password)) {
-        return user;
+      formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
+      const userId = await User.authCheck('User.login', context, this.email, this.password);
+
+      if (userId) {
+        return await User.findById('User.login', context, userId) || null;
       }
       return null;
     } catch (err) {
@@ -160,18 +183,23 @@ export class User extends MySqlModel {
       const passwordHash = await this.hashPassword(this.password);
       this.password = passwordHash
 
-      const mysql = MySQLDataSource.getInstance();
-      const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
-      formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
       try {
+        const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
         const vals = [this.email, this.password, this.role, this.givenName, this.surName]
-        const result = await mysql.query(sql, vals);
-
-        logger.debug(`User was created: ${this.email}, id: ${result.insertId}`);
         const context = await buildContext(logger);
-        const user = await User.findById('User.register', context, result.insertId);
-        // Blank out the password when returning so as not to expose it
+        formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
+        const result = await User.query(context, sql, vals, 'User.register');
+
+        if (!Array.isArray(result) || !result[0].insertId) {
+          this.errors.push('Unable to register your account.');
+          return this;
+        }
+        formatLogMessage(logger).debug(`User was created: ${this.email}, id: ${result[0].insertId}`);
+
+        // Fetch the new record and blank out the password when returning so as not to expose it
+        const user = await User.findById('User.register', context, result[0].insertId);
         user.password = null;
+
         return user;
       } catch (err) {
         formatLogMessage(logger)?.error(`Error creating User: ${this.email} - ${err.message}`);

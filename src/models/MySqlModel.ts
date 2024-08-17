@@ -3,8 +3,6 @@ import { MyContext } from '../context';
 import { validateDate } from "../utils/helpers";
 
 export class MySqlModel {
-  public errors: string[];
-
   // Initialize with fields common to all MySQL DB tables
   constructor(
     public id?: number,
@@ -12,6 +10,7 @@ export class MySqlModel {
     public createdById?: number,
     public modified?: string,
     public modifiedById?: number,
+    public errors: string[] = [],
   ){
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {
@@ -20,8 +19,6 @@ export class MySqlModel {
     if (!this.modified){
       this.modified = this.id ? new Date().toUTCString() : this.created;
     }
-
-    this.errors = [];
   };
 
   // Indicates whether or not the standard fields on the record are valid

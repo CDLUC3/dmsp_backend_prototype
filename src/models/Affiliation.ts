@@ -74,7 +74,7 @@ export class Affiliation {
     }
   }
 
-  static async findById(caller: string, context: MyContext, id: string): Promise<Affiliation | null> {
+  static async findById(caller: string, context: MyContext, id: string): Promise<Affiliation> {
     const { logger, dataSources } = context;
     const logMessage = `Affiliation.findById query for ${caller}, affiliation: ${id}`;
     const affiliationId = id.replace(/https?:\/\//g, '')
@@ -191,7 +191,7 @@ export class AffiliationSearch {
   }
 
   // Search for Affiliations that match the term and the funder flag
-  static async search(context: MyContext, options: AffiliationSearchCriteria): Promise<AffiliationSearch[] | null> {
+  static async search(context: MyContext, options: AffiliationSearchCriteria): Promise<AffiliationSearch[]> {
     const { logger, dataSources } = context;
     const logMessage = `Resolving query affiliations(options: '${options}')`;
 

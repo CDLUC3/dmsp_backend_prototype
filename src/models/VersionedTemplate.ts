@@ -45,7 +45,7 @@ export class VersionedTemplate extends MySqlModel {
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
-    super.isValid();
+    await super.isValid();
 
     if (!this.templateId) {
       this.errors.push('Template can\'t be blank');
@@ -66,23 +66,19 @@ export class VersionedTemplate extends MySqlModel {
   }
 
   // Return all of the versions for the specified Template
-  static async findByTemplateId(
-    reference: string,
-    context: MyContext,
-    templateId: number
-  ): Promise<VersionedTemplate[] | null> {
+  static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<VersionedTemplate[]> {
     const sql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
     return await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
   }
 
   // Return all of the Published versions that are marked as "Best Practice"
-  static async bestPractice(reference: string, context: MyContext): Promise<VersionedTemplate[] | null> {
+  static async bestPractice(reference: string, context: MyContext): Promise<VersionedTemplate[]> {
     const sql = 'SELECT * FROM versionedTemplates WHERE bestPractice = 1 AND active = 1 ORDER BY name ASC';
     return await VersionedTemplate.query(context, sql, [], reference);
   }
 
   // Search all of the Published versions for the specified term
-  static async search(reference: string, context: MyContext, term: string): Promise<VersionedTemplate[] | null> {
+  static async search(reference: string, context: MyContext, term: string): Promise<VersionedTemplate[]> {
     const sql = `SELECT * FROM versionedTemplates \
                  WHERE name LIKE ? AND active = 1 AND versionType = ? \
                  ORDER BY name ASC`;
@@ -94,9 +90,9 @@ export class VersionedTemplate extends MySqlModel {
     reference: string,
     context: MyContext,
     versionedTemplateId: number
-  ): Promise<VersionedTemplate | null> {
+  ): Promise<VersionedTemplate> {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return results[0];
   }
 }

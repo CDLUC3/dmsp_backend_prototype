@@ -2,18 +2,17 @@ import 'jest-expect-message';
 import { User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
-import { MySQLDataSource } from '../../datasources/mySQLDataSource';
 import mockLogger from '../../__tests__/mockLogger';
-import { MySqlModel } from '../MySqlModel';
+import { buildContext } from '../../context';
 
 jest.mock('../../context.ts');
-jest.mock('../MySqlModel');
 
 let logger;
 let mockDebug;
 let mockError;
 let mockQuery;
 let mockUser;
+let mockContext;
 
 describe('constructor', () => {
   it('should set the expected properties', () => {
@@ -82,13 +81,21 @@ describe('validate a new User', () => {
       givenName: casual.first_name,
       surName: casual.last_name,
       affiliationId: casual.url,
-      role: UserRole.Researcher
+      role: UserRole.Researcher,
+      createdById: casual.integer(1, 999),
     });
 
     logger = mockLogger;
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
     mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-    mockQuery = MySqlModel.query as jest.MockedFunction<typeof MySqlModel.query>;
+
+    mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
+
+    const mockSqlDataSource = (await buildContext(logger, null, null)).dataSources.sqlDataSource;
+    mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
+
+    // const sqlDataSource = mockDataSources.sqlDataSource;
+    // mockQuery = sqlDataSource.query as jest.MockedFunction<typeof sqlDataSource.query>;
   })
 
   afterEach(() => {
@@ -128,6 +135,14 @@ describe('validate a new User', () => {
     expect(await mockUser.isValid()).toBe(false);
     expect(mockUser.errors.length).toBe(1);
     expect(mockUser.errors[0].includes('Affiliation')).toBe(true);
+  });
+
+  it('should return false when we have a new user without an createdById', async () => {
+    mockQuery.mockResolvedValueOnce(null);
+    mockUser.createdById = null;
+    expect(await mockUser.isValid()).toBe(false);
+    expect(mockUser.errors.length).toBe(1);
+    expect(mockUser.errors[0].includes('Created by')).toBe(true);
   });
 
   it('should return false when we have a new user without a role', async () => {
@@ -208,27 +223,74 @@ describe('Password validation', () => {
   });
 });
 
-describe('login()', () => {
+describe('authCheck', () => {
   let bcryptCompare;
-  let bcryptSalt;
-  let bcryptPassword;
 
   beforeEach(async () => {
     jest.resetAllMocks();
 
+    logger = mockLogger;
+    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
+
+    mockContext = await buildContext(logger, null, null);
+    const mockSqlDataSource = mockContext.dataSources.sqlDataSource;
+    mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('it returns null if there is no User for the specified email', async () => {
+    const email = casual.email;
+    const password = 'Abcd3Fgh1jkL$';
+    mockQuery.mockResolvedValueOnce([])
+    expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
+    expect(mockDebug).toHaveBeenCalledTimes(2);
+  });
+
+  it('it returns null if the password does not match', async () => {
+    const email = casual.email;
+    const password = 'Abcd3Fgh1jkL$';
+    mockQuery.mockResolvedValueOnce([mockUser]);
+
+    bcryptCompare = jest.fn().mockResolvedValue(false);
+    (bcrypt.compare as jest.Mock) = bcryptCompare;
+
+    expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
+    expect(mockDebug).toHaveBeenCalledTimes(2);
+  });
+
+  it('it returns the user\'s id if the password matched', async () => {
+    const email = casual.email;
+    const password = 'Abcd3Fgh1jkL$';
+    mockUser.id = 12345;
+    mockQuery.mockResolvedValueOnce([mockUser]);
+
     bcryptCompare = jest.fn().mockResolvedValue(true);
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
-    bcryptSalt = jest.fn().mockReturnValue('abc');
-    (bcrypt.genSalt as jest.Mock) = bcryptSalt;
+    expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toEqual(12345);
+    expect(mockDebug).toHaveBeenCalledTimes(2);
+  });
+});
 
-    bcryptPassword = jest.fn().mockReturnValue('test.user@example.com');
-    (bcrypt.hash as jest.Mock) = bcryptPassword;
+describe('login()', () => {
+  let mockAuthCheck;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    mockAuthCheck = jest.fn();
+    (User.authCheck as jest.Mock) = mockAuthCheck;
 
     logger = mockLogger;
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
     mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-    mockQuery = MySqlModel.query as jest.MockedFunction<typeof MySqlModel.query>;
+
+    mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
+    const mockSqlDataSource = (await buildContext(logger, null, null)).dataSources.sqlDataSource;
+    mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
   });
 
   afterEach(() => {
@@ -237,52 +299,31 @@ describe('login()', () => {
 
   it('should not return null if user exists and its password matches with encrypted one', async () => {
     const user = new User({
-      email: 'testFOOO@test.com',
-      password: '@bcd3fGhij12klmnop',
+      email: casual.email,
+      password: 'abcd3Fgh!JklM_m0$',
     });
-    mockQuery.mockResolvedValueOnce([user]);
+    mockAuthCheck.mockReturnValue(123);
+    mockQuery.mockResolvedValue([user]);
     const response = await user.login();
     expect(response).not.toBeNull();
-    expect(mockDebug).toHaveBeenCalledTimes(1);
+    expect(mockDebug).toHaveBeenCalledTimes(2);
     expect(mockError).toHaveBeenCalledTimes(0);
   });
 
-  it('should return an error when there is an invalid email', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
-    mockQuery.mockResolvedValueOnce([mockedUser]);
-
-    const user = new User({
-      email: 'example.com',
-      password: '@bcd3fGhijklmnop',
-    });
-
+  it('should return an error when authCheck does not return a userId', async () => {
+    mockAuthCheck.mockReturnValue(null);
+    const user = new User({ email: 'example.com', password: '@bcd3fGhijklmnop' });
     const response = await user.login();
-    expect(user.errors.length === 1);
-    expect(response).toBe(null);
-  });
-
-  it('should return an error when there is an invalid password', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
-    mockQuery.mockResolvedValueOnce([mockedUser]);
-
-    const user = new User({
-      email: 'test.user@example.com',
-      password: 'abc',
-    });
-
-    const response = await user.login();
-    expect(user.errors.length === 1);
     expect(response).toBe(null);
   });
 
   it('should return null when findEmail() throws an error', async () => {
-    mockQuery.mockImplementation(() => {
+    mockAuthCheck.mockImplementation(() => {
       throw new Error('Testing error handler');
     });
     const user = new User({ email: 'test.user@example.com', password: 'AbcdefgH1!' });
     const response = await user.login();
     expect(response).toBeNull();
-    expect(mockDebug).toHaveBeenCalledTimes(1);
     expect(mockError).toHaveBeenCalledTimes(1);
   });
 });
@@ -294,16 +335,17 @@ describe('register()', () => {
   const bcryptPassword = jest.fn().mockReturnValue('test.user@example.com');
   (bcrypt.hash as jest.Mock) = bcryptPassword;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
+    logger = mockLogger;
+    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
+    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
 
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
+    mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
+
+    const mockSqlDataSource = (await buildContext(logger, null, null)).dataSources.sqlDataSource;
+    mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
   });
 
   afterEach(() => {
