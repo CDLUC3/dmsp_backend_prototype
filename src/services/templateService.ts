@@ -65,7 +65,7 @@ export const generateVersion = async (
 // Make a copy of the specified Template or PublishedTemplate
 export const clone = (
   clonedById: number,
-  newOwnerId: string,
+  newOwnerId: number,
   template: Template | VersionedTemplate
 ): Template => {
   const templateCopy = new Template({

@@ -214,24 +214,18 @@ export type Mutation = {
   _empty?: Maybe<Scalars['String']['output']>;
   /** Add a new contributor role (URL and label must be unique!) */
   addContributorRole?: Maybe<ContributorRoleMutationResponse>;
-  /** Create a new Template */
+  /** Create a new Template. Leave the 'copyFromTemplateId' blank to create a new template from scratch */
   addTemplate?: Maybe<Template>;
   /** Add a collaborator to a Template */
-  addTemplateCollaborator?: Maybe<Scalars['Boolean']['output']>;
+  addTemplateCollaborator?: Maybe<TemplateCollaborator>;
   /** Archive a Template (unpublishes any associated PublishedTemplate */
   archiveTemplate?: Maybe<Scalars['Boolean']['output']>;
-  /** Create a Template from another PublishedTemplate */
-  copyTemplate?: Maybe<Template>;
-  /** Save a Draft */
-  draftTemplate?: Maybe<VersionedTemplate>;
-  /** Publish a Template */
-  publishTemplate?: Maybe<VersionedTemplate>;
+  /** Publish the template or save as a draft */
+  createVersion?: Maybe<VersionedTemplate>;
   /** Delete the contributor role */
   removeContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Remove a TemplateCollaborator from a Template */
   removeTemplateCollaborator?: Maybe<Scalars['Boolean']['output']>;
-  /** Unpublish the specified PublishedTemplate */
-  unpublishTemplate?: Maybe<Scalars['Boolean']['output']>;
   /** Update the contributor role */
   updateContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Update a Template */
@@ -248,6 +242,7 @@ export type MutationAddContributorRoleArgs = {
 
 
 export type MutationAddTemplateArgs = {
+  copyFromTemplateId?: InputMaybe<Scalars['Int']['input']>;
   name: Scalars['String']['input'];
 };
 
@@ -263,19 +258,7 @@ export type MutationArchiveTemplateArgs = {
 };
 
 
-export type MutationCopyTemplateArgs = {
-  name: Scalars['String']['input'];
-  publishedTemplateId: Scalars['Int']['input'];
-};
-
-
-export type MutationDraftTemplateArgs = {
-  comment?: InputMaybe<Scalars['String']['input']>;
-  templateId: Scalars['Int']['input'];
-};
-
-
-export type MutationPublishTemplateArgs = {
+export type MutationCreateVersionArgs = {
   comment?: InputMaybe<Scalars['String']['input']>;
   templateId: Scalars['Int']['input'];
 };
@@ -289,11 +272,6 @@ export type MutationRemoveContributorRoleArgs = {
 export type MutationRemoveTemplateCollaboratorArgs = {
   email: Scalars['String']['input'];
   templateId: Scalars['Int']['input'];
-};
-
-
-export type MutationUnpublishTemplateArgs = {
-  publishedTemplateId: Scalars['Int']['input'];
 };
 
 
@@ -345,8 +323,6 @@ export type Query = {
   affiliation?: Maybe<Affiliation>;
   /** Perform a search for Affiliations matching the specified name */
   affiliations?: Maybe<Array<Maybe<AffiliationSearch>>>;
-  /** Get the DMPTool Best Practice VersionedTemplate */
-  bestPracticeTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Get the contributor role by it's id */
   contributorRoleById?: Maybe<ContributorRole>;
   /** Get the contributor role by it's URL */
@@ -357,8 +333,6 @@ export type Query = {
   dmspById?: Maybe<SingleDmspResponse>;
   /** Returns the currently logged in user's information */
   me?: Maybe<User>;
-  /** Get the specified VersionedTemplate */
-  publishedTemplate?: Maybe<VersionedTemplate>;
   /** Search for VersionedTemplate whose name or owning Org's name contains the search term */
   publishedTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Get the specified Template (user must be an Admin) */
@@ -399,11 +373,6 @@ export type QueryContributorRoleByUrlArgs = {
 
 export type QueryDmspByIdArgs = {
   dmspId: Scalars['DmspId']['input'];
-};
-
-
-export type QueryPublishedTemplateArgs = {
-  publishedTemplateId: Scalars['Int']['input'];
 };
 
 
@@ -893,14 +862,11 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'displayOrder' | 'label' | 'url'>>;
   addTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationAddTemplateArgs, 'name'>>;
-  addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
+  addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['TemplateCollaborator']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   archiveTemplate?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
-  copyTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCopyTemplateArgs, 'name' | 'publishedTemplateId'>>;
-  draftTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType, RequireFields<MutationDraftTemplateArgs, 'templateId'>>;
-  publishTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType, RequireFields<MutationPublishTemplateArgs, 'templateId'>>;
+  createVersion?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType, RequireFields<MutationCreateVersionArgs, 'templateId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   removeTemplateCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveTemplateCollaboratorArgs, 'email' | 'templateId'>>;
-  unpublishTemplate?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationUnpublishTemplateArgs, 'publishedTemplateId'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updateTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationUpdateTemplateArgs, 'name' | 'templateId' | 'visibility'>>;
 };
@@ -940,13 +906,11 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationArgs, 'affiliationId'>>;
   affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
-  bestPracticeTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
   dmspById?: Resolver<Maybe<ResolversTypes['SingleDmspResponse']>, ParentType, ContextType, RequireFields<QueryDmspByIdArgs, 'dmspId'>>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  publishedTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType, RequireFields<QueryPublishedTemplateArgs, 'publishedTemplateId'>>;
   publishedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryPublishedTemplatesArgs, 'term'>>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
   templateCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateCollaborator']>>>, ParentType, ContextType, RequireFields<QueryTemplateCollaboratorsArgs, 'templateId'>>;

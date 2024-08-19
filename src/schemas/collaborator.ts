@@ -8,7 +8,7 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Add a collaborator to a Template"
-    addTemplateCollaborator(templateId: Int!, email: String!): Boolean
+    addTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
     "Remove a TemplateCollaborator from a Template"
     removeTemplateCollaborator(templateId: Int!, email: String!): Boolean
   }

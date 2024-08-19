@@ -4,18 +4,13 @@ export const typeDefs = gql`
   extend type Query {
     "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
     templateVersions(templateId: Int!): [VersionedTemplate]
-
-    "Get the DMPTool Best Practice VersionedTemplate"
-    bestPracticeTemplates: [VersionedTemplate]
     "Search for VersionedTemplate whose name or owning Org's name contains the search term"
     publishedTemplates(term: String!): [VersionedTemplate]
-    "Get the specified VersionedTemplate"
-    publishedTemplate(publishedTemplateId: Int!): VersionedTemplate
   }
 
   extend type Mutation {
-    "Unpublish the specified PublishedTemplate"
-    unpublishTemplate(publishedTemplateId: Int!): Boolean
+    "Publish the template or save as a draft"
+    createVersion(templateId: Int!, comment: String): VersionedTemplate
   }
 
   "Template version type"

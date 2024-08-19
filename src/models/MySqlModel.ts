@@ -42,6 +42,24 @@ export class MySqlModel {
     return this.errors.length <= 0;
   }
 
+  // Run a query to check for the existence of a record in the database. Typically used to verify that
+  // a foreign key relationship exists. (e.g. TemplateCollaborator runs a check to make sure the
+  // templateId exists before creating a new record)
+  //    - apolloContext:   The Apollo server context
+  //    - tableName:       The name of the tabe to query
+  //    - id:              The id of the record we are looking for
+  //    - reference:       A reference to contextualize log messages e.g. `users resolver`
+  static async exists(
+    apolloContext: MyContext,
+    tableName: string,
+    id: number,
+    reference = 'undefined caller'
+  ): Promise<boolean> {
+    const sql = `SELECT id FROM ${tableName} WHERE id = ?`;
+    const results = await MySqlModel.query(apolloContext, sql, [id.toString()], reference);
+    return results && results.length === 1;
+  }
+
   // Execute a SQL query
   //    - apolloContext:   The Apollo server context
   //    - sqlStatement:    The SQL statement to perform e.g. `SELECT * FROM table WHERE id = ?`

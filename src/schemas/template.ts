@@ -6,33 +6,15 @@ export const typeDefs = gql`
     templates: [Template]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
-    "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
-    templateVersions(templateId: Int!): [VersionedTemplate]
-
-    "Get the DMPTool Best Practice VersionedTemplate"
-    bestPracticeTemplates: [VersionedTemplate]
-    "Search for VersionedTemplate whose name or owning Org's name contains the search term"
-    publishedTemplates(term: String!): [VersionedTemplate]
-    "Get the specified VersionedTemplate"
-    publishedTemplate(publishedTemplateId: Int!): VersionedTemplate
   }
 
   extend type Mutation {
-    "Create a new Template"
-    addTemplate(name: String!): Template
-    "Create a Template from another PublishedTemplate"
-    copyTemplate(publishedTemplateId: Int!, name: String!): Template
+    "Create a new Template. Leave the 'copyFromTemplateId' blank to create a new template from scratch"
+    addTemplate(name: String!, copyFromTemplateId: Int): Template
     "Update a Template"
     updateTemplate(templateId: Int!, name: String!, visibility: Visibility!): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
     archiveTemplate(templateId: Int!): Boolean
-
-    "Save a Draft"
-    draftTemplate(templateId: Int!, comment: String): VersionedTemplate
-    "Publish a Template"
-    publishTemplate(templateId: Int!, comment: String): VersionedTemplate
-    "Unpublish the specified PublishedTemplate"
-    unpublishTemplate(publishedTemplateId: Int!): Boolean
   }
 
   "Template visibility"
