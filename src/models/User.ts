@@ -7,9 +7,9 @@ import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 
 export enum UserRole {
-  Researcher = 'Researcher',
-  Admin = 'Admin',
-  SuperAdmin = 'SuperAdmin',
+  RESEARCHER = 'RESEARCHER',
+  ADMIN = 'ADMIN',
+  SUPERADMIN = 'SUPERADMIN',
 }
 
 export class User extends MySqlModel {
@@ -39,7 +39,7 @@ export class User extends MySqlModel {
   // Ensure data integrity
   cleanup() {
     this.email = this.email?.trim()?.replace('%40', '@');
-    this.role = this.role || UserRole.Researcher;
+    this.role = this.role || UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
   }

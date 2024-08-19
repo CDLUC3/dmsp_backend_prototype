@@ -22,7 +22,7 @@ export const generateToken = (user: User): string => {
       givenName: user.givenName,
       surName: user.surName,
       affiliationId: user.affiliationId,
-      role: user.role.toString() || UserRole.Researcher,
+      role: user.role.toString() || UserRole.RESEARCHER,
     }
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTtl });
   }

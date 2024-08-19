@@ -12,9 +12,9 @@ export const typeDefs = gql`
 
   "The types of roles supported by the DMPTool"
   enum UserRole {
-    Researcher
-    Admin
-    SuperAdmin
+    RESEARCHER
+    ADMIN
+    SUPERADMIN
   }
 
   "A user of the DMPTool"

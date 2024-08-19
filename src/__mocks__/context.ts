@@ -51,7 +51,7 @@ export const mockToken = (user: User): JWTToken => {
     givenName: user.givenName,
     surName: user.surName,
     affiliationId: user.affiliation,
-    role: user.role.toString() || 'Researcher',
+    role: user.role.toString() || 'RESEARCHER',
     user
   }
 }

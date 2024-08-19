@@ -2,7 +2,7 @@ CREATE TABLE `users` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` VARCHAR(16) NOT NULL,
+  `role` VARCHAR(16) NOT NULL DEFAULT 'RESEARCHER',
   `givenName` VARCHAR(255) NOT NULL,
   `surName` VARCHAR(255) NOT NULL,
   `affiliationId` VARCHAR(255) NOT NULL,
