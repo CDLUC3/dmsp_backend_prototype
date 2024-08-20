@@ -18,7 +18,8 @@ export class User extends MySqlModel {
   public role: UserRole;
   public givenName?: string;
   public surName?: string;
-  public affiliationId: string;
+  // TODO: Make this required once we build out the signup page
+  public affiliationId?: string;
   public orcid?: string;
 
   // Initialize a new User
@@ -31,7 +32,8 @@ export class User extends MySqlModel {
     this.givenName = options.givenName;
     this.surName = options.surName;
     this.orcid = options.orcid;
-    this.affiliationId = options.affiliationId;
+    // TODO: Remove this hard-coded UCOP default once we build out the signup page
+    this.affiliationId = options.affiliationId || 'https://ror.org/00dmfq477';
 
     this.cleanup();
   }
@@ -184,8 +186,10 @@ export class User extends MySqlModel {
       this.password = passwordHash
 
       try {
-        const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
-        const vals = [this.email, this.password, this.role, this.givenName, this.surName]
+        const sql = `INSERT INTO users \
+                      (email, password, role, givenName, surName, affiliationId) \
+                     VALUES(?, ?, ?, ?, ?, ?)`;
+        const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId];
         const context = await buildContext(logger);
         formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
         const result = await User.query(context, sql, vals, 'User.register');
@@ -198,6 +202,7 @@ export class User extends MySqlModel {
 
         // Fetch the new record and blank out the password when returning so as not to expose it
         const user = await User.findById('User.register', context, result[0].insertId);
+        // Remove the password! No need to expose that to the caller
         user.password = null;
 
         return user;

@@ -44,7 +44,7 @@ describe('constructor', () => {
     expect(user.id).toBeFalsy();
     expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
-    expect(user.affiliationId).toBeFalsy();
+    expect(user.affiliationId).toBeTruthy();
     expect(user.givenName).toBeFalsy();
     expect(user.surName).toBeFalsy();
     expect(user.orcid).toBeFalsy();
