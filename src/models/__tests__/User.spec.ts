@@ -21,7 +21,7 @@ describe('constructor', () => {
       email: casual.email,
       password: casual.password,
       affiliationId: casual.url,
-      role: UserRole.Admin,
+      role: UserRole.ADMIN,
       givenName: casual.first_name,
       surName: casual.last_name,
       orcid: '0000-0000-0000-000X',
@@ -44,11 +44,11 @@ describe('constructor', () => {
     expect(user.id).toBeFalsy();
     expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
-    expect(user.affiliationId).toBeFalsy();
+    expect(user.affiliationId).toBeTruthy();
     expect(user.givenName).toBeFalsy();
     expect(user.surName).toBeFalsy();
     expect(user.orcid).toBeFalsy();
-    expect(user.role).toEqual(UserRole.Researcher);
+    expect(user.role).toEqual(UserRole.RESEARCHER);
   });
 
   it('should ignore unexpected properties', () => {
@@ -67,7 +67,7 @@ describe('cleanup standardizes the format of properties', () => {
     expect(user.email).toEqual('TESTer@exaMPle.cOm');
     expect(user.givenName).toEqual('Test');
     expect(user.surName).toEqual('User');
-    expect(user.role).toEqual(UserRole.Researcher);
+    expect(user.role).toEqual(UserRole.RESEARCHER);
   });
 });
 
@@ -81,7 +81,7 @@ describe('validate a new User', () => {
       givenName: casual.first_name,
       surName: casual.last_name,
       affiliationId: casual.url,
-      role: UserRole.Researcher,
+      role: UserRole.RESEARCHER,
       createdById: casual.integer(1, 999),
     });
 

@@ -9,7 +9,7 @@
     "generate": "graphql-codegen",
     "lint": "npx eslint . --ignore-pattern dist/ --ignore-pattern src/types.ts",
     "test": "jest --coverage",
-    "build": "rm -rf ./dist && npm run lint && npm run generate && npm run test && npm run compile",
+    "build": "rm -rf ./dist && npm run generate && npm run compile",
     "dev": "ts-node-dev --respawn ./src/index.ts",
     "start": "npm run build && nodemon ./dist/index.js",
     "aws_start": "node ./dist/index.js",

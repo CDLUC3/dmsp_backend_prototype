@@ -505,9 +505,9 @@ export type User = {
 
 /** The types of roles supported by the DMPTool */
 export type UserRole =
-  | 'Admin'
-  | 'Researcher'
-  | 'SuperAdmin';
+  | 'ADMIN'
+  | 'RESEARCHER'
+  | 'SUPERADMIN';
 
 /** Template version type */
 export type VersionType =
