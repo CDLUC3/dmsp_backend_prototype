@@ -4,6 +4,7 @@ import { DMPToolAPI } from './datasources/dmptoolAPI';
 import { MySQLDataSource } from './datasources/mySQLDataSource';
 import { User } from './models/User';
 import { JWTToken } from './services/tokenService';
+import { formatLogMessage } from './logger';
 
 export interface MyContext {
   token: JWTToken;
@@ -21,15 +22,25 @@ export interface MyContext {
 // Apollo Server GraphQL context. e.g. when calling signup or register
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function buildContext(logger: Logger, cache: any = null, token: JWTToken = null): Promise<MyContext> {
-  // TODO: figure out how to pass the cache around if we need to
-  return {
-    token,
-    logger,
-    user: null,
-    dataSources: {
-      dmphubAPIDataSource: await new DMPHubAPI({ cache, token }),
-      dmptoolAPIDataSource: await new DMPToolAPI({ cache, token }),
-      sqlDataSource: await MySQLDataSource.getInstance(),
+  try {
+    // TODO: figure out how to pass the cache around if we need to
+    return {
+      token,
+      logger,
+      user: null,
+      dataSources: {
+        dmphubAPIDataSource: await new DMPHubAPI({ cache, token }),
+        dmptoolAPIDataSource: await new DMPToolAPI({ cache, token }),
+        sqlDataSource: await MySQLDataSource.getInstance(),
+      }
     }
+  } catch(err) {
+    const msg = `Unable to buildContext - ${err.message}`;
+    if (logger) {
+      formatLogMessage(logger).error(err, msg, { logger, cache, token });
+    } else {
+      console.log(msg);
+    }
+    return null;
   }
 }
