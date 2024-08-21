@@ -42,6 +42,14 @@ export class MySqlModel {
     return this.errors.length <= 0;
   }
 
+  // Fetches all of the property infor for the object to faciliate inserts and updates
+  static propertyInfo(obj: Record<string, any>): { name: string, value: string }[] {
+    return Object.keys(obj).map((key) => ({
+      name: key,
+      value: obj[key]
+    }));
+  }
+
   // Run a query to check for the existence of a record in the database. Typically used to verify that
   // a foreign key relationship exists. (e.g. TemplateCollaborator runs a check to make sure the
   // templateId exists before creating a new record)
@@ -94,5 +102,17 @@ export class MySqlModel {
       console.log(errMsg);
     }
     return [];
+  }
+
+  static async insert(): Promise<number> {
+    const props = this.propertyInfo(this);
+
+console.log(props)
+
+    return null;
+  }
+
+  static async update(): Promise<any> {
+    return null;
   }
 }

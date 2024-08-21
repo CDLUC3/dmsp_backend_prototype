@@ -52,3 +52,43 @@ describe('Template', () => {
     expect(template.errors[0].includes('Name')).toBe(true);
   });
 });
+
+describe('clone', () => {
+  it('returns a copy of the template with the expected values', () => {
+    const opts = {
+      id: casual.integer(1, 99999),
+      createdById: casual.integer(1, 999),
+      modifiedById: casual.integer(1, 999),
+      created: casual.date('YYYY-MM-DD'),
+      modified: casual.date('YYYY-MM-DD'),
+      errors: [casual.sentence, casual.sentence],
+
+      name: casual.sentence,
+      description: casual.sentences(5),
+      ownerId: casual.url,
+      visibility: Visibility.Public,
+      currentVersion: casual.word,
+    }
+
+    const newOwnerId = casual.url;
+    const newCreatedById = casual.integer(1, 99);
+
+    const template = new Template(opts);
+    const clone = template.clone(newCreatedById, newOwnerId);
+
+    // Underlying MySqlModel properties are correctly set
+    expect(clone.id).toBeFalsy();
+    expect(clone.created).toBeTruthy();
+    expect(clone.createdById).toEqual(newCreatedById);
+    expect(clone.modified).toBeTruthy();
+    expect(clone.modifiedById).toEqual(newCreatedById);
+    expect(clone.errors).toEqual([]);
+
+    // Template properties are correctly set
+    expect(clone.name).toEqual(`Copy of ${opts.name}`);
+    expect(clone.description).toEqual(opts.description);
+    expect(clone.ownerId).toEqual(newOwnerId);
+    expect(clone.visibility).toEqual(Visibility.Private);
+    expect(clone.currentVersion).toBeFalsy();
+  });
+});

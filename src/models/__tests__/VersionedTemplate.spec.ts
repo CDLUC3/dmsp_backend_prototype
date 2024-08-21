@@ -1,6 +1,6 @@
 import casual from 'casual';
 import { Visibility } from "../Template";
-import { VersionedTemplate } from '../VersionedTemplate';
+import { VersionedTemplate, VersionType } from '../VersionedTemplate';
 
 describe('VersionedTemplate', () => {
   let templateId;

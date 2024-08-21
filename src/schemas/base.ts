@@ -20,4 +20,10 @@ export const typeDefs = gql`
   type Mutation {
     _empty: String
   }
+
+  "Contextual error message"
+  type ContextualError {
+    property: String,
+    message: String!
+  }
 `;

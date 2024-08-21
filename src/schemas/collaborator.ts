@@ -25,6 +25,8 @@ export const typeDefs = gql`
     modifiedById: Int
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
+    "Errors associated with the Object"
+    errors: [ContextualError]
 
     "The template the collaborator may edit"
     template: Template
@@ -34,5 +36,6 @@ export const typeDefs = gql`
     user: User
     "The user who invited the collaborator"
     invitedBy: User
+
   }
 `;

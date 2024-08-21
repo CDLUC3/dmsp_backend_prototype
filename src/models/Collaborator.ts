@@ -53,46 +53,57 @@ export class TemplateCollaborator extends Collaborator {
     return this.errors.length <= 0;
   }
 
-  async save(context: MyContext, invitedById: number): Promise<TemplateCollaborator> {
+  // Save the current record
+  async save(context: MyContext): Promise<TemplateCollaborator> {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Verify that the template we want to attach the collaborator to exists!
-      const templateExists = await MySqlModel.exists(context, 'templates', this.id, 'TemplateCollaborator.save');
+      const templateExists = await MySqlModel.exists(context, 'templates', this.templateId, 'TemplateCollaborator.save');
       if (!templateExists) {
         this.errors.push('Template does not exist');
       } else {
-        // See if the user exists
+        // Get the id for the person doing the save
+        const saverId = context.token.id;
+
+        // See if the user already has an account, if so grab their id
         const user = await User.findByEmail('TemplateCollaborator.save', context, this.email);
         this.userId = user?.id;
 
-        const sql = `INSERT INTO templateCollaborators \
-                      (templateId, email, invitedById, userId, createdById, modifiedById) \
-                     VALUES (?, ?, ?, ?, ?, ?)`;
-        const vals = [
-          this.templateId.toString(),
+        // Make sure the entry doesn't already exist!
+        const existing = await TemplateCollaborator.findByTemplateIdAndEmail(
+          'TemplateCollaborator.save',
+          context,
+          this.templateId,
           this.email,
-          invitedById.toString(),
-          this.userId?.toString(),
-          invitedById.toString(),
-          invitedById.toString()
-        ];
-
-console.log(sql);
-console.log(vals)
-
-        // Save the record, set this object's id and then return the instance
-        const saved = await TemplateCollaborator.query(context, sql, vals, 'TemplateCollaborator.save');
-        if (Array.isArray(saved) && saved[0]) {
-
-console.log(saved)
-
-          this.id = saved[0]?.insertedId;
-
+        );
+        if (existing) {
+          const sql = `UPDATE templateCollaborators \
+                       SET userId = ?, modifiedById = ?, modified = ? \
+                       WHERE id = ?`;
+          const vals = [this.userId.toString(), this.invitedById.toString()]
         } else {
-          this.errors.push('Internal server error. Save failed');
+
+
+          const sql = `INSERT INTO templateCollaborators \
+                        (templateId, email, invitedById, userId, createdById, modifiedById) \
+                      VALUES (?, ?, ?, ?, ?, ?)`;
+
+          const invitedById = this.invitedById.toString();
+          const vals = [
+            this.templateId.toString(), this.email, invitedById, this.userId?.toString(), invitedById, invitedById
+          ];
+
+          // Save the record, set this object's id and then return the instance
+          const saved = await TemplateCollaborator.query(context, sql, vals, 'TemplateCollaborator.save');
+          if (Array.isArray(saved) && saved[0]?.insertId) {
+            return await TemplateCollaborator.findById('TemplateCollaborator.save', context, saved[0]?.insertId);
+          } else {
+            this.errors.push('Internal server error. Save failed');
+          }
         }
       }
     }
+    // Otherwise return as-is with all the errors
     return this;
   }
 
@@ -104,5 +115,28 @@ console.log(saved)
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
     return await TemplateCollaborator.query(context, sql, [templateId.toString()], reference);
+  }
+
+  static async findById(
+    reference: string,
+    context: MyContext,
+    id: number,
+  ): Promise<TemplateCollaborator> {
+    const sql = 'SELECT * FROM templateCollaborators WHERE id = ?';
+    const results = await TemplateCollaborator.query(context, sql, [id.toString()], reference);
+    return results[0];
+  }
+
+  // Get the specified TemplateCollaborator
+  static async findByTemplateIdAndEmail(
+    reference: string,
+    context: MyContext,
+    templateId: number,
+    email: string,
+  ): Promise<TemplateCollaborator> {
+    const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
+    const vals = [templateId.toString(), email];
+    const results = await TemplateCollaborator.query(context, sql, vals, reference);
+    return results[0];
   }
 }

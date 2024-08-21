@@ -72,7 +72,7 @@ type User {
   email: String!
   affiliation: Affiliation!
 }
-``
+```
 
 In this schema, we have a query to fetch a user record. The User object exposes a reference to an asscoiated affiliation.
 

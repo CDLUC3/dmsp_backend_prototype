@@ -27,7 +27,7 @@ export const resolvers: Resolvers = {
     addTemplate: async (_, { name, copyFromTemplateId }, context: MyContext): Promise<Template> => {
       const template = new Template({ name });
       if (copyFromTemplateId) {
-        await clone(copyFromTemplateId, context.user?.id, template);
+        await clone(copyFromTemplateId, context.token?.id?.toString(), template);
       }
       // return await template.save({});
       return null;

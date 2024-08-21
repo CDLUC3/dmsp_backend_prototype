@@ -1,4 +1,6 @@
 import { MyContext } from "../context";
+import { isSuperAdmin } from "../services/authService";
+import { JWTToken } from "../services/tokenService";
 import { MySqlModel } from "./MySqlModel";
 
 export enum Visibility {
@@ -41,6 +43,21 @@ export class Template extends MySqlModel {
       this.errors.push('Name can\'t be blank');
     }
     return this.errors.length <= 0;
+  }
+
+  // Make a copy of the current Template
+  clone(newCreatedById: number, newOwnerId: string): Template {
+    return new Template({
+      name: `Copy of ${this.name}`,
+      description: this.description,
+      ownerId: newOwnerId,
+      createdById: newCreatedById,
+    })
+  }
+
+  // Verify that the current user has the same affiliationId as the template or they are SUPERADMIN
+  static isAuthorized(token: JWTToken, template: Template): boolean {
+    return isSuperAdmin(token) && token.affiliationId === template.ownerId;
   }
 
   // Return the specified Template

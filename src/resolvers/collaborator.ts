@@ -1,35 +1,50 @@
 import { Resolvers } from "../types";
 import { TemplateCollaborator } from "../models/Collaborator";
-import  { User } from '../models/User';
+import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
+import { isAdmin, isAuthorized } from "../services/authService";
+import { AuthenticationError, ForbiddenError } from "../utils/graphQLErrors";
 
 export const resolvers: Resolvers = {
   Query: {
     // Get all of the Users that belong to another affiliation that can edit the Template
     //     - called from the Template options page
-    templateCollaborators: async (_, { templateId }, _context: MyContext): Promise<TemplateCollaborator[]> => {
-      // TODO: Add auth check here
-      return await TemplateCollaborator.findByTemplateId('templateCollaborators resolver', context, templateId);
+    templateCollaborators: async (_, { templateId }, context: MyContext): Promise<TemplateCollaborator[]> => {
+      if (isAdmin(context.token)){
+        return await TemplateCollaborator.findByTemplateId('templateCollaborators resolver', context, templateId);
+      }
+      // Unauthorized!
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 
   Mutation: {
     // Add a collaborator to a Template
     //     - called from the Template options page
-    addTemplateCollaborator: async (_, { templateId, email }, _context: MyContext): Promise<TemplateCollaborator> => {
-      // TODO: Add auth check here
-      const collaborator = await new TemplateCollaborator({ templateId, email });
-      // await collaborator.save();
-      return collaborator;
+    addTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<TemplateCollaborator> => {
+      if (!isAuthorized(context?.token)) {
+        // Invalid token!
+        throw AuthenticationError();
+      }
+
+      if (isAdmin(context.token)){
+        const invitedById = context.token?.id;
+        const collaborator = await new TemplateCollaborator({ templateId, email, invitedById });
+        return await collaborator.save(context);
+      }
+      // Unauthorized!
+      throw ForbiddenError();
     },
 
     // Remove a TemplateCollaborator from a Template
     //     - called from the Template options page
-    removeTemplateCollaborator: async (_, { templateId, email }, _context: MyContext): Promise<boolean> => {
-      // TODO: Add auth check here
-      // return await TemplateCollaborator.removeCollaborator(templateId, email);
-      return false;
+    removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<boolean> => {
+      if (isAdmin(context.token)){
+        return false;
+      }
+      // Unauthorized!
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 

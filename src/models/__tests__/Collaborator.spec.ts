@@ -1,5 +1,9 @@
 import casual from 'casual';
 import { Collaborator, TemplateCollaborator } from "../Collaborator";
+import mockLogger from '../../__tests__/mockLogger';
+import { buildContext } from '../../context';
+
+jest.mock('../../context.ts');
 
 describe('Collaborator', () => {
   it('constructor should initialize as expected', () => {
@@ -84,5 +88,45 @@ describe('TemplateCollaborator', () => {
     expect(await collaborator.isValid()).toBe(false);
     expect(collaborator.errors.length).toBe(1);
     expect(collaborator.errors[0].includes('Template')).toBe(true);
+  });
+});
+
+describe('save', () => {
+  let logger;
+  let mockDebug;
+  let mockError;
+  let mockContext;
+  let mockInsert;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    logger = mockLogger;
+    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
+    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
+
+    mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
+    const mockSqlDataSource = (await buildContext(logger, null, null)).dataSources.sqlDataSource;
+    mockInsert = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('it adds an error if the specified template does not exist', async () => {
+
+  });
+
+  it('it adds an error if the email is already a collaborator for the template', async () => {
+
+  });
+
+  it('it adds an error if the save fails', async () => {
+
+  });
+
+  it('it adds the collaborator to the template and returns the new record', async () => {
+
   });
 });
