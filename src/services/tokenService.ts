@@ -21,7 +21,8 @@ export const generateToken = (user: User): string => {
       email: user.email,
       givenName: user.givenName,
       surName: user.surName,
-      role: user.role.toString() || UserRole.Researcher,
+      affiliationId: user.affiliationId,
+      role: user.role.toString() || UserRole.RESEARCHER,
     }
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTtl });
   }

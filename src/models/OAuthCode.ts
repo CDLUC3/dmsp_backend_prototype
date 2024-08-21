@@ -1,6 +1,7 @@
 import { AuthorizationCode } from 'oauth2-server';
 import { v4 as uuidv4 } from 'uuid';
 import { oauthConfig } from '../config/oauthConfig';
+import { buildContext } from '../context';
 import { stringToArray } from '../utils/helpers';
 import { OAuthClient } from './OAuthClient';
 import { OAuthToken } from './OAuthToken'
@@ -47,14 +48,15 @@ export class OAuthCode implements AuthorizationCode {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = (rows as any[])[0];
       const client = await OAuthClient.findById(row.clientId);
-      const user = await User.findById(row.userId);
+      const context = await buildContext(logger);
+      const user = await User.findById('OAuthClient.findOne', context, row.userId);
       if (!client || !user) {
         return null;
       }
       return new OAuthCode({
         ...OAuthToken._SqlFieldsToProperties(row),
-        client: await OAuthClient.findById(row.clientId),
-        user: await User.findById(row.userId),
+        client,
+        user,
       });
 
     } catch(err) {

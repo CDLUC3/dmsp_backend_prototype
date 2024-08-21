@@ -2,9 +2,6 @@ import casual from 'casual';
 import { DMSP_BASE_URL, validateDmspId } from './resolvers/scalars/dmspId';
 import { validateOrcid } from './resolvers/scalars/orcid';
 import { ROR_DOMAIN, validateRor } from './resolvers/scalars/ror';
-import { mock as affiliationMock } from './mocks/affiliation';
-import { mock as userMock } from './mocks/user';
-import { mock as contributorRoleMock } from './mocks/contributorRole';
 
 // Mock resolvers for our custom Scalars
 function mockOrcid() {
@@ -36,7 +33,4 @@ const scalarMocks = {
 
 export const mocks = {
   ...scalarMocks,
-  ...affiliationMock,
-  ...contributorRoleMock,
-  ...userMock
 };

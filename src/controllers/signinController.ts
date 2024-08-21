@@ -10,6 +10,7 @@ export const signinController = async (req: Request, res: Response) => {
 
     if (user) {
       const token = generateToken(user);
+
       if (token) {
         res.status(200).json({ success: true, token });
       } else {

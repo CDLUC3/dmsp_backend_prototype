@@ -12,30 +12,28 @@ else
   MYSQL_ARGS="-h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER} -p${MYSQL_PASSWORD}"
 fi
 
-echo $MYSQL_ARGS
-
 process_migration() {
   # See if the migration was already processed
   echo "Checking to see if $1 has been run ..."
-  EXISTS=$(mysql ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile = '$1';")
+  EXISTS=$(mariadb ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile = '$1';")
   if [ -z "$EXISTS" ]; then
     # If not run it
     echo "NEW MIGRATION - $1. Processing migration ..."
-    echo " mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} < $1"
+    echo " mariadb ${MYSQL_ARGS} ${MYSQL_DATABASE} < $1"
 
-    mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} < $1
+    mariadb ${MYSQL_ARGS} ${MYSQL_DATABASE} < $1
     WAS_PROCESSED=$?
 
     # If it worked then update the data-migrations table so we don't run it again!
     if [ $WAS_PROCESSED -eq 0 ]; then
-      mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< "INSERT INTO dataMigrations (migrationFile) VALUES ('$1');"
+      mariadb ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< "INSERT INTO dataMigrations (migrationFile) VALUES ('$1');"
       echo "    done"
     else
       echo "    Something went wrong!"
       exit 1
     fi
   else
-    echo "    already processed."
+    echo "    it has."
   fi
 }
 

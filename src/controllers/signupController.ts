@@ -7,11 +7,13 @@ export const signupController = async (req: Request, res: Response) => {
   let user: User = new User(req.body);
   try {
     user = await user.register() || null;
+
     if (user) {
-      if (user.errors.length >= 1) {
+      if (user.errors?.length >= 1) {
         res.status(400).json({ success: false, message: user.errors?.join('| ') });
       } else {
         const token = generateToken(user);
+
         if (token) {
           res.status(200).json({ success: true, token });
         } else {

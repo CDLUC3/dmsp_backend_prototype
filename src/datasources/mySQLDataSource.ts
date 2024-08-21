@@ -2,7 +2,7 @@ import * as mysql from 'mysql2/promise';
 import { mysqlConfig } from "../config/mysqlConfig";
 import { logger, formatLogMessage } from '../logger';
 
-export type PoolConfig = {
+export interface PoolConfig {
   connectionLimit: number;
   host: string;
   port: number;
@@ -14,7 +14,7 @@ export type PoolConfig = {
 // Singleton MySQL Connection Pool
 export class MySQLDataSource {
   private static instance: MySQLDataSource;
-  private pool: mysql.Pool;
+  public pool: mysql.Pool;
 
   // Create a new connection pool
   private constructor() {

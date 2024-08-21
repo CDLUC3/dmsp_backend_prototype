@@ -1,8 +1,8 @@
 import { GraphQLScalarType, Kind } from 'graphql';
 
-export const ROR_DOMAIN: string = 'https://ror.org/';
-const ROR_ID_REGEX: RegExp = /^[0-9a-zA-Z]+$/;
-const ROR_URL_REGEX: RegExp = /^https?:\/\/ror.org\/[0-9a-zA-Z]+/
+export const ROR_DOMAIN = 'https://ror.org/';
+const ROR_ID_REGEX = /^[0-9a-zA-Z]+$/;
+const ROR_URL_REGEX = /^https?:\/\/ror.org\/[0-9a-zA-Z]+/
 
 export function validateRor(val) {
   const match = val.startsWith('http') ? val.match(ROR_URL_REGEX) : val.match(ROR_ID_REGEX);

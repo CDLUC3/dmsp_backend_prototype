@@ -1,13 +1,18 @@
 
 ### Added
-- Schema, Mocks, Models and Resolvers for Affiliations and tests for the Models and Resolvers
-- Added new DataSource for the DmptoolApi with endpoints for Affiliations and a new mock for this data source for use in tests
+- Initial schema, model, mocks and resolver for Templates
+- Initial schema, model, mocks and resolver for Collaborators
+- added templateService to assist with actions that work on a Template and all of it's child objects
+- Added stub emailService as a placeholder for now. We will build that out once the AWS infrastructire is in place
+- Missing data-migration for the dataMigrations table
+- Script to nuke the DB so it can be easily rebuilt from scratch
+- Added husky precommit tasks
 
 ### Updated
-- Updated schemas.ts, resolvers.ts, mocks.ts and codegen.ts to use new Affiliation files
-- Updated express.ts middleware file to pull in and initialize the new DmptoolApi datasource
+- Added MariaDB to docker-compose
+- data-migrations/README.md with instructions on running migrations in the Docker container
 
-## v0.1
+## v0.0.1
 Initial Apollo Server build
 
 ### Added
@@ -29,6 +34,8 @@ Initial Apollo Server build
 - Pino logger with ECS formatter
 - Plugin to log request/response lifecycle events
 - Add Logger to the context and then used it in the resolvers
+- Schema, Mocks, Models and Resolvers for Affiliations and tests for the Models and Resolvers
+- Added new DataSource for the DmptoolApi with endpoints for Affiliations and a new mock for this data source for use in tests
 
 ### Updated
 - Made some updates to auth code based on testing out recent changes with frontend [#34]

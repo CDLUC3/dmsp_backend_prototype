@@ -2,7 +2,7 @@ import { Buffer } from "buffer";
 import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { logger, formatLogMessage } from '../logger';
-import { AffiliationModel, AffiliationSearchModel } from "../models/Affiliation"
+import { Affiliation, AffiliationSearch } from "../models/Affiliation"
 import { JWTToken } from '../services/tokenService';
 
 // Singleton class that retrieves an Auth token from the API
@@ -99,7 +99,7 @@ export class DMPToolAPI extends RESTDataSource {
 
       const response = await this.get(`affiliations/${encodeURI(id)}`);
       if (response) {
-        const affiliation = new AffiliationModel(response);
+        const affiliation = new Affiliation(response);
         return affiliation ? affiliation : null;
       }
       return null;
@@ -119,7 +119,7 @@ export class DMPToolAPI extends RESTDataSource {
 
       const response = await this.get(`affiliations?${queryString}`);
       if (response) {
-        const affiliations = response.map((rec) => new AffiliationSearchModel(rec)) || [];
+        const affiliations = response.map((rec) => new AffiliationSearch(rec)) || [];
         return affiliations ? affiliations : [];
       }
       return null;

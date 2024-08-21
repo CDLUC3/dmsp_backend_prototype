@@ -1,9 +1,44 @@
 import {
+  validateDate,
   validateEmail,
   capitalizeFirstLetter,
   stringToArray,
-  verifyCriticalEnvVariable
+  verifyCriticalEnvVariable,
+  incrementVersionNumber,
+  validateURL,
 } from '../helpers';
+
+describe('Date validation', () => {
+  test('returns true when the value is a date', () => {
+    expect(validateDate('2024-08-14T13:41:12.000Z')).toBe(true);
+    expect(validateDate('2024-08-14T13:41:12Z')).toBe(true);
+    expect(validateDate('2024-08-14T13:41:12')).toBe(true);
+    expect(validateDate('2024-08-14 13:41:12')).toBe(true);
+    expect(validateDate('2024-08-14 13:41')).toBe(true);
+    expect(validateDate('08/14/2024')).toBe(true);
+
+    const date = new Date();
+    expect(validateDate(date.toDateString())).toBe(true);
+    expect(validateDate(date.toISOString())).toBe(true);
+    expect(validateDate(date.toLocaleDateString())).toBe(true);
+    expect(validateDate(date.toLocaleString())).toBe(true);
+    expect(validateDate(date.toUTCString())).toBe(true);
+    expect(validateDate(date.toString())).toBe(true);
+  });
+
+  test('returns false when the value is NOT a date', () => {
+    expect(validateDate('2024-AZ-14 13:BY:12')).toBe(false);
+    expect(validateDate('425624756')).toBe(false);
+    expect(validateDate('abcdef')).toBe(false);
+    expect(validateDate('false')).toBe(false);
+    expect(validateDate(null)).toBe(false);
+    expect(validateDate('{"date": "2024-08-14T13:48:00Z"}')).toBe(false);
+
+    const date = new Date();
+    expect(validateDate(date.toTimeString())).toBe(false);
+    expect(validateDate(date.toLocaleTimeString())).toBe(false);
+  });
+});
 
 describe('Email validation', () => {
   test('returns true if the value is a valid email', () => {
@@ -17,6 +52,25 @@ describe('Email validation', () => {
     expect(validateEmail('test.example.com')).toBe(false);
     expect(validateEmail('test-user@example')).toBe(false);
     expect(validateEmail('@example.co')).toBe(false);
+  });
+});
+
+describe('URL validation', () => {
+  test('returns true for valid URLs', () => {
+    expect(validateURL('https://www.example.com')).toBe(true);
+    expect(validateURL('http://www.example.com')).toBe(true);
+    expect(validateURL('file://www.example.com')).toBe(true);
+    expect(validateURL('http://example.com')).toBe(true);
+    expect(validateURL('https://example.com/path/to/page')).toBe(true);
+    expect(validateURL('https://example.com/path/to/page?qs=1&qs2=2')).toBe(true);
+  });
+
+  test('returns false for invalid URLs', () => {
+    expect(validateURL('www.example/path/to/page')).toBe(false);
+    expect(validateURL('example.com')).toBe(false);
+    expect(validateURL('example.com/path')).toBe(false);
+    expect(validateURL('hehgiehgehgerge')).toBe(false);
+    expect(validateURL('58757899')).toBe(false);
   });
 });
 
@@ -50,15 +104,33 @@ describe('Convert a string into an Array', () => {
 
 describe('Verify critical env variables', () => {
   test('does not log an error if the specified variable exist', () => {
-    const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { });
+    const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { return null });
     verifyCriticalEnvVariable('NODE_ENV');
     expect(logSpy).not.toHaveBeenCalled();
     logSpy.mockRestore();
   });
   test('logs an error if the specified variable does not exist', () => {
-    const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { });
+    const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { return null });
     verifyCriticalEnvVariable('TEST_SECRET');
     expect(logSpy).toHaveBeenCalled();
     logSpy.mockRestore();
+  });
+});
+
+describe('Version number incrementer', () => {
+  test('returns the version as-is if it does not have a numeric part', () => {
+    let newVersion = incrementVersionNumber('');
+    expect(newVersion).toEqual('');
+    newVersion = incrementVersionNumber('v');
+    expect(newVersion).toEqual('v');
+  });
+
+  test('can increment a major only version number', () => {
+    let newVersion = incrementVersionNumber('v1');
+    expect(newVersion).toEqual('v2');
+    newVersion = incrementVersionNumber('v12');
+    expect(newVersion).toEqual('v13');
+    newVersion = incrementVersionNumber('v12345');
+    expect(newVersion).toEqual('v12346');
   });
 });
