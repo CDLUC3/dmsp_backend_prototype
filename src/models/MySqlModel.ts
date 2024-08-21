@@ -12,6 +12,9 @@ export class MySqlModel {
     public modifiedById?: number,
     public errors: string[] = [],
   ){
+
+console.log(this)
+
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {
       this.modifiedById = this.createdById;
@@ -43,11 +46,14 @@ export class MySqlModel {
   }
 
   // Fetches all of the property infor for the object to faciliate inserts and updates
-  static propertyInfo(obj: Record<string, any>): { name: string, value: string }[] {
-    return Object.keys(obj).map((key) => ({
-      name: key,
-      value: obj[key]
-    }));
+  static propertyInfo(obj: Record<string, any>, skipKeys: string[] = []): { name: string, value: string }[] {
+    const excludedKeys = ['id', 'errors'];
+    return Object.keys(obj)
+      .filter((key) => ![...excludedKeys, ...skipKeys]
+      .includes(key)).map((key) => ({
+        name: key,
+        value: obj[key]
+      }));
   }
 
   // Run a query to check for the existence of a record in the database. Typically used to verify that
@@ -104,12 +110,32 @@ export class MySqlModel {
     return [];
   }
 
-  static async insert(): Promise<number> {
-    const props = this.propertyInfo(this);
+  // Execute a SQL insert
+  //    - apolloContext:   The Apollo server context
+  //    - table:           The SQL table name
+  //    - obj:             The MysqlModel instance
+  //    - reference:       A reference to contextualize log messages e.g. `users resolver`
+  // returns the newly inserted record's id
+  static async insert(
+    apolloContext: MyContext,
+    table: string,
+    obj: MySqlModel,
+    reference = 'undefined caller',
+  ): Promise<number> {
+    // Fetch all of the data from the object
+    const props = this.propertyInfo(obj);
 
+console.log(obj)
 console.log(props)
 
-    return null;
+    const sql = `INSERT INTO ${table} \
+                  (${props.map((entry) => entry.name).join(', ')}) \
+                 VALUES (${Array(props.length).fill('?').join(', ')})`
+
+    const vals = props.map((entry) => entry.value?.toString());
+    // Send the calcuated INSERT statement to the query function
+    const result = await this.query(apolloContext, sql, vals, reference);
+    return Array.isArray(result) ? result[0]?.insertId : null;
   }
 
   static async update(): Promise<any> {

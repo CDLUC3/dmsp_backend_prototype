@@ -80,7 +80,7 @@ export class TemplateCollaborator extends Collaborator {
           const sql = `UPDATE templateCollaborators \
                        SET userId = ?, modifiedById = ?, modified = ? \
                        WHERE id = ?`;
-          const vals = [this.userId.toString(), this.invitedById.toString()]
+          const vals = [this.userId.toString(), saverId.toString(), new Date().toUTCString(), existing.id.toString()];
         } else {
 
 
