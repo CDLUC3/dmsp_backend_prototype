@@ -10,6 +10,8 @@ Our Apollo server installation consists of:
 
 ## Installation
 - Clone this repository to your local machine
+- Create your dotenv file the `cp ./.env.example ./.env`
+- Update the new `.env` file if necessary (make sure it has no references to MYSQL unless you want to override the docker-compose db setings)
 - Run `docker-compose build` to build the container
 - Once the build has completed start the container with: `docker-compose up`
 - In a separate tab run `docker-compose exec apollo bash ./data-migrations/process.sh` to build out the local database
@@ -72,7 +74,7 @@ type User {
   email: String!
   affiliation: Affiliation!
 }
-``
+```
 
 In this schema, we have a query to fetch a user record. The User object exposes a reference to an asscoiated affiliation.
 
