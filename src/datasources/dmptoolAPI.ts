@@ -20,7 +20,7 @@ class Authorizer extends RESTDataSource {
   constructor() {
     super();
 
-    this.env = this.baseURL.includes('uc3prd') ? 'dev' : (this.baseURL.includes('uc3stg') ? 'stg' : 'dev');
+    this.env = this.baseURL.includes('uc3prd') ? 'prd' : (this.baseURL.includes('uc3stg') ? 'stg' : 'dev');
     // Base64 encode the credentials for the auth request
     const hdr = `${process.env.DMPHUB_API_CLIENT_ID}:${process.env.DMPHUB_API_CLIENT_SECRET}`;
     this.creds = Buffer.from(hdr, 'binary').toString('base64');
