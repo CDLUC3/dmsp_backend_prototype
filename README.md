@@ -18,12 +18,35 @@ Our Apollo server installation consists of:
 - Visit `http://localhost:4000/graphql` to load the Apollo server explorer and verify that the system is running.
 
 ## Running current database migrations
-- While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh`.
+
+**Local Docker container**
+- While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh` in a seperate terminal window.
+
+**AWS Cloud9 Bastion Host**
+- Login to the AWS console and start the bastion cloud9 instance.
+- Navigate to this repo on the instance (clone it if it is not there)
+- Checkout the appropriate branch/tag and pull down the latest
+- Run `./data-migrations/process.sh [env]`
 
 ## Dropping all of the tables in the local database
-In the event that you want to delete all of the tables and data from your local database and rebuild a clean database you can run: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh` followed by `docker-compose exec apollo bash ./data-migrations/process.sh`.
 
-Note that the container must be running.
+In the event that you want to delete all of the tables and data from your database and rebuild a clean database you can run
+
+**Local Docker container**
+- Drop the tables: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh`
+- Rebuild the tables and seed them: `docker-compose exec apollo bash ./data-migrations/process.sh`
+
+Note that the container must be running!
+
+**AWS Cloud9 Bastion Host**
+
+NEVER EVER do this in production! You will lose ALL data.
+
+- Login to the AWS console and start the bastion cloud9 instance.
+- Navigate to this repo on the instance (clone it if it is not there)
+- Checkout the appropriate branch/tag and pull down the latest
+- Drop the tables: `./data-migrations/nuke-db.sh`
+- Rebuild the tables and seed them: `./data-migrations/process.sh`
 
 ## Adding or updating GraphQL functionality
 
