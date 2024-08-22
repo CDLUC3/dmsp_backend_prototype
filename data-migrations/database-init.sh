@@ -1,4 +1,4 @@
-if [ ! -f /tmp/foo.txt ]; then
+if [ ! -f /.env ]; then
   if [ $# -ne 1 ]; then
     echo 'If you do not have a Dotenv, you must specify the environment! (e.g. `./nuke-db.sh dev`)'
     exit 1
