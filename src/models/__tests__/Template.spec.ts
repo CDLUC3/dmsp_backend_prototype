@@ -1,5 +1,21 @@
 import casual from 'casual';
 import { Template, Visibility } from "../Template";
+import mockLogger from '../../__tests__/mockLogger';
+import { buildContext, mockToken } from '../../__mocks__/context';
+
+jest.mock('../../context.ts');
+
+let context;
+
+beforeEach(async () => {
+  jest.resetAllMocks();
+
+  context = await buildContext(mockLogger, mockToken());
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 describe('Template', () => {
   let name;
@@ -19,7 +35,7 @@ describe('Template', () => {
     expect(template.id).toBeFalsy();
     expect(template.name).toEqual(name);
     expect(template.ownerId).toEqual(ownerId);
-    expect(template.visibility).toEqual(Visibility.Private);
+    expect(template.visibility).toEqual(Visibility.PRIVATE);
     expect(template.created).toBeTruthy();
     expect(template.modified).toBeTruthy();
     expect(template.currentVersion).toBeFalsy();
@@ -53,42 +69,152 @@ describe('Template', () => {
   });
 });
 
-describe('clone', () => {
-  it('returns a copy of the template with the expected values', () => {
-    const opts = {
-      id: casual.integer(1, 99999),
-      createdById: casual.integer(1, 999),
-      modifiedById: casual.integer(1, 999),
-      created: casual.date('YYYY-MM-DD'),
-      modified: casual.date('YYYY-MM-DD'),
-      errors: [casual.sentence, casual.sentence],
+describe('create', () => {
+  let insertQuery;
+  let template;
 
+  beforeEach(async () => {
+    insertQuery = jest.fn();
+    (Template.insert as jest.Mock) = insertQuery;
+
+    template = new Template({
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
       name: casual.sentence,
       description: casual.sentences(5),
+    })
+  });
+
+  it('returns the Template with errors if it is not valid', async () => {
+    const localValidator = jest.fn();
+    (template.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    expect(await template.create(context)).toBe(template);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the Template with an error if the template already exists', async () => {
+    const localValidator = jest.fn();
+    (template.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    const mockFindBy = jest.fn();
+    (Template.findByNameAndOwnerId as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(template);
+
+    const result = await template.create(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]).toEqual('Template with this name already exists');
+  });
+
+  it('returns the newly added Template', async () => {
+    const localValidator = jest.fn();
+    (template.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    const mockFindBy = jest.fn();
+    (Template.findByNameAndOwnerId as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(null);
+    mockFindBy.mockResolvedValue(template);
+
+    const mockFindById = jest.fn();
+    (Template.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(template);
+
+    const result = await template.create(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(mockFindById).toHaveBeenCalledTimes(1);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(template);
+  });
+});
+
+describe('update', () => {
+  let updateQuery;
+  let template;
+
+  beforeEach(async () => {
+    updateQuery = jest.fn();
+    (Template.update as jest.Mock) = updateQuery;
+
+    template = new Template({
+      id: casual.integer(1, 99),
+      createdById: casual.integer(1, 999),
       ownerId: casual.url,
-      visibility: Visibility.Public,
-      currentVersion: casual.word,
-    }
+      name: casual.sentence,
+    })
+  });
 
-    const newOwnerId = casual.url;
-    const newCreatedById = casual.integer(1, 99);
+  it('returns the Template with errors if it is not valid', async () => {
+    const localValidator = jest.fn();
+    (template.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
 
-    const template = new Template(opts);
-    const clone = template.clone(newCreatedById, newOwnerId);
+    expect(await template.update(context)).toBe(template);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
 
-    // Underlying MySqlModel properties are correctly set
-    expect(clone.id).toBeFalsy();
-    expect(clone.created).toBeTruthy();
-    expect(clone.createdById).toEqual(newCreatedById);
-    expect(clone.modified).toBeTruthy();
-    expect(clone.modifiedById).toEqual(newCreatedById);
-    expect(clone.errors).toEqual([]);
+  it('returns an error if the Template has no id', async () => {
+    const localValidator = jest.fn();
+    (template.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
 
-    // Template properties are correctly set
-    expect(clone.name).toEqual(`Copy of ${opts.name}`);
-    expect(clone.description).toEqual(opts.description);
-    expect(clone.ownerId).toEqual(newOwnerId);
-    expect(clone.visibility).toEqual(Visibility.Private);
-    expect(clone.currentVersion).toBeFalsy();
+    template.id = null;
+    const result = await template.update(context);
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]).toEqual('Template has never been saved');
+  });
+
+  it('returns the updated Template', async () => {
+    const localValidator = jest.fn();
+    (template.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    updateQuery.mockResolvedValueOnce(template);
+
+    const result = await template.update(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(template);
+  });
+});
+
+describe('delete', () => {
+  let template;
+
+  beforeEach(() => {
+    template = new Template({
+      id: casual.integer(1, 99),
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
+      name: casual.sentence,
+    });
+  })
+
+  it('returns false if the Template has no id', async () => {
+    template.id = null;
+    expect(await template.delete(context)).toBe(false);
+  });
+
+  it('returns false if it was not able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (Template.delete as jest.Mock) = deleteQuery;
+
+    deleteQuery.mockResolvedValueOnce(null);
+    expect(await template.delete(context)).toBe(false);
+  });
+
+  it('returns true if it was able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (Template.delete as jest.Mock) = deleteQuery;
+
+    deleteQuery.mockResolvedValueOnce(template);
+    expect(await template.delete(context)).toBe(true);
   });
 });

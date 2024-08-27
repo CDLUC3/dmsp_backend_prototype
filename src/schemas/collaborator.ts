@@ -26,7 +26,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
     "Errors associated with the Object"
-    errors: [ContextualError]
+    errors: [String!]
 
     "The template the collaborator may edit"
     template: Template

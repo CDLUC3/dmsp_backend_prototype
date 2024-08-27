@@ -44,6 +44,8 @@ export const typeDefs = gql`
     modifiedById: Int
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
+    "Errors associated with the Object"
+    errors: [String!]
 
     "The order in which to display these items when displayed in the UI"
     displayOrder: Int!

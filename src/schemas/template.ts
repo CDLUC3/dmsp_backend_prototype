@@ -15,14 +15,17 @@ export const typeDefs = gql`
     updateTemplate(templateId: Int!, name: String!, visibility: Visibility!): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
     archiveTemplate(templateId: Int!): Boolean
+
+    "Publish the template or save as a draft"
+    createVersion(templateId: Int!, comment: String, versionType: VersionType): Template
   }
 
   "Template visibility"
   enum Visibility {
     "Visible only to users of your institution"
-    Private
+    PRIVATE
     "Visible to all users"
-    Public
+    PUBLIC
   }
 
   "A Template used to create DMPs"
@@ -37,6 +40,8 @@ export const typeDefs = gql`
     modifiedById: Int
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
+    "Errors associated with the Object"
+    errors: [String!]
 
     "The template that this one was derived from"
     sourceTemplateId: Int

@@ -1,6 +1,22 @@
 import casual from 'casual';
 import { Visibility } from "../Template";
-import { VersionedTemplate, VersionType } from '../VersionedTemplate';
+import { VersionedTemplate } from '../VersionedTemplate';
+import mockLogger from '../../__tests__/mockLogger';
+import { buildContext, mockToken } from '../../__mocks__/context';
+
+jest.mock('../../context.ts');
+
+let context;
+
+beforeEach(async () => {
+  jest.resetAllMocks();
+
+  context = await buildContext(mockLogger, mockToken());
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 describe('VersionedTemplate', () => {
   let templateId;
@@ -27,7 +43,7 @@ describe('VersionedTemplate', () => {
     expect(versioned.name).toEqual(name);
     expect(versioned.ownerId).toEqual(ownerId);
     expect(versioned.versionedById).toEqual(versionedById);
-    expect(versioned.visibility).toEqual(Visibility.Private);
+    expect(versioned.visibility).toEqual(Visibility.PRIVATE);
     expect(versioned.created).toBeTruthy();
     expect(versioned.active).toBe(false);
     expect(versioned.comment).toEqual('');
@@ -70,5 +86,102 @@ describe('VersionedTemplate', () => {
     expect(await versioned.isValid()).toBe(false);
     expect(versioned.errors.length).toBe(1);
     expect(versioned.errors[0].includes('Owner')).toBe(true);
+  });
+});
+
+describe('create', () => {
+  let insertQuery;
+  let versionedTemplate;
+
+  beforeEach(async () => {
+    insertQuery = jest.fn();
+    (VersionedTemplate.insert as jest.Mock) = insertQuery;
+
+    versionedTemplate = new VersionedTemplate({
+      templateId: casual.integer(1, 999),
+      versionedById: casual.integer(1, 99),
+      version: `v${casual.integer(1, 9)}`,
+      ownerId: casual.url,
+      name: casual.sentence,
+      description: casual.sentences(5),
+      comment: casual.sentences(10),
+    })
+  });
+
+  it('returns the VersionedTemplate with errors if it is not valid', async () => {
+    const localValidator = jest.fn();
+    (versionedTemplate.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    expect(await versionedTemplate.create(context)).toBe(versionedTemplate);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the newly added VersionedTemplate', async () => {
+    const localValidator = jest.fn();
+    (versionedTemplate.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    const mockFindBy = jest.fn();
+    (VersionedTemplate.findPublishedTemplateById as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValue(versionedTemplate);
+
+    const result = await versionedTemplate.create(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(versionedTemplate);
+  });
+});
+
+describe('update', () => {
+  let updateQuery;
+  let versionedTemplate;
+
+  beforeEach(async () => {
+    updateQuery = jest.fn();
+    (VersionedTemplate.update as jest.Mock) = updateQuery;
+
+    versionedTemplate = new VersionedTemplate({
+      id: casual.integer(1, 99),
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
+      name: casual.sentence,
+    })
+  });
+
+  it('returns the VersionedTemplate with errors if it is not valid', async () => {
+    const localValidator = jest.fn();
+    (versionedTemplate.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    expect(await versionedTemplate.update(context)).toBe(versionedTemplate);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an error if the VersionedTemplate has no id', async () => {
+    const localValidator = jest.fn();
+    (versionedTemplate.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    versionedTemplate.id = null;
+    const result = await versionedTemplate.update(context);
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]).toEqual('VersionedTemplate has never been saved');
+  });
+
+  it('returns the updated VersionedTemplate', async () => {
+    const localValidator = jest.fn();
+    (versionedTemplate.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    updateQuery.mockResolvedValueOnce(versionedTemplate);
+
+    const result = await versionedTemplate.update(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(versionedTemplate);
   });
 });

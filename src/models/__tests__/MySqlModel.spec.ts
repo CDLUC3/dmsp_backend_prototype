@@ -1,7 +1,7 @@
 import casual from 'casual';
 import { MySqlModel } from "../MySqlModel";
-import { MySQLDataSource } from '../../datasources/mySQLDataSource';
 import mockLogger from '../../__tests__/mockLogger';
+import { buildContext, mockToken } from '../../__mocks__/context';
 
 jest.mock('../../dataSources/mySQLDataSource', () => {
   return {
@@ -48,9 +48,9 @@ describe('MySqlModel abstract class', () => {
 
   it('constructor should initialize as expected if it is an existing record', () => {
     const id = casual.integer(1, 999);
-    const created = new Date().toUTCString();
+    const created = new Date().toISOString();
     const createdById = casual.integer(1, 999);
-    const modified = new Date().toUTCString();
+    const modified = new Date().toISOString();
     const modifiedById = casual.integer(1, 999);
 
     const model = new MySqlModel(id, created, createdById, modified, modifiedById);
@@ -111,6 +111,46 @@ describe('MySqlModel abstract class', () => {
   });
 });
 
+describe('prepareValue', () => {
+  it('can handle a string', () => {
+    const val = 'test';
+    expect(MySqlModel.prepareValue(val)).toEqual("test");
+    const str = new String('test');
+    expect(MySqlModel.prepareValue(str)).toEqual("test");
+  });
+
+  it('can handle a number', () => {
+    const val = 12345;
+    expect(MySqlModel.prepareValue(val)).toEqual("12345");
+    const flt = new String(123.45);
+    expect(MySqlModel.prepareValue(flt)).toEqual("123.45");
+  });
+
+  it('can handle a boolean', () => {
+    const val = true;
+    expect(MySqlModel.prepareValue(val)).toEqual("true");
+    const bool = new Boolean(0);
+    expect(MySqlModel.prepareValue(bool)).toEqual("false");
+  });
+
+  it('can handle an Array', () => {
+    const val = ['test1', 'test2'];
+    expect(MySqlModel.prepareValue(val)).toEqual('["test1","test2"]');
+    const nested = ['test1', 'test2', [12, 34]];
+    expect(MySqlModel.prepareValue(nested)).toEqual('["test1","test2",[12,34]]');
+    // eslint-disable-next-line @typescript-eslint/no-array-constructor
+    const arr = new Array('1','2');
+    expect(MySqlModel.prepareValue(arr)).toEqual('["1","2"]');
+  });
+
+  it('can handle an Object', () => {
+    const val = { test1: 'test1', test2: 2, test3: false };
+    expect(MySqlModel.prepareValue(val)).toEqual('{"test1":"test1","test2":2,"test3":false}');
+    const nested = { test1: 'test1', test2: { subA: 2, subB: '3' }, test3: false };
+    expect(MySqlModel.prepareValue(nested)).toEqual('{"test1":"test1","test2":{"subA":2,"subB":"3"},"test3":false}');
+  });
+});
+
 describe('propertyInfo', () => {
   const options = {
     id: casual.integer(1, 9999),
@@ -148,20 +188,18 @@ describe('query function', () => {
   let context;
   let logger;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
     logger = mockLogger;
+
+    context = await buildContext(logger, mockToken());
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
     mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+
+    mockQuery = jest.fn();
+    const dataSource = context.dataSources.sqlDataSource;
+    (dataSource.query as jest.Mock) = mockQuery;
   });
 
   afterEach(() => {
@@ -213,30 +251,16 @@ describe('query function', () => {
 });
 
 describe('insert function', () => {
-  let mockQuery;
   let localQuery;
-  let mockDebug;
-  let mockError;
   let context;
-  let logger;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    logger = mockLogger;
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+    context = await buildContext(mockLogger, mockToken());
   });
 
   afterEach(() => {
@@ -261,7 +285,27 @@ describe('insert function', () => {
 
     const result = await MySqlModel.insert(context, table, obj, 'Testing');
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith();
     expect(result).toEqual(id);
+  });
+
+  it('query returns the new item\'s id', async () => {
+    const options = {
+      createdById: casual.integer(1, 99),
+
+      id: casual.integer(1, 9999),
+      testA: casual.sentence,
+      testB: casual.integer(1, 999),
+      testC: [casual.sentence, casual.word],
+      testD: casual.boolean,
+      testZ: casual.words(3),
+    }
+    const table = casual.word;
+    const obj = new TestImplementation(options);
+
+    localQuery.mockResolvedValueOnce([obj]);
+
+    const result = await MySqlModel.update(context, table, obj, 'Testing');
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(obj);
   });
 });

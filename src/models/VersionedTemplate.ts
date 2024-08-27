@@ -3,8 +3,8 @@ import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 
 export enum VersionType {
-  Draft = 'Draft',
-  Published = 'Published',
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
 }
 
 // A Snapshot/Version of a Template
@@ -24,6 +24,8 @@ export class VersionedTemplate extends MySqlModel {
   public visibility: Visibility;
   public bestPractice: boolean;
 
+  private tableName = 'versionedTemplates';
+
   constructor(options){
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
@@ -35,11 +37,11 @@ export class VersionedTemplate extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
 
-    this.versionType = options.versionType || VersionType.Draft;
+    this.versionType = options.versionType || VersionType.DRAFT;
     this.comment = options.comment || '';
     this.active = options.active || false;
 
-    this.visibility = options.visibility || Visibility.Private;
+    this.visibility = options.visibility || Visibility.PRIVATE;
     this.bestPractice = options.bestPractice || false;
   }
 
@@ -63,6 +65,32 @@ export class VersionedTemplate extends MySqlModel {
       this.errors.push('Version can\'t be blank');
     }
     return this.errors.length <= 0;
+  }
+
+  // Save the current record
+  async create(context: MyContext): Promise<VersionedTemplate> {
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      // Save the record and then fetch it
+      const newId = await VersionedTemplate.insert(context, this.tableName, this, 'VersionedTemplate.create');
+      return await VersionedTemplate.findPublishedTemplateById('VersionedTemplate.create', context, newId);
+    }
+    // Otherwise return as-is with all the errors
+    return this;
+  }
+
+  // Save the changes made to the VersionedTemplate
+  async update(context: MyContext): Promise<VersionedTemplate> {
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      if (this.id) {
+        const result = await VersionedTemplate.update(context, this.tableName, this, 'VersionedTemplate.update');
+        return result as VersionedTemplate;
+      }
+      // This template has never been saved before so we cannot update it!
+      this.errors.push('VersionedTemplate has never been saved');
+    }
+    return this;
   }
 
   // Return all of the versions for the specified Template

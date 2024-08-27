@@ -1,7 +1,88 @@
 import casual from 'casual';
  import { Template, Visibility } from "../../models/Template";
  import { VersionedTemplate, VersionType } from '../../models/VersionedTemplate';
- import { clone, generateVersion } from '../templateService';
+ import { clone, generateVersion, hasPermission } from '../templateService';
+import { TemplateCollaborator } from '../../models/Collaborator';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { isSuperAdmin } from '../authService';
+import mockLogger from '../../__tests__/mockLogger';
+import { MySQLDataSource } from '../../datasources/mySQLDataSource';
+
+ describe('hasPermission', () => {
+  let template;
+  let mockQuery;
+  let mockIsSuperAdmin;
+  let mockFindByTemplateAndEmail;
+  let logger;
+  let context;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    // Cast getInstance to a jest.Mock type to use mockReturnValue
+    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
+      query: jest.fn(), // Initialize the query mock function here
+    });
+
+    const instance = MySQLDataSource.getInstance();
+    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
+    logger = mockLogger;
+    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+
+    mockIsSuperAdmin = jest.fn();
+    (isSuperAdmin as jest.Mock) = mockIsSuperAdmin;
+
+    mockFindByTemplateAndEmail = jest.fn();
+    (TemplateCollaborator.findByTemplateIdAndEmail as jest.Mock) = mockFindByTemplateAndEmail;
+
+    template = new Template({
+      id: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns true if the current user is a Super Admin', async () => {
+    mockIsSuperAdmin.mockResolvedValueOnce(true);
+
+    context.token = { affiliationId: 'https://test.example.com/foo' };
+    expect(await hasPermission(context, template)).toBe(true)
+    expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns true if the current user\'s affiliation is the same as the template\'s owner', async () => {
+    mockIsSuperAdmin.mockResolvedValueOnce(false);
+
+    context.token = { affiliationId: template.ownerId };
+    expect(await hasPermission(context, template)).toBe(true)
+    expect(mockIsSuperAdmin).toHaveBeenCalledTimes(0);
+
+  });
+
+  it('returns true if the current user is a collaborator for the template', async () => {
+    mockIsSuperAdmin.mockResolvedValue(false);
+    mockFindByTemplateAndEmail.mockResolvedValueOnce(template);
+
+    context.token = { affiliationId: 'https://test.example.com/foo' };
+    expect(await hasPermission(context, template)).toBe(true)
+    expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+    expect(mockFindByTemplateAndEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns false when the user does not have permission', async () => {
+    mockIsSuperAdmin.mockResolvedValueOnce(false);
+    mockFindByTemplateAndEmail.mockResolvedValueOnce(null);
+
+    context.token = { affiliationId: 'https://test.example.com/foo' };
+    expect(await hasPermission(context, template)).toBe(false)
+    expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+    expect(mockFindByTemplateAndEmail).toHaveBeenCalledTimes(1);
+  });
+})
 
  describe('generateVersion', () => {
    let id;
@@ -37,26 +118,22 @@ import casual from 'casual';
      await expect(generateVersion(tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(expectedMessage);
    });
 
-   it('publish initializes a new PublishedTemplate and sets the currentVersion number', async () => {
+   it('initializes a new VersionedTemplate and sets the currentVersion number', async () => {
      const publisher = casual.integer(1, 999);
      const comment = casual.sentences(10);
 
-     const { template, versions } = await generateVersion(tmplt, [], publisher, comment);
-     expect(template.currentVersion).toEqual('v1');
-     expect(versions.length).toBe(1);
-     const published = versions[0];
-
-     expect(published).toBeInstanceOf(VersionedTemplate);
-     expect(published.templateId).toEqual(tmplt.id);
-     expect(published.name).toEqual(tmplt.name);
-     expect(published.visibility).toEqual(tmplt.visibility);
-     expect(published.version).toEqual('v1');
-     expect(published.versionedById).toEqual(publisher);
-     expect(published.comment).toEqual(comment);
-     expect(published.active).toBe(true);
+     const versionedTemplate = await generateVersion(tmplt, [], publisher, comment);
+     expect(versionedTemplate).toBeInstanceOf(VersionedTemplate);
+     expect(versionedTemplate.templateId).toEqual(tmplt.id);
+     expect(versionedTemplate.name).toEqual(tmplt.name);
+     expect(versionedTemplate.visibility).toEqual(tmplt.visibility);
+     expect(versionedTemplate.version).toEqual('v1');
+     expect(versionedTemplate.versionedById).toEqual(publisher);
+     expect(versionedTemplate.comment).toEqual(comment);
+     expect(versionedTemplate.active).toBe(true);
    });
 
-   it('publish initializes a new PublishedTemplate and bumps the currentVersion number', async () => {
+   it('initializes a new VersionedTemplate and bumps the currentVersion number', async () => {
      const publisher = casual.integer(1, 999);
      const comment = casual.sentences(10);
 
@@ -67,27 +144,21 @@ import casual from 'casual';
        name: 'Prior version',
        ownerId,
        createdById: casual.integer(1, 999),
-       visibility: Visibility.Public,
+       visibility: Visibility.PUBLIC,
        comment: 'This was the prior version',
        active: true,
      });
      tmplt.currentVersion = ver;
 
-     const { template, versions } = await generateVersion(tmplt, [priorVersion], publisher, comment);
-     expect(template.currentVersion).toEqual(`v${ver + 1}`);
-     expect(versions.length).toBe(2);
-     const published = versions[1];
-
-     expect(published).toBeInstanceOf(VersionedTemplate);
-     expect(published.templateId).toEqual(template.id);
-     expect(published.name).toEqual(template.name);
-     expect(published.visibility).toEqual(template.visibility);
-     expect(published.version).toEqual(`v${ver + 1}`);
-     expect(published.versionedById).toEqual(publisher);
-     expect(published.comment).toEqual(comment);
-     expect(published.active).toBe(true);
-
-     expect(versions[0]?.active).toBe(false);
+     const versionedTemplate = await generateVersion(tmplt, [priorVersion], publisher, comment);
+     expect(versionedTemplate).toBeInstanceOf(VersionedTemplate);
+     expect(versionedTemplate.templateId).toEqual(tmplt.id);
+     expect(versionedTemplate.name).toEqual(tmplt.name);
+     expect(versionedTemplate.visibility).toEqual(tmplt.visibility);
+     expect(versionedTemplate.version).toEqual(`v${ver + 1}`);
+     expect(versionedTemplate.versionedById).toEqual(publisher);
+     expect(versionedTemplate.comment).toEqual(comment);
+     expect(versionedTemplate.active).toBe(true);
    });
  });
 
@@ -119,7 +190,7 @@ import casual from 'casual';
      expect(copy.id).toBeFalsy();
      expect(copy.name).toEqual(`Copy of ${tmplt.name}`);
      expect(copy.ownerId).toEqual(newOwnerId);
-     expect(copy.visibility).toEqual(Visibility.Private);
+     expect(copy.visibility).toEqual(Visibility.PRIVATE);
      expect(copy.currentVersion).toBeFalsy();
      expect(copy.errors).toEqual([]);
      expect(copy.description).toEqual(description);
@@ -137,7 +208,7 @@ import casual from 'casual';
        name: 'Published version',
        description,
        ownerId: casual.url,
-       VersionType: VersionType.Draft,
+       VersionType: VersionType.DRAFT,
        createdById: casual.integer(1, 9999),
      });
 
@@ -147,7 +218,7 @@ import casual from 'casual';
      expect(copy.id).toBeFalsy();
      expect(copy.name).toEqual(`Copy of ${published.name}`);
      expect(copy.ownerId).toEqual(newOwnerId);
-     expect(copy.visibility).toEqual(Visibility.Private);
+     expect(copy.visibility).toEqual(Visibility.PRIVATE);
      expect(copy.currentVersion).toBeFalsy();
      expect(copy.errors).toEqual([]);
      expect(copy.createdById).toEqual(clonedById);

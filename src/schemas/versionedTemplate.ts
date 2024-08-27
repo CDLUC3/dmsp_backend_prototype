@@ -8,17 +8,12 @@ export const typeDefs = gql`
     publishedTemplates(term: String!): [VersionedTemplate]
   }
 
-  extend type Mutation {
-    "Publish the template or save as a draft"
-    createVersion(templateId: Int!, comment: String): VersionedTemplate
-  }
-
   "Template version type"
   enum VersionType {
     "Draft - saved state for internal review"
-    Draft
+    DRAFT
     "Published - saved state for use when creating DMPs"
-    Published
+    PUBLISHED
   }
 
   "A snapshot of a Template when it became published. DMPs are created from published templates"
@@ -33,6 +28,8 @@ export const typeDefs = gql`
     modifiedById: Int
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
+    "Errors associated with the Object"
+    errors: [String!]
 
     "The template that this published version stems from"
     template: Template

@@ -4,28 +4,29 @@ import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
 import { Affiliation } from "../models/Affiliation";
+import { AuthenticationError, ForbiddenError } from "../utils/graphQLErrors";
+import { isAdmin } from "../services/authService";
 
 export const resolvers: Resolvers = {
   Query: {
     // Get all of the PublishedTemplates for the specified Template (a.k. the Template history)
     //    - called from the Template history page
     templateVersions: async (_, { templateId }, context: MyContext): Promise<VersionedTemplate[]> => {
-      // TODO: perform a check here to make sure the User within the context is an Admin
-      return await VersionedTemplate.findByTemplateId('templateVersions resolver', context, templateId);
+      if (isAdmin(context.token)){
+        return await VersionedTemplate.findByTemplateId('templateVersions resolver', context, templateId);
+      }
+      // Unauthorized!
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
     publishedTemplates: async (_, { term }, context: MyContext): Promise<VersionedTemplate[]> => {
-      return await VersionedTemplate.search('publishedTemplates resolver', context, term);
-    },
-  },
-
-  Mutation: {
-    // Publish the template or save as a draft
-    //     - called from the Template overview page
-    createVersion: async (_, { templateId, comment }, _context: MyContext): Promise<VersionedTemplate> => {
-      return null;
+      if (isAdmin(context.token)){
+        return await VersionedTemplate.search('publishedTemplates resolver', context, term);
+      }
+      // Unauthorized!
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 

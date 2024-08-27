@@ -6,21 +6,18 @@ export class MySqlModel {
   // Initialize with fields common to all MySQL DB tables
   constructor(
     public id?: number,
-    public created: string = new Date().toUTCString(),
+    public created: string = new Date().toISOString(),
     public createdById?: number,
     public modified?: string,
     public modifiedById?: number,
     public errors: string[] = [],
   ){
-
-console.log(this)
-
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {
       this.modifiedById = this.createdById;
     }
     if (!this.modified){
-      this.modified = this.id ? new Date().toUTCString() : this.created;
+      this.modified = this.id ? new Date().toISOString() : this.created;
     }
   };
 
@@ -45,7 +42,21 @@ console.log(this)
     return this.errors.length <= 0;
   }
 
+  // Convert the incoming value to a string and prepare it for insertion into a SQL query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  static prepareValue(val: any): string {
+    if (typeof val === 'string' || val instanceof String) {
+      // TODO: See if we need to do any checks here for SQL injection or if the MySQL package
+      //       does this already.
+      return val.toString();
+    }
+
+    // Otherwise stringify the non-string value.
+    return JSON.stringify(val);
+  }
+
   // Fetches all of the property infor for the object to faciliate inserts and updates
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static propertyInfo(obj: Record<string, any>, skipKeys: string[] = []): { name: string, value: string }[] {
     const excludedKeys = ['id', 'errors'];
     return Object.keys(obj)
@@ -89,10 +100,11 @@ console.log(this)
 
     // The dataSource, logger and sqlStatement are required so bail if they are not provided
     if (dataSources && logger && dataSources.sqlDataSource && sqlStatement) {
-      const logMessage = `${reference}, sql: ${sqlStatement}, vals: ${values}`;
+      const sql = sqlStatement.split(/[\s,\t,\n]+/).join(' ');
+      const logMessage = `${reference}, sql: ${sql}, vals: ${values}`;
       try {
         formatLogMessage(logger).debug(logMessage);
-        const resp = await dataSources.sqlDataSource.query(sqlStatement, values);
+        const resp = await dataSources.sqlDataSource.query(sql, values);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
         const msg = `${reference}, ERROR: ${err.message}`;
@@ -122,23 +134,74 @@ console.log(this)
     obj: MySqlModel,
     reference = 'undefined caller',
   ): Promise<number> {
+    // Update the creator/modifier info
+    const now = new Date().toISOString();
+    obj.createdById = apolloContext.token.id;
+    obj.created = now;
+    obj.modifiedById = apolloContext.token.id;
+    obj.modified = now;
+
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj);
-
-console.log(obj)
-console.log(props)
 
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
 
-    const vals = props.map((entry) => entry.value?.toString());
+    const vals = props.map((entry) => this.prepareValue(entry.value));
+
     // Send the calcuated INSERT statement to the query function
-    const result = await this.query(apolloContext, sql, vals, reference);
+    const result = await this.query(apolloContext, sql.split(/[\s,\t,\n]+/).join(' '), vals, reference);
     return Array.isArray(result) ? result[0]?.insertId : null;
   }
 
-  static async update(): Promise<any> {
-    return null;
+  // Execute a SQL update
+  //    - apolloContext:   The Apollo server context
+  //    - table:           The SQL table name
+  //    - obj:             The MysqlModel instance
+  //    - reference:       A reference to contextualize log messages e.g. `users resolver`
+  // returns the newly inserted record's id
+  static async update(
+    apolloContext: MyContext,
+    table: string,
+    obj: MySqlModel,
+    reference = 'undefined caller',
+  ): Promise<MySqlModel> {
+    // Update the modifier info
+    obj.modifiedById = apolloContext.token.id;
+    obj.modified = new Date().toISOString();
+
+    // Fetch all of the data from the object
+    const props = this.propertyInfo(obj);
+
+    props.map((entry) => `${entry.name} = ?`)
+
+    const sql = `UPDATE ${table} \
+                 SET ${props.map((entry) => `${entry.name} = ?`).join(', ')} \
+                 WHERE id = ?`;
+
+    const vals = props.map((entry) => this.prepareValue(entry.value));
+    vals.push(obj.id.toString());
+
+    // Send the calcuated INSERT statement to the query function
+    const result = await this.query(apolloContext, sql.split(/[\s,\t,\n]+/).join(' '), vals, reference);
+    return Array.isArray(result) ? result[0] : null;
+  }
+
+  // Execute a SQL delete
+  //    - apolloContext:   The Apollo server context
+  //    - table:           The SQL table name
+  //    - id:              The record id
+  //    - reference:       A reference to contextualize log messages e.g. `users resolver`
+  // returns the newly inserted record's id
+  static async delete(
+    apolloContext: MyContext,
+    table: string,
+    id: number,
+    reference = 'undefined caller',
+  ): Promise<number> {
+    const sql = `DELETE FROM ${table} WHERE id = ?`;
+    const result = await this.query(apolloContext, sql, [id.toString()], reference);
+    return Array.isArray(result) ? result[0].deleteId : null;
   }
 }

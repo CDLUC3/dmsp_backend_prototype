@@ -29,6 +29,8 @@ export const typeDefs = gql`
     modifiedById: Int
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
+    "Errors associated with the Object"
+    errors: [String!]
 
     "The user's first/given name"
     givenName: String

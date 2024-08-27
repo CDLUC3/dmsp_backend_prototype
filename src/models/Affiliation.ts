@@ -29,7 +29,7 @@ export class Affiliation {
   constructor(options) {
     // This is our opportunity to convert ruby variable names over to JS
     this.provenance = options._SOURCE || 'dmptool';
-    this.provenanceSyncDate = options._SOURCE_SYNCED_AT || new Date().toUTCString();
+    this.provenanceSyncDate = options._SOURCE_SYNCED_AT || new Date().toISOString();
     this.id = options.ID || options.id;
     this.types = options.types || [];
     this.name = options.name;

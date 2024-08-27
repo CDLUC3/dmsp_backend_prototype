@@ -4,7 +4,7 @@ import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
 import { isAdmin, isAuthorized } from "../services/authService";
-import { AuthenticationError, ForbiddenError } from "../utils/graphQLErrors";
+import { AuthenticationError, ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -31,7 +31,7 @@ export const resolvers: Resolvers = {
       if (isAdmin(context.token)){
         const invitedById = context.token?.id;
         const collaborator = await new TemplateCollaborator({ templateId, email, invitedById });
-        return await collaborator.save(context);
+        return await collaborator.create(context);
       }
       // Unauthorized!
       throw ForbiddenError();
@@ -41,7 +41,18 @@ export const resolvers: Resolvers = {
     //     - called from the Template options page
     removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<boolean> => {
       if (isAdmin(context.token)){
-        return false;
+        const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
+          'removeTemplateCollaborator resolver',
+          context,
+          templateId,
+          email
+        );
+        if (collaborator) {
+          return await collaborator.delete(context);
+        }
+
+        // Couldn't find the TemplateCollaborator
+        throw NotFoundError();
       }
       // Unauthorized!
       throw context?.token ? ForbiddenError() : AuthenticationError();
