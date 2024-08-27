@@ -3,7 +3,7 @@ import { JWTToken } from "./tokenService";
 
 // Verify that we have a token
 export const isAuthorized = (token: JWTToken): boolean => {
-    if(token && token?.id) {
+    if(token?.id) {
       return true;
     }
     return false;
