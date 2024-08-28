@@ -2,7 +2,7 @@ import { MyContext } from "../context";
 import { TemplateCollaborator } from "./Collaborator";
 import { MySqlModel } from "./MySqlModel";
 
-export enum Visibility {
+export enum TemplateVisibility {
   PRIVATE = 'PRIVATE', // Template is only available to Researchers that belong to the same affiliation
   PUBLIC = 'PUBLIC', // Template is available to everyone creating a DMP
 }
@@ -13,7 +13,7 @@ export class Template extends MySqlModel {
   public name: string;
   public description?: string;
   public ownerId?: string;
-  public visibility: Visibility;
+  public visibility: TemplateVisibility;
   public currentVersion?: string;
   public isDirty: boolean;
   public bestPractice: boolean;
@@ -27,7 +27,7 @@ export class Template extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
     this.sourceTemplateId = options.sourceTemplateId
-    this.visibility = options.visibility || Visibility.PRIVATE;
+    this.visibility = options.visibility || TemplateVisibility.PRIVATE;
     this.currentVersion = options.currentVersion || '';
     this.isDirty = options.isDirty || true;
     this.bestPractice = options.bestPractice || false;

@@ -1,8 +1,8 @@
-import { Visibility } from "./Template";
+import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 
-export enum VersionType {
+export enum TemplateVersionType {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',
 }
@@ -17,11 +17,11 @@ export class VersionedTemplate extends MySqlModel {
   public description?: string;
   public ownerId: string;
 
-  public versionType: VersionType;
+  public versionType: TemplateVersionType;
   public comment?: string;
   public active: boolean;
 
-  public visibility: Visibility;
+  public visibility: TemplateVisibility;
   public bestPractice: boolean;
 
   private tableName = 'versionedTemplates';
@@ -37,11 +37,11 @@ export class VersionedTemplate extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
 
-    this.versionType = options.versionType || VersionType.DRAFT;
+    this.versionType = options.versionType || TemplateVersionType.DRAFT;
     this.comment = options.comment || '';
     this.active = options.active || false;
 
-    this.visibility = options.visibility || Visibility.PRIVATE;
+    this.visibility = options.visibility || TemplateVisibility.PRIVATE;
     this.bestPractice = options.bestPractice || false;
   }
 

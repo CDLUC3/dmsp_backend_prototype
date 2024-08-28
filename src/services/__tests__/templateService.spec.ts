@@ -1,6 +1,6 @@
 import casual from 'casual';
- import { Template, Visibility } from "../../models/Template";
- import { VersionedTemplate, VersionType } from '../../models/VersionedTemplate';
+ import { Template, TemplateVisibility } from "../../models/Template";
+ import { VersionedTemplate, TemplateVersionType } from '../../models/VersionedTemplate';
  import { clone, generateVersion, hasPermission } from '../templateService';
 import { TemplateCollaborator } from '../../models/Collaborator';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -144,7 +144,7 @@ import { MySQLDataSource } from '../../datasources/mySQLDataSource';
        name: 'Prior version',
        ownerId,
        createdById: casual.integer(1, 999),
-       visibility: Visibility.PUBLIC,
+       visibility: TemplateVisibility.PUBLIC,
        comment: 'This was the prior version',
        active: true,
      });
@@ -190,7 +190,7 @@ import { MySQLDataSource } from '../../datasources/mySQLDataSource';
      expect(copy.id).toBeFalsy();
      expect(copy.name).toEqual(`Copy of ${tmplt.name}`);
      expect(copy.ownerId).toEqual(newOwnerId);
-     expect(copy.visibility).toEqual(Visibility.PRIVATE);
+     expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
      expect(copy.currentVersion).toBeFalsy();
      expect(copy.errors).toEqual([]);
      expect(copy.description).toEqual(description);
@@ -208,7 +208,7 @@ import { MySQLDataSource } from '../../datasources/mySQLDataSource';
        name: 'Published version',
        description,
        ownerId: casual.url,
-       VersionType: VersionType.DRAFT,
+       VersionType: TemplateVersionType.DRAFT,
        createdById: casual.integer(1, 9999),
      });
 
@@ -218,7 +218,7 @@ import { MySQLDataSource } from '../../datasources/mySQLDataSource';
      expect(copy.id).toBeFalsy();
      expect(copy.name).toEqual(`Copy of ${published.name}`);
      expect(copy.ownerId).toEqual(newOwnerId);
-     expect(copy.visibility).toEqual(Visibility.PRIVATE);
+     expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
      expect(copy.currentVersion).toBeFalsy();
      expect(copy.errors).toEqual([]);
      expect(copy.createdById).toEqual(clonedById);

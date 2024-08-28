@@ -1,5 +1,5 @@
 import casual from 'casual';
-import { Visibility } from "../Template";
+import { TemplateVisibility } from "../Template";
 import { VersionedTemplate } from '../VersionedTemplate';
 import mockLogger from '../../__tests__/mockLogger';
 import { buildContext, mockToken } from '../../__mocks__/context';
@@ -43,7 +43,7 @@ describe('VersionedTemplate', () => {
     expect(versioned.name).toEqual(name);
     expect(versioned.ownerId).toEqual(ownerId);
     expect(versioned.versionedById).toEqual(versionedById);
-    expect(versioned.visibility).toEqual(Visibility.PRIVATE);
+    expect(versioned.visibility).toEqual(TemplateVisibility.PRIVATE);
     expect(versioned.created).toBeTruthy();
     expect(versioned.active).toBe(false);
     expect(versioned.comment).toEqual('');

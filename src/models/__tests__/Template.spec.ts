@@ -1,5 +1,5 @@
 import casual from 'casual';
-import { Template, Visibility } from "../Template";
+import { Template, TemplateVisibility } from "../Template";
 import mockLogger from '../../__tests__/mockLogger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 
@@ -35,7 +35,7 @@ describe('Template', () => {
     expect(template.id).toBeFalsy();
     expect(template.name).toEqual(name);
     expect(template.ownerId).toEqual(ownerId);
-    expect(template.visibility).toEqual(Visibility.PRIVATE);
+    expect(template.visibility).toEqual(TemplateVisibility.PRIVATE);
     expect(template.created).toBeTruthy();
     expect(template.modified).toBeTruthy();
     expect(template.currentVersion).toBeFalsy();

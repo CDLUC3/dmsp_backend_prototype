@@ -9,7 +9,7 @@ export const typeDefs = gql`
   }
 
   "Template version type"
-  enum VersionType {
+  enum TemplateVersionType {
     "Draft - saved state for internal review"
     DRAFT
     "Published - saved state for use when creating DMPs"
@@ -38,7 +38,7 @@ export const typeDefs = gql`
     "The publisher of the Template"
     versionedBy: User
     "The type of version: Published or Draft (default: Draft)"
-    versionType: VersionType
+    versionType: TemplateVersionType
     "A comment/note the user enters when publishing the Template"
     comment: String
     "Whether or not this is the version provided when users create a new DMP (default: false)"
@@ -51,7 +51,7 @@ export const typeDefs = gql`
     "The owner of the Template"
     owner: Affiliation
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
-    visibility: Visibility!
+    visibility: TemplateVisibility!
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
   }

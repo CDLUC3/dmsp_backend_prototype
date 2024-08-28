@@ -12,16 +12,16 @@ export const typeDefs = gql`
     "Create a new Template. Leave the 'copyFromTemplateId' blank to create a new template from scratch"
     addTemplate(name: String!, copyFromTemplateId: Int): Template
     "Update a Template"
-    updateTemplate(templateId: Int!, name: String!, visibility: Visibility!): Template
+    updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
     archiveTemplate(templateId: Int!): Boolean
 
     "Publish the template or save as a draft"
-    createVersion(templateId: Int!, comment: String, versionType: VersionType): Template
+    createVersion(templateId: Int!, comment: String, versionType: TemplateVersionType): Template
   }
 
   "Template visibility"
-  enum Visibility {
+  enum TemplateVisibility {
     "Visible only to users of your institution"
     PRIVATE
     "Visible to all users"
@@ -52,7 +52,7 @@ export const typeDefs = gql`
     "The affiliation that the template belongs to"
     owner: Affiliation
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
-    visibility: Visibility!
+    visibility: TemplateVisibility!
     "The current published version"
     currentVersion: String
     "Whether or not the Template has had any changes since it was last published"

@@ -1,12 +1,12 @@
 import { Resolvers } from "../types";
-import { Template, Visibility } from "../models/Template";
+import { Template, TemplateVisibility } from "../models/Template";
 import { MyContext } from "../context";
 import { Affiliation } from "../models/Affiliation";
 import { TemplateCollaborator } from "../models/Collaborator";
 import { clone, generateVersion, hasPermission } from "../services/templateService";
 import { isAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
-import { VersionedTemplate, VersionType } from "../models/VersionedTemplate";
+import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -73,7 +73,7 @@ export const resolvers: Resolvers = {
           if (hasPermission(context, template)) {
             // Update the fields and then save
             template.name = name;
-            template.visibility = Visibility[visibility];
+            template.visibility = TemplateVisibility[visibility];
             return await template.update(context);
           }
           throw ForbiddenError();
@@ -117,7 +117,7 @@ export const resolvers: Resolvers = {
               versions,
               context.token.id,
               comment,
-              VersionType[versionType]
+              TemplateVersionType[versionType]
             );
 
             if (versionedTemplate) {

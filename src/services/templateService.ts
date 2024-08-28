@@ -1,6 +1,6 @@
 import { incrementVersionNumber } from "../utils/helpers";
 import { Template } from "../models/Template";
-import { VersionedTemplate, VersionType } from "../models/VersionedTemplate";
+import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 import { MyContext } from "../context";
 import { isSuperAdmin } from "./authService";
 import { TemplateCollaborator } from "../models/Collaborator";
@@ -35,7 +35,7 @@ export const generateVersion = async (
   versions: VersionedTemplate[],
   versionerId: number,
   comment = '',
-  versionType = VersionType.DRAFT,
+  versionType = TemplateVersionType.DRAFT,
 ): Promise<VersionedTemplate> => {
   // If the template has no idea then it has not yet been saved so throw an error
   if (!template.id) {
