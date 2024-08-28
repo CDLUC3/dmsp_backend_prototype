@@ -100,7 +100,7 @@ export class MySqlModel {
 
     // The dataSource, logger and sqlStatement are required so bail if they are not provided
     if (dataSources && logger && dataSources.sqlDataSource && sqlStatement) {
-      const sql = sqlStatement.split(/[\s,\t,\n]+/).join(' ');
+      const sql = sqlStatement.split(/[\s\t\n]+/).join(' ');
       const logMessage = `${reference}, sql: ${sql}, vals: ${values}`;
       try {
         formatLogMessage(logger).debug(logMessage);
