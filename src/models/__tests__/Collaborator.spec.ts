@@ -106,6 +106,8 @@ describe('TemplateCollaborator', () => {
 });
 
 describe('create', () => {
+  const originalFindByTemplateIdAndEmail = TemplateCollaborator.findByTemplateIdAndEmail;
+
   let insertQuery;
   let collaborator;
 
@@ -119,6 +121,11 @@ describe('create', () => {
       email: casual.email,
     })
   });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+    TemplateCollaborator.findByTemplateIdAndEmail = originalFindByTemplateIdAndEmail;
+  })
 
   it('returns the TemplateCollaborator with errors if it is not valid', async () => {
     const localValidator = jest.fn();
@@ -202,6 +209,7 @@ describe('update', () => {
   let collaborator;
 
   beforeEach(() => {
+    jest.resetAllMocks();
     updateQuery = jest.fn();
     (TemplateCollaborator.update as jest.Mock) = updateQuery;
 
@@ -211,6 +219,10 @@ describe('update', () => {
       templateId: casual.integer(1, 999),
       email: casual.email,
     })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('returns the TemplateCollaborator with errors if it is not valid', async () => {
@@ -386,8 +398,6 @@ describe('findBy queries', () => {
   it('findByEmail returns null if there is no Collaborator', async () => {
     localQuery.mockResolvedValueOnce([]);
 
-console.log('THIS ONE IS PASSING')
-
     const email = templateCollaborator.email;
     const result = await TemplateCollaborator.findByEmail('Test', context, email);
     const expectedSql = 'SELECT * FROM templateCollaborators WHERE email = ?';
@@ -411,7 +421,6 @@ console.log('THIS ONE IS PASSING')
   it('findByTemplateIdAndEmail returns null if there is no Collaborator', async () => {
     localQuery.mockResolvedValue([]);
 
-console.log('THIS ONE IS FAILING')
 
     const templateId = templateCollaborator.templateId;
     const email = templateCollaborator.email;
