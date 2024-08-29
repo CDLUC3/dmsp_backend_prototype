@@ -2,13 +2,14 @@ import casual from 'casual';
 import { Template, TemplateVisibility } from "../Template";
 import mockLogger from '../../__tests__/mockLogger';
 import { buildContext, mockToken } from '../../__mocks__/context';
+import { TemplateCollaborator } from '../Collaborator';
 
 jest.mock('../../context.ts');
 
 let context;
 
 beforeEach(() => {
-  jest.resetAllMocks();
+  jest.restoreAllMocks();
 
   context = buildContext(mockLogger, mockToken());
 });
@@ -69,11 +70,140 @@ describe('Template', () => {
   });
 });
 
+describe('findBy queries', () => {
+  const originalQuery = Template.query;
+
+  let localQuery;
+  let context;
+  let template;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (Template.query as jest.Mock) = localQuery;
+
+    context = buildContext(mockLogger, mockToken());
+
+    template = new Template({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Template.query = originalQuery;
+  });
+
+  it('findById returns the Template', async () => {
+    localQuery.mockResolvedValueOnce([template]);
+
+    const id = template.id;
+    const result = await Template.findById('Test', context, id);
+    const expectedSql = 'SELECT * FROM templates WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+    expect(result).toEqual(template);
+  });
+
+  it('findById returns null if there is no Template', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const id = template.id;
+    const result = await Template.findById('Test', context, id);
+    const expectedSql = 'SELECT * FROM templates WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+    expect(result).toEqual(null);
+  });
+
+  it('findByNameAndOwnerId returns the matching Template', async () => {
+    localQuery.mockResolvedValueOnce([template]);
+
+    const name = template.name.toLowerCase();
+    const ownerId = context.token?.affiliationId;
+    const result = await Template.findByNameAndOwnerId('Test', context, name);
+    const expectedSql = 'SELECT * FROM templates WHERE LOWER(name) = ? AND ownerId = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [name, ownerId], 'Test')
+    expect(result).toEqual(template);
+  });
+
+  it('findByNameAndOwnerId returns null if there is no matching Template', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const name = template.name.toLowerCase();
+    const ownerId = context.token?.affiliationId;
+    const result = await Template.findByNameAndOwnerId('Test', context, name);
+    const expectedSql = 'SELECT * FROM templates WHERE LOWER(name) = ? AND ownerId = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [name, ownerId], 'Test')
+    expect(result).toEqual(null);
+  });
+
+  it('findByUser returns the Templates owned by the current user\'s Affiliation', async () => {
+    localQuery.mockResolvedValueOnce([template]);
+
+    const mockFindByEmail = jest.fn();
+    (TemplateCollaborator.findByEmail as jest.Mock) = mockFindByEmail;
+    mockFindByEmail.mockResolvedValueOnce([]);
+
+    const affiliationId = context.token.affiliationId;
+    const result = await Template.findByUser('Test', context);
+    const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
+    expect(result).toEqual([template]);
+  });
+
+  it('findByUser returns the Templates shared with the current user', async () => {
+    localQuery.mockResolvedValueOnce([template]);
+
+    const sharedTemplate = new Template({
+      createdById: casual.integer(1, 99),
+      name: casual.sentence,
+      ownerId: casual.url,
+    });
+
+    const mockFindByEmail = jest.fn();
+    (TemplateCollaborator.findByEmail as jest.Mock) = mockFindByEmail;
+    mockFindByEmail.mockResolvedValueOnce([sharedTemplate]);
+
+    const affiliationId = context.token.affiliationId;
+    const result = await Template.findByUser('Test', context);
+    const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
+    expect(result).toEqual([template, sharedTemplate]);
+  });
+
+  it('findByUser returns null if there are no Templates for the current user', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const mockFindByEmail = jest.fn();
+    (TemplateCollaborator.findByEmail as jest.Mock) = mockFindByEmail;
+    mockFindByEmail.mockResolvedValueOnce([]);
+
+    const affiliationId = context.token.affiliationId;
+    const result = await Template.findByUser('Test', context);
+    const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
+    expect(result).toEqual([]);
+  });
+});
+
 describe('create', () => {
+  const originalInsert = Template.insert;
   let insertQuery;
   let template;
 
   beforeEach(() => {
+    // jest.resetAllMocks();
+
     insertQuery = jest.fn();
     (Template.insert as jest.Mock) = insertQuery;
 
@@ -83,6 +213,11 @@ describe('create', () => {
       name: casual.sentence,
       description: casual.sentences(5),
     })
+  });
+
+  afterEach(() => {
+    // jest.resetAllMocks();
+    Template.insert = originalInsert;
   });
 
   it('returns the Template with errors if it is not valid', async () => {

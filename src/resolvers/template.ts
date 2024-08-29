@@ -46,7 +46,7 @@ export const resolvers: Resolvers = {
         let template;
         if (copyFromTemplateId) {
           // Fetch the VersionedTemplate we are cloning
-          const original = await VersionedTemplate.findPublishedTemplateById(
+          const original = await VersionedTemplate.findVersionedTemplateById(
             'addTemplate resolver',
             context,
             copyFromTemplateId

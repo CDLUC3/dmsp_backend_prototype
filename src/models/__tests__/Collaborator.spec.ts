@@ -205,6 +205,8 @@ describe('create', () => {
 });
 
 describe('update', () => {
+  const originalUpdate = TemplateCollaborator.update;
+
   let updateQuery;
   let collaborator;
 
@@ -223,6 +225,7 @@ describe('update', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    TemplateCollaborator.update = originalUpdate;
   });
 
   it('returns the TemplateCollaborator with errors if it is not valid', async () => {
@@ -316,6 +319,8 @@ describe('delete', () => {
 });
 
 describe('findBy queries', () => {
+  const originalQuery = TemplateCollaborator.query;
+
   let localQuery;
   let context;
   let templateCollaborator;
@@ -338,6 +343,7 @@ describe('findBy queries', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    TemplateCollaborator.query = originalQuery;
   });
 
   it('findByTemplateId returns all of the Collaborators for the Template', async () => {

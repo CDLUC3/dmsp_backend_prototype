@@ -54,7 +54,6 @@ export class Template extends MySqlModel {
         'TemplateCollaborator.create',
         context,
         this.name,
-        this.ownerId,
       );
 
       // Then make sure it doesn't already exist
@@ -103,23 +102,20 @@ export class Template extends MySqlModel {
   // Return the specified Template
   static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE id = ?';
-
-console.log(sql)
-
     const results = await Template.query(context, sql, [templateId.toString()], reference);
-    return results[0];
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Look for the template by it's name and owner
   static async findByNameAndOwnerId(
     reference: string,
     context: MyContext,
-    name: string,
-    ownerId: string
+    name: string
   ): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE LOWER(name) = ? AND ownerId = ?';
-    const results = await Template.query(context, sql, [name.toLowerCase(), ownerId], reference);
-    return results[0];
+    const vals = [name.toLowerCase(), context.token?.affiliationId];
+    const results = await Template.query(context, sql, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Find all of the templates associated with the context's User's affiliation
@@ -127,20 +123,12 @@ console.log(sql)
     const sql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
     const templates = await Template.query(context, sql, [context.token?.affiliationId], reference);
 
-console.log(templates)
-console.log(await TemplateCollaborator.findByEmail('', context, ''))
-console.log('calm')
-
     // Also look for any templates that the current user has been invited to collaborate on
     const sharedTemplates = await TemplateCollaborator.findByEmail(
       'Template.findByUser',
       context,
       context.token?.email
     );
-
-console.log('shared')
-console.log(sharedTemplates)
-
     return [...templates, ...sharedTemplates];
   }
 }

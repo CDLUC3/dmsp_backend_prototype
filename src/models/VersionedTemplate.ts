@@ -73,7 +73,7 @@ export class VersionedTemplate extends MySqlModel {
     if (await this.isValid()) {
       // Save the record and then fetch it
       const newId = await VersionedTemplate.insert(context, this.tableName, this, 'VersionedTemplate.create');
-      return await VersionedTemplate.findPublishedTemplateById('VersionedTemplate.create', context, newId);
+      return await VersionedTemplate.findVersionedTemplateById('VersionedTemplate.create', context, newId);
     }
     // Otherwise return as-is with all the errors
     return this;
@@ -99,28 +99,23 @@ export class VersionedTemplate extends MySqlModel {
     return await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
   }
 
-  // Return all of the Published versions that are marked as "Best Practice"
-  static async bestPractice(reference: string, context: MyContext): Promise<VersionedTemplate[]> {
-    const sql = 'SELECT * FROM versionedTemplates WHERE bestPractice = 1 AND active = 1 ORDER BY name ASC';
-    return await VersionedTemplate.query(context, sql, [], reference);
-  }
-
   // Search all of the Published versions for the specified term
   static async search(reference: string, context: MyContext, term: string): Promise<VersionedTemplate[]> {
     const sql = `SELECT * FROM versionedTemplates \
                  WHERE name LIKE ? AND active = 1 AND versionType = ? \
                  ORDER BY name ASC`;
-    return await VersionedTemplate.query(context, sql, [`%${term}%`, 'Published'], reference);
+    const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
+    return await VersionedTemplate.query(context, sql, vals, reference);
   }
 
   // Return the specified version
-  static async findPublishedTemplateById(
+  static async findVersionedTemplateById(
     reference: string,
     context: MyContext,
     versionedTemplateId: number
   ): Promise<VersionedTemplate> {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId.toString()], reference);
-    return results[0];
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 }

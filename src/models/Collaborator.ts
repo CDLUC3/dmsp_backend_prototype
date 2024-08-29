@@ -113,7 +113,7 @@ export class TemplateCollaborator extends Collaborator {
     if (await this.isValid()) {
       if (this.id) {
         // Verify that the template we want to attach the collaborator to exists!
-        const templateExists = await TemplateCollaborator.exists(
+        const templateExists = await Template.exists(
           context,
           'templates',
           this.templateId,
