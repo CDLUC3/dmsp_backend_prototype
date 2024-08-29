@@ -239,7 +239,7 @@ describe('update', () => {
     localValidator.mockResolvedValueOnce(true);
 
     const mockExists = jest.fn();
-    (TemplateCollaborator.exists as jest.Mock) = mockExists;
+    (Template.exists as jest.Mock) = mockExists;
     mockExists.mockResolvedValueOnce(false);
 
     const result = await collaborator.update(context);
@@ -255,7 +255,7 @@ describe('update', () => {
     localValidator.mockResolvedValueOnce(true);
 
     const mockExists = jest.fn();
-    (TemplateCollaborator.exists as jest.Mock) = mockExists;
+    (Template.exists as jest.Mock) = mockExists;
     mockExists.mockResolvedValueOnce(true);
 
     updateQuery.mockResolvedValueOnce(collaborator);
