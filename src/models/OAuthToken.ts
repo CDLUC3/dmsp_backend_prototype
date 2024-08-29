@@ -47,7 +47,7 @@ export class OAuthToken implements Token {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = (rows as any[])[0];
       const client = await OAuthClient.findById(row.clientId);
-      const context = await buildContext(logger);
+      const context = buildContext(logger);
       const user = await User.findById('OAuthToken.findOne', context, row.userId);
       if (!client || !user) {
         return null;

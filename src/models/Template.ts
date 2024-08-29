@@ -103,6 +103,9 @@ export class Template extends MySqlModel {
   // Return the specified Template
   static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE id = ?';
+
+console.log(sql)
+
     const results = await Template.query(context, sql, [templateId.toString()], reference);
     return results[0];
   }
@@ -124,12 +127,20 @@ export class Template extends MySqlModel {
     const sql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
     const templates = await Template.query(context, sql, [context.token?.affiliationId], reference);
 
+console.log(templates)
+console.log(await TemplateCollaborator.findByEmail('', context, ''))
+console.log('calm')
+
     // Also look for any templates that the current user has been invited to collaborate on
     const sharedTemplates = await TemplateCollaborator.findByEmail(
       'Template.findByUser',
       context,
       context.token?.email
     );
+
+console.log('shared')
+console.log(sharedTemplates)
+
     return [...templates, ...sharedTemplates];
   }
 }

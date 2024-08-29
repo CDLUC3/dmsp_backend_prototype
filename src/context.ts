@@ -18,7 +18,7 @@ export interface MyContext {
 // This function should only be used when the caller is running a query from outside the
 // Apollo Server GraphQL context. e.g. when calling signup or register
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function buildContext(logger: Logger, cache: any = null, token: JWTToken = null): Promise<MyContext> {
+export function buildContext(logger: Logger, cache: any = null, token: JWTToken = null): MyContext {
   if (!cache) {
     // If calling from outside the Apollo server context setup an HttpCache.
     cache = { skipCache: true };
@@ -29,9 +29,9 @@ export async function buildContext(logger: Logger, cache: any = null, token: JWT
       token,
       logger,
       dataSources: {
-        dmphubAPIDataSource: await new DMPHubAPI({ cache, token }),
-        dmptoolAPIDataSource: await new DMPToolAPI({ cache, token }),
-        sqlDataSource: await MySQLDataSource.getInstance(),
+        dmphubAPIDataSource: new DMPHubAPI({ cache, token }),
+        dmptoolAPIDataSource: new DMPToolAPI({ cache, token }),
+        sqlDataSource: MySQLDataSource.getInstance(),
       }
     }
   } catch(err) {

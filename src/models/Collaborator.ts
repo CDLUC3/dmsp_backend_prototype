@@ -58,16 +58,17 @@ export class TemplateCollaborator extends Collaborator {
 
   // Save the current record
   async create(context: MyContext): Promise<TemplateCollaborator> {
+    const reference = 'TemplateCollaborator.create';
     // First make sure the record is valid
     if (await this.isValid()) {
-      const current = await TemplateCollaborator.findByTemplateIdAndEmail(
-        'TemplateCollaborator.create',
+      const currentCollaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
+        reference,
         context,
         this.templateId,
         this.email,
       );
 
-      if (current) {
+      if (currentCollaborator) {
         this.errors.push('Collaborator has already been added');
       } else {
         // Verify that the template we want to attach the collaborator to exists!
@@ -75,24 +76,24 @@ export class TemplateCollaborator extends Collaborator {
           context,
           'templates',
           this.templateId,
-          'TemplateCollaborator.create'
+          reference
         );
 
         if (!templateExists) {
           this.errors.push('Template does not exist');
         } else {
           // See if the user already has an account, if so grab their id
-          const user = await User.findByEmail('TemplateCollaborator.create', context, this.email);
+          const user = await User.findByEmail(reference, context, this.email);
           this.userId = user?.id;
 
           // Set the inviter's Id to the current user
           this.invitedById = context.token?.id;
 
           // Save the record and then fetch it
-          const newId = await TemplateCollaborator.insert(context, this.tableName, this, 'TemplateCollaborator.create');
+          const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
           if (newId) {
             return await TemplateCollaborator.findByTemplateIdAndEmail(
-              'TemplateCollaborator.create',
+              reference,
               context,
               this.templateId,
               this.email,
@@ -161,7 +162,7 @@ export class TemplateCollaborator extends Collaborator {
   ): Promise<TemplateCollaborator> {
     const sql = 'SELECT * FROM templateCollaborators WHERE id = ?';
     const results = await TemplateCollaborator.query(context, sql, [id.toString()], reference);
-    return results[0];
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Get all of the TemplateCollaborator records for the specified email
@@ -181,9 +182,12 @@ export class TemplateCollaborator extends Collaborator {
     templateId: number,
     email: string,
   ): Promise<TemplateCollaborator> {
+
+console.log(templateId)
+
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
     const vals = [templateId.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);
-    return results[0];
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 }

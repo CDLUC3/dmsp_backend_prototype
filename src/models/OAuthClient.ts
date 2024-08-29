@@ -40,7 +40,7 @@ export class OAuthClient implements Client {
     const sql = 'SELECT * FROM oauthClients WHERE clientId = ? AND clientSecret = ?';
     try {
       const [rows] = await mysql.query(sql, [clientId, clientSecret]);
-      const context = await buildContext(logger);
+      const context = buildContext(logger);
       const user = await User.findById('OAuthClient.findOne', context, rows[0].userId);
 
       return rows.length === 0 ? null : new OAuthClient({
@@ -59,7 +59,7 @@ export class OAuthClient implements Client {
     const sql = 'SELECT * FROM oauthClients WHERE id = ?';
     try {
       const [rows] = await mysql.query(sql, [oauthClientId]);
-      const context = await buildContext(logger);
+      const context = buildContext(logger);
       const user = await User.findById('OAuthClient.findById', context, rows[0].userId);
 
       return rows.length === 0 ? null : new OAuthClient({

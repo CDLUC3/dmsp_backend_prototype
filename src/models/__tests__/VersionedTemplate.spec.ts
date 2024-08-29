@@ -8,10 +8,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(async () => {
+beforeEach(() => {
   jest.resetAllMocks();
 
-  context = await buildContext(mockLogger, mockToken());
+  context = buildContext(mockLogger, mockToken());
 });
 
 afterEach(() => {
@@ -93,7 +93,7 @@ describe('create', () => {
   let insertQuery;
   let versionedTemplate;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     insertQuery = jest.fn();
     (VersionedTemplate.insert as jest.Mock) = insertQuery;
 
@@ -139,7 +139,7 @@ describe('update', () => {
   let updateQuery;
   let versionedTemplate;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     updateQuery = jest.fn();
     (VersionedTemplate.update as jest.Mock) = updateQuery;
 

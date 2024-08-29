@@ -188,12 +188,12 @@ describe('query function', () => {
   let context;
   let logger;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
     logger = mockLogger;
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
     mockError = logger.error as jest.MockedFunction<typeof logger.error>;
 
@@ -250,25 +250,50 @@ describe('query function', () => {
   });
 });
 
-describe('insert function', () => {
+describe('exists', () => {
   let localQuery;
   let context;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = await buildContext(mockLogger, mockToken());
+    context = buildContext(mockLogger, mockToken());
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('query returns the new item\'s id', async () => {
-    const options = {
+  it('returns true if the record is found and logs the event', async () => {
+    localQuery.mockResolvedValueOnce(['test']);
+    const result = await MySqlModel.exists(context, 'tests', 1, 'Testing');
+    expect(result).toEqual(true);
+  });
+
+  it('returns false if the record is NOT found and logs the event', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const result = await MySqlModel.exists(context, 'tests', 1, 'Testing');
+    expect(result).toEqual(false);
+  });
+});
+
+describe('insert function', () => {
+  let localQuery;
+  let context;
+  let options;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (MySqlModel.query as jest.Mock) = localQuery;
+
+    context = buildContext(mockLogger, mockToken());
+
+    options = {
       createdById: casual.integer(1, 99),
 
       testA: casual.sentence,
@@ -277,6 +302,24 @@ describe('insert function', () => {
       testD: casual.boolean,
       testZ: casual.words(3),
     }
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('insert returns null if it fails', async () => {
+    const table = casual.word;
+    const obj = new TestImplementation(options);
+
+    localQuery.mockResolvedValueOnce(null);
+
+    const result = await MySqlModel.insert(context, table, obj, 'Testing');
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(null);
+  });
+
+  it('insert returns the new item\'s id', async () => {
     const table = casual.word;
     const obj = new TestImplementation(options);
 
@@ -287,18 +330,49 @@ describe('insert function', () => {
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual(id);
   });
+});
 
-  it('query returns the new item\'s id', async () => {
-    const options = {
+describe('update function', () => {
+  let localQuery;
+  let context;
+  let options;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (MySqlModel.query as jest.Mock) = localQuery;
+
+    context = buildContext(mockLogger, mockToken());
+
+    options = {
+      id: casual.integer(1, 999),
       createdById: casual.integer(1, 99),
 
-      id: casual.integer(1, 9999),
       testA: casual.sentence,
       testB: casual.integer(1, 999),
       testC: [casual.sentence, casual.word],
       testD: casual.boolean,
       testZ: casual.words(3),
     }
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('update returns null if it fails', async () => {
+    const table = casual.word;
+    const obj = new TestImplementation(options);
+
+    localQuery.mockResolvedValueOnce(null);
+
+    const result = await MySqlModel.update(context, table, obj, 'Testing');
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(null);
+  });
+
+  it('update returns the new item\'s id', async () => {
     const table = casual.word;
     const obj = new TestImplementation(options);
 
@@ -307,5 +381,43 @@ describe('insert function', () => {
     const result = await MySqlModel.update(context, table, obj, 'Testing');
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual(obj);
+  });
+});
+
+describe('delete function', () => {
+  let localQuery;
+  let context;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (MySqlModel.query as jest.Mock) = localQuery;
+
+    context = buildContext(mockLogger, mockToken());
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('update returns false if it fails', async () => {
+    const table = casual.word;
+    const deleteId = casual.integer(1, 99);
+    localQuery.mockResolvedValueOnce(null);
+
+    const result = await MySqlModel.delete(context, table, deleteId, 'Testing');
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(null);
+  });
+
+  it('update returns the deleted item\'s id', async () => {
+    const table = casual.word;
+    const deleteId = casual.integer(1, 99);
+    localQuery.mockResolvedValueOnce([{ deleteId }]);
+
+    const result = await MySqlModel.delete(context, table, deleteId, 'Testing');
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(deleteId);
   });
 });

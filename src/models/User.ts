@@ -51,7 +51,7 @@ export class User extends MySqlModel {
     await super.isValid();
 
     // check if email is already taken
-    const context = await buildContext(logger);
+    const context = buildContext(logger);
     const existing = await User.findByEmail('User.isValid', context, this.email);
 
     if (existing) {
@@ -162,7 +162,7 @@ export class User extends MySqlModel {
     }
 
     try {
-      const context = await buildContext(logger);
+      const context = buildContext(logger);
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const userId = await User.authCheck('User.login', context, this.email, this.password);
 
@@ -190,7 +190,7 @@ export class User extends MySqlModel {
                       (email, password, role, givenName, surName, affiliationId) \
                      VALUES(?, ?, ?, ?, ?, ?)`;
         const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId];
-        const context = await buildContext(logger);
+        const context = buildContext(logger);
         formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
         const result = await User.query(context, sql, vals, 'User.register');
 

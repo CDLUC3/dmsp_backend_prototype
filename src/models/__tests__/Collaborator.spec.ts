@@ -9,10 +9,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(async () => {
+beforeEach(() => {
   jest.resetAllMocks();
 
-  context = await buildContext(mockLogger, mockToken());
+  context = buildContext(mockLogger, mockToken());
 });
 
 afterEach(() => {
@@ -109,7 +109,7 @@ describe('create', () => {
   let insertQuery;
   let collaborator;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     insertQuery = jest.fn();
     (TemplateCollaborator.insert as jest.Mock) = insertQuery;
 
@@ -201,7 +201,7 @@ describe('update', () => {
   let updateQuery;
   let collaborator;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     updateQuery = jest.fn();
     (TemplateCollaborator.update as jest.Mock) = updateQuery;
 
@@ -301,4 +301,125 @@ describe('delete', () => {
     deleteQuery.mockResolvedValueOnce(collaborator);
     expect(await collaborator.delete(context)).toBe(true);
   });
+});
+
+describe('findBy queries', () => {
+  let localQuery;
+  let context;
+  let templateCollaborator;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (TemplateCollaborator.query as jest.Mock) = localQuery;
+
+    context = buildContext(mockLogger, mockToken());
+
+    templateCollaborator = new TemplateCollaborator({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      templateId: casual.integer(1, 99),
+      email: casual.email,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('findByTemplateId returns all of the Collaborators for the Template', async () => {
+    localQuery.mockResolvedValueOnce([templateCollaborator]);
+
+    const templateId = templateCollaborator.templateId;
+    const result = await TemplateCollaborator.findByTemplateId('Test', context, templateId);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Test')
+    expect(result).toEqual([templateCollaborator]);
+  });
+
+  it('findByTemplateId returns an empty array if the Template has no Collaborators', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const templateId = templateCollaborator.templateId;
+    const result = await TemplateCollaborator.findByTemplateId('Test', context, templateId);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Test')
+    expect(result).toEqual([]);
+  });
+
+  it('findById returns the Collaborator', async () => {
+    localQuery.mockResolvedValueOnce([templateCollaborator]);
+
+    const id = templateCollaborator.id;
+    const result = await TemplateCollaborator.findById('Test', context, id);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+    expect(result).toEqual(templateCollaborator);
+  });
+
+  it('findById returns null if there is no Collaborator', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const id = templateCollaborator.id;
+    const result = await TemplateCollaborator.findById('Test', context, id);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+    expect(result).toEqual(null);
+  });
+
+  it('findByEmail returns the Collaborator', async () => {
+    localQuery.mockResolvedValueOnce([templateCollaborator]);
+
+    const email = templateCollaborator.email;
+    const result = await TemplateCollaborator.findByEmail('Test', context, email);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE email = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [email], 'Test')
+    expect(result).toEqual([templateCollaborator]);
+  });
+
+  it('findByEmail returns null if there is no Collaborator', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+console.log('THIS ONE IS PASSING')
+
+    const email = templateCollaborator.email;
+    const result = await TemplateCollaborator.findByEmail('Test', context, email);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE email = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [email], 'Test')
+    expect(result).toEqual([]);
+  });
+
+  it('findByTemplateIdAndEmail returns the Collaborator', async () => {
+    localQuery.mockResolvedValueOnce([templateCollaborator]);
+
+    const templateId = templateCollaborator.templateId;
+    const email = templateCollaborator.email;
+    const result = await TemplateCollaborator.findByTemplateIdAndEmail('Test', context, templateId, email);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString(), email], 'Test')
+    expect(result).toEqual(templateCollaborator);
+  });
+
+  it('findByTemplateIdAndEmail returns null if there is no Collaborator', async () => {
+    localQuery.mockResolvedValue([]);
+
+console.log('THIS ONE IS FAILING')
+
+    const templateId = templateCollaborator.templateId;
+    const email = templateCollaborator.email;
+    const result = await TemplateCollaborator.findByTemplateIdAndEmail('Test', context, templateId, email);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString(), email], 'Test')
+    expect(result).toEqual(null);
+  });
+
 });
