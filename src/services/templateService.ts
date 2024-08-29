@@ -1,10 +1,29 @@
 import { incrementVersionNumber } from "../utils/helpers";
 import { Template } from "../models/Template";
-import { VersionedTemplate, VersionType } from "../models/VersionedTemplate";
+import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
+import { MyContext } from "../context";
+import { isSuperAdmin } from "./authService";
+import { TemplateCollaborator } from "../models/Collaborator";
 
-export interface PublishResult {
-  template: Template;
-  versions: VersionedTemplate[];
+
+// Determine whether the specified user has permission to access the Template
+export const hasPermission = async (context: MyContext, template: Template): Promise<boolean> => {
+  // If the current user belongs to the same affiliation OR the user is a super admin
+  if (context.token?.affiliationId === template.ownerId || await isSuperAdmin(context.token)) {
+    return true;
+  }
+
+  // Otherwise see if the user is one of the invited collaborators
+  const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
+    'template resolver.hasPermission',
+    context,
+    template.id,
+    context.token?.email,
+  )
+  if (collaborator) {
+    return true;
+  }
+  return false;
 }
 
 // Creates a new Version/Snapshot the specified Template (as a point in time snapshot)
@@ -16,8 +35,8 @@ export const generateVersion = async (
   versions: VersionedTemplate[],
   versionerId: number,
   comment = '',
-  versionType = VersionType.Draft,
-): Promise<PublishResult> => {
+  versionType = TemplateVersionType.DRAFT,
+): Promise<VersionedTemplate> => {
   // If the template has no idea then it has not yet been saved so throw an error
   if (!template.id) {
     throw new Error('Cannot publish unsaved Template');
@@ -36,7 +55,7 @@ export const generateVersion = async (
   }
 
   // Intialize the new Version
-  const versionedTemplate = new VersionedTemplate({
+  return new VersionedTemplate({
     version: newVersion,
     templateId: template.id,
     name: template.name,
@@ -49,17 +68,7 @@ export const generateVersion = async (
     versionType,
     comment,
     active: true,
-});
-
-  if (versionedTemplate) {
-    // Deactivate the old versions
-    versions.forEach((prior) => prior.active = false );
-
-    // Bump the version number and add the new version
-    template.currentVersion = newVersion;
-    versions.push(versionedTemplate);
-  }
-  return { template, versions };
+  });
 }
 
 // Make a copy of the specified Template or PublishedTemplate

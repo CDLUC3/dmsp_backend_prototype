@@ -4,11 +4,17 @@
 - Initial schema, model, mocks and resolver for Collaborators
 - added templateService to assist with actions that work on a Template and all of it's child objects
 - Added stub emailService as a placeholder for now. We will build that out once the AWS infrastructire is in place
+- Added new `src/__mocks__/context` to mock the Apollo Server context object
+- Added `insert`, `update` `delete` functions to the `MySqlModel` abstract class
 - Missing data-migration for the dataMigrations table
 - Script to nuke the DB so it can be easily rebuilt from scratch
 - Added husky precommit tasks
 
 ### Updated
+- Updated `src/context.ts` to use a `buildContext` wrapper function that can be called when building the context for Apollo Server and our `signin` and `signup` endpoints.
+- Updated use of `toUTCString()` to `toISOString()`
+- Updated `tokenService` to properly catch and throw errors
+- Updated `graphQLErrors` with more error types
 - Added MariaDB to docker-compose
 - data-migrations/README.md with instructions on running migrations in the Docker container
 

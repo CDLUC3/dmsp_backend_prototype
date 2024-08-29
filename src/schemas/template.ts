@@ -6,41 +6,26 @@ export const typeDefs = gql`
     templates: [Template]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
-    "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
-    templateVersions(templateId: Int!): [VersionedTemplate]
-
-    "Get the DMPTool Best Practice VersionedTemplate"
-    bestPracticeTemplates: [VersionedTemplate]
-    "Search for VersionedTemplate whose name or owning Org's name contains the search term"
-    publishedTemplates(term: String!): [VersionedTemplate]
-    "Get the specified VersionedTemplate"
-    publishedTemplate(publishedTemplateId: Int!): VersionedTemplate
   }
 
   extend type Mutation {
-    "Create a new Template"
-    addTemplate(name: String!): Template
-    "Create a Template from another PublishedTemplate"
-    copyTemplate(publishedTemplateId: Int!, name: String!): Template
+    "Create a new Template. Leave the 'copyFromTemplateId' blank to create a new template from scratch"
+    addTemplate(name: String!, copyFromTemplateId: Int): Template
     "Update a Template"
-    updateTemplate(templateId: Int!, name: String!, visibility: Visibility!): Template
+    updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
     archiveTemplate(templateId: Int!): Boolean
 
-    "Save a Draft"
-    draftTemplate(templateId: Int!, comment: String): VersionedTemplate
-    "Publish a Template"
-    publishTemplate(templateId: Int!, comment: String): VersionedTemplate
-    "Unpublish the specified PublishedTemplate"
-    unpublishTemplate(publishedTemplateId: Int!): Boolean
+    "Publish the template or save as a draft"
+    createVersion(templateId: Int!, comment: String, versionType: TemplateVersionType): Template
   }
 
   "Template visibility"
-  enum Visibility {
+  enum TemplateVisibility {
     "Visible only to users of your institution"
-    Private
+    PRIVATE
     "Visible to all users"
-    Public
+    PUBLIC
   }
 
   "A Template used to create DMPs"
@@ -55,6 +40,8 @@ export const typeDefs = gql`
     modifiedById: Int
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
+    "Errors associated with the Object"
+    errors: [String!]
 
     "The template that this one was derived from"
     sourceTemplateId: Int
@@ -65,7 +52,7 @@ export const typeDefs = gql`
     "The affiliation that the template belongs to"
     owner: Affiliation
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
-    visibility: Visibility!
+    visibility: TemplateVisibility!
     "The current published version"
     currentVersion: String
     "Whether or not the Template has had any changes since it was last published"

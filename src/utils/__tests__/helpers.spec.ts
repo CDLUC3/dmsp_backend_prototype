@@ -22,7 +22,7 @@ describe('Date validation', () => {
     expect(validateDate(date.toISOString())).toBe(true);
     expect(validateDate(date.toLocaleDateString())).toBe(true);
     expect(validateDate(date.toLocaleString())).toBe(true);
-    expect(validateDate(date.toUTCString())).toBe(true);
+    expect(validateDate(date.toISOString())).toBe(true);
     expect(validateDate(date.toString())).toBe(true);
   });
 

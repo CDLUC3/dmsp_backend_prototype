@@ -1,9 +1,10 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { Logger } from 'pino';
-import { formatLogMessage } from '../logger';
+import { formatLogMessage, logger } from '../logger';
 import { User } from '../models/User';
 import { generalConfig } from '../config/generalConfig';
 import { UserRole } from '../models/User';
+import { AuthenticationError, DEFAULT_AUNAUTHORIZED_MESSAGE } from '../utils/graphQLErrors';
 
 export interface JWTToken extends JwtPayload {
   id: number,
@@ -24,7 +25,11 @@ export const generateToken = (user: User): string => {
       affiliationId: user.affiliationId,
       role: user.role.toString() || UserRole.RESEARCHER,
     }
-    return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTtl });
+    try {
+      return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTtl });
+    } catch(err) {
+      formatLogMessage(logger).error(err, `generateToken error - ${err.message}`);
+    }
   }
   return null;
 };
@@ -35,8 +40,9 @@ export const verifyToken = (token: string, logger: Logger): JWTToken => {
     return jwt.verify(token, generalConfig.jwtSecret as string) as JWTToken;
   } catch(err) {
     if (logger) {
-      formatLogMessage(logger, { err });
+      formatLogMessage(logger).error(err, `verifyToken error - ${err.message}`);
     }
-    return null;
+    //return null;
+    throw AuthenticationError(`${DEFAULT_AUNAUTHORIZED_MESSAGE} - ${err.message}`);
   }
 };

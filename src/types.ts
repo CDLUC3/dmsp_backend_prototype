@@ -146,6 +146,8 @@ export type ContributorRole = {
   description?: Maybe<Scalars['String']['output']>;
   /** The order in which to display these items when displayed in the UI */
   displayOrder: Scalars['Int']['output'];
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The Ui label to display for the contributor role */
@@ -214,24 +216,18 @@ export type Mutation = {
   _empty?: Maybe<Scalars['String']['output']>;
   /** Add a new contributor role (URL and label must be unique!) */
   addContributorRole?: Maybe<ContributorRoleMutationResponse>;
-  /** Create a new Template */
+  /** Create a new Template. Leave the 'copyFromTemplateId' blank to create a new template from scratch */
   addTemplate?: Maybe<Template>;
   /** Add a collaborator to a Template */
-  addTemplateCollaborator?: Maybe<Scalars['Boolean']['output']>;
+  addTemplateCollaborator?: Maybe<TemplateCollaborator>;
   /** Archive a Template (unpublishes any associated PublishedTemplate */
   archiveTemplate?: Maybe<Scalars['Boolean']['output']>;
-  /** Create a Template from another PublishedTemplate */
-  copyTemplate?: Maybe<Template>;
-  /** Save a Draft */
-  draftTemplate?: Maybe<VersionedTemplate>;
-  /** Publish a Template */
-  publishTemplate?: Maybe<VersionedTemplate>;
+  /** Publish the template or save as a draft */
+  createVersion?: Maybe<Template>;
   /** Delete the contributor role */
   removeContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Remove a TemplateCollaborator from a Template */
   removeTemplateCollaborator?: Maybe<Scalars['Boolean']['output']>;
-  /** Unpublish the specified PublishedTemplate */
-  unpublishTemplate?: Maybe<Scalars['Boolean']['output']>;
   /** Update the contributor role */
   updateContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Update a Template */
@@ -248,6 +244,7 @@ export type MutationAddContributorRoleArgs = {
 
 
 export type MutationAddTemplateArgs = {
+  copyFromTemplateId?: InputMaybe<Scalars['Int']['input']>;
   name: Scalars['String']['input'];
 };
 
@@ -263,21 +260,10 @@ export type MutationArchiveTemplateArgs = {
 };
 
 
-export type MutationCopyTemplateArgs = {
-  name: Scalars['String']['input'];
-  publishedTemplateId: Scalars['Int']['input'];
-};
-
-
-export type MutationDraftTemplateArgs = {
+export type MutationCreateVersionArgs = {
   comment?: InputMaybe<Scalars['String']['input']>;
   templateId: Scalars['Int']['input'];
-};
-
-
-export type MutationPublishTemplateArgs = {
-  comment?: InputMaybe<Scalars['String']['input']>;
-  templateId: Scalars['Int']['input'];
+  versionType?: InputMaybe<TemplateVersionType>;
 };
 
 
@@ -289,11 +275,6 @@ export type MutationRemoveContributorRoleArgs = {
 export type MutationRemoveTemplateCollaboratorArgs = {
   email: Scalars['String']['input'];
   templateId: Scalars['Int']['input'];
-};
-
-
-export type MutationUnpublishTemplateArgs = {
-  publishedTemplateId: Scalars['Int']['input'];
 };
 
 
@@ -309,7 +290,7 @@ export type MutationUpdateContributorRoleArgs = {
 export type MutationUpdateTemplateArgs = {
   name: Scalars['String']['input'];
   templateId: Scalars['Int']['input'];
-  visibility: Visibility;
+  visibility: TemplateVisibility;
 };
 
 export type OrganizationIdentifier = {
@@ -345,8 +326,6 @@ export type Query = {
   affiliation?: Maybe<Affiliation>;
   /** Perform a search for Affiliations matching the specified name */
   affiliations?: Maybe<Array<Maybe<AffiliationSearch>>>;
-  /** Get the DMPTool Best Practice VersionedTemplate */
-  bestPracticeTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Get the contributor role by it's id */
   contributorRoleById?: Maybe<ContributorRole>;
   /** Get the contributor role by it's URL */
@@ -357,8 +336,6 @@ export type Query = {
   dmspById?: Maybe<SingleDmspResponse>;
   /** Returns the currently logged in user's information */
   me?: Maybe<User>;
-  /** Get the specified VersionedTemplate */
-  publishedTemplate?: Maybe<VersionedTemplate>;
   /** Search for VersionedTemplate whose name or owning Org's name contains the search term */
   publishedTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Get the specified Template (user must be an Admin) */
@@ -399,11 +376,6 @@ export type QueryContributorRoleByUrlArgs = {
 
 export type QueryDmspByIdArgs = {
   dmspId: Scalars['DmspId']['input'];
-};
-
-
-export type QueryPublishedTemplateArgs = {
-  publishedTemplateId: Scalars['Int']['input'];
 };
 
 
@@ -466,6 +438,8 @@ export type Template = {
   currentVersion?: Maybe<Scalars['String']['output']>;
   /** A description of the purpose of the template */
   description?: Maybe<Scalars['String']['output']>;
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** Whether or not the Template has had any changes since it was last published */
@@ -481,7 +455,7 @@ export type Template = {
   /** The template that this one was derived from */
   sourceTemplateId?: Maybe<Scalars['Int']['output']>;
   /** The template's availability setting: Public is available to everyone, Private only your affiliation */
-  visibility: Visibility;
+  visibility: TemplateVisibility;
 };
 
 /** A user that that belongs to a different affiliation that can edit the Template */
@@ -493,6 +467,8 @@ export type TemplateCollaborator = {
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The collaborator's email */
   email: Scalars['String']['output'];
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The user who invited the collaborator */
@@ -507,6 +483,20 @@ export type TemplateCollaborator = {
   user?: Maybe<User>;
 };
 
+/** Template version type */
+export type TemplateVersionType =
+  /** Draft - saved state for internal review */
+  | 'DRAFT'
+  /** Published - saved state for use when creating DMPs */
+  | 'PUBLISHED';
+
+/** Template visibility */
+export type TemplateVisibility =
+  /** Visible only to users of your institution */
+  | 'PRIVATE'
+  /** Visible to all users */
+  | 'PUBLIC';
+
 /** A user of the DMPTool */
 export type User = {
   __typename?: 'User';
@@ -518,6 +508,8 @@ export type User = {
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The user's primary email address */
   email: Scalars['EmailAddress']['output'];
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The user's first/given name */
   givenName?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
@@ -540,13 +532,6 @@ export type UserRole =
   | 'RESEARCHER'
   | 'SUPERADMIN';
 
-/** Template version type */
-export type VersionType =
-  /** Draft - saved state for internal review */
-  | 'Draft'
-  /** Published - saved state for use when creating DMPs */
-  | 'Published';
-
 /** A snapshot of a Template when it became published. DMPs are created from published templates */
 export type VersionedTemplate = {
   __typename?: 'VersionedTemplate';
@@ -562,6 +547,8 @@ export type VersionedTemplate = {
   createdById?: Maybe<Scalars['Int']['output']>;
   /** A description of the purpose of the template */
   description?: Maybe<Scalars['String']['output']>;
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp when the Object was last modifed */
@@ -577,19 +564,12 @@ export type VersionedTemplate = {
   /** The major.minor semantic version */
   version: Scalars['String']['output'];
   /** The type of version: Published or Draft (default: Draft) */
-  versionType?: Maybe<VersionType>;
+  versionType?: Maybe<TemplateVersionType>;
   /** The publisher of the Template */
   versionedBy?: Maybe<User>;
   /** The template's availability setting: Public is available to everyone, Private only your affiliation */
-  visibility: Visibility;
+  visibility: TemplateVisibility;
 };
-
-/** Template visibility */
-export type Visibility =
-  /** Visible only to users of your institution */
-  | 'Private'
-  /** Visible to all users */
-  | 'Public';
 
 export type YesNoUnknown =
   | 'no'
@@ -703,12 +683,12 @@ export type ResolversTypes = {
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   Template: ResolverTypeWrapper<Template>;
   TemplateCollaborator: ResolverTypeWrapper<TemplateCollaborator>;
+  TemplateVersionType: TemplateVersionType;
+  TemplateVisibility: TemplateVisibility;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
   User: ResolverTypeWrapper<User>;
   UserRole: UserRole;
-  VersionType: VersionType;
   VersionedTemplate: ResolverTypeWrapper<VersionedTemplate>;
-  Visibility: Visibility;
   YesNoUnknown: YesNoUnknown;
 };
 
@@ -825,6 +805,7 @@ export type ContributorRoleResolvers<ContextType = MyContext, ParentType extends
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
@@ -893,14 +874,11 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'displayOrder' | 'label' | 'url'>>;
   addTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationAddTemplateArgs, 'name'>>;
-  addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
+  addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['TemplateCollaborator']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   archiveTemplate?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
-  copyTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCopyTemplateArgs, 'name' | 'publishedTemplateId'>>;
-  draftTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType, RequireFields<MutationDraftTemplateArgs, 'templateId'>>;
-  publishTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType, RequireFields<MutationPublishTemplateArgs, 'templateId'>>;
+  createVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateVersionArgs, 'templateId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   removeTemplateCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveTemplateCollaboratorArgs, 'email' | 'templateId'>>;
-  unpublishTemplate?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationUnpublishTemplateArgs, 'publishedTemplateId'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updateTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationUpdateTemplateArgs, 'name' | 'templateId' | 'visibility'>>;
 };
@@ -940,13 +918,11 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationArgs, 'affiliationId'>>;
   affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
-  bestPracticeTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
   dmspById?: Resolver<Maybe<ResolversTypes['SingleDmspResponse']>, ParentType, ContextType, RequireFields<QueryDmspByIdArgs, 'dmspId'>>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  publishedTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType, RequireFields<QueryPublishedTemplateArgs, 'publishedTemplateId'>>;
   publishedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryPublishedTemplatesArgs, 'term'>>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
   templateCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateCollaborator']>>>, ParentType, ContextType, RequireFields<QueryTemplateCollaboratorsArgs, 'templateId'>>;
@@ -983,6 +959,7 @@ export type TemplateResolvers<ContextType = MyContext, ParentType extends Resolv
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   currentVersion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   isDirty?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
@@ -990,7 +967,7 @@ export type TemplateResolvers<ContextType = MyContext, ParentType extends Resolv
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   owner?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   sourceTemplateId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  visibility?: Resolver<ResolversTypes['Visibility'], ParentType, ContextType>;
+  visibility?: Resolver<ResolversTypes['TemplateVisibility'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -998,6 +975,7 @@ export type TemplateCollaboratorResolvers<ContextType = MyContext, ParentType ex
   created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   invitedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
@@ -1016,6 +994,7 @@ export type UserResolvers<ContextType = MyContext, ParentType extends ResolversP
   created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
@@ -1033,6 +1012,7 @@ export type VersionedTemplateResolvers<ContextType = MyContext, ParentType exten
   created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -1040,9 +1020,9 @@ export type VersionedTemplateResolvers<ContextType = MyContext, ParentType exten
   owner?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType>;
   version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  versionType?: Resolver<Maybe<ResolversTypes['VersionType']>, ParentType, ContextType>;
+  versionType?: Resolver<Maybe<ResolversTypes['TemplateVersionType']>, ParentType, ContextType>;
   versionedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  visibility?: Resolver<ResolversTypes['Visibility'], ParentType, ContextType>;
+  visibility?: Resolver<ResolversTypes['TemplateVisibility'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 

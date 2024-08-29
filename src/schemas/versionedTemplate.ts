@@ -4,26 +4,16 @@ export const typeDefs = gql`
   extend type Query {
     "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
     templateVersions(templateId: Int!): [VersionedTemplate]
-
-    "Get the DMPTool Best Practice VersionedTemplate"
-    bestPracticeTemplates: [VersionedTemplate]
     "Search for VersionedTemplate whose name or owning Org's name contains the search term"
     publishedTemplates(term: String!): [VersionedTemplate]
-    "Get the specified VersionedTemplate"
-    publishedTemplate(publishedTemplateId: Int!): VersionedTemplate
-  }
-
-  extend type Mutation {
-    "Unpublish the specified PublishedTemplate"
-    unpublishTemplate(publishedTemplateId: Int!): Boolean
   }
 
   "Template version type"
-  enum VersionType {
+  enum TemplateVersionType {
     "Draft - saved state for internal review"
-    Draft
+    DRAFT
     "Published - saved state for use when creating DMPs"
-    Published
+    PUBLISHED
   }
 
   "A snapshot of a Template when it became published. DMPs are created from published templates"
@@ -38,6 +28,8 @@ export const typeDefs = gql`
     modifiedById: Int
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
+    "Errors associated with the Object"
+    errors: [String!]
 
     "The template that this published version stems from"
     template: Template
@@ -46,7 +38,7 @@ export const typeDefs = gql`
     "The publisher of the Template"
     versionedBy: User
     "The type of version: Published or Draft (default: Draft)"
-    versionType: VersionType
+    versionType: TemplateVersionType
     "A comment/note the user enters when publishing the Template"
     comment: String
     "Whether or not this is the version provided when users create a new DMP (default: false)"
@@ -59,7 +51,7 @@ export const typeDefs = gql`
     "The owner of the Template"
     owner: Affiliation
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
-    visibility: Visibility!
+    visibility: TemplateVisibility!
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
   }

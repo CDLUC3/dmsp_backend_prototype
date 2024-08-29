@@ -5,7 +5,8 @@ import mockLogger from "../__tests__/mockLogger";
 import { DMPHubAPI } from "../datasources/dmphubAPI";
 import { DMPToolAPI } from "../datasources/dmptoolAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";
-import { User } from "../types";
+import { User, UserRole } from "../models/User";
+import casual from "casual";
 
 jest.mock('../datasources/dmphubAPI');
 jest.mock('../datasources/dmptoolAPI');
@@ -44,15 +45,27 @@ export class MockDMPToolAPI extends DMPToolAPI {
   removeProtocol = jest.fn();
 }
 
-export const mockToken = (user: User): JWTToken => {
+// Generate a mock user
+export const mockUser = (
+  id = casual.integer(1, 9999),
+  email = casual.email,
+  givenName = casual.first_name,
+  surName = casual.last_name,
+  affiliationId = casual.url,
+  userRole = UserRole.RESEARCHER,
+): User => {
+  return new User({ id, email, givenName, surName, affiliationId, role: userRole });
+}
+
+// Generate a mock JWToken
+export const mockToken = (user = mockUser()): JWTToken => {
   return {
     id: user.id,
     email: user.email,
     givenName: user.givenName,
     surName: user.surName,
-    affiliationId: user.affiliation,
-    role: user.role.toString() || 'RESEARCHER',
-    user
+    affiliationId: user.affiliationId,
+    role: user.role,
   }
 }
 
@@ -63,11 +76,10 @@ export const mockDataSources = {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-export async function buildContext(logger: Logger, _cache: any = null, token: JWTToken = null): Promise<MyContext> {
+export function buildContext(logger: Logger, token: JWTToken = null, _cache: any = null): MyContext {
   return {
     token: token,
     logger: logger || mockLogger,
-    user: null,
     dataSources: mockDataSources,
   }
 }

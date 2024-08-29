@@ -8,7 +8,7 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Add a collaborator to a Template"
-    addTemplateCollaborator(templateId: Int!, email: String!): Boolean
+    addTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
     "Remove a TemplateCollaborator from a Template"
     removeTemplateCollaborator(templateId: Int!, email: String!): Boolean
   }
@@ -25,6 +25,8 @@ export const typeDefs = gql`
     modifiedById: Int
     "The timestamp when the Object was last modifed"
     modified: DateTimeISO
+    "Errors associated with the Object"
+    errors: [String!]
 
     "The template the collaborator may edit"
     template: Template
@@ -34,5 +36,6 @@ export const typeDefs = gql`
     user: User
     "The user who invited the collaborator"
     invitedBy: User
+
   }
 `;

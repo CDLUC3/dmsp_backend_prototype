@@ -11,7 +11,6 @@ export function attachApolloServer(apolloServer, cache, logger) {
       const authHeader: string = req?.headers?.authorization || '';
       const authHdr: string = authHeader.split(' ')[1] || null;
       const token: JWTToken = authHeader ? verifyToken(authHdr, logger) : null;
-
       return buildContext(logger, cache, token);
     },
   });
