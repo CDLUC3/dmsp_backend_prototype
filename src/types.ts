@@ -674,22 +674,24 @@ export type VersionedSection = {
   displayOrder: Scalars['Int']['output'];
   /** Errors associated with the Object */
   errors?: Maybe<Array<Scalars['String']['output']>>;
-  /** The guidance to help user with section */
+  /** The guidance to help user with VersionedSection */
   guidance?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
   id: Scalars['Int']['output'];
-  /** The section introduction */
+  /** The VersionedSection introduction */
   introduction?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['DateTimeISO']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** The section name/title */
+  /** The VersionedSection name/title */
   name: Scalars['String']['output'];
-  /** Requirements that a user must consider in this section */
+  /** Requirements that a user must consider in this VersionedSection */
   requirements?: Maybe<Scalars['String']['output']>;
   /** The section that this is a snapshot of */
   section?: Maybe<Section>;
+  /** The Tags associated with this VersionedSection */
+  tags?: Maybe<Array<Maybe<Tag>>>;
   /** The type of version: Published or Draft (default: Draft) */
   versionType?: Maybe<SectionVersionType>;
   /** ID of the parent VersionedTemplate */
@@ -1224,6 +1226,7 @@ export type VersionedSectionResolvers<ContextType = MyContext, ParentType extend
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   requirements?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType>;
+  tags?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType>;
   versionType?: Resolver<Maybe<ResolversTypes['SectionVersionType']>, ParentType, ContextType>;
   versionedTemplateId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

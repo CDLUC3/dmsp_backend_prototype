@@ -29,14 +29,16 @@ export const typeDefs = gql`
 
     "The displayOrder of this VersionedSection"
     displayOrder: Int!
-    "The section name/title"
+    "The VersionedSection name/title"
     name: String!
-    "The section introduction"
+    "The VersionedSection introduction"
     introduction: String
-    "Requirements that a user must consider in this section"
+    "Requirements that a user must consider in this VersionedSection"
     requirements: String
-    "The guidance to help user with section"
+    "The guidance to help user with VersionedSection"
     guidance: String
+    "The Tags associated with this VersionedSection"
+    tags: [Tag]
 
     "The user who created the Object"
     createdById: Int
