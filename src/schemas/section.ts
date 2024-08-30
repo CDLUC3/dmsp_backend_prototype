@@ -12,7 +12,7 @@ export const typeDefs = gql`
     "Create a new Section. Leave the 'copyFromSectionId' blank to create a new section from scratch"
     addSection(templateId: Int!, name: String!, copyFromSectionId: Int): Section
     "Update a Section"
-    updateSection(sectionId: Int!, name: String!, introduction: String, requirements: String, guidance: String): Section
+    updateSection(sectionId: Int!, name: String!, introduction: String, requirements: String, guidance: String, tags: [Tag]): Section
     "Delete a section"
     removeSection(sectionId: Int!): Section
   }
@@ -20,9 +20,9 @@ export const typeDefs = gql`
   "A Section that contains a list of questions in a template"
   type Section {
     "The unique identifer for the Object"
-    id: Int
+    id: Int!
     "The order in which the section will be displayed in the template"
-    displayOrder: Int
+    displayOrder: Int!
     "The section title"
     name: String!
     "The section introduction"
@@ -31,6 +31,8 @@ export const typeDefs = gql`
     requirements: String
     "The guidance to help user with section"
     guidance: String
+    "The Tags associated with this section"
+    tags: [Tag]
     "Indicates whether or not the section has changed since the template was last published"
     isDirty: Boolean!
     "The user who created the Object"
