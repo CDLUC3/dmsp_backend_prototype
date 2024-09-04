@@ -20,8 +20,8 @@ export const typeDefs = gql`
   type VersionedSection {
     "The unique identifer for the Object"
     id: Int!
-    "ID of the parent VersionedTemplate"
-    versionedTemplateId: Int!
+    "The parent VersionedTemplate"
+    versionedTemplate: VersionedTemplate!
     "The section that this is a snapshot of"
     section: Section
     "The type of version: Published or Draft (default: Draft)"

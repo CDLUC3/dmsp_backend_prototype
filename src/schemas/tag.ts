@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get all available tags to display"
-    tags: [Tag]
+    tags: [Tag!]!
   }
 
   extend type Mutation {

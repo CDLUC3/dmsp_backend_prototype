@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get the Sections that belong to the associated templateId"
-    sections(templateId: Int!): [Section]!
+    sections(templateId: Int!): [Section]
     "Get the specified section"
     section(sectionId: Int!): Section
   }
@@ -31,8 +31,8 @@ export const typeDefs = gql`
     requirements: String
     "The guidance to help user with section"
     guidance: String
-    "The Tags associated with this section"
-    tags: [Tag!]!
+    "The Tags associated with this section. A section might not have any tags"
+    tags: [Tag]
     "Indicates whether or not the section has changed since the template was last published"
     isDirty: Boolean!
     "The user who created the Object"
