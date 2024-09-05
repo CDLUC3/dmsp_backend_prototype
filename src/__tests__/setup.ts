@@ -1,7 +1,7 @@
-import mockLogger from "./mockLogger";
+import { logger } from '../__mocks__/logger';
 
 // Mock the Pino logger
-jest.mock('pino', () => () => mockLogger);
+jest.mock('pino', () => () => logger);
 
 // Always mock out our config files
 jest.mock('../config/generalConfig', () => ({

@@ -26,7 +26,8 @@ export class MySQLDataSource {
         multipleStatements: false,
       });
     } catch (err) {
-      formatLogMessage(logger, { err, message: 'Unable to establish the MySQL connection pool.' })
+      formatLogMessage(logger).error('Unable to establish the MySQL connection pool.');
+      throw(err);
     }
   }
 
@@ -36,6 +37,13 @@ export class MySQLDataSource {
       MySQLDataSource.instance = new MySQLDataSource();
     }
     return MySQLDataSource.instance;
+  }
+
+  public static async removeInstance(): Promise<void> {
+    if (MySQLDataSource.instance) {
+      MySQLDataSource.instance.close();
+      MySQLDataSource.instance = null;
+    }
   }
 
   // Retrieve the MySQL connection

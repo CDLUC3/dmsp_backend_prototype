@@ -1,6 +1,6 @@
 import casual from 'casual';
 import { Template, TemplateVisibility } from "../Template";
-import mockLogger from '../../__tests__/mockLogger';
+import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { TemplateCollaborator } from '../Collaborator';
 
@@ -11,7 +11,7 @@ let context;
 beforeEach(() => {
   jest.restoreAllMocks();
 
-  context = buildContext(mockLogger, mockToken());
+  context = buildContext(logger, mockToken());
 });
 
 afterEach(() => {
@@ -83,7 +83,7 @@ describe('findBy queries', () => {
     localQuery = jest.fn();
     (Template.query as jest.Mock) = localQuery;
 
-    context = buildContext(mockLogger, mockToken());
+    context = buildContext(logger, mockToken());
 
     template = new Template({
       id: casual.integer(1, 9),

@@ -1,4 +1,4 @@
-import pino from 'pino';
+import pino, { Logger } from 'pino';
 
 // Mock a Pino Logger
 const mockLogger = {
@@ -12,4 +12,8 @@ const mockLogger = {
   child: jest.fn().mockReturnThis(),
 } as unknown as pino.Logger;
 
-export default mockLogger;
+export const logger = mockLogger;
+
+export function formatLogMessage(logger: Logger, args: object | void): Logger {
+  return logger;
+}

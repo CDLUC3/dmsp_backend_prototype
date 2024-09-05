@@ -1,7 +1,7 @@
 import { Logger } from "pino";
 import { JWTToken } from "../services/tokenService";
 import { MyContext } from "../context";
-import mockLogger from "../__tests__/mockLogger";
+import { logger } from '../__mocks__/logger';
 import { DMPHubAPI } from "../datasources/dmphubAPI";
 import { DMPToolAPI } from "../datasources/dmptoolAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";
@@ -76,10 +76,10 @@ export const mockDataSources = {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-export function buildContext(logger: Logger, token: JWTToken = null, _cache: any = null): MyContext {
+export function buildContext(loggerIn: Logger = logger, token: JWTToken = null, _cache: any = null): MyContext {
   return {
     token: token,
-    logger: logger || mockLogger,
+    logger: loggerIn,
     dataSources: mockDataSources,
   }
 }

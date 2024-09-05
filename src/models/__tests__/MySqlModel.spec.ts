@@ -1,6 +1,6 @@
 import casual from 'casual';
 import { MySqlModel } from "../MySqlModel";
-import mockLogger from '../../__tests__/mockLogger';
+import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 
 jest.mock('../../dataSources/mySQLDataSource', () => {
@@ -186,12 +186,9 @@ describe('query function', () => {
   let mockDebug;
   let mockError;
   let context;
-  let logger;
 
   beforeEach(() => {
     jest.resetAllMocks();
-
-    logger = mockLogger;
 
     context = buildContext(logger, mockToken());
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
@@ -260,7 +257,7 @@ describe('exists', () => {
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(mockLogger, mockToken());
+    context = buildContext(logger, mockToken());
   });
 
   afterEach(() => {
@@ -291,7 +288,7 @@ describe('insert function', () => {
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(mockLogger, mockToken());
+    context = buildContext(logger, mockToken());
 
     options = {
       createdById: casual.integer(1, 99),
@@ -343,7 +340,7 @@ describe('update function', () => {
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(mockLogger, mockToken());
+    context = buildContext(logger, mockToken());
 
     options = {
       id: casual.integer(1, 999),
@@ -394,7 +391,7 @@ describe('delete function', () => {
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(mockLogger, mockToken());
+    context = buildContext(logger, mockToken());
   });
 
   afterEach(() => {
