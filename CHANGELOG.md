@@ -1,5 +1,6 @@
 
 ### Added
+- Added schema for Section and Tag
 - Initial schema, model, mocks and resolver for Templates
 - Initial schema, model, mocks and resolver for Collaborators
 - added templateService to assist with actions that work on a Template and all of it's child objects
