@@ -23,7 +23,7 @@ CREATE TABLE `sections` (
 
 CREATE TABLE `versionedSections` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `versionedTemplateId` INT NOT NULL
+  `versionedTemplateId` INT NOT NULL,
   `sectionId` INT NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `introduction` TEXT,
@@ -36,7 +36,7 @@ CREATE TABLE `versionedSections` (
   `modifiedById` int NOT NULL,
   FOREIGN KEY (versionedTemplateId) REFERENCES versionedTemplates(id) ON DELETE CASCADE,
   FOREIGN KEY (sectionId) REFERENCES sections(id) ON DELETE CASCADE,
-  INDEX versionedSections_template_idx (`versionedTemplateId`, `displayOrder`)
+  INDEX versionedSections_template_idx (`versionedTemplateId`, `displayOrder`),
   INDEX versionedSections_name_ids (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
@@ -50,5 +50,5 @@ CREATE TABLE `sectionTags` (
   `modifiedById` int NOT NULL,
   FOREIGN KEY (sectionId) REFERENCES sections(id) ON DELETE CASCADE,
   FOREIGN KEY (tagId) REFERENCES tags(id) ON DELETE CASCADE,
-  INDEX sectionTags_idx(`setionId`, `tagId`)
+  INDEX sectionTags_idx(`sectionId`, `tagId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
