@@ -14,7 +14,8 @@ Our Apollo server installation consists of:
 - Update the new `.env` file if necessary (make sure it has no references to MYSQL unless you want to override the docker-compose db setings)
 - Run `docker-compose build` to build the container
 - Once the build has completed start the container with: `docker-compose up`
-- In a separate tab run `docker-compose exec apollo bash ./data-migrations/process.sh` to build out the local database
+- In a separate tab run ``docker-compose exec apollo bash ./data-migrations/database-init.sh` to create the database and build the `dataMigrations` table which will be used to track which data migrations have been run.
+- Then run `docker-compose exec apollo bash ./data-migrations/process.sh` to build out the remaining database tables and seed them with sample data
 - Visit `http://localhost:4000/graphql` to load the Apollo server explorer and verify that the system is running.
 
 ## Running current database migrations
@@ -30,13 +31,15 @@ Our Apollo server installation consists of:
 
 ## Dropping all of the tables in the local database
 
-In the event that you want to delete all of the tables and data from your database and rebuild a clean database you can run
+In the event that you want to delete all of the tables and data from your database and rebuild a clean database you can run.
 
 **Local Docker container**
 - Drop the tables: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh`
 - Rebuild the tables and seed them: `docker-compose exec apollo bash ./data-migrations/process.sh`
 
 Note that the container must be running!
+
+You may find that you receive an error that the `dataMigrations` table already exists when running the `process.sh` script. If so, restart the container and try again.
 
 **AWS Cloud9 Bastion Host**
 

@@ -44,4 +44,15 @@ while IFS=' ' read -ra TABLES; do
 done <<< "$TABLE_LIST"
 
 mariadb $MYSQL_ARGS -N $MYSQL_DATABASE <<< $FK_ON
-echo "DONE"
+
+CREATE_MIGRATIONS_TABLE="USE ${MYSQL_DATABASE}; CREATE TABLE dataMigrations (
+    migrationFile varchar(255) NOT NULL,
+    created timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_migration_file UNIQUE (migrationFile)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;"
+
+# Create the Database
+echo "Creating the dataMigrations table ..."
+mariadb -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} <<< ${CREATE_MIGRATIONS_TABLE}
+
+echo "Nuke complete. You may now run data-migrations/process.sh to rebuild the database tables"
