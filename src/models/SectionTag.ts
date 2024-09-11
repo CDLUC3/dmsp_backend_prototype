@@ -9,18 +9,15 @@ export class SectionTag extends MySqlModel {
     constructor(options) {
         super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
-        this.sectionId = options.templateId;
-        this.tagId = options.sourceSectionId;
+        this.sectionId = options.sectionId;
+        this.tagId = options.tagId;
     }
 
 
     // Save the current record
     async create(context: MyContext): Promise<SectionTag> {
-
-        // Save the record and then fetch it
-        //const newId = await SectionTag.insert(context, 'sectionTags', this, 'SectionTag.create');
+        // Save the tags to sectionTags table
         await SectionTag.insert(context, 'sectionTags', this, 'SectionTag.create');
-        // Otherwise return as-is with all the errors
         return this;
     }
 

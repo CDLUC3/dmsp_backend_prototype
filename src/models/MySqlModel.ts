@@ -57,7 +57,7 @@ export class MySqlModel {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static convertProps(val: any, type: string): any {
+  static convertProps(val: any, type: any): any {
     if (val === undefined) {
       return null
     }
@@ -121,6 +121,7 @@ export class MySqlModel {
     if (dataSources && logger && dataSources.sqlDataSource && sqlStatement) {
       const sql = sqlStatement.split(/[\s\t\n]+/).join(' ');
       const logMessage = `${reference}, sql: ${sql}, vals: ${values}`;
+
       try {
         formatLogMessage(logger).debug(logMessage);
         const resp = await dataSources.sqlDataSource.query(sql, values);
@@ -168,11 +169,10 @@ export class MySqlModel {
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
 
-
     const vals = props.map((entry) => this.convertProps(entry.value, typeof (entry.value)));
 
     // Send the calcuated INSERT statement to the query function
-    const result = await this.query(context, sql.split(/[\s,\t,\n]+/).join(' '), vals, reference);
+    const result = await this.query(context, sql, vals, reference);
     return Array.isArray(result) ? result[0]?.insertId : null;
   }
 

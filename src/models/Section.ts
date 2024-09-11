@@ -1,5 +1,7 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
+import { Tag } from "../types";
+
 
 // A Template for creating a DMP
 export class Section extends MySqlModel {
@@ -10,6 +12,7 @@ export class Section extends MySqlModel {
     public requirements?: string;
     public guidance?: string;
     public displayOrder: number;
+    public tags: Tag[];
     //public tags?: Tag[];  // Array of Tag objects
     public isDirty: boolean;
     // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
@@ -27,6 +30,7 @@ export class Section extends MySqlModel {
         this.requirements = options.requirements;
         this.guidance = options.guidance;
         this.displayOrder = options.displayOrder;
+        this.tags = options.tags;
         //this.tags = options.tags;
         this.isDirty = options.isDirty || true;
         // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
@@ -46,6 +50,7 @@ export class Section extends MySqlModel {
 
     // Save the current record
     async create(context: MyContext): Promise<Section> {
+
         // First make sure the record is valid
         if (await this.isValid()) {
             const current = await Section.findSectionByNameAndTemplateId(
@@ -58,11 +63,14 @@ export class Section extends MySqlModel {
             if (current) {
                 this.errors.push('Section with this name already exists');
             } else {
-
+                /*Need to remove tags, because this does not exist in the sections table, but we need it to
+                add tags back into the response when adding a new section*/
+                delete this.tags;
                 // Save the record and then fetch it
                 const newId = await Section.insert(context, 'sections', this, 'Section.create');
 
-                return await Section.getSectionBySectionId('Section.create', context, newId);
+                const response = await Section.getSectionBySectionId('Section.create', context, newId);
+                return response;
             }
         }
 
@@ -91,6 +99,7 @@ export class Section extends MySqlModel {
     }
 
     static async getSectionBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Section> {
+
         const sql = 'SELECT * FROM sections where id = ?';
         const result = await Section.query(context, sql, [sectionId.toString()], reference);
         return Array.isArray(result) && result.length > 0 ? result[0] : null;
