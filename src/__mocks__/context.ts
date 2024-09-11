@@ -12,13 +12,26 @@ jest.mock('../datasources/dmphubAPI');
 jest.mock('../datasources/dmptoolAPI');
 jest.mock('../datasources/mySQLDataSource');
 
-jest.mocked(MySQLDataSource.getInstance).mockImplementation(() => {
+jest.mock('../datasources/mySQLDataSource', () => {
   return {
-    close: jest.fn(),
-    getConnection: jest.fn(),
-    pool: null,
-    query: jest.fn(),
-  }
+    __esModule: true,
+    MySQLDataSource: {
+      getInstance: jest.fn().mockReturnValue({
+        query: jest.fn(),
+      }),
+    },
+  };
+});
+
+jest.spyOn(MySQLDataSource, 'getInstance').mockImplementation(function () {
+  this.pool = null;
+  this.connection = null;
+  this.initializePool = jest.fn();
+  this.getConnection = jest.fn();
+  this.releaseConnection = jest.fn();
+  this.close = jest.fn();
+  this.query = jest.fn();
+  return this;
 });
 
 const mockedMysqlInstance = MySQLDataSource.getInstance();

@@ -14,6 +14,7 @@ const mockLogger = {
 
 export const logger = mockLogger;
 
-export function formatLogMessage(logger: Logger, args: object | void): Logger {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-invalid-void-type
+export function formatLogMessage(logger: Logger, _args: object | void): Logger {
   return logger;
 }

@@ -8,7 +8,10 @@ import { isSuperAdmin } from '../authService';
 import { logger } from '../../__mocks__/logger';
 import { MySQLDataSource } from '../../datasources/mySQLDataSource';
 
- describe('hasPermission', () => {
+// Pulling context in here so that the MySQLDataSource gets mocked
+jest.mock('../../context.ts');
+
+describe('hasPermission', () => {
   let template;
   let mockQuery;
   let mockIsSuperAdmin;
