@@ -98,11 +98,56 @@ export class Section extends MySqlModel {
         return Array.isArray(results) ? results : [];
     }
 
+    static async getSectionsWithTagsByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
+        const sql = `SELECT s.*, 
+       COALESCE(
+         JSON_ARRAYAGG(
+           CASE 
+             WHEN t.id IS NOT NULL THEN JSON_OBJECT('id', t.id, 'name', t.name, 'description', t.description)
+             ELSE NULL
+           END
+         ),
+         JSON_ARRAY()
+       ) AS tags
+        FROM sections s
+        LEFT JOIN sectionTags st ON s.id = st.sectionId
+        LEFT JOIN tags t ON st.tagId = t.id
+        WHERE s.templateId = ?
+        GROUP BY s.id`;
+
+        const results = await Section.query(context, sql, [templateId.toString()], reference);
+        const parsedResults = results.map(section => ({
+            ...section,
+            tags: section.tags ? JSON.parse(section.tags || []) : []
+        }));
+
+        return Array.isArray(parsedResults) ? parsedResults : [];
+    }
+
     static async getSectionBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Section> {
 
-        const sql = 'SELECT * FROM sections where id = ?';
-        const result = await Section.query(context, sql, [sectionId.toString()], reference);
-        return Array.isArray(result) && result.length > 0 ? result[0] : null;
+        const sql = `SELECT s.*, 
+       COALESCE(
+         JSON_ARRAYAGG(
+           CASE 
+             WHEN t.id IS NOT NULL THEN JSON_OBJECT('id', t.id, 'name', t.name, 'description', t.description)
+             ELSE NULL
+           END
+         ),
+         JSON_ARRAY()
+       ) AS tags
+        FROM sections s
+        LEFT JOIN sectionTags st ON s.id = st.sectionId
+        LEFT JOIN tags t ON st.tagId = t.id
+        WHERE s.id = ?
+        GROUP BY s.id`;
+        const results = await Section.query(context, sql, [sectionId.toString()], reference);
+        const parsedResults = results.map(section => ({
+            ...section,
+            tags: section.tags ? JSON.parse(section.tags || []) : []
+        }));
+
+        return Array.isArray(parsedResults) && parsedResults.length > 0 ? parsedResults[0] : null;
     }
 
 }

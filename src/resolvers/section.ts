@@ -24,7 +24,7 @@ export const resolvers: Resolvers = {
                 throw ForbiddenError();
             }
 
-            const sections = await Section.getSectionsByTemplateId('sections resolver', context, templateId);
+            const sections = await Section.getSectionsWithTagsByTemplateId('sections resolver', context, templateId);
 
             return sections;
         },
