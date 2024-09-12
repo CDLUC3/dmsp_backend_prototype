@@ -1,12 +1,11 @@
 import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
-import { Template } from "../models/Template";
 import { SectionTag } from "../models/SectionTag";
 import { Tag } from "../types";
 import { VersionedSection } from '../models/VersionedSection';
 import { cloneSection, hasPermission } from "../services/sectionService";
-import { ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
+import { NotFoundError } from "../utils/graphQLErrors";
 
 
 export const resolvers: Resolvers = {
