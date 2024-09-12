@@ -73,8 +73,13 @@ export const resolvers: Resolvers = {
                     copyFromSectionId
                 );
 
-                section = cloneSection(context.token?.id, templateId, copyFromSectionId, original);
-                section.name = name;
+                if (original) {
+                    section = cloneSection(context.token?.id, templateId, copyFromSectionId, original);
+                    section.name = name;
+                } else {
+                    throw NotFoundError();
+                }
+
             }
             if (!section) {
                 // Create a new blank section
@@ -88,7 +93,7 @@ export const resolvers: Resolvers = {
             if (tags && tags.length > 0) {
                 await Promise.all(
                     tags.map(async (tagId) => {
-                        const sectionTag = await new SectionTag({
+                        const sectionTag = new SectionTag({
                             sectionId: newSection.id,
                             tagId: tagId.id
                         });
