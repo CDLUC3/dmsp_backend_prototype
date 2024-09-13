@@ -1,5 +1,7 @@
 import casual from 'casual';
 import { ContributorRole } from '../ContributorRole';
+import { buildContext, mockToken } from '../../__mocks__/context';
+import { logger } from '../../__mocks__/logger';
 
 describe('ContributorRole', () => {
   it('constructor should initialize as expected', () => {
@@ -58,5 +60,50 @@ describe('ContributorRole', () => {
     expect(await role.isValid()).toBe(false);
     expect(role.errors.length).toBe(1);
     expect(role.errors[0].includes('URL')).toBe(true);
+  });
+});
+
+describe('queries', () => {
+  const originalQuery = ContributorRole.query;
+  let mockQuery;
+  let context;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockQuery = jest.fn();
+    (ContributorRole.insert as jest.Mock) = mockQuery;
+
+    context = buildContext(logger, mockToken());
+  });
+
+  afterEach(() => {
+    ContributorRole.query = originalQuery;
+  });
+
+  it('all performs the expected query', async () => {
+    const querySpy = jest.spyOn(ContributorRole, 'query');
+    await ContributorRole.all('Testing', context);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'SELECT * FROM contributorRoles ORDER BY label';
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [], 'Testing')
+  });
+
+  it('findById performs the expected query', async () => {
+    const contributorRoleId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query');
+    await ContributorRole.findById('Testing', context, contributorRoleId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'SELECT * FROM contributorRoles WHERE id = ?';
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [contributorRoleId.toString()], 'Testing')
+  });
+
+  it('findByURL performs the expected query', async () => {
+    const contributorRoleUrl = casual.url;
+    const querySpy = jest.spyOn(ContributorRole, 'query');
+    await ContributorRole.findByURL('Testing', context, contributorRoleUrl);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'SELECT * FROM contributorRoles WHERE url = ?';
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [contributorRoleUrl], 'Testing')
   });
 });

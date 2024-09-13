@@ -182,9 +182,6 @@ export class TemplateCollaborator extends Collaborator {
     templateId: number,
     email: string,
   ): Promise<TemplateCollaborator> {
-
-console.log(templateId)
-
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
     const vals = [templateId.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);

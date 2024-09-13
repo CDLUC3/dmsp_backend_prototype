@@ -3,7 +3,7 @@ import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import Redis from 'ioredis';
 import { KeyvAdapter } from '@apollo/utils.keyvadapter';
-import mockLogger from '../../__tests__/mockLogger';
+import { logger, formatLogMessage } from '../../__mocks__/logger';
 
 // Mock Redis Cluster, Keyv, KeyvRedis, and KeyvAdapter
 jest.mock('ioredis', () => ({
@@ -16,12 +16,9 @@ jest.mock('@apollo/utils.keyvadapter');
 describe('Cache', () => {
   let mockRedisCluster;
   let mockKeyvInstance;
-  let logger;
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    logger = mockLogger;
 
     mockRedisCluster = { on: jest.fn() };
     mockKeyvInstance = { on: jest.fn() };

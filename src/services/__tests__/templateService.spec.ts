@@ -5,15 +5,17 @@ import casual from 'casual';
 import { TemplateCollaborator } from '../../models/Collaborator';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isSuperAdmin } from '../authService';
-import mockLogger from '../../__tests__/mockLogger';
+import { logger } from '../../__mocks__/logger';
 import { MySQLDataSource } from '../../datasources/mySQLDataSource';
 
- describe('hasPermission', () => {
+// Pulling context in here so that the MySQLDataSource gets mocked
+jest.mock('../../context.ts');
+
+describe('hasPermission', () => {
   let template;
   let mockQuery;
   let mockIsSuperAdmin;
   let mockFindByTemplateAndEmail;
-  let logger;
   let context;
 
   beforeEach(() => {
@@ -26,7 +28,6 @@ import { MySQLDataSource } from '../../datasources/mySQLDataSource';
 
     const instance = MySQLDataSource.getInstance();
     mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    logger = mockLogger;
     context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
 
     mockIsSuperAdmin = jest.fn();

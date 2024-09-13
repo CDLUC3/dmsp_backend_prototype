@@ -31,10 +31,6 @@ export const refreshTokenController = async (req: Request, res: Response) => {
     }
     res.status(400).json({ success: false, message: 'Unable to refresh the access token at this time!' });
   } catch (error) {
-    if (error instanceof AuthenticationError) {
-
-    } else {
-      res.status(500).json({ error: 'An unexpected error occurred' });
-    }
+    res.status(500).json({ error: 'An unexpected error occurred' });
   }
 }
