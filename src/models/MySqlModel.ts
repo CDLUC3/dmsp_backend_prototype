@@ -58,8 +58,8 @@ export class MySqlModel {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static convertProps(val: any, type: any): any {
-    if (val === undefined) {
-      return null
+    if (val === null || val === undefined) {
+      return null;
     }
     switch (type) {
       case 'number':
@@ -125,6 +125,7 @@ export class MySqlModel {
       try {
         formatLogMessage(logger).debug(logMessage);
         const resp = await dataSources.sqlDataSource.query(sql, values);
+        console.log("***RESP", resp);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
         const msg = `${reference}, ERROR: ${err.message}`;
@@ -183,14 +184,17 @@ export class MySqlModel {
   //    - reference:       A reference to contextualize log messages e.g. `users resolver`
   // returns the newly inserted record's id
   static async update(
-    apolloContext: MyContext,
+    context: MyContext,
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
   ): Promise<MySqlModel> {
     // Update the modifier info
-    obj.modifiedById = apolloContext.token.id;
-    obj.modified = new Date().toISOString();
+    obj.modifiedById = context.token.id;
+    const now = new Date().toISOString();
+    const currentDate = now.slice(0, 19).replace('T', ' ');
+    obj.modified = currentDate;
+    obj.created = (new Date(obj.created).toISOString().slice(0, 19).replace('T', ' '));
 
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj);
@@ -201,11 +205,13 @@ export class MySqlModel {
                  SET ${props.map((entry) => `${entry.name} = ?`).join(', ')} \
                  WHERE id = ?`;
 
-    const vals = props.map((entry) => this.prepareValue(entry.value));
+    const vals = props.map((entry) => this.convertProps(entry.value, typeof (entry.value)));
+
     vals.push(obj.id.toString());
 
     // Send the calcuated INSERT statement to the query function
-    const result = await this.query(apolloContext, sql.split(/[\s,\t,\n]+/).join(' '), vals, reference);
+    const result = await this.query(context, sql, vals, reference);
+    console.log("***UPDATE QUERY RESULT", result);
     return Array.isArray(result) ? result[0] : null;
   }
 

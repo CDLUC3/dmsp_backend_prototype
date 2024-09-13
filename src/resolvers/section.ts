@@ -2,10 +2,9 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { SectionTag } from "../models/SectionTag";
-import { Tag } from "../types";
 import { VersionedSection } from '../models/VersionedSection';
 import { cloneSection, hasPermission } from "../services/sectionService";
-import { NotFoundError } from "../utils/graphQLErrors";
+import { ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
 
 
 export const resolvers: Resolvers = {
@@ -19,7 +18,7 @@ export const resolvers: Resolvers = {
         section: async (_, { sectionId }, context: MyContext): Promise<Section> => {
 
             // Find section with matching sectionId
-            const section = await Section.getSectionBySectionId('section resolver', context, sectionId);
+            const section = await Section.getSectionWithTagsBySectionId('section resolver', context, sectionId);
 
             if (await hasPermission(context, section.templateId)) {
                 return section;
@@ -56,6 +55,8 @@ export const resolvers: Resolvers = {
                 // create the new section
                 const newSection = await section.create(context);
 
+                const sectionId = newSection.id;
+
                 // Add tags to sectionTags table
                 if (tags && tags.length > 0) {
                     await Promise.all(
@@ -68,19 +69,50 @@ export const resolvers: Resolvers = {
                             await sectionTag.create(context);
                         })
                     );
-
-                    // Add tags to the returned section
-                    newSection.tags = tags.map(tagId => ({
-                        id: tagId.id,
-                        name: tagId.name,
-                        description: tagId.description
-                    })) as Tag[];
-                } else {
-                    newSection.tags = [];
                 }
 
-                return newSection;
+                // Return newly created section with tags
+                return await Section.getSectionWithTagsBySectionId('addSection resolver', context, sectionId);
             }
+        },
+
+        updateSection: async (_, { input: { sectionId, name, introduction, requirements, guidance, tags, displayOrder } }, context: MyContext): Promise<Section> => {
+
+            const sectionData = await Section.getSectionBySectionId('section resolver', context, sectionId);
+            if (sectionData) {
+                if (await hasPermission(context, sectionData.templateId)) {
+                    const section = new Section({
+                        ...sectionData,  // Spread the existing section data
+                        name: name || sectionData.name,
+                        introduction: introduction || sectionData.introduction,
+                        requirements: requirements || sectionData.requirements,
+                        guidance: guidance || sectionData.guidance,
+                        displayOrder: displayOrder || sectionData.displayOrder,
+                        isDirty: true  // Mark as dirty for update
+                    });
+
+                    const updatedSection = await section.update(context);
+
+                    // Add tags to sectionTags table
+                    if (tags && tags.length > 0) {
+                        await Promise.all(
+                            tags.map(async (tagId) => {
+                                const sectionTag = new SectionTag({
+                                    sectionId: updatedSection.id,
+                                    tagId: tagId.id
+                                });
+
+                                await sectionTag.create(context);
+                            })
+                        );
+                    }
+
+                    // Return newly created section with tags
+                    return await Section.getSectionWithTagsBySectionId('addSection resolver', context, updatedSection.id);
+                }
+                throw ForbiddenError();
+            }
+            throw NotFoundError();
 
         },
     }

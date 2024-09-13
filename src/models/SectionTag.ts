@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 
+const tableName = "sectionTags";
 // A Template for creating a DMP
 export class SectionTag extends MySqlModel {
     public sectionId: number;
@@ -17,7 +18,7 @@ export class SectionTag extends MySqlModel {
     // Save the current record
     async create(context: MyContext): Promise<SectionTag> {
         // Save the tags to sectionTags table
-        await SectionTag.insert(context, 'sectionTags', this, 'SectionTag.create');
+        await SectionTag.insert(context, tableName, this, 'SectionTag.create');
         return this;
     }
 

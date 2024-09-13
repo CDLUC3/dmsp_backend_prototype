@@ -2,6 +2,7 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { Tag } from "../types";
 
+const tableName = 'sections';
 
 // A Template for creating a DMP
 export class Section extends MySqlModel {
@@ -18,7 +19,6 @@ export class Section extends MySqlModel {
     // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
     //public bestPractice: boolean; 
 
-    //private tableName = 'sections';
 
     constructor(options) {
         super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
@@ -67,7 +67,7 @@ export class Section extends MySqlModel {
                 add tags back into the response when adding a new section*/
                 delete this.tags;
                 // Save the record and then fetch it
-                const newId = await Section.insert(context, 'sections', this, 'Section.create');
+                const newId = await Section.insert(context, tableName, this, 'Section.create');
 
                 const response = await Section.getSectionBySectionId('Section.create', context, newId);
                 return response;
@@ -76,6 +76,14 @@ export class Section extends MySqlModel {
 
         // Otherwise return as-is with all the errors
         return this;
+    }
+
+    async update(context: MyContext): Promise<Section> {
+        delete this.tags; //remove tags before updating section
+        const id = this.id;
+        await Section.update(context, tableName, this, 'Section.update');
+        const updatedSection = await Section.getSectionBySectionId('Section.update', context, id);
+        return updatedSection as Section;
     }
 
     // Look for the template by it's name and owner
@@ -124,7 +132,7 @@ export class Section extends MySqlModel {
         return Array.isArray(parsedResults) ? parsedResults : [];
     }
 
-    static async getSectionBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Section> {
+    static async getSectionWithTagsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Section> {
 
         const sql = `SELECT s.*, 
        COALESCE(
@@ -148,6 +156,12 @@ export class Section extends MySqlModel {
         }));
 
         return Array.isArray(parsedResults) && parsedResults.length > 0 ? parsedResults[0] : null;
+    }
+
+    static async getSectionBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Section> {
+        const sql = 'SELECT * FROM sections where id = ?';
+        const result = await Section.query(context, sql, [sectionId.toString()], reference);
+        return Array.isArray(result) && result.length > 0 ? result[0] : null;
     }
 
 }
