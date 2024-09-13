@@ -3,7 +3,7 @@ import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { logger, formatLogMessage } from '../logger';
 import { Affiliation, AffiliationSearch } from "../models/Affiliation"
-import { JWTToken } from '../services/tokenService';
+import { JWTAccessToken } from '../services/tokenService';
 
 // Singleton class that retrieves an Auth token from the API
 class Authorizer extends RESTDataSource {
@@ -66,10 +66,10 @@ class Authorizer extends RESTDataSource {
 export class DMPToolAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
-  private token: JWTToken;
+  private token: JWTAccessToken;
   private authorizer: Authorizer;
 
-  constructor(options: { cache: KeyValueCache, token: JWTToken }) {
+  constructor(options: { cache: KeyValueCache, token: JWTAccessToken }) {
     super(options);
 
     this.token = options.token;

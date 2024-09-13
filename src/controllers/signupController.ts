@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import { logger, formatLogMessage } from '../logger';
 import { User } from '../models/User';
-import { generateToken } from '../services/tokenService';
+import { generateTokens, setTokenCookie } from '../services/tokenService';
+import { Cache } from '../datasources/cache';
+import { generalConfig } from '../config/generalConfig';
 
 export const signupController = async (req: Request, res: Response) => {
   let user: User = new User(req.body);
@@ -12,10 +14,15 @@ export const signupController = async (req: Request, res: Response) => {
       if (user.errors?.length >= 1) {
         res.status(400).json({ success: false, message: user.errors?.join('| ') });
       } else {
-        const token = generateToken(user);
+        const cache = Cache.getInstance();
+        const { accessToken, refreshToken} = await generateTokens(cache, user);
 
-        if (token) {
-          res.status(200).json({ success: true, token });
+        if (accessToken && refreshToken) {
+          // Set the tokens as HTTP only cookies
+          setTokenCookie(res, 'dmspt', accessToken, generalConfig.jwtTTL);
+          setTokenCookie(res, 'dmspr', refreshToken, generalConfig.jwtRefreshTTL);
+
+          res.status(200).json({ success: true });
         } else {
           throw new Error('Signup failed');
         }

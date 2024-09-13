@@ -30,3 +30,6 @@ jest.mock('../datasources/mySQLDataSource', () => {
     },
   };
 });
+
+process.env.CACHE_HOST = 'localhost';
+process.env.CACHE_PORT = '6379';

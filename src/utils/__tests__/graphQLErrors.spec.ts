@@ -2,7 +2,7 @@ import { GraphQLError } from 'graphql';
 import {
   AuthenticationError,
   AUTHENTICATION_ERROR_CODE,
-  DEFAULT_AUNAUTHORIZED_MESSAGE,
+  DEFAULT_UNAUTHORIZED_MESSAGE,
   DEFAULT_FORBIDDEN_MESSAGE,
   ForbiddenError,
   FORBIDDEN_ERROR_CODE,
@@ -12,7 +12,7 @@ describe('Authentication error', () => {
   test('returns a GraphQLError with the default error message', () => {
     const err = AuthenticationError();
     expect(err).toBeInstanceOf(GraphQLError);
-    expect(err.message).toEqual(DEFAULT_AUNAUTHORIZED_MESSAGE);
+    expect(err.message).toEqual(DEFAULT_UNAUTHORIZED_MESSAGE);
     expect(err.extensions?.code).toEqual(AUTHENTICATION_ERROR_CODE);
   });
 
