@@ -6,7 +6,7 @@ import { Affiliation, AffiliationSearch } from "../models/Affiliation"
 import { JWTToken } from '../services/tokenService';
 
 // Singleton class that retrieves an Auth token from the API
-class Authorizer extends RESTDataSource {
+export class Authorizer extends RESTDataSource {
   static #instance: Authorizer;
 
   override baseURL = process.env.DMPHUB_AUTH_URL;

@@ -1,7 +1,7 @@
 import casual from 'casual';
 import { TemplateVisibility } from "../Template";
 import { TemplateVersionType, VersionedTemplate } from '../VersionedTemplate';
-import mockLogger from '../../__tests__/mockLogger';
+import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 
 jest.mock('../../context.ts');
@@ -11,7 +11,7 @@ let context;
 beforeEach(() => {
   jest.resetAllMocks();
 
-  context = buildContext(mockLogger, mockToken());
+  context = buildContext(logger, mockToken());
 });
 
 afterEach(() => {
@@ -102,7 +102,7 @@ describe('findBy queries', () => {
     localQuery = jest.fn();
     (VersionedTemplate.query as jest.Mock) = localQuery;
 
-    context = buildContext(mockLogger, mockToken());
+    context = buildContext(logger, mockToken());
 
     versionedTemplate = new VersionedTemplate({
       id: casual.integer(1, 9),
@@ -177,7 +177,7 @@ describe('search', () => {
     localQuery = jest.fn();
     (VersionedTemplate.query as jest.Mock) = localQuery;
 
-    context = buildContext(mockLogger, mockToken());
+    context = buildContext(logger, mockToken());
 
     versionedTemplate = new VersionedTemplate({
       id: casual.integer(1, 9),

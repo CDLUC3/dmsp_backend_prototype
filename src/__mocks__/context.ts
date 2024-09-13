@@ -1,7 +1,7 @@
 import { Logger } from "pino";
 import { JWTToken } from "../services/tokenService";
 import { MyContext } from "../context";
-import mockLogger from "../__tests__/mockLogger";
+import { logger } from '../__mocks__/logger';
 import { DMPHubAPI } from "../datasources/dmphubAPI";
 import { DMPToolAPI } from "../datasources/dmptoolAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";
@@ -12,13 +12,26 @@ jest.mock('../datasources/dmphubAPI');
 jest.mock('../datasources/dmptoolAPI');
 jest.mock('../datasources/mySQLDataSource');
 
-jest.mocked(MySQLDataSource.getInstance).mockImplementation(() => {
+jest.mock('../datasources/mySQLDataSource', () => {
   return {
-    close: jest.fn(),
-    getConnection: jest.fn(),
-    pool: null,
-    query: jest.fn(),
-  }
+    __esModule: true,
+    MySQLDataSource: {
+      getInstance: jest.fn().mockReturnValue({
+        query: jest.fn(),
+      }),
+    },
+  };
+});
+
+jest.spyOn(MySQLDataSource, 'getInstance').mockImplementation(function () {
+  this.pool = null;
+  this.connection = null;
+  this.initializePool = jest.fn();
+  this.getConnection = jest.fn();
+  this.releaseConnection = jest.fn();
+  this.close = jest.fn();
+  this.query = jest.fn();
+  return this;
 });
 
 const mockedMysqlInstance = MySQLDataSource.getInstance();
@@ -76,10 +89,10 @@ export const mockDataSources = {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-export function buildContext(logger: Logger, token: JWTToken = null, _cache: any = null): MyContext {
+export function buildContext(loggerIn: Logger = logger, token: JWTToken = null, _cache: any = null): MyContext {
   return {
     token: token,
-    logger: logger || mockLogger,
+    logger: loggerIn,
     dataSources: mockDataSources,
   }
 }

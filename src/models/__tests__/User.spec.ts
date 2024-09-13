@@ -2,12 +2,11 @@ import 'jest-expect-message';
 import { User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
-import mockLogger from '../../__tests__/mockLogger';
+import { logger } from '../../__mocks__/logger';
 import { buildContext } from '../../context';
 
 jest.mock('../../context.ts');
 
-let logger;
 let mockDebug;
 let mockError;
 let mockQuery;
@@ -85,7 +84,6 @@ describe('validate a new User', () => {
       createdById: casual.integer(1, 999),
     });
 
-    logger = mockLogger;
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
     mockError = logger.error as jest.MockedFunction<typeof logger.error>;
 
@@ -229,7 +227,6 @@ describe('authCheck', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    logger = mockLogger;
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
 
     mockContext = buildContext(logger, null, null);
@@ -284,7 +281,6 @@ describe('login()', () => {
     mockAuthCheck = jest.fn();
     (User.authCheck as jest.Mock) = mockAuthCheck;
 
-    logger = mockLogger;
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
     mockError = logger.error as jest.MockedFunction<typeof logger.error>;
 
@@ -338,7 +334,6 @@ describe('register()', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    logger = mockLogger;
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
     mockError = logger.error as jest.MockedFunction<typeof logger.error>;
 
