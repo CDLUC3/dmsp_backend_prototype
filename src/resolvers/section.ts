@@ -113,7 +113,20 @@ export const resolvers: Resolvers = {
                 throw ForbiddenError();
             }
             throw NotFoundError();
-
+        },
+        removeSection: async (_, { sectionId }, context: MyContext): Promise<Section> => {
+            const sectionData = await Section.getSectionBySectionId('removeSection resolver', context, sectionId);
+            if (sectionData) {
+                if (await hasPermission(context, sectionData.templateId)) {
+                    const section = new Section({
+                        ...sectionData,
+                        id: sectionId
+                    });
+                    return await section.delete(context);
+                }
+                throw ForbiddenError();
+            }
+            throw NotFoundError();
         },
     }
 };

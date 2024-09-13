@@ -125,7 +125,6 @@ export class MySqlModel {
       try {
         formatLogMessage(logger).debug(logMessage);
         const resp = await dataSources.sqlDataSource.query(sql, values);
-        console.log("***RESP", resp);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
         const msg = `${reference}, ERROR: ${err.message}`;
@@ -211,7 +210,6 @@ export class MySqlModel {
 
     // Send the calcuated INSERT statement to the query function
     const result = await this.query(context, sql, vals, reference);
-    console.log("***UPDATE QUERY RESULT", result);
     return Array.isArray(result) ? result[0] : null;
   }
 

@@ -86,6 +86,17 @@ export class Section extends MySqlModel {
         return updatedSection as Section;
     }
 
+    async delete(context: MyContext): Promise<Section> {
+        if (this.id) {
+            /*Get section info to be deleted so we can return this info to the user
+            since calling 'delete' doesn't return anything*/
+            const deletedSection = await Section.getSectionBySectionId('Section.create', context, this.id);
+
+            await Section.delete(context, tableName, this.id, 'Section.delete');
+            return deletedSection;
+        }
+    }
+
     // Look for the template by it's name and owner
     static async findSectionByNameAndTemplateId(
         reference: string,
