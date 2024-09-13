@@ -3,20 +3,22 @@ import { Cache } from "../datasources/cache";
 import { refreshTokens, setTokenCookie } from '../services/tokenService';
 import { AuthenticationError } from '../utils/graphQLErrors';
 import { generalConfig } from '../config/generalConfig';
+import { buildContext } from '../context';
+import { logger } from '../logger';
 
 export const refreshTokenController = async (req: Request, res: Response) => {
   try {
-    // Get the refresh token from the request body or cookies
-    const oldAccessToken = req.body.accessToken || req.cookies.dmspt;
-    const oldRefreshToken = req.body.refreshToken || req.cookies.dmspr;
+    // Get the tokens from the request body or cookies
+    const oldAccessToken = req.cookies.dmspt;
+    const oldRefreshToken = req.cookies.dmspr;
 
-    if (!oldAccessToken || !oldRefreshToken) {
+    if (!oldRefreshToken) {
       res.status(401).json({ success: false, message: 'Refresh token required!' });
     }
 
-    // Use your refreshAccessToken function to get a new access token
     const cache = Cache.getInstance();
-    const { accessToken, refreshToken } = await refreshTokens(cache, oldAccessToken, oldRefreshToken);
+    const context = buildContext(logger, cache, oldAccessToken);
+    const { accessToken, refreshToken } = await refreshTokens(cache, context, oldRefreshToken);
 
     // If it successfully regenerated an access token
     if (accessToken) {

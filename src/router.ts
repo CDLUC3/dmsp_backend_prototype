@@ -5,6 +5,7 @@ import { signinController } from './controllers/signinController';
 import { signupController } from './controllers/signupController';
 import { refreshTokenController } from './controllers/refreshTokenController';
 import { oauthServer, castRequest, castResponse } from './middleware/oauthServer';
+import { isRevokedCallback } from './services/tokenService';
 
 const router = express.Router();
 
@@ -12,6 +13,8 @@ const authMiddleware = expressjwt({
   algorithms: ['HS256'],
   credentialsRequired: false,
   secret: generalConfig.jwtSecret as string,
+  getToken: function fromCookie(req) { return req.cookies.dmspt; },
+  isRevoked: isRevokedCallback,
 });
 
 // Support for email+password

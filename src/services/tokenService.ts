@@ -14,6 +14,7 @@ export interface JWTAccessToken extends JwtPayload {
   givenName: string,
   surName: string,
   role: string,
+  jti: string,
 }
 
 export interface JWTRefreshToken extends JwtPayload {
@@ -32,7 +33,7 @@ export const setTokenCookie = (res: Response, name: string, value: string, maxAg
 };
 
 // Generate an access token for the User
-const generateAccessToken = (user: User): string => {
+const generateAccessToken = (jti: string, user: User): string => {
   try {
     const payload: JWTAccessToken = {
       id: user.id,
@@ -41,6 +42,7 @@ const generateAccessToken = (user: User): string => {
       surName: user.surName,
       affiliationId: user.affiliationId,
       role: user.role.toString() || UserRole.RESEARCHER,
+      jti,
     };
 
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTTL });
@@ -52,14 +54,14 @@ const generateAccessToken = (user: User): string => {
   }
 }
 
-// Generate a refresh token for the User and add it to the Cache
-const generateRefreshToken = async (cache: Cache, user: User): Promise<string> => {
+// Generate a refresh token for the User and add it to the Cache.
+const generateRefreshToken = async (cache: Cache, jti: string, userId: number): Promise<string> => {
   try {
-    const payload: JWTRefreshToken = { id: user.id };
+    const payload: JWTRefreshToken = { id: userId };
 
     const token = jwt.sign(payload, generalConfig.jwtRefreshSecret as string, { expiresIn: generalConfig.jwtRefreshTTL });
     // Add the refresh token to the Cache
-    cache.adapter.set(`dmspr-${user.id}`, token, { ttl: generalConfig.jwtRefreshTTL })
+    cache.adapter.set(`dmspr-${jti}`, token, { ttl: generalConfig.jwtRefreshTTL })
     return token;
   } catch(err) {
     if (logger) {
@@ -73,10 +75,12 @@ const generateRefreshToken = async (cache: Cache, user: User): Promise<string> =
 export const generateTokens = async (cache: Cache, user: User): Promise<{ accessToken: string; refreshToken: string }> => {
   if (generalConfig.jwtSecret && generalConfig.jwtRefreshSecret && user && user.id && user.email) {
     try {
+      // Generate a unique id for the JWT
+      const jti = new Date().getTime().toString();
       // Generate an Access Token
-      const accessToken = generateAccessToken(user);
+      const accessToken = generateAccessToken(jti, user);
       // Generate a Refresh Token
-      const refreshToken = await generateRefreshToken(cache, user);
+      const refreshToken = await generateRefreshToken(cache, jti, user.id);
 
       return { accessToken, refreshToken };
     } catch(err) {
@@ -88,17 +92,7 @@ export const generateTokens = async (cache: Cache, user: User): Promise<{ access
 // Verify an Access Token
 export const verifyAccessToken = async (cache: Cache, accessToken: string): Promise<JWTAccessToken> => {
   try {
-    const verified = jwt.verify(accessToken, generalConfig.jwtSecret as string) as JWTAccessToken;
-
-    if(verified) {
-      // Check to make sure that the access token was added to the black list
-      const blackListed = cache.adapter.get(`dmspbl-${accessToken}`);
-      if (!blackListed) {
-        return verified;
-      }
-      formatLogMessage(logger).warn({ message: `verifyAccessToken black listed token attempt - ${accessToken}` });
-    }
-    return null;
+    return jwt.verify(accessToken, generalConfig.jwtSecret as string) as JWTAccessToken;
   } catch(err) {
     if (logger) {
       formatLogMessage(logger).error(err, `verifyAccessToken error - ${err.message}`);
@@ -110,7 +104,7 @@ export const verifyAccessToken = async (cache: Cache, accessToken: string): Prom
 // Verify a Refresh Token
 const verifyRefreshToken = (refreshToken: string): JWTRefreshToken => {
   try {
-    return jwt.verify(refreshToken, generalConfig.jwtRefreshSecret as string) as JWTRefreshToken;
+    return jwt.verify(refreshToken, generalConfig.jwtRefreshSecret) as JWTRefreshToken;
   } catch(err) {
     if (logger) {
       formatLogMessage(logger).error(err, `verifyRefreshToken error - ${err.message}`);
@@ -119,26 +113,38 @@ const verifyRefreshToken = (refreshToken: string): JWTRefreshToken => {
   }
 };
 
+// See if the access token is in the black list of revoked tokens
+export const isRevokedCallback = async (_req: Express.Request, token?: jwt.Jwt): Promise<boolean> => {
+  if (token && token.payload && typeof token.payload === 'object') {
+    const jti = (token.payload as JwtPayload).jti;
+    const cache = Cache.getInstance();
+
+    if (jti) {
+      const result = await cache.adapter.get(`dmspbl-${jti}`);
+      if (result) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 // Refresh the Access and Refresh Tokens
 export const refreshTokens = async (
   cache: Cache,
   context: MyContext,
-  refreshToken: string
+  originalRefreshToken: string
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
     // Verify the refresh token
-    const originalRefreshToken = verifyRefreshToken(refreshToken);
+    const verified = verifyRefreshToken(originalRefreshToken);
 
-    // Make sure the user ids match up
-    if (originalRefreshToken?.id) {
-      const user = await User.findById('refreshTokens', context, originalRefreshToken.id);
+    // Make sure the user still exists
+    if (verified?.id) {
+      // TODO: We can eventually add some checks here to see if the account if locked or deactivated
+      const user = await User.findById('refreshTokens', context, verified.id);
       if (user) {
-        const newAccessToken = generateAccessToken(user);
-        const newRefreshToken = await generateRefreshToken(cache, user);
-
-        if (newAccessToken && newRefreshToken) {
-          return { accessToken: newAccessToken, refreshToken: newRefreshToken };
-        }
+        return generateTokens(cache, user);
       }
     }
     // Otherwise the tokens were invalid or something else went wrong!
@@ -152,18 +158,18 @@ export const refreshTokens = async (
 };
 
 // Invalidate the Refresh Token (e.g., on logout or token rotation)
-export const revokeRefreshToken = async (cache: Cache, userId: number): Promise<boolean> => {
+export const revokeRefreshToken = async (cache: Cache, jti: string): Promise<boolean> => {
   try {
-    return await cache.adapter.delete(`dmspr-${userId}`);
+    return await cache.adapter.delete(`dmspr-${jti}`);
   } catch(err) {
     formatLogMessage(logger).error(err, `revokeRefreshToken unable to delete token from cache - ${err.message}`);
     throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
   }
 };
 
-export const revokeAccessToken = async (cache: Cache, accessToken: string): Promise<boolean> => {
+export const revokeAccessToken = async (cache: Cache, jti: string): Promise<boolean> => {
   try {
-    await cache.adapter.set(`dmspbl-${accessToken}`, accessToken, { ttl: generalConfig.jwtTTL });
+    await cache.adapter.set(`dmspbl-${jti}`, '', { ttl: generalConfig.jwtTTL });
     return true;
   } catch(err) {
     formatLogMessage(logger).error(err, `revokeAccessToken unable to add token to black list - ${err.message}`);

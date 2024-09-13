@@ -2,6 +2,7 @@ import { ApolloServer } from '@apollo/server';
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
+import * as cookieParser from 'cookie-parser';
 import { logger } from './logger';
 import { serverConfig } from './config';
 import { healthcheck } from './controllers/healthcheck';
@@ -33,6 +34,7 @@ const startServer = async () => {
   // Express middleware
   app.use(
     cors(),
+    cookieParser(),
     express.urlencoded({ extended: false }),
     express.json({ limit: '50mb' }),
   )
