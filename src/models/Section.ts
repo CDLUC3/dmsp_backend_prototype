@@ -48,7 +48,7 @@ export class Section extends MySqlModel {
     }
 
 
-    // Save the current record
+    // Create the section
     async create(context: MyContext): Promise<Section> {
 
         // First make sure the record is valid
@@ -90,7 +90,7 @@ export class Section extends MySqlModel {
         if (this.id) {
             /*Get section info to be deleted so we can return this info to the user
             since calling 'delete' doesn't return anything*/
-            const deletedSection = await Section.getSectionBySectionId('Section.create', context, this.id);
+            const deletedSection = await Section.getSectionBySectionId('Section.delete', context, this.id);
 
             await Section.delete(context, tableName, this.id, 'Section.delete');
             return deletedSection;

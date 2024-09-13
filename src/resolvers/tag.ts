@@ -1,34 +1,47 @@
 import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Tag } from "../models/Tag";
+import { NotFoundError } from "../utils/graphQLErrors";
 
 
-// Mock tag data
-const tag1 = new Tag({
-    id: 1,
-    name: "Tag 1",
-    description: "Description for Tag 1",
-    createdById: 1,
-    modifiedById: 1,
-    created: new Date(),
-    modified: new Date(),
-});
-
-const tag2 = new Tag({
-    id: 2,
-    name: "Tag 2",
-    description: "Description for Tag 2",
-    createdById: 1,
-    modifiedById: 1,
-    created: new Date(),
-    modified: new Date(),
-});
 export const resolvers: Resolvers = {
     Query: {
-        // Get the Sections that belong to the current template id
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        tags: async (_, __, _context: MyContext): Promise<Tag[]> => {
-            return [tag1, tag2]
+        tags: async (_, __, context: MyContext): Promise<Tag[]> => {
+            return await Tag.getAllTags('Tags resolver', context);
         },
-    }
-}
+    },
+    Mutation: {
+        addTag: async (_, { name, description }, context: MyContext): Promise<Tag> => {
+            const tag = new Tag({ name, description });
+            return await tag.create(context);
+        },
+        updateTag: async (_, { tagId, name, description }, context: MyContext): Promise<Tag> => {
+            const tagData = await Tag.getTagById('updateTag resolver', context, tagId);
+            if (tagData) {
+                const tag = new Tag({
+                    ...tagData,  // Spread the existing tag data
+                    name: name || tagData.name,
+                    description: description || tagData.description
+                });
+
+                const updatedTag = await tag.update(context);
+
+                return updatedTag;
+
+            }
+            throw NotFoundError();
+        },
+        removeTag: async (_, { tagId }, context: MyContext): Promise<Tag> => {
+            const tagData = await Tag.getTagById('removeTag resolver', context, tagId);
+            if (tagData) {
+                const tag = new Tag({
+                    ...tagData,
+                    id: tagId
+                });
+                return await tag.delete(context);
+            }
+            throw NotFoundError();
+        },
+    },
+
+};

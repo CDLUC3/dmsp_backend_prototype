@@ -18,7 +18,7 @@ export const typeDefs = gql`
   "A Tag is a way to group similar types of categories together"
   type Tag {
     "The unique identifer for the Object"
-    id: Int!
+    id: Int
     "The tag name"
     name: String!
     "The tag description"
