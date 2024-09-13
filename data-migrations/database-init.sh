@@ -27,8 +27,18 @@ CREATE_DATABASE="CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE}
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;"
 
-echo "-h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p ${MYSQL_PASSWORD}"
-
 # Create the Database
 echo "Creating database ${MYSQL_DATABASE} ..."
-mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p ${MYSQL_PASSWORD} <<< ${CREATE_DATABASE}
+mariadb -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} <<< ${CREATE_DATABASE}
+
+CREATE_MIGRATIONS_TABLE="USE ${MYSQL_DATABASE}; CREATE TABLE dataMigrations (
+    migrationFile varchar(255) NOT NULL,
+    created timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_migration_file UNIQUE (migrationFile)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;"
+
+# Create the Database
+echo "Creating the dataMigrations table ..."
+mariadb -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} <<< ${CREATE_MIGRATIONS_TABLE}
+
+echo "Setup complete. You may now run data-migrations/process.sh to build the database tables"

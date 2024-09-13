@@ -1,5 +1,6 @@
 
 ### Added
+- Added schema for Section and Tag
 - Initial schema, model, mocks and resolver for Templates
 - Initial schema, model, mocks and resolver for Collaborators
 - added templateService to assist with actions that work on a Template and all of it's child objects
@@ -9,6 +10,7 @@
 - Missing data-migration for the dataMigrations table
 - Script to nuke the DB so it can be easily rebuilt from scratch
 - Added husky precommit tasks
+- Added data migrations for Section and Tag
 
 ### Updated
 - Updated `src/context.ts` to use a `buildContext` wrapper function that can be called when building the context for Apollo Server and our `signin` and `signup` endpoints.
