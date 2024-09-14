@@ -4,6 +4,38 @@ import { Tag } from "../types";
 
 const tableName = 'sections';
 
+export const sectionsByTemplateIdQuery = `SELECT s.*, 
+       COALESCE(
+         JSON_ARRAYAGG(
+           CASE 
+             WHEN t.id IS NOT NULL THEN JSON_OBJECT('id', t.id, 'name', t.name, 'description', t.description)
+             ELSE NULL
+           END
+         ),
+         JSON_ARRAY()
+       ) AS tags
+        FROM sections s
+        LEFT JOIN sectionTags st ON s.id = st.sectionId
+        LEFT JOIN tags t ON st.tagId = t.id
+        WHERE s.templateId = ?
+        GROUP BY s.id`
+
+export const sectionsBySectionIdQuery = `SELECT s.*, 
+       COALESCE(
+         JSON_ARRAYAGG(
+           CASE 
+             WHEN t.id IS NOT NULL THEN JSON_OBJECT('id', t.id, 'name', t.name, 'description', t.description)
+             ELSE NULL
+           END
+         ),
+         JSON_ARRAY()
+       ) AS tags
+        FROM sections s
+        LEFT JOIN sectionTags st ON s.id = st.sectionId
+        LEFT JOIN tags t ON st.tagId = t.id
+        WHERE s.id = ?
+        GROUP BY s.id`
+
 // A Template for creating a DMP
 export class Section extends MySqlModel {
     public templateId: number;
@@ -14,7 +46,6 @@ export class Section extends MySqlModel {
     public guidance?: string;
     public displayOrder: number;
     public tags: Tag[];
-    //public tags?: Tag[];  // Array of Tag objects
     public isDirty: boolean;
     // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
     //public bestPractice: boolean; 
@@ -31,13 +62,12 @@ export class Section extends MySqlModel {
         this.guidance = options.guidance;
         this.displayOrder = options.displayOrder;
         this.tags = options.tags;
-        //this.tags = options.tags;
-        this.isDirty = options.isDirty || true;
+        this.isDirty = options.isDirty;
         // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
         //this.bestPractice = options.bestPractice || false;
     }
 
-    // Validation to be used prior to saving the record
+    //Check that the Section data contains the required name field
     async isValid(): Promise<boolean> {
         await super.isValid();
 
@@ -48,12 +78,12 @@ export class Section extends MySqlModel {
     }
 
 
-    // Create the section
+    //Create a new Section
     async create(context: MyContext): Promise<Section> {
 
         // First make sure the record is valid
         if (await this.isValid()) {
-            const current = await Section.findSectionByNameAndTemplateId(
+            const current = await Section.findSectionBySectionName(
                 'Section.create',
                 context,
                 this.name,
@@ -63,42 +93,47 @@ export class Section extends MySqlModel {
             if (current) {
                 this.errors.push('Section with this name already exists');
             } else {
-                /*Need to remove tags, because this does not exist in the sections table, but we need it to
-                add tags back into the response when adding a new section*/
+                /*Need to remove tags, because this does not exist in the sections table, but we need to
+                add tags into the response*/
                 delete this.tags;
+
                 // Save the record and then fetch it
                 const newId = await Section.insert(context, tableName, this, 'Section.create');
-
                 const response = await Section.getSectionBySectionId('Section.create', context, newId);
                 return response;
             }
         }
-
         // Otherwise return as-is with all the errors
         return this;
     }
 
+    //Update an existing Section
     async update(context: MyContext): Promise<Section> {
-        delete this.tags; //remove tags before updating section
+        /*Need to remove tags, because this does not exist in the sections table, but we need to
+                add tags into the response*/
+        delete this.tags;
+
         const id = this.id;
         await Section.update(context, tableName, this, 'Section.update');
-        const updatedSection = await Section.getSectionBySectionId('Section.update', context, id);
-        return updatedSection as Section;
+        return await Section.getSectionBySectionId('Section.update', context, id);
     }
 
+    //Delete Section based on the Section object's id and return
     async delete(context: MyContext): Promise<Section> {
         if (this.id) {
-            /*Get section info to be deleted so we can return this info to the user
+            /*First get the section to be deleted so we can return this info to the user
             since calling 'delete' doesn't return anything*/
             const deletedSection = await Section.getSectionBySectionId('Section.delete', context, this.id);
 
-            await Section.delete(context, tableName, this.id, 'Section.delete');
-            return deletedSection;
+            const successfullyDeleted = await Section.delete(context, tableName, this.id, 'Section.delete');
+            if (successfullyDeleted) {
+                return deletedSection;
+            }
         }
     }
 
-    // Look for the template by it's name and owner
-    static async findSectionByNameAndTemplateId(
+    // Find section by section name
+    static async findSectionBySectionName(
         reference: string,
         context: MyContext,
         name: string,
@@ -117,22 +152,9 @@ export class Section extends MySqlModel {
         return Array.isArray(results) ? results : [];
     }
 
+    // Find all Sections, with associated Tags, using templateId
     static async getSectionsWithTagsByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
-        const sql = `SELECT s.*, 
-       COALESCE(
-         JSON_ARRAYAGG(
-           CASE 
-             WHEN t.id IS NOT NULL THEN JSON_OBJECT('id', t.id, 'name', t.name, 'description', t.description)
-             ELSE NULL
-           END
-         ),
-         JSON_ARRAY()
-       ) AS tags
-        FROM sections s
-        LEFT JOIN sectionTags st ON s.id = st.sectionId
-        LEFT JOIN tags t ON st.tagId = t.id
-        WHERE s.templateId = ?
-        GROUP BY s.id`;
+        const sql = sectionsByTemplateIdQuery;
 
         const results = await Section.query(context, sql, [templateId.toString()], reference);
         const parsedResults = results.map(section => ({
@@ -143,23 +165,10 @@ export class Section extends MySqlModel {
         return Array.isArray(parsedResults) ? parsedResults : [];
     }
 
+    // Find all Sections, with associated Tags, using sectionId
     static async getSectionWithTagsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Section> {
 
-        const sql = `SELECT s.*, 
-       COALESCE(
-         JSON_ARRAYAGG(
-           CASE 
-             WHEN t.id IS NOT NULL THEN JSON_OBJECT('id', t.id, 'name', t.name, 'description', t.description)
-             ELSE NULL
-           END
-         ),
-         JSON_ARRAY()
-       ) AS tags
-        FROM sections s
-        LEFT JOIN sectionTags st ON s.id = st.sectionId
-        LEFT JOIN tags t ON st.tagId = t.id
-        WHERE s.id = ?
-        GROUP BY s.id`;
+        const sql = sectionsBySectionIdQuery;
         const results = await Section.query(context, sql, [sectionId.toString()], reference);
         const parsedResults = results.map(section => ({
             ...section,

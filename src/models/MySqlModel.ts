@@ -146,7 +146,7 @@ export class MySqlModel {
   //    - reference:       A reference to contextualize log messages e.g. `users resolver`
   // returns the newly inserted record's id
   static async insert(
-    context: MyContext,
+    apolloContext: MyContext,
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
@@ -154,9 +154,9 @@ export class MySqlModel {
     // Update the creator/modifier info
     const now = new Date().toISOString();
     const currentDate = now.slice(0, 19).replace('T', ' ');
-    obj.createdById = context.token.id;
+    obj.createdById = apolloContext.token.id;
     obj.created = currentDate;
-    obj.modifiedById = context.token.id;
+    obj.modifiedById = apolloContext.token.id;
     obj.modified = currentDate;
 
     // Fetch all of the data from the object
@@ -169,7 +169,7 @@ export class MySqlModel {
     const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
 
     // Send the calcuated INSERT statement to the query function
-    const result = await this.query(context, sql, vals, reference);
+    const result = await this.query(apolloContext, sql, vals, reference);
     return Array.isArray(result) ? result[0]?.insertId : null;
   }
 
@@ -180,13 +180,13 @@ export class MySqlModel {
   //    - reference:       A reference to contextualize log messages e.g. `users resolver`
   // returns the newly inserted record's id
   static async update(
-    context: MyContext,
+    apolloContext: MyContext,
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
   ): Promise<MySqlModel> {
     // Update the modifier info
-    obj.modifiedById = context.token.id;
+    obj.modifiedById = apolloContext.token.id;
     const now = new Date().toISOString();
     const currentDate = now.slice(0, 19).replace('T', ' ');
     obj.modified = currentDate;
@@ -206,9 +206,10 @@ export class MySqlModel {
     vals.push(obj.id.toString());
 
     // Send the calcuated INSERT statement to the query function
-    const result = await this.query(context, sql, vals, reference);
+    const result = await this.query(apolloContext, sql, vals, reference);
     return Array.isArray(result) ? result[0] : null;
   }
+
 
   // Execute a SQL delete
   //    - apolloContext:   The Apollo server context
@@ -221,10 +222,11 @@ export class MySqlModel {
     table: string,
     id: number,
     reference = 'undefined caller',
-  ): Promise<number> {
+  ): Promise<boolean> {
     const sql = `DELETE FROM ${table} WHERE id = ?`;
     const result = await this.query(apolloContext, sql, [id.toString()], reference);
-    return Array.isArray(result) ? result[0].deleteId : null;
+    console.log("***RESULT", result);
+    return Array.isArray(result) && result[0].affectedRows ? true : false;
   }
 }
 

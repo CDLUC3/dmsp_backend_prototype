@@ -408,16 +408,25 @@ describe('delete function', () => {
 
     const result = await MySqlModel.delete(context, table, deleteId, 'Testing');
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(result).toEqual(null);
+    expect(result).toEqual(false);
   });
 
   it('update returns the deleted item\'s id', async () => {
     const table = casual.word;
-    const deleteId = casual.integer(1, 99);
-    localQuery.mockResolvedValueOnce([{ deleteId }]);
+    const deleteId = 1;
+    const response = {
+      fieldCount: 0,
+      affectedRows: 1,
+      insertId: 0,
+      info: '',
+      serverStatus: 2,
+      warningStatus: 0,
+      changedRows: 0
+    }
+    localQuery.mockResolvedValueOnce([response]);
 
     const result = await MySqlModel.delete(context, table, deleteId, 'Testing');
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(result).toEqual(deleteId);
+    expect(result).toEqual(true);
   });
 });
