@@ -42,22 +42,16 @@ export class MySqlModel {
     return this.errors.length <= 0;
   }
 
-  // Convert the incoming value to a string and prepare it for insertion into a SQL query
+  /**
+   * Convert incoming value to appropriate type for insertion into a SQL query
+   * @param val 
+   * @param type 
+   * @returns 
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static prepareValue(val: any): string {
-
-    if (typeof val === 'string' || val instanceof String) {
-      // TODO: See if we need to do any checks here for SQL injection or if the MySQL package
-      //       does this already.
-      return val.toString();
-    }
-
-    // Otherwise stringify the non-string value.
-    return JSON.stringify(val);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static convertProps(val: any, type: any): any {
+  static prepareValue(val: any, type: any): any {
+    // TODO: See if we need to do any checks here for SQL injection or if the MySQL package
+    //       does this already.
     if (val === null || val === undefined) {
       return null;
     }
@@ -65,6 +59,9 @@ export class MySqlModel {
       case 'number':
         return Number(val);
       case 'json':
+        return JSON.stringify(val);
+      case Object:
+      case Array:
         return JSON.stringify(val);
       case 'boolean':
         return Boolean(val);
@@ -169,7 +166,7 @@ export class MySqlModel {
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
 
-    const vals = props.map((entry) => this.convertProps(entry.value, typeof (entry.value)));
+    const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
 
     // Send the calcuated INSERT statement to the query function
     const result = await this.query(context, sql, vals, reference);
@@ -204,7 +201,7 @@ export class MySqlModel {
                  SET ${props.map((entry) => `${entry.name} = ?`).join(', ')} \
                  WHERE id = ?`;
 
-    const vals = props.map((entry) => this.convertProps(entry.value, typeof (entry.value)));
+    const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
 
     vals.push(obj.id.toString());
 

@@ -2,9 +2,9 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
 import { Tag } from "../models/Tag";
+import { TemplateVersionType } from "../models/VersionedTemplate";
 
 
-const tableName = 'versionedSection';
 export class VersionedSection extends MySqlModel {
     public versionedTemplateId: number;
     public name: string;
@@ -40,10 +40,12 @@ export class VersionedSection extends MySqlModel {
     }
 
 
-    static async getVersionedSectionsWithTemplateAndSection(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
+    static async getVersionedSectionsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
 
         const sql = `SELECT 
     vs.id,
+    vs.versionedTemplateId,
+    vs.sectionId,
     vs.name,
     vs.introduction,
     vs.requirements,
@@ -94,8 +96,79 @@ JOIN sections s ON vs.sectionId = s.id
 WHERE vs.sectionId = ?`;
 
         const results = await VersionedSection.query(context, sql, [sectionId.toString()], reference);
+        return results.map(section => {
+            return new VersionedSection({
+                ...section,
+                tags: JSON.parse(section.tags || '[]'),
+            });
+        });
+    }
 
-        return results;
+    static async getVersionedSectionsByName(reference: string, context: MyContext, term: string): Promise<VersionedSection[]> {
+
+        const sql = `SELECT 
+    vs.id,
+    vs.versionedTemplateId,
+    vs.sectionId,
+    vs.name,
+    vs.introduction,
+    vs.requirements,
+    vs.guidance,
+    vs.displayOrder,
+    vs.created,
+    vs.createdById,
+    vs.modified,
+    vs.modifiedById,
+    JSON_OBJECT(
+        'id', vt.id,
+        'active', vt.active,
+        'version', vt.version,
+        'versionType', vt.versionType,
+        'comment', vt.comment,
+        'name', vt.name,
+        'description', vt.description,
+        'ownerId', vt.ownerId,
+        'visibility', vt.visibility,
+        'bestPractice', vt.bestPractice
+    ) AS versionedTemplate,
+    JSON_OBJECT(
+        'id', s.id,
+        'templateId', s.templateId,
+        'sourceSectionId', s.sourceSectionId,
+        'name', s.name,
+        'introduction', s.introduction,
+        'requirements', s.requirements,
+        'guidance', s.guidance,
+        'displayOrder', s.displayOrder,
+        'isDirty', s.isDirty
+    ) AS section,
+    (
+        SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id', t.id,
+                'name', t.name,
+                'description', t.description
+            )
+        )
+        FROM sectionTags st
+        JOIN tags t ON st.tagId = t.id
+        WHERE st.sectionId = vs.sectionId
+    ) AS tags
+FROM versionedSections vs
+JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
+JOIN sections s ON vs.sectionId = s.id
+WHERE vs.name LIKE ? AND vt.active = 1
+AND vt.versionType = ?`;
+
+        const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
+        const results = await VersionedSection.query(context, sql, vals, reference);
+        // Process the results to ensure tags is always an array
+        return results.map(section => {
+            return new VersionedSection({
+                ...section,
+                tags: JSON.parse(section.tags || '[]'),
+            });
+        });
     }
 
 }

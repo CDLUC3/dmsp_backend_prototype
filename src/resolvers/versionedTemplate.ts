@@ -12,7 +12,7 @@ export const resolvers: Resolvers = {
     // Get all of the PublishedTemplates for the specified Template (a.k. the Template history)
     //    - called from the Template history page
     templateVersions: async (_, { templateId }, context: MyContext): Promise<VersionedTemplate[]> => {
-      if (isAdmin(context.token)){
+      if (isAdmin(context.token)) {
         return await VersionedTemplate.findByTemplateId('templateVersions resolver', context, templateId);
       }
       // Unauthorized!
@@ -22,7 +22,7 @@ export const resolvers: Resolvers = {
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
     publishedTemplates: async (_, { term }, context: MyContext): Promise<VersionedTemplate[]> => {
-      if (isAdmin(context.token)){
+      if (isAdmin(context.token)) {
         return await VersionedTemplate.search('publishedTemplates resolver', context, term);
       }
       // Unauthorized!
