@@ -1,7 +1,8 @@
 
 import { SectionTag } from "../SectionTag";
+import casual from "casual";
 
-
+let context;
 jest.mock('../../context.ts');
 
 describe('SectionTag', () => {
@@ -20,6 +21,35 @@ describe('SectionTag', () => {
     });
 });
 
+describe('create', () => {
+    const originalInsert = SectionTag.insert;
+    let insertQuery;
+    let sectionTag;
+
+    beforeEach(() => {
+        // jest.resetAllMocks();
+
+        insertQuery = jest.fn();
+        (SectionTag.insert as jest.Mock) = insertQuery;
+
+        sectionTag = new SectionTag({
+            sectionId: casual.integer(1, 9),
+            tagId: casual.integer(1, 999),
+        })
+    });
+
+    afterEach(() => {
+        // jest.resetAllMocks();
+        SectionTag.insert = originalInsert;
+    });
+
+    it('returns the SectionTag ', async () => {
+        const localValidator = jest.fn();
+        localValidator.mockResolvedValueOnce(false);
+
+        expect(await sectionTag.create(context)).toBe(sectionTag);
+    });
+});
 
 
 

@@ -17,21 +17,9 @@ export class SectionTag extends MySqlModel {
 
     // Save the current record
     async create(context: MyContext): Promise<SectionTag> {
-        // Save the tags to sectionTags table
+        // Insert new SectionTag records
         await SectionTag.insert(context, tableName, this, 'SectionTag.create');
         return this;
-    }
-
-    // Look for the existing record in sectionTags
-    static async findSectionTag(
-        reference: string,
-        context: MyContext,
-        name: string,
-    ): Promise<SectionTag> {
-        const sql = 'SELECT * FROM sections WHERE LOWER(name) = ?';
-        const vals = [name.toLowerCase()];
-        const results = await SectionTag.query(context, sql, vals, reference);
-        return Array.isArray(results) && results.length > 0 ? results[0] : null;
     }
 
 }

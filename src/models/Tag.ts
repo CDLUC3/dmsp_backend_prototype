@@ -16,10 +16,21 @@ export class Tag extends MySqlModel {
 
     // Save the current record
     async create(context: MyContext): Promise<Tag> {
-        const newId = await Tag.insert(context, tableName, this, 'Tag.create');
-        const response = await Tag.getTagById('Tag.create', context, newId);
+        const current = await Tag.findTagByTagName(
+            'Section.create',
+            context,
+            this.name,
+        );
 
-        return response
+        // Then make sure it doesn't already exist
+        if (current) {
+            this.errors.push('Tag with this name already exists');
+        } else {
+            const newId = await Tag.insert(context, tableName, this, 'Tag.create');
+            const response = await Tag.getTagById('Tag.create', context, newId);
+            return response
+        }
+        return this;
     }
 
     async update(context: MyContext): Promise<Tag> {
@@ -50,6 +61,18 @@ export class Tag extends MySqlModel {
         const sql = 'SELECT * FROM tags where id = ?';
         const result = await Tag.query(context, sql, [tagId.toString()], reference);
         return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    }
+
+    // Find tag by tag name
+    static async findTagByTagName(
+        reference: string,
+        context: MyContext,
+        name: string,
+    ): Promise<Tag> {
+        const sql = 'SELECT * FROM tags WHERE LOWER(name) = ?';
+        const vals = [name.toLowerCase()];
+        const results = await Tag.query(context, sql, vals, reference);
+        return Array.isArray(results) && results.length > 0 ? results[0] : null;
     }
 }
 
