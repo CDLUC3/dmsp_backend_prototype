@@ -27,6 +27,7 @@ export const cloneSection = (
 
 // Determine whether the specified user has permission to access the Section
 export const hasPermission = async (context: MyContext, templateId: number): Promise<boolean> => {
+
     // Find associated template info
     const template = await Template.findById('section resolver.hasPermission', context, templateId);
 

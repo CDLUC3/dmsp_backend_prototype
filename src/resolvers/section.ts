@@ -14,6 +14,7 @@ export const resolvers: Resolvers = {
             if (await hasPermission(context, templateId)) {
                 return await Section.getSectionsWithTagsByTemplateId('sections resolver', context, templateId);
             }
+            throw ForbiddenError();
         },
         section: async (_, { sectionId }, context: MyContext): Promise<Section> => {
 
@@ -23,6 +24,7 @@ export const resolvers: Resolvers = {
             if (await hasPermission(context, section.templateId)) {
                 return section;
             }
+            throw ForbiddenError();
         }
     },
 
