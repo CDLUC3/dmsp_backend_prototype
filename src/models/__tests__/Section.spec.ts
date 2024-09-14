@@ -1,8 +1,9 @@
-import casual from 'casual';
+import casual from "casual";
 import { Section, sectionsBySectionIdQuery, sectionsByTemplateIdQuery } from "../Section";
-import mockLogger from '../../__tests__/mockLogger';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import mockLogger from "../../__tests__/mockLogger";
+import { buildContext, mockToken } from "../../__mocks__/context";
 
+let context;
 jest.mock('../../context.ts');
 
 describe('Section', () => {
@@ -278,3 +279,167 @@ describe('getSectionBySectionId', () => {
     });
 });
 
+describe('create', () => {
+    const originalInsert = Section.insert;
+    let insertQuery;
+    let section;
+
+    beforeEach(() => {
+        // jest.resetAllMocks();
+
+        insertQuery = jest.fn();
+        (Section.insert as jest.Mock) = insertQuery;
+
+        section = new Section({
+            id: casual.integer(1, 9),
+            createdById: casual.integer(1, 999),
+            name: casual.sentence,
+            ownerId: casual.url,
+        })
+    });
+
+    afterEach(() => {
+        // jest.resetAllMocks();
+        Section.insert = originalInsert;
+    });
+
+    it('returns the Section without errors if it is valid', async () => {
+        const localValidator = jest.fn();
+        (section.isValid as jest.Mock) = localValidator;
+        localValidator.mockResolvedValueOnce(false);
+
+        expect(await section.create(context)).toBe(section);
+        expect(localValidator).toHaveBeenCalledTimes(1);
+    });
+    it('returns the Section with an error if the section already exists', async () => {
+        const localValidator = jest.fn();
+        (section.isValid as jest.Mock) = localValidator;
+        localValidator.mockResolvedValueOnce(true);
+
+        const mockFindBy = jest.fn();
+        (Section.findSectionBySectionName as jest.Mock) = mockFindBy;
+        mockFindBy.mockResolvedValueOnce(section);
+
+        const result = await section.create(context);
+        expect(localValidator).toHaveBeenCalledTimes(1);
+        expect(mockFindBy).toHaveBeenCalledTimes(1);
+        expect(result.errors.length).toBe(1);
+        expect(result.errors[0]).toEqual('Section with this name already exists');
+    });
+    it('returns the newly added Section', async () => {
+        const localValidator = jest.fn();
+        (section.isValid as jest.Mock) = localValidator;
+        localValidator.mockResolvedValueOnce(true);
+
+        const mockFindBy = jest.fn();
+        (Section.findSectionBySectionName as jest.Mock) = mockFindBy;
+        mockFindBy.mockResolvedValueOnce(null);
+        mockFindBy.mockResolvedValue(section);
+
+        const mockFindById = jest.fn();
+        (Section.getSectionBySectionId as jest.Mock) = mockFindById;
+        mockFindById.mockResolvedValueOnce(section);
+
+        const result = await section.create(context);
+        expect(localValidator).toHaveBeenCalledTimes(1);
+        expect(mockFindBy).toHaveBeenCalledTimes(1);
+        expect(mockFindById).toHaveBeenCalledTimes(1);
+        expect(insertQuery).toHaveBeenCalledTimes(1);
+        expect(result.errors.length).toBe(0);
+        expect(result).toEqual(section);
+    });
+});
+
+describe('update', () => {
+    let updateQuery;
+    let section;
+
+    beforeEach(() => {
+        updateQuery = jest.fn();
+        (Section.update as jest.Mock) = updateQuery;
+
+        section = new Section({
+            id: casual.integer(1, 9),
+            createdById: casual.integer(1, 999),
+            name: casual.sentence,
+            ownerId: casual.url,
+        })
+    });
+
+    it('returns the Section without errors if it is valid', async () => {
+        const localValidator = jest.fn();
+        (section.isValid as jest.Mock) = localValidator;
+        localValidator.mockResolvedValueOnce(false);
+
+        expect(await section.update(context)).toBe(section);
+        expect(localValidator).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns an error if the Section has no id', async () => {
+        const localValidator = jest.fn();
+        (section.isValid as jest.Mock) = localValidator;
+        localValidator.mockResolvedValueOnce(true);
+
+        section.id = null;
+        const result = await section.update(context);
+        expect(result.errors.length).toBe(1);
+        expect(result.errors[0]).toEqual('Section has never been saved');
+    });
+
+    it('returns the updated Section', async () => {
+        const localValidator = jest.fn();
+        (section.isValid as jest.Mock) = localValidator;
+        localValidator.mockResolvedValueOnce(true);
+
+        const mockFindById = jest.fn();
+        (Section.getSectionBySectionId as jest.Mock) = mockFindById;
+        mockFindById.mockResolvedValueOnce(section);
+
+        const result = await section.update(context);
+        expect(localValidator).toHaveBeenCalledTimes(1);
+        expect(updateQuery).toHaveBeenCalledTimes(1);
+        expect(result.errors.length).toBe(0);
+        expect(result).toEqual(section);
+    });
+});
+
+describe('delete', () => {
+    let section;
+
+    beforeEach(() => {
+        section = new Section({
+            id: casual.integer(1, 9),
+            createdById: casual.integer(1, 999),
+            name: casual.sentence,
+            ownerId: casual.url,
+        })
+    })
+
+    it('returns null if the Section has no id', async () => {
+        section.id = null;
+        expect(await section.delete(context)).toBe(null);
+    });
+
+    it('returns null if it was not able to delete the record', async () => {
+        const deleteQuery = jest.fn();
+        (Section.delete as jest.Mock) = deleteQuery;
+
+        deleteQuery.mockResolvedValueOnce(null);
+        expect(await section.delete(context)).toBe(null);
+    });
+
+    it('returns the Section if it was able to delete the record', async () => {
+        const deleteQuery = jest.fn();
+        (Section.delete as jest.Mock) = deleteQuery;
+
+        deleteQuery.mockResolvedValueOnce(section);
+
+        const mockFindById = jest.fn();
+        (Section.getSectionBySectionId as jest.Mock) = mockFindById;
+        mockFindById.mockResolvedValueOnce(section);
+
+        const result = await section.update(context);
+        expect(result.errors.length).toBe(0);
+        expect(result).toEqual(section);
+    });
+});

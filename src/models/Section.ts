@@ -112,10 +112,16 @@ export class Section extends MySqlModel {
         /*Need to remove tags, because this does not exist in the sections table, but we need to
                 add tags into the response*/
         delete this.tags;
-
         const id = this.id;
-        await Section.update(context, tableName, this, 'Section.update');
-        return await Section.getSectionBySectionId('Section.update', context, id);
+        if (await this.isValid()) {
+            if (id) {
+                await Section.update(context, tableName, this, 'Section.update');
+                return await Section.getSectionBySectionId('Section.update', context, id);
+            }
+            // This template has never been saved before so we cannot update it!
+            this.errors.push('Section has never been saved');
+        }
+        return this;
     }
 
     //Delete Section based on the Section object's id and return
@@ -128,8 +134,11 @@ export class Section extends MySqlModel {
             const successfullyDeleted = await Section.delete(context, tableName, this.id, 'Section.delete');
             if (successfullyDeleted) {
                 return deletedSection;
+            } else {
+                return null
             }
         }
+        return null;
     }
 
     // Find section by section name
