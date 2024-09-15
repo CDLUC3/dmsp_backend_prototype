@@ -4,45 +4,7 @@ import { VersionedTemplate } from "../types";
 import { Tag } from "../models/Tag";
 import { TemplateVersionType } from "../models/VersionedTemplate";
 
-
-export class VersionedSection extends MySqlModel {
-    public versionedTemplateId: number;
-    public name: string;
-    public introduction?: string;
-    public requirements?: string;
-    public guidance?: string;
-    public displayOrder: number;
-    public tags?: Tag[];  // Array of Tag objects
-    versionedTemplate: VersionedTemplate;
-    // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
-    //public bestPractice: boolean;
-
-    constructor(options) {
-        super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
-
-        this.versionedTemplateId = options.templateId;
-        this.name = options.name;
-        this.introduction = options.introduction;
-        this.requirements = options.requirements;
-        this.guidance = options.guidance;
-        this.displayOrder = options.displayOrder;
-        this.tags = options.tags;
-        this.versionedTemplate = options.versionedTemplate;
-        // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
-        //this.bestPractice = options.bestPractice || false;
-    }
-
-    // Find the VersionedSection by id
-    static async getVersionedSectionById(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection> {
-        const sql = 'SELECT * FROM versionedSections WHERE id = ?';
-        const results = await VersionedSection.query(context, sql, [sectionId.toString()], reference);
-        return Array.isArray(results) && results.length > 0 ? results[0] : null;
-    }
-
-
-    static async getVersionedSectionsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
-
-        const sql = `SELECT 
+export const versionedSectionsBySectionIdQuery = `SELECT 
     vs.id,
     vs.versionedTemplateId,
     vs.sectionId,
@@ -93,20 +55,10 @@ export class VersionedSection extends MySqlModel {
 FROM versionedSections vs
 JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
 JOIN sections s ON vs.sectionId = s.id
-WHERE vs.sectionId = ?`;
+WHERE vs.sectionId = ?`
 
-        const results = await VersionedSection.query(context, sql, [sectionId.toString()], reference);
-        return results.map(section => {
-            return new VersionedSection({
-                ...section,
-                tags: JSON.parse(section.tags || '[]'),
-            });
-        });
-    }
 
-    static async getVersionedSectionsByName(reference: string, context: MyContext, term: string): Promise<VersionedSection[]> {
-
-        const sql = `SELECT 
+export const versionedSectionsByNameQuery = `SELECT 
     vs.id,
     vs.versionedTemplateId,
     vs.sectionId,
@@ -158,18 +110,78 @@ FROM versionedSections vs
 JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
 JOIN sections s ON vs.sectionId = s.id
 WHERE vs.name LIKE ? AND vt.active = 1
-AND vt.versionType = ?`;
+AND vt.versionType = ?`
+
+export class VersionedSection extends MySqlModel {
+    public versionedTemplateId: number;
+    public name: string;
+    public introduction?: string;
+    public requirements?: string;
+    public guidance?: string;
+    public displayOrder: number;
+    public tags?: Tag[];
+    versionedTemplate: VersionedTemplate;
+    // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
+    //public bestPractice: boolean;
+
+    constructor(options) {
+        super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+
+        this.versionedTemplateId = options.templateId;
+        this.name = options.name;
+        this.introduction = options.introduction;
+        this.requirements = options.requirements;
+        this.guidance = options.guidance;
+        this.displayOrder = options.displayOrder;
+        this.tags = options.tags;
+        this.versionedTemplate = options.versionedTemplate;
+        // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
+        //this.bestPractice = options.bestPractice || false;
+    }
+
+    // Find the VersionedSection by id
+    static async getVersionedSectionById(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection> {
+        const sql = 'SELECT * FROM versionedSections WHERE id = ?';
+        const results = await VersionedSection.query(context, sql, [sectionId.toString()], reference);
+        return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    }
+
+
+    static async getVersionedSectionsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
+
+        const sql = versionedSectionsBySectionIdQuery;
+
+        const results = await VersionedSection.query(context, sql, [sectionId.toString()], reference);
+        if (results && results.length > 0) {
+            return results.map(section => {
+                return new VersionedSection({
+                    ...section,
+                    tags: JSON.parse(section.tags || '[]'),
+                });
+            });
+        } else {
+            return null;
+        }
+
+    }
+
+    static async getVersionedSectionsByName(reference: string, context: MyContext, term: string): Promise<VersionedSection[]> {
+
+        const sql = versionedSectionsByNameQuery;
 
         const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
         const results = await VersionedSection.query(context, sql, vals, reference);
         // Process the results to ensure tags is always an array
-        return results.map(section => {
-            return new VersionedSection({
-                ...section,
-                tags: JSON.parse(section.tags || '[]'),
+        if (results && results.length > 0) {
+            return results.map(section => {
+                return new VersionedSection({
+                    ...section,
+                    tags: JSON.parse(section.tags || '[]'),
+                });
             });
-        });
+        } else {
+            return null;
+        }
     }
-
 }
 

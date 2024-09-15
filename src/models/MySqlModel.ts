@@ -225,7 +225,6 @@ export class MySqlModel {
   ): Promise<boolean> {
     const sql = `DELETE FROM ${table} WHERE id = ?`;
     const result = await this.query(apolloContext, sql, [id.toString()], reference);
-    console.log("***RESULT", result);
     return Array.isArray(result) && result[0].affectedRows ? true : false;
   }
 }

@@ -220,8 +220,8 @@ describe('getSectionWithTagsBySectionId', () => {
         const expectedSql = sectionsBySectionIdQuery;
         expect(localQuery).toHaveBeenCalledTimes(1);
         expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [sectionId.toString()], 'Section query')
-        /* As part of this test, all fields without a value default to 'undefined' for the mocked Section, but
-        the getSectionsWithTagsByTemplateId method returns an empty array, and not undefined*/
+        /* As part of this unit test, all fields without a value default to 'undefined' for the mocked Section, but
+        the getVersionedSectionsBySectionId method returns an empty array for tags, and not undefined*/
         expect(result).toEqual({ ...section, ...{ tags: [] } });
     });
 
