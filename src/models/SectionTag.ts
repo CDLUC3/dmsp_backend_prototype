@@ -22,5 +22,11 @@ export class SectionTag extends MySqlModel {
         return this;
     }
 
+    // Delete all SectionTags by sectionId
+    static async deleteSectionTagsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<SectionTag[]> {
+        const sql = 'DELETE FROM sectionTags WHERE sectionId = ?';
+        const results = await SectionTag.query(context, sql, [sectionId.toString()], reference);
+        return Array.isArray(results) ? results : [];
+    }
 }
 

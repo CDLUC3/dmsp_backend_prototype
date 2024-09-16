@@ -405,6 +405,7 @@ export type Query = {
   sections?: Maybe<Array<Maybe<Section>>>;
   /** Get all available tags to display */
   tags: Array<Tag>;
+  tagsBySectionId?: Maybe<Array<Maybe<Tag>>>;
   /** Get the specified Template (user must be an Admin) */
   template?: Maybe<Template>;
   /** Get all of the Users that belong to another affiliation that can edit the Template */
@@ -468,6 +469,11 @@ export type QuerySectionVersionsArgs = {
 
 export type QuerySectionsArgs = {
   templateId: Scalars['Int']['input'];
+};
+
+
+export type QueryTagsBySectionIdArgs = {
+  sectionId: Scalars['Int']['input'];
 };
 
 
@@ -837,7 +843,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
-  Person: (Contributor) | (PrimaryContact);
+  Person: ( Contributor ) | ( PrimaryContact );
 };
 
 /** Mapping between all available schema types and the resolvers types */
@@ -1139,6 +1145,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   sectionVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QuerySectionVersionsArgs, 'sectionId'>>;
   sections?: Resolver<Maybe<Array<Maybe<ResolversTypes['Section']>>>, ParentType, ContextType, RequireFields<QuerySectionsArgs, 'templateId'>>;
   tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
+  tagsBySectionId?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType, RequireFields<QueryTagsBySectionIdArgs, 'sectionId'>>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
   templateCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateCollaborator']>>>, ParentType, ContextType, RequireFields<QueryTemplateCollaboratorsArgs, 'templateId'>>;
   templateVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryTemplateVersionsArgs, 'templateId'>>;

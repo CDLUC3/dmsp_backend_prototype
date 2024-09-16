@@ -27,7 +27,7 @@ describe('Section', () => {
         expect(section.requirements).toEqual(sectionData.requirements);
         expect(section.guidance).toEqual(sectionData.guidance);
         expect(section.displayOrder).toEqual(sectionData.displayOrder);
-        expect(section.isDirty).toBeFalsy();
+        expect(section.isDirty).toBe(true);
         expect(section.created).toBeTruthy();
         expect(section.modified).toBeTruthy();
         expect(section.errors).toEqual([]);

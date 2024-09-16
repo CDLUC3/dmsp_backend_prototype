@@ -63,6 +63,15 @@ export class Tag extends MySqlModel {
         return Array.isArray(result) && result.length > 0 ? result[0] : null;
     }
 
+    static async getTagsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Tag[]> {
+        const sql = `SELECT tags.*
+        FROM sectionTags
+        JOIN tags ON sectionTags.tagId = tags.id
+        WHERE sectionTags.sectionId = ?;`;
+        const result = await Tag.query(context, sql, [sectionId.toString()], reference);
+        return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
+    }
+
     // Find tag by tag name
     static async findTagByTagName(
         reference: string,

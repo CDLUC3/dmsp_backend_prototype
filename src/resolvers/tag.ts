@@ -1,13 +1,28 @@
 import { Resolvers } from "../types";
 import { MyContext } from "../context";
+import { Section } from "../models/Section";
 import { Tag } from "../models/Tag";
-import { NotFoundError } from "../utils/graphQLErrors";
+import { hasPermission } from "../services/sectionService";
+import { NotFoundError, ForbiddenError } from "../utils/graphQLErrors";
 
 
 export const resolvers: Resolvers = {
     Query: {
         tags: async (_, __, context: MyContext): Promise<Tag[]> => {
-            return await Tag.getAllTags('Tags resolver', context);
+            return await Tag.getAllTags('tags resolver', context);
+        },
+        tagsBySectionId: async (_, { sectionId }, context: MyContext): Promise<Tag[]> => {
+            // Find section with matching sectionId
+            const section = await Section.getSectionWithTagsBySectionId('section resolver', context, sectionId);
+            if (!section) {
+                throw NotFoundError('Section not found')
+            }
+
+            if (await hasPermission(context, section.templateId)) {
+                return await Tag.getTagsBySectionId('tagsBySectionId resolver', context, sectionId);
+            }
+
+            throw ForbiddenError();
         },
     },
     Mutation: {

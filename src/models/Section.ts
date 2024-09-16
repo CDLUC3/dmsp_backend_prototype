@@ -62,7 +62,7 @@ export class Section extends MySqlModel {
         this.guidance = options.guidance;
         this.displayOrder = options.displayOrder;
         this.tags = options.tags;
-        this.isDirty = options.isDirty;
+        this.isDirty = options.isDirty || true;
         // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
         //this.bestPractice = options.bestPractice || false;
     }
@@ -113,6 +113,7 @@ export class Section extends MySqlModel {
                 add tags into the response*/
         delete this.tags;
         const id = this.id;
+
         if (await this.isValid()) {
             if (id) {
                 await Section.update(context, tableName, this, 'Section.update');

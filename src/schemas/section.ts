@@ -78,5 +78,6 @@ export const typeDefs = gql`
     name: String!
     description: String
   }
+
 `;
 

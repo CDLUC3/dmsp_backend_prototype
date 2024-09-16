@@ -2,9 +2,10 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { SectionTag } from "../models/SectionTag";
+import { Tag } from '../models/Tag';
 import { VersionedSection } from '../models/VersionedSection';
 import { cloneSection, hasPermission } from "../services/sectionService";
-import { ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
+import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErrors";
 
 
 export const resolvers: Resolvers = {
@@ -57,48 +58,87 @@ export const resolvers: Resolvers = {
                 // create the new section
                 const newSection = await section.create(context);
 
-                const sectionId = newSection.id;
 
-                // Add tags to sectionTags table
-                if (tags && tags.length > 0) {
-                    await Promise.all(
-                        tags.map(async (tagId) => {
-                            const sectionTag = new SectionTag({
-                                sectionId: newSection.id,
-                                tagId: tagId.id
-                            });
+                // If there are errors than throw a Bad User Input error
+                if (newSection.errors) {
+                    const errorMessages = newSection.errors.join(', ');
+                    throw BadUserInput(errorMessages);
+                } else {
+                    const sectionId = newSection.id;
 
-                            await sectionTag.create(context);
-                        })
-                    );
+                    //Get all the existing tags associated with this section
+                    const existingTags = await Tag.getTagsBySectionId('updateSection resolver', context, sectionId);
+
+                    // Create a Set of existing tag names
+                    const existingTagIds = new Set(existingTags.map(tag => tag.name));
+
+                    // Filter out the tags that already exist in the table.
+                    const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.name));
+
+                    // Add tags to sectionTags table that did not already exist
+                    if (tags && tags.length > 0 && tagsToAdd.length > 0) {
+                        await Promise.all(
+                            tagsToAdd.map(async (tagId) => {
+                                const sectionTag = new SectionTag({
+                                    sectionId: newSection.id,
+                                    tagId: tagId.id
+                                });
+
+                                await sectionTag.create(context);
+                            })
+                        );
+                    }
+
+                    // Return newly created section with tags
+                    return await Section.getSectionWithTagsBySectionId('addSection resolver', context, sectionId);
                 }
-
-                // Return newly created section with tags
-                return await Section.getSectionWithTagsBySectionId('addSection resolver', context, sectionId);
             }
         },
 
         updateSection: async (_, { input: { sectionId, name, introduction, requirements, guidance, tags, displayOrder } }, context: MyContext): Promise<Section> => {
 
+            // Get Section based on provided sectionId
             const sectionData = await Section.getSectionBySectionId('section resolver', context, sectionId);
-            if (sectionData) {
-                if (await hasPermission(context, sectionData.templateId)) {
-                    const section = new Section({
-                        ...sectionData,  // Spread the existing section data
-                        name: name || sectionData.name,
-                        introduction: introduction || sectionData.introduction,
-                        requirements: requirements || sectionData.requirements,
-                        guidance: guidance || sectionData.guidance,
-                        displayOrder: displayOrder || sectionData.displayOrder,
-                        isDirty: true  // Mark as dirty for update
-                    });
 
-                    const updatedSection = await section.update(context);
+            // Throw Not Found error if Section is not found
+            if (!sectionData) {
+                throw NotFoundError('Section not found')
+            }
 
-                    // Add tags to sectionTags table
-                    if (tags && tags.length > 0) {
+            // Check that user has permission to update this section
+            if (await hasPermission(context, sectionData.templateId)) {
+                const section = new Section({
+                    id: sectionData.id,
+                    templateId: sectionData.templateId,
+                    createdById: sectionData.createdById,
+                    name: name,
+                    introduction: introduction,
+                    requirements: requirements,
+                    guidance: guidance,
+                    displayOrder: displayOrder,
+                    isDirty: true  // Mark as dirty for update
+                });
+
+                const updatedSection = await section.update(context);
+
+                // If there are errors than throw a Bad User Input error
+                if (updatedSection.errors) {
+                    const errorMessages = updatedSection.errors.join(', ');
+                    throw BadUserInput(errorMessages);
+                } else {
+                    //Get all the existing tags associated with this section
+                    const existingTags = await Tag.getTagsBySectionId('updateSection resolver', context, sectionId);
+
+                    // Create a Set of existing tag names
+                    const existingTagIds = new Set(existingTags.map(tag => tag.name));
+
+                    // Filter out the tags that already exist in the table.
+                    const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.name));
+
+                    // Add tags to sectionTags table that did not already exist
+                    if (tags && tags.length > 0 && tagsToAdd.length > 0) {
                         await Promise.all(
-                            tags.map(async (tagId) => {
+                            tagsToAdd.map(async (tagId) => {
                                 const sectionTag = new SectionTag({
                                     sectionId: updatedSection.id,
                                     tagId: tagId.id
@@ -112,23 +152,35 @@ export const resolvers: Resolvers = {
                     // Return newly created section with tags
                     return await Section.getSectionWithTagsBySectionId('addSection resolver', context, updatedSection.id);
                 }
-                throw ForbiddenError();
             }
-            throw NotFoundError();
+            throw ForbiddenError();
         },
         removeSection: async (_, { sectionId }, context: MyContext): Promise<Section> => {
+            // Retrieve existing Section
             const sectionData = await Section.getSectionBySectionId('removeSection resolver', context, sectionId);
-            if (sectionData) {
-                if (await hasPermission(context, sectionData.templateId)) {
-                    const section = new Section({
-                        ...sectionData,
-                        id: sectionId
-                    });
-                    return await section.delete(context);
-                }
-                throw ForbiddenError();
+
+            // Throw Not Found error if Section is not found
+            if (!sectionData) {
+                throw NotFoundError('Section not found')
             }
-            throw NotFoundError();
+
+            if (await hasPermission(context, sectionData.templateId)) {
+                //Need to create a new instance of Section so that it recognizes the 'delete' function of that instance
+                const section = new Section({
+                    ...sectionData,
+                    id: sectionId
+                });
+
+                const deletedSection = await section.delete(context);
+
+                //Delete all sectionTags associated with this section
+                await SectionTag.deleteSectionTagsBySectionId('removeSection resolver', context, sectionId);
+
+                return deletedSection;
+
+            }
+            throw ForbiddenError();
+
         },
     }
 };

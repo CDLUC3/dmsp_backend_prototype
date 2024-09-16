@@ -4,6 +4,7 @@ export const typeDefs = gql`
   extend type Query {
     "Get all available tags to display"
     tags: [Tag!]!
+    tagsBySectionId(sectionId: Int!): [Tag]
   }
 
   extend type Mutation {
