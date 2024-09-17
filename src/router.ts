@@ -6,6 +6,7 @@ import { signupController } from './controllers/signupController';
 import { refreshTokenController } from './controllers/refreshTokenController';
 import { oauthServer, castRequest, castResponse } from './middleware/oauthServer';
 import { isRevokedCallback } from './services/tokenService';
+import { signoutController } from './controllers/signoutController';
 
 const router = express.Router();
 
@@ -17,10 +18,11 @@ const authMiddleware = expressjwt({
   isRevoked: isRevokedCallback,
 });
 
-// Support for email+password
+// Support for user auth
 router.post('/apollo-signin', (req, res) => signinController(req, res));
 router.post('/apollo-signup', (req, res) => signupController(req, res));
-router.post('/apollo-refresh-token', (req, res) => refreshTokenController(req, res));
+router.post('/apollo-signout', (req, res) => signoutController(req, res));
+router.post('/apollo-refresh', (req, res) => refreshTokenController(req, res));
 
 // Support for OAuth2
 router.get('/apollo-authorize', (req, res) => oauthServer.authorize(castRequest(req), castResponse(res)));
