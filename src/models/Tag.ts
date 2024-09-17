@@ -49,18 +49,13 @@ export class Tag extends MySqlModel {
             await Tag.delete(context, tableName, this.id, 'Tag.delete');
             return deletedSection;
         }
+        return null;
     }
 
     static async getAllTags(reference: string, context: MyContext): Promise<Tag[]> {
         const sql = 'SELECT * FROM tags';
         const results = await Tag.query(context, sql, [], reference);
         return Array.isArray(results) && results.length > 0 ? results : null;
-    }
-
-    static async getTagById(reference: string, context: MyContext, tagId: number): Promise<Tag> {
-        const sql = 'SELECT * FROM tags where id = ?';
-        const result = await Tag.query(context, sql, [tagId.toString()], reference);
-        return Array.isArray(result) && result.length > 0 ? result[0] : null;
     }
 
     static async getTagsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Tag[]> {
@@ -72,12 +67,18 @@ export class Tag extends MySqlModel {
         return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
     }
 
+    static async getTagById(reference: string, context: MyContext, tagId: number): Promise<Tag> {
+        const sql = 'SELECT * FROM tags where id = ?';
+        const result = await Tag.query(context, sql, [tagId.toString()], reference);
+        return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    }
+
     // Find tag by tag name
     static async findTagByTagName(
         reference: string,
         context: MyContext,
         name: string,
-    ): Promise<Tag> {
+    ): Promise<Tag[]> {
         const sql = 'SELECT * FROM tags WHERE LOWER(name) = ?';
         const vals = [name.toLowerCase()];
         const results = await Tag.query(context, sql, vals, reference);

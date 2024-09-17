@@ -1,6 +1,8 @@
 
 import { SectionTag } from "../SectionTag";
 import casual from "casual";
+import mockLogger from "../../__tests__/mockLogger";
+import { buildContext, mockToken } from "../../__mocks__/context";
 
 let context;
 jest.mock('../../context.ts');
@@ -48,6 +50,43 @@ describe('create', () => {
         localValidator.mockResolvedValueOnce(false);
 
         expect(await sectionTag.create(context)).toBe(sectionTag);
+    });
+});
+
+describe('deleteSectionTagsBySectionId', () => {
+    const originalQuery = SectionTag.query;
+
+    let localQuery;
+    let context;
+    let sectionTag;
+
+    beforeEach(() => {
+        jest.resetAllMocks();
+
+        localQuery = jest.fn();
+        (SectionTag.query as jest.Mock) = localQuery;
+
+        context = buildContext(mockLogger, mockToken());
+
+        sectionTag = new SectionTag({
+            sectionId: casual.integer(1, 9),
+            tagId: casual.integer(1, 9)
+        })
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+        SectionTag.query = originalQuery;
+    });
+
+    it('should call query with correct params and return the section', async () => {
+        localQuery.mockResolvedValueOnce([sectionTag]);
+        const sectionId = 1;
+        const result = await SectionTag.deleteSectionTagsBySectionId('SectionTag query', context, sectionId);
+        const expectedSql = 'DELETE FROM sectionTags WHERE sectionId = ?';
+        expect(localQuery).toHaveBeenCalledTimes(1);
+        expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [sectionId.toString()], 'SectionTag query')
+        expect(result).toEqual([sectionTag]);
     });
 });
 

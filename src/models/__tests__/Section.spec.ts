@@ -438,7 +438,7 @@ describe('delete', () => {
         (Section.getSectionBySectionId as jest.Mock) = mockFindById;
         mockFindById.mockResolvedValueOnce(section);
 
-        const result = await section.update(context);
+        const result = await section.delete(context);
         expect(result.errors.length).toBe(0);
         expect(result).toEqual(section);
     });
