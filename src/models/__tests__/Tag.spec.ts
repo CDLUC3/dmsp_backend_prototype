@@ -63,6 +63,16 @@ describe('create', () => {
     });
     it('returns the newly added Tag', async () => {
         const mockFindBy = jest.fn();
+        context = {
+            token: {
+                id: 1,
+                email: 'test@test.com',
+                givenName: 'henry',
+                surName: 'smith',
+                role: 'admin',
+            }
+            // Add other required properties of MyContext here
+        };
         (Tag.findTagByTagName as jest.Mock) = mockFindBy;
         mockFindBy.mockResolvedValueOnce(null);
         mockFindBy.mockResolvedValue(tag);
@@ -71,6 +81,7 @@ describe('create', () => {
         (Tag.getTagById as jest.Mock) = mockFindById;
         mockFindById.mockResolvedValueOnce(tag);
 
+        context.token = { id: 1 };
         const result = await tag.create(context);
         expect(mockFindBy).toHaveBeenCalledTimes(1);
         expect(insertQuery).toHaveBeenCalledTimes(1);
@@ -219,7 +230,6 @@ describe('getTagsBySectionId', () => {
 });
 
 describe('getTagById', () => {
-    const originalQuery = Tag.query;
 
     let localQuery;
     let context;
@@ -257,7 +267,6 @@ describe('getTagById', () => {
 });
 
 describe('findTagByTagName', () => {
-    const originalQuery = Tag.query;
 
     let localQuery;
     let context;

@@ -14,7 +14,13 @@ export const resolvers: Resolvers = {
 
             // Check if the array has data and access the first versioned section
             if (versionedSections.length > 0) {
-                const templateId = versionedSections[0].versionedTemplateId;
+                let versionedTemplate = versionedSections[0].versionedTemplate;
+                if (typeof versionedTemplate === 'string') {
+                    //versionedTemplate is a stringified JSON object, so I need to parse it
+                    versionedTemplate = JSON.parse(versionedTemplate);
+                }
+
+                const templateId = versionedTemplate.id;
                 if (await hasPermission(context, templateId)) {
                     return versionedSections;
                 }

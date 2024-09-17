@@ -26,18 +26,26 @@ export class Tag extends MySqlModel {
         if (current) {
             this.errors.push('Tag with this name already exists');
         } else {
-            const newId = await Tag.insert(context, tableName, this, 'Tag.create');
-            const response = await Tag.getTagById('Tag.create', context, newId);
-            return response
+            if (context.token) {
+                const newId = await Tag.insert(context, tableName, this, 'Tag.create');
+                const response = await Tag.getTagById('Tag.create', context, newId);
+                return response
+            } else {
+                return null;
+            }
         }
         return this;
     }
 
     async update(context: MyContext): Promise<Tag> {
         const id = this.id;
-        await Tag.update(context, tableName, this, 'Tag.update');
-        const updatedTag = await Tag.getTagById('Tag.update', context, id);
-        return updatedTag as Tag;
+        if (context.token) {
+            await Tag.update(context, tableName, this, 'Tag.update');
+            const updatedTag = await Tag.getTagById('Tag.update', context, id);
+            return updatedTag as Tag;
+        } else {
+            return null;
+        }
     }
 
     async delete(context: MyContext): Promise<Tag> {

@@ -28,7 +28,12 @@ export const resolvers: Resolvers = {
     Mutation: {
         addTag: async (_, { name, description }, context: MyContext): Promise<Tag> => {
             const tag = new Tag({ name, description });
-            return await tag.create(context);
+            const newTag = await tag.create(context);
+            if (newTag) {
+                return newTag;
+            } else {
+                throw ForbiddenError();
+            }
         },
         updateTag: async (_, { tagId, name, description }, context: MyContext): Promise<Tag> => {
             const tagData = await Tag.getTagById('updateTag resolver', context, tagId);
@@ -41,8 +46,11 @@ export const resolvers: Resolvers = {
 
                 const updatedTag = await tag.update(context);
 
-                return updatedTag;
-
+                if (updatedTag) {
+                    return updatedTag;
+                } else {
+                    throw ForbiddenError();
+                }
             }
             throw NotFoundError();
         },
