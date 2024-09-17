@@ -1,7 +1,7 @@
 # DMSP Backend Prototype
 
 # dmsp_frontend_prototype app
-![Next.js](https://img.shields.io/badge/Apollo-server-v4.10-blue)
+![Apollo server](https://img.shields.io/badge/@apollo/server-v4.10-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-v21.6-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
@@ -381,8 +381,6 @@ If you are running elsewhere, you will need to either make a copy of the `.env.e
 
 - [Brian Riley](https://github.com/briri)
 - [Juliet Shin](https://github.com/jupiter007)
-- [Andre Engelbrecht](https://github.com/andrewebdev)
-- [Fraser Clark](https://github.com/fraserclark)
 
 ## License
 
