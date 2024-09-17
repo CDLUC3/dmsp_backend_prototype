@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { Request } from 'express-jwt';
 import { Cache } from "../../datasources/cache";
-import { verifyAccessToken, revokeAccessToken, revokeRefreshToken, tokensFromHeaders } from '../../services/tokenService';
+import { revokeAccessToken, revokeRefreshToken } from '../../services/tokenService';
 import { refreshTokenController } from '../refreshTokenController';
 import casual from 'casual';
 import { signoutController } from '../signoutController';
@@ -17,7 +18,10 @@ describe('signoutController', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    mockRequest = { headers: { 'authorization': 'Bearer old-access-token' } };
+    mockRequest = {
+      auth: { jti: casual.integer(1, 99999).toString() },
+      headers: { 'authorization': 'Bearer old-access-token' },
+    };
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
@@ -31,20 +35,14 @@ describe('signoutController', () => {
     jest.clearAllMocks();
   });
 
-  it('should refresh tokens successfully', async () => {
-    mockRequest = { headers: { 'authorization': 'Bearer old-access-token' } };
-    const mockJti = casual.integer(1, 99999);
-
-    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
-    (verifyAccessToken as jest.Mock).mockReturnValue({ jti: mockJti });
+  it('should signout successfully', async () => {
     (revokeRefreshToken as jest.Mock).mockResolvedValue(true);
     (revokeAccessToken as jest.Mock);
     jest.spyOn(mockResponse, 'clearCookie');
 
     await signoutController(mockRequest as Request, mockResponse as Response);
 
-    expect(verifyAccessToken).toHaveBeenCalledWith('old-access-token');
-    expect(revokeRefreshToken).toHaveBeenCalledWith(mockCache, mockJti);
+    expect(revokeRefreshToken).toHaveBeenCalledWith(mockCache, mockRequest.auth.jti);
     expect(revokeAccessToken).toHaveBeenCalledWith(mockCache, 'old-access-token');
     expect(mockResponse.clearCookie).toHaveBeenCalledWith('dmspt');
     expect(mockResponse.clearCookie).toHaveBeenCalledWith('dmspr');
@@ -53,20 +51,6 @@ describe('signoutController', () => {
   });
 
   it('should return 400 if no access token is present', async () => {
-    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: null });
-
-    await signoutController(mockRequest as Request, mockResponse as Response);
-
-    expect(mockResponse.status).toHaveBeenCalledWith(400);
-    expect(mockResponse.json)
-      .toHaveBeenCalledWith({ success: false, message: 'Unable to sign out at this time.' });
-  });
-
-  it('should return 400 if token could not be verfied', async () => {
-    mockRequest = { headers: { 'authorization': 'Bearer old-access-token' } };
-
-    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
-    (verifyAccessToken as jest.Mock).mockReturnValue(null);
     await signoutController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
@@ -76,10 +60,7 @@ describe('signoutController', () => {
 
   it('should return 400 if unable to revoke the refresh token', async () => {
     mockRequest = { headers: { 'authorization': 'Bearer old-access-token' } };
-    const mockJti = casual.integer(1, 99999);
 
-    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
-    (verifyAccessToken as jest.Mock).mockReturnValue({ jti: mockJti });
     (revokeRefreshToken as jest.Mock).mockResolvedValue(false);
 
     await signoutController(mockRequest as Request, mockResponse as Response);
@@ -90,9 +71,6 @@ describe('signoutController', () => {
   });
 
   it('should return 500 if an unexpected error occurs', async () => {
-    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
-    (verifyAccessToken as jest.Mock).mockRejectedValue(new Error('Unexpected error'));
-
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(500);

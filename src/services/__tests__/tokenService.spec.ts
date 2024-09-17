@@ -1,6 +1,6 @@
 import casual from 'casual';
 import jwt, { Jwt } from 'jsonwebtoken';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import { logger } from '../../__mocks__/logger';
 import { User, UserRole } from '../../models/User';
 import { DEFAULT_INTERNAL_SERVER_MESSAGE, DEFAULT_UNAUTHORIZED_MESSAGE } from '../../utils/graphQLErrors';
@@ -9,12 +9,10 @@ import { generalConfig } from '../../config/generalConfig';
 import {
   setTokenCookie,
   generateTokens,
-  verifyAccessToken,
   refreshTokens,
   revokeAccessToken,
   revokeRefreshToken,
   isRevokedCallback,
-  tokensFromHeaders,
 } from '../tokenService'; // assuming the original code is in auth.ts
 import { buildContext, mockToken } from '../../__mocks__/context';
 
@@ -51,46 +49,6 @@ beforeEach(() => {
     affiliationId: casual.url,
     role: UserRole.RESEARCHER,
   };
-});
-
-describe('tokensFromHeaders', () => {
-  it('returns both the access and refresh tokens', () => {
-    const accessT = casual.uuid;
-    const refreshT = casual.uuid;
-    const mockRequest: Partial<Request> = {
-      headers: {
-        'authorization': `Bearer ${accessT}`,
-        'x-refresh-token': refreshT,
-      }
-    };
-    const { accessToken, refreshToken } = tokensFromHeaders(mockRequest as Request);
-    expect(accessToken).toEqual(accessT);
-    expect(refreshToken).toEqual(refreshT);
-  });
-
-  it('returns null for the access token if it is not available', () => {
-    const accessT = casual.uuid;
-    const mockRequest: Partial<Request> = {
-      headers: {
-        'authorization': `Bearer ${accessT}`,
-      }
-    };
-    const { accessToken, refreshToken } = tokensFromHeaders(mockRequest as Request);
-    expect(accessToken).toEqual(accessT);
-    expect(refreshToken).toEqual(null);
-  });
-
-  it('returns null for the refresh token if it is not available', () => {
-    const refreshT = casual.uuid;
-    const mockRequest: Partial<Request> = {
-      headers: {
-        'x-refresh-token': refreshT,
-      }
-    };
-    const { accessToken, refreshToken } = tokensFromHeaders(mockRequest as Request);
-    expect(accessToken).toEqual(null);
-    expect(refreshToken).toEqual(refreshT);
-  });
 });
 
 describe('setTokenCookie', () => {
@@ -225,40 +183,6 @@ describe('generateTokens', () => {
   it('should return null tokens if conditions are not met', async () => {
     const result = await generateTokens(mockCache, {} as User);
     expect(result).toEqual({ accessToken: null, refreshToken: null });
-  });
-});
-
-describe('verifyAccessToken', () => {
-  it('should return the decoded token if the token is valid', () => {
-    const mockToken = 'valid-token';
-    const mockPayload = { id: casual.integer(1, 9999), email: casual.email };
-
-    (jwt.verify as jest.Mock).mockReturnValue(mockPayload);
-
-    const result = verifyAccessToken(mockToken);
-
-    expect(result).toEqual(mockPayload);
-    expect(jwt.verify).toHaveBeenCalledWith(mockToken, generalConfig.jwtSecret);
-  });
-
-  it('should return null if the token is invalid', () => {
-    const mockToken = 'invalid-token';
-
-    (jwt.verify as jest.Mock).mockReturnValue(null);
-
-    expect(verifyAccessToken(mockToken)).toBe(null);
-  });
-
-  it('should throw an AuthenticationError for invalid token', () => {
-    const mockToken = 'invalid-token';
-    const errorMessage = 'Invalid token';
-    const mockError = new Error(errorMessage);
-
-    (jwt.verify as jest.Mock).mockImplementation(() => { throw mockError; });
-
-    const expectedErr = `${DEFAULT_UNAUTHORIZED_MESSAGE} - ${errorMessage}`;
-    expect(() => verifyAccessToken(mockToken)).toThrow(expectedErr);
-    expect(logger.error).toHaveBeenCalledWith(mockError, `verifyAccessToken error - ${errorMessage}`);
   });
 });
 

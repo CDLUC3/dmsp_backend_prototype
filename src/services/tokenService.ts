@@ -1,5 +1,5 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { Response, Request } from "express";
+import { Response } from "express";
 import { logger, formatLogMessage } from '../logger';
 import { User } from '../models/User';
 import { generalConfig } from '../config/generalConfig';
@@ -19,18 +19,6 @@ export interface JWTAccessToken extends JwtPayload {
 
 export interface JWTRefreshToken extends JwtPayload {
   id: number,
-}
-
-// Extracts the tokens from the HTTP headers
-export const tokensFromHeaders = (req: Request): { accessToken: string, refreshToken: string } => {
-  if (req?.headers) {
-    const authHeader = req.headers?.authorization || null;
-    const accessToken = authHeader !== null ? authHeader.split(' ')[1] : null;
-    const refreshToken = req.headers['x-refresh-token']?.toString() || null;
-
-    return { accessToken, refreshToken };
-  }
-  return { accessToken: null, refreshToken: null };
 }
 
 // Helper function to set a secure HTTP-only cookie
@@ -100,18 +88,6 @@ export const generateTokens = async (cache: Cache, user: User): Promise<{ access
     }
   }
   return { accessToken: null, refreshToken: null };
-};
-
-// Verify an Access Token
-export const verifyAccessToken = (accessToken: string): JWTAccessToken => {
-  try {
-    return jwt.verify(accessToken, generalConfig.jwtSecret as string) as JWTAccessToken;
-  } catch(err) {
-    if (logger) {
-      formatLogMessage(logger).error(err, `verifyAccessToken error - ${err.message}`);
-    }
-    throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
-  }
 };
 
 // Verify a Refresh Token

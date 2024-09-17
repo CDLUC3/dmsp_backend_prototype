@@ -1,21 +1,18 @@
-import { Request, Response } from 'express';
+import { Request } from 'express-jwt';
+import { Response } from 'express';
 import { Cache } from "../datasources/cache";
-import { JWTAccessToken, revokeAccessToken, revokeRefreshToken, tokensFromHeaders, verifyAccessToken } from '../services/tokenService';
+import { revokeAccessToken, revokeRefreshToken } from '../services/tokenService';
 import { formatLogMessage, logger } from '../logger';
 
 export const signoutController = async (req: Request, res: Response) => {
   try {
-    // Get the refresh token from the request body or cookies
-    const { accessToken } = tokensFromHeaders(req);
-
-    if (accessToken) {
+    if (req.auth) {
       const cache = Cache.getInstance();
-      const decodedToken: JWTAccessToken = accessToken ? verifyAccessToken(accessToken) : null;
 
       // Delete the refresh token from the cache
-      if (decodedToken && await revokeRefreshToken(cache, decodedToken.jti)) {
+      if (await revokeRefreshToken(cache, req.auth.jti)) {
         // Add the access token to the black list so that token is immediately invalidated
-        await revokeAccessToken(cache, accessToken);
+        await revokeAccessToken(cache, req.headers?.authorization?.split(" ")[1]);
 
         // Clear the old cookies from the response
         res.clearCookie('dmspt');
