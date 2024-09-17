@@ -1,28 +1,26 @@
 import { Request, Response } from 'express';
 import { Cache } from "../datasources/cache";
-import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../services/tokenService';
+import { JWTAccessToken, revokeAccessToken, revokeRefreshToken, tokensFromHeaders, verifyAccessToken } from '../services/tokenService';
 import { formatLogMessage, logger } from '../logger';
 
 export const signoutController = async (req: Request, res: Response) => {
   try {
     // Get the refresh token from the request body or cookies
-    const accessToken = req.cookies.dmspt;
+    const { accessToken } = tokensFromHeaders(req);
 
     if (accessToken) {
       const cache = Cache.getInstance();
-      const jwt = await verifyAccessToken(accessToken);
+      const decodedToken: JWTAccessToken = accessToken ? verifyAccessToken(accessToken) : null;
 
-      if (jwt) {
-        // Delete the refresh token from the cache
-        if (await revokeRefreshToken(cache, jwt.jti)) {
-          // Add the access token to the black list so that token is immediately invalidated
-          await revokeAccessToken(cache, accessToken);
+      // Delete the refresh token from the cache
+      if (decodedToken && await revokeRefreshToken(cache, decodedToken.jti)) {
+        // Add the access token to the black list so that token is immediately invalidated
+        await revokeAccessToken(cache, accessToken);
 
-          // Clear the old cookies from the response
-          res.clearCookie('dmspt');
-          res.clearCookie('dmspr');
-          res.status(200).json({ success: true, message: 'ok' });
-        }
+        // Clear the old cookies from the response
+        res.clearCookie('dmspt');
+        res.clearCookie('dmspr');
+        res.status(200).json({ success: true, message: 'ok' });
       }
     }
     res.status(400).json({ success: false, message: 'Unable to sign out at this time.'})

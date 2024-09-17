@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Cache } from "../../datasources/cache";
-import { verifyAccessToken, revokeAccessToken, revokeRefreshToken } from '../../services/tokenService';
+import { verifyAccessToken, revokeAccessToken, revokeRefreshToken, tokensFromHeaders } from '../../services/tokenService';
 import { refreshTokenController } from '../refreshTokenController';
 import casual from 'casual';
 import { signoutController } from '../signoutController';
@@ -17,11 +17,7 @@ describe('signoutController', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    mockRequest = {
-      cookies: {
-        dmspt: 'old-access-token'
-      }
-    };
+    mockRequest = { headers: { 'authorization': 'Bearer old-access-token' } };
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
@@ -36,10 +32,11 @@ describe('signoutController', () => {
   });
 
   it('should refresh tokens successfully', async () => {
-    mockRequest.cookies = { dmspt: 'old-access-token' };
+    mockRequest = { headers: { 'authorization': 'Bearer old-access-token' } };
     const mockJti = casual.integer(1, 99999);
 
-    (verifyAccessToken as jest.Mock).mockResolvedValue({ jti: mockJti });
+    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
+    (verifyAccessToken as jest.Mock).mockReturnValue({ jti: mockJti });
     (revokeRefreshToken as jest.Mock).mockResolvedValue(true);
     (revokeAccessToken as jest.Mock);
     jest.spyOn(mockResponse, 'clearCookie');
@@ -56,6 +53,8 @@ describe('signoutController', () => {
   });
 
   it('should return 400 if no access token is present', async () => {
+    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: null });
+
     await signoutController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
@@ -64,9 +63,10 @@ describe('signoutController', () => {
   });
 
   it('should return 400 if token could not be verfied', async () => {
-    mockRequest.cookies = { dmspt: 'old-access-token' };
+    mockRequest = { headers: { 'authorization': 'Bearer old-access-token' } };
 
-    (verifyAccessToken as jest.Mock).mockResolvedValue(null);
+    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
+    (verifyAccessToken as jest.Mock).mockReturnValue(null);
     await signoutController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
@@ -75,10 +75,11 @@ describe('signoutController', () => {
   });
 
   it('should return 400 if unable to revoke the refresh token', async () => {
-    mockRequest.cookies = { dmspt: 'old-access-token' };
+    mockRequest = { headers: { 'authorization': 'Bearer old-access-token' } };
     const mockJti = casual.integer(1, 99999);
 
-    (verifyAccessToken as jest.Mock).mockResolvedValue({ jti: mockJti });
+    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
+    (verifyAccessToken as jest.Mock).mockReturnValue({ jti: mockJti });
     (revokeRefreshToken as jest.Mock).mockResolvedValue(false);
 
     await signoutController(mockRequest as Request, mockResponse as Response);
@@ -89,6 +90,7 @@ describe('signoutController', () => {
   });
 
   it('should return 500 if an unexpected error occurs', async () => {
+    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
     (verifyAccessToken as jest.Mock).mockRejectedValue(new Error('Unexpected error'));
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);

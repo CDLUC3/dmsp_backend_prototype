@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
+import { Response, Request } from 'express';
 import { Cache } from "../../datasources/cache";
-import { refreshTokens, setTokenCookie } from '../../services/tokenService';
+import { refreshTokens, setTokenCookie, tokensFromHeaders } from '../../services/tokenService';
 import { generalConfig } from '../../config/generalConfig';
 import { logger } from '../../__mocks__/logger';
 import { refreshTokenController } from '../refreshTokenController';
@@ -25,9 +25,9 @@ describe('refreshTokenController', () => {
     jest.resetAllMocks();
 
     mockRequest = {
-      cookies: {
-        dmspt: 'old-access-token',
-        dmspr: 'old-refresh-token'
+      headers: {
+        'authorization': 'Bearer old-access-token',
+        'x-refresh-token': 'old-refresh-token'
       }
     };
     mockResponse = {
@@ -53,8 +53,16 @@ describe('refreshTokenController', () => {
   });
 
   it('should refresh tokens successfully', async () => {
-    mockRequest.cookies = { dmspt: 'old-access-token', dmspr: 'old-refresh-token' };
+    mockRequest = {
+      headers: {
+        'authorization': 'Bearer old-access-token',
+        'x-refresh-token': 'old-refresh-token'
+      }
+    };
 
+    (tokensFromHeaders as jest.Mock).mockReturnValue({
+      accessToken: 'old-access-token', refreshToken: 'old-refresh-token'
+    });
     (refreshTokens as jest.Mock).mockResolvedValue({
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token'
@@ -70,7 +78,13 @@ describe('refreshTokenController', () => {
   });
 
   it('should return 401 if refresh token is missing', async () => {
-    mockRequest.cookies = { dmspt: 'old-access-token' };
+    mockRequest = {
+      headers: {
+        'authorization': 'Bearer old-access-token'
+      }
+    };
+
+    (tokensFromHeaders as jest.Mock).mockReturnValue({ accessToken: 'old-access-token' });
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
@@ -81,6 +95,9 @@ describe('refreshTokenController', () => {
   it('should return 400 if unable to refresh tokens', async () => {
     (refreshTokens as jest.Mock).mockResolvedValue({});
 
+    (tokensFromHeaders as jest.Mock).mockReturnValue({
+      accessToken: 'old-access-token', refreshToken: 'old-refresh-token'
+    });
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);

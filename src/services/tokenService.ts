@@ -1,5 +1,5 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { Response } from "express";
+import { Response, Request } from "express";
 import { logger, formatLogMessage } from '../logger';
 import { User } from '../models/User';
 import { generalConfig } from '../config/generalConfig';
@@ -21,7 +21,19 @@ export interface JWTRefreshToken extends JwtPayload {
   id: number,
 }
 
-// Helper function to set secure cookies
+// Extracts the tokens from the HTTP headers
+export const tokensFromHeaders = (req: Request): { accessToken: string, refreshToken: string } => {
+  if (req?.headers) {
+    const authHeader = req.headers?.authorization || null;
+    const accessToken = authHeader !== null ? authHeader.split(' ')[1] : null;
+    const refreshToken = req.headers['x-refresh-token']?.toString() || null;
+
+    return { accessToken, refreshToken };
+  }
+  return { accessToken: null, refreshToken: null };
+}
+
+// Helper function to set a secure HTTP-only cookie
 export const setTokenCookie = (res: Response, name: string, value: string, maxAge?: number): void => {
   res.cookie(name, value, {
     httpOnly: true,

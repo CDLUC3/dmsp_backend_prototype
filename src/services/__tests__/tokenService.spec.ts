@@ -1,6 +1,6 @@
 import casual from 'casual';
 import jwt, { Jwt } from 'jsonwebtoken';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { logger } from '../../__mocks__/logger';
 import { User, UserRole } from '../../models/User';
 import { DEFAULT_INTERNAL_SERVER_MESSAGE, DEFAULT_UNAUTHORIZED_MESSAGE } from '../../utils/graphQLErrors';
@@ -14,6 +14,7 @@ import {
   revokeAccessToken,
   revokeRefreshToken,
   isRevokedCallback,
+  tokensFromHeaders,
 } from '../tokenService'; // assuming the original code is in auth.ts
 import { buildContext, mockToken } from '../../__mocks__/context';
 
@@ -50,6 +51,46 @@ beforeEach(() => {
     affiliationId: casual.url,
     role: UserRole.RESEARCHER,
   };
+});
+
+describe('tokensFromHeaders', () => {
+  it('returns both the access and refresh tokens', () => {
+    const accessT = casual.uuid;
+    const refreshT = casual.uuid;
+    const mockRequest: Partial<Request> = {
+      headers: {
+        'authorization': `Bearer ${accessT}`,
+        'x-refresh-token': refreshT,
+      }
+    };
+    const { accessToken, refreshToken } = tokensFromHeaders(mockRequest as Request);
+    expect(accessToken).toEqual(accessT);
+    expect(refreshToken).toEqual(refreshT);
+  });
+
+  it('returns null for the access token if it is not available', () => {
+    const accessT = casual.uuid;
+    const mockRequest: Partial<Request> = {
+      headers: {
+        'authorization': `Bearer ${accessT}`,
+      }
+    };
+    const { accessToken, refreshToken } = tokensFromHeaders(mockRequest as Request);
+    expect(accessToken).toEqual(accessT);
+    expect(refreshToken).toEqual(null);
+  });
+
+  it('returns null for the refresh token if it is not available', () => {
+    const refreshT = casual.uuid;
+    const mockRequest: Partial<Request> = {
+      headers: {
+        'x-refresh-token': refreshT,
+      }
+    };
+    const { accessToken, refreshToken } = tokensFromHeaders(mockRequest as Request);
+    expect(accessToken).toEqual(null);
+    expect(refreshToken).toEqual(refreshT);
+  });
 });
 
 describe('setTokenCookie', () => {

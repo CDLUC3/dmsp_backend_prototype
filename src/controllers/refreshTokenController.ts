@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Cache } from "../datasources/cache";
-import { refreshTokens, setTokenCookie } from '../services/tokenService';
+import { refreshTokens, setTokenCookie, tokensFromHeaders } from '../services/tokenService';
 import { generalConfig } from '../config/generalConfig';
 import { buildContext } from '../context';
 import { logger } from '../logger';
@@ -8,16 +8,15 @@ import { logger } from '../logger';
 export const refreshTokenController = async (req: Request, res: Response) => {
   try {
     // Get the tokens from the request body or cookies
-    const oldAccessToken = req.cookies.dmspt;
-    const oldRefreshToken = req.cookies.dmspr;
+    const originalTokens = tokensFromHeaders(req);
 
-    if (!oldRefreshToken) {
+    if (!originalTokens.refreshToken) {
       res.status(401).json({ success: false, message: 'Refresh token required!' });
     }
 
     const cache = Cache.getInstance();
-    const context = buildContext(logger, cache, oldAccessToken);
-    const { accessToken, refreshToken } = await refreshTokens(cache, context, oldRefreshToken);
+    const context = buildContext(logger, cache);
+    const { accessToken, refreshToken } = await refreshTokens(cache, context, originalTokens.refreshToken);
 
     // If it successfully regenerated an access token
     if (accessToken) {
