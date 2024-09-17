@@ -3,7 +3,6 @@ import { expressjwt } from 'express-jwt';
 import { generalConfig } from './config/generalConfig';
 import { signinController } from './controllers/signinController';
 import { signupController } from './controllers/signupController';
-import { oauthServer, castRequest, castResponse } from './middleware/oauthServer';
 
 const router = express.Router();
 
@@ -16,11 +15,6 @@ const authMiddleware = expressjwt({
 // Support for email+password
 router.post('/apollo-signin', (req, res) => signinController(req, res));
 router.post('/apollo-signup', (req, res) => signupController(req, res));
-
-// Support for OAuth2
-router.get('/apollo-authorize', (req, res) => oauthServer.authorize(castRequest(req), castResponse(res)));
-router.post('/apollo-authenticate', (req, res) => oauthServer.authenticate(castRequest(req), castResponse(res)));
-router.post('/apollo-token', (req, res) => oauthServer.token(castRequest(req), castResponse(res)));
 
 // GraphQL operations
 router.use('/graphql', authMiddleware);
