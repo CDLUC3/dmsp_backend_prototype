@@ -8,9 +8,8 @@ export async function attachApolloServer(apolloServer, cache, logger) {
   return expressMiddleware(apolloServer, {
     context: async ({ req }) => {
       // Extract the token from the incoming request so we can pass it on to the resolvers
-      const authHeader: string = req?.headers?.authorization || '';
-      const authHdr: string = authHeader.split(' ')[1] || null;
-      const token: JWTAccessToken = authHeader ? await verifyAccessToken(cache, authHdr) : null;
+      const authHeader: string = req?.cookies?.dmspt || '';
+      const token: JWTAccessToken = authHeader ? verifyAccessToken(authHeader) : null;
       return buildContext(logger, cache, token);
     },
   });

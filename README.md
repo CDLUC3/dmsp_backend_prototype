@@ -18,6 +18,78 @@ Our Apollo server installation consists of:
 - Then run `docker-compose exec apollo bash ./data-migrations/process.sh` to build out the remaining database tables and seed them with sample data
 - Visit `http://localhost:4000/graphql` to load the Apollo server explorer and verify that the system is running.
 
+## Authentication
+
+The system provides a few endpoints that exist outside the Apollo Server GraphQL context. These endpoints allow a user to authenticate and acquire JSON web tokens which are placed into HTTP-only cookies. Those cookies are then used to perform authorization checks when running GraphQL queries.
+
+The system generates a short lived (10 minute) access token `dmspt` that should be used on all requests to the GraphQL endpoint.
+
+A longer lived (24 hour) refresh token `dmspr` is also generated. The refresh token can be used to refresh an expired access token. Doing so generates completely new access AND refresh tokens.
+
+
+```mermaid
+---
+title: signupController
+---
+
+flowchart LR;
+  a[User data]-->b[Register];
+  b-->c{User has errors?};
+  c-->|no| d[generateTokens]
+  c-->|yes| e[return 400]
+  d-->|yes| f[add refresh token to cache]
+  f-->g[set HTTP-only cookie for access and refresh tokens]
+  d-->|no| h[return 500]
+```
+
+```mermaid
+---
+title: signinController
+---
+
+flowchart LR;
+  a[User credentials]-->b[login];
+  b-->c{Success?};
+  c-->|yes| d[generateTokens]
+  c-->|no| e[return 401]
+  d-->|yes| f[add refresh token to cache]
+  f-->g[set HTTP-only cookie for access and refresh tokens]
+  d-->|no| h[return 500]
+```
+
+```mermaid
+---
+title: signOutController
+---
+
+flowchart LR;
+  a[Access token]-->b[verify token];
+  b-->c{Success?};
+  c-->|yes| d[remove refresh token from cache]
+  c-->|no| e[return 400]
+  d-->f[add access token to black list]
+  f-->g[delete HTTP-only cookies]
+```
+
+```mermaid
+---
+title: refreshTokenController
+---
+
+flowchart LR;
+  a[Refresh token]-->b[verify token];
+  b-->c{Success?};
+  c-->|yes| d[verify user]
+  c-->|no| e[return 401]
+  d-->f{Success}
+  f-->|yes| g[generateTokens]
+  f-->|no| h[return 401]
+  g-->|yes| i[add refresh token to cache]
+  i-->j[delete old refresh token from cache]
+  j-->k[set HTTP-only cookie for access and refresh tokens]
+  g-->|no| l[return 500]
+```
+
 ## Running current database migrations
 
 **Local Docker container**

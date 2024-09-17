@@ -24,6 +24,7 @@
 - Added MariaDB to docker-compose
 - data-migrations/README.md with instructions on running migrations in the Docker container
 - tokenService now supports refresh tokens and signout
+- updated express middelware to fetch the access token from the cookies instead of the headers
 
 ## v0.0.1
 Initial Apollo Server build
