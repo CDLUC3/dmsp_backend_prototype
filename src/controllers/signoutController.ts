@@ -10,13 +10,17 @@ export const signoutController = async (req: Request, res: Response) => {
 
     if (accessToken) {
       const cache = Cache.getInstance();
-      const jwt = await verifyAccessToken(cache, accessToken);
+      const jwt = await verifyAccessToken(accessToken);
 
       if (jwt) {
         // Delete the refresh token from the cache
         if (await revokeRefreshToken(cache, jwt.jti)) {
           // Add the access token to the black list so that token is immediately invalidated
           await revokeAccessToken(cache, accessToken);
+
+          // Clear the old cookies from the response
+          res.clearCookie('dmspt');
+          res.clearCookie('dmspr');
           res.status(200).json({ success: true, message: 'ok' });
         }
       }

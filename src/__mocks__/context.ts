@@ -1,7 +1,6 @@
 import { Logger } from "pino";
 import { JWTAccessToken } from "../services/tokenService";
 import { MyContext } from "../context";
-import { logger } from '../__mocks__/logger';
 import { DMPHubAPI } from "../datasources/dmphubAPI";
 import { DMPToolAPI } from "../datasources/dmptoolAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";

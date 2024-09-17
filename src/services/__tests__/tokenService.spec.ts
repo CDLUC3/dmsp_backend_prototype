@@ -1,7 +1,7 @@
 import casual from 'casual';
-import jwt from 'jsonwebtoken';
+import jwt, { Jwt } from 'jsonwebtoken';
 import { Response } from 'express';
-import mockLogger from '../../__tests__/mockLogger';
+import { logger } from '../../__mocks__/logger';
 import { User, UserRole } from '../../models/User';
 import { DEFAULT_INTERNAL_SERVER_MESSAGE, DEFAULT_UNAUTHORIZED_MESSAGE } from '../../utils/graphQLErrors';
 import { Cache } from '../../datasources/cache';
@@ -13,10 +13,13 @@ import {
   refreshTokens,
   revokeAccessToken,
   revokeRefreshToken,
+  isRevokedCallback,
 } from '../tokenService'; // assuming the original code is in auth.ts
 import { buildContext, mockToken } from '../../__mocks__/context';
 
 jest.mock('jsonwebtoken');
+jest.mock('../../datasources/cache');
+jest.mock('../../models/User');
 
 // Mock the process.env
 const originalEnv = process.env;
@@ -28,7 +31,16 @@ beforeEach(() => {
   jest.clearAllMocks();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mockCache = { adapter: jest.fn() } as any;
+  // mockCache = { adapter: jest.fn() } as any;
+
+  (Cache.getInstance as jest.Mock).mockReturnValue({
+    adapter: {
+      delete: jest.fn(),
+      get: jest.fn(),
+      set: jest.fn(),
+    },
+  });
+  mockCache = Cache.getInstance();
 
   mockUser = {
     id: casual.integer(1, 999),
@@ -131,14 +143,15 @@ describe('setTokenCookie', () => {
     );
   });
 
-  it('should use JWT_TTL from env when maxAge is not provided', () => {
-    process.env.JWT_TTL = '900000'; // 15 minutes in milliseconds
+  it('should use JWT TTL from env when maxAge is not provided', () => {
+    generalConfig.jwtTTL = 90;
+
     setTokenCookie(mockResponse as Response, 'testCookie', 'testValue');
     expect(mockResponse.cookie).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(String),
       expect.objectContaining({
-        maxAge: 900000,
+        maxAge: 90,
       })
     );
   });
@@ -149,19 +162,23 @@ describe('generateTokens', () => {
     const mockAccessToken = 'mock-access-token';
     const mockRefreshToken = 'mock-refresh-token';
 
+    const mockDate = new Date();
+    jest.useFakeTimers().setSystemTime(mockDate);
+
     (jwt.sign as jest.Mock).mockImplementation((_payload, secret) => {
       if (secret === generalConfig.jwtSecret) return mockAccessToken;
       if (secret === generalConfig.jwtRefreshSecret) return mockRefreshToken;
     });
 
-    (mockCache.adapter.set as jest.Mock);
-
     const result = await generateTokens(mockCache, mockUser);
 
     expect(result).toEqual({ accessToken: mockAccessToken, refreshToken: mockRefreshToken });
     expect(jwt.sign).toHaveBeenCalledTimes(2);
-    expect(mockCache.adapter.set)
-      .toHaveBeenCalledWith(`dmspr-${mockUser.id}`, refreshTokens, { ttl: generalConfig.jwtRefreshTTL });
+    expect(mockCache.adapter.set).toHaveBeenCalledWith(
+      `dmspr-${mockDate.getTime().toString()}`, mockRefreshToken, { ttl: generalConfig.jwtRefreshTTL }
+    );
+
+    jest.useRealTimers();
   });
 
   it('should return null tokens if conditions are not met', async () => {
@@ -171,105 +188,115 @@ describe('generateTokens', () => {
 });
 
 describe('verifyAccessToken', () => {
-  it('should verify a valid token', async () => {
+  it('should return the decoded token if the token is valid', () => {
     const mockToken = 'valid-token';
-    const mockPayload = { id: 1, email: 'test@example.com' };
+    const mockPayload = { id: casual.integer(1, 9999), email: casual.email };
 
     (jwt.verify as jest.Mock).mockReturnValue(mockPayload);
-    (mockCache.adapter.get as jest.Mock).mockReturnValue(null);
 
-    const result = verifyAccessToken(mockCache, mockToken);
+    const result = verifyAccessToken(mockToken);
 
     expect(result).toEqual(mockPayload);
     expect(jwt.verify).toHaveBeenCalledWith(mockToken, generalConfig.jwtSecret);
-    expect(mockCache.adapter.get).toHaveBeenCalledWith(`dmspbl-${mockToken}`);
   });
 
-  it('should return null if the token is in the black list', async () => {
+  it('should return null if the token is invalid', () => {
     const mockToken = 'invalid-token';
-    const mockPayload = { id: 1, email: 'test@example.com' };
 
-    (jwt.verify as jest.Mock).mockReturnValue(mockPayload);
-    (mockCache.adapter.get as jest.Mock).mockReturnValue(mockToken);
+    (jwt.verify as jest.Mock).mockReturnValue(null);
 
-    expect(await verifyAccessToken(mockCache, mockToken)).toBe(null);
+    expect(verifyAccessToken(mockToken)).toBe(null);
   });
 
-  it('should throw an AuthenticationError for invalid token', async () => {
+  it('should throw an AuthenticationError for invalid token', () => {
     const mockToken = 'invalid-token';
     const errorMessage = 'Invalid token';
+    const mockError = new Error(errorMessage);
 
-    (jwt.verify as jest.Mock).mockImplementation(() => {
-      throw new Error(errorMessage);
-    });
+    (jwt.verify as jest.Mock).mockImplementation(() => { throw mockError; });
 
-    expect(() => verifyAccessToken(mockCache, mockToken)).toThrow(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${errorMessage}`);
-    expect(mockLogger.error).toHaveBeenCalled();
+    const expectedErr = `${DEFAULT_UNAUTHORIZED_MESSAGE} - ${errorMessage}`;
+    expect(() => verifyAccessToken(mockToken)).toThrow(expectedErr);
+    expect(logger.error).toHaveBeenCalledWith(mockError, `verifyAccessToken error - ${errorMessage}`);
+  });
+});
+
+describe('isRevokedCallback', () => {
+  it('returns false if the token is null or it has no payload', async () => {
+    expect(await isRevokedCallback(null, null)).toBe(false);
+  });
+
+  it('returns false if the token has no payload', async () => {
+    const token = { header: null, signature: null, payload: null };
+
+    expect(await isRevokedCallback(null, token as Jwt)).toBe(false);
+  });
+
+  it('logs an error and returns false if an error is thrown', async () => {
+    const mockJti = casual.integer(1, 99999).toString();
+    const token = { header: null, signature: null, payload: { jti: mockJti } };
+
+    const mockErr = new Error('Test cache error');
+    (mockCache.adapter.get as jest.Mock).mockImplementation(() => { throw mockErr; });
+
+    await isRevokedCallback(null, token as Jwt);
+    const expoectedErr = 'isRevokedCallback - unable to fetch token from cache';
+    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl-${mockJti}`);
+    expect(logger.error).toHaveBeenLastCalledWith(mockErr, expoectedErr);
+  });
+
+  it('returns true if the token is black listed', async () => {
+    const mockJti = casual.integer(1, 99999).toString();
+    const token = { header: null, signature: null, payload: { jti: mockJti } };
+
+    (mockCache.adapter.get as jest.Mock).mockReturnValueOnce(mockJti);
+
+    expect(await isRevokedCallback(null, token as Jwt)).toBe(true);
+    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl-${mockJti}`);
   });
 });
 
 describe('refreshTokens', () => {
   let context;
-  let logger;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    logger = mockLogger;
     context = buildContext(logger, mockToken());
   });
 
   it('should refresh valid tokens', async () => {
     const mockRefreshToken = 'valid-refresh-token';
-    const mockDecoded = { id: 1, email: 'test@example.com' };
 
     const mockNewAccessToken = 'valid-access-token';
     const mockNewRefreshToken = 'valid-refresh-token';
 
-    (jwt.verify as jest.Mock).mockImplementation((_payload, secret) => {
-      if (secret === generalConfig.jwtSecret) return mockDecoded;
-      if (secret === generalConfig.jwtRefreshSecret) return { id: mockDecoded.id };
-    });
+    (jwt.verify as jest.Mock).mockImplementation(() => { return mockUser; });
+    (User.findById as jest.Mock).mockReturnValue(mockUser);
     (jwt.sign as jest.Mock).mockImplementation((_payload, secret) => {
       if (secret === generalConfig.jwtSecret) return mockNewAccessToken;
       if (secret === generalConfig.jwtRefreshSecret) return mockNewRefreshToken;
-    });
-
-    (User.findById as jest.Mock).mockResolvedValueOnce(mockDecoded as User);
+    })
 
     const result = await refreshTokens(mockCache, context, mockRefreshToken);
 
-    expect(result).toEqual({ accessToken: mockNewAccessToken, refreshTokens: mockNewRefreshToken });
+    expect(result).toEqual({ accessToken: mockNewAccessToken, refreshToken: mockNewRefreshToken });
     expect(jwt.verify).toHaveBeenCalledWith(mockRefreshToken, generalConfig.jwtRefreshSecret);
-    expect(jwt.sign).toHaveBeenCalledWith(
-      mockDecoded,
-      generalConfig.jwtSecret, { expiresIn: generalConfig.jwtTTL });
-    expect(jwt.sign).toHaveBeenCalledWith(
-      { id: mockDecoded.id },
-      generalConfig.jwtRefreshSecret,
-      { expiresIn: generalConfig.jwtRefreshTTL }
-    );
   });
 
   it('should return null tokens if the User could not be found', async () => {
     const mockRefreshToken = 'revoked-refresh-token';
-    const mockDecoded = { id: 1, email: 'test@example.com' };
+    const mockUserId = casual.integer(1, 999);
 
-    const mockNewAccessToken = 'valid-access-token';
-    const mockNewRefreshToken = 'valid-refresh-token';
-
-    (jwt.verify as jest.Mock).mockImplementation((_payload, secret) => {
-      if (secret === generalConfig.jwtSecret) return mockDecoded;
-      if (secret === generalConfig.jwtRefreshSecret) return { id: mockDecoded.id };
-    });
-    (User.findById as jest.Mock).mockResolvedValueOnce(null);
+    (jwt.verify as jest.Mock).mockImplementation(() => { return { id: mockUserId }; });
+    (User.findById as jest.Mock).mockReturnValue(null);
 
     const result = await refreshTokens(mockCache, context, mockRefreshToken);
     expect(result.accessToken).toBeFalsy();
     expect(result.refreshToken).toBeFalsy();
   });
 
-  it('should return a null tokens if the refresh token is invalid or revoked', async () => {
+  it('should return null tokens if the refresh token is invalid or revoked', async () => {
     const mockRefreshToken = 'revoked-refresh-token';
 
     (jwt.verify as jest.Mock).mockReturnValue(null);
@@ -289,57 +316,61 @@ describe('refreshTokens', () => {
 
     await expect(refreshTokens(mockCache, context, mockRefreshToken))
       .rejects.toThrow(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${errorMessage}`);
-    expect(mockLogger.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 });
 
 describe('revokeRefreshToken', () => {
   it('should delete the token from the cache', async () => {
-    const mockUserId = casual.integer(1, 999);
-    (mockCache.adapter.delete as jest.Mock);
+    const mockUserJti = casual.integer(1, 999999).toString();
+    (mockCache.adapter.delete as jest.Mock).mockReturnValue(true);
 
-    const result = await revokeRefreshToken(mockCache, mockUserId);
+    const result = await revokeRefreshToken(mockCache, mockUserJti);
 
     expect(result).toBe(true);
-    expect(mockCache.adapter.delete).toHaveBeenCalledWith(`dmspr-${mockUserId}`);
+    expect(mockCache.adapter.delete).toHaveBeenCalledWith(`dmspr-${mockUserJti}`);
   });
 
-  it('should return false and log error on failure', async () => {
-    (mockCache.adapter.delete as jest.Mock).mockImplementation(() => {
-      throw new Error('Test error');
-    });
+  it('should return false if the cache delete returns false', async () => {
+    (mockCache.adapter.delete as jest.Mock).mockReturnValue(false);
 
-    const result = await revokeRefreshToken(mockCache, casual.integer(1, 99));
+    const mockJti = casual.integer(1, 99999).toString();
+    const result = await revokeRefreshToken(mockCache, mockJti);
 
     expect(result).toBe(false);
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.any(Error), `${DEFAULT_INTERNAL_SERVER_MESSAGE} - Test error`
-    );
+  });
+
+  it('should throw and error and log error on failure', async () => {
+    const mockError = new Error('Test error');
+    (mockCache.adapter.delete as jest.Mock).mockImplementation(() => { throw mockError; });
+
+    const expectedErr = `${DEFAULT_INTERNAL_SERVER_MESSAGE} - Test error`;
+    await expect(() => revokeRefreshToken(mockCache, 'mock-token')).rejects.toThrow(expectedErr);
+    const thrownErr = `revokeRefreshToken unable to delete token from cache - Test error`;
+    expect(logger.error).toHaveBeenCalledWith(mockError, thrownErr);
   });
 });
 
 describe('revokeAccessToken', () => {
   it('should add the token to the cache black list', async () => {
-    const mockToken = 'mock-token';
+    const mockJti = casual.integer(1, 999999).toString();
     (mockCache.adapter.set as jest.Mock);
 
-    const result = await revokeAccessToken(mockCache, mockToken);
+    const result = await revokeAccessToken(mockCache, mockJti);
 
     expect(result).toBe(true);
     expect(mockCache.adapter.set)
-      .toHaveBeenCalledWith(`dmspbl-${mockToken}`, mockToken, { ttl: generalConfig.jwtTTL });
+      .toHaveBeenCalledWith(`dmspbl-${mockJti}`, '', { ttl: generalConfig.jwtTTL });
   });
 
-  it('should return false and log error on failure', async () => {
-    (mockCache.adapter.set as jest.Mock).mockImplementation(() => {
-      throw new Error('Test error');
-    });
+  it('should throw and error and log error on failure', async () => {
+    const mockJti = casual.integer(1, 999999).toString();
+    const mockError = new Error('Test error');
+    (mockCache.adapter.set as jest.Mock).mockImplementation(() => { throw mockError; });
 
-    const result = await revokeAccessToken(mockCache, 'mock-token');
-
-    expect(result).toBe(false);
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.any(Error), `${DEFAULT_INTERNAL_SERVER_MESSAGE} - Test error`
-    );
+    const expectedErr = `${DEFAULT_INTERNAL_SERVER_MESSAGE} - Test error`;
+    await expect(() => revokeAccessToken(mockCache, mockJti)).rejects.toThrow(expectedErr);
+    const thrownErr = `revokeAccessToken unable to add token to black list - Test error`;
+    expect(logger.error).toHaveBeenCalledWith(mockError, thrownErr);
   });
 });

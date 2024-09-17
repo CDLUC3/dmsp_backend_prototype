@@ -11,6 +11,10 @@
 - Script to nuke the DB so it can be easily rebuilt from scratch
 - Added husky precommit tasks
 - Added data migrations for Section and Tag
+- Added Redis to the docker-compose file
+- Added Cache data source (and tests)
+- Added signoutController and refreshTokenController
+- Added tests for all Controllers
 
 ### Updated
 - Updated `src/context.ts` to use a `buildContext` wrapper function that can be called when building the context for Apollo Server and our `signin` and `signup` endpoints.
@@ -19,6 +23,7 @@
 - Updated `graphQLErrors` with more error types
 - Added MariaDB to docker-compose
 - data-migrations/README.md with instructions on running migrations in the Docker container
+- tokenService now supports refresh tokens and signout
 
 ## v0.0.1
 Initial Apollo Server build

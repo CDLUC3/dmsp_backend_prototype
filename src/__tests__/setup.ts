@@ -6,8 +6,10 @@ jest.mock('pino', () => () => logger);
 // Always mock out our config files
 jest.mock('../config/generalConfig', () => ({
   generalConfig: {
-    jwtSecret: 'testing',
-    jwtTtl: 5,
+    jwtSecret: 'testJwtSecret',
+    jwtTTL: 5,
+    jwtRefreshSecret: 'testJwtRefreshSecret',
+    jwtRefreshTTl: 500,
   }
 }));
 

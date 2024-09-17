@@ -3,7 +3,7 @@ import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import Redis from 'ioredis';
 import { KeyvAdapter } from '@apollo/utils.keyvadapter';
-import { logger, formatLogMessage } from '../../__mocks__/logger';
+import { logger } from '../../__mocks__/logger';
 
 // Mock Redis Cluster, Keyv, KeyvRedis, and KeyvAdapter
 jest.mock('ioredis', () => ({

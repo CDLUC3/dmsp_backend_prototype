@@ -27,7 +27,7 @@ export const setTokenCookie = (res: Response, name: string, value: string, maxAg
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Use secure in production
     sameSite: 'strict',
-    maxAge: maxAge || Number.parseInt(process.env.JWT_TTL),
+    maxAge: maxAge || generalConfig.jwtTTL,
     path: '/' // Ensure the cookie is accessible for your entire app
   });
 };
@@ -84,13 +84,14 @@ export const generateTokens = async (cache: Cache, user: User): Promise<{ access
 
       return { accessToken, refreshToken };
     } catch(err) {
-      return { accessToken: null, refreshToken: null };
+      formatLogMessage(logger).error(err, 'generateTokens - unable to generate tokens');
     }
   }
+  return { accessToken: null, refreshToken: null };
 };
 
 // Verify an Access Token
-export const verifyAccessToken = async (cache: Cache, accessToken: string): Promise<JWTAccessToken> => {
+export const verifyAccessToken = (accessToken: string): JWTAccessToken => {
   try {
     return jwt.verify(accessToken, generalConfig.jwtSecret as string) as JWTAccessToken;
   } catch(err) {
@@ -116,13 +117,19 @@ const verifyRefreshToken = (refreshToken: string): JWTRefreshToken => {
 // See if the access token is in the black list of revoked tokens
 export const isRevokedCallback = async (_req: Express.Request, token?: jwt.Jwt): Promise<boolean> => {
   if (token && token.payload && typeof token.payload === 'object') {
+    // Fetch the unique JTI from the token
     const jti = (token.payload as JwtPayload).jti;
     const cache = Cache.getInstance();
 
     if (jti) {
-      const result = await cache.adapter.get(`dmspbl-${jti}`);
-      if (result) {
-        return true;
+      try {
+        // See if the JTI is in the black list
+        const result = await cache.adapter.get(`dmspbl-${jti}`);
+        if (result) {
+          return true;
+        }
+      } catch(err) {
+        formatLogMessage(logger).error(err, 'isRevokedCallback - unable to fetch token from cache');
       }
     }
   }

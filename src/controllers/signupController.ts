@@ -12,7 +12,7 @@ export const signupController = async (req: Request, res: Response) => {
 
     if (user) {
       if (user.errors?.length >= 1) {
-        res.status(400).json({ success: false, message: user.errors?.join('| ') });
+        res.status(400).json({ success: false, message: user.errors?.join(' | ') });
       } else {
         const cache = Cache.getInstance();
         const { accessToken, refreshToken} = await generateTokens(cache, user);
@@ -22,14 +22,11 @@ export const signupController = async (req: Request, res: Response) => {
           setTokenCookie(res, 'dmspt', accessToken, generalConfig.jwtTTL);
           setTokenCookie(res, 'dmspr', refreshToken, generalConfig.jwtRefreshTTL);
 
-          res.status(200).json({ success: true });
-        } else {
-          throw new Error('Signup failed');
+          res.status(200).json({ success: true, message: 'ok' });
         }
       }
-    } else {
-      res.status(500).json({ success: false, message: 'Unable to create the account at this time.' });
     }
+    res.status(500).json({ success: false, message: 'Unable to create the account at this time.' });
   } catch (err) {
     formatLogMessage(logger, { msg: `Signup error. userId: ${user.id}, error: ${err?.message}` });
     res.status(500).json({ success: false, message: 'Internal server error' });
