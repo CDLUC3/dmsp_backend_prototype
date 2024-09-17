@@ -79,6 +79,7 @@ export const mockToken = (user = mockUser()): JWTAccessToken => {
     affiliationId: user.affiliationId,
     role: user.role,
     jti: casual.integer(1, 999999).toString(),
+    expiresIn: casual.integer(1, 999999999),
   }
 }
 

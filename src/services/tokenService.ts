@@ -15,10 +15,12 @@ export interface JWTAccessToken extends JwtPayload {
   surName: string,
   role: string,
   jti: string,
-}
+  expiresIn: number,
+ }
 
 export interface JWTRefreshToken extends JwtPayload {
   id: number,
+  expiresIn: number,
 }
 
 // Helper function to set a secure HTTP-only cookie
@@ -43,6 +45,7 @@ const generateAccessToken = (jti: string, user: User): string => {
       affiliationId: user.affiliationId,
       role: user.role.toString() || UserRole.RESEARCHER,
       jti,
+      expiresIn: generalConfig.jwtTTL,
     };
 
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTTL });
@@ -57,7 +60,10 @@ const generateAccessToken = (jti: string, user: User): string => {
 // Generate a refresh token for the User and add it to the Cache.
 const generateRefreshToken = async (cache: Cache, jti: string, userId: number): Promise<string> => {
   try {
-    const payload: JWTRefreshToken = { id: userId };
+    const payload: JWTRefreshToken = {
+      id: userId,
+      expiresIn: generalConfig.jwtTTL,
+    };
 
     const token = jwt.sign(payload, generalConfig.jwtRefreshSecret as string, { expiresIn: generalConfig.jwtRefreshTTL });
     // Add the refresh token to the Cache
