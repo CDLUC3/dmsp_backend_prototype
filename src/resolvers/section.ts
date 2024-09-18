@@ -4,7 +4,6 @@ import { Section } from "../models/Section";
 import { SectionTag } from "../models/SectionTag";
 import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
-import { VersionedSection } from "../models/VersionedSection";
 import { cloneSection, hasPermission } from "../services/sectionService";
 import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErrors";
 
