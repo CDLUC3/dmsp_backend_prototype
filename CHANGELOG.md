@@ -1,5 +1,6 @@
 
 ### Added
+- Added acceptedTerms to User schema
 - Added schema for Section and Tag
 - Initial schema, model, mocks and resolver for Templates
 - Initial schema, model, mocks and resolver for Collaborators
