@@ -1,26 +1,11 @@
 import express, { Request, Response } from 'express';
-import { expressjwt } from 'express-jwt';
-import { generalConfig } from './config/generalConfig';
+import { authMiddleware } from './middleware/auth';
 import { signinController } from './controllers/signinController';
 import { signupController } from './controllers/signupController';
 import { refreshTokenController } from './controllers/refreshTokenController';
-import { isRevokedCallback } from './services/tokenService';
 import { signoutController } from './controllers/signoutController';
 
 const router = express.Router();
-
-const authMiddleware = expressjwt({
-  algorithms: ['HS256'],
-  credentialsRequired: false,
-  secret: generalConfig.jwtSecret as string,
-  getToken: function fromHeader(req) {
-    if (req.headers.authorization && req.headers.authorization.split(" ")[0] === "Bearer") {
-      return req.headers.authorization.split(" ")[1];
-    }
-    return req.headers.authorization;
-  },
-  isRevoked: isRevokedCallback,
-});
 
 // Support for user auth
 router.post('/apollo-signin', (req: Request, res: Response) => signinController(req, res));

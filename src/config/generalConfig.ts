@@ -1,13 +1,16 @@
 import { verifyCriticalEnvVariable } from "../utils/helpers";
 
 // Verify these critical variables on startup!
+verifyCriticalEnvVariable('TOKEN_HASH_SECRET');
 verifyCriticalEnvVariable('JWT_SECRET');
 verifyCriticalEnvVariable('JWT_REFRESH_SECRET');
 
 export const generalConfig = {
-  restDataSourceCacheTtl: process.env.REST_DATA_SOURCE_CACHE_TTL,
+  restDataSourceCacheTtl: Number.parseInt(process.env.REST_DATA_SOURCE_CACHE_TTL) || 180,
 
   bcryptSaltRounds: Number.parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,
+
+  hashTokenSecret: process.env.TOKEN_HASH_SECRET,
 
   jwtSecret: process.env.JWT_SECRET,
   jwtTTL: Number.parseInt(process.env.JWT_TTL) || 600, // Default is 10 minutes

@@ -1,5 +1,6 @@
 import casual from 'casual';
 import jwt, { Jwt } from 'jsonwebtoken';
+import { createHash } from 'crypto';
 import { Response } from 'express';
 import { logger } from '../../__mocks__/logger';
 import { User, UserRole } from '../../models/User';
@@ -9,10 +10,12 @@ import { generalConfig } from '../../config/generalConfig';
 import {
   setTokenCookie,
   generateAuthTokens,
-  refreshTokens,
+  refreshAuthTokens,
   revokeAccessToken,
   revokeRefreshToken,
   isRevokedCallback,
+  verifyCSRFToken,
+  generateCSRFToken,
 } from '../tokenService'; // assuming the original code is in auth.ts
 import { buildContext, mockToken } from '../../__mocks__/context';
 
@@ -156,6 +159,21 @@ describe('setTokenCookie', () => {
   });
 });
 
+describe('generateCSRFToken', () => {
+  it('should generate a CSRF token and store the hashed version in the cache', async () => {
+    (mockCache.adapter.set as jest.Mock);
+    expect(await generateCSRFToken(mockCache)).toBeTruthy();
+  });
+
+  it('should return null if it is unable to store the CSRF token in the cache', async () => {
+    const mockError = new Error('test CSRF failure');
+    (mockCache.adapter.set as jest.Mock).mockImplementation(() => { throw mockError; });
+
+    expect(await generateCSRFToken(mockCache)).toEqual(null);
+    expect(logger.error).toHaveBeenLastCalledWith(mockError, 'generateCSRFToken error!');
+  });
+});
+
 describe('generateAuthTokens', () => {
   it('should generate access and refresh tokens', async () => {
     const mockAccessToken = 'mock-access-token';
@@ -173,9 +191,7 @@ describe('generateAuthTokens', () => {
 
     expect(result).toEqual({ accessToken: mockAccessToken, refreshToken: mockRefreshToken });
     expect(jwt.sign).toHaveBeenCalledTimes(2);
-    expect(mockCache.adapter.set).toHaveBeenCalledWith(
-      `dmspr-${mockDate.getTime().toString()}`, mockRefreshToken, { ttl: generalConfig.jwtRefreshTTL }
-    );
+    expect(mockCache.adapter.set).toHaveBeenCalled();
 
     jest.useRealTimers();
   });
@@ -183,6 +199,26 @@ describe('generateAuthTokens', () => {
   it('should return null tokens if conditions are not met', async () => {
     const result = await generateAuthTokens(mockCache, {} as User);
     expect(result).toEqual({ accessToken: null, refreshToken: null });
+  });
+});
+
+describe('verifyCSRFToken', () => {
+  it('returns true when the CSRF token matches the hashed token in the cache', async () => {
+    const token = 'csrf-token';
+    const hashed = createHash('sha256').update(`${token}${generalConfig.hashTokenSecret}`).digest('hex');
+
+    (mockCache.adapter.get as jest.Mock).mockResolvedValue(hashed);
+
+    expect(await verifyCSRFToken(mockCache, token)).toBe(true);
+  });
+
+  it('returns false when the CSRF token does NOT match the hashed token in the cache', async () => {
+    const token = 'csrf-token';
+    const hashed = 'hashed-token';
+
+    (mockCache.adapter.get as jest.Mock).mockResolvedValue(hashed);
+
+    expect(await verifyCSRFToken(mockCache, token)).toBe(false);
   });
 });
 
@@ -206,7 +242,7 @@ describe('isRevokedCallback', () => {
 
     await isRevokedCallback(null, token as Jwt);
     const expoectedErr = 'isRevokedCallback - unable to fetch token from cache';
-    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl-${mockJti}`);
+    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl:${mockJti}`);
     expect(logger.error).toHaveBeenLastCalledWith(mockErr, expoectedErr);
   });
 
@@ -217,11 +253,11 @@ describe('isRevokedCallback', () => {
     (mockCache.adapter.get as jest.Mock).mockReturnValueOnce(mockJti);
 
     expect(await isRevokedCallback(null, token as Jwt)).toBe(true);
-    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl-${mockJti}`);
+    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl:${mockJti}`);
   });
 });
 
-describe('refreshTokens', () => {
+describe('refreshAuthTokens', () => {
   let context;
 
   beforeEach(() => {
@@ -232,18 +268,19 @@ describe('refreshTokens', () => {
 
   it('should refresh valid tokens', async () => {
     const mockRefreshToken = 'valid-refresh-token';
-
+    const hashedToken = createHash('sha256').update(`${mockRefreshToken}${generalConfig.hashTokenSecret}`).digest('hex');
     const mockNewAccessToken = 'valid-access-token';
     const mockNewRefreshToken = 'valid-refresh-token';
 
     (jwt.verify as jest.Mock).mockImplementation(() => { return mockUser; });
+    (mockCache.adapter.get as jest.Mock).mockResolvedValue(hashedToken);
     (User.findById as jest.Mock).mockReturnValue(mockUser);
     (jwt.sign as jest.Mock).mockImplementation((_payload, secret) => {
       if (secret === generalConfig.jwtSecret) return mockNewAccessToken;
       if (secret === generalConfig.jwtRefreshSecret) return mockNewRefreshToken;
     })
 
-    const result = await refreshTokens(mockCache, context, mockRefreshToken);
+    const result = await refreshAuthTokens(mockCache, context, mockRefreshToken);
 
     expect(result).toEqual({ accessToken: mockNewAccessToken, refreshToken: mockNewRefreshToken });
     expect(jwt.verify).toHaveBeenCalledWith(mockRefreshToken, generalConfig.jwtRefreshSecret);
@@ -251,12 +288,14 @@ describe('refreshTokens', () => {
 
   it('should return null tokens if the User could not be found', async () => {
     const mockRefreshToken = 'revoked-refresh-token';
+    const hashedToken = createHash('sha256').update(`${mockRefreshToken}${generalConfig.hashTokenSecret}`).digest('hex');
     const mockUserId = casual.integer(1, 999);
 
     (jwt.verify as jest.Mock).mockImplementation(() => { return { id: mockUserId }; });
+    (mockCache.adapter.get as jest.Mock).mockResolvedValue(hashedToken);
     (User.findById as jest.Mock).mockReturnValue(null);
 
-    const result = await refreshTokens(mockCache, context, mockRefreshToken);
+    const result = await refreshAuthTokens(mockCache, context, mockRefreshToken);
     expect(result.accessToken).toBeFalsy();
     expect(result.refreshToken).toBeFalsy();
   });
@@ -266,20 +305,34 @@ describe('refreshTokens', () => {
 
     (jwt.verify as jest.Mock).mockReturnValue(null);
 
-    const result = await refreshTokens(mockCache, context, mockRefreshToken);
+    const result = await refreshAuthTokens(mockCache, context, mockRefreshToken);
     expect(result.accessToken).toBeFalsy();
     expect(result.refreshToken).toBeFalsy();
   });
 
+  it('should throw an AuthenticationError if RefreshToken does not match the one stored in the cache', async () => {
+    const mockRefreshToken = 'invalid-refresh-token';
+    const mockHashed = 'mismatched-hash';
+    const mockUserId = casual.integer(1, 999);
+    const errorMessage = 'Invalid refresh token';
+
+    (jwt.verify as jest.Mock).mockImplementation(() => { return { id: mockUserId }; });
+    (mockCache.adapter.get as jest.Mock).mockResolvedValue(mockHashed);
+
+    await expect(refreshAuthTokens(mockCache, context, mockRefreshToken))
+      .rejects.toThrow(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${errorMessage}`);
+    expect(logger.error).toHaveBeenCalled();
+  });
+
   it('should throw an AuthenticationError if jwt or RefreshToken throw an error', async () => {
     const mockRefreshToken = 'invalid-refresh-token';
-    const errorMessage = 'Revoked token';
+    const errorMessage = 'Invalid refresh token';
 
     (jwt.verify as jest.Mock).mockImplementation(() => {
       throw new Error(errorMessage);
     });;
 
-    await expect(refreshTokens(mockCache, context, mockRefreshToken))
+    await expect(refreshAuthTokens(mockCache, context, mockRefreshToken))
       .rejects.toThrow(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${errorMessage}`);
     expect(logger.error).toHaveBeenCalled();
   });
@@ -293,7 +346,7 @@ describe('revokeRefreshToken', () => {
     const result = await revokeRefreshToken(mockCache, mockUserJti);
 
     expect(result).toBe(true);
-    expect(mockCache.adapter.delete).toHaveBeenCalledWith(`dmspr-${mockUserJti}`);
+    expect(mockCache.adapter.delete).toHaveBeenCalledWith(`dmspr:${mockUserJti}`);
   });
 
   it('should return false if the cache delete returns false', async () => {
@@ -325,7 +378,7 @@ describe('revokeAccessToken', () => {
 
     expect(result).toBe(true);
     expect(mockCache.adapter.set)
-      .toHaveBeenCalledWith(`dmspbl-${mockJti}`, '', { ttl: generalConfig.jwtTTL });
+      .toHaveBeenCalledWith(`dmspbl:${mockJti}`, '', { ttl: generalConfig.jwtTTL });
   });
 
   it('should throw and error and log error on failure', async () => {

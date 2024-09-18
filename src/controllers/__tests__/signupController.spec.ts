@@ -1,7 +1,7 @@
 import casual from 'casual';
 import { Request, Response } from 'express';
 import { Cache } from "../../datasources/cache";
-import { generateTokens, setTokenCookie } from '../../services/tokenService';
+import { generateAuthTokens, setTokenCookie } from '../../services/tokenService';
 import { generalConfig } from '../../config/generalConfig';
 import * as UserModel from '../../models/User';
 import { signupController } from '../signupController';
@@ -18,6 +18,7 @@ const mockedUser: UserModel.User = {
   surName: casual.last_name,
   affiliationId: casual.url,
   role: UserModel.UserRole.RESEARCHER,
+  acceptedTerms: true,
   password: casual.uuid,
   created: new Date().toISOString(),
   errors: [],
@@ -68,14 +69,14 @@ describe('signupController', () => {
 
   it('should sign the user in and set the access and refresh tokens successfully', async () => {
     jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockedUser);
-    (generateTokens as jest.Mock).mockResolvedValue({
+    (generateAuthTokens as jest.Mock).mockResolvedValue({
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token'
     });
 
     await signupController(mockRequest as Request, mockResponse as Response);
 
-    expect(generateTokens).toHaveBeenCalledWith(mockCache, mockedUser);
+    expect(generateAuthTokens).toHaveBeenCalledWith(mockCache, mockedUser);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token', generalConfig.jwtTTL);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspr', 'new-refresh-token', generalConfig.jwtRefreshTTL);
     expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -104,7 +105,7 @@ describe('signupController', () => {
 
   it('should return 500 if unable to generate tokens', async () => {
     jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockedUser);
-    (generateTokens as jest.Mock).mockResolvedValue({});
+    (generateAuthTokens as jest.Mock).mockResolvedValue({});
 
     await signupController(mockRequest as Request, mockResponse as Response);
 
@@ -115,7 +116,7 @@ describe('signupController', () => {
   it('should return 500 if an unexpected error occurs', async () => {
     jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockedUser);
     const mockError = new Error('Unexpected error');
-    (generateTokens as jest.Mock).mockRejectedValue(mockError);
+    (generateAuthTokens as jest.Mock).mockRejectedValue(mockError);
 
     await signupController(mockRequest as Request, mockResponse as Response);
 

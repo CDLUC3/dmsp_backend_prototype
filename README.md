@@ -49,6 +49,18 @@ Our Apollo server consists of:
 - Resolvers: The code that processes incoming queries and uses the available data sources to generate the response
 - Mocks: Stub or placeholder data that can be returned when a resolver has not yet been developed
 
+### Security
+
+**CORS**
+The system uses CORS to ensure that traffic only comes from approved callers.
+
+**CSRF**
+The system uses the `X-CSRF-Token` header to store CSRF tokens. CSRF tokens are generated on each request. The token is hashed and stored in the Redis cache to ensure that it has not been tampered with. When the caller submits a non-GET (or OPTIONS or HEAD) request, they must include the CSRF token.
+
+**Access/Refresh Tokens**
+Once a user signs in, the system generates an Access Token and a Refresh Token. The refresh token is hashed and stored in the Redis cache. The system then stores these tokens in HTTP-only cookies: access token `dmspt` and refresh token `dmspr`.
+
+
 ### Authentication
 
 The system provides a few endpoints that exist outside the Apollo Server GraphQL context. These endpoints allow a user to authenticate and acquire JSON web tokens which are placed into HTTP-only cookies. Those cookies are then used to perform authorization checks when running GraphQL queries.

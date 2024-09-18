@@ -29,6 +29,11 @@ export interface CSRFToken {
   id: string,
 }
 
+// Hash a token
+const hashToken = (token: string): string => {
+  return createHash('sha256').update(`${token}${generalConfig.hashTokenSecret}`).digest('hex');
+}
+
 // Helper function to set a secure HTTP-only cookie
 export const setTokenCookie = (res: Response, name: string, value: string, maxAge?: number): void => {
   res.cookie(name, value, {
@@ -41,13 +46,18 @@ export const setTokenCookie = (res: Response, name: string, value: string, maxAg
 };
 
 // Generate a new CSRF token the session
-const generateCSRFToken = async (cache: Cache, sessionId: string): Promise<string> => {
-  const csrfToken = uuidv4().replace(/-/g, '').slice(0, generalConfig.csrfLength);
-  const hashedToken = await hashToken(csrfToken);
+export const generateCSRFToken = async (cache: Cache): Promise<string> => {
+  try {
+    const csrfToken = uuidv4().replace(/-/g, '').slice(0, generalConfig.csrfLength);
+    const hashedToken = await hashToken(csrfToken);
 
-  // Add the refresh token to the Cache
-  await cache.adapter.set(`csrf:${sessionId}`, hashedToken, { ttl: generalConfig.csrfTTL });
-  return csrfToken;
+    // Add the refresh token to the Cache
+    await cache.adapter.set(`csrf:${csrfToken}`, hashedToken, { ttl: generalConfig.csrfTTL });
+    return csrfToken;
+  } catch(err) {
+    formatLogMessage(logger).error(err, 'generateCSRFToken error!');
+    return null;
+  }
 }
 
 // Generate an access token for the User
@@ -115,23 +125,36 @@ export const generateAuthTokens = async (cache: Cache, user: User): Promise<{ ac
 };
 
 // Verify a CSRF Token
-const verifyCSRFToken = async (cache: Cache, sessionId: string, csrfToken: string): Promise<boolean> {
-  const storedHash = await cache.adapter.get(`csrf:${sessionId}`);
-  if (!storedHash) return false;
+export const verifyCSRFToken = async (cache: Cache, csrfToken: string): Promise<boolean> => {
+  try {
+    const storedHash = await cache.adapter.get(`csrf:${csrfToken}`);
+    if (!storedHash) return false;
 
-  const calculatedHash = hashToken(csrfToken);
-  return timingSafeEqual(Buffer.from(storedHash), Buffer.from(calculatedHash));
+    const calculatedHash = hashToken(csrfToken);
+    return timingSafeEqual(Buffer.from(storedHash), Buffer.from(calculatedHash));
+  } catch(err) {
+    formatLogMessage(logger).error(err, 'verifyCSRFToken failure');
+    return false;
+  }
 }
 
 // Verify a Refresh Token
-const verifyRefreshToken = (refreshToken: string): JWTRefreshToken => {
+const verifyRefreshToken = async (cache: Cache, refreshToken: string): Promise<JWTRefreshToken> => {
   try {
-    return jwt.verify(refreshToken, generalConfig.jwtRefreshSecret) as JWTRefreshToken;
+    const token = jwt.verify(refreshToken, generalConfig.jwtRefreshSecret) as JWTRefreshToken;
+
+    if (token) {
+      // Make sure the token hasn't been tampered with
+      const storedHash = await cache.adapter.get(`dmspr:${token.jti}`);
+      const calculatedHash = hashToken(refreshToken);
+      return timingSafeEqual(Buffer.from(storedHash), Buffer.from(calculatedHash)) ? token : null;
+    }
+    return null;
   } catch(err) {
     if (logger) {
       formatLogMessage(logger).error(err, `verifyRefreshToken error - ${err.message}`);
     }
-    throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
+    throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - Invalid refresh token`);
   }
 };
 
@@ -158,19 +181,19 @@ export const isRevokedCallback = async (_req: Express.Request, token?: jwt.Jwt):
 };
 
 // Refresh the Access and Refresh Tokens
-export const refreshTokens = async (
+export const refreshAuthTokens = async (
   cache: Cache,
   context: MyContext,
   originalRefreshToken: string
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
     // Verify the refresh token
-    const verified = verifyRefreshToken(originalRefreshToken);
+    const verified = await verifyRefreshToken(cache, originalRefreshToken);
 
     // Make sure the user still exists
     if (verified?.id) {
       // TODO: We can eventually add some checks here to see if the account if locked or deactivated
-      const user = await User.findById('refreshTokens', context, verified.id);
+      const user = await User.findById('refreshAuthTokens', context, verified.id);
       if (user) {
         return generateAuthTokens(cache, user);
       }
@@ -179,7 +202,7 @@ export const refreshTokens = async (
     return { accessToken: null, refreshToken: null };
   } catch (err) {
     if (logger) {
-      formatLogMessage(logger).error(err, `refreshTokens error - ${err.message}`);
+      formatLogMessage(logger).error(err, `refreshAuthTokens error - ${err.message}`);
     }
     throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
   }

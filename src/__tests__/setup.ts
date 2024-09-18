@@ -10,6 +10,7 @@ jest.mock('../config/generalConfig', () => ({
     jwtTTL: 5,
     jwtRefreshSecret: 'testJwtRefreshSecret',
     jwtRefreshTTl: 500,
+    hashTokenSecret: 'testTokenSecret',
   }
 }));
 

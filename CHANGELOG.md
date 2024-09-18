@@ -14,6 +14,7 @@
 - Added data migrations for Section and Tag
 - Added Redis to the docker-compose file
 - Added Cache data source (and tests)
+- Added CSRF middleware
 - Added signoutController and refreshTokenController
 - Added tests for all Controllers
 
@@ -24,9 +25,10 @@
 - Updated `graphQLErrors` with more error types
 - Added MariaDB to docker-compose
 - data-migrations/README.md with instructions on running migrations in the Docker container
-- tokenService now supports refresh tokens and signout
-- updated express middelware to fetch the access token from the cookies instead of the headers
+- tokenService now supports refresh tokens, CSRF tokens and signout
+- updated express middelware to fetch the access token and refresh tokens from the cookies instead of the headers
 - removed old oauth-server package which had security vulnerabilities
+- moved authMiddleware function from the router.ts into its own class in src/middelware
 
 ## v0.0.1
 Initial Apollo Server build

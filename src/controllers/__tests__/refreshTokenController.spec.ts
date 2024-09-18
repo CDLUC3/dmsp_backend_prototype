@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { Request } from 'express-jwt';
 import { Cache } from "../../datasources/cache";
-import { refreshTokens, setTokenCookie } from '../../services/tokenService';
+import { refreshAuthTokens, setTokenCookie } from '../../services/tokenService';
 import { generalConfig } from '../../config/generalConfig';
 import { logger } from '../../__mocks__/logger';
 import { refreshTokenController } from '../refreshTokenController';
@@ -28,7 +28,7 @@ describe('refreshTokenController', () => {
 
     mockRequest = {
       auth: { jti: casual.integer(1, 99999).toString(), id: casual.integer(1, 999) },
-      headers: { 'x-refresh-token': 'old-refresh-token' }
+      headers: { 'x-refresh-token': 'old-refresh-token' },
     };
     mockResponse = {
       status: jest.fn().mockReturnThis(),
@@ -53,21 +53,16 @@ describe('refreshTokenController', () => {
   });
 
   it('should refresh tokens successfully', async () => {
-    mockRequest = {
-      headers: {
-        'authorization': 'Bearer old-access-token',
-        'x-refresh-token': 'old-refresh-token'
-      }
-    };
+    mockRequest.cookies = { dmspr: 'old-refresh-token' };
 
-    (refreshTokens as jest.Mock).mockResolvedValue({
+    (refreshAuthTokens as jest.Mock).mockResolvedValue({
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token'
     });
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
-    expect(refreshTokens).toHaveBeenCalledWith(mockCache, mockContext(), 'old-refresh-token');
+    expect(refreshAuthTokens).toHaveBeenCalledWith(mockCache, mockContext(), 'old-refresh-token');
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token', generalConfig.jwtTTL);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspr', 'new-refresh-token', generalConfig.jwtRefreshTTL);
     expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -75,12 +70,6 @@ describe('refreshTokenController', () => {
   });
 
   it('should return 401 if refresh token is missing', async () => {
-    mockRequest = {
-      headers: {
-        'authorization': 'Bearer old-access-token'
-      }
-    };
-
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(401);
@@ -88,7 +77,8 @@ describe('refreshTokenController', () => {
   });
 
   it('should return 400 if unable to refresh tokens', async () => {
-    (refreshTokens as jest.Mock).mockResolvedValue({});
+    mockRequest.cookies = { dmspr: 'old-refresh-token' };
+    (refreshAuthTokens as jest.Mock).mockResolvedValue({});
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
@@ -97,7 +87,8 @@ describe('refreshTokenController', () => {
   });
 
   it('should return 500 if an unexpected error occurs', async () => {
-    (refreshTokens as jest.Mock).mockRejectedValue(new Error('Unexpected error'));
+    mockRequest.cookies = { dmspr: 'old-refresh-token' };
+    (refreshAuthTokens as jest.Mock).mockRejectedValue(new Error('Unexpected error'));
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
