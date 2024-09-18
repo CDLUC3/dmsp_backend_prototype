@@ -22,6 +22,8 @@ export const typeDefs = gql`
     id: Int
     "The parent VersionedTemplate"
     versionedTemplate: VersionedTemplate!
+    "The sectionId for the snapshot section"
+    sectionId: Int
     "The section that this is a snapshot of"
     section: Section
     "The type of version: Published or Draft (default: Draft)"

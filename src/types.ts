@@ -725,6 +725,8 @@ export type VersionedSection = {
   requirements?: Maybe<Scalars['String']['output']>;
   /** The section that this is a snapshot of */
   section?: Maybe<Section>;
+  /** The sectionId for the snapshot section */
+  sectionId?: Maybe<Scalars['Int']['output']>;
   /** The Tags associated with this VersionedSection */
   tags?: Maybe<Array<Maybe<Tag>>>;
   /** The type of version: Published or Draft (default: Draft) */
@@ -1271,6 +1273,7 @@ export type VersionedSectionResolvers<ContextType = MyContext, ParentType extend
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   requirements?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType>;
+  sectionId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   tags?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType>;
   versionType?: Resolver<Maybe<ResolversTypes['SectionVersionType']>, ParentType, ContextType>;
   versionedTemplate?: Resolver<ResolversTypes['VersionedTemplate'], ParentType, ContextType>;

@@ -1,6 +1,5 @@
 import casual from "casual";
 import { VersionedSection } from "../VersionedSection";
-import { TemplateVersionType } from '../VersionedTemplate';
 import mockLogger from "../../__tests__/mockLogger";
 import { buildContext, mockToken } from "../../__mocks__/context";
 
@@ -66,7 +65,7 @@ describe('getVersionedSectionsBySectionId', () => {
         const expectedSql = 'SELECT * FROM versionedSections WHERE sectionId = ?';
         expect(localQuery).toHaveBeenCalledTimes(1);
         expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [sectionId.toString()], 'VersionedSection query')
-        expect(result).toEqual(versionedSection);
+        expect(result).toEqual([versionedSection]);
     });
     it('should return null if it finds no VersionedSection', async () => {
         localQuery.mockResolvedValueOnce([]);
@@ -109,13 +108,13 @@ describe('getVersionedSectionsByName', () => {
         localQuery.mockResolvedValueOnce([versionedSection]);
 
         const result = await VersionedSection.getVersionedSectionsByName('VersionedSection query', context, versionedSection.name);
-        const expectedSql = 'SELECT * FROM versionedSections WHERE name LIKE ? AND active = 1 AND versionType = ?';
-        const vals = [`%${versionedSection.name}%`, TemplateVersionType.PUBLISHED];
+        const expectedSql = 'SELECT * FROM versionedSections WHERE name LIKE ?';
+        const vals = [`%${versionedSection.name}%`];
         expect(localQuery).toHaveBeenCalledTimes(1);
         expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'VersionedSection query')
         /* As part of this unit test, all fields without a value default to 'undefined' for the mocked VersionedSection, but
 the getVersionedSectionsBySectionId method returns an empty array for tags, and not undefined*/
-        expect(result).toEqual(versionedSection)
+        expect(result).toEqual([versionedSection])
     });
 
     it('should return null if it finds no VersionedSection', async () => {

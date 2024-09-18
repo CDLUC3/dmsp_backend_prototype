@@ -3,6 +3,7 @@ import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { Tag } from "../models/Tag";
 import { hasPermission } from "../services/sectionService";
+import { isSuperAdmin } from "../services/authService";
 import { NotFoundError, ForbiddenError } from "../utils/graphQLErrors";
 
 
@@ -27,43 +28,41 @@ export const resolvers: Resolvers = {
     },
     Mutation: {
         addTag: async (_, { name, description }, context: MyContext): Promise<Tag> => {
-            const tag = new Tag({ name, description });
-            const newTag = await tag.create(context);
-            if (newTag) {
-                return newTag;
-            } else {
-                throw ForbiddenError();
+            if (isSuperAdmin(context.token)) {
+                const tag = new Tag({ name, description });
+                return await tag.create(context);
             }
+            throw ForbiddenError();
         },
         updateTag: async (_, { tagId, name, description }, context: MyContext): Promise<Tag> => {
-            const tagData = await Tag.getTagById('updateTag resolver', context, tagId);
-            if (tagData) {
-                const tag = new Tag({
-                    ...tagData,  // Spread the existing tag data
-                    name: name || tagData.name,
-                    description: description || tagData.description
-                });
+            if (isSuperAdmin(context.token)) {
+                const tagData = await Tag.getTagById('updateTag resolver', context, tagId);
+                if (tagData) {
+                    const tag = new Tag({
+                        ...tagData,  // Spread the existing tag data
+                        name: name || tagData.name,
+                        description: description || tagData.description
+                    });
 
-                const updatedTag = await tag.update(context);
-
-                if (updatedTag) {
-                    return updatedTag;
-                } else {
-                    throw ForbiddenError();
+                    return await tag.update(context);
                 }
+                throw NotFoundError();
             }
-            throw NotFoundError();
+            throw ForbiddenError();
         },
         removeTag: async (_, { tagId }, context: MyContext): Promise<Tag> => {
-            const tagData = await Tag.getTagById('removeTag resolver', context, tagId);
-            if (tagData) {
-                const tag = new Tag({
-                    ...tagData,
-                    id: tagId
-                });
-                return await tag.delete(context);
+            if (isSuperAdmin(context.token)) {
+                const tagData = await Tag.getTagById('removeTag resolver', context, tagId);
+                if (tagData) {
+                    const tag = new Tag({
+                        ...tagData,
+                        id: tagId
+                    });
+                    return await tag.delete(context);
+                }
+                throw NotFoundError();
             }
-            throw NotFoundError();
+            throw ForbiddenError();
         },
     },
 

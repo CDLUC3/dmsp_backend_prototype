@@ -17,13 +17,7 @@ export const resolvers: Resolvers = {
 
             // Check if the array has data and access the first versioned section
             if (versionedSections.length > 0) {
-                let versionedTemplate = versionedSections[0].versionedTemplate;
-                if (typeof versionedTemplate === 'string') {
-                    //versionedTemplate is a stringified JSON object, so I need to parse it
-                    versionedTemplate = JSON.parse(versionedTemplate);
-                }
-
-                const templateId = versionedTemplate.id;
+                const templateId = versionedSections[0].versionedTemplateId;
                 if (await hasPermission(context, templateId)) {
                     return versionedSections;
                 }
@@ -36,7 +30,8 @@ export const resolvers: Resolvers = {
         publishedSections: async (_, { term }, context: MyContext): Promise<VersionedSection[]> => {
 
             // Find published versionedSections with similar names
-            return await VersionedSection.getVersionedSectionsByName('publishedSections resolver', context, term);
+            const temp = await VersionedSection.getVersionedSectionsByName('publishedSections resolver', context, term);
+            return temp;
 
         }
     },
@@ -44,7 +39,7 @@ export const resolvers: Resolvers = {
     VersionedSection: {
         // Chained resolver to fetch the Section related to VersionedSection
         section: async (parent: VersionedSection, _, context: MyContext): Promise<Section> => {
-            return await Section.getSectionBySectionId('VersionedSection resolver', context, parent.section.id);
+            return await Section.getSectionBySectionId('VersionedSection resolver', context, parent.sectionId);
         },
         // Chained resolver to fetch the versionedTemplate that the VersionedSection belongs to
         versionedTemplate: async (parent: VersionedSection, _, context: MyContext): Promise<VersionedTemplate> => {
@@ -52,7 +47,7 @@ export const resolvers: Resolvers = {
         },
         // Chained resolver to fetch the Tags belonging to VersionedSection
         tags: async (parent: VersionedSection, _, context: MyContext): Promise<Tag[]> => {
-            return await Tag.getTagsBySectionId('updateSection resolver', context, parent.section.id);
+            return await Tag.getTagsBySectionId('updateSection resolver', context, parent.sectionId);
         },
 
     }
