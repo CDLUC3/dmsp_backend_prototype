@@ -54,5 +54,7 @@ export const typeDefs = gql`
     visibility: TemplateVisibility!
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
+    "The VersionedSections that go with the VersionedTemplate"
+    versionedSection: [VersionedSection]
   }
 `;

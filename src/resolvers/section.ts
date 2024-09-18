@@ -5,7 +5,7 @@ import { SectionTag } from "../models/SectionTag";
 import { VersionedSection } from "../models/VersionedSection";
 import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
-import { cloneSection, hasPermission } from "../services/sectionService";
+import { cloneSection, hasPermission, getTagsToAdd } from "../services/sectionService";
 import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErrors";
 
 
@@ -67,16 +67,8 @@ export const resolvers: Resolvers = {
                 } else {
                     const sectionId = newSection.id;
 
-                    /*Add new tags to sectionTag table*/
-
-                    //Get all the existing tags associated with this section
-                    const existingTags = await Tag.getTagsBySectionId('updateSection resolver', context, sectionId);
-
-                    // Create a Set of existing tag names
-                    const existingTagIds = new Set(existingTags.map(tag => tag.name));
-
-                    // Filter out the tags that already exist in the table.
-                    const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.name));
+                    /*Get list of tags that aren't already mapped to the sectionId in SectionTags, to avoid duplicate tag entries*/
+                    const tagsToAdd = await getTagsToAdd(tags as Tag[], context, sectionId);
 
                     // Add tags to sectionTags table that did not already exist
                     if (tags && tags.length > 0 && tagsToAdd.length > 0) {
@@ -129,14 +121,8 @@ export const resolvers: Resolvers = {
                     const errorMessages = updatedSection.errors.join(', ');
                     throw BadUserInput(errorMessages);
                 } else {
-                    //Get all the existing tags associated with this section
-                    const existingTags = await Tag.getTagsBySectionId('updateSection resolver', context, sectionId);
-
-                    // Create a Set of existing tag names
-                    const existingTagIds = new Set(existingTags.map(tag => tag.name));
-
-                    // Filter out the tags that already exist in the table.
-                    const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.name));
+                    /*Get list of tags that aren't already mapped to the sectionId in SectionTags, to avoid duplicate tag entries*/
+                    const tagsToAdd = await getTagsToAdd(tags as Tag[], context, sectionId);
 
                     // Add tags to sectionTags table that did not already exist
                     if (tags && tags.length > 0 && tagsToAdd.length > 0) {

@@ -46,6 +46,13 @@ export class VersionedSection extends MySqlModel {
         return Array.isArray(results) && results.length > 0 ? results : null;
     }
 
+    // Find the VersionedSections by templateId
+    static async getVersionedSectionsByTemplateId(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedSection[]> {
+        const sql = 'SELECT * FROM versionedSections WHERE versionedTemplateId = ?';
+        const results = await VersionedSection.query(context, sql, [versionedTemplateId.toString()], reference);
+        return Array.isArray(results) && results.length > 0 ? results : null;
+    }
+
     // Find the VersionedSection by name
     static async getVersionedSectionsByName(reference: string, context: MyContext, term: string): Promise<VersionedSection[]> {
         const sql = 'SELECT * FROM versionedSections WHERE name LIKE ?';

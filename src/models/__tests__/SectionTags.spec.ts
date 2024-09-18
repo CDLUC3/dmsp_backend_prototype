@@ -53,7 +53,7 @@ describe('create', () => {
     });
 });
 
-describe('deleteSectionTagsBySectionId', () => {
+describe('getSectionTagsBySectionId', () => {
     const originalQuery = SectionTag.query;
 
     let localQuery;
@@ -82,8 +82,8 @@ describe('deleteSectionTagsBySectionId', () => {
     it('should call query with correct params and return the section', async () => {
         localQuery.mockResolvedValueOnce([sectionTag]);
         const sectionId = 1;
-        const result = await SectionTag.deleteSectionTagsBySectionId('SectionTag query', context, sectionId);
-        const expectedSql = 'DELETE FROM sectionTags WHERE sectionId = ?';
+        const result = await SectionTag.getSectionTagsBySectionId('SectionTag query', context, sectionId);
+        const expectedSql = 'SELECT * FROM sectionTags WHERE sectionId = ?';
         expect(localQuery).toHaveBeenCalledTimes(1);
         expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [sectionId.toString()], 'SectionTag query')
         expect(result).toEqual([sectionTag]);

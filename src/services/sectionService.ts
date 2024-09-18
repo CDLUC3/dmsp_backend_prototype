@@ -1,6 +1,8 @@
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { Template } from "../models/Template";
+import { SectionTag } from "../models/SectionTag";
+import { Tag } from "../models/Tag";
 import { VersionedSection } from "../models/VersionedSection";
 import { ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
 
@@ -44,3 +46,17 @@ export const hasPermission = async (context: MyContext, templateId: number): Pro
     return true;
 }
 
+export const getTagsToAdd = async (tags: Tag[], context: MyContext, sectionId: number): Promise<Tag[]> => {
+
+    //Get all the existing tags associated with this section in SectionTags
+    const existingTags = await SectionTag.getSectionTagsBySectionId('updateSection resolver', context, sectionId);
+
+    // Create a Set of existing tag ids
+    const existingTagIds = new Set(existingTags.map(sectionTag => sectionTag.tagId));
+
+    // Filter out the tags that already exist in the sectiontable.
+    const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.id));
+
+    return Array.isArray(tagsToAdd) ? tagsToAdd : [];
+
+}

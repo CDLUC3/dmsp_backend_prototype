@@ -4,6 +4,7 @@ import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
 import { Affiliation } from "../models/Affiliation";
+import { VersionedSection } from "../models/VersionedSection";
 import { AuthenticationError, ForbiddenError } from "../utils/graphQLErrors";
 import { isAdmin } from "../services/authService";
 
@@ -44,6 +45,11 @@ export const resolvers: Resolvers = {
     // Chained resolver to return the User who created the version
     versionedBy: async (parent: VersionedTemplate, _, context: MyContext): Promise<User> => {
       return await User.findById('Chained VersionedTemplate.versionedBy', context, parent.versionedById);
+    },
+
+    // Chained resolver to return the User who created the version
+    versionedSection: async (parent: VersionedTemplate, _, context: MyContext): Promise<VersionedSection[]> => {
+      return await VersionedSection.getVersionedSectionsByTemplateId('Chained VersionedTemplate.versionedSection', context, parent.id);
     },
   },
 };

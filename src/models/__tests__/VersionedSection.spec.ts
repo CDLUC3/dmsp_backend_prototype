@@ -125,3 +125,52 @@ the getVersionedSectionsBySectionId method returns an empty array for tags, and 
     });
 });
 
+describe('getVersionedSectionsByTemplateId', () => {
+    const originalQuery = VersionedSection.query;
+
+    let localQuery;
+    let context;
+    let versionedSection;
+
+    beforeEach(() => {
+        jest.resetAllMocks();
+
+        localQuery = jest.fn();
+        (VersionedSection.query as jest.Mock) = localQuery;
+
+        context = buildContext(logger, mockToken());
+
+        versionedSection = new VersionedSection({
+            name: casual.sentence,
+            introduction: casual.sentence,
+            requirements: casual.sentence,
+            guidance: casual.sentence,
+            displayOrder: casual.integer(1, 20),
+        })
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+        VersionedSection.query = originalQuery;
+    });
+
+    it('should call query with correct params and return the section', async () => {
+        localQuery.mockResolvedValueOnce([versionedSection]);
+        const versionedTemplateId = 1;
+        const result = await VersionedSection.getVersionedSectionsByTemplateId('VersionedSection query', context, versionedTemplateId);
+        const expectedSql = 'SELECT * FROM versionedSections WHERE versionedTemplateId = ?';
+        expect(localQuery).toHaveBeenCalledTimes(1);
+        expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [versionedTemplateId.toString()], 'VersionedSection query')
+        /* As part of this unit test, all fields without a value default to 'undefined' for the mocked VersionedSection, but
+the getVersionedSectionsBySectionId method returns an empty array for tags, and not undefined*/
+        expect(result).toEqual([versionedSection])
+    });
+
+    it('should return null if it finds no VersionedSection', async () => {
+        localQuery.mockResolvedValueOnce([]);
+        const versionedTemplateId = 1;
+        const result = await VersionedSection.getVersionedSectionsByTemplateId('VersionedSection query', context, versionedTemplateId);
+        expect(result).toEqual(null);
+    });
+});
+

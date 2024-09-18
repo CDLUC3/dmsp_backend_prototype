@@ -770,6 +770,8 @@ export type VersionedTemplate = {
   versionType?: Maybe<TemplateVersionType>;
   /** The publisher of the Template */
   versionedBy?: Maybe<User>;
+  /** The VersionedSections that go with the VersionedTemplate */
+  versionedSection?: Maybe<Array<Maybe<VersionedSection>>>;
   /** The template's availability setting: Public is available to everyone, Private only your affiliation */
   visibility: TemplateVisibility;
 };
@@ -1297,6 +1299,7 @@ export type VersionedTemplateResolvers<ContextType = MyContext, ParentType exten
   version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   versionType?: Resolver<Maybe<ResolversTypes['TemplateVersionType']>, ParentType, ContextType>;
   versionedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  versionedSection?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType>;
   visibility?: Resolver<ResolversTypes['TemplateVisibility'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
