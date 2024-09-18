@@ -6,6 +6,7 @@ CREATE TABLE `users` (
   `givenName` VARCHAR(255) NOT NULL,
   `surName` VARCHAR(255) NOT NULL,
   `affiliationId` VARCHAR(255) NOT NULL,
+  `acceptedTerms` TINYINT(1) NOT NULL DEFAULT 0,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
