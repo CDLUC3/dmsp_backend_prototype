@@ -1,6 +1,6 @@
 import casual from "casual";
 import { Section } from "../Section";
-import mockLogger from "../../__tests__/mockLogger";
+import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 
 let context;
@@ -58,7 +58,7 @@ describe('findSectionBySectionName', () => {
         localQuery = jest.fn();
         (Section.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         section = new Section({
             id: casual.integer(1, 9),
@@ -104,7 +104,7 @@ describe('getSectionsByTemplateId', () => {
         localQuery = jest.fn();
         (Section.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         section = new Section({
             id: casual.integer(1, 9),
@@ -150,7 +150,7 @@ describe('getSectionBySectionId', () => {
         localQuery = jest.fn();
         (Section.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         section = new Section({
             id: casual.integer(1, 9),

@@ -1,7 +1,7 @@
 
 import { SectionTag } from "../SectionTag";
 import casual from "casual";
-import mockLogger from "../../__tests__/mockLogger";
+import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 
 let context;
@@ -66,7 +66,7 @@ describe('deleteSectionTagsBySectionId', () => {
         localQuery = jest.fn();
         (SectionTag.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         sectionTag = new SectionTag({
             sectionId: casual.integer(1, 9),

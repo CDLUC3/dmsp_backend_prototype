@@ -1,6 +1,6 @@
 import casual from "casual";
 import { Tag } from "../Tag";
-import mockLogger from "../../__tests__/mockLogger";
+import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 
 let context;
@@ -163,7 +163,7 @@ describe('getAllTags', () => {
         localQuery = jest.fn();
         (Tag.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         tag = new Tag({
             id: casual.integer(1, 9),
@@ -201,7 +201,7 @@ describe('getTagsBySectionId', () => {
         localQuery = jest.fn();
         (Tag.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         tag = new Tag({
             id: casual.integer(1, 9),
@@ -241,7 +241,7 @@ describe('getTagById', () => {
         localQuery = jest.fn();
         (Tag.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         tag = new Tag({
             id: casual.integer(1, 9),
@@ -278,7 +278,7 @@ describe('findTagByTagName', () => {
         localQuery = jest.fn();
         (Tag.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         tag = new Tag({
             id: casual.integer(1, 9),

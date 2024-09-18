@@ -1,6 +1,6 @@
 import casual from "casual";
 import { VersionedSection } from "../VersionedSection";
-import mockLogger from "../../__tests__/mockLogger";
+import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 
 jest.mock('../../context.ts');
@@ -41,7 +41,7 @@ describe('getVersionedSectionsBySectionId', () => {
         localQuery = jest.fn();
         (VersionedSection.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         versionedSection = new VersionedSection({
             name: casual.sentence,
@@ -88,7 +88,7 @@ describe('getVersionedSectionsByName', () => {
         localQuery = jest.fn();
         (VersionedSection.query as jest.Mock) = localQuery;
 
-        context = buildContext(mockLogger, mockToken());
+        context = buildContext(logger, mockToken());
 
         versionedSection = new VersionedSection({
             name: casual.sentence,
