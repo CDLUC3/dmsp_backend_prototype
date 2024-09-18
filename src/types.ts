@@ -666,6 +666,8 @@ export type UpdateSectionInput = {
 /** A user of the DMPTool */
 export type User = {
   __typename?: 'User';
+  /** Whether the user has accepted the terms and conditions of having an account */
+  acceptedTerms?: Maybe<Scalars['Boolean']['output']>;
   /** The user's organizational affiliation */
   affiliation?: Maybe<Affiliation>;
   /** The timestamp when the Object was created */
@@ -1247,6 +1249,7 @@ export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 }
 
 export type UserResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
+  acceptedTerms?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;

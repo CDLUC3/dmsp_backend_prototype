@@ -1,6 +1,7 @@
 
 ### Added
 - Added resolvers and models for Section, Tag and VersionedSection
+- Added acceptedTerms to User schema and to user sql table
 - Added schema for Section and Tag
 - Initial schema, model, mocks and resolver for Templates
 - Initial schema, model, mocks and resolver for Collaborators
