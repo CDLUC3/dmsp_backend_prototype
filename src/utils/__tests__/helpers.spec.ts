@@ -83,6 +83,7 @@ describe('Capitalize the first letter of a string', () => {
   });
 
   test('it can handle an empty string', () => {
+    expect(capitalizeFirstLetter('')).toEqual('');
     expect(capitalizeFirstLetter('  ')).toEqual('');
   })
 });

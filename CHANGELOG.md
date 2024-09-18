@@ -20,6 +20,7 @@
 - Updated `graphQLErrors` with more error types
 - Added MariaDB to docker-compose
 - data-migrations/README.md with instructions on running migrations in the Docker container
+- removed old oauth-server package which had security vulnerabilities
 
 ## v0.0.1
 Initial Apollo Server build

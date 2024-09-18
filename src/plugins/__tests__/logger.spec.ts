@@ -18,7 +18,7 @@ import {
   GraphQLExperimentalFormattedSubsequentIncrementalExecutionResult,
   GraphQLRequestListener,
 } from '@apollo/server';
-import mockLogger from '../../__tests__/mockLogger';
+import { logger as mockLogger } from '../../__mocks__/logger';
 import { loggerPlugin } from '../logger';
 
 const mockIntrospectionRequestContext = {
