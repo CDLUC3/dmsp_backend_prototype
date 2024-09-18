@@ -20,6 +20,7 @@ export class User extends MySqlModel {
   public surName?: string;
   // TODO: Make this required once we build out the signup page
   public affiliationId?: string;
+  public acceptedTerms: boolean;
   public orcid?: string;
 
   // Initialize a new User
@@ -34,6 +35,7 @@ export class User extends MySqlModel {
     this.orcid = options.orcid;
     // TODO: Remove this hard-coded UCOP default once we build out the signup page
     this.affiliationId = options.affiliationId || 'https://ror.org/00dmfq477';
+    this.acceptedTerms = options.acceptedTerms;
 
     this.cleanup();
   }
@@ -133,7 +135,7 @@ export class User extends MySqlModel {
 
   // Find the User by their Id
   static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
-    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
+    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, created, modified \
                  FROM users WHERE id = ?';
     const results = await User.query(context, sql, [userId.toString()], reference);
     return results[0];
@@ -141,14 +143,14 @@ export class User extends MySqlModel {
 
   // Find the User by their email address
   static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
-    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
+    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, created, modified \
                  FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
     return results[0];
   }
 
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
-    const sql = 'SELECT id, givenName, surName, email, role, affiliationId, created, modified \
+    const sql = 'SELECT id, givenName, surName, email, role, affiliationId, acceptedTerms, created, modified \
                  FROM users WHERE affiliationId = ? ORDER BY created DESC';
     return await User.query(context, sql, [affiliationId], reference);
   }
@@ -187,7 +189,7 @@ export class User extends MySqlModel {
 
       try {
         const sql = `INSERT INTO users \
-                      (email, password, role, givenName, surName, affiliationId) \
+                      (email, password, role, givenName, surName, affiliationId, acceptedTerms) \
                      VALUES(?, ?, ?, ?, ?, ?)`;
         const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId];
         const context = buildContext(logger);
