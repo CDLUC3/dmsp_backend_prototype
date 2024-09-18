@@ -11,12 +11,12 @@ export class MySqlModel {
     public modified?: string,
     public modifiedById?: number,
     public errors: string[] = [],
-  ){
+  ) {
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {
       this.modifiedById = this.createdById;
     }
-    if (!this.modified){
+    if (!this.modified) {
       this.modified = this.id ? new Date().toISOString() : this.created;
     }
   };
@@ -42,17 +42,33 @@ export class MySqlModel {
     return this.errors.length <= 0;
   }
 
-  // Convert the incoming value to a string and prepare it for insertion into a SQL query
+  /**
+   * Convert incoming value to appropriate type for insertion into a SQL query
+   * @param val 
+   * @param type 
+   * @returns 
+   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static prepareValue(val: any): string {
-    if (typeof val === 'string' || val instanceof String) {
-      // TODO: See if we need to do any checks here for SQL injection or if the MySQL package
-      //       does this already.
-      return val.toString();
+  static prepareValue(val: any, type: any): any {
+    // TODO: See if we need to do any checks here for SQL injection or if the MySQL package
+    //       does this already.
+    if (val === null || val === undefined) {
+      return null;
     }
+    switch (type) {
+      case 'number':
+        return Number(val);
+      case 'json':
+        return JSON.stringify(val);
+      case Object:
+      case Array:
+        return JSON.stringify(val);
+      case 'boolean':
+        return Boolean(val);
+      default:
+        return String(val);
 
-    // Otherwise stringify the non-string value.
-    return JSON.stringify(val);
+    }
   }
 
   // Fetches all of the property infor for the object to faciliate inserts and updates
@@ -61,10 +77,10 @@ export class MySqlModel {
     const excludedKeys = ['id', 'errors'];
     return Object.keys(obj)
       .filter((key) => ![...excludedKeys, ...skipKeys]
-      .includes(key)).map((key) => ({
-        name: key,
-        value: obj[key]
-      }));
+        .includes(key)).map((key) => ({
+          name: key,
+          value: obj[key]
+        }));
   }
 
   // Run a query to check for the existence of a record in the database. Typically used to verify that
@@ -102,6 +118,7 @@ export class MySqlModel {
     if (dataSources && logger && dataSources.sqlDataSource && sqlStatement) {
       const sql = sqlStatement.split(/[\s\t\n]+/).join(' ');
       const logMessage = `${reference}, sql: ${sql}, vals: ${values}`;
+
       try {
         formatLogMessage(logger).debug(logMessage);
         const resp = await dataSources.sqlDataSource.query(sql, values);
@@ -133,25 +150,27 @@ export class MySqlModel {
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
+    skipKeys?: string[]
   ): Promise<number> {
     // Update the creator/modifier info
     const now = new Date().toISOString();
+    const currentDate = now.slice(0, 19).replace('T', ' ');
     obj.createdById = apolloContext.token.id;
-    obj.created = now;
+    obj.created = currentDate;
     obj.modifiedById = apolloContext.token.id;
-    obj.modified = now;
+    obj.modified = currentDate;
 
     // Fetch all of the data from the object
-    const props = this.propertyInfo(obj);
+    const props = this.propertyInfo(obj, skipKeys);
 
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
 
-    const vals = props.map((entry) => this.prepareValue(entry.value));
+    const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
 
     // Send the calcuated INSERT statement to the query function
-    const result = await this.query(apolloContext, sql.split(/[\s,\t,\n]+/).join(' '), vals, reference);
+    const result = await this.query(apolloContext, sql, vals, reference);
     return Array.isArray(result) ? result[0]?.insertId : null;
   }
 
@@ -166,13 +185,17 @@ export class MySqlModel {
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
+    skipKeys?: string[]
   ): Promise<MySqlModel> {
     // Update the modifier info
     obj.modifiedById = apolloContext.token.id;
-    obj.modified = new Date().toISOString();
+    const now = new Date().toISOString();
+    const currentDate = now.slice(0, 19).replace('T', ' ');
+    obj.modified = currentDate;
+    obj.created = (new Date(obj.created).toISOString().slice(0, 19).replace('T', ' '));
 
     // Fetch all of the data from the object
-    const props = this.propertyInfo(obj);
+    const props = this.propertyInfo(obj, skipKeys);
 
     props.map((entry) => `${entry.name} = ?`)
 
@@ -180,13 +203,15 @@ export class MySqlModel {
                  SET ${props.map((entry) => `${entry.name} = ?`).join(', ')} \
                  WHERE id = ?`;
 
-    const vals = props.map((entry) => this.prepareValue(entry.value));
+    const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
+
     vals.push(obj.id.toString());
 
     // Send the calcuated INSERT statement to the query function
-    const result = await this.query(apolloContext, sql.split(/[\s,\t,\n]+/).join(' '), vals, reference);
+    const result = await this.query(apolloContext, sql, vals, reference);
     return Array.isArray(result) ? result[0] : null;
   }
+
 
   // Execute a SQL delete
   //    - apolloContext:   The Apollo server context
@@ -199,9 +224,10 @@ export class MySqlModel {
     table: string,
     id: number,
     reference = 'undefined caller',
-  ): Promise<number> {
+  ): Promise<boolean> {
     const sql = `DELETE FROM ${table} WHERE id = ?`;
     const result = await this.query(apolloContext, sql, [id.toString()], reference);
-    return Array.isArray(result) ? result[0].deleteId : null;
+    return Array.isArray(result) && result[0].affectedRows ? true : false;
   }
 }
+

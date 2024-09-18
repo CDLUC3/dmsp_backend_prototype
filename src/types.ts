@@ -27,7 +27,8 @@ export type Scalars = {
 
 /** Input for adding a new section */
 export type AddSectionInput = {
-  copyFromSectionId?: InputMaybe<Scalars['Int']['input']>;
+  copyFromVersionedSectionId?: InputMaybe<Scalars['Int']['input']>;
+  displayOrder?: InputMaybe<Scalars['Int']['input']>;
   guidance?: InputMaybe<Scalars['String']['input']>;
   introduction?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
@@ -227,7 +228,7 @@ export type Mutation = {
   _empty?: Maybe<Scalars['String']['output']>;
   /** Add a new contributor role (URL and label must be unique!) */
   addContributorRole?: Maybe<ContributorRoleMutationResponse>;
-  /** Create a new Section. Leave the 'copyFromSectionId' blank to create a new section from scratch */
+  /** Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch */
   addSection: Section;
   /** Add a new tag to available list of tags */
   addTag?: Maybe<Tag>;
@@ -404,6 +405,7 @@ export type Query = {
   sections?: Maybe<Array<Maybe<Section>>>;
   /** Get all available tags to display */
   tags: Array<Tag>;
+  tagsBySectionId?: Maybe<Array<Maybe<Tag>>>;
   /** Get the specified Template (user must be an Admin) */
   template?: Maybe<Template>;
   /** Get all of the Users that belong to another affiliation that can edit the Template */
@@ -470,6 +472,11 @@ export type QuerySectionsArgs = {
 };
 
 
+export type QueryTagsBySectionIdArgs = {
+  sectionId: Scalars['Int']['input'];
+};
+
+
 export type QueryTemplateArgs = {
   templateId: Scalars['Int']['input'];
 };
@@ -501,23 +508,23 @@ export type RelatedIdentifier = {
 export type Section = {
   __typename?: 'Section';
   /** The timestamp when the Object was created */
-  created: Scalars['DateTimeISO']['output'];
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
-  createdById: Scalars['Int']['output'];
+  createdById?: Maybe<Scalars['Int']['output']>;
   /** The order in which the section will be displayed in the template */
-  displayOrder: Scalars['Int']['output'];
+  displayOrder?: Maybe<Scalars['Int']['output']>;
   /** Errors associated with the Object */
   errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The guidance to help user with section */
   guidance?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
-  id: Scalars['Int']['output'];
+  id?: Maybe<Scalars['Int']['output']>;
   /** The section introduction */
   introduction?: Maybe<Scalars['String']['output']>;
   /** Indicates whether or not the section has changed since the template was last published */
   isDirty: Scalars['Boolean']['output'];
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The section title */
@@ -526,6 +533,10 @@ export type Section = {
   requirements?: Maybe<Scalars['String']['output']>;
   /** The Tags associated with this section. A section might not have any tags */
   tags?: Maybe<Array<Maybe<Tag>>>;
+  /** The template that the section is associated with */
+  template?: Maybe<Template>;
+  /** The template ID that the section belongs to */
+  templateId?: Maybe<Scalars['Int']['output']>;
 };
 
 /** Section version type */
@@ -553,7 +564,7 @@ export type Tag = {
   /** The tag description */
   description?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
-  id: Scalars['Int']['output'];
+  id?: Maybe<Scalars['Int']['output']>;
   /** The tag name */
   name: Scalars['String']['output'];
 };
@@ -594,6 +605,8 @@ export type Template = {
   name: Scalars['String']['output'];
   /** The affiliation that the template belongs to */
   owner?: Maybe<Affiliation>;
+  /** The Sections associated with the template */
+  sections?: Maybe<Array<Maybe<Section>>>;
   /** The template that this one was derived from */
   sourceTemplateId?: Maybe<Scalars['Int']['output']>;
   /** The template's availability setting: Public is available to everyone, Private only your affiliation */
@@ -641,6 +654,7 @@ export type TemplateVisibility =
 
 /** Input for updating a section */
 export type UpdateSectionInput = {
+  displayOrder?: InputMaybe<Scalars['Int']['input']>;
   guidance?: InputMaybe<Scalars['String']['input']>;
   introduction?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -700,7 +714,7 @@ export type VersionedSection = {
   /** The guidance to help user with VersionedSection */
   guidance?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
-  id: Scalars['Int']['output'];
+  id?: Maybe<Scalars['Int']['output']>;
   /** The VersionedSection introduction */
   introduction?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was last modifed */
@@ -713,6 +727,8 @@ export type VersionedSection = {
   requirements?: Maybe<Scalars['String']['output']>;
   /** The section that this is a snapshot of */
   section?: Maybe<Section>;
+  /** The sectionId for the snapshot section */
+  sectionId?: Maybe<Scalars['Int']['output']>;
   /** The Tags associated with this VersionedSection */
   tags?: Maybe<Array<Maybe<Tag>>>;
   /** The type of version: Published or Draft (default: Draft) */
@@ -756,6 +772,8 @@ export type VersionedTemplate = {
   versionType?: Maybe<TemplateVersionType>;
   /** The publisher of the Template */
   versionedBy?: Maybe<User>;
+  /** The VersionedSections that go with the VersionedTemplate */
+  versionedSection?: Maybe<Array<Maybe<VersionedSection>>>;
   /** The template's availability setting: Public is available to everyone, Private only your affiliation */
   visibility: TemplateVisibility;
 };
@@ -1137,6 +1155,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   sectionVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QuerySectionVersionsArgs, 'sectionId'>>;
   sections?: Resolver<Maybe<Array<Maybe<ResolversTypes['Section']>>>, ParentType, ContextType, RequireFields<QuerySectionsArgs, 'templateId'>>;
   tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
+  tagsBySectionId?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType, RequireFields<QueryTagsBySectionIdArgs, 'sectionId'>>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
   templateCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateCollaborator']>>>, ParentType, ContextType, RequireFields<QueryTemplateCollaboratorsArgs, 'templateId'>>;
   templateVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryTemplateVersionsArgs, 'templateId'>>;
@@ -1158,19 +1177,21 @@ export interface RorScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 }
 
 export type SectionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Section'] = ResolversParentTypes['Section']> = {
-  created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
-  createdById?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  displayOrder?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   guidance?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   introduction?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   isDirty?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   requirements?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   tags?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType>;
+  template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType>;
+  templateId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1184,7 +1205,7 @@ export type SingleDmspResponseResolvers<ContextType = MyContext, ParentType exte
 
 export type TagResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Tag'] = ResolversParentTypes['Tag']> = {
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -1203,6 +1224,7 @@ export type TemplateResolvers<ContextType = MyContext, ParentType extends Resolv
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   owner?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  sections?: Resolver<Maybe<Array<Maybe<ResolversTypes['Section']>>>, ParentType, ContextType>;
   sourceTemplateId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   visibility?: Resolver<ResolversTypes['TemplateVisibility'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1249,13 +1271,14 @@ export type VersionedSectionResolvers<ContextType = MyContext, ParentType extend
   displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   guidance?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   introduction?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   requirements?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType>;
+  sectionId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   tags?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType>;
   versionType?: Resolver<Maybe<ResolversTypes['SectionVersionType']>, ParentType, ContextType>;
   versionedTemplate?: Resolver<ResolversTypes['VersionedTemplate'], ParentType, ContextType>;
@@ -1279,6 +1302,7 @@ export type VersionedTemplateResolvers<ContextType = MyContext, ParentType exten
   version?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   versionType?: Resolver<Maybe<ResolversTypes['TemplateVersionType']>, ParentType, ContextType>;
   versionedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  versionedSection?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType>;
   visibility?: Resolver<ResolversTypes['TemplateVisibility'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };

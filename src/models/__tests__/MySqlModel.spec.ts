@@ -114,40 +114,40 @@ describe('MySqlModel abstract class', () => {
 describe('prepareValue', () => {
   it('can handle a string', () => {
     const val = 'test';
-    expect(MySqlModel.prepareValue(val)).toEqual("test");
+    expect(MySqlModel.prepareValue(val, String)).toEqual("test");
     const str = new String('test');
-    expect(MySqlModel.prepareValue(str)).toEqual("test");
+    expect(MySqlModel.prepareValue(str, String)).toEqual("test");
   });
 
   it('can handle a number', () => {
     const val = 12345;
-    expect(MySqlModel.prepareValue(val)).toEqual("12345");
+    expect(MySqlModel.prepareValue(val, Number)).toEqual("12345");
     const flt = new String(123.45);
-    expect(MySqlModel.prepareValue(flt)).toEqual("123.45");
+    expect(MySqlModel.prepareValue(flt, Number)).toEqual("123.45");
   });
 
   it('can handle a boolean', () => {
     const val = true;
-    expect(MySqlModel.prepareValue(val)).toEqual("true");
+    expect(MySqlModel.prepareValue(val, Boolean)).toEqual("true");
     const bool = new Boolean(0);
-    expect(MySqlModel.prepareValue(bool)).toEqual("false");
+    expect(MySqlModel.prepareValue(bool, Boolean)).toEqual("false");
   });
 
   it('can handle an Array', () => {
     const val = ['test1', 'test2'];
-    expect(MySqlModel.prepareValue(val)).toEqual('["test1","test2"]');
+    expect(MySqlModel.prepareValue(val, Array)).toEqual('["test1","test2"]');
     const nested = ['test1', 'test2', [12, 34]];
-    expect(MySqlModel.prepareValue(nested)).toEqual('["test1","test2",[12,34]]');
+    expect(MySqlModel.prepareValue(nested, Array)).toEqual('["test1","test2",[12,34]]');
     // eslint-disable-next-line @typescript-eslint/no-array-constructor
-    const arr = new Array('1','2');
-    expect(MySqlModel.prepareValue(arr)).toEqual('["1","2"]');
+    const arr = new Array('1', '2');
+    expect(MySqlModel.prepareValue(arr, Array)).toEqual('["1","2"]');
   });
 
   it('can handle an Object', () => {
     const val = { test1: 'test1', test2: 2, test3: false };
-    expect(MySqlModel.prepareValue(val)).toEqual('{"test1":"test1","test2":2,"test3":false}');
+    expect(MySqlModel.prepareValue(val, Object)).toEqual('{"test1":"test1","test2":2,"test3":false}');
     const nested = { test1: 'test1', test2: { subA: 2, subB: '3' }, test3: false };
-    expect(MySqlModel.prepareValue(nested)).toEqual('{"test1":"test1","test2":{"subA":2,"subB":"3"},"test3":false}');
+    expect(MySqlModel.prepareValue(nested, Object)).toEqual('{"test1":"test1","test2":{"subA":2,"subB":"3"},"test3":false}');
   });
 });
 
@@ -405,16 +405,25 @@ describe('delete function', () => {
 
     const result = await MySqlModel.delete(context, table, deleteId, 'Testing');
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(result).toEqual(null);
+    expect(result).toEqual(false);
   });
 
   it('update returns the deleted item\'s id', async () => {
     const table = casual.word;
-    const deleteId = casual.integer(1, 99);
-    localQuery.mockResolvedValueOnce([{ deleteId }]);
+    const deleteId = 1;
+    const response = {
+      fieldCount: 0,
+      affectedRows: 1,
+      insertId: 0,
+      info: '',
+      serverStatus: 2,
+      warningStatus: 0,
+      changedRows: 0
+    }
+    localQuery.mockResolvedValueOnce([response]);
 
     const result = await MySqlModel.delete(context, table, deleteId, 'Testing');
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(result).toEqual(deleteId);
+    expect(result).toEqual(true);
   });
 });

@@ -9,7 +9,7 @@ export const typeDefs = gql`
   }
 
   extend type Mutation {
-    "Create a new Section. Leave the 'copyFromSectionId' blank to create a new section from scratch"
+    "Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch"
     addSection(input: AddSectionInput!): Section!     
     "Update a Section"
     updateSection(input: UpdateSectionInput!): Section!
@@ -20,9 +20,13 @@ export const typeDefs = gql`
   "A Section that contains a list of questions in a template"
   type Section {
     "The unique identifer for the Object"
-    id: Int!
+    id: Int
+    "The template ID that the section belongs to"
+    templateId: Int
+    "The template that the section is associated with"
+    template: Template
     "The order in which the section will be displayed in the template"
-    displayOrder: Int!
+    displayOrder: Int
     "The section title"
     name: String!
     "The section introduction"
@@ -36,13 +40,13 @@ export const typeDefs = gql`
     "Indicates whether or not the section has changed since the template was last published"
     isDirty: Boolean!
     "The user who created the Object"
-    createdById: Int!
+    createdById: Int
     "The timestamp when the Object was created"
-    created: DateTimeISO!
+    created: String
     "The user who last modified the Object"
     modifiedById: Int
     "The timestamp when the Object was last modifed"
-    modified: DateTimeISO
+    modified: String
     "Errors associated with the Object"
     errors: [String!]
   }
@@ -51,11 +55,12 @@ export const typeDefs = gql`
   input AddSectionInput {
     templateId: Int!
     name: String!
-    copyFromSectionId: Int
+    copyFromVersionedSectionId: Int
     introduction: String
     requirements: String
     guidance: String
     tags: [TagInput!]
+    displayOrder: Int
   }
 
   "Input for updating a section"
@@ -66,6 +71,7 @@ export const typeDefs = gql`
     requirements: String
     guidance: String
     tags: [TagInput!]
+    displayOrder: Int
   }
 
   "Input for Tag operations"
@@ -74,4 +80,6 @@ export const typeDefs = gql`
     name: String!
     description: String
   }
+
 `;
+

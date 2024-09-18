@@ -26,7 +26,7 @@ export class VersionedTemplate extends MySqlModel {
 
   private tableName = 'versionedTemplates';
 
-  constructor(options){
+  constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
     this.templateId = options.templateId;
