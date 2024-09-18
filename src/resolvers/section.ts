@@ -174,13 +174,7 @@ export const resolvers: Resolvers = {
                     id: sectionId
                 });
 
-                const deletedSection = await section.delete(context);
-
-                //Delete all sectionTags associated with this section
-                await SectionTag.deleteSectionTagsBySectionId('removeSection resolver', context, sectionId);
-
-                return deletedSection;
-
+                return await section.delete(context);
             }
             throw ForbiddenError();
 
