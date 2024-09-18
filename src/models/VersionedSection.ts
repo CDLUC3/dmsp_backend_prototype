@@ -142,6 +142,12 @@ export class VersionedSection extends MySqlModel {
         //this.bestPractice = options.bestPractice || false;
     }
 
+    // Find the VersionedSection by id
+    static async getVersionedSectionById(reference: string, context: MyContext, id: number): Promise<VersionedSection> {
+        const sql = 'SELECT * FROM versionedSections WHERE id= ?';
+        const results = await VersionedSection.query(context, sql, [id.toString()], reference);
+        return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    }
 
     // Find the VersionedSection by id
     static async getVersionedSectionsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {

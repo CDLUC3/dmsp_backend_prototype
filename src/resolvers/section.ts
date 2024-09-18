@@ -2,6 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { SectionTag } from "../models/SectionTag";
+import { VersionedSection } from "../models/VersionedSection";
 import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
 import { cloneSection, hasPermission } from "../services/sectionService";
@@ -30,20 +31,20 @@ export const resolvers: Resolvers = {
     },
 
     Mutation: {
-        addSection: async (_, { input: { templateId, name, copyFromSectionId, introduction, requirements, tags, guidance, displayOrder } }, context: MyContext): Promise<Section> => {
+        addSection: async (_, { input: { templateId, name, copyFromVersionedSectionId, introduction, requirements, tags, guidance, displayOrder } }, context: MyContext): Promise<Section> => {
 
             if (await hasPermission(context, templateId)) {
                 let section: Section;
-                if (copyFromSectionId) {
-                    // Fetch the VersionedTemplate we are cloning
-                    const original = await Section.getSectionBySectionId(
+                if (copyFromVersionedSectionId) {
+                    // Fetch the VersionedSection we are cloning
+                    const original = await VersionedSection.getVersionedSectionById(
                         'addSection resolver',
                         context,
-                        copyFromSectionId
+                        copyFromVersionedSectionId
                     );
 
                     if (original) {
-                        section = cloneSection(context.token?.id, templateId, copyFromSectionId, original);
+                        section = cloneSection(context.token?.id, templateId, copyFromVersionedSectionId, original);
                         section.name = name;
                     } else {
                         throw NotFoundError();
@@ -65,6 +66,8 @@ export const resolvers: Resolvers = {
                     throw BadUserInput(errorMessages);
                 } else {
                     const sectionId = newSection.id;
+
+                    /*Add new tags to sectionTag table*/
 
                     //Get all the existing tags associated with this section
                     const existingTags = await Tag.getTagsBySectionId('updateSection resolver', context, sectionId);

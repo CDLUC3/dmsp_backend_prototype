@@ -9,7 +9,7 @@ export const typeDefs = gql`
   }
 
   extend type Mutation {
-    "Create a new Section. Leave the 'copyFromSectionId' blank to create a new section from scratch"
+    "Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch"
     addSection(input: AddSectionInput!): Section!     
     "Update a Section"
     updateSection(input: UpdateSectionInput!): Section!
@@ -55,7 +55,7 @@ export const typeDefs = gql`
   input AddSectionInput {
     templateId: Int!
     name: String!
-    copyFromSectionId: Int
+    copyFromVersionedSectionId: Int
     introduction: String
     requirements: String
     guidance: String

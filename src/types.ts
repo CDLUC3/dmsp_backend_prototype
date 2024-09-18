@@ -27,7 +27,7 @@ export type Scalars = {
 
 /** Input for adding a new section */
 export type AddSectionInput = {
-  copyFromSectionId?: InputMaybe<Scalars['Int']['input']>;
+  copyFromVersionedSectionId?: InputMaybe<Scalars['Int']['input']>;
   displayOrder?: InputMaybe<Scalars['Int']['input']>;
   guidance?: InputMaybe<Scalars['String']['input']>;
   introduction?: InputMaybe<Scalars['String']['input']>;
@@ -228,7 +228,7 @@ export type Mutation = {
   _empty?: Maybe<Scalars['String']['output']>;
   /** Add a new contributor role (URL and label must be unique!) */
   addContributorRole?: Maybe<ContributorRoleMutationResponse>;
-  /** Create a new Section. Leave the 'copyFromSectionId' blank to create a new section from scratch */
+  /** Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch */
   addSection: Section;
   /** Add a new tag to available list of tags */
   addTag?: Maybe<Tag>;

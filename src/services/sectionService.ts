@@ -9,19 +9,20 @@ import { ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
 export const cloneSection = (
     clonedById: number,
     templateId: number,
-    copyFromSectionId: number,
+    copyFromVersionedSectionId: number,
     section: Section | VersionedSection
 ): Section => {
     const sectionCopy = new Section({
-        templateId: templateId,
-        sourceSectionId: copyFromSectionId,
+        sourceSectionId: copyFromVersionedSectionId,
         name: `Copy of ${section.name}`,
         introduction: section.introduction,
         requirements: section.requirements,
         guidance: section.requirements,
         displayOrder: section.displayOrder,
+        templateId: templateId
     });
 
+    sectionCopy.createdById = clonedById;
     return sectionCopy;
 }
 
