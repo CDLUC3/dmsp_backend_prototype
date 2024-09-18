@@ -534,6 +534,8 @@ export type Section = {
   /** The Tags associated with this section. A section might not have any tags */
   tags?: Maybe<Array<Maybe<Tag>>>;
   /** The template that the section is associated with */
+  template?: Maybe<Template>;
+  /** The template ID that the section belongs to */
   templateId?: Maybe<Scalars['Int']['output']>;
 };
 
@@ -603,6 +605,8 @@ export type Template = {
   name: Scalars['String']['output'];
   /** The affiliation that the template belongs to */
   owner?: Maybe<Affiliation>;
+  /** The Sections associated with the template */
+  sections?: Maybe<Array<Maybe<Section>>>;
   /** The template that this one was derived from */
   sourceTemplateId?: Maybe<Scalars['Int']['output']>;
   /** The template's availability setting: Public is available to everyone, Private only your affiliation */
@@ -1180,6 +1184,7 @@ export type SectionResolvers<ContextType = MyContext, ParentType extends Resolve
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   requirements?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   tags?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType>;
+  template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType>;
   templateId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -1213,6 +1218,7 @@ export type TemplateResolvers<ContextType = MyContext, ParentType extends Resolv
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   owner?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  sections?: Resolver<Maybe<Array<Maybe<ResolversTypes['Section']>>>, ParentType, ContextType>;
   sourceTemplateId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   visibility?: Resolver<ResolversTypes['TemplateVisibility'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

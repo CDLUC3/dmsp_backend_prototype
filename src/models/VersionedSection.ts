@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
+import { Section } from "../types";
 import { Tag } from "../models/Tag";
 import { TemplateVersionType } from "../models/VersionedTemplate";
 
@@ -120,7 +121,8 @@ export class VersionedSection extends MySqlModel {
     public guidance?: string;
     public displayOrder: number;
     public tags?: Tag[];
-    versionedTemplate: VersionedTemplate;
+    public versionedTemplate: VersionedTemplate;
+    public section: Section;
     // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
     //public bestPractice: boolean;
 
@@ -135,53 +137,25 @@ export class VersionedSection extends MySqlModel {
         this.displayOrder = options.displayOrder;
         this.tags = options.tags;
         this.versionedTemplate = options.versionedTemplate;
+        this.section = options.section;
         // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
         //this.bestPractice = options.bestPractice || false;
     }
 
+
     // Find the VersionedSection by id
-    static async getVersionedSectionById(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection> {
-        const sql = 'SELECT * FROM versionedSections WHERE id = ?';
+    static async getVersionedSectionsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
+        const sql = 'SELECT * FROM versionedSections WHERE sectionId = ?';
         const results = await VersionedSection.query(context, sql, [sectionId.toString()], reference);
         return Array.isArray(results) && results.length > 0 ? results[0] : null;
     }
 
-
-    static async getVersionedSectionsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
-
-        const sql = versionedSectionsBySectionIdQuery;
-
-        const results = await VersionedSection.query(context, sql, [sectionId.toString()], reference);
-        if (results && results.length > 0) {
-            return results.map(section => {
-                return new VersionedSection({
-                    ...section,
-                    tags: JSON.parse(section.tags || '[]'),
-                });
-            });
-        } else {
-            return null;
-        }
-
-    }
-
+    // Find the VersionedSection by name
     static async getVersionedSectionsByName(reference: string, context: MyContext, term: string): Promise<VersionedSection[]> {
-
-        const sql = versionedSectionsByNameQuery;
-
+        const sql = 'SELECT * FROM versionedSections WHERE name LIKE ? AND active = 1 AND versionType = ?';
         const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
         const results = await VersionedSection.query(context, sql, vals, reference);
-        // Process the results to ensure tags is always an array
-        if (results && results.length > 0) {
-            return results.map(section => {
-                return new VersionedSection({
-                    ...section,
-                    tags: JSON.parse(section.tags || '[]'),
-                });
-            });
-        } else {
-            return null;
-        }
+        return Array.isArray(results) && results.length > 0 ? results[0] : null;
     }
 }
 

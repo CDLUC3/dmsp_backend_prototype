@@ -13,7 +13,7 @@ export const resolvers: Resolvers = {
         },
         tagsBySectionId: async (_, { sectionId }, context: MyContext): Promise<Tag[]> => {
             // Find section with matching sectionId
-            const section = await Section.getSectionWithTagsBySectionId('section resolver', context, sectionId);
+            const section = await Section.getSectionBySectionId('section resolver', context, sectionId);
             if (!section) {
                 throw NotFoundError('Section not found')
             }

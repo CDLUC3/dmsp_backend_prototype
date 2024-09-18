@@ -2,8 +2,9 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { SectionTag } from "../models/SectionTag";
-import { Tag } from '../models/Tag';
-import { VersionedSection } from '../models/VersionedSection';
+import { Tag } from "../models/Tag";
+import { Template } from "../models/Template";
+import { VersionedSection } from "../models/VersionedSection";
 import { cloneSection, hasPermission } from "../services/sectionService";
 import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErrors";
 
@@ -13,14 +14,14 @@ export const resolvers: Resolvers = {
         sections: async (_, { templateId }, context: MyContext): Promise<Section[]> => {
 
             if (await hasPermission(context, templateId)) {
-                return await Section.getSectionsWithTagsByTemplateId('sections resolver', context, templateId);
+                return await Section.getSectionsByTemplateId('sections resolver', context, templateId);
             }
             throw ForbiddenError();
         },
         section: async (_, { sectionId }, context: MyContext): Promise<Section> => {
 
             // Find section with matching sectionId
-            const section = await Section.getSectionWithTagsBySectionId('section resolver', context, sectionId);
+            const section = await Section.getSectionBySectionId('section resolver', context, sectionId);
 
             if (await hasPermission(context, section.templateId)) {
                 return section;
@@ -36,7 +37,7 @@ export const resolvers: Resolvers = {
                 let section: Section;
                 if (copyFromSectionId) {
                     // Fetch the VersionedTemplate we are cloning
-                    const original = await VersionedSection.getVersionedSectionById(
+                    const original = await Section.getSectionBySectionId(
                         'addSection resolver',
                         context,
                         copyFromSectionId
@@ -90,7 +91,7 @@ export const resolvers: Resolvers = {
                     }
 
                     // Return newly created section with tags
-                    return await Section.getSectionWithTagsBySectionId('addSection resolver', context, sectionId);
+                    return await Section.getSectionBySectionId('addSection resolver', context, sectionId);
                 }
             }
         },
@@ -150,7 +151,7 @@ export const resolvers: Resolvers = {
                     }
 
                     // Return newly created section with tags
-                    return await Section.getSectionWithTagsBySectionId('addSection resolver', context, updatedSection.id);
+                    return await Section.getSectionBySectionId('addSection resolver', context, updatedSection.id);
                 }
             }
             throw ForbiddenError();
@@ -182,5 +183,15 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
 
         },
+    },
+
+    Section: {
+        // Chained resolver to fetch the Affiliation info for the user
+        tags: async (parent: Section, _, context: MyContext): Promise<Tag[]> => {
+            return await Tag.getTagsBySectionId('updateSection resolver', context, parent.id);
+        },
+        template: async (parent: Section, _, context: MyContext): Promise<Template> => {
+            return await Template.findById('template resolver', context, parent.templateId);
+        }
     }
 };

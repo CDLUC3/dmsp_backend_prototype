@@ -1,5 +1,5 @@
 import casual from "casual";
-import { Section, sectionsBySectionIdQuery, sectionsByTemplateIdQuery } from "../Section";
+import { Section } from "../Section";
 import mockLogger from "../../__tests__/mockLogger";
 import { buildContext, mockToken } from "../../__mocks__/context";
 
@@ -134,102 +134,6 @@ describe('getSectionsByTemplateId', () => {
         const templateId = 1;
         const result = await Section.getSectionsByTemplateId('Section query', context, templateId);
         expect(result).toEqual([]);
-    });
-});
-
-describe('getSectionsWithTagsByTemplateId', () => {
-    const originalQuery = Section.query;
-
-    let localQuery;
-    let context;
-    let section;
-
-    beforeEach(() => {
-        jest.resetAllMocks();
-
-        localQuery = jest.fn();
-        (Section.query as jest.Mock) = localQuery;
-
-        context = buildContext(mockLogger, mockToken());
-
-        section = new Section({
-            id: casual.integer(1, 9),
-            createdById: casual.integer(1, 999),
-            name: casual.sentence,
-            ownerId: casual.url,
-        })
-    });
-
-    afterEach(() => {
-        jest.clearAllMocks();
-        Section.query = originalQuery;
-    });
-
-    it('should call query with correct params and return the section', async () => {
-        localQuery.mockResolvedValueOnce([section]);
-        const templateId = 1;
-        const result = await Section.getSectionsWithTagsByTemplateId('Section query', context, templateId);
-        const expectedSql = sectionsByTemplateIdQuery;
-        expect(localQuery).toHaveBeenCalledTimes(1);
-        expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Section query')
-        /* As part of this test, all fields without a value default to 'undefined' for the mocked Section, but
-        the getSectionsWithTagsByTemplateId method returns an empty array, and not undefined*/
-        expect(result).toEqual([{ ...section, ...{ tags: [] } }]);
-    });
-
-    it('should return an empty array if it finds no Section', async () => {
-        localQuery.mockResolvedValueOnce([]);
-        const templateId = 1;
-        const result = await Section.getSectionsWithTagsByTemplateId('Section query', context, templateId);
-        expect(result).toEqual([]);
-    });
-});
-
-describe('getSectionWithTagsBySectionId', () => {
-    const originalQuery = Section.query;
-
-    let localQuery;
-    let context;
-    let section;
-
-    beforeEach(() => {
-        jest.resetAllMocks();
-
-        localQuery = jest.fn();
-        (Section.query as jest.Mock) = localQuery;
-
-        context = buildContext(mockLogger, mockToken());
-
-        section = new Section({
-            id: casual.integer(1, 9),
-            createdById: casual.integer(1, 999),
-            name: casual.sentence,
-            ownerId: casual.url,
-        })
-    });
-
-    afterEach(() => {
-        jest.clearAllMocks();
-        Section.query = originalQuery;
-    });
-
-    it('should call query with correct params and return the section', async () => {
-        localQuery.mockResolvedValueOnce([section]);
-        const sectionId = 1;
-        const result = await Section.getSectionWithTagsBySectionId('Section query', context, sectionId);
-        const expectedSql = sectionsBySectionIdQuery;
-        expect(localQuery).toHaveBeenCalledTimes(1);
-        expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [sectionId.toString()], 'Section query')
-        /* As part of this unit test, all fields without a value default to 'undefined' for the mocked Section, but
-        the getVersionedSectionsBySectionId method returns an empty array for tags, and not undefined*/
-        expect(result).toEqual({ ...section, ...{ tags: [] } });
-    });
-
-    it('should return an empty array if it finds no Section', async () => {
-        localQuery.mockResolvedValueOnce([]);
-        const templateId = 1;
-        const result = await Section.getSectionWithTagsBySectionId('Section query', context, templateId);
-        expect(result).toEqual(null);
     });
 });
 

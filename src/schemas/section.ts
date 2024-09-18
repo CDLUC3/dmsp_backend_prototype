@@ -21,8 +21,10 @@ export const typeDefs = gql`
   type Section {
     "The unique identifer for the Object"
     id: Int
-    "The template that the section is associated with"
+    "The template ID that the section belongs to"
     templateId: Int
+    "The template that the section is associated with"
+    template: Template
     "The order in which the section will be displayed in the template"
     displayOrder: Int
     "The section title"

@@ -59,6 +59,8 @@ export const typeDefs = gql`
     isDirty: Boolean!
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
+    "The Sections associated with the template"
+    sections: [Section]
 
     "Users from different affiliations who have been invited to collaborate on this template"
     collaborators: [TemplateCollaborator!]
