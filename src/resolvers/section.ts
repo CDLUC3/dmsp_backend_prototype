@@ -57,7 +57,7 @@ export const resolvers: Resolvers = {
                 }
 
                 // create the new section
-                const newSection = await section.create(context);
+                const newSection = await section.create(context, templateId);
 
 
                 // If there are errors than throw a Bad User Input error

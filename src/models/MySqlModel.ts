@@ -150,6 +150,7 @@ export class MySqlModel {
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
+    skipKeys?: string[]
   ): Promise<number> {
     // Update the creator/modifier info
     const now = new Date().toISOString();
@@ -160,7 +161,7 @@ export class MySqlModel {
     obj.modified = currentDate;
 
     // Fetch all of the data from the object
-    const props = this.propertyInfo(obj);
+    const props = this.propertyInfo(obj, skipKeys);
 
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
@@ -184,6 +185,7 @@ export class MySqlModel {
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
+    skipKeys?: string[]
   ): Promise<MySqlModel> {
     // Update the modifier info
     obj.modifiedById = apolloContext.token.id;
@@ -193,7 +195,7 @@ export class MySqlModel {
     obj.created = (new Date(obj.created).toISOString().slice(0, 19).replace('T', ' '));
 
     // Fetch all of the data from the object
-    const props = this.propertyInfo(obj);
+    const props = this.propertyInfo(obj, skipKeys);
 
     props.map((entry) => `${entry.name} = ?`)
 

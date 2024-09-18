@@ -47,7 +47,7 @@ export class Section extends MySqlModel {
 
 
     //Create a new Section
-    async create(context: MyContext): Promise<Section> {
+    async create(context: MyContext, templateId: number): Promise<Section> {
 
         // First make sure the record is valid
         if (await this.isValid()) {
@@ -55,18 +55,15 @@ export class Section extends MySqlModel {
                 'Section.create',
                 context,
                 this.name,
+                templateId
             );
 
             // Then make sure it doesn't already exist
             if (current) {
                 this.errors.push('Section with this name already exists');
             } else {
-                /*Need to remove tags, because this does not exist in the sections table, but we need to
-                add tags into the response*/
-                delete this.tags;
-
                 // Save the record and then fetch it
-                const newId = await Section.insert(context, tableName, this, 'Section.create');
+                const newId = await Section.insert(context, tableName, this, 'Section.create', ['tags']);
                 const response = await Section.getSectionBySectionId('Section.create', context, newId);
                 return response;
             }
@@ -77,14 +74,11 @@ export class Section extends MySqlModel {
 
     //Update an existing Section
     async update(context: MyContext): Promise<Section> {
-        /*Need to remove tags, because this does not exist in the sections table, but we need to
-                add tags into the response*/
-        delete this.tags;
         const id = this.id;
 
         if (await this.isValid()) {
             if (id) {
-                await Section.update(context, tableName, this, 'Section.update');
+                await Section.update(context, tableName, this, 'Section.update', ['tags']);
                 return await Section.getSectionBySectionId('Section.update', context, id);
             }
             // This template has never been saved before so we cannot update it!
@@ -115,9 +109,10 @@ export class Section extends MySqlModel {
         reference: string,
         context: MyContext,
         name: string,
+        templateId: number
     ): Promise<Section> {
-        const sql = 'SELECT * FROM sections WHERE LOWER(name) = ?';
-        const vals = [name.toLowerCase()];
+        const sql = 'SELECT * FROM sections WHERE LOWER(name) = ? AND templateId = ?';
+        const vals = [name.toLowerCase(), templateId.toString()];
         const results = await Section.query(context, sql, vals, reference);
         return Array.isArray(results) && results.length > 0 ? results[0] : null;
     }

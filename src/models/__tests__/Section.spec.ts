@@ -75,18 +75,18 @@ describe('findSectionBySectionName', () => {
 
     it('should call query with correct params and return the section', async () => {
         localQuery.mockResolvedValueOnce([section]);
-
-        const result = await Section.findSectionBySectionName('Section query', context, section.name);
-        const expectedSql = 'SELECT * FROM sections WHERE LOWER(name) = ?';
+        const templateId = 15;
+        const result = await Section.findSectionBySectionName('Section query', context, section.name, templateId);
+        const expectedSql = 'SELECT * FROM sections WHERE LOWER(name) = ? AND templateId = ?';
         expect(localQuery).toHaveBeenCalledTimes(1);
-        expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [section.name.toLowerCase()], 'Section query')
+        expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [section.name.toLowerCase(), templateId.toString()], 'Section query')
         expect(result).toEqual(section);
     });
 
     it('should return null if it finds no Section', async () => {
         localQuery.mockResolvedValueOnce([]);
-
-        const result = await Section.findSectionBySectionName('Section query', context, section.name);
+        const templateId = 15;
+        const result = await Section.findSectionBySectionName('Section query', context, section.name, templateId);
         expect(result).toEqual(null);
     });
 });
