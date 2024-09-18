@@ -4,7 +4,6 @@ import { generalConfig } from './config/generalConfig';
 import { signinController } from './controllers/signinController';
 import { signupController } from './controllers/signupController';
 import { refreshTokenController } from './controllers/refreshTokenController';
-import { oauthServer, castRequest, castResponse } from './middleware/oauthServer';
 import { isRevokedCallback } from './services/tokenService';
 import { signoutController } from './controllers/signoutController';
 
@@ -28,11 +27,6 @@ router.post('/apollo-signin', (req: Request, res: Response) => signinController(
 router.post('/apollo-signup', (req: Request, res: Response) => signupController(req, res));
 router.post('/apollo-signout', authMiddleware, (req: Request, res: Response) => signoutController(req, res));
 router.post('/apollo-refresh', authMiddleware, (req: Request, res: Response) => refreshTokenController(req, res));
-
-// Support for OAuth2
-router.get('/apollo-authorize', (req, res) => oauthServer.authorize(castRequest(req), castResponse(res)));
-router.post('/apollo-authenticate', (req, res) => oauthServer.authenticate(castRequest(req), castResponse(res)));
-router.post('/apollo-token', (req, res) => oauthServer.token(castRequest(req), castResponse(res)));
 
 // GraphQL operations
 router.use('/graphql', authMiddleware);

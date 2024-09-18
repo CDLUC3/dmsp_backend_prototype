@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { capitalizeFirstLetter, validateEmail, validateURL } from '../utils/helpers';
 import { buildContext } from '../context';
-import { Falsey } from 'oauth2-server';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
@@ -178,7 +177,7 @@ export class User extends MySqlModel {
   }
 
   // Register the User if the data is valid
-  async register(): Promise<User | Falsey> {
+  async register(): Promise<User> {
     this.cleanup();
     await this.isValid();
 

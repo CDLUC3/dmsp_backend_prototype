@@ -13,13 +13,5 @@ jest.mock('../config/generalConfig', () => ({
   }
 }));
 
-jest.mock('../config/oauthConfig', () => ({
-  oauthConfig: {
-    authorizationCodeLifetime: 10,
-    accessTokenLifetime: 30,
-    refreshTokenLifetime: 30,
-  }
-}))
-
 process.env.CACHE_HOST = 'localhost';
 process.env.CACHE_PORT = '6379';
