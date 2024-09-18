@@ -42,6 +42,8 @@ export const typeDefs = gql`
     role: UserRole!
     "The user's organizational affiliation"
     affiliation: Affiliation
+    "Whether the user has accepted the terms and conditions of having an account"
+    acceptedTerms: Boolean
     "The user's ORCID"
     orcid: Orcid
   }
