@@ -10,11 +10,3 @@ jest.mock('../config/generalConfig', () => ({
     jwtTtl: 5,
   }
 }));
-
-jest.mock('../config/oauthConfig', () => ({
-  oauthConfig: {
-    authorizationCodeLifetime: 10,
-    accessTokenLifetime: 30,
-    refreshTokenLifetime: 30,
-  }
-}))

@@ -23,7 +23,7 @@ const startServer = async () => {
   await apolloServer.start();
   const { cache } = apolloServer;
 
-  // Healthcheck endpoint (declare this BEFORE Oauth2 and CORS definition due to AWS ALB limitations)
+  // Healthcheck endpoint (declare this BEFORE CORS definition due to AWS ALB limitations)
   app.get('/up', (_request, response) => healthcheck(apolloServer, response, logger));
 
   // Express middleware
