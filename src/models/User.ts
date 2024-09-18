@@ -5,6 +5,7 @@ import { Falsey } from 'oauth2-server';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
+import { generalConfig } from '../config/generalConfig';
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -102,7 +103,7 @@ export class User extends MySqlModel {
   }
 
   async hashPassword(password): Promise<string> {
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(generalConfig.bcryptSaltRounds);
     return await bcrypt.hash(password, salt);
   }
 

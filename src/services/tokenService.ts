@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+import { createHash, timingSafeEqual } from 'crypto';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { Response } from "express";
 import { logger, formatLogMessage } from '../logger';
@@ -23,6 +25,10 @@ export interface JWTRefreshToken extends JwtPayload {
   expiresIn: number,
 }
 
+export interface CSRFToken {
+  id: string,
+}
+
 // Helper function to set a secure HTTP-only cookie
 export const setTokenCookie = (res: Response, name: string, value: string, maxAge?: number): void => {
   res.cookie(name, value, {
@@ -33,6 +39,16 @@ export const setTokenCookie = (res: Response, name: string, value: string, maxAg
     path: '/' // Ensure the cookie is accessible for your entire app
   });
 };
+
+// Generate a new CSRF token the session
+const generateCSRFToken = async (cache: Cache, sessionId: string): Promise<string> => {
+  const csrfToken = uuidv4().replace(/-/g, '').slice(0, generalConfig.csrfLength);
+  const hashedToken = await hashToken(csrfToken);
+
+  // Add the refresh token to the Cache
+  await cache.adapter.set(`csrf:${sessionId}`, hashedToken, { ttl: generalConfig.csrfTTL });
+  return csrfToken;
+}
 
 // Generate an access token for the User
 const generateAccessToken = (jti: string, user: User): string => {
@@ -66,8 +82,10 @@ const generateRefreshToken = async (cache: Cache, jti: string, userId: number): 
     };
 
     const token = jwt.sign(payload, generalConfig.jwtRefreshSecret as string, { expiresIn: generalConfig.jwtRefreshTTL });
+    const hashedToken = await hashToken(token);
+
     // Add the refresh token to the Cache
-    cache.adapter.set(`dmspr-${jti}`, token, { ttl: generalConfig.jwtRefreshTTL })
+    await cache.adapter.set(`dmspr:${jti}`, hashedToken, { ttl: generalConfig.jwtRefreshTTL })
     return token;
   } catch(err) {
     if (logger) {
@@ -78,7 +96,7 @@ const generateRefreshToken = async (cache: Cache, jti: string, userId: number): 
 }
 
 // Generate an Access Token and a Refresh Token
-export const generateTokens = async (cache: Cache, user: User): Promise<{ accessToken: string; refreshToken: string }> => {
+export const generateAuthTokens = async (cache: Cache, user: User): Promise<{ accessToken: string; refreshToken: string }> => {
   if (generalConfig.jwtSecret && generalConfig.jwtRefreshSecret && user && user.id && user.email) {
     try {
       // Generate a unique id for the JWT
@@ -90,11 +108,20 @@ export const generateTokens = async (cache: Cache, user: User): Promise<{ access
 
       return { accessToken, refreshToken };
     } catch(err) {
-      formatLogMessage(logger).error(err, 'generateTokens - unable to generate tokens');
+      formatLogMessage(logger).error(err, 'generateAuthTokens - unable to generate tokens');
     }
   }
   return { accessToken: null, refreshToken: null };
 };
+
+// Verify a CSRF Token
+const verifyCSRFToken = async (cache: Cache, sessionId: string, csrfToken: string): Promise<boolean> {
+  const storedHash = await cache.adapter.get(`csrf:${sessionId}`);
+  if (!storedHash) return false;
+
+  const calculatedHash = hashToken(csrfToken);
+  return timingSafeEqual(Buffer.from(storedHash), Buffer.from(calculatedHash));
+}
 
 // Verify a Refresh Token
 const verifyRefreshToken = (refreshToken: string): JWTRefreshToken => {
@@ -118,7 +145,7 @@ export const isRevokedCallback = async (_req: Express.Request, token?: jwt.Jwt):
     if (jti) {
       try {
         // See if the JTI is in the black list
-        const result = await cache.adapter.get(`dmspbl-${jti}`);
+        const result = await cache.adapter.get(`dmspbl:${jti}`);
         if (result) {
           return true;
         }
@@ -145,7 +172,7 @@ export const refreshTokens = async (
       // TODO: We can eventually add some checks here to see if the account if locked or deactivated
       const user = await User.findById('refreshTokens', context, verified.id);
       if (user) {
-        return generateTokens(cache, user);
+        return generateAuthTokens(cache, user);
       }
     }
     // Otherwise the tokens were invalid or something else went wrong!
@@ -161,7 +188,7 @@ export const refreshTokens = async (
 // Invalidate the Refresh Token (e.g., on logout or token rotation)
 export const revokeRefreshToken = async (cache: Cache, jti: string): Promise<boolean> => {
   try {
-    return await cache.adapter.delete(`dmspr-${jti}`);
+    return await cache.adapter.delete(`dmspr:${jti}`);
   } catch(err) {
     formatLogMessage(logger).error(err, `revokeRefreshToken unable to delete token from cache - ${err.message}`);
     throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
@@ -170,7 +197,7 @@ export const revokeRefreshToken = async (cache: Cache, jti: string): Promise<boo
 
 export const revokeAccessToken = async (cache: Cache, jti: string): Promise<boolean> => {
   try {
-    await cache.adapter.set(`dmspbl-${jti}`, '', { ttl: generalConfig.jwtTTL });
+    await cache.adapter.set(`dmspbl:${jti}`, '', { ttl: generalConfig.jwtTTL });
     return true;
   } catch(err) {
     formatLogMessage(logger).error(err, `revokeAccessToken unable to add token to black list - ${err.message}`);

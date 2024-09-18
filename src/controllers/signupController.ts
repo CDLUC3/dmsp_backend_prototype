@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { logger, formatLogMessage } from '../logger';
 import { User } from '../models/User';
-import { generateTokens, setTokenCookie } from '../services/tokenService';
+import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
 import { Cache } from '../datasources/cache';
 import { generalConfig } from '../config/generalConfig';
 
@@ -15,7 +15,7 @@ export const signupController = async (req: Request, res: Response) => {
         res.status(400).json({ success: false, message: user.errors?.join(' | ') });
       } else {
         const cache = Cache.getInstance();
-        const { accessToken, refreshToken} = await generateTokens(cache, user);
+        const { accessToken, refreshToken} = await generateAuthTokens(cache, user);
 
         if (accessToken && refreshToken) {
           // Set the tokens as HTTP only cookies

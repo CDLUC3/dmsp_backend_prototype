@@ -8,7 +8,7 @@ import { Cache } from '../../datasources/cache';
 import { generalConfig } from '../../config/generalConfig';
 import {
   setTokenCookie,
-  generateTokens,
+  generateAuthTokens,
   refreshTokens,
   revokeAccessToken,
   revokeRefreshToken,
@@ -156,7 +156,7 @@ describe('setTokenCookie', () => {
   });
 });
 
-describe('generateTokens', () => {
+describe('generateAuthTokens', () => {
   it('should generate access and refresh tokens', async () => {
     const mockAccessToken = 'mock-access-token';
     const mockRefreshToken = 'mock-refresh-token';
@@ -169,7 +169,7 @@ describe('generateTokens', () => {
       if (secret === generalConfig.jwtRefreshSecret) return mockRefreshToken;
     });
 
-    const result = await generateTokens(mockCache, mockUser);
+    const result = await generateAuthTokens(mockCache, mockUser);
 
     expect(result).toEqual({ accessToken: mockAccessToken, refreshToken: mockRefreshToken });
     expect(jwt.sign).toHaveBeenCalledTimes(2);
@@ -181,7 +181,7 @@ describe('generateTokens', () => {
   });
 
   it('should return null tokens if conditions are not met', async () => {
-    const result = await generateTokens(mockCache, {} as User);
+    const result = await generateAuthTokens(mockCache, {} as User);
     expect(result).toEqual({ accessToken: null, refreshToken: null });
   });
 });
