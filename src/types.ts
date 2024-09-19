@@ -51,7 +51,9 @@ export type AddQuestionInput = {
 /** Input for adding a new section */
 export type AddSectionInput = {
   /** The Section you want to copy from */
-  copyFromSectionId?: InputMaybe<Scalars['Int']['input']>;
+  copyFromVersionedSectionId?: InputMaybe<Scalars['Int']['input']>;
+  /** The order in which the section will be displayed in the template */
+  displayOrder?: InputMaybe<Scalars['Int']['input']>;
   /** The guidance to help user with section */
   guidance?: InputMaybe<Scalars['String']['input']>;
   /** The section introduction */
@@ -805,6 +807,8 @@ export type UpdateQuestionInput = {
 
 /** Input for updating a section */
 export type UpdateSectionInput = {
+  /** The order in which the section will be displayed in the template */
+  displayOrder?: InputMaybe<Scalars['Int']['input']>;
   /** The guidance to help user with section */
   guidance?: InputMaybe<Scalars['String']['input']>;
   /** The section introduction */

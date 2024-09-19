@@ -21,24 +21,6 @@ export const typeDefs = gql`
   type Section {
     "The unique identifer for the Object"
     id: Int
-    "The template ID that the section belongs to"
-    templateId: Int
-    "The template that the section is associated with"
-    template: Template
-    "The order in which the section will be displayed in the template"
-    displayOrder: Int
-    "The section title"
-    name: String!
-    "The section introduction"
-    introduction: String
-    "Requirements that a user must consider in this section"
-    requirements: String
-    "The guidance to help user with section"
-    guidance: String
-    "The Tags associated with this section. A section might not have any tags"
-    tags: [Tag]
-    "Indicates whether or not the section has changed since the template was last published"
-    isDirty: Boolean!
     "The user who created the Object"
     createdById: Int
     "The timestamp when the Object was created"
@@ -49,6 +31,26 @@ export const typeDefs = gql`
     modified: String
     "Errors associated with the Object"
     errors: [String!]
+
+    "The template ID that the section belongs to"
+    templateId: Int
+    "The template that the section is associated with"
+    template: Template
+    "The section title"
+    name: String!
+    "The section introduction"
+    introduction: String
+    "Requirements that a user must consider in this section"
+    requirements: String
+    "The guidance to help user with section"
+    guidance: String
+    "The order in which the section will be displayed in the template"
+    displayOrder: Int
+    "The Tags associated with this section. A section might not have any tags"
+    tags: [Tag]
+    "Indicates whether or not the section has changed since the template was last published"
+    isDirty: Boolean!
+
   }
 
   "Input for adding a new section"
@@ -58,13 +60,15 @@ export const typeDefs = gql`
     "The section name"
     name: String!
     "The Section you want to copy from"
-    copyFromSectionId: Int
+    copyFromVersionedSectionId: Int
     "The section introduction"
     introduction: String
     "Requirements that a user must consider in this section"
     requirements: String
     "The guidance to help user with section"
     guidance: String
+    "The order in which the section will be displayed in the template"
+    displayOrder: Int
     "The Tags associated with this section. A section might not have any tags"
     tags: [TagInput!]
   }
@@ -81,6 +85,8 @@ export const typeDefs = gql`
     requirements: String
     "The guidance to help user with section"
     guidance: String
+    "The order in which the section will be displayed in the template"
+    displayOrder: Int
     "The Tags associated with this section. A section might not have any tags"
     tags: [TagInput!]
   }
