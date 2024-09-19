@@ -53,31 +53,45 @@ export const typeDefs = gql`
 
   "Input for adding a new section"
   input AddSectionInput {
+    "The id of the template that the section belongs to"
     templateId: Int!
+    "The section name"
     name: String!
-    copyFromVersionedSectionId: Int
+    "The Section you want to copy from"
+    copyFromSectionId: Int
+    "The section introduction"
     introduction: String
+    "Requirements that a user must consider in this section"
     requirements: String
+    "The guidance to help user with section"
     guidance: String
+    "The Tags associated with this section. A section might not have any tags"
     tags: [TagInput!]
-    displayOrder: Int
   }
 
   "Input for updating a section"
   input UpdateSectionInput {
+   "The unique identifer for the Section"
     sectionId: Int!
+    "The section name"
     name: String
+    "The section introduction"
     introduction: String
+    "Requirements that a user must consider in this section"
     requirements: String
+    "The guidance to help user with section"
     guidance: String
+    "The Tags associated with this section. A section might not have any tags"
     tags: [TagInput!]
-    displayOrder: Int
   }
 
   "Input for Tag operations"
   input TagInput {
+    "The unique identifier for the Tag"
     id: Int
+    "The name of the Tag"
     name: String!
+    "The description of the Tag"
     description: String
   }
 
