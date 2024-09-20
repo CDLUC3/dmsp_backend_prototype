@@ -20,6 +20,17 @@ export const typeDefs = gql`
   type VersionedSection {
     "The unique identifer for the Object"
     id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: String
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: String
+    "Errors associated with the Object"
+    errors: [String!]
+    
     "The parent VersionedTemplate"
     versionedTemplate: VersionedTemplate!
     "The sectionId for the snapshot section"
@@ -41,16 +52,5 @@ export const typeDefs = gql`
     guidance: String
     "The Tags associated with this VersionedSection"
     tags: [Tag]
-
-    "The user who created the Object"
-    createdById: Int
-    "The timestamp when the Object was created"
-    created: DateTimeISO
-    "The user who last modified the Object"
-    modifiedById: Int
-    "The timestamp when the Object was last modifed"
-    modified: DateTimeISO
-    "Errors associated with the Object"
-    errors: [String!]
   }
 `;

@@ -31,7 +31,7 @@ export const typeDefs = gql`
     modified: String
     "Errors associated with the Object"
     errors: [String!]
-
+    
     "The template ID that the section belongs to"
     templateId: Int
     "The template that the section is associated with"
@@ -50,7 +50,6 @@ export const typeDefs = gql`
     tags: [Tag]
     "Indicates whether or not the section has changed since the template was last published"
     isDirty: Boolean!
-
   }
 
   "Input for adding a new section"
