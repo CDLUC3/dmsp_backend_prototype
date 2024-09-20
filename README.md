@@ -78,7 +78,7 @@ flowchart LR;
   c-->|no| d[generateTokens]
   c-->|yes| e[return 400]
   d-->|yes| f[add refresh token to cache]
-  f-->g[set HTTP-only cookie for access and refresh tokens]
+  f-->g[set HTTP-only cookies]
   d-->|no| h[return 500]
 ```
 If successful, a new User record is created and an access token and refresh token are generated. The refresh token is stored in the Redis cache and then both tokens are added to the response as HTTP-only cookies.
@@ -92,7 +92,7 @@ flowchart LR;
   c-->|yes| d[generateTokens]
   c-->|no| e[return 401]
   d-->|yes| f[add refresh token to cache]
-  f-->g[set HTTP-only cookie for access and refresh tokens]
+  f-->g[set HTTP-only cookies]
   d-->|no| h[return 500]
 ```
 If successful, an access token and refresh token are generated. The refresh token is stored in the Redis cache and then both tokens are added to the response as HTTP-only cookies.
@@ -123,7 +123,7 @@ flowchart LR;
   f-->|no| h[return 401]
   g-->|yes| i[add refresh token to cache]
   i-->j[delete old refresh token from cache]
-  j-->k[set HTTP-only cookie for access and refresh tokens]
+  j-->k[set HTTP-only cookies]
   g-->|no| l[return 500]
 ```
 If successful, the refresh token will be removed from the Redis cache. Then a new access token and refresh token will be generated. The new refresh token will be added to the Redis cache and then both new tokens will be returned in the response's HTTP-only cookies.
@@ -355,9 +355,13 @@ Note that mocks will refresh each time the server is restarted!
 
 ### Tests
 
-You MUST add unit tests if you added or modified a Model! To do so, find the corresponding file (or add a new one) in the `src/models/__tests_/` directory.
+You MUST add unit tests if you added or modified a Model! To do so, find the corresponding file (or add a new one) in the `src/models/__tests_/` directory. We appreciate unit tests everywhere else too!
 
 Resolver tests are not yet particularly useful. We will be updating this to add these integration tests in the near future.
+
+To run the unit tests `npm run test`
+
+To run the functional tests `npm run mocha`
 
 ## Environment variables
 

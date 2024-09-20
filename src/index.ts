@@ -47,7 +47,7 @@ const startServer = async () => {
   // Pass off to the Router for other handling
   app.use('/', router);
 
-  httpServer.listen({ port: 4000 }, () => {
+  await httpServer.listen({ port: 4000 }, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`GraphQL endpoint: http://localhost:${PORT}/graphql`)
   })
@@ -65,4 +65,6 @@ process.on('SIGTERM', shutdown);
 
 startServer().catch((error) => {
   console.log('Error starting server:', error)
-})
+});
+
+export default app;

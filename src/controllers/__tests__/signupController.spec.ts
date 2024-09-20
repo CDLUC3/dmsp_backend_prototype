@@ -79,7 +79,7 @@ describe('signupController', () => {
     expect(generateAuthTokens).toHaveBeenCalledWith(mockCache, mockedUser);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token', generalConfig.jwtTTL);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspr', 'new-refresh-token', generalConfig.jwtRefreshTTL);
-    expect(mockResponse.status).toHaveBeenCalledWith(200);
+    expect(mockResponse.status).toHaveBeenCalledWith(201);
     expect(mockResponse.json).toHaveBeenCalledWith({ success: true, message: 'ok' });
   });
 
@@ -100,7 +100,7 @@ describe('signupController', () => {
 
     expect(mockResponse.status).toHaveBeenCalledWith(500);
     expect(mockResponse.json)
-      .toHaveBeenCalledWith({ success: false, message: 'Unable to create the account at this time.' });
+      .toHaveBeenCalledWith({ success: false, message: 'Unable to register the account.' });
   });
 
   it('should return 500 if unable to generate tokens', async () => {

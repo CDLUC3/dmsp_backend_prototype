@@ -21,12 +21,9 @@ export interface JWTAccessToken extends JwtPayload {
  }
 
 export interface JWTRefreshToken extends JwtPayload {
+  jti: string,
   id: number,
   expiresIn: number,
-}
-
-export interface CSRFToken {
-  id: string,
 }
 
 // Hash a token
@@ -87,13 +84,13 @@ const generateAccessToken = (jti: string, user: User): string => {
 const generateRefreshToken = async (cache: Cache, jti: string, userId: number): Promise<string> => {
   try {
     const payload: JWTRefreshToken = {
+      jti,
       id: userId,
-      expiresIn: generalConfig.jwtTTL,
+      expiresIn: generalConfig.jwtRefreshTTL,
     };
 
-    const token = jwt.sign(payload, generalConfig.jwtRefreshSecret as string, { expiresIn: generalConfig.jwtRefreshTTL });
+    const token = jwt.sign(payload, generalConfig.jwtRefreshSecret, { expiresIn: generalConfig.jwtRefreshTTL });
     const hashedToken = await hashToken(token);
-
     // Add the refresh token to the Cache
     await cache.adapter.set(`dmspr:${jti}`, hashedToken, { ttl: generalConfig.jwtRefreshTTL })
     return token;
@@ -159,7 +156,7 @@ const verifyRefreshToken = async (cache: Cache, refreshToken: string): Promise<J
 };
 
 // See if the access token is in the black list of revoked tokens
-export const isRevokedCallback = async (_req: Express.Request, token?: jwt.Jwt): Promise<boolean> => {
+export const isRevokedCallback = async (req: Express.Request, token?: jwt.Jwt): Promise<boolean> => {
   if (token && token.payload && typeof token.payload === 'object') {
     // Fetch the unique JTI from the token
     const jti = (token.payload as JwtPayload).jti;
@@ -211,7 +208,8 @@ export const refreshAuthTokens = async (
 // Invalidate the Refresh Token (e.g., on logout or token rotation)
 export const revokeRefreshToken = async (cache: Cache, jti: string): Promise<boolean> => {
   try {
-    return await cache.adapter.delete(`dmspr:${jti}`);
+    await cache.adapter.delete(`dmspr:${jti}`);
+    return true;
   } catch(err) {
     formatLogMessage(logger).error(err, `revokeRefreshToken unable to delete token from cache - ${err.message}`);
     throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
@@ -220,7 +218,7 @@ export const revokeRefreshToken = async (cache: Cache, jti: string): Promise<boo
 
 export const revokeAccessToken = async (cache: Cache, jti: string): Promise<boolean> => {
   try {
-    await cache.adapter.set(`dmspbl:${jti}`, '', { ttl: generalConfig.jwtTTL });
+    await cache.adapter.set(`dmspbl:${jti}`, new Date().toISOString(), { ttl: generalConfig.jwtTTL });
     return true;
   } catch(err) {
     formatLogMessage(logger).error(err, `revokeAccessToken unable to add token to black list - ${err.message}`);

@@ -93,6 +93,6 @@ describe('refreshTokenController', () => {
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(500);
-    expect(mockResponse.json).toHaveBeenCalledWith({ error: 'An unexpected error occurred' });
+    expect(mockResponse.json).toHaveBeenCalledWith({ success: false, message: 'An unexpected error occurred' });
   });
 });

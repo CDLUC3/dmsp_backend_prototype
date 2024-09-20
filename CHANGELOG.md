@@ -17,6 +17,8 @@
 - Added CSRF middleware
 - Added signoutController and refreshTokenController
 - Added tests for all Controllers
+- Added supertest to support integration tests
+- Added integration tests for token management (signin, signup, signout, refresh)
 
 ### Updated
 - Updated `src/context.ts` to use a `buildContext` wrapper function that can be called when building the context for Apollo Server and our `signin` and `signup` endpoints.

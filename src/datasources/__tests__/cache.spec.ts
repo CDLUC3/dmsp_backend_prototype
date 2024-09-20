@@ -1,42 +1,30 @@
 import { Cache } from '../cache';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
-import Redis from 'ioredis';
 import { KeyvAdapter } from '@apollo/utils.keyvadapter';
 import { logger } from '../../__mocks__/logger';
 
-// Mock Redis Cluster, Keyv, KeyvRedis, and KeyvAdapter
-jest.mock('ioredis', () => ({
-  Cluster: jest.fn(),
-}));
+jest.mock('ioredis');
 jest.mock('keyv');
 jest.mock('@keyv/redis');
 jest.mock('@apollo/utils.keyvadapter');
 
 describe('Cache', () => {
-  let mockRedisCluster;
   let mockKeyvInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockRedisCluster = { on: jest.fn() };
     mockKeyvInstance = { on: jest.fn() };
 
-    // Mock KeyvAdapter
-    (KeyvAdapter as jest.Mock).mockImplementation(() => ({
-      // Adapter functionality mock
-    }));
-
-    // Mock Redis and Keyv
-    (Redis.Cluster as jest.Mock).mockImplementation(() => mockRedisCluster);
+    // Mock KeyvAdapter and Keyv
+    (KeyvAdapter as jest.Mock).mockImplementation(() => ({ }));
     (Keyv as jest.Mock).mockImplementation(() => mockKeyvInstance);
   });
 
   it('should create a Redis cluster and initialize KeyvAdapter', () => {
     Cache.getInstance();
 
-    expect(Redis.Cluster).toHaveBeenCalledWith(expect.any(Array));
     expect(Keyv).toHaveBeenCalledWith(expect.any(KeyvRedis));
     expect(KeyvAdapter).toHaveBeenCalledWith(mockKeyvInstance);
     Cache.removeInstance();
@@ -54,7 +42,7 @@ describe('Cache', () => {
     // Simulate connection error
     const errorCallback = mockKeyvInstance.on.mock.calls.find(call => call[0] === 'error')[1];
     errorCallback(mockError);
-    expect(logger.error).toHaveBeenCalledWith(mockError, 'Redis connection error');
+    expect(logger.error).toHaveBeenCalledWith(mockError, 'Redis connection error - Connection error');
 
     // Simulate connection closed
     const closeCallback = mockKeyvInstance.on.mock.calls.find(call => call[0] === 'close')[1];
@@ -69,7 +57,6 @@ describe('Cache', () => {
 
     // Ensure that both instances are the same (singleton)
     expect(instance1).toBe(instance2);
-    expect(Redis.Cluster).toHaveBeenCalledTimes(1);
     expect(Keyv).toHaveBeenCalledTimes(1);
     Cache.removeInstance();
   });

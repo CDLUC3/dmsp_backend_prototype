@@ -5,10 +5,10 @@ import { isRevokedCallback } from "../services/tokenService";
 export const authMiddleware = expressjwt({
   algorithms: ['HS256'],
   credentialsRequired: false,
-  secret: generalConfig.jwtSecret as string,
+  secret: generalConfig.jwtSecret.toString(),
 
   // Fetch the access token from the cookie
-  getToken: function fromHeader(req) { return req.cookies.dmspt; },
+  getToken: function fromCookie(req) { return req.cookies?.dmspt?.toString(); },
   // Function to check if the access token has been revoked
   isRevoked: isRevokedCallback,
 });

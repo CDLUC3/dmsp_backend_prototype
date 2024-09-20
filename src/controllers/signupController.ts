@@ -7,6 +7,7 @@ import { generalConfig } from '../config/generalConfig';
 
 export const signupController = async (req: Request, res: Response) => {
   let user: User = new User(req.body);
+
   try {
     user = await user.register() || null;
 
@@ -22,11 +23,14 @@ export const signupController = async (req: Request, res: Response) => {
           setTokenCookie(res, 'dmspt', accessToken, generalConfig.jwtTTL);
           setTokenCookie(res, 'dmspr', refreshToken, generalConfig.jwtRefreshTTL);
 
-          res.status(200).json({ success: true, message: 'ok' });
+          res.status(201).json({ success: true, message: 'ok' });
+        } else {
+          res.status(500).json({ success: false, message: 'Unable to create the account at this time.' });
         }
       }
+    } else {
+      res.status(500).json({ success: false, message: 'Unable to register the account.' });
     }
-    res.status(500).json({ success: false, message: 'Unable to create the account at this time.' });
   } catch (err) {
     formatLogMessage(logger, { msg: `Signup error. userId: ${user.id}, error: ${err?.message}` });
     res.status(500).json({ success: false, message: 'Internal server error' });

@@ -15,6 +15,6 @@ export async function csrfMiddleware(req: Request, res: Response, next: NextFunc
 
   // Generate a new CSRF token (every request)
   const newToken = await generateCSRFToken(cache);
-  res.setHeader('X-CSRF-Token', newToken);
+  if (newToken) res.setHeader('X-CSRF-Token', newToken);
   next();
 }

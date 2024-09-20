@@ -11,18 +11,19 @@ export class Cache {
 
   private constructor() {
     // Setup the Redis Cluster
-    const cluster = new Redis.Cluster(cacheConfig.cluster);
+    // const cluster = new Redis.Cluster(cacheConfig.cluster);
+    const cache = new Redis(cacheConfig);
 
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const keyV = new Keyv(new KeyvRedis(cluster)) as any;
+    const keyV = new Keyv(new KeyvRedis(cache)) as any;
 
     keyV.on('connect', () => {
       formatLogMessage(logger).error(null, `Redis connection established`);
     });
 
     keyV.on('error', (err) => {
-      formatLogMessage(logger).error(err, `Redis connection error`);
+      formatLogMessage(logger).error(err, `Redis connection error - ${err.message}`);
     });
 
     keyV.on('close', () => {

@@ -7,6 +7,9 @@ import { signoutController } from './controllers/signoutController';
 
 const router = express.Router();
 
+// Support for acquiring an initial CSRF token
+router.get('/apollo-csrf', (req: Request, res: Response) => { res.status(200).send('ok'); });
+
 // Support for user auth
 router.post('/apollo-signin', (req: Request, res: Response) => signinController(req, res));
 router.post('/apollo-signup', (req: Request, res: Response) => signupController(req, res));
