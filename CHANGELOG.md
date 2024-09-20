@@ -23,6 +23,9 @@
 - data-migrations/README.md with instructions on running migrations in the Docker container
 - removed old oauth-server package which had security vulnerabilities
 
+### Fixed
+- Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test
+
 ## v0.0.1
 Initial Apollo Server build
 
