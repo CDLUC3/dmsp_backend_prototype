@@ -38,7 +38,7 @@ const mockedUser: UserModel.User = {
   email: casual.email,
   givenName: casual.first_name,
   surName: casual.last_name,
-  affiliationId: casual.url,
+  affiliationId: null,
   role: UserModel.UserRole.RESEARCHER,
   acceptedTerms: true,
   password: casual.uuid,
