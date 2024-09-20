@@ -255,7 +255,7 @@ describe('Access and Refresh Tokens', () => {
     expect(resp.body).toEqual({ success: false, message: 'Invalid credentials' });
   });
 
-  it.only('POST /apollo-refresh should refresh the tokens', async () => {
+  it('POST /apollo-refresh should refresh the tokens', async () => {
     const registeredUser = mockedUser;
     registeredUser.id = casual.integer(1, 999);
     (mockedUser.login as jest.Mock).mockResolvedValue(registeredUser);

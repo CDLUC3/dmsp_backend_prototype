@@ -37,7 +37,7 @@ describe('Cache', () => {
     // Simulate connection established
     const connectCallback = mockKeyvInstance.on.mock.calls.find(call => call[0] === 'connect')[1];
     connectCallback();
-    expect(logger.error).toHaveBeenCalledWith(null, 'Redis connection established');
+    expect(logger.info).toHaveBeenCalledWith(null, 'Redis connection established');
 
     // Simulate connection error
     const errorCallback = mockKeyvInstance.on.mock.calls.find(call => call[0] === 'error')[1];
@@ -47,7 +47,7 @@ describe('Cache', () => {
     // Simulate connection closed
     const closeCallback = mockKeyvInstance.on.mock.calls.find(call => call[0] === 'close')[1];
     closeCallback();
-    expect(logger.error).toHaveBeenCalledWith(null, 'Redis connection closed');
+    expect(logger.info).toHaveBeenCalledWith(null, 'Redis connection closed');
     Cache.removeInstance();
   });
 

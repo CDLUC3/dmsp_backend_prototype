@@ -15,7 +15,7 @@ export const refreshTokenController = async (req: Request, res: Response) => {
       const { accessToken, refreshToken } = await refreshAuthTokens(cache, context, originalRefreshToken);
 
       // If it successfully regenerated an access token
-      if (accessToken) {
+      if (accessToken && refreshToken) {
         // Set the tokens as HTTP only cookies
         setTokenCookie(res, 'dmspt', accessToken, generalConfig.jwtTTL);
         setTokenCookie(res, 'dmspr', refreshToken, generalConfig.jwtRefreshTTL);

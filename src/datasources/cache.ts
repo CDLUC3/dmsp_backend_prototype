@@ -19,7 +19,7 @@ export class Cache {
     const keyV = new Keyv(new KeyvRedis(cache)) as any;
 
     keyV.on('connect', () => {
-      formatLogMessage(logger).error(null, `Redis connection established`);
+      formatLogMessage(logger).info(null, `Redis connection established`);
     });
 
     keyV.on('error', (err) => {
@@ -27,7 +27,7 @@ export class Cache {
     });
 
     keyV.on('close', () => {
-      formatLogMessage(logger).error( null, `Redis connection closed`);
+      formatLogMessage(logger).info( null, `Redis connection closed`);
     });
 
     // Set the Adapter which will be used to interact with the cache

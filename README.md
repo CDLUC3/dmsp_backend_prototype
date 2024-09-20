@@ -69,6 +69,8 @@ The system generates a short lived (10 minute) access token `dmspt` that should 
 
 A longer lived (24 hour) refresh token `dmspr` is also generated. The refresh token can be used to refresh an expired access token. Doing so generates completely new access AND refresh tokens.
 
+When the user signs out, their access token is added to the Redis cache black list to ensure that it cannot be used afterward.
+
 #### signupController
 The signup controller responds to `POST` requests to `/apollo-signup`. It will validate the posted user data in the body of the request and attempt to create a new User record in the database.
 ```mermaid
@@ -114,7 +116,7 @@ If successful, the refresh token will be removed from the Redis cache. Then the 
 The signout controller responds to `POST` requests to `/apollo-refresh`. It will retrieve the refresh token from the request's HTTP-only cookies and attempt to verify the token. If the token is still valid.
 ```mermaid
 flowchart LR;
-  a[Refresh token]-->b[verify token];
+  a[Refresh token]-->b[verify token & token not revoked];
   b-->c{Success?};
   c-->|yes| d[verify user]
   c-->|no| e[return 401]
@@ -132,7 +134,7 @@ If successful, the refresh token will be removed from the Redis cache. Then a ne
 The access token received from the authentication endpoints above will then be used by the system to determine whether or not a user is authorized to access data.
 ```mermaid
 flowchart LR;
-  a[Access token]-->b[verify token];
+  a[Access token]-->b[verify token & token not revoked];
   b-->c{Success?};
   c-->|yes| d[Authorization check]
   c-->|no| e[return 401]
@@ -147,7 +149,7 @@ GraphQL consists of:
 - Schemas - the definition of the available data (e.g. a contributor or an answer to a DMP question) and what actions can be performed on that data
   - Queries - actions that can be taken to retrieve different types of data. GraphQL is extremely flexible and allows the caller to define exactly what portions of the data they want the query to return.
   - Mutations - actions that can be taken to create, modify or delete different types of data.
-- Resolvers - an intermediary that receives the incoming query or mutation request and performs authoriation checks and basic validation before passing the request off to a model.
+- Resolvers - an intermediary that receives the incoming query or mutation request and performs authorization checks and basic validation before passing the request off to a model.
 - Models - encapsulate the business logic that performs queries and mutations on data. The models understand where the data lives and how to interact with it.
 - Data Sources - lower level logic that allows models to interact with data (e.g. a MySQL database, DynamoDB database, external API, etc.)
 
