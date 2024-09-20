@@ -1,13 +1,8 @@
 import { formatLogMessage } from "../logger";
 import { MyContext } from '../context';
 import { validateDate } from "../utils/helpers";
+import { getCurrentDate } from "../utils/helpers";
 
-// Get current date and put it into format that is acceptable to mariaDB
-export function getCurrentDate(): string {
-  const now = new Date().toISOString();
-  const currentDate = now.slice(0, 19).replace('T', ' ');
-  return currentDate;
-}
 export class MySqlModel {
   // Initialize with fields common to all MySQL DB tables
   constructor(

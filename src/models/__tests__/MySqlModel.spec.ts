@@ -1,7 +1,8 @@
 import casual from 'casual';
-import { MySqlModel, getCurrentDate } from "../MySqlModel";
+import { MySqlModel } from "../MySqlModel";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
+import { getCurrentDate } from '../../utils/helpers';
 
 jest.mock('../../dataSources/mySQLDataSource', () => {
   return {
