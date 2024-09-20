@@ -1,5 +1,5 @@
 import casual from 'casual';
-import { MySqlModel } from "../MySqlModel";
+import { MySqlModel, getCurrentDate } from "../MySqlModel";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 
@@ -36,21 +36,22 @@ class TestImplementation extends MySqlModel {
 describe('MySqlModel abstract class', () => {
   it('constructor should initialize as expected if it is a new record', () => {
     const createdById = casual.integer(1, 999);
-
-    const model = new MySqlModel(null, new Date().toISOString(), createdById);
+    const formattedDate = getCurrentDate();
+    const model = new MySqlModel(null, formattedDate, createdById);
 
     expect(model.id).toBeFalsy();
     expect(model.createdById).toEqual(createdById);
     expect(model.modifiedById).toEqual(createdById);
-    expect(model.created).toBeTruthy();
-    expect(model.modified).toEqual(model.created);
+    expect(model.created).toEqual(formattedDate);
+    expect(model.modified).toEqual(formattedDate);
   });
 
   it('constructor should initialize as expected if it is an existing record', () => {
     const id = casual.integer(1, 999);
-    const created = new Date().toISOString();
+    const formattedDate = getCurrentDate();
+    const created = formattedDate;
     const createdById = casual.integer(1, 999);
-    const modified = new Date().toISOString();
+    const modified = formattedDate;
     const modifiedById = casual.integer(1, 999);
 
     const model = new MySqlModel(id, created, createdById, modified, modifiedById);
@@ -58,13 +59,14 @@ describe('MySqlModel abstract class', () => {
     expect(model.id).toEqual(id);
     expect(model.createdById).toEqual(createdById);
     expect(model.modifiedById).toEqual(modifiedById);
-    expect(model.created).toEqual(created);
-    expect(model.modified).toEqual(modified);
+    expect(model.created).toEqual(formattedDate);
+    expect(model.modified).toEqual(formattedDate);
   });
 
   it('isValid should return false when the modified date is not a Date', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(null, new Date().toISOString(), createdById);
+    const formattedDate = getCurrentDate();
+    const model = new MySqlModel(null, formattedDate, createdById);
 
     model.modified = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
@@ -74,7 +76,8 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return false when the created date is not a Date', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(null, new Date().toISOString(), createdById);
+    const formattedDate = getCurrentDate();
+    const model = new MySqlModel(null, formattedDate, createdById);
 
     model.created = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
@@ -84,7 +87,8 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return false when the createdById is null', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(null, new Date().toISOString(), createdById);
+    const formattedDate = getCurrentDate();
+    const model = new MySqlModel(null, formattedDate, createdById);
 
     model.createdById = null;
     expect(await model.isValid()).toBe(false);
@@ -94,7 +98,8 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return false when the modifiedById is null', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(null, new Date().toISOString(), createdById);
+    const formattedDate = getCurrentDate();
+    const model = new MySqlModel(null, formattedDate, createdById);
 
     model.modifiedById = null;
     expect(await model.isValid()).toBe(false);
@@ -104,7 +109,8 @@ describe('MySqlModel abstract class', () => {
 
   it('isValid should return true when the id is null', async () => {
     const createdById = casual.integer(1, 999);
-    const model = new MySqlModel(null, new Date().toISOString(), createdById);
+    const formattedDate = getCurrentDate();
+    const model = new MySqlModel(null, formattedDate, createdById);
 
     model.id = null;
     expect(await model.isValid()).toBe(true);

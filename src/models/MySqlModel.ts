@@ -2,11 +2,17 @@ import { formatLogMessage } from "../logger";
 import { MyContext } from '../context';
 import { validateDate } from "../utils/helpers";
 
+// Get current date and put it into format that is acceptable to mariaDB
+export function getCurrentDate(): string {
+  const now = new Date().toISOString();
+  const currentDate = now.slice(0, 19).replace('T', ' ');
+  return currentDate;
+}
 export class MySqlModel {
   // Initialize with fields common to all MySQL DB tables
   constructor(
     public id?: number,
-    public created: string = new Date().toISOString(),
+    public created: string = getCurrentDate(),
     public createdById?: number,
     public modified?: string,
     public modifiedById?: number,
@@ -17,7 +23,7 @@ export class MySqlModel {
       this.modifiedById = this.createdById;
     }
     if (!this.modified) {
-      this.modified = this.id ? new Date().toISOString() : this.created;
+      this.modified = this.id ? getCurrentDate() : this.created;
     }
   };
 
@@ -153,8 +159,7 @@ export class MySqlModel {
     skipKeys?: string[]
   ): Promise<number> {
     // Update the creator/modifier info
-    const now = new Date().toISOString();
-    const currentDate = now.slice(0, 19).replace('T', ' ');
+    const currentDate = getCurrentDate();
     obj.createdById = apolloContext.token.id;
     obj.created = currentDate;
     obj.modifiedById = apolloContext.token.id;
@@ -189,10 +194,9 @@ export class MySqlModel {
   ): Promise<MySqlModel> {
     // Update the modifier info
     obj.modifiedById = apolloContext.token.id;
-    const now = new Date().toISOString();
-    const currentDate = now.slice(0, 19).replace('T', ' ');
+    const currentDate = getCurrentDate();
     obj.modified = currentDate;
-    obj.created = (new Date(obj.created).toISOString().slice(0, 19).replace('T', ' '));
+    obj.created = currentDate;
 
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj, skipKeys);

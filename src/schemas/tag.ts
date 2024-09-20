@@ -20,6 +20,17 @@ export const typeDefs = gql`
   type Tag {
     "The unique identifer for the Object"
     id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: String
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: String
+    "Errors associated with the Object"
+    errors: [String!]
+    
     "The tag name"
     name: String!
     "The tag description"
