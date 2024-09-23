@@ -2,14 +2,14 @@ import { RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { logger, formatLogMessage } from '../logger';
 import { DmspModel as Dmsp } from "../models/Dmsp"
-import { JWTToken } from '../services/tokenService';
+import { JWTAccessToken } from '../services/tokenService';
 
 export class DMPHubAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
-  private token: JWTToken;
+  private token: JWTAccessToken;
 
-  constructor(options: { cache: KeyValueCache, token: JWTToken }) {
+  constructor(options: { cache: KeyValueCache, token: JWTAccessToken }) {
     super(options);
 
     this.token = options.token;

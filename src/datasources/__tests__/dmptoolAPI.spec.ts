@@ -3,7 +3,7 @@ import { DMPToolAPI, Authorizer } from '../dmptoolAPI';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
-import { JWTToken } from '../../services/tokenService';
+import { JWTAccessToken } from '../../services/tokenService';
 import { Affiliation, AffiliationSearch } from "../../models/Affiliation";
 
 let mockError;
@@ -93,7 +93,7 @@ describe('DMPToolAPI', () => {
     // Initialize DMPToolAPI
     dmptoolAPI = new DMPToolAPI({
       cache: {} as KeyValueCache,
-      token: {} as JWTToken,
+      token: {} as JWTAccessToken,
     });
   });
 

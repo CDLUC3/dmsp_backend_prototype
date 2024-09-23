@@ -1,5 +1,5 @@
 import cors from 'cors';
 
-export function handleCors() {
+export function coresMiddleware() {
   return cors<cors.CorsRequest>();
 }

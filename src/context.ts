@@ -2,10 +2,10 @@ import { Logger } from 'pino';
 import { DMPHubAPI } from './datasources/dmphubAPI';
 import { DMPToolAPI } from './datasources/dmptoolAPI';
 import { MySQLDataSource } from './datasources/mySQLDataSource';
-import { JWTToken } from './services/tokenService';
+import { JWTAccessToken } from './services/tokenService';
 import { formatLogMessage } from './logger';
 export interface MyContext {
-  token: JWTToken;
+  token: JWTAccessToken;
   logger: Logger;
 
   dataSources: {
@@ -18,7 +18,7 @@ export interface MyContext {
 // This function should only be used when the caller is running a query from outside the
 // Apollo Server GraphQL context. e.g. when calling signup or register
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildContext(logger: Logger, cache: any = null, token: JWTToken = null): MyContext {
+export function buildContext(logger: Logger, cache: any = null, token: JWTAccessToken = null): MyContext {
   if (!cache) {
     // If calling from outside the Apollo server context setup an HttpCache.
     cache = { skipCache: true };

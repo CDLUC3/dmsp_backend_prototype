@@ -27,8 +27,22 @@ services:
     volumes:
       - "./docker/mariadb-persistence:/bitnami/mariadb"
 
+  redis:
+    image: "public.ecr.aws/docker/library/redis:alpine"
+    container_name: apollo-redis
+    command: redis-server
+    networks:
+      - apollo-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - "./docker/redis:/var/lib/redis"
+
   apollo:
     container_name: apollo-server
+    depends_on:
+      - mariadb
+      - redis
     build:
       context: .
       dockerfile: Dockerfile
@@ -41,12 +55,15 @@ services:
     env_file:
       - .env
     environment:
-      # MYSQL_HOST: 'host.docker.internal'
       - "MYSQL_CONNECTION_LIMIT=5"
       - "MYSQL_HOST=apollo-mariadb"
       - "MYSQL_PORT=3306"
       - "MYSQL_DATABASE=dmsp"
       - "MYSQL_USER=dmspuser"
       - "MYSQL_PASSWORD=abcd3fgh1j"
+
+      - "CACHE_HOST=apollo-redis"
+      - "CACHE_PORT=6379"
+      - "CACHE_CONNECT_TIMEOUT=10000"
     volumes:
       - ".:/app"

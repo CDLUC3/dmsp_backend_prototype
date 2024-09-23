@@ -1,7 +1,6 @@
 import { Logger } from "pino";
-import { JWTToken } from "../services/tokenService";
+import { JWTAccessToken } from "../services/tokenService";
 import { MyContext } from "../context";
-import { logger } from '../__mocks__/logger';
 import { DMPHubAPI } from "../datasources/dmphubAPI";
 import { DMPToolAPI } from "../datasources/dmptoolAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";
@@ -71,7 +70,7 @@ export const mockUser = (
 }
 
 // Generate a mock JWToken
-export const mockToken = (user = mockUser()): JWTToken => {
+export const mockToken = (user = mockUser()): JWTAccessToken => {
   return {
     id: user.id,
     email: user.email,
@@ -79,6 +78,8 @@ export const mockToken = (user = mockUser()): JWTToken => {
     surName: user.surName,
     affiliationId: user.affiliationId,
     role: user.role,
+    jti: casual.integer(1, 999999).toString(),
+    expiresIn: casual.integer(1, 999999999),
   }
 }
 
@@ -89,10 +90,10 @@ export const mockDataSources = {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-export function buildContext(loggerIn: Logger = logger, token: JWTToken = null, _cache: any = null): MyContext {
+export function buildContext(logger: Logger, token: JWTAccessToken = null, _cache: any = null): MyContext {
   return {
     token: token,
-    logger: loggerIn,
+    logger: logger,
     dataSources: mockDataSources,
   }
 }

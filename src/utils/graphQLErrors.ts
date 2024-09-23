@@ -7,14 +7,14 @@ export const INTERNAL_SERVER_ERROR_CODE = 'INTERNAL_SERVER';
 export const NOT_FOUND_ERROR_CODE = 'NOT_FOUND';
 export const BAD_USER_INPUT = 'BAD_USER_INPUT';
 
-export const DEFAULT_AUNAUTHORIZED_MESSAGE = 'Unauthorized';
+export const DEFAULT_UNAUTHORIZED_MESSAGE = 'Unauthorized';
 export const DEFAULT_BAD_REQUEST_MESSAGE = 'Bad Request';
 export const DEFAULT_FORBIDDEN_MESSAGE = 'Forbidden';
 export const DEFAULT_INTERNAL_SERVER_MESSAGE = 'Internal Server Error';
 export const DEFAULT_NOT_FOUND_MESSAGE = 'Not Found';
 export const DEFAULT_BAD_USER_INPUT = 'Bad user input';
 
-export function AuthenticationError(errMessage = DEFAULT_AUNAUTHORIZED_MESSAGE) {
+export function AuthenticationError(errMessage = DEFAULT_UNAUTHORIZED_MESSAGE) {
   return new GraphQLError(errMessage, {
     extensions: {
       code: AUTHENTICATION_ERROR_CODE,

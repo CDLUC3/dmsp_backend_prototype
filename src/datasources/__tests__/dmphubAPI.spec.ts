@@ -2,7 +2,7 @@ import { DMPHubAPI } from '../dmphubAPI';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
-import { JWTToken } from '../../services/tokenService';
+import { JWTAccessToken } from '../../services/tokenService';
 import { DmspModel as Dmsp } from '../../models/Dmsp';
 import casual from 'casual';
 import { ContributorRole } from '../../models/ContributorRole';
@@ -32,7 +32,7 @@ describe('DMPHubAPI', () => {
     // Initialize the class
     dmphubAPI = new DMPHubAPI({
       cache: {} as KeyValueCache,
-      token: {} as JWTToken,
+      token: {} as JWTAccessToken,
     });
   });
 

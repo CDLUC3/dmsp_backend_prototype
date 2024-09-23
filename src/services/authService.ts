@@ -1,8 +1,8 @@
 import { UserRole } from "../models/User";
-import { JWTToken } from "./tokenService";
+import { JWTAccessToken } from "./tokenService";
 
 // Verify that we have a token
-export const isAuthorized = (token: JWTToken): boolean => {
+export const isAuthorized = (token: JWTAccessToken): boolean => {
     if(token?.id) {
       return true;
     }
@@ -10,13 +10,13 @@ export const isAuthorized = (token: JWTToken): boolean => {
 }
 
 // An Admin has one of the Admin roles as well as an affiliation id.
-export const isAdmin = (token: JWTToken): boolean => {
+export const isAdmin = (token: JWTAccessToken): boolean => {
   return isAuthorized(token)
     && [UserRole.ADMIN.toString(), UserRole.SUPERADMIN.toString()].includes(token?.role)
     && token?.affiliationId;
 }
 
 // A SuperAdmin has the SuperAdmin role.
-export const isSuperAdmin = (token: JWTToken): boolean => {
+export const isSuperAdmin = (token: JWTAccessToken): boolean => {
   return isAuthorized(token) && token?.role === UserRole.SUPERADMIN;
 }

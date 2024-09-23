@@ -14,6 +14,13 @@
 - Script to nuke the DB so it can be easily rebuilt from scratch
 - Added husky precommit tasks
 - Added data migrations for Section and Tag
+- Added Redis to the docker-compose file
+- Added Cache data source (and tests)
+- Added CSRF middleware
+- Added signoutController and refreshTokenController
+- Added tests for all Controllers
+- Added supertest to support integration tests
+- Added integration tests for token management (signin, signup, signout, refresh)
 
 ### Updated
 - Updated `src/context.ts` to use a `buildContext` wrapper function that can be called when building the context for Apollo Server and our `signin` and `signup` endpoints.
@@ -22,7 +29,10 @@
 - Updated `graphQLErrors` with more error types
 - Added MariaDB to docker-compose
 - data-migrations/README.md with instructions on running migrations in the Docker container
+- tokenService now supports refresh tokens, CSRF tokens and signout
+- updated express middelware to fetch the access token and refresh tokens from the cookies instead of the headers
 - removed old oauth-server package which had security vulnerabilities
+- moved authMiddleware function from the router.ts into its own class in src/middelware
 
 ### Fixed
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test
