@@ -19,10 +19,10 @@ export const typeDefs = gql`
 
   type Dmsp {
     contact: PrimaryContact!
-    created: DateTimeISO!
+    created: String
     dmp_id: DmspIdentifier!
     ethical_issues_exist: YesNoUnknown!
-    modified: DateTimeISO!
+    modified: String
     title: String!
 
     contributor: [Contributor]

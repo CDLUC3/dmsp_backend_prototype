@@ -182,7 +182,7 @@ export type Contributor = Person & {
 export type ContributorRole = {
   __typename?: 'ContributorRole';
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** A longer description of the contributor role useful for tooltips */
@@ -196,7 +196,7 @@ export type ContributorRole = {
   /** The Ui label to display for the contributor role */
   label: Scalars['String']['output'];
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The URL for the contributor role */
@@ -228,7 +228,7 @@ export type Dmsp = {
   __typename?: 'Dmsp';
   contact: PrimaryContact;
   contributor?: Maybe<Array<Maybe<Contributor>>>;
-  created: Scalars['DateTimeISO']['output'];
+  created?: Maybe<Scalars['String']['output']>;
   description?: Maybe<Scalars['String']['output']>;
   dmp_id: DmspIdentifier;
   dmproadmap_featured?: Maybe<Scalars['String']['output']>;
@@ -238,7 +238,7 @@ export type Dmsp = {
   ethical_issues_exist: YesNoUnknown;
   ethical_issues_report?: Maybe<Scalars['URL']['output']>;
   language?: Maybe<Scalars['String']['output']>;
-  modified: Scalars['DateTimeISO']['output'];
+  modified?: Maybe<Scalars['String']['output']>;
   title: Scalars['String']['output'];
 };
 
@@ -694,10 +694,20 @@ export type SingleDmspResponse = {
 /** A Tag is a way to group similar types of categories together */
 export type Tag = {
   __typename?: 'Tag';
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
   /** The tag description */
   description?: Maybe<Scalars['String']['output']>;
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The tag name */
   name: Scalars['String']['output'];
 };
@@ -720,7 +730,7 @@ export type Template = {
   /** Users from different affiliations who have been invited to collaborate on this template */
   collaborators?: Maybe<Array<TemplateCollaborator>>;
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The current published version */
@@ -734,7 +744,7 @@ export type Template = {
   /** Whether or not the Template has had any changes since it was last published */
   isDirty: Scalars['Boolean']['output'];
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name/title of the template */
@@ -753,7 +763,7 @@ export type Template = {
 export type TemplateCollaborator = {
   __typename?: 'TemplateCollaborator';
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The collaborator's email */
@@ -765,7 +775,7 @@ export type TemplateCollaborator = {
   /** The user who invited the collaborator */
   invitedBy?: Maybe<User>;
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The template the collaborator may edit */
@@ -831,7 +841,7 @@ export type User = {
   /** The user's organizational affiliation */
   affiliation?: Maybe<Affiliation>;
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The user's primary email address */
@@ -843,7 +853,7 @@ export type User = {
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The user's ORCID */
@@ -899,7 +909,7 @@ export type VersionedQuestion = {
 export type VersionedSection = {
   __typename?: 'VersionedSection';
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The displayOrder of this VersionedSection */
@@ -913,7 +923,7 @@ export type VersionedSection = {
   /** The VersionedSection introduction */
   introduction?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The VersionedSection name/title */
@@ -942,7 +952,7 @@ export type VersionedTemplate = {
   /** A comment/note the user enters when publishing the Template */
   comment?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** A description of the purpose of the template */
@@ -952,7 +962,7 @@ export type VersionedTemplate = {
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name/title of the template */
@@ -1226,14 +1236,14 @@ export type ContributorResolvers<ContextType = MyContext, ParentType extends Res
 };
 
 export type ContributorRoleResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ContributorRole'] = ResolversParentTypes['ContributorRole']> = {
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   url?: Resolver<ResolversTypes['URL'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1260,7 +1270,7 @@ export type DmpRoadmapAffiliationResolvers<ContextType = MyContext, ParentType e
 export type DmspResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Dmsp'] = ResolversParentTypes['Dmsp']> = {
   contact?: Resolver<ResolversTypes['PrimaryContact'], ParentType, ContextType>;
   contributor?: Resolver<Maybe<Array<Maybe<ResolversTypes['Contributor']>>>, ParentType, ContextType>;
-  created?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   dmp_id?: Resolver<ResolversTypes['DmspIdentifier'], ParentType, ContextType>;
   dmproadmap_featured?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1270,7 +1280,7 @@ export type DmspResolvers<ContextType = MyContext, ParentType extends ResolversP
   ethical_issues_exist?: Resolver<ResolversTypes['YesNoUnknown'], ParentType, ContextType>;
   ethical_issues_report?: Resolver<Maybe<ResolversTypes['URL']>, ParentType, ContextType>;
   language?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  modified?: Resolver<ResolversTypes['DateTimeISO'], ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -1448,8 +1458,13 @@ export type SingleDmspResponseResolvers<ContextType = MyContext, ParentType exte
 };
 
 export type TagResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Tag'] = ResolversParentTypes['Tag']> = {
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -1457,14 +1472,14 @@ export type TagResolvers<ContextType = MyContext, ParentType extends ResolversPa
 export type TemplateResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Template'] = ResolversParentTypes['Template']> = {
   bestPractice?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   collaborators?: Resolver<Maybe<Array<ResolversTypes['TemplateCollaborator']>>, ParentType, ContextType>;
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   currentVersion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   isDirty?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   owner?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
@@ -1475,13 +1490,13 @@ export type TemplateResolvers<ContextType = MyContext, ParentType extends Resolv
 };
 
 export type TemplateCollaboratorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['TemplateCollaborator'] = ResolversParentTypes['TemplateCollaborator']> = {
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   invitedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
@@ -1495,13 +1510,13 @@ export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 export type UserResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
   acceptedTerms?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
   role?: Resolver<ResolversTypes['UserRole'], ParentType, ContextType>;
@@ -1529,14 +1544,14 @@ export type VersionedQuestionResolvers<ContextType = MyContext, ParentType exten
 };
 
 export type VersionedSectionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedSection'] = ResolversParentTypes['VersionedSection']> = {
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   guidance?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   introduction?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   requirements?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1552,12 +1567,12 @@ export type VersionedTemplateResolvers<ContextType = MyContext, ParentType exten
   active?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   bestPractice?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   comment?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   owner?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;

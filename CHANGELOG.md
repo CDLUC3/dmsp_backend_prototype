@@ -34,6 +34,9 @@
 - removed old oauth-server package which had security vulnerabilities
 - moved authMiddleware function from the router.ts into its own class in src/middelware
 
+### Fixed
+- Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test
+
 ## v0.0.1
 Initial Apollo Server build
 
