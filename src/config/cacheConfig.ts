@@ -6,8 +6,10 @@ dotenv.config();
 verifyCriticalEnvVariable('CACHE_HOST');
 verifyCriticalEnvVariable('CACHE_PORT');
 
-export const cacheConfig = {
-  host: process.env.CACHE_HOST,
-  port: Number.parseInt(process.env.CACHE_PORT),
-  connectTimeout: Number.parseInt(process.env.CACHE_CONNECT_TIMEOUT) || 30000, // 30 seconds
-};
+const host = process.env.CACHE_HOST;
+const port = Number.parseInt(process.env.CACHE_PORT);
+const connectTimeout = Number.parseInt(process.env.CACHE_CONNECT_TIMEOUT) || 30000; // 30 seconds
+
+export const cacheConfig = { host, port, connectTimeout };
+
+export const cacheTLS = `rediss://${host}:${port}`;

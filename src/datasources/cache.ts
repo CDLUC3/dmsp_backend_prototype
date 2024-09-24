@@ -2,7 +2,7 @@ import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import Redis from "ioredis";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
-import { cacheConfig } from "../config/cacheConfig";
+import { cacheConfig, cacheTLS } from "../config/cacheConfig";
 import { logger, formatLogMessage } from '../logger';
 
 export class Cache {
@@ -11,8 +11,15 @@ export class Cache {
 
   private constructor() {
     // Setup the Redis Cluster
-    // const cluster = new Redis.Cluster(cacheConfig.cluster);
-    const cache = new Redis(cacheConfig);
+    let cache;
+    if (process.env.NODE_ENV !== 'development') {
+      console.log('Connecting to local Redis');
+      cache = new Redis(cacheConfig);
+    } else {
+      console.log(`Using TLS to connect to Redis - ${cacheTLS}`);
+      // The AWS env uses TLS
+      cache = new Redis(cacheTLS);
+    }
 
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
