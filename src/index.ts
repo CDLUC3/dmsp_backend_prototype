@@ -11,6 +11,10 @@ import router from './router';
 import { MySQLDataSource } from './datasources/mySQLDataSource';
 import { Cache } from './datasources/cache';
 import { csrfMiddleware } from './middleware/csrf';
+import { verifyCriticalEnvVariable } from './utils/helpers';
+
+verifyCriticalEnvVariable('NODE_ENV');
+console.log(`DMPTool Apollo server backend starting in ${process.env.NODE_ENV} mode.`)
 
 // TODO: Make this configurable and pass in as ENV variable
 const PORT = 4000;

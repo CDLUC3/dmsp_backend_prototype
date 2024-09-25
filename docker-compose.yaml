@@ -55,6 +55,7 @@ services:
     env_file:
       - .env
     environment:
+      - "NODE_ENV=development"
       - "MYSQL_CONNECTION_LIMIT=5"
       - "MYSQL_HOST=apollo-mariadb"
       - "MYSQL_PORT=3306"

@@ -39,6 +39,7 @@ export class Cache {
       formatLogMessage(logger).info( null, `Redis connection closed`);
     });
 
+
     // Set the Adapter which will be used to interact with the cache
     this.adapter = new KeyvAdapter(keyV);
   }
