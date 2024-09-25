@@ -10,14 +10,13 @@ export class Cache {
   public adapter: KeyvAdapter;
 
   private constructor() {
+    let cache;
+
     // Setup the Redis Cluster
     formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
-    //const cache = new Redis(cacheConfig);
-
-    let cache;
     if (process.env.NODE_ENV !== 'development') {
       console.log(`Using TLS to connect to Redis - ${cacheTLS}`);
-      // The AWS env uses TLS
+      // The AWS env uses TLS!
       cache = new Redis(cacheTLS);
     } else {
       cache = new Redis(cacheConfig);
