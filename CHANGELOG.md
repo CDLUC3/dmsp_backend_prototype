@@ -1,5 +1,7 @@
 
 ### Added
+- Added data migrations for QuestionType, Question, QuestionCondition, VersionedQuestion and VersionedQuestionCondition
+- Added missing VersionedQuestionCondition schema file
 - Added schemas for Question, QuestionType, QuestionCondition and VersionedQuestion
 - Added resolvers and models for Section, Tag and VersionedSection
 - Added acceptedTerms to User schema and to user sql table
