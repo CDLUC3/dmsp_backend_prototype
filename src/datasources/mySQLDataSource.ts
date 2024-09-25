@@ -36,6 +36,8 @@ export class MySQLDataSource {
     const queueLimit = Number.parseInt(process.env.MYSQL_QUEUE_LIMIT) || 100;
     const connectTimeout = Number.parseInt(process.env.MYSQL_CONNECT_TIMEOUT) || 60000;
 
+    formatLogMessage(logger).info('Establishing MySQL connection pool ...');
+
     try {
       this.pool = mysql.createPool({
         ...mysqlConfig,

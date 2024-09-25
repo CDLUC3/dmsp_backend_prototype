@@ -10,15 +10,16 @@ export class Cache {
   public adapter: KeyvAdapter;
 
   private constructor() {
-    // Setup the Redis Cluster
     let cache;
+
+    // Setup the Redis Cluster
+    formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
     if (process.env.NODE_ENV !== 'development') {
-      console.log('Connecting to local Redis');
-      cache = new Redis(cacheConfig);
-    } else {
       console.log(`Using TLS to connect to Redis - ${cacheTLS}`);
-      // The AWS env uses TLS
+      // The AWS env uses TLS!
       cache = new Redis(cacheTLS);
+    } else {
+      cache = new Redis(cacheConfig);
     }
 
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
@@ -36,6 +37,7 @@ export class Cache {
     keyV.on('close', () => {
       formatLogMessage(logger).info( null, `Redis connection closed`);
     });
+
 
     // Set the Adapter which will be used to interact with the cache
     this.adapter = new KeyvAdapter(keyV);
