@@ -1,5 +1,5 @@
-INSERT INTO questionTypes (name, usageDescription, createdById, modifiedById)
-(SELECT 'Rich Text Editor', '', id, id FROM users where email = 'super@example.com');
+INSERT INTO questionTypes (name, usageDescription, createdById, modifiedById, isDefault)
+(SELECT 'Rich Text Editor', '', id, id FROM users where email = 'super@example.com', true);
 
 INSERT INTO questionTypes (name, usageDescription, createdById, modifiedById)
 (SELECT 'Text Area', '', id, id FROM users where email = 'super@example.com');

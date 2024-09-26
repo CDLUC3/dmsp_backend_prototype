@@ -27,5 +27,7 @@ type QuestionType {
     name: String!
     "The description of the QuestionType"
     usageDescription: String!
+    "Whether or not this is the default question type"
+    isDefault: Boolean!
 }
 `
