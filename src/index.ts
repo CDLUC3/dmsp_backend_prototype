@@ -35,10 +35,17 @@ const startServer = async () => {
   // Healthcheck endpoint (declare this BEFORE CORS definition due to AWS ALB limitations)
   app.get('/up', (_request, response) => healthcheck(apolloServer, response, logger));
 
+  const corsOptions = {
+    origin: 'http://localhost:3000', //frontend
+    credentials: true,               // Enable credentials (cookies, authorization headers)
+    methods: ['GET', 'POST'],        // Allowed methods if needed
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'], // Allowed headers
+  };
+
   // Express middleware for all requests (besides the healthcheck above)
   app.use(
     cookieParser(),
-    cors(),
+    cors(corsOptions),
     express.urlencoded({ extended: false }),
     express.json({ limit: '50mb' }),
   )

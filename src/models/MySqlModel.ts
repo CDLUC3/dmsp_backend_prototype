@@ -3,6 +3,8 @@ import { MyContext } from '../context';
 import { validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 
+type MixedArray<T> = T[];
+
 export class MySqlModel {
   // Initialize with fields common to all MySQL DB tables
   constructor(
@@ -110,7 +112,7 @@ export class MySqlModel {
   static async query(
     apolloContext: MyContext,
     sqlStatement: string,
-    values: string[] = [],
+    values: MixedArray<string | boolean> = [],
     reference = 'undefined caller',
   ): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const { logger, dataSources } = apolloContext;
@@ -119,10 +121,11 @@ export class MySqlModel {
     if (dataSources && logger && dataSources.sqlDataSource && sqlStatement) {
       const sql = sqlStatement.split(/[\s\t\n]+/).join(' ');
       const logMessage = `${reference}, sql: ${sql}, vals: ${values}`;
+      const vals = values.map((entry) => this.prepareValue(entry, typeof (entry)));
 
       try {
         formatLogMessage(logger).debug(logMessage);
-        const resp = await dataSources.sqlDataSource.query(sql, values);
+        const resp = await dataSources.sqlDataSource.query(sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
         const msg = `${reference}, ERROR: ${err.message}`;

@@ -6,6 +6,7 @@ export const resolvers: Resolvers = {
   Query: {
     // returns an array of Affiliations that match the search criteria
     affiliations: async (_, { name, funderOnly }, context: MyContext): Promise<AffiliationSearch[]> => {
+      console.log("***AFFILIATIONS", name, funderOnly, context);
       return AffiliationSearch.search(context, { name, funderOnly });
     },
 
