@@ -6,6 +6,16 @@ export const typeDefs = gql`
     publishedConditionsForQuestion(questionId: Int!): [VersionedQuestionCondition]
   }
 
+    "VersionedQuestionCondition action"
+  enum VersionedQuestionConditionActionType {
+    "Show the question"
+    SHOW_QUESTION
+    "Hide the question"
+    HIDE_QUESTION
+    "Send email"
+    SEND_EMAIL
+  }
+
   "VersionedQuestionCondition types"
   enum VersionedQuestionConditionCondition {
     "When a question has an answer"
@@ -33,6 +43,8 @@ export const typeDefs = gql`
 
     "The versionedQuestion id that the QuestionCondition belongs to"
     versionedQuestionId: Int!
+    "The action to take on a QuestionCondition"
+    action: VersionedQuestionConditionActionType!
     "The condition in which to take the action"
     condition: VersionedQuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
