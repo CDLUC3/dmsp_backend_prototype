@@ -11,6 +11,7 @@ import router from './router';
 import { MySQLDataSource } from './datasources/mySQLDataSource';
 import { Cache } from './datasources/cache';
 import { verifyCriticalEnvVariable } from './utils/helpers';
+import corsConfig from './config/corsConfig';
 
 verifyCriticalEnvVariable('NODE_ENV');
 console.log(`DMPTool Apollo server backend starting in ${process.env.NODE_ENV} mode.`)
@@ -38,7 +39,7 @@ const startServer = async () => {
   // Express middleware for all requests (besides the healthcheck above)
   app.use(
     cookieParser(),
-    cors(),
+    cors(corsConfig()),
     express.urlencoded({ extended: false }),
     express.json({ limit: '50mb' }),
   )

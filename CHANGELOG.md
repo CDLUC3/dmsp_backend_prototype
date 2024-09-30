@@ -1,5 +1,6 @@
 
 ### Added
+- Fixed some bugs to allow frontend to access token change(Frontend #116)
 - Added data migrations for QuestionType, Question, QuestionCondition, VersionedQuestion and VersionedQuestionCondition
 - Added missing VersionedQuestionCondition schema file
 - Added schemas for Question, QuestionType, QuestionCondition and VersionedQuestion
