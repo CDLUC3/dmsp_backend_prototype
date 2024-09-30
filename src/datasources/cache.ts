@@ -14,7 +14,7 @@ export class Cache {
 
     // Setup the Redis Cluster
     formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
-    if (process.env.NODE_ENV !== 'development') {
+    if (!['development', 'test'].includes(process.env.NODE_ENV)) {
       console.log(`Using TLS to connect to Redis - ${cacheTLS}`);
       // The AWS env uses TLS!
       cache = new Redis(cacheTLS);

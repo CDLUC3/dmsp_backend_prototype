@@ -13,9 +13,9 @@ export const generalConfig = {
   hashTokenSecret: process.env.TOKEN_HASH_SECRET,
 
   jwtSecret: process.env.JWT_SECRET,
-  jwtTTL: Number.parseInt(process.env.JWT_TTL) || 600000, // Default is 10 minutes (in milliseconds)
+  jwtTTL: Number.parseInt(process.env.JWT_TTL) || 900000, // Default is 15 minutes (in milliseconds)
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
-  jwtRefreshTTL: Number.parseInt(process.env.JWT_REFRESH_TTL) || 86400000, // Default is 1 day (in milliseconds)
+  jwtRefreshTTL: Number.parseInt(process.env.JWT_REFRESH_TTL) || 86400000, // Default is 24 hours (in milliseconds)
 
   csrfLength: Number.parseInt(process.env.CSRF_LENGTH) || 32,
   csrfTTL: Number.parseInt(process.env.CSRF_TTL) || 3600 // Default is 1 hour
