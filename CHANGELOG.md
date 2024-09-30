@@ -1,5 +1,6 @@
 
 ### Added
+- Fixed some bugs to allow frontend to access token change(Frontend #116)
 - Added schemas for Question, QuestionType, QuestionCondition and VersionedQuestion
 - Added resolvers and models for Section, Tag and VersionedSection
 - Added acceptedTerms to User schema and to user sql table
