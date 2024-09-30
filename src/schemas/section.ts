@@ -10,7 +10,7 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch"
-    addSection(input: AddSectionInput!): Section!     
+    addSection(input: AddSectionInput!): Section!
     "Update a Section"
     updateSection(input: UpdateSectionInput!): Section!
     "Delete a section"
@@ -31,9 +31,7 @@ export const typeDefs = gql`
     modified: String
     "Errors associated with the Object"
     errors: [String!]
-    
-    "The template ID that the section belongs to"
-    templateId: Int
+
     "The template that the section is associated with"
     template: Template
     "The section title"
@@ -101,4 +99,3 @@ export const typeDefs = gql`
   }
 
 `;
-

@@ -1,17 +1,30 @@
 import casual from 'casual';
  import { Template, TemplateVisibility } from "../../models/Template";
  import { VersionedTemplate, TemplateVersionType } from '../../models/VersionedTemplate';
- import { clone, generateVersion, hasPermission } from '../templateService';
+ import { cloneTemplate, generateTemplateVersion, hasPermissionOnTemplate } from '../templateService';
 import { TemplateCollaborator } from '../../models/Collaborator';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isSuperAdmin } from '../authService';
 import { logger } from '../../__mocks__/logger';
 import { MySQLDataSource } from '../../datasources/mySQLDataSource';
+import { buildContext, mockToken } from '../../__mocks__/context';
 
 // Pulling context in here so that the MySQLDataSource gets mocked
 jest.mock('../../context.ts');
 
-describe('hasPermission', () => {
+let context;
+
+beforeEach(() => {
+  jest.resetAllMocks();
+
+  context = buildContext(logger, mockToken());
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+describe('hasPermissionOnTemplate', () => {
   let template;
   let mockQuery;
   let mockIsSuperAdmin;
@@ -51,7 +64,7 @@ describe('hasPermission', () => {
     mockIsSuperAdmin.mockResolvedValueOnce(true);
 
     context.token = { affiliationId: 'https://test.example.com/foo' };
-    expect(await hasPermission(context, template)).toBe(true)
+    expect(await hasPermissionOnTemplate(context, template)).toBe(true)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
   });
 
@@ -59,7 +72,7 @@ describe('hasPermission', () => {
     mockIsSuperAdmin.mockResolvedValueOnce(false);
 
     context.token = { affiliationId: template.ownerId };
-    expect(await hasPermission(context, template)).toBe(true)
+    expect(await hasPermissionOnTemplate(context, template)).toBe(true)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(0);
 
   });
@@ -69,7 +82,7 @@ describe('hasPermission', () => {
     mockFindByTemplateAndEmail.mockResolvedValueOnce(template);
 
     context.token = { affiliationId: 'https://test.example.com/foo' };
-    expect(await hasPermission(context, template)).toBe(true)
+    expect(await hasPermissionOnTemplate(context, template)).toBe(true)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
     expect(mockFindByTemplateAndEmail).toHaveBeenCalledTimes(1);
   });
@@ -79,13 +92,13 @@ describe('hasPermission', () => {
     mockFindByTemplateAndEmail.mockResolvedValueOnce(null);
 
     context.token = { affiliationId: 'https://test.example.com/foo' };
-    expect(await hasPermission(context, template)).toBe(false)
+    expect(await hasPermissionOnTemplate(context, template)).toBe(false)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
     expect(mockFindByTemplateAndEmail).toHaveBeenCalledTimes(1);
   });
-})
+});
 
- describe('generateVersion', () => {
+describe('generateTemplateVersion', () => {
    let id;
    let name;
    let description;
@@ -107,23 +120,23 @@ describe('hasPermission', () => {
    it('throws an error if the specified Template has no id (it hasn\'t been saved!)', async () => {
      tmplt.id = null;
      const expectedMessage = 'Cannot publish unsaved Template';
-     await expect(generateVersion(tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(Error);
-     await expect(generateVersion(tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(expectedMessage);
+     expect(await generateTemplateVersion(context, tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(Error);
+     expect(await generateTemplateVersion(context, tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(expectedMessage);
    });
 
    it('throws an error if the specified Template has a current version but no changes', async () => {
      tmplt.currentVersion = 'v1'
      tmplt.isDirty = false
      const expectedMessage = 'There are no changes to publish';
-     await expect(generateVersion(tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(Error);
-     await expect(generateVersion(tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(expectedMessage);
+     expect(await generateTemplateVersion(context, tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(Error);
+     expect(await generateTemplateVersion(context, tmplt, [], ownerId, 'Testing unsaved')).rejects.toThrow(expectedMessage);
    });
 
    it('initializes a new VersionedTemplate and sets the currentVersion number', async () => {
      const publisher = casual.integer(1, 999);
      const comment = casual.sentences(10);
 
-     const versionedTemplate = await generateVersion(tmplt, [], publisher, comment);
+     const versionedTemplate = await generateTemplateVersion(context, tmplt, [], publisher, comment);
      expect(versionedTemplate).toBeInstanceOf(VersionedTemplate);
      expect(versionedTemplate.templateId).toEqual(tmplt.id);
      expect(versionedTemplate.name).toEqual(tmplt.name);
@@ -151,7 +164,7 @@ describe('hasPermission', () => {
      });
      tmplt.currentVersion = ver;
 
-     const versionedTemplate = await generateVersion(tmplt, [priorVersion], publisher, comment);
+     const versionedTemplate = await generateTemplateVersion(context, tmplt, [priorVersion], publisher, comment);
      expect(versionedTemplate).toBeInstanceOf(VersionedTemplate);
      expect(versionedTemplate.templateId).toEqual(tmplt.id);
      expect(versionedTemplate.name).toEqual(tmplt.name);
@@ -163,7 +176,7 @@ describe('hasPermission', () => {
    });
  });
 
- describe('clone', () => {
+ describe('cloneTemplate', () => {
    let id;
    let name;
    let description;
@@ -178,17 +191,17 @@ describe('hasPermission', () => {
      ownerId = casual.url;
      createdById = casual.integer(1, 999);
 
-     tmplt = new Template({ name, description, ownerId, createdById });
-     tmplt.id = id;
+     tmplt = new Template({ id, name, description, ownerId, createdById });
    });
 
    it('Clone retains the expected parts of the specified Template', () => {
      const clonedById = casual.integer(1, 99);
      const newOwnerId = casual.url;
-     const copy = clone(clonedById, newOwnerId, tmplt);
+     const copy = cloneTemplate(clonedById, newOwnerId, tmplt);
 
      expect(copy).toBeInstanceOf(Template);
      expect(copy.id).toBeFalsy();
+     expect(copy.sourceTemplateId).toEqual(tmplt.id);
      expect(copy.name).toEqual(`Copy of ${tmplt.name}`);
      expect(copy.ownerId).toEqual(newOwnerId);
      expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
@@ -200,7 +213,7 @@ describe('hasPermission', () => {
      expect(copy.modified).toBeTruthy();
    });
 
-   it('Clone retains the expected parts of the specified PublishedTemplate', () => {
+   it('Clone retains the expected parts of the specified VersionedTemplate', () => {
      const clonedById = casual.integer(1, 999);
      const newOwnerId = casual.url;
      const published = new VersionedTemplate({
@@ -213,10 +226,11 @@ describe('hasPermission', () => {
        createdById: casual.integer(1, 9999),
      });
 
-     const copy = clone(clonedById, newOwnerId, published);
+     const copy = cloneTemplate(clonedById, newOwnerId, published);
 
      expect(copy).toBeInstanceOf(Template);
      expect(copy.id).toBeFalsy();
+     expect(copy.sourceTemplateId).toEqual(published.templateId);
      expect(copy.name).toEqual(`Copy of ${published.name}`);
      expect(copy.ownerId).toEqual(newOwnerId);
      expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);

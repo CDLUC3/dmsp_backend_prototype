@@ -25,6 +25,20 @@ export type Scalars = {
   URL: { input: any; output: any; }
 };
 
+/** Input for adding a new QuestionCondition */
+export type AddQuestionConditionInput = {
+  /** The action to take on a QuestionCondition */
+  action: QuestionConditionActionType;
+  /** The condition in which to take the action */
+  condition: QuestionConditionCondition;
+  /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
+  conditionMatch?: InputMaybe<Scalars['String']['input']>;
+  /** The id of the question that the QuestionCondition belongs to */
+  questionId: Scalars['Int']['input'];
+  /** The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise) */
+  target: Scalars['String']['input'];
+};
+
 export type AddQuestionInput = {
   /** The display order of the question */
   displayOrder?: InputMaybe<Scalars['Int']['input']>;
@@ -261,6 +275,8 @@ export type Mutation = {
   addContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Create a new Question */
   addQuestion?: Maybe<Question>;
+  /** Create a new QuestionCondition associated with a question */
+  addQuestionCondition: QuestionCondition;
   /** Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch */
   addSection: Section;
   /** Add a new tag to available list of tags */
@@ -277,6 +293,8 @@ export type Mutation = {
   removeContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Delete a Question */
   removeQuestion?: Maybe<Scalars['Boolean']['output']>;
+  /** Remove a QuestionCondition using a specific QuestionCondition id */
+  removeQuestionCondition?: Maybe<QuestionCondition>;
   /** Delete a section */
   removeSection: Section;
   /** Delete a tag */
@@ -287,6 +305,10 @@ export type Mutation = {
   updateContributorRole?: Maybe<ContributorRoleMutationResponse>;
   /** Update a Question */
   updateQuestion?: Maybe<Question>;
+  /** Update a QuestionCondition for a specific QuestionCondition id */
+  updateQuestionCondition?: Maybe<QuestionCondition>;
+  /** Separate Question update specifically for options */
+  updateQuestionOptions?: Maybe<Question>;
   /** Update a Section */
   updateSection: Section;
   /** Update a tag */
@@ -306,6 +328,11 @@ export type MutationAddContributorRoleArgs = {
 
 export type MutationAddQuestionArgs = {
   input?: InputMaybe<AddQuestionInput>;
+};
+
+
+export type MutationAddQuestionConditionArgs = {
+  input: AddQuestionConditionInput;
 };
 
 
@@ -354,6 +381,11 @@ export type MutationRemoveQuestionArgs = {
 };
 
 
+export type MutationRemoveQuestionConditionArgs = {
+  questionConditionId: Scalars['Int']['input'];
+};
+
+
 export type MutationRemoveSectionArgs = {
   sectionId: Scalars['Int']['input'];
 };
@@ -381,6 +413,17 @@ export type MutationUpdateContributorRoleArgs = {
 
 export type MutationUpdateQuestionArgs = {
   input?: InputMaybe<UpdateQuestionInput>;
+};
+
+
+export type MutationUpdateQuestionConditionArgs = {
+  input: UpdateQuestionConditionInput;
+};
+
+
+export type MutationUpdateQuestionOptionsArgs = {
+  questionId: Scalars['Int']['input'];
+  required?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 
@@ -446,6 +489,8 @@ export type Query = {
   /** Returns the currently logged in user's information */
   me?: Maybe<User>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
+  publishedConditionsForQuestion?: Maybe<Array<Maybe<VersionedQuestionCondition>>>;
+  /** Search for VersionedQuestions that belong to Section specified by sectionId */
   publishedQuestions?: Maybe<Array<Maybe<VersionedQuestion>>>;
   /** Search for VersionedSection whose name contains the search term */
   publishedSections?: Maybe<Array<Maybe<VersionedSection>>>;
@@ -453,6 +498,8 @@ export type Query = {
   publishedTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Get the specific Question based on questionId */
   question?: Maybe<Question>;
+  /** Get the QuestionConditions that belong to a specific question */
+  questionConditions?: Maybe<Array<Maybe<QuestionCondition>>>;
   /** Get all the QuestionTypes */
   questionTypes?: Maybe<Array<Maybe<QuestionType>>>;
   /** Get the Questions that belong to the associated sectionId */
@@ -507,6 +554,11 @@ export type QueryDmspByIdArgs = {
 };
 
 
+export type QueryPublishedConditionsForQuestionArgs = {
+  questionId: Scalars['Int']['input'];
+};
+
+
 export type QueryPublishedQuestionsArgs = {
   sectionId: Scalars['Int']['input'];
 };
@@ -523,6 +575,11 @@ export type QueryPublishedTemplatesArgs = {
 
 
 export type QueryQuestionArgs = {
+  questionId: Scalars['Int']['input'];
+};
+
+
+export type QueryQuestionConditionsArgs = {
   questionId: Scalars['Int']['input'];
 };
 
@@ -604,9 +661,61 @@ export type Question = {
   sampleText?: Maybe<Scalars['String']['output']>;
   /** The unique id of the Section that the question belongs to */
   sectionId: Scalars['Int']['output'];
+  /** The original question id if this question is a copy of another */
+  sourceQestionId?: Maybe<Scalars['Int']['output']>;
   /** The unique id of the Template that the question belongs to */
   templateId: Scalars['Int']['output'];
 };
+
+/**
+ * if [Question content] [condition] [conditionMatch] then [action] on [target] so
+ * for example if 'Yes' EQUAL 'Yes' then 'SHOW_Question' 123
+ */
+export type QuestionCondition = {
+  __typename?: 'QuestionCondition';
+  /** The action to take on a QuestionCondition */
+  action: QuestionConditionActionType;
+  /** The condition in which to take the action */
+  condition: QuestionConditionCondition;
+  /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
+  conditionMatch?: Maybe<Scalars['String']['output']>;
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The question id that the QuestionCondition belongs to */
+  questionId: Scalars['Int']['output'];
+  /** The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise) */
+  target: Scalars['String']['output'];
+};
+
+/** QuestionCondition action */
+export type QuestionConditionActionType =
+  /** Hide the question */
+  | 'HIDE_QUESTION'
+  /** Send email */
+  | 'SEND_EMAIL'
+  /** Show the question */
+  | 'SHOW_QUESTION';
+
+/** QuestionCondition types */
+export type QuestionConditionCondition =
+  /** When a question does not equal a specific value */
+  | 'DOES_NOT_EQUAL'
+  /** When a question equals a specific value */
+  | 'EQUAL'
+  /** When a question has an answer */
+  | 'HAS_ANSWER'
+  /** When a question includes a specific value */
+  | 'INCLUDES';
 
 /** The type of Question, such as text field, radio buttons, etc */
 export type QuestionType = {
@@ -619,6 +728,8 @@ export type QuestionType = {
   errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not this is the default question type */
+  isDefault: Scalars['Boolean']['output'];
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['DateTimeISO']['output']>;
   /** The user who last modified the Object */
@@ -668,8 +779,6 @@ export type Section = {
   tags?: Maybe<Array<Maybe<Tag>>>;
   /** The template that the section is associated with */
   template?: Maybe<Template>;
-  /** The template ID that the section belongs to */
-  templateId?: Maybe<Scalars['Int']['output']>;
 };
 
 /** Section version type */
@@ -798,6 +907,20 @@ export type TemplateVisibility =
   /** Visible to all users */
   | 'PUBLIC';
 
+/** Input for updating a new QuestionCondition based on a QuestionCondition id */
+export type UpdateQuestionConditionInput = {
+  /** The action to take on a QuestionCondition */
+  action: QuestionConditionActionType;
+  /** The condition in which to take the action */
+  condition: QuestionConditionCondition;
+  /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
+  conditionMatch?: InputMaybe<Scalars['String']['input']>;
+  /** The id of the QuestionCondition that will be updated */
+  questionConditionId: Scalars['Int']['input'];
+  /** The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise) */
+  target: Scalars['String']['input'];
+};
+
 export type UpdateQuestionInput = {
   /** The display order of the Question */
   displayOrder?: InputMaybe<Scalars['Int']['input']>;
@@ -889,6 +1012,8 @@ export type VersionedQuestion = {
   modified?: Maybe<Scalars['DateTimeISO']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** Id of the original question that was versioned */
+  questionId: Scalars['Int']['output'];
   /** This will be used as a sort of title for the Question */
   questionText?: Maybe<Scalars['String']['output']>;
   /** The type of question, such as text field, select box, radio buttons, etc */
@@ -903,6 +1028,34 @@ export type VersionedQuestion = {
   versionedSectionId: Scalars['Int']['output'];
   /** The unique id of the VersionedTemplate that the VersionedQuestion belongs to */
   versionedTemplateId: Scalars['Int']['output'];
+};
+
+export type VersionedQuestionCondition = {
+  __typename?: 'VersionedQuestionCondition';
+  /** The action to take on a QuestionCondition */
+  action: QuestionConditionActionType;
+  /** The condition in which to take the action */
+  condition: QuestionConditionCondition;
+  /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
+  conditionMatch?: Maybe<Scalars['String']['output']>;
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** Id of the original QuestionCondition */
+  questionConditionId: Scalars['Int']['output'];
+  /** The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise) */
+  target: Scalars['String']['output'];
+  /** The versionedQuestion id that the QuestionCondition belongs to */
+  versionedQuestionId: Scalars['Int']['output'];
 };
 
 /** A snapshot of a Section when it became published. */
@@ -932,12 +1085,8 @@ export type VersionedSection = {
   requirements?: Maybe<Scalars['String']['output']>;
   /** The section that this is a snapshot of */
   section?: Maybe<Section>;
-  /** The sectionId for the snapshot section */
-  sectionId?: Maybe<Scalars['Int']['output']>;
   /** The Tags associated with this VersionedSection */
   tags?: Maybe<Array<Maybe<Tag>>>;
-  /** The type of version: Published or Draft (default: Draft) */
-  versionType?: Maybe<SectionVersionType>;
   /** The parent VersionedTemplate */
   versionedTemplate: VersionedTemplate;
 };
@@ -1063,6 +1212,7 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  AddQuestionConditionInput: AddQuestionConditionInput;
   AddQuestionInput: AddQuestionInput;
   AddSectionInput: AddSectionInput;
   Affiliation: ResolverTypeWrapper<Affiliation>;
@@ -1092,6 +1242,9 @@ export type ResolversTypes = {
   PrimaryContact: ResolverTypeWrapper<PrimaryContact>;
   Query: ResolverTypeWrapper<{}>;
   Question: ResolverTypeWrapper<Question>;
+  QuestionCondition: ResolverTypeWrapper<QuestionCondition>;
+  QuestionConditionActionType: QuestionConditionActionType;
+  QuestionConditionCondition: QuestionConditionCondition;
   QuestionType: ResolverTypeWrapper<QuestionType>;
   RelatedIdentifier: ResolverTypeWrapper<RelatedIdentifier>;
   Ror: ResolverTypeWrapper<Scalars['Ror']['output']>;
@@ -1106,11 +1259,13 @@ export type ResolversTypes = {
   TemplateVersionType: TemplateVersionType;
   TemplateVisibility: TemplateVisibility;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
+  UpdateQuestionConditionInput: UpdateQuestionConditionInput;
   UpdateQuestionInput: UpdateQuestionInput;
   UpdateSectionInput: UpdateSectionInput;
   User: ResolverTypeWrapper<User>;
   UserRole: UserRole;
   VersionedQuestion: ResolverTypeWrapper<VersionedQuestion>;
+  VersionedQuestionCondition: ResolverTypeWrapper<VersionedQuestionCondition>;
   VersionedSection: ResolverTypeWrapper<VersionedSection>;
   VersionedTemplate: ResolverTypeWrapper<VersionedTemplate>;
   YesNoUnknown: YesNoUnknown;
@@ -1118,6 +1273,7 @@ export type ResolversTypes = {
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
+  AddQuestionConditionInput: AddQuestionConditionInput;
   AddQuestionInput: AddQuestionInput;
   AddSectionInput: AddSectionInput;
   Affiliation: Affiliation;
@@ -1147,6 +1303,7 @@ export type ResolversParentTypes = {
   PrimaryContact: PrimaryContact;
   Query: {};
   Question: Question;
+  QuestionCondition: QuestionCondition;
   QuestionType: QuestionType;
   RelatedIdentifier: RelatedIdentifier;
   Ror: Scalars['Ror']['output'];
@@ -1158,10 +1315,12 @@ export type ResolversParentTypes = {
   Template: Template;
   TemplateCollaborator: TemplateCollaborator;
   URL: Scalars['URL']['output'];
+  UpdateQuestionConditionInput: UpdateQuestionConditionInput;
   UpdateQuestionInput: UpdateQuestionInput;
   UpdateSectionInput: UpdateSectionInput;
   User: User;
   VersionedQuestion: VersionedQuestion;
+  VersionedQuestionCondition: VersionedQuestionCondition;
   VersionedSection: VersionedSection;
   VersionedTemplate: VersionedTemplate;
 };
@@ -1309,6 +1468,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'displayOrder' | 'label' | 'url'>>;
   addQuestion?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, Partial<MutationAddQuestionArgs>>;
+  addQuestionCondition?: Resolver<ResolversTypes['QuestionCondition'], ParentType, ContextType, RequireFields<MutationAddQuestionConditionArgs, 'input'>>;
   addSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationAddSectionArgs, 'input'>>;
   addTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationAddTagArgs, 'name'>>;
   addTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationAddTemplateArgs, 'name'>>;
@@ -1317,11 +1477,14 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   createVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateVersionArgs, 'templateId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   removeQuestion?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionArgs, 'questionId'>>;
+  removeQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionConditionArgs, 'questionConditionId'>>;
   removeSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationRemoveSectionArgs, 'sectionId'>>;
   removeTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationRemoveTagArgs, 'tagId'>>;
   removeTemplateCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updateQuestion?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, Partial<MutationUpdateQuestionArgs>>;
+  updateQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionConditionArgs, 'input'>>;
+  updateQuestionOptions?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionsArgs, 'questionId' | 'required'>>;
   updateSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationUpdateSectionArgs, 'input'>>;
   updateTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationUpdateTagArgs, 'name' | 'tagId'>>;
   updateTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationUpdateTemplateArgs, 'name' | 'templateId' | 'visibility'>>;
@@ -1367,10 +1530,12 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
   dmspById?: Resolver<Maybe<ResolversTypes['SingleDmspResponse']>, ParentType, ContextType, RequireFields<QueryDmspByIdArgs, 'dmspId'>>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'questionId'>>;
   publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'sectionId'>>;
   publishedSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
   publishedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryPublishedTemplatesArgs, 'term'>>;
   question?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<QueryQuestionArgs, 'questionId'>>;
+  questionConditions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryQuestionConditionsArgs, 'questionId'>>;
   questionTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionType']>>>, ParentType, ContextType>;
   questions?: Resolver<Maybe<Array<Maybe<ResolversTypes['Question']>>>, ParentType, ContextType, RequireFields<QueryQuestionsArgs, 'sectionId'>>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;
@@ -1402,7 +1567,23 @@ export type QuestionResolvers<ContextType = MyContext, ParentType extends Resolv
   requirementText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sampleText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sectionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  sourceQestionId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   templateId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type QuestionConditionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['QuestionCondition'] = ResolversParentTypes['QuestionCondition']> = {
+  action?: Resolver<ResolversTypes['QuestionConditionActionType'], ParentType, ContextType>;
+  condition?: Resolver<ResolversTypes['QuestionConditionCondition'], ParentType, ContextType>;
+  conditionMatch?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  questionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  target?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1411,6 +1592,7 @@ export type QuestionTypeResolvers<ContextType = MyContext, ParentType extends Re
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1445,7 +1627,6 @@ export type SectionResolvers<ContextType = MyContext, ParentType extends Resolve
   requirements?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   tags?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType>;
-  templateId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1533,6 +1714,7 @@ export type VersionedQuestionResolvers<ContextType = MyContext, ParentType exten
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  questionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   questionText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   questionTypeId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   required?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
@@ -1540,6 +1722,22 @@ export type VersionedQuestionResolvers<ContextType = MyContext, ParentType exten
   sampleText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   versionedSectionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   versionedTemplateId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type VersionedQuestionConditionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedQuestionCondition'] = ResolversParentTypes['VersionedQuestionCondition']> = {
+  action?: Resolver<ResolversTypes['QuestionConditionActionType'], ParentType, ContextType>;
+  condition?: Resolver<ResolversTypes['QuestionConditionCondition'], ParentType, ContextType>;
+  conditionMatch?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  questionConditionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  target?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  versionedQuestionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1556,9 +1754,7 @@ export type VersionedSectionResolvers<ContextType = MyContext, ParentType extend
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   requirements?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType>;
-  sectionId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   tags?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType>;
-  versionType?: Resolver<Maybe<ResolversTypes['SectionVersionType']>, ParentType, ContextType>;
   versionedTemplate?: Resolver<ResolversTypes['VersionedTemplate'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -1609,6 +1805,7 @@ export type Resolvers<ContextType = MyContext> = {
   PrimaryContact?: PrimaryContactResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Question?: QuestionResolvers<ContextType>;
+  QuestionCondition?: QuestionConditionResolvers<ContextType>;
   QuestionType?: QuestionTypeResolvers<ContextType>;
   RelatedIdentifier?: RelatedIdentifierResolvers<ContextType>;
   Ror?: GraphQLScalarType;
@@ -1620,6 +1817,7 @@ export type Resolvers<ContextType = MyContext> = {
   URL?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;
   VersionedQuestion?: VersionedQuestionResolvers<ContextType>;
+  VersionedQuestionCondition?: VersionedQuestionConditionResolvers<ContextType>;
   VersionedSection?: VersionedSectionResolvers<ContextType>;
   VersionedTemplate?: VersionedTemplateResolvers<ContextType>;
 };

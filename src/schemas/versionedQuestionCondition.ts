@@ -22,6 +22,8 @@ export const typeDefs = gql`
 
     "The versionedQuestion id that the QuestionCondition belongs to"
     versionedQuestionId: Int!
+    "Id of the original QuestionCondition"
+    questionConditionId: Int!
     "The action to take on a QuestionCondition"
     action: QuestionConditionActionType!
     "The condition in which to take the action"

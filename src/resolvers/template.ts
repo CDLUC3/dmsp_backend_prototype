@@ -4,7 +4,7 @@ import { MyContext } from "../context";
 import { Affiliation } from "../models/Affiliation";
 import { TemplateCollaborator } from "../models/Collaborator";
 import { Section } from "../models/Section";
-import { clone, generateVersion, hasPermission } from "../services/templateService";
+import { cloneTemplate, generateTemplateVersion, hasPermissionOnTemplate } from "../services/templateService";
 import { isAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
@@ -27,7 +27,7 @@ export const resolvers: Resolvers = {
         const template = await Template.findById('template resolver', context, templateId);
         if (template) {
           // Verify that the current user has permission to access the Template
-          if (hasPermission(context, template)) {
+          if (hasPermissionOnTemplate(context, template)) {
             return template;
           }
           throw ForbiddenError();
@@ -52,7 +52,7 @@ export const resolvers: Resolvers = {
             context,
             copyFromTemplateId
           );
-          template = await clone(context.token?.id, context.token.affiliationId, original);
+          template = await cloneTemplate(context.token?.id, context.token.affiliationId, original);
           template.name = name;
         }
         if (!template) {
@@ -71,7 +71,7 @@ export const resolvers: Resolvers = {
       if (isAdmin(context.token)) {
         const template = await Template.findById('updateTemplate resolver', context, templateId);
         if (template) {
-          if (hasPermission(context, template)) {
+          if (hasPermissionOnTemplate(context, template)) {
             // Update the fields and then save
             template.name = name;
             template.visibility = TemplateVisibility[visibility];
@@ -93,7 +93,7 @@ export const resolvers: Resolvers = {
 
         const template = await Template.findById('archiveTemplate resolver', context, templateId);
         if (template) {
-          if (hasPermission(context, template)) {
+          if (hasPermissionOnTemplate(context, template)) {
             return await template.delete(context);
           }
           throw ForbiddenError();
@@ -110,10 +110,11 @@ export const resolvers: Resolvers = {
         const reference = 'createVersion resolver';
         const template = await Template.findById(reference, context, templateId);
         if (template) {
-          if (hasPermission(context, template)) {
+          if (hasPermissionOnTemplate(context, template)) {
             const versions = await VersionedTemplate.findByTemplateId(reference, context, templateId);
 
-            const versionedTemplate = await generateVersion(
+            const versionedTemplate = generateTemplateVersion(
+              context,
               template,
               versions,
               context.token.id,
@@ -121,20 +122,10 @@ export const resolvers: Resolvers = {
               TemplateVersionType[versionType]
             );
 
+            // If the versionedTemplate is not null then the versioning process succeeded
             if (versionedTemplate) {
-              // Save the new VersionedTemplate
-              versionedTemplate.create(context);
-
-              // Deactivate the old versions
-              versions.forEach((prior) => {
-                prior.active = false;
-                prior.update(context);
-              });
-
-              // Bump the version number, and clear the isDirty flag and then save
-              template.currentVersion = versionedTemplate.version;
-              template.isDirty = false;
-              return template.update(context);
+              // Reload the template and return it.
+              return await Template.findById(reference, context, templateId);
             }
 
             throw InternalServerError();
@@ -160,7 +151,7 @@ export const resolvers: Resolvers = {
 
     // Allow the GraphQL client to fetch the template when querying for a Section
     sections: async (parent: Template, _, context: MyContext): Promise<Section[]> => {
-      return await Section.getSectionsByTemplateId('sections resolver', context, parent.id);
+      return await Section.findByTemplateId('sections resolver', context, parent.id);
     }
   },
 };

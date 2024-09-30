@@ -2,7 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { Tag } from "../models/Tag";
-import { hasPermission } from "../services/sectionService";
+import { hasPermissionOnSection } from "../services/sectionService";
 import { isSuperAdmin } from "../services/authService";
 import { NotFoundError, ForbiddenError } from "../utils/graphQLErrors";
 
@@ -14,12 +14,12 @@ export const resolvers: Resolvers = {
         },
         tagsBySectionId: async (_, { sectionId }, context: MyContext): Promise<Tag[]> => {
             // Find section with matching sectionId
-            const section = await Section.getSectionBySectionId('section resolver', context, sectionId);
+            const section = await Section.findById('section resolver', context, sectionId);
             if (!section) {
                 throw NotFoundError('Section not found')
             }
 
-            if (await hasPermission(context, section.templateId)) {
+            if (await hasPermissionOnSection(context, section.templateId)) {
                 return await Tag.getTagsBySectionId('tagsBySectionId resolver', context, sectionId);
             }
 

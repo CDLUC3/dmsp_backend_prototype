@@ -36,6 +36,8 @@ type Question {
     templateId: Int!
     "The unique id of the Section that the question belongs to"
     sectionId: Int!
+    "The original question id if this question is a copy of another"
+    sourceQestionId: Int
     "The display order of the question"
     displayOrder: Int
     "Whether or not the Question has had any changes since the related template was last published"
