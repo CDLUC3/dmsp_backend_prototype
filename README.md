@@ -126,7 +126,7 @@ flowchart LR;
   g-->|yes| i[set HTTP-only cookies]
   g-->|no| j[return 500]
 ```
-If successful, a new access token will be created and replace the existing on in the response's HTTP-only cookies.
+If successful, a new access token will be created and replace the existing one in the response's HTTP-only cookies.
 
 #### GraphQL requests
 The access token received from the authentication endpoints above will then be used by the system to determine whether or not a user is authorized to access certain data.
