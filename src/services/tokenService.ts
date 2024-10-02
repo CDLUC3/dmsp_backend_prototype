@@ -26,7 +26,7 @@ export interface JWTRefreshToken extends JwtPayload {
   expiresIn: number,
 }
 
-// Hash a token
+// Hash a token before placing it in the cache
 const hashToken = (token: string): string => {
   return createHash('sha256').update(`${token}${generalConfig.hashTokenSecret}`).digest('hex');
 }
@@ -35,10 +35,9 @@ const hashToken = (token: string): string => {
 export const setTokenCookie = (res: Response, name: string, value: string, maxAge?: number): void => {
   res.cookie(name, value, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Use secure in production
-    sameSite: 'strict',
+    secure: !['test', 'development'].includes(process.env.NODE_ENV), // Use secure except in test and development
     maxAge: maxAge || generalConfig.jwtTTL,
-    path: '/' // Ensure the cookie is accessible for your entire app
+    path: '/' // Ensure the cookie is accessible for the entire app
   });
 };
 
@@ -107,7 +106,7 @@ export const generateAuthTokens = async (cache: Cache, user: User): Promise<{ ac
   if (generalConfig.jwtSecret && generalConfig.jwtRefreshSecret && user && user.id && user.email) {
     try {
       // Generate a unique id for the JWT
-      const jti = new Date().getTime().toString();
+      const jti = `${user.id}-${new Date().getTime()}`;
       // Generate an Access Token
       const accessToken = generateAccessToken(jti, user);
       // Generate a Refresh Token
@@ -133,6 +132,22 @@ export const verifyCSRFToken = async (cache: Cache, csrfToken: string): Promise<
     formatLogMessage(logger).error(err, 'verifyCSRFToken failure');
     return false;
   }
+}
+
+// Verify the Incoming Access Token. The express-jwt middleware handles this in most circumstances
+export const verifyAccessToken = (accessToken: string): JwtPayload => {
+  try {
+    const now = new Date().getTime();
+    const token = jwt.verify(accessToken, generalConfig.jwtSecret) as JwtPayload;
+
+    // If the token could be verified and it has not expired
+    if (token && (token.exp >= now / 1000)) {
+      return token;
+    }
+  } catch(err) {
+    formatLogMessage(logger).error(err, `verifyAccessToken error`);
+  }
+  return null;
 }
 
 // Verify a Refresh Token
@@ -165,8 +180,8 @@ export const isRevokedCallback = async (req: Express.Request, token?: jwt.Jwt): 
     if (jti) {
       try {
         // See if the JTI is in the black list
-        const result = await cache.adapter.get(`dmspbl:${jti}`);
-        if (result) {
+        if (await cache.adapter.get(`dmspbl:${jti}`)) {
+          formatLogMessage(logger).warn(`Attempt to access revoked access token! jti: ${jti}`);
           return true;
         }
       } catch(err) {
@@ -178,30 +193,27 @@ export const isRevokedCallback = async (req: Express.Request, token?: jwt.Jwt): 
 };
 
 // Refresh the Access and Refresh Tokens
-export const refreshAuthTokens = async (
+export const refreshAccessToken = async (
   cache: Cache,
   context: MyContext,
-  originalRefreshToken: string
-): Promise<{ accessToken: string; refreshToken: string }> => {
+  refreshToken: string,
+): Promise<string> => {
   try {
-    // Verify the refresh token
-    const verified = await verifyRefreshToken(cache, originalRefreshToken);
-
-    // Make sure the user still exists
-    if (verified?.id) {
+    const verifiedRefreshToken = await verifyRefreshToken(cache, refreshToken);
+    if (verifiedRefreshToken) {
       // TODO: We can eventually add some checks here to see if the account if locked or deactivated
-      const user = await User.findById('refreshAuthTokens', context, verified.id);
+      const user = await User.findById('refreshAccessToken', context, verifiedRefreshToken.id);
       if (user) {
-        return generateAuthTokens(cache, user);
+        return generateAccessToken(verifiedRefreshToken.jti, user);
       }
     }
-    // Otherwise the tokens were invalid or something else went wrong!
-    return { accessToken: null, refreshToken: null };
+    // Otherwise the refresh token was invalid or something else went wrong!
+    throw AuthenticationError();
   } catch (err) {
     if (logger) {
-      formatLogMessage(logger).error(err, `refreshAuthTokens error - ${err.message}`);
+      formatLogMessage(logger).error(err, `refreshAccessToken error - ${err.message}`);
     }
-    throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
+    throw AuthenticationError(err.message);
   }
 };
 

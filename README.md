@@ -121,17 +121,15 @@ flowchart LR;
   c-->|yes| d[verify user]
   c-->|no| e[return 401]
   d-->f{Success}
-  f-->|yes| g[generateTokens]
+  f-->|yes| g[generate access token]
   f-->|no| h[return 401]
-  g-->|yes| i[add refresh token to cache]
-  i-->j[delete old refresh token from cache]
-  j-->k[set HTTP-only cookies]
-  g-->|no| l[return 500]
+  g-->|yes| i[set HTTP-only cookies]
+  g-->|no| j[return 500]
 ```
-If successful, the refresh token will be removed from the Redis cache. Then a new access token and refresh token will be generated. The new refresh token will be added to the Redis cache and then both new tokens will be returned in the response's HTTP-only cookies.
+If successful, a new access token will be created and replace the existing one in the response's HTTP-only cookies.
 
 #### GraphQL requests
-The access token received from the authentication endpoints above will then be used by the system to determine whether or not a user is authorized to access data.
+The access token received from the authentication endpoints above will then be used by the system to determine whether or not a user is authorized to access certain data.
 ```mermaid
 flowchart LR;
   a[Access token]-->b[verify token & token not revoked];

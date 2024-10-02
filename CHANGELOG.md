@@ -26,6 +26,9 @@
 - Added integration tests for token management (signin, signup, signout, refresh)
 
 ### Updated
+- Change default JWT TTL to 30 minutes
+- Added user id to the JTI to help ensure uniqueness
+- Update sign out controller to always clear the cookies and return 200 regardless of the state of the tokens
 - Updated `src/context.ts` to use a `buildContext` wrapper function that can be called when building the context for Apollo Server and our `signin` and `signup` endpoints.
 - Updated use of `toUTCString()` to `toISOString()`
 - Updated `tokenService` to properly catch and throw errors
