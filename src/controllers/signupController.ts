@@ -16,7 +16,7 @@ export const signupController = async (req: Request, res: Response) => {
         res.status(400).json({ success: false, message: user.errors?.join(' | ') });
       } else {
         const cache = Cache.getInstance();
-        const { accessToken, refreshToken} = await generateAuthTokens(cache, user);
+        const { accessToken, refreshToken } = await generateAuthTokens(cache, user);
 
         if (accessToken && refreshToken) {
           // Set the tokens as HTTP only cookies

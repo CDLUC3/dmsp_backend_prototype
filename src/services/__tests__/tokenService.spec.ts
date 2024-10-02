@@ -10,7 +10,7 @@ import { generalConfig } from '../../config/generalConfig';
 import {
   setTokenCookie,
   generateAuthTokens,
-  refreshAuthTokens,
+  refreshAccessToken,
   revokeAccessToken,
   revokeRefreshToken,
   isRevokedCallback,
@@ -117,7 +117,9 @@ describe('setTokenCookie', () => {
       expect.any(String),
       expect.any(String),
       expect.objectContaining({
-        sameSite: 'strict',
+        httpOnly: true,
+        path: '/',
+        secure: false,
       })
     );
   });
@@ -257,7 +259,7 @@ describe('isRevokedCallback', () => {
   });
 });
 
-describe('refreshAuthTokens', () => {
+describe('refreshAccessToken', () => {
   let context;
 
   beforeEach(() => {
@@ -266,7 +268,7 @@ describe('refreshAuthTokens', () => {
     context = buildContext(logger, mockToken());
   });
 
-  it('should refresh valid tokens', async () => {
+  it('should refresh the access token if refresh token is valid', async () => {
     const mockRefreshToken = 'valid-refresh-token';
     const hashedToken = createHash('sha256').update(`${mockRefreshToken}${generalConfig.hashTokenSecret}`).digest('hex');
     const mockNewAccessToken = 'valid-access-token';
@@ -280,13 +282,13 @@ describe('refreshAuthTokens', () => {
       if (secret === generalConfig.jwtRefreshSecret) return mockNewRefreshToken;
     })
 
-    const result = await refreshAuthTokens(mockCache, context, mockRefreshToken);
+    const result = await refreshAccessToken(mockCache, context, mockRefreshToken);
 
-    expect(result).toEqual({ accessToken: mockNewAccessToken, refreshToken: mockNewRefreshToken });
+    expect(result).toEqual(mockNewAccessToken);
     expect(jwt.verify).toHaveBeenCalledWith(mockRefreshToken, generalConfig.jwtRefreshSecret);
   });
 
-  it('should return null tokens if the User could not be found', async () => {
+  it('should throw an AuthenticationError if the User could not be found', async () => {
     const mockRefreshToken = 'revoked-refresh-token';
     const hashedToken = createHash('sha256').update(`${mockRefreshToken}${generalConfig.hashTokenSecret}`).digest('hex');
     const mockUserId = casual.integer(1, 999);
@@ -295,19 +297,17 @@ describe('refreshAuthTokens', () => {
     (mockCache.adapter.get as jest.Mock).mockResolvedValue(hashedToken);
     (User.findById as jest.Mock).mockReturnValue(null);
 
-    const result = await refreshAuthTokens(mockCache, context, mockRefreshToken);
-    expect(result.accessToken).toBeFalsy();
-    expect(result.refreshToken).toBeFalsy();
+    await expect(refreshAccessToken(mockCache, context, mockRefreshToken))
+      .rejects.toThrow(DEFAULT_UNAUTHORIZED_MESSAGE);
   });
 
-  it('should return null tokens if the refresh token is invalid or revoked', async () => {
+  it('should throw an AuthenticationError if the refresh token is invalid', async () => {
     const mockRefreshToken = 'revoked-refresh-token';
 
     (jwt.verify as jest.Mock).mockReturnValue(null);
 
-    const result = await refreshAuthTokens(mockCache, context, mockRefreshToken);
-    expect(result.accessToken).toBeFalsy();
-    expect(result.refreshToken).toBeFalsy();
+    await expect(refreshAccessToken(mockCache, context, mockRefreshToken))
+      .rejects.toThrow(DEFAULT_UNAUTHORIZED_MESSAGE);
   });
 
   it('should throw an AuthenticationError if RefreshToken does not match the one stored in the cache', async () => {
@@ -319,12 +319,12 @@ describe('refreshAuthTokens', () => {
     (jwt.verify as jest.Mock).mockImplementation(() => { return { id: mockUserId }; });
     (mockCache.adapter.get as jest.Mock).mockResolvedValue(mockHashed);
 
-    await expect(refreshAuthTokens(mockCache, context, mockRefreshToken))
+    await expect(refreshAccessToken(mockCache, context, mockRefreshToken))
       .rejects.toThrow(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${errorMessage}`);
     expect(logger.error).toHaveBeenCalled();
   });
 
-  it('should throw an AuthenticationError if jwt or RefreshToken throw an error', async () => {
+  it('should throw an AuthenticationError if something throws an error', async () => {
     const mockRefreshToken = 'invalid-refresh-token';
     const errorMessage = 'Invalid refresh token';
 
@@ -332,7 +332,7 @@ describe('refreshAuthTokens', () => {
       throw new Error(errorMessage);
     });;
 
-    await expect(refreshAuthTokens(mockCache, context, mockRefreshToken))
+    await expect(refreshAccessToken(mockCache, context, mockRefreshToken))
       .rejects.toThrow(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${errorMessage}`);
     expect(logger.error).toHaveBeenCalled();
   });

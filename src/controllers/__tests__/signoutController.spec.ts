@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { Request } from 'express-jwt';
 import { Cache } from "../../datasources/cache";
-import { revokeAccessToken, revokeRefreshToken } from '../../services/tokenService';
+import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../../services/tokenService';
 import casual from 'casual';
 import { signoutController } from '../signoutController';
 
@@ -19,6 +19,7 @@ describe('signoutController', () => {
 
     mockRequest = {
       auth: { jti: casual.integer(1, 99999).toString() },
+      cookies: { dmspt: casual.uuid },
     };
     mockResponse = {
       status: jest.fn().mockReturnThis(),
@@ -34,6 +35,7 @@ describe('signoutController', () => {
   });
 
   it('should signout successfully', async () => {
+    (verifyAccessToken as jest.Mock).mockReturnValueOnce({ jti: mockRequest.auth.jti });
     (revokeRefreshToken as jest.Mock).mockResolvedValue(true);
     (revokeAccessToken as jest.Mock);
     jest.spyOn(mockResponse, 'clearCookie');
@@ -45,14 +47,14 @@ describe('signoutController', () => {
     expect(mockResponse.clearCookie).toHaveBeenCalledWith('dmspt');
     expect(mockResponse.clearCookie).toHaveBeenCalledWith('dmspr');
     expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ success: true, message: 'ok' });
+    expect(mockResponse.json).toHaveBeenCalledWith({});
   });
 
   it('should return 200 if no access token is present', async () => {
     await signoutController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ success: true, message: 'ok' });
+    expect(mockResponse.json).toHaveBeenCalledWith({});
   });
 
   it('should return 200 if unable to revoke the refresh token', async () => {
@@ -61,14 +63,14 @@ describe('signoutController', () => {
     await signoutController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ success: true, message: 'ok' });
+    expect(mockResponse.json).toHaveBeenCalledWith({});
   });
 
-  it('should return 500 if an unexpected error occurs', async () => {
+  it('should return 200 if an unexpected error occurs', async () => {
     (revokeRefreshToken as jest.Mock).mockImplementation(() => { throw new Error('test error'); });
     await signoutController(mockRequest as Request, mockResponse as Response);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(500);
-    expect(mockResponse.json).toHaveBeenCalledWith({ error: 'An unexpected error occurred' });
+    expect(mockResponse.status).toHaveBeenCalledWith(200);
+    expect(mockResponse.json).toHaveBeenCalledWith({});
   });
 });
