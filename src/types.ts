@@ -1033,9 +1033,9 @@ export type VersionedQuestion = {
 export type VersionedQuestionCondition = {
   __typename?: 'VersionedQuestionCondition';
   /** The action to take on a QuestionCondition */
-  action: QuestionConditionActionType;
+  action: VersionedQuestionConditionActionType;
   /** The condition in which to take the action */
-  condition: QuestionConditionCondition;
+  condition: VersionedQuestionConditionCondition;
   /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
   conditionMatch?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was created */
@@ -1057,6 +1057,26 @@ export type VersionedQuestionCondition = {
   /** The versionedQuestion id that the QuestionCondition belongs to */
   versionedQuestionId: Scalars['Int']['output'];
 };
+
+/** VersionedQuestionCondition action */
+export type VersionedQuestionConditionActionType =
+  /** Hide the question */
+  | 'HIDE_QUESTION'
+  /** Send email */
+  | 'SEND_EMAIL'
+  /** Show the question */
+  | 'SHOW_QUESTION';
+
+/** VersionedQuestionCondition types */
+export type VersionedQuestionConditionCondition =
+  /** When a question does not equal a specific value */
+  | 'DOES_NOT_EQUAL'
+  /** When a question equals a specific value */
+  | 'EQUAL'
+  /** When a question has an answer */
+  | 'HAS_ANSWER'
+  /** When a question includes a specific value */
+  | 'INCLUDES';
 
 /** A snapshot of a Section when it became published. */
 export type VersionedSection = {
@@ -1266,6 +1286,8 @@ export type ResolversTypes = {
   UserRole: UserRole;
   VersionedQuestion: ResolverTypeWrapper<VersionedQuestion>;
   VersionedQuestionCondition: ResolverTypeWrapper<VersionedQuestionCondition>;
+  VersionedQuestionConditionActionType: VersionedQuestionConditionActionType;
+  VersionedQuestionConditionCondition: VersionedQuestionConditionCondition;
   VersionedSection: ResolverTypeWrapper<VersionedSection>;
   VersionedTemplate: ResolverTypeWrapper<VersionedTemplate>;
   YesNoUnknown: YesNoUnknown;
@@ -1726,8 +1748,8 @@ export type VersionedQuestionResolvers<ContextType = MyContext, ParentType exten
 };
 
 export type VersionedQuestionConditionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedQuestionCondition'] = ResolversParentTypes['VersionedQuestionCondition']> = {
-  action?: Resolver<ResolversTypes['QuestionConditionActionType'], ParentType, ContextType>;
-  condition?: Resolver<ResolversTypes['QuestionConditionCondition'], ParentType, ContextType>;
+  action?: Resolver<ResolversTypes['VersionedQuestionConditionActionType'], ParentType, ContextType>;
+  condition?: Resolver<ResolversTypes['VersionedQuestionConditionCondition'], ParentType, ContextType>;
   conditionMatch?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;

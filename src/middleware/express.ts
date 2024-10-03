@@ -7,6 +7,7 @@ import { formatLogMessage } from '../logger';
 
 export async function attachApolloServer(apolloServer: ApolloServer, cache, logger) {
   formatLogMessage(logger).info(null, 'Attaching Apollo server');
+
   // expressMiddleware accepts the same arguments:
   //   an Apollo Server instance and optional configuration options
   return expressMiddleware(apolloServer, {

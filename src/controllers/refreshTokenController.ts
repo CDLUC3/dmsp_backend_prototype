@@ -1,35 +1,34 @@
-import { Response, Request } from 'express';
+import { Response } from 'express';
+import { Request } from 'express-jwt';
 import { Cache } from "../datasources/cache";
-import { refreshAuthTokens, setTokenCookie } from '../services/tokenService';
-import { generalConfig } from '../config/generalConfig';
+import { refreshAccessToken, setTokenCookie } from '../services/tokenService';
 import { buildContext } from '../context';
 import { formatLogMessage, logger } from '../logger';
 
 export const refreshTokenController = async (req: Request, res: Response) => {
-  try {
-    const originalRefreshToken = req.cookies?.dmspr?.toString();
+  const refreshToken = req.cookies?.dmspr?.toString();
 
-    if (originalRefreshToken) {
+  if (refreshToken) {
+    try {
       const cache = Cache.getInstance();
       const context = buildContext(logger, cache);
-      const { accessToken, refreshToken } = await refreshAuthTokens(cache, context, originalRefreshToken);
+      const newAccessToken = await refreshAccessToken(cache, context, refreshToken);
 
-      // If it successfully regenerated an access token
-      if (accessToken && refreshToken) {
-        // Set the tokens as HTTP only cookies
-        setTokenCookie(res, 'dmspt', accessToken, generalConfig.jwtTTL);
-        setTokenCookie(res, 'dmspr', refreshToken, generalConfig.jwtRefreshTTL);
+      if (newAccessToken) {
+        // Set the new access token
+        setTokenCookie(res, 'dmspt', newAccessToken);
+        setTokenCookie(res, 'dmspr', refreshToken);
 
         // Send the new access token to the client
         res.status(200).json({ success: true, message: 'ok' });
       } else {
-        res.status(400).json({ success: false, message: 'Unable to refresh the access token at this time!' });
+        res.status(401).json({ success: false, message: 'Refresh token has expired' });
       }
-    } else {
-      res.status(401).json({ success: false, message: 'Refresh token required!' });
+    } catch (err) {
+      formatLogMessage(logger).error(err, 'refreshTokenController error');
+      res.status(401).json({ success: false, message: 'Server error: unable to refresh tokens at this time' });
     }
-  } catch (err) {
-    formatLogMessage(logger).error(err, 'refreshTokenController')
-    res.status(500).json({ success: false, message: 'An unexpected error occurred' });
+  } else {
+    res.status(401).json({ success: false, message: 'No refresh token available' });
   }
 }

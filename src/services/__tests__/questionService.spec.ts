@@ -4,6 +4,7 @@ import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
 import { MySQLDataSource } from "../../datasources/mySQLDataSource";
 import { cloneQuestion, hasPermissionOnQuestion } from "../questionService";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
 import { NotFoundError } from "../../utils/graphQLErrors";
 import { Question } from "../../models/Question";
@@ -13,6 +14,7 @@ import { QuestionType } from "../../models/QuestionType";
 // Pulling context in here so that the MySQLDataSource gets mocked
 jest.mock('../../context.ts');
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let context;
 
 beforeEach(() => {

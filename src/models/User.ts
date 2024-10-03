@@ -190,8 +190,8 @@ export class User extends MySqlModel {
       try {
         const sql = `INSERT INTO users \
                       (email, password, role, givenName, surName, affiliationId, acceptedTerms) \
-                     VALUES(?, ?, ?, ?, ?, ?)`;
-        const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId];
+                     VALUES(?, ?, ?, ?, ?, ?, ?)`;
+        const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
         const context = buildContext(logger);
         formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
         const result = await User.query(context, sql, vals, 'User.register');

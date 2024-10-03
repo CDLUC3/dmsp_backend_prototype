@@ -11,6 +11,8 @@ import router from './router';
 import { MySQLDataSource } from './datasources/mySQLDataSource';
 import { Cache } from './datasources/cache';
 import { verifyCriticalEnvVariable } from './utils/helpers';
+import corsConfig from './config/corsConfig';
+import { authMiddleware } from './middleware/auth';
 
 verifyCriticalEnvVariable('NODE_ENV');
 console.log(`DMPTool Apollo server backend starting in ${process.env.NODE_ENV} mode.`)
@@ -38,15 +40,18 @@ const startServer = async () => {
   // Express middleware for all requests (besides the healthcheck above)
   app.use(
     cookieParser(),
-    cors(),
+    cors(corsConfig()),
     express.urlencoded({ extended: false }),
     express.json({ limit: '50mb' }),
   )
 
-  // Attach Apollo server to all of the GraphQL calls
-  app.use('/graphql', await attachApolloServer(apolloServer, cache, logger))
+  // GraphQL operations
+  // Apollo server has it's own built-in way of dealing with CSRF.
+  //     See: https://www.apollographql.com/docs/router/configuration/csrf/
+  // Use the authMiddleware to extract the token from the cookies and then Attach Apollo server
+  app.use('/graphql', authMiddleware, await attachApolloServer(apolloServer, cache, logger))
 
-  // Pass off to the Router for other handling
+  // Pass off to the Router for other non-GraphQL handling
   app.use('/', router);
 
   await httpServer.listen({ port: 4000 }, () => {

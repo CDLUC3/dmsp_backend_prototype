@@ -1,8 +1,7 @@
 import { Response } from 'express';
 import { Request } from 'express-jwt';
 import { Cache } from "../../datasources/cache";
-import { refreshAuthTokens, setTokenCookie } from '../../services/tokenService';
-import { generalConfig } from '../../config/generalConfig';
+import { refreshAccessToken, setTokenCookie } from '../../services/tokenService';
 import { logger } from '../../__mocks__/logger';
 import { refreshTokenController } from '../refreshTokenController';
 // We mock buildContext below, not sure why it complains here
@@ -55,16 +54,12 @@ describe('refreshTokenController', () => {
   it('should refresh tokens successfully', async () => {
     mockRequest.cookies = { dmspr: 'old-refresh-token' };
 
-    (refreshAuthTokens as jest.Mock).mockResolvedValue({
-      accessToken: 'new-access-token',
-      refreshToken: 'new-refresh-token'
-    });
+    (refreshAccessToken as jest.Mock).mockResolvedValue('new-access-token');
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
-    expect(refreshAuthTokens).toHaveBeenCalledWith(mockCache, mockContext(), 'old-refresh-token');
-    expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token', generalConfig.jwtTTL);
-    expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspr', 'new-refresh-token', generalConfig.jwtRefreshTTL);
+    expect(refreshAccessToken).toHaveBeenCalledWith(mockCache, mockContext(), 'old-refresh-token');
+    expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token');
     expect(mockResponse.status).toHaveBeenCalledWith(200);
     expect(mockResponse.json).toHaveBeenCalledWith({ success: true, message: 'ok' });
   });
@@ -73,26 +68,26 @@ describe('refreshTokenController', () => {
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(401);
-    expect(mockResponse.json).toHaveBeenCalledWith({ success: false, message: 'Refresh token required!' });
+    expect(mockResponse.json).toHaveBeenCalledWith({ success: false, message: 'No refresh token available' });
   });
 
-  it('should return 400 if unable to refresh tokens', async () => {
+  it('should return 401 if unable to refresh tokens', async () => {
     mockRequest.cookies = { dmspr: 'old-refresh-token' };
-    (refreshAuthTokens as jest.Mock).mockResolvedValue({});
+    (refreshAccessToken as jest.Mock).mockResolvedValue(null);
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(400);
-    expect(mockResponse.json).toHaveBeenCalledWith({ success: false, message: 'Unable to refresh the access token at this time!' });
+    expect(mockResponse.status).toHaveBeenCalledWith(401);
+    expect(mockResponse.json).toHaveBeenCalledWith({ success: false, message: 'Refresh token has expired' });
   });
 
   it('should return 500 if an unexpected error occurs', async () => {
     mockRequest.cookies = { dmspr: 'old-refresh-token' };
-    (refreshAuthTokens as jest.Mock).mockRejectedValue(new Error('Unexpected error'));
+    (refreshAccessToken as jest.Mock).mockRejectedValue(new Error('Unexpected error'));
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(500);
-    expect(mockResponse.json).toHaveBeenCalledWith({ success: false, message: 'An unexpected error occurred' });
+    expect(mockResponse.status).toHaveBeenCalledWith(401);
+    expect(mockResponse.json).toHaveBeenCalledWith({ success: false, message: 'Server error: unable to refresh tokens at this time' });
   });
 });

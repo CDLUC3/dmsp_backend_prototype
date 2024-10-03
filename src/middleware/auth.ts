@@ -1,7 +1,7 @@
 import { expressjwt } from "express-jwt";
 import { generalConfig } from "../config/generalConfig";
 import { isRevokedCallback } from "../services/tokenService";
-
+// Setup the Express JWT handler
 export const authMiddleware = expressjwt({
   algorithms: ['HS256'],
   credentialsRequired: false,
