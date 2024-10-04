@@ -509,7 +509,7 @@ export type Query = {
   /** Retrieve a specific Affiliation by its URI */
   affiliationByURI?: Maybe<Affiliation>;
   /** Retrieve all of the valid Affiliation types */
-  affiliationTypes?: Maybe<Array<Maybe<AffiliationType>>>;
+  affiliationTypes?: Maybe<Array<Scalars['String']['output']>>;
   /** Perform a search for Affiliations matching the specified name */
   affiliations?: Maybe<Array<Maybe<AffiliationSearch>>>;
   /** Get the contributor role by it's id */
@@ -1495,7 +1495,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   affiliationById?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByIdArgs, 'affiliationId'>>;
   affiliationByURI?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByUriArgs, 'uri'>>;
-  affiliationTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationType']>>>, ParentType, ContextType>;
+  affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;

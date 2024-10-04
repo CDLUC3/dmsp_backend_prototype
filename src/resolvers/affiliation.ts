@@ -1,12 +1,17 @@
 import { Resolvers } from "../types";
 import { MyContext } from '../context';
-import { Affiliation, AffiliationSearch } from '../models/Affiliation';
+import { Affiliation, AffiliationSearch, AffiliationType } from '../models/Affiliation';
 import { isAdmin, isSuperAdmin } from "../services/authService";
 import { BadRequestError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
 
 export const resolvers: Resolvers = {
   Query: {
+
+    affiliationTypes: async (): Promise<string[]> => {
+      return Object.values(AffiliationType);
+    },
+
     // returns an array of Affiliations that match the search criteria
     affiliations: async (_, { name, funderOnly }, context: MyContext): Promise<AffiliationSearch[]> => {
       return AffiliationSearch.search(context, { name, funderOnly });
@@ -39,7 +44,7 @@ export const resolvers: Resolvers = {
     updateAffiliation: async (_, { input }, context: MyContext): Promise<Affiliation> => {
       try {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
-        if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.affiliationId === input.uri)) {
+        if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.uri === input.uri)) {
           const existing = await Affiliation.findByURI('updateAffiliation resolver', context, input.uri);
           // If the URI already exists, throw an error
           if (existing) {

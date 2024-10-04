@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Retrieve all of the valid Affiliation types"
-    affiliationTypes: [AffiliationType]
+    affiliationTypes: [String!]
     "Retrieve a specific Affiliation by its ID"
     affiliationById(affiliationId: Int!): Affiliation
     "Retrieve a specific Affiliation by its URI"
