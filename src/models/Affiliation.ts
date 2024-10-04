@@ -58,8 +58,6 @@ export class Affiliation extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
-    this.tableIdAsString = true;
-
     this.uri = options.uri;
     this.active = options.active || false;
     this.provenance = options.provenance || AffiliationProvenance.DMPTOOL;

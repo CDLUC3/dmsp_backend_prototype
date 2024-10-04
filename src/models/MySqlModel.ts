@@ -14,7 +14,6 @@ export class MySqlModel {
     public modified?: string,
     public modifiedById?: number,
     public errors: string[] = [],
-    public tableIdAsString = false,
   ) {
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {

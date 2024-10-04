@@ -21,7 +21,6 @@ const mockedUser: UserModel.User = {
   password: casual.uuid,
   acceptedTerms: true,
   created: new Date().toISOString(),
-  tableIdAsString: false,
   errors: [],
 
   isValid: jest.fn(),
