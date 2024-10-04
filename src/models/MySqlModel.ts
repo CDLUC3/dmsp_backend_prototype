@@ -14,6 +14,7 @@ export class MySqlModel {
     public modified?: string,
     public modifiedById?: number,
     public errors: string[] = [],
+    public tableIdAsString = false,
   ) {
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {
@@ -47,9 +48,9 @@ export class MySqlModel {
 
   /**
    * Convert incoming value to appropriate type for insertion into a SQL query
-   * @param val 
-   * @param type 
-   * @returns 
+   * @param val
+   * @param type
+   * @returns
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static prepareValue(val: any, type: any): any {
@@ -166,6 +167,11 @@ export class MySqlModel {
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj, skipKeys);
 
+    // If the record uses a string id (meaning its not auto-assigned by the DB)
+    if (obj.tableIdAsString) {
+      props.push({ name: 'id', value: obj.id.toString() });
+    }
+
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
@@ -224,7 +230,7 @@ export class MySqlModel {
   static async delete(
     apolloContext: MyContext,
     table: string,
-    id: number,
+    id: number|string,
     reference = 'undefined caller',
   ): Promise<boolean> {
     const sql = `DELETE FROM ${table} WHERE id = ?`;
@@ -232,4 +238,3 @@ export class MySqlModel {
     return Array.isArray(result) && result[0].affectedRows ? true : false;
   }
 }
-

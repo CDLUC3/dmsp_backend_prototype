@@ -1,149 +1,174 @@
-import { formatLogMessage } from "../logger";
 import { MyContext } from "../context";
+import { MySqlModel } from "./MySqlModel";
+import { randomHex } from "../utils/helpers";
+
+export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
+export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
+
+// The provenance of an Affiliation record
+// Users can only update certain properties for records managed by other systems.
+export enum AffiliationProvenance {
+  DMPTOOL = 'DMPTOOL', // Affiliations added directly into the DMPTool (uses the URL above)
+  ROR = 'ROR', // Affiliations managed by the Research Organization Registry (ROR) https://ror.org
+}
+
+// Affiliation types
+export enum AffiliationType {
+  EDUCATION = 'EDUCATION',
+  NONPROFIT = 'NONPROFIT',
+  GOVERNMENT = 'GOVERNMENT',
+  FACILITY = 'FACILITY',
+  COMPANY = 'COMPANY',
+  HEALTHCARE = 'HEALTHCARE',
+  ARCHIVE = 'ARCHIVE',
+  OTHER = 'OTHER',
+}
 
 // Represents an Institution, Organization or Company
-export class Affiliation {
-  public id!: string;
-  public provenance!: string;
-  public provenanceSyncDate!: string;
+export class Affiliation extends MySqlModel {
+  public uri!: string;
+  public active!: boolean;
+  public provenance!: AffiliationProvenance;
   public name!: string;
   public displayName!: string;
-  public active!: boolean;
+  public searchName!: string;
   public funder!: boolean;
-  public fundref: string;
-  public types: string[];
+  public fundrefId: string;
+  public homepage: string;
   public acronyms: string[];
   public aliases: string[];
-  public locales: AffiliationLocale[];
-  public countryCode: string;
-  public countryName: string;
-  public domain: string;
-  public wikipediaURL: string;
-  public links: string[];
-  public relationships: AffiliationRelationship[];
-  public addresses: AffiliationAddress[];
+  public types: AffiliationType[];
 
-  private externalIds: ExternalId[];
+  // Properties specific to the DMPTool. These can be modified regardless of the record's provenance
+  public managed: boolean;
+  public logoURI: string;
+  public logoName: string;
+  public contactEmail: string;
+  public contactName: string;
+  public ssoEntityId: string;
+  public feedbackEnabled: boolean;
+  public feedbackMessage: string;
+  public feedbackEmails: string;
+
+  public uneditableProperties: string[];
+
+  private tableName = 'affiliations';
 
   // Initialize a new Affiliation
   constructor(options) {
-    // This is our opportunity to convert ruby variable names over to JS
-    this.provenance = options._SOURCE || 'dmptool';
-    this.provenanceSyncDate = options._SOURCE_SYNCED_AT || new Date().toISOString();
-    this.id = options.ID || options.id;
-    this.types = options.types || [];
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+
+    this.tableIdAsString = true;
+
+    this.uri = options.uri;
+    this.active = options.active || false;
+    this.provenance = options.provenance || AffiliationProvenance.DMPTOOL;
     this.name = options.name;
-    this.displayName = options.label || options.displayName || options.name;
-    this.active = options.active === 1;
-    this.funder = options.funder === 1;
+    this.displayName = options.displayName;
+    this.searchName = options.searchName;
+    this.funder = options.funder || false;
+    this.fundrefId = options.fundrefId
+    this.homepage = options.homepage;
     this.acronyms = options.acronyms || [];
     this.aliases = options.aliases || [];
-    this.countryCode = options.country?.country_code || options.countryCode;
-    this.countryName = options.country?.country_name || options.countryName;
-    this.domain = options.domain;
-    this.links = options.links || [];
+    this.types = options.types || [AffiliationType.OTHER];
+    this.managed = options.managed;
+    this.logoURI = options.logoURI;
+    this.logoName = options.logoName;
+    this.contactEmail = options.contactEmail;
+    this.contactName = options.contactName;
+    this.ssoEntityId = options.ssoEntityId;
+    this.feedbackEnabled = options.feedbackEnabled;
+    this.feedbackMessage = options.feedbackMessage;
+    this.feedbackEmails = options.feedbackEmails;
 
-    // If there are any labels/locales defined, initialize them
-    this.locales = [];
-    if(Array.isArray(options.locales)) {
-      this.locales = options.labels.map((lbl) => new AffiliationLocale(lbl));
-    }
+    this.uneditableProperties = ['uri', 'provenance', 'searchName'];
 
-    // If there are any addresses defined, initialize them
-    this.addresses = [];
-    if(Array.isArray(options.addresses)) {
-      this.addresses = options.addresses.map((addr) => new AffiliationAddress(addr));
-    }
-
-    // If there are any relationships defined, initialize them
-    this.relationships = [];
-    if(Array.isArray(options.relationships)) {
-      this.relationships = options.relationships.map((rel) => new AffiliationRelationship(rel));
-    }
-
-    // If there are any external_ids defined, initialize them and set the FundRef ID
-    this.externalIds = [];
-    if (Object.prototype.hasOwnProperty.call(options, "external_ids")) {
-      this.externalIds = Object.keys(options.external_ids).map((key) => {
-        return new ExternalId({
-          type: key,
-          ...options.external_ids[key]
-        })
+    // Records owned by the DMPTool can edit these additional properties
+    if (this.provenance === AffiliationProvenance.ROR) {
+      ['name', 'funder', 'fundrefId', 'homepage', 'acronyms', 'aliases', 'types'].forEach((entry) => {
+        this.uneditableProperties.push(entry);
       });
-      this.fundref = this.externalIds?.find(id => id.type === 'fundref')?.id;
     }
   }
 
-  static async findById(caller: string, context: MyContext, id: string): Promise<Affiliation> {
-    const { logger, dataSources } = context;
-    const logMessage = `Affiliation.findById query for ${caller}, affiliation: ${id}`;
-    const affiliationId = id.replace(/https?:\/\//g, '')
-    return new Promise((resolve, reject) => {
-      dataSources.dmptoolAPIDataSource.getAffiliation(affiliationId)
-        .then(row => {
-          formatLogMessage(logger).debug(logMessage);
-          resolve(row);
-        })
-        .catch(err => {
-          formatLogMessage(logger).error(`Affiliation.findById ERROR for ${caller}, affiliation: ${id} - ${err.message}`);
-          reject(err)
-        });
-    });
+  // Convert the name, homepage, acronyms and aliases into a search string
+  buildSearchName(): string {
+    const parts = [this.name, this.homepage, this.acronyms, this.aliases];
+    return parts.flat().join(' | ').substring(0, 249);
   }
-}
 
-// Represents an external identifier like FundRef, GRID, ISSN, etc.
-class ExternalId {
-  public type!: string;
-  public id!: string;
-
-  constructor(options) {
-    const allIds = Array.isArray(options.all) ? options.all : [options.all]
-
-    this.type = options.type?.toLowerCase();
-    this.id = options.preferred ? options.preferred : allIds[0];
+  // Perform tasks necessary to prepare the data to be saved
+  prepForSave(): void {
+    this.searchName = this.buildSearchName();
   }
-}
 
-// Represents the city, state, country and Lat+Long for the affiliation
-export class AffiliationAddress {
-  public city: string;
-  public state: string;
-  public stateCode: string;
-  public countryGeonamesId: number;
-  public lat: number;
-  public lng: number;
+  // Save the current record
+  async create(context: MyContext): Promise<Affiliation> {
+    // Assign a new DMPTool id if one was not provided (meaning it was manually added by a user)
+    if (!this.uri) {
+      this.uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${randomHex(6)}`;
+    }
+    // First make sure the record doesn't already exist
+    const current = await Affiliation.findByURI('Affiliation.create', context, this.uri);
 
-  constructor(options) {
-    this.city = options.city;
-    this.state = options.state;
-    this.stateCode = options.state_code;
-    this.countryGeonamesId = options.country_geonames_id;
-    this.lat = options.lat;
-    this.lng = options.lng
+    // Then make sure it doesn't already exist
+    if (current) {
+      this.errors.push('That Affiliation already exists');
+    } else {
+    // Save the record and then fetch it
+      this.prepForSave();
+      const newId = await Affiliation.insert(context, this.tableName, this, 'Affiliation.create');
+      return await Affiliation.findById('Affiliation.create', context, newId);
+    }
+    // Otherwise return as-is with all the errors
+    return this;
   }
-}
 
-// Represents a relationship between 2 affiliations
-export class AffiliationRelationship {
-  public id!: string;
-  public type!: string;
-  public name: string;
-
-  constructor(options) {
-    this.id = options.id;
-    this.type = options.type;
-    this.name = options.label || options.name;
+  // Save the changes made to the affiliation
+  async update(context: MyContext): Promise<Affiliation> {
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      if (this.uri) {
+        this.prepForSave();
+        const result = await Affiliation.update(
+          context,
+          this.tableName,
+          this,
+          'Affiliation.update',
+          this.uneditableProperties
+        );
+        return result as Affiliation;
+      }
+      // This template has never been saved before so we cannot update it!
+      this.errors.push('Affiliation has never been saved');
+    }
+    return this;
   }
-}
 
-export class AffiliationLocale {
-  public label!: string;
-  public locale!: string;
+  // Delete this record (will cascade delate all associated AffiliationLinks and AffiliaitonEmailDomains)
+  async delete(context: MyContext): Promise<Affiliation> {
+    if (this.uri) {
+      const result = await Affiliation.delete(context, this.tableName, this.id, 'Affiliation.delete');
+      if (result) {
+        return this;
+      }
+    }
+    return null;
+  }
 
-  constructor(options) {
-    this.label = options.label;
-    this.locale = options.iso639;
+  // Return the specified AffiliationEmailDomain
+  static async findById(reference: string, context: MyContext, id: number): Promise<Affiliation> {
+    const sql = `SELECT * FROM affiliations WHERE id = ?`;
+    const results = await Affiliation.query(context, sql, [id.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  }
+
+  // Return the specified AffiliationEmailDomain
+  static async findByURI(reference: string, context: MyContext, uri: string): Promise<Affiliation> {
+    const sql = `SELECT * FROM affiliations WHERE uri = ?`;
+    const results = await Affiliation.query(context, sql, [uri], reference);
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 }
 
@@ -155,56 +180,39 @@ export interface AffiliationSearchCriteria {
 // A pared down version of the full Affiliation object. This type is returned by
 // our index searches
 export class AffiliationSearch {
-  public id!: string;
-  public fetchId!: string;
-  public name!: string;
+  public id!: number;
+  public uri!: string;
   public displayName!: string;
   public funder!: boolean;
-  public fundref: string;
-  public aliases: string[];
-  public countryCode: string;
-  public countryName: string;
-  public links: string[];
-  public locales: AffiliationLocale[];
+  public types!: AffiliationType[];
 
   // Initialize a new AffiliationSearch result
   constructor(options) {
-    const suffix = options.domain || options.countryName;
-
-    // This is our opportunity to convert ruby variable names over to JS
-    this.id = options.ror_url || options.id;
-    this.fetchId = this.id?.replace(/https?:\/\//g, '');
-    this.name = options.name;
-    this.displayName = suffix ? `${options.name} (${suffix})` : options.name;
-    this.funder = Object.prototype.hasOwnProperty.call(options, "fundref_id");
-    this.fundref = options.fundref_url || options.fundref;
-    this.aliases = options.aliases || [];
-    this.countryCode = options.countryCode;
-    this.countryName = options.countryName;
-    this.links = options.links || [options.domain];
-
-    // If there are any labels/locales defined, initialize them
-    this.locales = [];
-    if(Array.isArray(options.locales)) {
-      this.locales = options.labels?.map((lbl) => new AffiliationLocale(lbl));
-    }
+    this.id = options.id;
+    this.uri = options.uri;
+    this.displayName = options.displayName;
+    this.funder = options.funder || false;
+    this.types = options.types || [AffiliationType.OTHER];
   }
 
   // Search for Affiliations that match the term and the funder flag
   static async search(context: MyContext, options: AffiliationSearchCriteria): Promise<AffiliationSearch[]> {
-    const { logger, dataSources } = context;
-    const logMessage = `Resolving query affiliations(options: '${options}')`;
+    let sql = 'SELECT * FROM affiliations WHERE active = ?';
+    const vals = [];
 
-    return new Promise((resolve, reject) => {
-      dataSources.dmptoolAPIDataSource.getAffiliations(options)
-        .then(rows => {
-          formatLogMessage(logger).debug(logMessage);
-          resolve(rows)
-        })
-        .catch(err => {
-          formatLogMessage(logger, { err, options }).error(`ERROR: ${logMessage} - ${err.message}`);
-          reject(err)
-        });
-    });
+    if (options.name) {
+      sql += ' AND LOWER(searchName) = ?'
+      vals.push(options.name.toLowerCase());
+    }
+    if (options.funderOnly) {
+      sql += ' AND funder = 1';
+    }
+
+    const results = await Affiliation.query(context, sql, vals, 'AffiliationSearch.search');
+    if (Array.isArray(results) && results.length > 0) {
+      return results.map((entry) => { return new AffiliationSearch(entry) });
+    }
+
+    return [];
   }
 }

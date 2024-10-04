@@ -73,3 +73,8 @@ export function getCurrentDate(): string {
   const currentDate = now.slice(0, 19).replace('T', ' ');
   return currentDate;
 }
+
+// Generate a random hex code
+export function randomHex(size: number): string {
+  return [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+}

@@ -93,4 +93,3 @@ export class Tag extends MySqlModel {
         return Array.isArray(results) && results.length > 0 ? results[0] : null;
     }
 }
-

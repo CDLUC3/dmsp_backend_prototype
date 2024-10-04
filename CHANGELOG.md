@@ -1,4 +1,3 @@
-
 ### Added
 - Fixed some bugs to allow frontend to access token change(Frontend #116)
 - Added data migrations for QuestionType, Question, QuestionCondition, VersionedQuestion and VersionedQuestionCondition
@@ -24,6 +23,7 @@
 - Added tests for all Controllers
 - Added supertest to support integration tests
 - Added integration tests for token management (signin, signup, signout, refresh)
+- Data migrations for affiliations table
 
 ### Updated
 - Change default JWT TTL to 30 minutes
@@ -39,6 +39,7 @@
 - updated express middelware to fetch the access token and refresh tokens from the cookies instead of the headers
 - removed old oauth-server package which had security vulnerabilities
 - moved authMiddleware function from the router.ts into its own class in src/middelware
+- updated Affiliation Schema, Resolver, Models to use new affiliations tables in the database
 
 ### Fixed
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test
