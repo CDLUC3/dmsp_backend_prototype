@@ -14,7 +14,8 @@ dotenv.config();
 
 // Base Apollo server configuration
 function baseConfig() {
-  // If we are running in offline mode then we will use mocks
+  // TODO: Could never really get the GraphQL MockStore working the way we wanted
+  //       so we aren't using this, but leaving here in case we come back to it someday
   if (['true', '1'].includes(process.env?.USE_MOCK_DATA?.toString()?.toLowerCase())) {
     return {
       schema: addMocksToSchema({

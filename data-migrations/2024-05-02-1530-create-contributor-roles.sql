@@ -1,11 +1,13 @@
 CREATE TABLE `contributorRoles` (
-  `id` int NOT NULL AUTO_INCREMENT,
+  `id` int AUTO_INCREMENT PRIMARY KEY,
   `label` varchar(255) NOT NULL,
   `url` varchar(255) NOT NULL,
   `description` text,
   `displayOrder` int NOT NULL,
-  `created` timestamp DEFAULT CURRENT_TIMESTAMP,
-  `modified` timestamp DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  CONSTRAINT unique_contributor_role_url UNIQUE (`url`)
+  `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `createdById` int NOT NULL,
+  `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `modifiedById` int NOT NULL,
+  CONSTRAINT unique_contributor_role_url UNIQUE (`url`),
+  CONSTRAINT unique_contributor_role_order UNIQUE (`displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;

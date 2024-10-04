@@ -1,7 +1,7 @@
 import { GraphQLScalarType, Kind } from 'graphql';
 
 export const DMSP_BASE_URL: string = process.env.DMSP_BASE_URL;
-const DMSP_REGEX: RegExp = /^[0-9a-zA-Z]+$/;
+const DMSP_REGEX = /^[0-9a-zA-Z]+$/;
 
 export function validateDmspId(val) {
   const id = val.split(DMSP_BASE_URL)[1];

@@ -1,47 +1,41 @@
 import bcrypt from 'bcryptjs';
-import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { capitalizeFirstLetter, validateEmail } from '../utils/helpers';
-import { Falsey } from 'oauth2-server';
+import { capitalizeFirstLetter, validateEmail, validateURL } from '../utils/helpers';
+import { buildContext } from '../context';
 import { logger, formatLogMessage } from '../logger';
-
-// TODO: Is this the right place to create our Pool?
-// const mysql = new MysqlDataSource({ config: mysqlConfig });
+import { MySqlModel } from './MySqlModel';
+import { MyContext } from '../context';
+import { generalConfig } from '../config/generalConfig';
 
 export enum UserRole {
-  Researcher = 'RESEARCHER',
-  Admin = 'ADMIN',
-  SuperAdmin = 'SUPER_ADMIN',
+  RESEARCHER = 'RESEARCHER',
+  ADMIN = 'ADMIN',
+  SUPERADMIN = 'SUPERADMIN',
 }
 
-export class User {
-  private mysql: MySQLDataSource;
-
-  public id?: number;
+export class User extends MySqlModel {
   public email: string;
   public password: string;
   public role: UserRole;
   public givenName?: string;
   public surName?: string;
+  // TODO: Make this required once we build out the signup page
+  public affiliationId?: string;
+  public acceptedTerms: boolean;
   public orcid?: string;
-  public errors: string[];
-  public affiliationId: string;
-  public created: string;
-  public modified: string;
 
   // Initialize a new User
   constructor(options) {
-    this.mysql = MySQLDataSource.getInstance();
-    this.id = options.id;
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+
     this.email = options.email;
     this.password = options.password;
     this.role = options.role;
     this.givenName = options.givenName;
     this.surName = options.surName;
     this.orcid = options.orcid;
-    this.affiliationId = options.affiliationId;
-    this.created = options.created || new Date().toUTCString();
-    this.modified = options.modified || new Date().toUTCString();
-    this.errors = [];
+    // TODO: Remove this hard-coded UCOP default once we build out the signup page
+    this.affiliationId = options.affiliationId || 'https://ror.org/00dmfq477';
+    this.acceptedTerms = options.acceptedTerms;
 
     this.cleanup();
   }
@@ -49,15 +43,18 @@ export class User {
   // Ensure data integrity
   cleanup() {
     this.email = this.email?.trim()?.replace('%40', '@');
-    this.role = this.role || UserRole.Researcher;
+    this.role = this.role || UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
   }
 
   // Verify that the email does not already exist and that the required fields have values
-  async validateNewUser(): Promise<boolean> {
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
     // check if email is already taken
-    const existing = await User.findByEmail(this.email);
+    const context = buildContext(logger);
+    const existing = await User.findByEmail('User.isValid', context, this.email);
 
     if (existing) {
       this.errors.push('Email address already in use');
@@ -70,9 +67,14 @@ export class User {
       } else {
         this.validatePassword();
       }
+      if (!validateURL(this.affiliationId)) {
+        this.errors.push('Affiliation can\'t be blank');
+      }
+      if (!this.role) {
+        this.errors.push('Role can\'t be blank');
+      }
     }
-
-    return this.errors.length === 0;
+    return this.errors.length <= 0;
   }
 
   // Validate the password format
@@ -102,83 +104,112 @@ export class User {
   }
 
   async hashPassword(password): Promise<string> {
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(generalConfig.bcryptSaltRounds);
     return await bcrypt.hash(password, salt);
   }
 
-  // Find the User by their Id
-  static async findById(userId: string): Promise<User> {
-    const mysql = MySQLDataSource.getInstance();
-    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
-                 FROM users WHERE id = ?';
-    formatLogMessage(logger)?.debug(`User.findById: ${userId}`);
-    try {
-      const [rows] = await mysql.query(sql, [userId]);
-      return rows?.id ? new User(rows) : null;
-    } catch (err) {
-      formatLogMessage(logger, { err })?.error(`Error trying to find User by id ${userId}`);
-      throw err;
+  // Find the User by their email for an Auth check (includes the password)
+  static async authCheck(
+    reference: string,
+    context: MyContext,
+    email: string,
+    password: string,
+  ): Promise<number> {
+    const sql = 'SELECT id, email, password FROM users WHERE email = ?';
+    const users = await User.query(context, sql, [email], reference);
+
+    // If the user was found, check the password
+    if (Array.isArray(users) && users.length > 0) {
+      // TODO: Add logic to lock the account after too many failures
+
+      // Otherwise check the password
+      if (users[0] && await bcrypt.compare(password, users[0].password)) {
+        formatLogMessage(context.logger).debug(`Successful authCheck for ${email}`);
+        return users[0].id;
+      }
     }
+
+    formatLogMessage(context.logger).debug(`Failed authCheck for ${email}`);
+    return null;
+  }
+
+  // Find the User by their Id
+  static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
+    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, created, modified \
+                 FROM users WHERE id = ?';
+    const results = await User.query(context, sql, [userId.toString()], reference);
+    return results[0];
   }
 
   // Find the User by their email address
-  static async findByEmail(email: string): Promise<User | null> {
-    const mysql = MySQLDataSource.getInstance();
-    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, created, modified \
-                from users where email = ?';
+  static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
+    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, created, modified \
+                 FROM users WHERE email = ?';
+    const results = await User.query(context, sql, [email], reference);
+    return results[0];
+  }
 
-    formatLogMessage(logger)?.debug(`User.findByEmail: ${email}`);
-    try {
-      const [rows] = await mysql.query(sql, [email]);
-      return rows?.id ? new User(rows) : null;
-    } catch (err) {
-      formatLogMessage(logger, { err })?.error(`Error trying to find User by email: ${email}`);
-      throw err;
-    }
+  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
+    const sql = 'SELECT id, givenName, surName, email, role, affiliationId, acceptedTerms, created, modified \
+                 FROM users WHERE affiliationId = ? ORDER BY created DESC';
+    return await User.query(context, sql, [affiliationId], reference);
   }
 
   // Login making sure that the passwords match
-  async login(): Promise<User | Falsey> {
+  async login(): Promise<User> {
     this.cleanup();
-    const email = this.email || '';
 
-    if (!validateEmail(email) || !this.validatePassword()) {
+    if (!validateEmail(this.email) || !this.validatePassword()) {
       return null;
     }
 
     try {
+      const context = buildContext(logger);
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
-      const user = await User.findByEmail(email) || null;
-      if (user && await bcrypt.compare(this.password, user?.password)) {
-        return user;
+      const userId = await User.authCheck('User.login', context, this.email, this.password);
+
+      if (userId) {
+        return await User.findById('User.login', context, userId) || null;
       }
       return null;
     } catch (err) {
-      formatLogMessage(logger, { err })?.error(`Error logging in User: ${this.email}`);
+      formatLogMessage(logger).error(`Error logging in User: ${this.email} - ${err.message}`);
       return null;
     }
   }
 
   // Register the User if the data is valid
-  async register(): Promise<User | Falsey> {
+  async register(): Promise<User> {
     this.cleanup();
-    await this.validateNewUser();
+    await this.isValid();
 
     if (this.errors.length === 0) {
       const passwordHash = await this.hashPassword(this.password);
       this.password = passwordHash
 
-      const mysql = MySQLDataSource.getInstance();
-      const sql = 'INSERT INTO users (email, password, role, givenName, surName) VALUES(?,?,?,?,?)';
-      formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
       try {
-        const vals = [this.email, this.password, this.role, this.givenName, this.surName]
-        const result = await mysql.query(sql, vals);
+        const sql = `INSERT INTO users \
+                      (email, password, role, givenName, surName, affiliationId, acceptedTerms) \
+                     VALUES(?, ?, ?, ?, ?, ?, ?)`;
+        const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
+        const context = buildContext(logger);
+        formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
+        const result = await User.query(context, sql, vals, 'User.register');
 
-        logger.debug(`User was created: ${this.email}, id: ${result.insertId}`);
-        return await User.findById(result.insertId);
+        if (!Array.isArray(result) || !result[0].insertId) {
+          this.errors.push('Unable to register your account.');
+          return this;
+        }
+        formatLogMessage(logger).debug(`User was created: ${this.email}, id: ${result[0].insertId}`);
+
+        // Fetch the new record and blank out the password when returning so as not to expose it
+        const user = await User.findById('User.register', context, result[0].insertId);
+        // Remove the password! No need to expose that to the caller
+        user.password = null;
+
+        return user;
       } catch (err) {
-        formatLogMessage(logger, { err })?.error(`Error creating User: ${this.email}`);
+        formatLogMessage(logger)?.error(`Error creating User: ${this.email} - ${err.message}`);
         return null;
       }
     } else {

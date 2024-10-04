@@ -13,6 +13,9 @@ Migration file names start with a date and timestamp to ensure that they are run
 
 The `process-aws.sh` file is meant to be run from the AWS Clou9 instance only!
 
+## Running from the local Docker container
+Once you have the system running with `docker-compose up`, log into the container and run `bash ./data-migrations/process.sh`
+
 ## Running from the Cloud9 bastion server
 
 ### Cloud9 initialization

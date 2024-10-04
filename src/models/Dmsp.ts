@@ -1,6 +1,6 @@
-import { ContributorRoleModel } from './ContributorRole';
+import { ContributorRole } from './ContributorRole';
 
-export type DmspModel = {
+export interface DmspModel {
   primaryContact: PrimaryContact;
   created: string;
   modified: string;
@@ -16,22 +16,22 @@ export type DmspModel = {
   language: string;
 }
 
-type PrimaryContact = {
+interface PrimaryContact {
   orcid: string;
   name: string;
   mbox: string;
   affiliation: Affiliation;
 }
 
-type Contributor = {
+interface Contributor {
   orcid: string;
   name: string;
   mbox: string;
-  role: [ContributorRoleModel]
+  role: [ContributorRole]
   affiliation: Affiliation;
 }
 
-type Affiliation = {
+interface Affiliation {
   ror: string;
   name: string;
   affiliation_id: string;

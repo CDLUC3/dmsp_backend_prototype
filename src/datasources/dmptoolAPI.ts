@@ -2,11 +2,11 @@ import { Buffer } from "buffer";
 import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { logger, formatLogMessage } from '../logger';
-import { AffiliationModel, AffiliationSearchModel } from "../models/Affiliation"
-import { JWTToken } from '../services/tokenService';
+import { Affiliation, AffiliationSearch } from "../models/Affiliation"
+import { JWTAccessToken } from '../services/tokenService';
 
 // Singleton class that retrieves an Auth token from the API
-class Authorizer extends RESTDataSource {
+export class Authorizer extends RESTDataSource {
   static #instance: Authorizer;
 
   override baseURL = process.env.DMPHUB_AUTH_URL;
@@ -20,7 +20,7 @@ class Authorizer extends RESTDataSource {
   constructor() {
     super();
 
-    this.env = this.baseURL.includes('uc3prd') ? 'dev' : (this.baseURL.includes('uc3stg') ? 'stg' : 'dev');
+    this.env = this.baseURL.includes('uc3prd') ? 'prd' : (this.baseURL.includes('uc3stg') ? 'stg' : 'dev');
     // Base64 encode the credentials for the auth request
     const hdr = `${process.env.DMPHUB_API_CLIENT_ID}:${process.env.DMPHUB_API_CLIENT_SECRET}`;
     this.creds = Buffer.from(hdr, 'binary').toString('base64');
@@ -66,10 +66,10 @@ class Authorizer extends RESTDataSource {
 export class DMPToolAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
-  private token: JWTToken;
+  private token: JWTAccessToken;
   private authorizer: Authorizer;
 
-  constructor(options: { cache: KeyValueCache, token: JWTToken }) {
+  constructor(options: { cache: KeyValueCache, token: JWTAccessToken }) {
     super(options);
 
     this.token = options.token;
@@ -99,7 +99,7 @@ export class DMPToolAPI extends RESTDataSource {
 
       const response = await this.get(`affiliations/${encodeURI(id)}`);
       if (response) {
-        const affiliation = new AffiliationModel(response);
+        const affiliation = new Affiliation(response);
         return affiliation ? affiliation : null;
       }
       return null;
@@ -119,7 +119,7 @@ export class DMPToolAPI extends RESTDataSource {
 
       const response = await this.get(`affiliations?${queryString}`);
       if (response) {
-        const affiliations = response.map((rec) => new AffiliationSearchModel(rec)) || [];
+        const affiliations = response.map((rec) => new AffiliationSearch(rec)) || [];
         return affiliations ? affiliations : [];
       }
       return null;

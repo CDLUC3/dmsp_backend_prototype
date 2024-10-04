@@ -1,4 +1,4 @@
-import { AffiliationModel, AffiliationSearchModel } from '../Affiliation';
+import { Affiliation, AffiliationSearch } from '../Affiliation';
 
 const rawAffiliationSearchRecord = {
   "PK": "AFFILIATION",
@@ -87,7 +87,7 @@ const rawAffiliationRecord = {
 
 describe('Affiliation constructor', () => {
   it('should set the expected defaults', () => {
-    const affiliation = new AffiliationModel({});
+    const affiliation = new Affiliation({});
     expect(affiliation.provenance).toEqual('dmptool');
     expect(affiliation.provenanceSyncDate === undefined).toBe(false);
     expect(affiliation.active).toBe(false);
@@ -107,7 +107,7 @@ describe('Affiliation constructor', () => {
   });
 
   it('should set the expected properties', () => {
-    const affiliation = new AffiliationModel(rawAffiliationRecord);
+    const affiliation = new Affiliation(rawAffiliationRecord);
     expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
     expect(affiliation.provenance).toEqual(rawAffiliationRecord._SOURCE);
     expect(affiliation.provenanceSyncDate).toEqual(rawAffiliationRecord._SOURCE_SYNCED_AT);
@@ -125,13 +125,13 @@ describe('Affiliation constructor', () => {
   });
 
   it('should ignore unexpected properties', () => {
-    const affiliation = new AffiliationModel(rawAffiliationRecord);
+    const affiliation = new Affiliation(rawAffiliationRecord);
     expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
     expect(affiliation['test']).toBeUndefined();
   });
 
   it('should include an AffiliationAddress for each addresses entry', () => {
-    const affiliation = new AffiliationModel(rawAffiliationRecord);
+    const affiliation = new Affiliation(rawAffiliationRecord);
     expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
     affiliation.addresses.forEach(address => {
       const addrs = rawAffiliationRecord.addresses.find((a) => a.lat === address.lat && a.lng === address.lng);
@@ -145,7 +145,7 @@ describe('Affiliation constructor', () => {
   });
 
   it('should include an AffiliationRelationship for each relationships entry', () => {
-    const affiliation = new AffiliationModel(rawAffiliationRecord);
+    const affiliation = new Affiliation(rawAffiliationRecord);
     expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
     affiliation.relationships.forEach(relation => {
       const relations = rawAffiliationRecord.relationships.find((r) => r.id === relation.id);
@@ -155,7 +155,7 @@ describe('Affiliation constructor', () => {
   });
 
   it('should include an AffiliationLocale for each locale entry', () => {
-    const affiliation = new AffiliationModel(rawAffiliationRecord);
+    const affiliation = new Affiliation(rawAffiliationRecord);
     expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
     affiliation.locales.forEach(locale => {
       const locales = rawAffiliationRecord.lables.find((l) => l.iso639 === locale.locale);
@@ -166,32 +166,32 @@ describe('Affiliation constructor', () => {
 
   it('should handle Fundref as the `preferred` id in the `external_id`', () => {
     const props = { "external_ids": [{ "type": "FundRef", "preferred": "9999999999" }] };
-    const affiliation = new AffiliationModel(props);
+    const affiliation = new Affiliation(props);
     expect(affiliation.fundref).toEqual(props.external_ids[0].preferred);
   });
 
   it('should handle Fundref as the 1st `all` entry when it is an Array', () => {
     const props = { "external_ids": [{ "type": "FundRef", "all": ["9999999999", "000000000"] }] };
-    const affiliation = new AffiliationModel(props);
+    const affiliation = new Affiliation(props);
     expect(affiliation.fundref).toEqual(props.external_ids[0].all[0]);
   });
 
   it('should handle Fundref as the `all` entry what it is a string', () => {
     const props = { "external_ids": [{ "type": "FundRef", "all": "9999999999" }] };
-    const affiliation = new AffiliationModel(props);
+    const affiliation = new Affiliation(props);
     expect(affiliation.fundref).toEqual(props.external_ids[0].all);
   });
 
   it('handles relationship with a `name` instead of `label', () => {
     const props = { "relationships": [{ "type": "Tester", "name": "TEST" }] };
-    const affiliation = new AffiliationModel(props);
+    const affiliation = new Affiliation(props);
     expect(affiliation.relationships[0].name).toEqual(props.relationships[0].name);
   });
 });
 
 describe('AffiliationSearch constructor', () => {
   it('should set the expected defaults', () => {
-    const affiliation = new AffiliationSearchModel({});
+    const affiliation = new AffiliationSearch({});
     expect(affiliation.id).toBe(undefined);
     expect(affiliation.fetchId).toBe(undefined);
     expect(affiliation.name).toBe(undefined);
@@ -204,11 +204,12 @@ describe('AffiliationSearch constructor', () => {
   });
 
   it('should set the expected properties', () => {
-    const affiliation = new AffiliationSearchModel(rawAffiliationSearchRecord);
+    const affiliation = new AffiliationSearch(rawAffiliationSearchRecord);
     expect(affiliation.id).toEqual(rawAffiliationSearchRecord.ror_url);
     expect(affiliation.fetchId).toEqual(affiliation.id.replace(/https?:\/\//g, ''));
     expect(affiliation.name).toEqual(rawAffiliationSearchRecord.name);
-    expect(affiliation.funder).toEqual(rawAffiliationSearchRecord.hasOwnProperty('fundref_id'));
+    const isFunder = Object.prototype.hasOwnProperty.call(rawAffiliationSearchRecord, "fundref_id");
+    expect(affiliation.funder).toEqual(isFunder);
     expect(affiliation.fundref).toEqual(rawAffiliationSearchRecord.fundref_url);
     expect(affiliation.aliases).toEqual(Array.isArray(rawAffiliationSearchRecord.aliases) ? rawAffiliationSearchRecord.aliases : []);
     expect(affiliation.countryCode).toEqual(rawAffiliationSearchRecord.countryCode);

@@ -1,37 +1,42 @@
-import express from 'express';
-import { expressjwt } from 'express-jwt';
-import { generalConfig } from './config/generalConfig';
+import express, { Response } from 'express';
+import { Request } from 'express-jwt';
+import { authMiddleware } from './middleware/auth';
 import { signinController } from './controllers/signinController';
 import { signupController } from './controllers/signupController';
-import { oauthServer, castRequest, castResponse } from './middleware/oauthServer';
+import { signoutController } from './controllers/signoutController';
+import { csrfMiddleware } from './middleware/csrf';
+import { refreshTokenController } from './controllers/refreshTokenController';
 
 const router = express.Router();
 
-const authMiddleware = expressjwt({
-  algorithms: ['HS256'],
-  credentialsRequired: false,
-  secret: generalConfig.jwtSecret as string,
-});
+// Support for acquiring an initial CSRF token
+router.get('/apollo-csrf',
+  csrfMiddleware,
+  (_req: Request, res: Response) => { res.status(200).send('ok'); }
+);
 
-// Support for email+password
-router.post('/signin', (req, res) => signinController(req, res));
-router.post('/signup', (req, res, next) => signupController(req, res));
+// Support for user sign in/up - requires a valid CSRF token
+router.post('/apollo-signin',
+  csrfMiddleware,
+  async (req: Request, res: Response) => await signinController(req, res)
+);
+router.post('/apollo-signup',
+  csrfMiddleware,
+  async (req: Request, res: Response) => await signupController(req, res)
+);
 
-// Support for OAuth2
-router.get('/authorize', (req, res) => oauthServer.authorize(castRequest(req), castResponse(res)));
-router.post('/authenticate', (req, res) => oauthServer.authenticate(castRequest(req), castResponse(res)));
-router.post('/token', (req, res) => oauthServer.token(castRequest(req), castResponse(res)));
+// Support for refreshing access tokens - requires a valid CSRF and Refresh token
+router.post('/apollo-refresh',
+  csrfMiddleware,
+  authMiddleware,
+  async (req: Request, res: Response) => await refreshTokenController(req, res)
+);
 
-// GraphQL operations
-router.use('/graphql', authMiddleware);
-
-// Sample protected endpoint
-router.post("/protected", authMiddleware, (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (!(req as any).auth.admin) {
-    return res.sendStatus(401);
-  }
-  res.sendStatus(200);
-});
+// Support for user sign out
+router.post('/apollo-signout',
+  csrfMiddleware,
+  authMiddleware,
+  async (req: Request, res: Response) => await signoutController(req, res)
+);
 
 export default router;

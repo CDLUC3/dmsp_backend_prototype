@@ -6,6 +6,8 @@ CREATE TABLE `oauthCodes` (
   `userId` INT NOT NULL,
   `codeChallenge` varchar(255),
   `codeChallengeMethod` varchar(255),
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `modified` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `createdById` int NOT NULL,
+  `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `modifiedById` int NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;

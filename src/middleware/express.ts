@@ -1,29 +1,19 @@
 import { expressMiddleware } from '@apollo/server/express4';
-import { DMPHubAPI } from '../datasources/dmphubAPI';
-import { DMPToolAPI } from '../datasources/dmptoolAPI';
-import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { JWTToken, verifyToken } from '../services/tokenService';
+import { JWTAccessToken } from '../services/tokenService';
+import { buildContext } from '../context';
+import { ApolloServer } from '@apollo/server';
+import { Request } from 'express-jwt';
+import { formatLogMessage } from '../logger';
 
-export function attachApolloServer(apolloServer, cache, logger) {
+export async function attachApolloServer(apolloServer: ApolloServer, cache, logger) {
+  formatLogMessage(logger).info(null, 'Attaching Apollo server');
+
   // expressMiddleware accepts the same arguments:
   //   an Apollo Server instance and optional configuration options
   return expressMiddleware(apolloServer, {
-    context: async ({ req }) => {
+    context: async ({ req }: { req: Request }) => {
       // Extract the token from the incoming request so we can pass it on to the resolvers
-      const authHeader: string = req?.headers?.authorization || '';
-      const authHdr: string = authHeader.split(' ')[1] || null;
-      const token: JWTToken = authHeader ? verifyToken(authHdr, logger) : null;
-
-      return {
-        token,
-        // Pass the logger in so it is available to our resolvers and dataSources
-        logger,
-        dataSources: {
-          dmphubAPIDataSource: await new DMPHubAPI({ cache, token }),
-          dmptoolAPIDataSource: await new DMPToolAPI({ cache, token }),
-          sqlDataSource: await MySQLDataSource.getInstance(),
-        },
-      }
+      return buildContext(logger, cache, req.auth as JWTAccessToken);
     },
   });
 }

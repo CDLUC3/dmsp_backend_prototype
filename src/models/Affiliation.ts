@@ -1,5 +1,8 @@
+import { formatLogMessage } from "../logger";
+import { MyContext } from "../context";
+
 // Represents an Institution, Organization or Company
-export class AffiliationModel {
+export class Affiliation {
   public id!: string;
   public provenance!: string;
   public provenanceSyncDate!: string;
@@ -26,7 +29,7 @@ export class AffiliationModel {
   constructor(options) {
     // This is our opportunity to convert ruby variable names over to JS
     this.provenance = options._SOURCE || 'dmptool';
-    this.provenanceSyncDate = options._SOURCE_SYNCED_AT || new Date().toUTCString();
+    this.provenanceSyncDate = options._SOURCE_SYNCED_AT || new Date().toISOString();
     this.id = options.ID || options.id;
     this.types = options.types || [];
     this.name = options.name;
@@ -60,7 +63,7 @@ export class AffiliationModel {
 
     // If there are any external_ids defined, initialize them and set the FundRef ID
     this.externalIds = [];
-    if (options.hasOwnProperty('external_ids')) {
+    if (Object.prototype.hasOwnProperty.call(options, "external_ids")) {
       this.externalIds = Object.keys(options.external_ids).map((key) => {
         return new ExternalId({
           type: key,
@@ -69,6 +72,23 @@ export class AffiliationModel {
       });
       this.fundref = this.externalIds?.find(id => id.type === 'fundref')?.id;
     }
+  }
+
+  static async findById(caller: string, context: MyContext, id: string): Promise<Affiliation> {
+    const { logger, dataSources } = context;
+    const logMessage = `Affiliation.findById query for ${caller}, affiliation: ${id}`;
+    const affiliationId = id.replace(/https?:\/\//g, '')
+    return new Promise((resolve, reject) => {
+      dataSources.dmptoolAPIDataSource.getAffiliation(affiliationId)
+        .then(row => {
+          formatLogMessage(logger).debug(logMessage);
+          resolve(row);
+        })
+        .catch(err => {
+          formatLogMessage(logger).error(`Affiliation.findById ERROR for ${caller}, affiliation: ${id} - ${err.message}`);
+          reject(err)
+        });
+    });
   }
 }
 
@@ -127,9 +147,14 @@ export class AffiliationLocale {
   }
 }
 
+export interface AffiliationSearchCriteria {
+  name: string;
+  funderOnly: boolean;
+}
+
 // A pared down version of the full Affiliation object. This type is returned by
 // our index searches
-export class AffiliationSearchModel {
+export class AffiliationSearch {
   public id!: string;
   public fetchId!: string;
   public name!: string;
@@ -151,7 +176,7 @@ export class AffiliationSearchModel {
     this.fetchId = this.id?.replace(/https?:\/\//g, '');
     this.name = options.name;
     this.displayName = suffix ? `${options.name} (${suffix})` : options.name;
-    this.funder = options.hasOwnProperty('fundref_id');
+    this.funder = Object.prototype.hasOwnProperty.call(options, "fundref_id");
     this.fundref = options.fundref_url || options.fundref;
     this.aliases = options.aliases || [];
     this.countryCode = options.countryCode;
@@ -163,5 +188,23 @@ export class AffiliationSearchModel {
     if(Array.isArray(options.locales)) {
       this.locales = options.labels?.map((lbl) => new AffiliationLocale(lbl));
     }
+  }
+
+  // Search for Affiliations that match the term and the funder flag
+  static async search(context: MyContext, options: AffiliationSearchCriteria): Promise<AffiliationSearch[]> {
+    const { logger, dataSources } = context;
+    const logMessage = `Resolving query affiliations(options: '${options}')`;
+
+    return new Promise((resolve, reject) => {
+      dataSources.dmptoolAPIDataSource.getAffiliations(options)
+        .then(rows => {
+          formatLogMessage(logger).debug(logMessage);
+          resolve(rows)
+        })
+        .catch(err => {
+          formatLogMessage(logger, { err, options }).error(`ERROR: ${logMessage} - ${err.message}`);
+          reject(err)
+        });
+    });
   }
 }
