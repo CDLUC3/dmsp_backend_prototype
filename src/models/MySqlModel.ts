@@ -167,11 +167,6 @@ export class MySqlModel {
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj, skipKeys);
 
-    // If the record uses a string id (meaning its not auto-assigned by the DB)
-    if (obj.tableIdAsString) {
-      props.push({ name: 'id', value: obj.id.toString() });
-    }
-
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
@@ -230,7 +225,7 @@ export class MySqlModel {
   static async delete(
     apolloContext: MyContext,
     table: string,
-    id: number|string,
+    id: number,
     reference = 'undefined caller',
   ): Promise<boolean> {
     const sql = `DELETE FROM ${table} WHERE id = ?`;
