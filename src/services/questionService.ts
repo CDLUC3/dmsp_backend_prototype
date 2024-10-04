@@ -48,14 +48,8 @@ export const generateQuestionVersion = async (
     required: question.required,
   });
 
-console.log(versionedQuestion)
-console.log(versionedQuestion.create);
-
-
   try {
     const saved = await versionedQuestion.create(context);
-
-console.log(saved)
 
     if (saved && saved.errors?.length <= 0) {
       // Version any QuestionConditions as well
@@ -74,8 +68,6 @@ console.log(saved)
         // Reset the dirty flag
         question.isDirty = false;
         const updated = await question.update(context);
-
-console.log(updated)
 
         if (updated && updated.errors.length <= 0) {
           return saved;

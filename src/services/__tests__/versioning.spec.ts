@@ -109,8 +109,6 @@ describe('generateQuestionVersion', () => {
     mockQuery.mockResolvedValueOnce({ errors: [] });
     const result = await generateQuestionVersion(context, question, versionedTemplateId, versionedSectionId);
 
-console.log(result)
-
     // expect(mockCreateVersionedQuestion).toHaveBeenCalledTimes(1);
     expect(mockQuery).toHaveBeenCalledWith('FOOO')
     expect(QuestionCondition.findByQuestionId).toHaveBeenCalledTimes(1);
