@@ -19,7 +19,7 @@ export const resolvers: Resolvers = {
 
     // Returns the specified Affiliation
     affiliationById: async (_, { affiliationId }, context: MyContext): Promise<Affiliation> => {
-      return Affiliation.findById('Query affiliationById', context, affiliationId.toString());
+      return Affiliation.findById('Query affiliationById', context, affiliationId);
     },
 
     // Returns the specified Affiliation
@@ -66,7 +66,7 @@ export const resolvers: Resolvers = {
       try {
         // If the current user is a superAdmin
         if (isSuperAdmin(context.token)) {
-          const affiliation = await Affiliation.findById('removeAffiliation resolver', context, affiliationId.toString());
+          const affiliation = await Affiliation.findById('removeAffiliation resolver', context, affiliationId);
           if (affiliation) {
             return await affiliation.delete(context);
           }

@@ -117,7 +117,7 @@ export class Affiliation extends MySqlModel {
       // Save the record and then fetch it
       this.prepForSave();
       const newId = await Affiliation.insert(context, this.tableName, this, 'Affiliation.create');
-      return await Affiliation.findById('Affiliation.create', context, newId.toString());
+      return await Affiliation.findById('Affiliation.create', context, newId);
     }
     // Otherwise return as-is with all the errors
     return this;
@@ -156,7 +156,7 @@ export class Affiliation extends MySqlModel {
   }
 
   // Return the specified AffiliationEmailDomain
-  static async findById(reference: string, context: MyContext, id: string): Promise<Affiliation> {
+  static async findById(reference: string, context: MyContext, id: string | number): Promise<Affiliation> {
     const sql = `SELECT * FROM affiliations WHERE id = ?`;
     const results = await Affiliation.query(context, sql, [id.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
