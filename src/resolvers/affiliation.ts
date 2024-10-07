@@ -19,7 +19,7 @@ export const resolvers: Resolvers = {
 
     // Returns the specified Affiliation
     affiliationById: async (_, { affiliationId }, context: MyContext): Promise<Affiliation> => {
-      return Affiliation.findById('Query affiliationById', context, affiliationId);
+      return Affiliation.findById('Query affiliationById', context, affiliationId.toString());
     },
 
     // Returns the specified Affiliation
@@ -34,7 +34,7 @@ export const resolvers: Resolvers = {
       try {
         const affiliation = new Affiliation(input);
         return await affiliation.create(context);
-      } catch(err) {
+      } catch (err) {
         formatLogMessage(context.logger).error(err, 'Failure in addAffiliation rsolver');
         throw InternalServerError();
       }
@@ -55,7 +55,7 @@ export const resolvers: Resolvers = {
           return await affiliation.create(context);
         }
         throw ForbiddenError();
-      } catch(err) {
+      } catch (err) {
         formatLogMessage(context.logger).error(err, 'Failure in updateAffiliation rsolver');
         throw InternalServerError();
       }
@@ -66,13 +66,13 @@ export const resolvers: Resolvers = {
       try {
         // If the current user is a superAdmin
         if (isSuperAdmin(context.token)) {
-          const affiliation = await Affiliation.findById('removeAffiliation resolver', context, affiliationId);
+          const affiliation = await Affiliation.findById('removeAffiliation resolver', context, affiliationId.toString());
           if (affiliation) {
             return await affiliation.delete(context);
           }
         }
         throw ForbiddenError();
-      } catch(err) {
+      } catch (err) {
         formatLogMessage(context.logger).error(err, 'Failure in removeAffiliation rsolver');
         throw InternalServerError();
       }
