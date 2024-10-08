@@ -47,9 +47,9 @@ export class MySqlModel {
 
   /**
    * Convert incoming value to appropriate type for insertion into a SQL query
-   * @param val 
-   * @param type 
-   * @returns 
+   * @param val
+   * @param type
+   * @returns
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static prepareValue(val: any, type: any): any {
@@ -232,4 +232,3 @@ export class MySqlModel {
     return Array.isArray(result) && result[0].affectedRows ? true : false;
   }
 }
-

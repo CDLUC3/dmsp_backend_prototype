@@ -16,7 +16,7 @@ export class Section extends MySqlModel {
     public tags: Tag[];
     public isDirty: boolean;
     // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
-    //public bestPractice: boolean; 
+    //public bestPractice: boolean;
 
 
     constructor(options) {
@@ -132,4 +132,3 @@ export class Section extends MySqlModel {
     }
 
 }
-
