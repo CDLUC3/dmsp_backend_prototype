@@ -140,6 +140,8 @@ export class Affiliation extends MySqlModel {
       }
       // This template has never been saved before so we cannot update it!
       this.errors.push('Affiliation has never been saved');
+    } else {
+      this.errors.push('The affiliation is not valid');
     }
     return this;
   }
@@ -157,14 +159,14 @@ export class Affiliation extends MySqlModel {
 
   // Return the specified AffiliationEmailDomain
   static async findById(reference: string, context: MyContext, id: string | number): Promise<Affiliation> {
-    const sql = `SELECT * FROM affiliations WHERE id = ?`;
+    const sql = 'SELECT * FROM affiliations WHERE id = ?';
     const results = await Affiliation.query(context, sql, [id.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Return the specified AffiliationEmailDomain
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<Affiliation> {
-    const sql = `SELECT * FROM affiliations WHERE uri = ?`;
+    const sql = 'SELECT * FROM affiliations WHERE uri = ?';
     const results = await Affiliation.query(context, sql, [uri], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
@@ -195,12 +197,12 @@ export class AffiliationSearch {
 
   // Search for Affiliations that match the term and the funder flag
   static async search(context: MyContext, options: AffiliationSearchCriteria): Promise<AffiliationSearch[]> {
-    let sql = 'SELECT * FROM affiliations WHERE active = ?';
+    let sql = 'SELECT * FROM affiliations WHERE active = 1';
     const vals = [];
 
     if (options.name) {
-      sql += ' AND LOWER(searchName) = ?'
-      vals.push(options.name.toLowerCase());
+      sql += ' AND LOWER(searchName) LIKE ?'
+      vals.push(`%${options.name.toLowerCase()}%`);
     }
     if (options.funderOnly) {
       sql += ' AND funder = 1';

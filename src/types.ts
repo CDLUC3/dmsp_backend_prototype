@@ -132,6 +132,14 @@ export type AffiliationEmailDomain = {
   id: Scalars['Int']['output'];
 };
 
+/** Input for email domains linked to the affiliation for purposes of determining if SSO is applicable */
+export type AffiliationEmailDomainInput = {
+  /** The email domain (e.g. example.com, law.example.com, etc.) */
+  domain: Scalars['String']['input'];
+  /** Unique identifier for the email domain */
+  id: Scalars['Int']['input'];
+};
+
 /** Input options for adding an Affiliation */
 export type AffiliationInput = {
   /** Acronyms for the affiliation */
@@ -167,11 +175,11 @@ export type AffiliationInput = {
   /** The official name for the affiliation (defined by the system of provenance) */
   name: Scalars['String']['input'];
   /** The email domains associated with the affiliation (for SSO) */
-  ssoEmailDomains?: InputMaybe<Array<AffiliationEmailDomain>>;
+  ssoEmailDomains?: InputMaybe<Array<AffiliationEmailDomainInput>>;
   /** The SSO entityId */
   ssoEntityId?: InputMaybe<Scalars['String']['input']>;
   /** The links the affiliation's users can use to get help */
-  subHeaderLinks?: InputMaybe<Array<AffiliationLink>>;
+  subHeaderLinks?: InputMaybe<Array<AffiliationLinkInput>>;
   /** The types of the affiliation (e.g. Company, Education, Government, etc.) */
   types: Array<AffiliationType>;
   /** The unique identifer for the affiliation (Not editable!) */
@@ -187,6 +195,16 @@ export type AffiliationLink = {
   text?: Maybe<Scalars['String']['output']>;
   /** The URL */
   url: Scalars['String']['output'];
+};
+
+/** Input for a hyperlink displayed in the sub-header of the UI for the afiliation's users */
+export type AffiliationLinkInput = {
+  /** Unique identifier for the link */
+  id: Scalars['Int']['input'];
+  /** The text to display (e.g. Helpdesk, Grants Office, etc.) */
+  text?: InputMaybe<Scalars['String']['input']>;
+  /** The URL */
+  url: Scalars['String']['input'];
 };
 
 /** The provenance of an Affiliation record */
@@ -1202,8 +1220,10 @@ export type ResolversTypes = {
   AddSectionInput: AddSectionInput;
   Affiliation: ResolverTypeWrapper<Affiliation>;
   AffiliationEmailDomain: ResolverTypeWrapper<AffiliationEmailDomain>;
+  AffiliationEmailDomainInput: AffiliationEmailDomainInput;
   AffiliationInput: AffiliationInput;
   AffiliationLink: ResolverTypeWrapper<AffiliationLink>;
+  AffiliationLinkInput: AffiliationLinkInput;
   AffiliationProvenance: AffiliationProvenance;
   AffiliationSearch: ResolverTypeWrapper<AffiliationSearch>;
   AffiliationType: AffiliationType;
@@ -1261,8 +1281,10 @@ export type ResolversParentTypes = {
   AddSectionInput: AddSectionInput;
   Affiliation: Affiliation;
   AffiliationEmailDomain: AffiliationEmailDomain;
+  AffiliationEmailDomainInput: AffiliationEmailDomainInput;
   AffiliationInput: AffiliationInput;
   AffiliationLink: AffiliationLink;
+  AffiliationLinkInput: AffiliationLinkInput;
   AffiliationSearch: AffiliationSearch;
   Boolean: Scalars['Boolean']['output'];
   Contributor: Contributor;

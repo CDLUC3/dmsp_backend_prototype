@@ -109,7 +109,25 @@ export const typeDefs = gql`
     uneditableProperties: [String!]!
   }
 
-  "A hyperlink displayed in the sub-header of the UI for the afiliation's users"
+  "Input for a hyperlink displayed in the sub-header of the UI for the afiliation's users"
+  input AffiliationLinkInput {
+    "Unique identifier for the link"
+    id: Int!
+    "The URL"
+    url: String!
+    "The text to display (e.g. Helpdesk, Grants Office, etc.)"
+    text: String
+  }
+
+  "Input for email domains linked to the affiliation for purposes of determining if SSO is applicable"
+  input AffiliationEmailDomainInput {
+    "Unique identifier for the email domain"
+    id: Int!
+    "The email domain (e.g. example.com, law.example.com, etc.)"
+    domain: String!
+  }
+
+    "A hyperlink displayed in the sub-header of the UI for the afiliation's users"
   type AffiliationLink {
     "Unique identifier for the link"
     id: Int!
@@ -161,11 +179,11 @@ export const typeDefs = gql`
     "The primary contact name"
     contactName: String
     "The links the affiliation's users can use to get help"
-    subHeaderLinks: [AffiliationLink!]
+    subHeaderLinks: [AffiliationLinkInput!]
     "The SSO entityId"
     ssoEntityId: String
     "The email domains associated with the affiliation (for SSO)"
-    ssoEmailDomains: [AffiliationEmailDomain!]
+    ssoEmailDomains: [AffiliationEmailDomainInput!]
     "Whether or not the affiliation wants to use the feedback workflow"
     feedbackEnabled: Boolean!
     "The message to display to users when they request feedback"
