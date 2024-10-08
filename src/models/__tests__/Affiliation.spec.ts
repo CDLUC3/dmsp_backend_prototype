@@ -129,7 +129,7 @@ describe('create', () => {
     (Affiliation.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(affiliation);
 
-    const result = await affiliation.create(context);
+    await affiliation.create(context);
     expect(affiliation.errors).toContain('That Affiliation already exists')
   });
 });
@@ -284,7 +284,6 @@ describe('findById', () => {
   it('should return null when findById has no results', async () => {
     localQuery.mockResolvedValueOnce([]);
 
-    const id = affiliation.id;
     const result = await Affiliation.findById('Test', context, affiliation.id);
     expect(result).toEqual(null);
   });
@@ -333,7 +332,6 @@ describe('findByURI', () => {
   it('should return null when findByURI has no results', async () => {
     localQuery.mockResolvedValueOnce([]);
 
-    const id = affiliation.id;
     const result = await Affiliation.findByURI('Test', context, affiliation.id);
     expect(result).toEqual(null);
   });
@@ -392,7 +390,6 @@ describe('search', () => {
 
   it('should call query with correct params and return the affiliation', async () => {
     localQuery.mockResolvedValueOnce([affiliationSearch]);
-    const templateId = 1;
     const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
     const expectedSql = 'SELECT * FROM affiliations WHERE active = 1 AND LOWER(searchName) LIKE ? AND funder = 1';
     expect(localQuery).toHaveBeenCalledTimes(1);
@@ -402,7 +399,6 @@ describe('search', () => {
 
   it('should return an empty array if it finds no affiliation', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const templateId = 1;
     const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
     expect(result).toEqual([]);
   });
