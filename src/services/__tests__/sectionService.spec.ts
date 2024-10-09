@@ -129,8 +129,7 @@ describe('cloneSection', () => {
     expect(copy.guidance).toEqual(guidance);
     expect(copy.errors).toEqual([]);
     expect(copy.displayOrder).toEqual(displayOrder);
-    expect(copy.tags).toEqual(tags);
-    expect(copy.isDirty).toEqual(false);
+    expect(copy.isDirty).toEqual(true);//The cloneSection function accepts Section | VersionedSection, and VersionedSection doesn't have isDirty, so in this test will always be true
     expect(copy.created).toBeTruthy();
     expect(copy.createdById).toEqual(clonedById)
     expect(copy.modified).toBeTruthy();
@@ -146,7 +145,6 @@ describe('cloneSection', () => {
       requirements: casual.sentences(5),
       guidance: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
-      tags: null,
       createdById: casual.integer(1, 9999),
     });
 
@@ -162,8 +160,7 @@ describe('cloneSection', () => {
     expect(copy.errors).toEqual([]);
     expect(copy.createdById).toEqual(clonedById);
     expect(copy.displayOrder).toEqual(published.displayOrder);
-    expect(copy.tags).toEqual(published.tags);
-    expect(copy.isDirty).toEqual(false);
+    expect(copy.isDirty).toEqual(true);
     expect(copy.created).toBeTruthy();
     expect(copy.modified).toBeTruthy();
   });

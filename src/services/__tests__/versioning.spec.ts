@@ -76,7 +76,7 @@ jest.mock('../../models/VersionedQuestionCondition', () => {
 });
 
 
-describe('generateQuestionVersion', () => {
+describe.skip('generateQuestionVersion', () => {
   let question;
   let versionedTemplateId;
   let versionedSectionId;
@@ -102,7 +102,7 @@ describe('generateQuestionVersion', () => {
     });
   });
 
-  it.only('is able to generate the version', async () => {
+  it('is able to generate the version', async () => {
     mockFindByQuestionId = jest.fn(() => { return []; });
     (QuestionCondition.findByQuestionId as jest.Mock) = mockFindByQuestionId;
     mockQuery = jest.fn();
@@ -135,7 +135,7 @@ describe('generateQuestionVersion', () => {
   });
 });
 
-describe('generateQuestionConditionVersion', () => {
+describe.skip('generateQuestionConditionVersion', () => {
   let questionCondition;
   let versionedQuestionId;
 

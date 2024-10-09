@@ -21,7 +21,7 @@ export class VersionedSection extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
-    this.versionedTemplateId = options.templateId;
+    this.versionedTemplateId = options.versionedTemplateId;
     this.sectionId = options.sectionId;
     this.name = options.name;
     this.introduction = options.introduction;
@@ -41,8 +41,8 @@ export class VersionedSection extends MySqlModel {
       this.errors.push('VersionedTemplate can\'t be blank');
     }
     if (!this.sectionId) {
-        this.errors.push('Section can\'t be blank');
-      }
+      this.errors.push('Section can\'t be blank');
+    }
     if (!this.name) {
       this.errors.push('Name can\'t be blank');
     }
@@ -56,9 +56,12 @@ export class VersionedSection extends MySqlModel {
   async create(context: MyContext): Promise<VersionedSection> {
     // First make sure the record is valid
     if (await this.isValid()) {
+
       // Save the record and then fetch it
-      const newId = await VersionedSection.insert(context, this.tableName, this, 'VersionedSection.create');
+      const newId = await VersionedSection.insert(context, this.tableName, this, 'VersionedSection.create', ['tableName', 'tags']);
       return await VersionedSection.findById('VersionedSection.create', context, newId);
+
+
     }
     // Otherwise return as-is with all the errors
     return this;

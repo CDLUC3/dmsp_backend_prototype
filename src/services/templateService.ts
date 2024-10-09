@@ -54,7 +54,7 @@ export const generateTemplateVersion = async (
   // Figure out the next version number
   let newVersion = 'v1';
   if (versions.length > 0) {
-    const sortedVersions = versions.sort((a, b) => b.version.localeCompare(a.version) );
+    const sortedVersions = versions.sort((a, b) => b.version.localeCompare(a.version));
     newVersion = incrementVersionNumber(sortedVersions[0].version);
   }
 
@@ -75,14 +75,20 @@ export const generateTemplateVersion = async (
   });
 
   const created = await versionedTemplate.create(context);
-  // If the version was successfully created
-  if (created && created.errors?.length <= 0) {
+
+  // If the version was successfully created and there are no errors
+  if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
     const sections = await Section.findByTemplateId('generateTemplateVersion', context, template.id);
+
     try {
       let allSectionsWereVersioned = true;
 
       sections.forEach(async (section) => {
-        if (!await generateSectionVersion(context, section, created.id)) {
+        const sectionInstance = new Section({
+          ...section
+        });
+
+        if (!await generateSectionVersion(context, sectionInstance, created.id)) {
           allSectionsWereVersioned = false;
         }
       });
@@ -93,14 +99,14 @@ export const generateTemplateVersion = async (
         template.currentVersion = newVersion;
         template.isDirty = false;
         const updated = await template.update(context);
-        if (updated && updated.errors?.length <= 0) {
+        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
           return created;
         } else {
           const msg = `Unable to generateTemplateVersion for template: ${template.id}, errs: ${updated.errors}`;
           formatLogMessage(logger).error(null, msg);
         }
       }
-    } catch(err) {
+    } catch (err) {
       formatLogMessage(logger).error(err, `Unable to generateTemplateVersion for id: ${template.id}`);
     }
   } else {

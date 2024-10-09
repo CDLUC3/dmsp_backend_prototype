@@ -32,13 +32,30 @@ export class Question extends MySqlModel {
     this.isDirty = options.isDirty || false;
   }
 
+  // Validation to be used prior to saving the record
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!this.templateId) {
+      this.errors.push('Template ID can\'t be blank');
+    }
+    if (!this.sectionId) {
+      this.errors.push('Section ID can\'t be blank');
+    }
+    if (!this.questionText) {
+      this.errors.push('Question text can\'t be blank');
+    }
+    return this.errors.length <= 0;
+  }
+
+
   //Update an existing Section
   async update(context: MyContext): Promise<Question> {
     const id = this.id;
 
     if (await this.isValid()) {
       if (id) {
-        await Question.update(context, this.tableName, this, 'Question.update', ['tags']);
+        await Question.update(context, this.tableName, this, 'Question.update', ['tableName']);
         return await Question.findById('Question.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -58,6 +75,6 @@ export class Question extends MySqlModel {
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Question[]> {
     const sql = 'SELECT * FROM questions WHERE sectionId = ?';
     const results = await Question.query(context, sql, [sectionId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) ? results : [];
   }
 }

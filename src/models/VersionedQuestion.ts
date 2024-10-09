@@ -41,8 +41,8 @@ export class VersionedQuestion extends MySqlModel {
       this.errors.push('Versioned Section can\'t be blank');
     }
     if (!this.questionId) {
-        this.errors.push('Question can\'t be blank');
-      }
+      this.errors.push('Question can\'t be blank');
+    }
     if (!this.questionTypeId) {
       this.errors.push('Question type can\'t be blank');
     }
@@ -57,7 +57,7 @@ export class VersionedQuestion extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create');
+      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create', ['tableName']);
       return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
     }
     // Otherwise return as-is with all the errors

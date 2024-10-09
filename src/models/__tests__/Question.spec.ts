@@ -96,14 +96,14 @@ describe('findBy Queries', () => {
     const expectedSql = 'SELECT * FROM questions WHERE sectionId = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [questionId.toString()], 'testing')
-    expect(result).toEqual(question);
+    expect(result).toEqual([question]);
   });
 
-  it('findBySectionId should return null if it finds no default', async () => {
+  it('findBySectionId should return empty array if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
     const questionId = casual.integer(1, 999);
     const result = await Question.findBySectionId('testing', context, questionId);
-    expect(result).toEqual(null);
+    expect(result).toEqual([]);
   });
 });
 

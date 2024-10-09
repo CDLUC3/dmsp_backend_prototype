@@ -18,6 +18,7 @@ export const generateSectionVersion = async (
   section: Section,
   versionedTemplateId: number,
 ): Promise<boolean> => {
+
   // If the section has no id then it has not yet been saved so throw an error
   if (!section.id) {
     throw new Error('Cannot publish unsaved Section');
@@ -25,7 +26,7 @@ export const generateSectionVersion = async (
 
   // Create the new Version
   const versionedSection = new VersionedSection({
-    versionedTemplateId,
+    versionedTemplateId: versionedTemplateId,
     sectionId: section.id,
     name: section.name,
     introduction: section.introduction,
@@ -37,14 +38,18 @@ export const generateSectionVersion = async (
 
   try {
     const created = await versionedSection.create(context);
+
     // If the creation was successful
-    if (created && created.errors?.length <= 0) {
+    if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
       // Create a version for all the associated questions
       const questions = await Question.findBySectionId('generateSectionVersion', context, section.id);
       let allQuestionsWereVersioned = true;
 
       questions.forEach(async (question) => {
-        if (!await generateQuestionVersion(context, question, versionedTemplateId, versionedSection.id)){
+        const questionInstance = new Question({
+          ...question
+        });
+        if (!await generateQuestionVersion(context, questionInstance, versionedTemplateId, created.id)) {
           allQuestionsWereVersioned = false;
         }
       });
@@ -65,7 +70,7 @@ export const generateSectionVersion = async (
       const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${created.errors}`;
       formatLogMessage(logger).error(null, msg);
     }
-  } catch(err) {
+  } catch (err) {
     formatLogMessage(logger).error(err, `Unable to generateSectionVersion for section: ${section.id}`);
   }
 
@@ -78,20 +83,22 @@ export const cloneSection = (
   templateId: number,
   section: Section | VersionedSection
 ): Section => {
-// If the incoming is a VersionedSection, then use the sectionId (the section it was based off of)
-const sourceId = Object.keys(section).includes('sectionId') ? section['sectionId'] : section.id;
-const sectionCopy = new Section({
-  sourceSectionId: sourceId,
-  name: `Copy of ${section.name}`,
-  introduction: section.introduction,
-  requirements: section.requirements,
-  guidance: section.guidance,
-  displayOrder: section.displayOrder,
-  templateId: templateId,
-});
+  // If the incoming is a VersionedSection, then use the sectionId (the section it was based off of)
+  const sourceId = Object.keys(section).includes('sectionId') ? section['sectionId'] : section.id;
+  const sectionCopy = new Section({
+    sourceSectionId: sourceId,
+    name: `Copy of ${section.name}`,
+    introduction: section.introduction,
+    requirements: section.requirements,
+    guidance: section.guidance,
+    displayOrder: section.displayOrder,
+    templateId: templateId
+  });
 
-sectionCopy.createdById = clonedById;
-return sectionCopy;
+  console.log("***SECTIONCOPY", sectionCopy)
+
+  sectionCopy.createdById = clonedById;
+  return sectionCopy;
 }
 
 // Determine whether the specified user has permission to access the Section
@@ -108,14 +115,14 @@ export const hasPermissionOnSection = async (context: MyContext, templateId: num
 }
 
 export const getTagsToAdd = async (tags: Tag[], context: MyContext, sectionId: number): Promise<Tag[]> => {
-//Get all the existing tags associated with this section in SectionTags
-const existingTags = await SectionTag.getSectionTagsBySectionId('updateSection resolver', context, sectionId);
+  //Get all the existing tags associated with this section in SectionTags
+  const existingTags = await SectionTag.getSectionTagsBySectionId('updateSection resolver', context, sectionId);
 
-// Create a Set of existing tag ids
-const existingTagIds = new Set(existingTags.map(sectionTag => sectionTag.tagId));
+  // Create a Set of existing tag ids
+  const existingTagIds = new Set(existingTags.map(sectionTag => sectionTag.tagId));
 
-// Filter out the tags that already exist in the sectiontable.
-const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.id));
+  // Filter out the tags that already exist in the sectiontable.
+  const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.id));
 
-return Array.isArray(tagsToAdd) ? tagsToAdd : [];
+  return Array.isArray(tagsToAdd) ? tagsToAdd : [];
 }

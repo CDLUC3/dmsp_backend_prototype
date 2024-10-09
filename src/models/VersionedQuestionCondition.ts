@@ -31,8 +31,8 @@ export class VersionedQuestionCondition extends MySqlModel {
       this.errors.push('Versioned Question can\'t be blank');
     }
     if (!this.questionConditionId) {
-        this.errors.push('Question Condition can\'t be blank');
-      }
+      this.errors.push('Question Condition can\'t be blank');
+    }
     if (!this.action) {
       this.errors.push('Action can\'t be blank');
     }
@@ -54,7 +54,8 @@ export class VersionedQuestionCondition extends MySqlModel {
         context,
         this.tableName,
         this,
-        'VersionedQuestionCondition.create'
+        'VersionedQuestionCondition.create',
+        ['tableName']
       );
       return await VersionedQuestionCondition.findById('VersionedQuestion.create', context, newId);
     }

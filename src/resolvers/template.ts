@@ -70,12 +70,18 @@ export const resolvers: Resolvers = {
     updateTemplate: async (_, { templateId, name, visibility }, context: MyContext): Promise<Template> => {
       if (isAdmin(context.token)) {
         const template = await Template.findById('updateTemplate resolver', context, templateId);
-        if (template) {
+
+        // Need to create an instance of template in order to access the "update" method below
+        const templateInstance = new Template({
+          ...template
+        });
+
+        if (templateInstance) {
           if (hasPermissionOnTemplate(context, template)) {
             // Update the fields and then save
-            template.name = name;
-            template.visibility = TemplateVisibility[visibility];
-            return await template.update(context);
+            templateInstance.name = name;
+            templateInstance.visibility = TemplateVisibility[visibility];
+            return await templateInstance.update(context);
           }
           throw ForbiddenError();
         }
@@ -106,16 +112,25 @@ export const resolvers: Resolvers = {
     // Publish the template or save as a draft
     //     - called from the Template overview page
     createVersion: async (_, { templateId, comment, versionType }, context: MyContext): Promise<Template> => {
+      console.log("***TemplateId", templateId);
+      console.log("***VersionType", versionType);
+      console.log("***COMMENT in CreateVersion", comment);
       if (isAdmin(context.token)) {
         const reference = 'createVersion resolver';
         const template = await Template.findById(reference, context, templateId);
-        if (template) {
+        // Need to create an instance of template in order to access the "update" method below
+        const templateInstance = new Template({
+          ...template
+        });
+
+        if (templateInstance) {
           if (hasPermissionOnTemplate(context, template)) {
             const versions = await VersionedTemplate.findByTemplateId(reference, context, templateId);
 
+
             const versionedTemplate = generateTemplateVersion(
               context,
-              template,
+              templateInstance,
               versions,
               context.token.id,
               comment,

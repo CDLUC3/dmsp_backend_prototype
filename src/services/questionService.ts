@@ -14,11 +14,11 @@ export const hasPermissionOnQuestion = async (context: MyContext, templateId: nu
   const template = await Template.findById('question resolver.hasPermission', context, templateId);
 
   if (!template) {
-      throw NotFoundError();
+    throw NotFoundError();
   }
 
   // Offload permission checks to the Template
-return hasPermissionOnTemplate(context, template);
+  return hasPermissionOnTemplate(context, template);
 }
 
 // Creates a new Version/Snapshot the specified Question (as a point in time snapshot)
@@ -29,6 +29,7 @@ export const generateQuestionVersion = async (
   versionedTemplateId: number,
   versionedSectionId: number,
 ): Promise<VersionedQuestion> => {
+
   // If the section has no id then it has not yet been saved so throw an error
   if (!question.id) {
     throw new Error('Cannot publish unsaved Question');
@@ -51,17 +52,22 @@ export const generateQuestionVersion = async (
   try {
     const saved = await versionedQuestion.create(context);
 
-    if (saved && saved.errors?.length <= 0) {
+    if (saved && (!saved.errors || (Array.isArray(saved.errors) && saved.errors.length === 0))) {
       // Version any QuestionConditions as well
-      const questionConditions = await QuestionCondition.findByQuestionId('generateQuestionVersion', context, question.id);
+      const questionConditions = await QuestionCondition.findByQuestionId('generateQuestionVersion', context, saved.questionId);
       let allConditionsWereVersioned = true;
 
-      questionConditions.forEach(async (condition) => {
-        if (!await generateQuestionConditionVersion(context, condition, versionedQuestion.id)) {
-          // If one of the conditions failed to version
-          allConditionsWereVersioned = false;
-        }
-      });
+      if (questionConditions.length > 0) {
+        questionConditions.forEach(async (condition) => {
+          const questionConditionInstance = new QuestionCondition({
+            ...condition
+          });
+          if (!await generateQuestionConditionVersion(context, questionConditionInstance, saved.id)) {
+            // If one of the conditions failed to version
+            allConditionsWereVersioned = false;
+          }
+        });
+      }
 
       // Only proceed if all the conditions were able to version properly
       if (allConditionsWereVersioned) {
@@ -69,7 +75,7 @@ export const generateQuestionVersion = async (
         question.isDirty = false;
         const updated = await question.update(context);
 
-        if (updated && updated.errors.length <= 0) {
+        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
           return saved;
         } else {
           // There were errors on the object so report them
@@ -82,7 +88,7 @@ export const generateQuestionVersion = async (
       const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${saved.errors}`;
       formatLogMessage(logger).error(null, msg);
     }
-  } catch(err) {
+  } catch (err) {
     formatLogMessage(logger).error(err, `Unable to generateQuestionVersion for question: ${question.id}`);
   }
 
