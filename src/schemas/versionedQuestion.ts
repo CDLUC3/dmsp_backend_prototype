@@ -25,6 +25,8 @@ type VersionedQuestion {
     versionedTemplateId: Int!
     "The unique id of the VersionedSection that the VersionedQuestion belongs to"
     versionedSectionId: Int!
+    "Id of the original question that was versioned"
+    questionId: Int!
     "The display order of the VersionedQuestion"
     displayOrder: Int
     "The type of question, such as text field, select box, radio buttons, etc"

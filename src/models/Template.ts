@@ -60,7 +60,7 @@ export class Template extends MySqlModel {
       if (current) {
         this.errors.push('Template with this name already exists');
       } else {
-      // Save the record and then fetch it
+        // Save the record and then fetch it
         const newId = await Template.insert(context, this.tableName, this, 'Template.create');
         return await Template.findById('Template.create', context, newId);
       }
@@ -71,15 +71,32 @@ export class Template extends MySqlModel {
 
   // Save the changes made to the template
   async update(context: MyContext): Promise<Template> {
+    const id = this.id;
+
     // First make sure the record is valid
     if (await this.isValid()) {
-      if (this.id) {
-        // if the template is versioned the set the isDirty flag
+      if (id) {
+        // if the template is versioned then set the isDirty flag
         if (this.currentVersion) {
           this.isDirty = true;
         }
-        const result = await Template.update(context, this.tableName, this, 'Template.update');
-        return result as Template;
+
+        /*When calling 'update' in the mySqlModel, the query returns an object that looks something like this:
+        {
+          fieldCount: 0,
+          affectedRows: 1,
+          insertId: 0,
+          info: 'Rows matched: 1  Changed: 1  Warnings: 0',
+          serverStatus: 2,
+          warningStatus: 0,
+          changedRows: 1
+        }
+        So, we have to make a call to findById to get the updated data to return to user 
+        */
+        await Template.update(context, this.tableName, this, 'Template.update', ['tableName']);
+
+
+        return await Template.findById('Template.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
       this.errors.push('Template has never been saved');

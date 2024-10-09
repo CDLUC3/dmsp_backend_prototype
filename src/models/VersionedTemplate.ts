@@ -72,7 +72,7 @@ export class VersionedTemplate extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await VersionedTemplate.insert(context, this.tableName, this, 'VersionedTemplate.create');
+      const newId = await VersionedTemplate.insert(context, this.tableName, this, 'VersionedTemplate.create', ['tableName']);
       return await VersionedTemplate.findVersionedTemplateById('VersionedTemplate.create', context, newId);
     }
     // Otherwise return as-is with all the errors

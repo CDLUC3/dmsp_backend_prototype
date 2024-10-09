@@ -5,7 +5,7 @@ import { Section } from "../models/Section";
 import { Tag } from "../models/Tag";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
-import { hasPermission } from "../services/sectionService";
+import { hasPermissionOnSection } from "../services/sectionService";
 
 export const resolvers: Resolvers = {
     Query: {
@@ -13,12 +13,12 @@ export const resolvers: Resolvers = {
         sectionVersions: async (_, { sectionId }, context: MyContext): Promise<VersionedSection[]> => {
 
             // Find versionedSections with matching sectionId
-            const versionedSections = await VersionedSection.getVersionedSectionsBySectionId('versionedSection resolver', context, sectionId);
+            const versionedSections = await VersionedSection.findBySectionId('versionedSection resolver', context, sectionId);
 
             // Check if the array has data and access the first versioned section
             if (versionedSections.length > 0) {
                 const templateId = versionedSections[0].versionedTemplateId;
-                if (await hasPermission(context, templateId)) {
+                if (await hasPermissionOnSection(context, templateId)) {
                     return versionedSections;
                 }
                 throw ForbiddenError();
@@ -30,7 +30,7 @@ export const resolvers: Resolvers = {
         publishedSections: async (_, { term }, context: MyContext): Promise<VersionedSection[]> => {
 
             // Find published versionedSections with similar names
-            const temp = await VersionedSection.getVersionedSectionsByName('publishedSections resolver', context, term);
+            const temp = await VersionedSection.findByName('publishedSections resolver', context, term);
             return temp;
 
         }
@@ -39,7 +39,7 @@ export const resolvers: Resolvers = {
     VersionedSection: {
         // Chained resolver to fetch the Section related to VersionedSection
         section: async (parent: VersionedSection, _, context: MyContext): Promise<Section> => {
-            return await Section.getSectionBySectionId('VersionedSection resolver', context, parent.sectionId);
+            return await Section.findById('VersionedSection resolver', context, parent.sectionId);
         },
         // Chained resolver to fetch the versionedTemplate that the VersionedSection belongs to
         versionedTemplate: async (parent: VersionedSection, _, context: MyContext): Promise<VersionedTemplate> => {

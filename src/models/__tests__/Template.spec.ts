@@ -310,6 +310,10 @@ describe('update', () => {
     (template.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
 
+    const mockFindById = jest.fn();
+    (Template.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(template);
+
     updateQuery.mockResolvedValueOnce(template);
 
     const result = await template.update(context);

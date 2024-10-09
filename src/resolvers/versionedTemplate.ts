@@ -49,7 +49,7 @@ export const resolvers: Resolvers = {
 
     // Chained resolver to return the User who created the version
     versionedSection: async (parent: VersionedTemplate, _, context: MyContext): Promise<VersionedSection[]> => {
-      return await VersionedSection.getVersionedSectionsByTemplateId('Chained VersionedTemplate.versionedSection', context, parent.id);
+      return await VersionedSection.findByTemplateId('Chained VersionedTemplate.versionedSection', context, parent.id);
     },
   },
 };

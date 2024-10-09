@@ -9,7 +9,7 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Create a new QuestionCondition associated with a question"
-    addQuestionCondition(input: AddQuestionConditionInput!): QuestionCondition! 
+    addQuestionCondition(input: AddQuestionConditionInput!): QuestionCondition!
     "Update a QuestionCondition for a specific QuestionCondition id"
     updateQuestionCondition(input: UpdateQuestionConditionInput!): QuestionCondition
     "Remove a QuestionCondition using a specific QuestionCondition id"
@@ -41,7 +41,7 @@ export const typeDefs = gql`
   }
 
   """
-  if [Question content] [condition] [conditionMatch] then [action] on [target] so 
+  if [Question content] [condition] [conditionMatch] then [action] on [target] so
   for example if 'Yes' EQUAL 'Yes' then 'SHOW_Question' 123
   """
   type QuestionCondition {
@@ -65,7 +65,7 @@ export const typeDefs = gql`
     condition: QuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
     conditionMatch: String
-    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)
+    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"
     target: String!
 }
 
@@ -79,7 +79,7 @@ export const typeDefs = gql`
     condition: QuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
     conditionMatch: String
-    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)
+    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"
     target: String!
   }
 
@@ -93,7 +93,7 @@ export const typeDefs = gql`
     condition: QuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
     conditionMatch: String
-    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)
+    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"
     target: String!
   }
 
