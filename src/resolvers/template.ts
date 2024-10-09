@@ -112,9 +112,6 @@ export const resolvers: Resolvers = {
     // Publish the template or save as a draft
     //     - called from the Template overview page
     createVersion: async (_, { templateId, comment, versionType }, context: MyContext): Promise<Template> => {
-      console.log("***TemplateId", templateId);
-      console.log("***VersionType", versionType);
-      console.log("***COMMENT in CreateVersion", comment);
       if (isAdmin(context.token)) {
         const reference = 'createVersion resolver';
         const template = await Template.findById(reference, context, templateId);
