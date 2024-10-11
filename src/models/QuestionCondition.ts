@@ -32,17 +32,68 @@ export class QuestionCondition extends MySqlModel {
     this.target = options.target;
   }
 
-  //Create a new Section
+  // Validation to be used prior to saving the record
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!this.questionId) {
+      this.errors.push('Question ID can\'t be blank');
+    }
+    if (!this.action) {
+      this.errors.push('Action can\'t be blank');
+    }
+    if (!this.condition) {
+      this.errors.push('Condition can\'t be blank');
+    }
+    if (!this.target) {
+      this.errors.push('Target can\'t be blank');
+    }
+    return this.errors.length <= 0;
+  }
+
+  //Create a new QuestionCondition
   async create(context: MyContext): Promise<QuestionCondition> {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await QuestionCondition.insert(context, this.tableName, this, 'Section.create', ['tags']);
+      const newId = await QuestionCondition.insert(context, this.tableName, this, 'QuestionCondition.create', ['tableName']);
       const response = await QuestionCondition.findById('QuestionCondition.create', context, newId);
       return response;
     }
     // Otherwise return as-is with all the errors
     return this;
+  }
+
+  //Update an existing QuestionCondition
+  async update(context: MyContext): Promise<QuestionCondition> {
+    const id = this.id;
+
+    if (await this.isValid()) {
+      if (id) {
+        await QuestionCondition.update(context, this.tableName, this, 'QuestionCondition.update', ['tableName']);
+        return await QuestionCondition.findById('QuestionCondition.update', context, id);
+      }
+      // This template has never been saved before so we cannot update it!
+      this.errors.push('QuestionCondition has never been saved');
+    }
+    return this;
+  }
+
+  //Delete QuestionCondition based on the QuestionCondition object's id and return
+  async delete(context: MyContext): Promise<QuestionCondition> {
+    if (this.id) {
+      /*First get the QuestionCondition to be deleted so we can return this info to the user
+      since calling 'delete' doesn't return anything*/
+      const deletedSection = await QuestionCondition.findById('QuestionCondition.delete', context, this.id);
+
+      const successfullyDeleted = await QuestionCondition.delete(context, this.tableName, this.id, 'QuestionCondition.delete');
+      if (successfullyDeleted) {
+        return deletedSection;
+      } else {
+        return null
+      }
+    }
+    return null;
   }
 
   // Fetch a QuestionConditions by it's id

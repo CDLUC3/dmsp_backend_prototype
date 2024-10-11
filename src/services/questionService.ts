@@ -18,7 +18,7 @@ export const hasPermissionOnQuestion = async (context: MyContext, templateId: nu
   }
 
   // Offload permission checks to the Template
-  return hasPermissionOnTemplate(context, template);
+  return await hasPermissionOnTemplate(context, template);
 }
 
 // Creates a new Version/Snapshot the specified Question (as a point in time snapshot)
