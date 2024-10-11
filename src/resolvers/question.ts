@@ -9,9 +9,9 @@ import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErr
 export const resolvers: Resolvers = {
   Query: {
     questions: async (_, { sectionId }, context: MyContext): Promise<Question[]> => {
-      const section = await Section.findById('Questions resolver', context, sectionId);
+      const section = await Section.findById('questions resolver', context, sectionId);
       if (await hasPermissionOnQuestion(context, section.templateId)) {
-        return await Question.findBySectionId('sections resolver', context, sectionId);
+        return await Question.findBySectionId('questions resolver', context, sectionId);
       }
       throw ForbiddenError();
     },
