@@ -3,7 +3,6 @@ import { MyContext } from "../context";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { Question } from "../models/Question";
-import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
 import { ForbiddenError } from "../utils/graphQLErrors";
 

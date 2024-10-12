@@ -4,7 +4,7 @@ import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
-import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErrors";
+import { ForbiddenError } from "../utils/graphQLErrors";
 
 
 export const resolvers: Resolvers = {

@@ -10,10 +10,14 @@ import { resolvers as collaboratorResolvers } from './resolvers/collaborator';
 import { resolvers as contributorRoleResolvers } from './resolvers/contributorRole';
 import { resolvers as dmspResolvers } from './resolvers/dmsp';
 import { resolvers as questionResolvers } from './resolvers/question';
+import { resolvers as questionConditionResolvers } from './resolvers/questionCondition';
+import { resolvers as questionTypeResolvers } from './resolvers/questionType';
 import { resolvers as templateResolvers } from './resolvers/template';
 import { resolvers as sectionResolvers } from './resolvers/section';
 import { resolvers as tagResolvers } from './resolvers/tag';
 import { resolvers as userResolvers } from './resolvers/user';
+import { resolvers as versionedQuestionResolvers } from './resolvers/versionedQuestion';
+import { resolvers as versionedQuestionConditionResolvers } from './resolvers/versionedQuestionCondition';
 import { resolvers as versionedSectionResolvers } from './resolvers/versionedSection';
 import { resolvers as versionedTemplateResolvers } from './resolvers/versionedTemplate';
 
@@ -30,10 +34,14 @@ export const resolvers: IResolvers = mergeResolvers([
   contributorRoleResolvers,
   dmspResolvers,
   questionResolvers,
+  questionConditionResolvers,
+  questionTypeResolvers,
   templateResolvers,
   sectionResolvers,
   tagResolvers,
   userResolvers,
+  versionedQuestionResolvers,
+  versionedQuestionConditionResolvers,
   versionedSectionResolvers,
   versionedTemplateResolvers,
 ]);

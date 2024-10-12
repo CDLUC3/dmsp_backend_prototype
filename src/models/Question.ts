@@ -50,7 +50,6 @@ export class Question extends MySqlModel {
 
   //Create a new Question
   async create(context: MyContext, questionText: string, sectionId: number, templateId: number): Promise<Question> {
-
     // First make sure the record is valid
     if (await this.isValid()) {
       const current = await Question.findByQuestionText(
@@ -67,7 +66,6 @@ export class Question extends MySqlModel {
       } else {
         // Save the record and then fetch it
         const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['tableName']);
-        console.log("***NEW ID", newId);
         const response = await Question.findById('Section.create', context, newId);
         return response;
       }

@@ -179,3 +179,44 @@ describe('create', () => {
     expect(result).toEqual(versionedQuestion);
   });
 });
+
+describe('findByVersionedSectionId', () => {
+  const originalQuery = VersionedQuestion.query;
+
+  let localQuery;
+  let context;
+  let versionedQuestion;
+
+  beforeEach(() => {
+    // jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (VersionedQuestion.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    versionedQuestion = new VersionedQuestion({
+      versionedTemplateId: casual.integer(1, 999),
+      versionedSectionId: casual.integer(1, 999),
+      questionId: casual.integer(1, 999),
+      questionTypeId: casual.integer(1, 9),
+      questionText: casual.sentences(5),
+      displayOrder: casual.integer(1, 20),
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    VersionedQuestion.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the default when findByVersionedSectionId called', async () => {
+    localQuery.mockResolvedValueOnce([versionedQuestion]);
+    const id = casual.integer(1, 999);
+    const result = await VersionedQuestion.findByVersionedSectionId('testing', context, id);
+    const expectedSql = 'SELECT * FROM versionedQuestions WHERE versionedSectionId = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
+    expect(result).toEqual([versionedQuestion]);
+  });
+});
