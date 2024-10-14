@@ -36,7 +36,7 @@ export const resolvers: Resolvers = {
       } else {
         const questionConditionId = newQuestionCondition.id;
 
-        // Return newly created section with tags
+        // Return newly created questionCondition
         return await QuestionCondition.findById('addQuestion resolver', context, questionConditionId);
       }
     },
@@ -77,7 +77,7 @@ export const resolvers: Resolvers = {
       }
     },
     removeQuestionCondition: async (_, { questionConditionId }, context: MyContext): Promise<QuestionCondition> => {
-      // Retrieve existing Section
+      // Retrieve existing questionCondition
       const questionConditionData = await QuestionCondition.findById('removeQuestion resolver', context, questionConditionId);
 
       // Throw Not Found error if QuestionCondition is not found

@@ -32,7 +32,6 @@ export class QuestionCondition extends MySqlModel {
     this.target = options.target;
   }
 
-  // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
 
@@ -73,7 +72,7 @@ export class QuestionCondition extends MySqlModel {
         await QuestionCondition.update(context, this.tableName, this, 'QuestionCondition.update', ['tableName']);
         return await QuestionCondition.findById('QuestionCondition.update', context, id);
       }
-      // This template has never been saved before so we cannot update it!
+      // This QuestionCondition has never been saved before so we cannot update it!
       this.errors.push('QuestionCondition has never been saved');
     }
     return this;

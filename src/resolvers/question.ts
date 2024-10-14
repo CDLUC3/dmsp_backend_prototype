@@ -64,7 +64,7 @@ export const resolvers: Resolvers = {
         } else {
           const questionId = newQuestion.id;
 
-          // Return newly created section with tags
+          // Return newly created question
           return await Question.findById('addQuestion resolver', context, questionId);
         }
       }
@@ -118,7 +118,7 @@ export const resolvers: Resolvers = {
       throw ForbiddenError();
     },
     removeQuestion: async (_, { questionId }, context: MyContext): Promise<Question> => {
-      // Retrieve existing Section
+      // Retrieve existing Question
       const questionData = await Question.findById('removeQuestion resolver', context, questionId);
 
       // Throw Not Found error if Question is not found

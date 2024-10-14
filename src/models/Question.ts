@@ -120,7 +120,7 @@ export class Question extends MySqlModel {
     return Array.isArray(results) ? results : [];
   }
 
-  // Find section by section name
+  // Find question by questionText, sectionId and templateId
   static async findByQuestionText(
     reference: string,
     context: MyContext,
