@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for VersionedQuestions that belong to Section specified by sectionId"
-    publishedQuestions(sectionId: Int!): [VersionedQuestion]
+    publishedQuestions(versionedSectionId: Int!): [VersionedQuestion]
   }
 
 "A snapshot of a Question when it became published."

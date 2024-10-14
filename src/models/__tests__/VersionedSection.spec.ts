@@ -5,6 +5,14 @@ import { buildContext, mockToken } from "../../__mocks__/context";
 
 jest.mock('../../context.ts');
 
+let context;
+
+beforeEach(() => {
+  jest.resetAllMocks();
+
+  context = buildContext(logger, mockToken());
+});
+
 describe('VersionedSection', () => {
   let versionedSection;
 
@@ -171,5 +179,121 @@ the getVersionedSectionsBySectionId method returns an empty array for tags, and 
     const versionedTemplateId = 1;
     const result = await VersionedSection.findByTemplateId('VersionedSection query', context, versionedTemplateId);
     expect(result).toEqual(null);
+  });
+});
+
+describe('create', () => {
+  const originalInsert = VersionedSection.insert;
+  const originalFindById = VersionedSection.findById;
+  let insertQuery;
+  let versionedSection;
+
+  beforeEach(() => {
+    // jest.resetAllMocks();
+
+    insertQuery = jest.fn();
+    (VersionedSection.insert as jest.Mock) = insertQuery;
+
+    versionedSection = new VersionedSection({
+      name: casual.sentence,
+      versionedTemplateId: casual.integer(1, 20),
+      sectionId: casual.integer(1, 20),
+      introduction: casual.sentence,
+      requirements: casual.sentence,
+      guidance: casual.sentence,
+      displayOrder: casual.integer(1, 20),
+    })
+  });
+
+  afterEach(() => {
+    // jest.resetAllMocks();
+    VersionedSection.insert = originalInsert;
+    VersionedSection.findById = originalFindById;
+  });
+
+  it('returns the VersionedSection without errors if it is valid', async () => {
+    const localValidator = jest.fn();
+    (versionedSection.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    expect(await versionedSection.create(context)).toBe(versionedSection);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the VersionedSection with an error if versionedTemplateId is undefined', async () => {
+    versionedSection.versionedTemplateId = undefined;
+    const response = await versionedSection.create(context);
+    expect(response.errors[0]).toBe('VersionedTemplate can\'t be blank');
+  });
+
+  it('returns the VersionedSection with an error if sectionId is undefined', async () => {
+    versionedSection.sectionId = undefined;
+    const response = await versionedSection.create(context);
+    expect(response.errors[0]).toBe('Section ID can\'t be blank');
+  });
+
+  it('returns the VersionedSection with an error if name is undefined', async () => {
+    versionedSection.name = undefined;
+    const response = await versionedSection.create(context);
+    expect(response.errors[0]).toBe('Name can\'t be blank');
+  });
+
+  it('returns the VersionedSection with an error if displayOrder is undefined', async () => {
+    versionedSection.displayOrder = undefined;
+    const response = await versionedSection.create(context);
+    expect(response.errors[0]).toBe('DisplayOrder by can\'t be blank');
+  });
+
+
+  it('returns the newly added VersionedSection', async () => {
+    const mockFindById = jest.fn();
+    (VersionedSection.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(versionedSection);
+
+    const result = await versionedSection.create(context);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(versionedSection);
+  });
+});
+describe('findById', () => {
+  const originalQuery = VersionedSection.query;
+
+  let localQuery;
+  let context;
+  let versionedSection;
+
+  beforeEach(() => {
+    // jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (VersionedSection.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    versionedSection = new VersionedSection({
+      name: casual.sentence,
+      versionedTemplateId: casual.integer(1, 20),
+      sectionId: casual.integer(1, 20),
+      introduction: casual.sentence,
+      requirements: casual.sentence,
+      guidance: casual.sentence,
+      displayOrder: casual.integer(1, 20),
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    VersionedSection.query = originalQuery;
+  });
+
+  it('findById should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([versionedSection]);
+    const id = casual.integer(1, 999);
+    const result = await VersionedSection.findById('testing', context, id);
+    const expectedSql = 'SELECT * FROM versionedSections WHERE id= ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
+    expect(result).toEqual(versionedSection);
   });
 });

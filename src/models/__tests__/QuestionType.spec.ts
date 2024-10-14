@@ -53,16 +53,16 @@ describe('default', () => {
 
   it('should call query with correct params and return the default', async () => {
     localQuery.mockResolvedValueOnce([questionType]);
-    const result = await QuestionType.default(context);
-    const expectedSql = 'SELECT * FROM questionTypes WHERE isDefault = 1';
+    const result = await QuestionType.findAll('QuestionType ref', context);
+    const expectedSql = 'SELECT * FROM questionTypes';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [], 'QuestionType default')
-    expect(result).toEqual(questionType);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [], 'QuestionType ref')
+    expect(result).toEqual([questionType]);
   });
 
   it('should return null if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const result = await QuestionType.default(context);
-    expect(result).toEqual(null);
+    const result = await QuestionType.findAll('QuestionType ref', context);
+    expect(result).toEqual([]);
   });
 });

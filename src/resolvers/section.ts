@@ -137,8 +137,8 @@ export const resolvers: Resolvers = {
             );
           }
 
-          // Return newly created section with tags
-          return await Section.findById('addSection resolver', context, updatedSection.id);
+          // Return newly updated section with tags
+          return await Section.findById('updateSection resolver', context, updatedSection.id);
         }
       }
       throw ForbiddenError();

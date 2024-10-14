@@ -12,6 +12,8 @@ describe('QuestionCondition', () => {
 
   const questionConditionData = {
     questionId: casual.integer(1, 999),
+    action: 'SHOW_QUESTION',
+    condition: 'EQUAL',
     conditionMatch: casual.words(3),
     target: casual.word,
   }
@@ -25,6 +27,10 @@ describe('QuestionCondition', () => {
     expect(questionCondition.condition).toEqual(QuestionConditionCondition.EQUAL);
     expect(questionCondition.conditionMatch).toEqual(questionConditionData.conditionMatch);
     expect(questionCondition.target).toEqual(questionConditionData.target);
+  });
+
+  it('should return true when calling isValid with a name field', async () => {
+    expect(await questionCondition.isValid()).toBe(true);
   });
 });
 
@@ -128,6 +134,30 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
+  it('returns the QuestionCondition with an error if questionId is undefined', async () => {
+    questionCondition.questionId = undefined;
+    const response = await questionCondition.create(context);
+    expect(response.errors[0]).toBe('Question ID can\'t be blank');
+  });
+
+  it('returns the QuestionCondition with an error if action is undefined', async () => {
+    questionCondition.action = undefined;
+    const response = await questionCondition.create(context);
+    expect(response.errors[0]).toBe('Action can\'t be blank');
+  });
+
+  it('returns the QuestionCondition with an error if condition is undefined', async () => {
+    questionCondition.condition = undefined;
+    const response = await questionCondition.create(context);
+    expect(response.errors[0]).toBe('Condition can\'t be blank');
+  });
+
+  it('returns the QuestionCondition with an error if target is undefined', async () => {
+    questionCondition.target = undefined;
+    const response = await questionCondition.create(context);
+    expect(response.errors[0]).toBe('Target can\'t be blank');
+  });
+
   it('returns the newly added QuestionCondition', async () => {
     const localValidator = jest.fn();
     (questionCondition.isValid as jest.Mock) = localValidator;
@@ -141,6 +171,99 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(questionCondition);
+  });
+});
+
+describe('update', () => {
+  let updateQuery;
+  let questionCondition;
+
+  beforeEach(() => {
+    updateQuery = jest.fn();
+    (QuestionCondition.update as jest.Mock) = updateQuery;
+
+    questionCondition = new QuestionCondition({
+      id: casual.integer(1, 9),
+      questionId: casual.integer(1, 999),
+      action: getRandomEnumValue(QuestionConditionActionType),
+      condition: getRandomEnumValue(QuestionConditionCondition),
+      conditionMatch: casual.words(5),
+      target: casual.integer(1, 9999).toString(),
+    })
+  });
+
+  it('returns the QuestionCondition with errors if it is not valid', async () => {
+    const localValidator = jest.fn();
+    (questionCondition.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    expect(await questionCondition.update(context)).toBe(questionCondition);
+  });
+
+  it('returns an error if the QuestionCondition has no id', async () => {
+    const localValidator = jest.fn();
+    (questionCondition.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    questionCondition.id = null;
+    const result = await questionCondition.update(context);
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]).toEqual('QuestionCondition has never been saved');
+  });
+
+  it('returns the updated QuestionCondition', async () => {
+    updateQuery.mockResolvedValueOnce(questionCondition);
+
+    const mockFindById = jest.fn();
+    (QuestionCondition.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(questionCondition);
+
+    const result = await questionCondition.update(context);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(questionCondition);
+  });
+});
+
+describe('delete', () => {
+  let questionCondition;
+
+  beforeEach(() => {
+    questionCondition = new QuestionCondition({
+      id: casual.integer(1, 9),
+      questionId: casual.integer(1, 999),
+      action: getRandomEnumValue(QuestionConditionActionType),
+      condition: getRandomEnumValue(QuestionConditionCondition),
+      conditionMatch: casual.words(5),
+      target: casual.integer(1, 9999).toString(),
+    })
+  })
+
+  it('returns null if the QuestionCondition has no id', async () => {
+    questionCondition.id = null;
+    expect(await questionCondition.delete(context)).toBe(null);
+  });
+
+  it('returns null if it was not able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (QuestionCondition.delete as jest.Mock) = deleteQuery;
+
+    deleteQuery.mockResolvedValueOnce(null);
+    expect(await questionCondition.delete(context)).toBe(null);
+  });
+
+  it('returns the QuestionCondition if it was able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (QuestionCondition.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(questionCondition);
+
+    const mockFindById = jest.fn();
+    (QuestionCondition.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(questionCondition);
+
+    const result = await questionCondition.delete(context);
     expect(result.errors.length).toBe(0);
     expect(result).toEqual(questionCondition);
   });

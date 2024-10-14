@@ -14,8 +14,6 @@ export const typeDefs = gql`
     updateQuestionCondition(input: UpdateQuestionConditionInput!): QuestionCondition
     "Remove a QuestionCondition using a specific QuestionCondition id"
     removeQuestionCondition(questionConditionId: Int!): QuestionCondition
-    "Separate Question update specifically for options"
-    updateQuestionOptions(questionId: Int!, required:Boolean = false ): Question
   }
 
   "QuestionCondition action"
