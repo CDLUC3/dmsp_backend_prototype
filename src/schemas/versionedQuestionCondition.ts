@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for VersionedQuestions that belong to Section specified by sectionId"
-    publishedConditionsForQuestion(questionId: Int!): [VersionedQuestionCondition]
+    publishedConditionsForQuestion(versionedQuestionId: Int!): [VersionedQuestionCondition]
   }
 
     "VersionedQuestionCondition action"

@@ -41,7 +41,7 @@ export class VersionedSection extends MySqlModel {
       this.errors.push('VersionedTemplate can\'t be blank');
     }
     if (!this.sectionId) {
-      this.errors.push('Section can\'t be blank');
+      this.errors.push('Section ID can\'t be blank');
     }
     if (!this.name) {
       this.errors.push('Name can\'t be blank');

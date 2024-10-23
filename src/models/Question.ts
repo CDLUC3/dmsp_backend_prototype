@@ -48,6 +48,31 @@ export class Question extends MySqlModel {
     return this.errors.length <= 0;
   }
 
+  //Create a new Question
+  async create(context: MyContext, questionText: string, sectionId: number, templateId: number): Promise<Question> {
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      const current = await Question.findByQuestionText(
+        'Question.create',
+        context,
+        questionText,
+        sectionId,
+        templateId
+      );
+
+      // Then make sure it doesn't already exist
+      if (current) {
+        this.errors.push('Question with this question text already exists');
+      } else {
+        // Save the record and then fetch it
+        const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['tableName']);
+        const response = await Question.findById('Section.create', context, newId);
+        return response;
+      }
+    }
+    // Otherwise return as-is with all the errors
+    return this;
+  }
 
   //Update an existing Section
   async update(context: MyContext): Promise<Question> {
@@ -64,10 +89,27 @@ export class Question extends MySqlModel {
     return this;
   }
 
+  //Delete Question based on the Question object's id and return
+  async delete(context: MyContext): Promise<Question> {
+    if (this.id) {
+      /*First get the question to be deleted so we can return this info to the user
+      since calling 'delete' doesn't return anything*/
+      const deletedSection = await Question.findById('Question.delete', context, this.id);
+
+      const successfullyDeleted = await Question.delete(context, this.tableName, this.id, 'Question.delete');
+      if (successfullyDeleted) {
+        return deletedSection;
+      } else {
+        return null
+      }
+    }
+    return null;
+  }
+
   // Find the Question by it's id
-  static async findById(reference: string, context: MyContext, sectionId: number): Promise<Question> {
+  static async findById(reference: string, context: MyContext, questionId: number): Promise<Question> {
     const sql = 'SELECT * FROM questions WHERE id = ?';
-    const result = await Question.query(context, sql, [sectionId.toString()], reference);
+    const result = await Question.query(context, sql, [questionId.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? result[0] : null;
   }
 
@@ -76,5 +118,20 @@ export class Question extends MySqlModel {
     const sql = 'SELECT * FROM questions WHERE sectionId = ?';
     const results = await Question.query(context, sql, [sectionId.toString()], reference);
     return Array.isArray(results) ? results : [];
+  }
+
+  // Find question by questionText, sectionId and templateId
+  static async findByQuestionText(
+    reference: string,
+    context: MyContext,
+    questionText: string,
+    sectionId: number,
+    templateId: number,
+
+  ): Promise<Question> {
+    const sql = 'SELECT * FROM questions WHERE LOWER(questionText) = ? AND sectionId = ? AND templateId = ?';
+    const vals = [questionText.toLowerCase(), sectionId.toString(), templateId.toString()];
+    const results = await Question.query(context, sql, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 }
