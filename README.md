@@ -23,6 +23,7 @@
     - [Resolvers](#resolvers)
     - [Models](#models)
     - [Mocks](#mocks)
+    - [Internationalization / Language support](#languages)
     - [Tests](#tests)
 - [Environment variables](#environment-variables)
 - [Routes](#routes)
@@ -352,6 +353,12 @@ In some situations, the data source will not be ready. In this scenario you can 
 To use a mock, simply import it into your resolver and then setup your Query and Mutation handlers to interact with the canned mock data.
 
 Note that mocks will refresh each time the server is restarted!
+
+### Languages
+
+The languages supported by the system can be found in the `src/models/language.ts` file.
+
+TODO: update with documentation on how to provide translation support for DB based text
 
 ### Tests
 
