@@ -9,6 +9,7 @@ import { UserRole } from '../models/User';
 import { AuthenticationError, DEFAULT_INTERNAL_SERVER_MESSAGE, DEFAULT_UNAUTHORIZED_MESSAGE, InternalServerError } from '../utils/graphQLErrors';
 import { Cache } from '../datasources/cache';
 import { MyContext } from '../context';
+import { defaultLanguageId } from '../models/Language';
 
 export interface JWTAccessToken extends JwtPayload {
   id: number,
@@ -16,6 +17,7 @@ export interface JWTAccessToken extends JwtPayload {
   givenName: string,
   surName: string,
   role: string,
+  languageId: string,
   jti: string,
   expiresIn: number,
  }
@@ -66,6 +68,7 @@ const generateAccessToken = (jti: string, user: User): string => {
       surName: user.surName,
       affiliationId: user.affiliationId,
       role: user.role.toString() || UserRole.RESEARCHER,
+      languageId: user.languageId || defaultLanguageId,
       jti,
       expiresIn: generalConfig.jwtTTL,
     };

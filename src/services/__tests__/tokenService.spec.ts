@@ -18,6 +18,7 @@ import {
   generateCSRFToken,
 } from '../tokenService'; // assuming the original code is in auth.ts
 import { buildContext, mockToken } from '../../__mocks__/context';
+import { defaultLanguageId } from '../../models/Language';
 
 jest.mock('jsonwebtoken');
 jest.mock('../../datasources/cache');
@@ -51,6 +52,7 @@ beforeEach(() => {
     surName: casual.last_name,
     affiliationId: casual.url,
     role: UserRole.RESEARCHER,
+    languageId: defaultLanguageId,
   };
 });
 

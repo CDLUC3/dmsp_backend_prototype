@@ -5,6 +5,7 @@ import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
+import { defaultLanguageId, supportedLanguages } from './Language';
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -22,6 +23,7 @@ export class User extends MySqlModel {
   public affiliationId?: string;
   public acceptedTerms: boolean;
   public orcid?: string;
+  public languageId: string;
 
   // Initialize a new User
   constructor(options) {
@@ -36,6 +38,7 @@ export class User extends MySqlModel {
     // TODO: Remove this hard-coded UCOP default once we build out the signup page
     this.affiliationId = options.affiliationId || 'https://ror.org/00dmfq477';
     this.acceptedTerms = options.acceptedTerms;
+    this.languageId = options.languageId || defaultLanguageId;
 
     this.cleanup();
   }
@@ -46,6 +49,10 @@ export class User extends MySqlModel {
     this.role = this.role || UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
+    // Set the languageId to the default if it is not a supported language
+    if (!supportedLanguages.map((l) => l.id).includes(this.languageId)){
+      this.languageId = defaultLanguageId;
+    }
   }
 
   // Verify that the email does not already exist and that the required fields have values
@@ -135,7 +142,7 @@ export class User extends MySqlModel {
 
   // Find the User by their Id
   static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
-    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, created, modified \
+    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, languageId, created, modified \
                  FROM users WHERE id = ?';
     const results = await User.query(context, sql, [userId.toString()], reference);
     return results[0];
@@ -143,14 +150,14 @@ export class User extends MySqlModel {
 
   // Find the User by their email address
   static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
-    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, created, modified \
+    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, languageId, created, modified \
                  FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
     return results[0];
   }
 
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
-    const sql = 'SELECT id, givenName, surName, email, role, affiliationId, acceptedTerms, created, modified \
+    const sql = 'SELECT id, givenName, surName, email, role, affiliationId, acceptedTerms, languageId, created, modified \
                  FROM users WHERE affiliationId = ? ORDER BY created DESC';
     return await User.query(context, sql, [affiliationId], reference);
   }

@@ -46,5 +46,7 @@ export const typeDefs = gql`
     acceptedTerms: Boolean
     "The user's ORCID"
     orcid: Orcid
+    "The user's preferred language"
+    languageId: String!
   }
 `;
