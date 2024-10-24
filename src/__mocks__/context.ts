@@ -6,6 +6,7 @@ import { DMPToolAPI } from "../datasources/dmptoolAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";
 import { User, UserRole } from "../models/User";
 import casual from "casual";
+import { defaultLanguageId } from "../models/Language";
 
 jest.mock('../datasources/dmphubAPI');
 jest.mock('../datasources/dmptoolAPI');
@@ -78,6 +79,7 @@ export const mockToken = (user = mockUser()): JWTAccessToken => {
     surName: user.surName,
     affiliationId: user.affiliationId,
     role: user.role,
+    languageId: defaultLanguageId,
     jti: casual.integer(1, 999999).toString(),
     expiresIn: casual.integer(1, 999999999),
   }

@@ -11,6 +11,7 @@ import * as UserModel from '../../models/User';
 import { generalConfig } from '../../config/generalConfig';
 import { authMiddleware } from '../../middleware/auth';
 import { verifyAccessToken } from '../../services/tokenService';
+import { defaultLanguageId } from '../../models/Language';
 
 jest.mock('../../datasources/cache');
 jest.mock('../../models/User');
@@ -43,6 +44,7 @@ const mockedUser: UserModel.User = {
   role: UserModel.UserRole.RESEARCHER,
   acceptedTerms: true,
   password: casual.uuid,
+  languageId: defaultLanguageId,
   created: new Date().toISOString(),
   errors: [],
 

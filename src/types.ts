@@ -338,6 +338,17 @@ export type Identifier = {
   type: Scalars['String']['output'];
 };
 
+/** A Language supported by the system */
+export type Language = {
+  __typename?: 'Language';
+  /** The unique identifer for the Language using the 2 character (ISO 639-1) language code and optionally the 2 character (ISO 3166-1) country code */
+  id: Scalars['String']['output'];
+  /** Whether or not the language is the default */
+  isDefault: Scalars['Boolean']['output'];
+  /** A displayable name for the language */
+  name: Scalars['String']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   _empty?: Maybe<Scalars['String']['output']>;
@@ -581,6 +592,8 @@ export type Query = {
   contributorRoles?: Maybe<Array<Maybe<ContributorRole>>>;
   /** Get the DMSP by its DMP ID */
   dmspById?: Maybe<SingleDmspResponse>;
+  /** Get all of the supported Languages */
+  languages?: Maybe<Array<Maybe<Language>>>;
   /** Returns the currently logged in user's information */
   me?: Maybe<User>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
@@ -952,6 +965,8 @@ export type Template = {
   id?: Maybe<Scalars['Int']['output']>;
   /** Whether or not the Template has had any changes since it was last published */
   isDirty: Scalars['Boolean']['output'];
+  /** The template's language */
+  languageId: Scalars['String']['output'];
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
@@ -1075,6 +1090,8 @@ export type User = {
   givenName?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
+  /** The user's preferred language */
+  languageId?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
@@ -1357,6 +1374,7 @@ export type ResolversTypes = {
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Identifier: ResolverTypeWrapper<Identifier>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  Language: ResolverTypeWrapper<Language>;
   Mutation: ResolverTypeWrapper<{}>;
   Orcid: ResolverTypeWrapper<Scalars['Orcid']['output']>;
   OrganizationIdentifier: ResolverTypeWrapper<OrganizationIdentifier>;
@@ -1421,6 +1439,7 @@ export type ResolversParentTypes = {
   ID: Scalars['ID']['output'];
   Identifier: Identifier;
   Int: Scalars['Int']['output'];
+  Language: Language;
   Mutation: {};
   Orcid: Scalars['Orcid']['output'];
   OrganizationIdentifier: OrganizationIdentifier;
@@ -1581,6 +1600,13 @@ export type IdentifierResolvers<ContextType = MyContext, ParentType extends Reso
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type LanguageResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Language'] = ResolversParentTypes['Language']> = {
+  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type MutationResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   addAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationAddAffiliationArgs, 'input'>>;
@@ -1651,6 +1677,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
   dmspById?: Resolver<Maybe<ResolversTypes['SingleDmspResponse']>, ParentType, ContextType, RequireFields<QueryDmspByIdArgs, 'dmspId'>>;
+  languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
@@ -1782,6 +1809,7 @@ export type TemplateResolvers<ContextType = MyContext, ParentType extends Resolv
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   isDirty?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  languageId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1819,6 +1847,7 @@ export type UserResolvers<ContextType = MyContext, ParentType extends ResolversP
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  languageId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
@@ -1918,6 +1947,7 @@ export type Resolvers<ContextType = MyContext> = {
   DmspIdentifier?: DmspIdentifierResolvers<ContextType>;
   EmailAddress?: GraphQLScalarType;
   Identifier?: IdentifierResolvers<ContextType>;
+  Language?: LanguageResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Orcid?: GraphQLScalarType;
   OrganizationIdentifier?: OrganizationIdentifierResolvers<ContextType>;

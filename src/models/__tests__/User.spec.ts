@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { logger } from '../../__mocks__/logger';
 import { buildContext } from '../../context';
+import { defaultLanguageId, supportedLanguages } from '../Language';
 
 jest.mock('../../context.ts');
 
@@ -15,6 +16,8 @@ let mockContext;
 
 describe('constructor', () => {
   it('should set the expected properties', () => {
+    const lang = supportedLanguages.find((entry) => { return entry.id !== defaultLanguageId });
+
     const props = {
       id: casual.integer(1, 99999),
       email: casual.email,
@@ -24,6 +27,7 @@ describe('constructor', () => {
       givenName: casual.first_name,
       surName: casual.last_name,
       orcid: '0000-0000-0000-000X',
+      languageId: lang.id,
     }
 
     const user = new User(props);
@@ -35,6 +39,7 @@ describe('constructor', () => {
     expect(user.surName).toEqual(props.surName);
     expect(user.orcid).toEqual(props.orcid);
     expect(user.role).toEqual(props.role);
+    expect(user.languageId).toEqual(props.languageId);
   });
 
   it('should set the defaults properly', () => {
@@ -48,6 +53,7 @@ describe('constructor', () => {
     expect(user.surName).toBeFalsy();
     expect(user.orcid).toBeFalsy();
     expect(user.role).toEqual(UserRole.RESEARCHER);
+    expect(user.languageId).toEqual(defaultLanguageId);
   });
 
   it('should ignore unexpected properties', () => {
@@ -61,12 +67,18 @@ describe('constructor', () => {
 
 describe('cleanup standardizes the format of properties', () => {
   it('should properly format the properties', () => {
-    const user = new User({ email: 'TESTer%40exaMPle.cOm', givenName: ' Test ', surName: '  user  ' });
+    const user = new User({
+      email: 'TESTer%40exaMPle.cOm',
+      givenName: ' Test ',
+      surName: '  user  ',
+      languageId: 'test',
+    });
     user.cleanup();
     expect(user.email).toEqual('TESTer@exaMPle.cOm');
     expect(user.givenName).toEqual('Test');
     expect(user.surName).toEqual('User');
     expect(user.role).toEqual(UserRole.RESEARCHER);
+    expect(user.languageId).toEqual(defaultLanguageId);
   });
 });
 

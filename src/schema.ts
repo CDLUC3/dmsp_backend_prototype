@@ -4,6 +4,7 @@ import { typeDefs as baseTypeDefs } from './schemas/base';
 import { typeDefs as affiliationTypeDefs } from './schemas/affiliation';
 import { typeDefs as collaboratorTypeDefs } from './schemas/collaborator';
 import { typeDefs as contributorRoleTypeDefs } from './schemas/contributorRole';
+import { typeDefs as languageTypeDefs } from './schemas/language';
 import { typeDefs as dmspTypeDefs } from './schemas/dmsp';
 import { typeDefs as questionTypeDefs } from './schemas/question';
 import { typeDefs as questionConditionTypeDefs } from './schemas/questionCondition';
@@ -21,6 +22,10 @@ export const typeDefs = mergeTypeDefs([
   baseTypeDefs,
   affiliationTypeDefs,
   collaboratorTypeDefs,
+  languageTypeDefs,
+  sectionTypeDefs,
+  tagTypeDefs,
+  versionedSectionTypeDefs,
   contributorRoleTypeDefs,
   dmspTypeDefs,
   questionTypeDefs,
@@ -35,4 +40,3 @@ export const typeDefs = mergeTypeDefs([
   versionedSectionTypeDefs,
   versionedTemplateTypeDefs,
 ]);
-
