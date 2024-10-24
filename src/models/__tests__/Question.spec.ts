@@ -21,6 +21,8 @@ describe('Question', () => {
   let question;
 
   const questionData = {
+    templateId: casual.integer(1, 9),
+    sectionId: casual.integer(1, 9),
     questionTypeId: casual.integer(1, 9),
     questionText: casual.sentences(5),
     requirementText: casual.sentences(3),
@@ -40,6 +42,10 @@ describe('Question', () => {
     expect(question.sampleText).toEqual(questionData.sampleText);
     expect(question.displayOrder).toEqual(questionData.displayOrder);
     expect(question.required).toEqual(false);
+  });
+
+  it('should return true when calling isValid with a name field', async () => {
+    expect(await question.isValid()).toBe(true);
   });
 });
 
@@ -124,7 +130,7 @@ describe('update', () => {
     })
   });
 
-  it('returns the Template with errors if it is not valid', async () => {
+  it('returns the Question with errors if it is not valid', async () => {
     const localValidator = jest.fn();
     (question.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
@@ -160,5 +166,174 @@ describe('update', () => {
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(result.errors.length).toBe(0);
     expect(result).toEqual(question);
+  });
+});
+
+describe('create', () => {
+  const originalInsert = Question.insert;
+  const originalFindByQuestionText = Question.findByQuestionText;
+  let insertQuery;
+  let question;
+
+  beforeEach(() => {
+    // jest.resetAllMocks();
+
+    insertQuery = jest.fn();
+    (Question.insert as jest.Mock) = insertQuery;
+
+    question = new Question({
+      templateId: casual.integer(1, 999),
+      sectionId: casual.integer(1, 999),
+      id: casual.integer(1, 9),
+      questionText: casual.sentences(5),
+      displayOrder: casual.integer(1, 9),
+    })
+  });
+
+  afterEach(() => {
+    // jest.resetAllMocks();
+    Question.insert = originalInsert;
+    Question.findByQuestionText = originalFindByQuestionText;
+  });
+
+  it('returns the Question without errors if it is valid', async () => {
+    const localValidator = jest.fn();
+    (question.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    expect(await question.create(context)).toBe(question);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the Question with an error if templateId is undefined', async () => {
+    question.templateId = undefined;
+    const response = await question.create(context);
+    expect(response.errors[0]).toBe('Template ID can\'t be blank');
+  });
+
+  it('returns the Question with an error if sectionId is undefined', async () => {
+    question.sectionId = undefined;
+    const response = await question.create(context);
+    expect(response.errors[0]).toBe('Section ID can\'t be blank');
+  });
+
+  it('returns the Question with an error if questionText is undefined', async () => {
+    question.questionText = undefined;
+    const response = await question.create(context);
+    expect(response.errors[0]).toBe('Question text can\'t be blank');
+  });
+
+  it('returns the Question with an error if the question already exists', async () => {
+    const mockFindBy = jest.fn();
+    (Question.findByQuestionText as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(question);
+
+    const result = await question.create(context);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]).toEqual('Question with this question text already exists');
+  });
+
+  it('returns the newly added Question', async () => {
+    const mockFindBy = jest.fn();
+    (Question.findByQuestionText as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(null);
+
+    const mockFindById = jest.fn();
+    (Question.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(question);
+
+    const result = await question.create(context);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(mockFindById).toHaveBeenCalledTimes(1);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(question);
+  });
+});
+
+describe('delete', () => {
+  let question;
+
+  beforeEach(() => {
+    question = new Question({
+      templateId: casual.integer(1, 999),
+      sectionId: casual.integer(1, 999),
+      id: casual.integer(1, 9),
+      questionText: casual.sentences(5),
+      displayOrder: casual.integer(1, 9),
+    })
+  })
+
+  it('returns null if the Question has no id', async () => {
+    question.id = null;
+    expect(await question.delete(context)).toBe(null);
+  });
+
+  it('returns null if it was not able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (Question.delete as jest.Mock) = deleteQuery;
+
+    deleteQuery.mockResolvedValueOnce(null);
+    expect(await question.delete(context)).toBe(null);
+  });
+
+  it('returns the Question if it was able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (Question.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(question);
+
+    const mockFindById = jest.fn();
+    (Question.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(question);
+
+    const result = await question.delete(context);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(question);
+  });
+});
+
+describe('findByQuestionText', () => {
+  const originalQuery = Question.query;
+
+  let localQuery;
+  let context;
+  let question;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (Question.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    question = new Question({
+      templateId: casual.integer(1, 999),
+      sectionId: casual.integer(1, 999),
+      id: casual.integer(1, 9),
+      questionText: casual.sentences(5),
+      displayOrder: casual.integer(1, 9),
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Question.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the question', async () => {
+    localQuery.mockResolvedValueOnce([question]);
+    const result = await Question.findByQuestionText('Question query', context, question.questionText, question.sectionId, question.templateId);
+    const expectedSql = 'SELECT * FROM questions WHERE LOWER(questionText) = ? AND sectionId = ? AND templateId = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [question.questionText.toLowerCase(), question.sectionId.toString(), question.templateId.toString()], 'Question query')
+    expect(result).toEqual(question);
+  });
+
+  it('should return null if it finds no Question', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const result = await Question.findByQuestionText('Question query', context, question.questionText, question.sectionId, question.templateId);
+    expect(result).toEqual(null);
   });
 });

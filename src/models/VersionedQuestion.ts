@@ -4,7 +4,7 @@ import { MySqlModel } from "./MySqlModel";
 export class VersionedQuestion extends MySqlModel {
   public versionedTemplateId: number;
   public versionedSectionId: number;
-  public questionId?: number;
+  public questionId: number;
   public questionTypeId: number;
   public questionText: string;
   public requirementText?: string;
@@ -69,5 +69,13 @@ export class VersionedQuestion extends MySqlModel {
     const sql = 'SELECT * FROM versionedQuestions WHERE id = ?';
     const results = await VersionedQuestion.query(context, sql, [id.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  }
+
+
+  // Find all VersionedQuestion that match versionedSectionId
+  static async findByVersionedSectionId(reference: string, context: MyContext, versionedSectionId: number): Promise<VersionedQuestion[]> {
+    const sql = 'SELECT * FROM versionedQuestions WHERE versionedSectionId = ?';
+    const results = await VersionedQuestion.query(context, sql, [versionedSectionId.toString()], reference);
+    return Array.isArray(results) ? results : [];
   }
 }

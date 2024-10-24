@@ -175,3 +175,44 @@ describe('create', () => {
     expect(result).toEqual(versionedQuestionCondition);
   });
 });
+
+describe('findByVersionedQuestionId', () => {
+  const originalQuery = VersionedQuestionCondition.query;
+
+  let localQuery;
+  let context;
+  let versionedQuestionCondition;
+
+  beforeEach(() => {
+    // jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (VersionedQuestionCondition.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    versionedQuestionCondition = new VersionedQuestionCondition({
+      versionedQuestionId: casual.integer(1, 999),
+      questionConditionId: casual.integer(1, 99),
+      action: getRandomEnumValue(QuestionConditionActionType),
+      condition: getRandomEnumValue(QuestionConditionCondition),
+      conditionMatch: casual.words(3),
+      target: casual.word,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    VersionedQuestionCondition.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the default when findByVersionedQuestionId called', async () => {
+    localQuery.mockResolvedValueOnce([versionedQuestionCondition]);
+    const id = casual.integer(1, 999);
+    const result = await VersionedQuestionCondition.findByVersionedQuestionId('testing', context, id);
+    const expectedSql = 'SELECT * FROM versionedQuestionConditions WHERE versionedQuestionId = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
+    expect(result).toEqual([versionedQuestionCondition]);
+  });
+});

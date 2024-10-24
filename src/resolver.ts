@@ -9,12 +9,17 @@ import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as collaboratorResolvers } from './resolvers/collaborator';
 import { resolvers as contributorRoleResolvers } from './resolvers/contributorRole';
 import { resolvers as languageResolvers } from './resolvers/language';
+import { resolvers as dmspResolvers } from './resolvers/dmsp';
+import { resolvers as questionResolvers } from './resolvers/question';
+import { resolvers as questionConditionResolvers } from './resolvers/questionCondition';
+import { resolvers as questionTypeResolvers } from './resolvers/questionType';
+import { resolvers as templateResolvers } from './resolvers/template';
 import { resolvers as sectionResolvers } from './resolvers/section';
 import { resolvers as tagResolvers } from './resolvers/tag';
-import { resolvers as versionedSectionResolvers } from './resolvers/versionedSection';
-import { resolvers as dmspResolvers } from './resolvers/dmsp';
-import { resolvers as templateResolvers } from './resolvers/template';
 import { resolvers as userResolvers } from './resolvers/user';
+import { resolvers as versionedQuestionResolvers } from './resolvers/versionedQuestion';
+import { resolvers as versionedQuestionConditionResolvers } from './resolvers/versionedQuestionCondition';
+import { resolvers as versionedSectionResolvers } from './resolvers/versionedSection';
 import { resolvers as versionedTemplateResolvers } from './resolvers/versionedTemplate';
 
 const scalarResolvers = {
@@ -28,12 +33,17 @@ export const resolvers: IResolvers = mergeResolvers([
   affiliationResolvers,
   collaboratorResolvers,
   languageResolvers,
+  contributorRoleResolvers,
+  dmspResolvers,
+  questionResolvers,
+  questionConditionResolvers,
+  questionTypeResolvers,
+  templateResolvers,
   sectionResolvers,
   tagResolvers,
-  versionedSectionResolvers,
-  dmspResolvers,
-  contributorRoleResolvers,
-  templateResolvers,
   userResolvers,
+  versionedQuestionResolvers,
+  versionedQuestionConditionResolvers,
+  versionedSectionResolvers,
   versionedTemplateResolvers,
 ]);

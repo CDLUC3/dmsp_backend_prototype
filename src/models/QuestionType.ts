@@ -1,8 +1,9 @@
+import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 
 export class QuestionType extends MySqlModel {
   public name: string;
-  public usageDescription?: string;
+  public usageDescription: string;
   public isDefault: boolean;
 
   constructor(options) {
@@ -13,12 +14,10 @@ export class QuestionType extends MySqlModel {
     this.isDefault = options.isDefault || false;
   }
 
-  // Need to add logic to ensure there is only one default QuestionType when saving!
-
-  // Fetch the default QuestionType
-  static async default(context) {
-    const sql = 'SELECT * FROM questionTypes WHERE isDefault = 1';
-    const results = await QuestionType.query(context, sql, [], 'QuestionType default');
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  // Find all QuestionTypes
+  static async findAll(reference: string, context: MyContext): Promise<QuestionType[]> {
+    const sql = 'SELECT * FROM questionTypes';
+    const result = await QuestionType.query(context, sql, [], reference);
+    return Array.isArray(result) ? result : [];
   }
 }

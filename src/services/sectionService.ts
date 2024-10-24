@@ -95,8 +95,6 @@ export const cloneSection = (
     templateId: templateId
   });
 
-  console.log("***SECTIONCOPY", sectionCopy)
-
   sectionCopy.createdById = clonedById;
   return sectionCopy;
 }
