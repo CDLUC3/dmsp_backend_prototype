@@ -8,6 +8,7 @@ import { rorScalar } from './resolvers/scalars/ror';
 import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as collaboratorResolvers } from './resolvers/collaborator';
 import { resolvers as contributorRoleResolvers } from './resolvers/contributorRole';
+import { resolvers as languageResolvers } from './resolvers/language';
 import { resolvers as sectionResolvers } from './resolvers/section';
 import { resolvers as tagResolvers } from './resolvers/tag';
 import { resolvers as versionedSectionResolvers } from './resolvers/versionedSection';
@@ -26,6 +27,7 @@ export const resolvers: IResolvers = mergeResolvers([
   scalarResolvers,
   affiliationResolvers,
   collaboratorResolvers,
+  languageResolvers,
   sectionResolvers,
   tagResolvers,
   versionedSectionResolvers,
