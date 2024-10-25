@@ -1076,6 +1076,8 @@ export type User = {
   __typename?: 'User';
   /** Whether the user has accepted the terms and conditions of having an account */
   acceptedTerms?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not account is active */
+  active: Scalars['Boolean']['output'];
   /** The user's organizational affiliation */
   affiliation?: Maybe<Affiliation>;
   /** The timestamp when the Object was created */
@@ -1086,20 +1088,40 @@ export type User = {
   email: Scalars['EmailAddress']['output'];
   /** Errors associated with the Object */
   errors?: Maybe<Array<Scalars['String']['output']>>;
+  /** The number of failed login attempts */
+  failed_sign_in_attemps?: Maybe<Scalars['Int']['output']>;
   /** The user's first/given name */
   givenName?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The user's preferred language */
-  languageId?: Maybe<Scalars['String']['output']>;
+  languageId: Scalars['String']['output'];
+  /** The timestamp of the last login */
+  last_sign_in?: Maybe<Scalars['String']['output']>;
+  /** The method user for the last login: PASSWORD or SSO */
+  last_sign_in_via?: Maybe<Scalars['String']['output']>;
+  /** Whether or not the account is locked from failed login attempts */
+  locked: Scalars['Boolean']['output'];
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not email notifications are on for when a Plan has a new comment */
+  notify_on_comment_added?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not email notifications are on for when feedback on a Plan is completed */
+  notify_on_feedback_complete?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not email notifications are on for when a Plan is shared with the user */
+  notify_on_plan_shared?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not email notifications are on for Plan visibility changes */
+  notify_on_plan_visibility_change?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not email notifications are on for when a Template is shared with the User (Admin only) */
+  notify_on_template_shared?: Maybe<Scalars['Boolean']['output']>;
   /** The user's ORCID */
   orcid?: Maybe<Scalars['Orcid']['output']>;
   /** The user's role within the DMPTool */
   role: UserRole;
+  /** The user's SSO ID */
+  ssoId?: Maybe<Scalars['String']['output']>;
   /** The user's last/family name */
   surName?: Maybe<Scalars['String']['output']>;
 };
@@ -1344,7 +1366,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
-  Person: (Contributor) | (PrimaryContact);
+  Person: ( Contributor ) | ( PrimaryContact );
 };
 
 /** Mapping between all available schema types and the resolvers types */
@@ -1840,18 +1862,29 @@ export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 
 export type UserResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
   acceptedTerms?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  active?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  failed_sign_in_attemps?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  languageId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  languageId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  last_sign_in?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  last_sign_in_via?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  locked?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  notify_on_comment_added?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  notify_on_feedback_complete?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  notify_on_plan_shared?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  notify_on_plan_visibility_change?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  notify_on_template_shared?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
   role?: Resolver<ResolversTypes['UserRole'], ParentType, ContextType>;
+  ssoId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };

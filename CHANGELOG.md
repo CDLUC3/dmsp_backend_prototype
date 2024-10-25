@@ -1,4 +1,5 @@
 ### Added
+- Added recordLogIn and update functions to User model
 - Added Language model, resolver and type. Added LanguageId to User and Template
 - Built Question resolvers and models(#13)
 - Fixed some bugs to allow frontend to access token change(Frontend #116)
@@ -28,6 +29,7 @@
 - Data migrations for affiliations table
 
 ### Updated
+- Updated User schema, model and data migrations with new properties
 - Change default JWT TTL to 30 minutes
 - Added user id to the JTI to help ensure uniqueness
 - Update sign out controller to always clear the cookies and return 200 regardless of the state of the tokens

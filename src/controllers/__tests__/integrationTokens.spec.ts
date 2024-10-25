@@ -12,6 +12,8 @@ import { generalConfig } from '../../config/generalConfig';
 import { authMiddleware } from '../../middleware/auth';
 import { verifyAccessToken } from '../../services/tokenService';
 import { defaultLanguageId } from '../../models/Language';
+import { getCurrentDate } from '../../utils/helpers';
+import { getRandomEnumValue } from '../../__tests__/helpers';
 
 jest.mock('../../datasources/cache');
 jest.mock('../../models/User');
@@ -45,15 +47,32 @@ const mockedUser: UserModel.User = {
   acceptedTerms: true,
   password: casual.uuid,
   languageId: defaultLanguageId,
-  created: new Date().toISOString(),
+  orcid: casual.url,
+  ssoId: casual.uuid,
+  locked: false,
+  active: true,
+  notify_on_comment_added: casual.boolean,
+  notify_on_template_shared: casual.boolean,
+  notify_on_feedback_complete: casual.boolean,
+  notify_on_plan_shared: casual.boolean,
+  notify_on_plan_visibility_change: casual.boolean,
+  last_sign_in: getCurrentDate(),
+  last_sign_in_via: getRandomEnumValue(UserModel.LogInType),
+  failed_sign_in_attemps: 0,
+  created: getCurrentDate(),
+  modified: getCurrentDate(),
   errors: [],
 
+  tableName: 'testUsers',
+
+  recordLogIn: jest.fn(),
   isValid: jest.fn(),
   validatePassword: jest.fn(),
   hashPassword: jest.fn(),
   cleanup: jest.fn(),
   login: jest.fn(),
   register: jest.fn(),
+  update: jest.fn(),
 };
 
 // Mock a protected endpoint because it's easier than building the entire apollo server stack

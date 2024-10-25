@@ -46,7 +46,32 @@ export const typeDefs = gql`
     acceptedTerms: Boolean
     "The user's ORCID"
     orcid: Orcid
+    "The user's SSO ID"
+    ssoId: String
     "The user's preferred language"
     languageId: String!
+
+    "Whether or not email notifications are on for when a Plan has a new comment"
+    notify_on_comment_added: Boolean
+    "Whether or not email notifications are on for when a Template is shared with the User (Admin only)"
+    notify_on_template_shared: Boolean
+    "Whether or not email notifications are on for when feedback on a Plan is completed"
+    notify_on_feedback_complete: Boolean
+    "Whether or not email notifications are on for when a Plan is shared with the user"
+    notify_on_plan_shared: Boolean
+    "Whether or not email notifications are on for Plan visibility changes"
+    notify_on_plan_visibility_change: Boolean
+
+    "Whether or not the account is locked from failed login attempts"
+    locked: Boolean
+    "Whether or not account is active"
+    active: Boolean
+
+    "The timestamp of the last login"
+    last_sign_in: String
+    "The method user for the last login: PASSWORD or SSO"
+    last_sign_in_via: String
+    "The number of failed login attempts"
+    failed_sign_in_attemps: Int
   }
 `;

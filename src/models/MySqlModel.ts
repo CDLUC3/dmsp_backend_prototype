@@ -188,13 +188,16 @@ export class MySqlModel {
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
-    skipKeys?: string[]
+    skipKeys?: string[],
+    noTouch?: boolean,
   ): Promise<MySqlModel> {
     // Update the modifier info
-    obj.modifiedById = apolloContext.token.id;
-    const currentDate = getCurrentDate();
-    obj.modified = currentDate;
-    obj.created = currentDate;
+    if (!noTouch) {
+      obj.modifiedById = apolloContext.token.id;
+      const currentDate = getCurrentDate();
+      obj.modified = currentDate;
+      obj.created = currentDate;
+    }
 
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj, skipKeys);

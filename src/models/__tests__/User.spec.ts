@@ -1,10 +1,12 @@
 import 'jest-expect-message';
-import { User, UserRole } from '../User';
+import { LogInType, User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { logger } from '../../__mocks__/logger';
 import { buildContext } from '../../context';
 import { defaultLanguageId, supportedLanguages } from '../Language';
+import { mockToken } from '../../__mocks__/context';
+import { getRandomEnumValue } from '../../__tests__/helpers';
 
 jest.mock('../../context.ts');
 
@@ -27,6 +29,7 @@ describe('constructor', () => {
       givenName: casual.first_name,
       surName: casual.last_name,
       orcid: '0000-0000-0000-000X',
+      ssoId: casual.uuid,
       languageId: lang.id,
     }
 
@@ -38,22 +41,33 @@ describe('constructor', () => {
     expect(user.givenName).toEqual(props.givenName);
     expect(user.surName).toEqual(props.surName);
     expect(user.orcid).toEqual(props.orcid);
+    expect(user.ssoId).toEqual(props.ssoId);
     expect(user.role).toEqual(props.role);
     expect(user.languageId).toEqual(props.languageId);
   });
 
   it('should set the defaults properly', () => {
-    const props = { email: casual.email, password: casual.password };
+    const props = { email: casual.email, password: casual.password, affiliationId: casual.url };
     const user = new User(props);
     expect(user.id).toBeFalsy();
     expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
-    expect(user.affiliationId).toBeTruthy();
+    expect(user.affiliationId).toEqual(props.affiliationId);
     expect(user.givenName).toBeFalsy();
     expect(user.surName).toBeFalsy();
     expect(user.orcid).toBeFalsy();
     expect(user.role).toEqual(UserRole.RESEARCHER);
     expect(user.languageId).toEqual(defaultLanguageId);
+    expect(user.last_sign_in).toBeFalsy();
+    expect(user.last_sign_in_via).toBeFalsy();
+    expect(user.failed_sign_in_attemps).toEqual(0);
+    expect(user.notify_on_comment_added).toEqual(true);
+    expect(user.notify_on_template_shared).toEqual(true);
+    expect(user.notify_on_feedback_complete).toEqual(true);
+    expect(user.notify_on_plan_shared).toEqual(true);
+    expect(user.notify_on_plan_visibility_change).toEqual(true);
+    expect(user.locked).toEqual(false);
+    expect(user.active).toEqual(true);
   });
 
   it('should ignore unexpected properties', () => {
@@ -284,11 +298,53 @@ describe('authCheck', () => {
   });
 });
 
-describe('login()', () => {
-  let mockAuthCheck;
+describe('recordLogIn', () => {
+  let context;
+
+  let user;
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      email: casual.sentence,
+      affiliationId: casual.url,
+      password: casual.password,
+      givenName: casual.first_name,
+      surName: casual.last_name,
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  })
+
+  it('returns an error if the Section has no id', async () => {
+    jest.spyOn(User, 'update').mockResolvedValueOnce(null);
+    const result = await user.recordLogIn(context, getRandomEnumValue(LogInType));
+    expect(result).toEqual(false);
+  });
+
+  it('updates the User last_sign_in fields', async () => {
+    jest.spyOn(User, 'update').mockResolvedValueOnce(user);
+    const result = await user.recordLogIn(context, getRandomEnumValue(LogInType));
+    expect(result).toEqual(true);
+  });
+});
+
+describe('login()', () => {
+  let context;
+  let mockAuthCheck;
+  let mockRecordLogIn;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
 
     mockAuthCheck = jest.fn();
     (User.authCheck as jest.Mock) = mockAuthCheck;
@@ -299,6 +355,8 @@ describe('login()', () => {
     mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
+
+    mockRecordLogIn = jest.fn();
   });
 
   afterEach(() => {
@@ -312,7 +370,9 @@ describe('login()', () => {
     });
     mockAuthCheck.mockReturnValue(123);
     mockQuery.mockResolvedValue([user]);
-    const response = await user.login();
+    mockRecordLogIn.mockResolvedValueOnce(true);
+    (user.recordLogIn as jest.Mock) = mockRecordLogIn;
+    const response = await user.login(context);
     expect(response).not.toBeNull();
     expect(mockDebug).toHaveBeenCalledTimes(2);
     expect(mockError).toHaveBeenCalledTimes(0);
@@ -321,7 +381,7 @@ describe('login()', () => {
   it('should return an error when authCheck does not return a userId', async () => {
     mockAuthCheck.mockReturnValue(null);
     const user = new User({ email: 'example.com', password: '@bcd3fGhijklmnop' });
-    const response = await user.login();
+    const response = await user.login(context);
     expect(response).toBe(null);
   });
 
@@ -330,7 +390,7 @@ describe('login()', () => {
       throw new Error('Testing error handler');
     });
     const user = new User({ email: 'test.user@example.com', password: 'AbcdefgH1!' });
-    const response = await user.login();
+    const response = await user.login(context);
     expect(response).toBeNull();
     expect(mockError).toHaveBeenCalledTimes(1);
   });
@@ -419,5 +479,61 @@ describe('register()', () => {
     const response = await user.register();
     expect(response).toBeInstanceOf(User);
     expect((response as User).errors.length > 0).toBe(true);
+  });
+});
+
+describe('update', () => {
+  let context;
+  let updateQuery;
+  let user;
+
+  beforeEach(() => {
+    context = buildContext(logger, mockToken());
+
+    updateQuery = jest.fn();
+    (User.update as jest.Mock) = updateQuery;
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+  });
+
+  it('returns the User without errors if it is valid', async () => {
+    const localValidator = jest.fn();
+    (user.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    expect(await user.update(context)).toBe(user);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an error if the User has no id', async () => {
+    const localValidator = jest.fn();
+    (user.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    user.id = null;
+    const result = await user.update(context);
+    expect(result.errors.length).toBe(1);
+    expect(result.errors[0]).toEqual('User has never been saved');
+  });
+
+  it('returns the updated User', async () => {
+    const localValidator = jest.fn();
+    (user.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    const mockFindById = jest.fn();
+    (User.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(user);
+
+    const result = await user.update(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(user);
   });
 });

@@ -6,6 +6,8 @@ import { generalConfig } from '../../config/generalConfig';
 import { signinController } from '../signinController';
 import * as UserModel from '../../models/User';
 import { defaultLanguageId } from '../../models/Language';
+import { getRandomEnumValue } from '../../__tests__/helpers';
+import { getCurrentDate } from '../../utils/helpers';
 
 // Mocking external dependencies
 jest.mock('../../datasources/cache');
@@ -22,15 +24,30 @@ const mockedUser: UserModel.User = {
   password: casual.uuid,
   acceptedTerms: true,
   languageId: defaultLanguageId,
+  orcid: casual.url,
+  ssoId: casual.uuid,
+  locked: false,
+  active: true,
+  notify_on_comment_added: casual.boolean,
+  notify_on_template_shared: casual.boolean,
+  notify_on_feedback_complete: casual.boolean,
+  notify_on_plan_shared: casual.boolean,
+  notify_on_plan_visibility_change: casual.boolean,
+  last_sign_in: getCurrentDate(),
+  last_sign_in_via: getRandomEnumValue(UserModel.LogInType),
+  failed_sign_in_attemps: 0,
   created: new Date().toISOString(),
+  tableName: 'testUsers',
   errors: [],
 
+  recordLogIn: jest.fn(),
   isValid: jest.fn(),
   validatePassword: jest.fn(),
   hashPassword: jest.fn(),
   cleanup: jest.fn(),
   login: jest.fn(),
   register: jest.fn(),
+  update: jest.fn(),
 };
 
 jest.mock('../../models/User');
@@ -73,7 +90,6 @@ describe('signinController', () => {
     });
 
     await signinController(mockRequest as Request, mockResponse as Response);
-
     expect(generateAuthTokens).toHaveBeenCalledWith(mockCache, mockedUser);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token', generalConfig.jwtTTL);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspr', 'new-refresh-token', generalConfig.jwtRefreshTTL);

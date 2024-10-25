@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { capitalizeFirstLetter, validateEmail, validateURL } from '../utils/helpers';
+import { capitalizeFirstLetter, getCurrentDate, validateEmail, validateURL } from '../utils/helpers';
 import { buildContext } from '../context';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
@@ -13,17 +13,41 @@ export enum UserRole {
   SUPERADMIN = 'SUPERADMIN',
 }
 
+export enum LogInType {
+  PASSWORD = 'PASSWORD',
+  SSO = 'SSO',
+}
+
+export enum InvitedToType {
+  PLAN = 'PLAN',
+  TEMPLATE = 'TEMPLATE',
+}
 export class User extends MySqlModel {
   public email: string;
   public password: string;
   public role: UserRole;
   public givenName?: string;
   public surName?: string;
-  // TODO: Make this required once we build out the signup page
-  public affiliationId?: string;
+  public affiliationId: string;
   public acceptedTerms: boolean;
   public orcid?: string;
+  public ssoId?: string;
   public languageId: string;
+
+  public last_sign_in?: string;
+  public last_sign_in_via?: LogInType;
+  public failed_sign_in_attemps?: number;
+
+  public notify_on_comment_added?: boolean;
+  public notify_on_template_shared?: boolean;
+  public notify_on_feedback_complete?: boolean;
+  public notify_on_plan_shared?: boolean;
+  public notify_on_plan_visibility_change?: boolean;
+
+  public locked?: boolean;
+  public active?: boolean;
+
+  public tableName = 'users';
 
   // Initialize a new User
   constructor(options) {
@@ -35,10 +59,18 @@ export class User extends MySqlModel {
     this.givenName = options.givenName;
     this.surName = options.surName;
     this.orcid = options.orcid;
-    // TODO: Remove this hard-coded UCOP default once we build out the signup page
-    this.affiliationId = options.affiliationId || 'https://ror.org/00dmfq477';
+    this.ssoId = options.ssoId;
+    this.affiliationId = options.affiliationId;
     this.acceptedTerms = options.acceptedTerms;
     this.languageId = options.languageId || defaultLanguageId;
+    this.failed_sign_in_attemps = options.failed_sign_in_attemps || 0;
+    this.locked = options.locked || false;
+    this.active = options.active || true;
+    this.notify_on_comment_added = options.notify_on_comment_added || true;
+    this.notify_on_template_shared = options.notify_on_template_shared || true;
+    this.notify_on_feedback_complete = options.notify_on_feedback_complete || true;
+    this.notify_on_plan_shared = options.notify_on_plan_shared || true;
+    this.notify_on_plan_visibility_change = options.notify_on_plan_visibility_change || true;
 
     this.cleanup();
   }
@@ -162,8 +194,23 @@ export class User extends MySqlModel {
     return await User.query(context, sql, [affiliationId], reference);
   }
 
+  // Update the last_login fields
+  async recordLogIn(context: MyContext, loginType: LogInType): Promise<boolean> {
+    if (this.id) {
+      this.last_sign_in = getCurrentDate();
+      this.last_sign_in_via = loginType;
+
+      if (await User.update(context, this.tableName, this, 'User.recordLogIn', [], true)) {
+        return true;
+      }
+    }
+    // This recordSignIn could not update the record for some reason
+    formatLogMessage(context.logger).error(null, `recordSignIn failed for user ${this.id}`);
+    return false;
+  }
+
   // Login making sure that the passwords match
-  async login(): Promise<User> {
+  async login(context: MyContext): Promise<User> {
     this.cleanup();
 
     if (!validateEmail(this.email) || !this.validatePassword()) {
@@ -171,12 +218,16 @@ export class User extends MySqlModel {
     }
 
     try {
-      const context = buildContext(logger);
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const userId = await User.authCheck('User.login', context, this.email, this.password);
 
       if (userId) {
-        return await User.findById('User.login', context, userId) || null;
+        const user = await User.findById('User.login', context, userId) || null;
+
+        // Update the User's last_sign_in fields
+        if (await user.recordLogIn(context, LogInType.PASSWORD)) {
+          return user;
+        }
       }
       return null;
     } catch (err) {
@@ -223,5 +274,59 @@ export class User extends MySqlModel {
       formatLogMessage(logger)?.debug(`Invalid user: ${this.email}`);
       return this;
     }
+  }
+
+  // Save the changes made to the User
+  async update(context: MyContext): Promise<User> {
+    if (await this.isValid()) {
+      if (this.id) {
+        await User.update(context, this.tableName, this, 'User.update');
+        return await User.findById('User.update', context, this.id);
+      }
+      // This user has never been saved before so we cannot update it!
+      this.errors.push('User has never been saved');
+    }
+    return this;
+  }
+}
+
+// Reepresents one of the user's email addresses
+export class UserEmail extends MySqlModel {
+  public userId: number;
+  public email: string;
+  public primary: boolean;
+  public confirmed: boolean;
+
+  private tableName = 'userEmails';
+
+  // Initialize a new User
+  constructor(options) {
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+
+    this.userId = options.userId;
+    this.email = options.email;
+    this.primary = options.primary || false;
+    this.confirmed = options.confirmed || false;
+  }
+}
+
+// Represents an open invitation for the user to contribute to a Plan or Template
+// once the user creates an account, these are converted into Collaborator records
+export class UserInvitation extends MySqlModel {
+  public email: string;
+  public invtitedById: number;
+  public invitedToId: number;
+  public invitedToType: InvitedToType
+
+  private tableName = 'userInvitations';
+
+  // Initialize a new User
+  constructor(options) {
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+
+    this.email = options.email;
+    this.invtitedById = options.invtitedById;
+    this.invitedToId = options.invitedToId;
+    this.invitedToType = options.invitedToType;
   }
 }
