@@ -1,6 +1,7 @@
 import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
+import { defaultLanguageId } from "./Language";
 
 export enum TemplateVersionType {
   DRAFT = 'DRAFT',
@@ -23,6 +24,7 @@ export class VersionedTemplate extends MySqlModel {
 
   public visibility: TemplateVisibility;
   public bestPractice: boolean;
+  public languageId: string;
 
   private tableName = 'versionedTemplates';
 
@@ -43,6 +45,7 @@ export class VersionedTemplate extends MySqlModel {
 
     this.visibility = options.visibility || TemplateVisibility.PRIVATE;
     this.bestPractice = options.bestPractice || false;
+    this.languageId = options.languageId || defaultLanguageId;
   }
 
   // Validation to be used prior to saving the record
