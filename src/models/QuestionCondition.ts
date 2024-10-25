@@ -16,7 +16,7 @@ export enum QuestionConditionCondition {
 export class QuestionCondition extends MySqlModel {
   public questionId: number;
   public action: QuestionConditionActionType;
-  public condition: QuestionConditionCondition;
+  public conditionType: QuestionConditionCondition;
   public conditionMatch?: string;
   public target: string;
 
@@ -27,7 +27,7 @@ export class QuestionCondition extends MySqlModel {
 
     this.questionId = options.questionId;
     this.action = options.action || QuestionConditionActionType.SHOW_QUESTION;
-    this.condition = options.condition || QuestionConditionCondition.EQUAL;
+    this.conditionType = options.conditionType || QuestionConditionCondition.EQUAL;
     this.conditionMatch = options.conditionMatch;
     this.target = options.target;
   }
@@ -41,8 +41,8 @@ export class QuestionCondition extends MySqlModel {
     if (!this.action) {
       this.errors.push('Action can\'t be blank');
     }
-    if (!this.condition) {
-      this.errors.push('Condition can\'t be blank');
+    if (!this.conditionType) {
+      this.errors.push('Condition Type can\'t be blank');
     }
     if (!this.target) {
       this.errors.push('Target can\'t be blank');

@@ -12,8 +12,6 @@ describe('QuestionCondition', () => {
 
   const questionConditionData = {
     questionId: casual.integer(1, 999),
-    action: 'SHOW_QUESTION',
-    condition: 'EQUAL',
     conditionMatch: casual.words(3),
     target: casual.word,
   }
@@ -24,7 +22,7 @@ describe('QuestionCondition', () => {
   it('should initialize options as expected', () => {
     expect(questionCondition.questionId).toEqual(questionConditionData.questionId);
     expect(questionCondition.action).toEqual(QuestionConditionActionType.SHOW_QUESTION);
-    expect(questionCondition.condition).toEqual(QuestionConditionCondition.EQUAL);
+    expect(questionCondition.conditionType).toEqual(QuestionConditionCondition.EQUAL);
     expect(questionCondition.conditionMatch).toEqual(questionConditionData.conditionMatch);
     expect(questionCondition.target).toEqual(questionConditionData.target);
   });
@@ -53,7 +51,7 @@ describe('findBy Queries', () => {
       id: casual.integer(1, 9),
       questionId: casual.integer(1, 999),
       action: getRandomEnumValue(QuestionConditionActionType),
-      condition: getRandomEnumValue(QuestionConditionCondition),
+      conditionType: getRandomEnumValue(QuestionConditionCondition),
       conditionMatch: casual.words(5),
       target: casual.integer(1, 9999).toString(),
     })
@@ -114,7 +112,7 @@ describe('create', () => {
       id: casual.integer(1, 9),
       questionId: casual.integer(1, 999),
       action: getRandomEnumValue(QuestionConditionActionType),
-      condition: getRandomEnumValue(QuestionConditionCondition),
+      conditionType: getRandomEnumValue(QuestionConditionCondition),
       conditionMatch: casual.words(5),
       target: casual.integer(1, 9999).toString(),
     })
@@ -146,10 +144,10 @@ describe('create', () => {
     expect(response.errors[0]).toBe('Action can\'t be blank');
   });
 
-  it('returns the QuestionCondition with an error if condition is undefined', async () => {
-    questionCondition.condition = undefined;
+  it('returns the QuestionCondition with an error if conditionType is undefined', async () => {
+    questionCondition.conditionType = undefined;
     const response = await questionCondition.create(context);
-    expect(response.errors[0]).toBe('Condition can\'t be blank');
+    expect(response.errors[0]).toBe('Condition Type can\'t be blank');
   });
 
   it('returns the QuestionCondition with an error if target is undefined', async () => {
@@ -188,7 +186,7 @@ describe('update', () => {
       id: casual.integer(1, 9),
       questionId: casual.integer(1, 999),
       action: getRandomEnumValue(QuestionConditionActionType),
-      condition: getRandomEnumValue(QuestionConditionCondition),
+      conditionType: getRandomEnumValue(QuestionConditionCondition),
       conditionMatch: casual.words(5),
       target: casual.integer(1, 9999).toString(),
     })
@@ -235,7 +233,7 @@ describe('delete', () => {
       id: casual.integer(1, 9),
       questionId: casual.integer(1, 999),
       action: getRandomEnumValue(QuestionConditionActionType),
-      condition: getRandomEnumValue(QuestionConditionCondition),
+      conditionType: getRandomEnumValue(QuestionConditionCondition),
       conditionMatch: casual.words(5),
       target: casual.integer(1, 9999).toString(),
     })

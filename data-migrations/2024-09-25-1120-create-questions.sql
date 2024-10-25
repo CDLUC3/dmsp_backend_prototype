@@ -29,7 +29,7 @@ CREATE TABLE `questionConditions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `questionId` INT NOT NULL,
   `action` VARCHAR(255) NOT NULL DEFAULT 'SHOW_QUESTION',
-  `condition` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
+  `conditionType` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
   `conditionMatch` VARCHAR(255),
   `target` VARCHAR(255) NOT NULL,
   `createdById` INT NOT NULL,

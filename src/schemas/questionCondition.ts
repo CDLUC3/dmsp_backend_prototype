@@ -59,8 +59,8 @@ export const typeDefs = gql`
     questionId: Int!
     "The action to take on a QuestionCondition"
     action: QuestionConditionActionType!
-    "The condition in which to take the action"
-    condition: QuestionConditionCondition!
+    "The type of condition in which to take the action"
+    conditionType: QuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
     conditionMatch: String
     "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"

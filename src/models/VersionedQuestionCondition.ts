@@ -6,7 +6,7 @@ export class VersionedQuestionCondition extends MySqlModel {
   public versionedQuestionId: number;
   public questionConditionId: number;
   public action: QuestionConditionActionType;
-  public condition: QuestionConditionCondition;
+  public conditionType: QuestionConditionCondition;
   public conditionMatch?: string;
   public target: string;
 
@@ -18,7 +18,7 @@ export class VersionedQuestionCondition extends MySqlModel {
     this.versionedQuestionId = options.versionedQuestionId;
     this.questionConditionId = options.questionConditionId;
     this.action = options.action;
-    this.condition = options.condition;
+    this.conditionType = options.conditionType;
     this.conditionMatch = options.conditionMatch;
     this.target = options.target;
   }
@@ -36,8 +36,8 @@ export class VersionedQuestionCondition extends MySqlModel {
     if (!this.action) {
       this.errors.push('Action can\'t be blank');
     }
-    if (!this.condition) {
-      this.errors.push('Condition text by can\'t be blank');
+    if (!this.conditionType) {
+      this.errors.push('Condition Type by can\'t be blank');
     }
     if (!this.target) {
       this.errors.push('Target text by can\'t be blank');

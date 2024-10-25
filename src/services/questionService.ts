@@ -164,7 +164,7 @@ export const generateQuestionConditionVersion = async (
     versionedQuestionId,
     questionConditionId: questionCondition.id,
     action: questionCondition.action,
-    condition: questionCondition.condition,
+    conditionType: questionCondition.conditionType,
     conditionMatch: questionCondition.conditionMatch,
     target: questionCondition.target,
   });

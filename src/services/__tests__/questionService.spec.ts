@@ -388,7 +388,7 @@ describe('generateQuestionConditionVersion', () => {
         id: casual.integer(1, 99),
         questionId: casual.integer(1, 99),
         action: getRandomEnumValue(QuestionConditionActionType),
-        condition: getRandomEnumValue(QuestionConditionCondition),
+        conditionType: getRandomEnumValue(QuestionConditionCondition),
         conditionMatch: casual.words(2),
         target: casual.words(3),
         createdById: casual.integer(1, 999),
@@ -511,7 +511,7 @@ describe('generateQuestionConditionVersion', () => {
     expect(newVersion.modifiedById).toEqual(context.token.id);
     expect(newVersion.versionedQuestionId).toEqual(versionedQuestionId);
     expect(newVersion.action).toEqual(questionCondition.action);
-    expect(newVersion.condition).toEqual(questionCondition.condition);
+    expect(newVersion.conditionType).toEqual(questionCondition.conditionType);
     expect(newVersion.conditionMatch).toEqual(questionCondition.conditionMatch);
     expect(newVersion.target).toEqual(questionCondition.target);
   });
