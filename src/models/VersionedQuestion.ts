@@ -34,6 +34,8 @@ export class VersionedQuestion extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
+// console.log('Done with MySQLModel validation check')
+
     if (!this.versionedTemplateId) {
       this.errors.push('Versioned Template can\'t be blank');
     }
@@ -49,15 +51,25 @@ export class VersionedQuestion extends MySqlModel {
     if (!this.questionText) {
       this.errors.push('Question text by can\'t be blank');
     }
+
+// console.log('ERRORS:')
+// console.log(this.errors)
+
     return this.errors.length <= 0;
   }
 
   // Insert the new record
   async create(context: MyContext): Promise<VersionedQuestion> {
+
+console.log('VersionedQuestion validation check')
+
     // First make sure the record is valid
     if (await this.isValid()) {
+
+console.log('Not getting here in time!')
+
       // Save the record and then fetch it
-      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create', ['tableName']);
+      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create');
       return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
     }
     // Otherwise return as-is with all the errors

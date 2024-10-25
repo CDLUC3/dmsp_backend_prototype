@@ -79,7 +79,7 @@ export class Section extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await Section.update(context, this.tableName, this, 'Section.update', ['tableName', 'tags']);
+        await Section.update(context, this.tableName, this, 'Section.update', ['tags']);
         return await Section.findById('Section.update', context, id);
       }
       // This template has never been saved before so we cannot update it!

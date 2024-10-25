@@ -22,7 +22,7 @@ export function capitalizeFirstLetter(str: string): string {
 }
 
 // Date validation
-export function validateDate(date: string): boolean {
+export async function validateDate(date: string): Promise<boolean> {
   return date !== null && !isNaN(new Date(date).getTime());
 }
 

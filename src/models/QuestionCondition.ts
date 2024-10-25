@@ -55,7 +55,7 @@ export class QuestionCondition extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await QuestionCondition.insert(context, this.tableName, this, 'QuestionCondition.create', ['tableName']);
+      const newId = await QuestionCondition.insert(context, this.tableName, this, 'QuestionCondition.create');
       const response = await QuestionCondition.findById('QuestionCondition.create', context, newId);
       return response;
     }
@@ -69,7 +69,7 @@ export class QuestionCondition extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await QuestionCondition.update(context, this.tableName, this, 'QuestionCondition.update', ['tableName']);
+        await QuestionCondition.update(context, this.tableName, this, 'QuestionCondition.update');
         return await QuestionCondition.findById('QuestionCondition.update', context, id);
       }
       // This QuestionCondition has never been saved before so we cannot update it!

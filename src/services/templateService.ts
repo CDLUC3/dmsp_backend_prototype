@@ -68,12 +68,14 @@ export const generateTemplateVersion = async (
     versionedById: versionerId,
     visibility: template.visibility,
     bestPactice: template.bestPractice,
-    createdById: versionerId,
     versionType,
     comment,
     active: true,
+    createdById: template.createdById,
+    created: template.created,
+    modifiedById: template.modifiedById,
+    modified: template.modified,
   });
-
   const created = await versionedTemplate.create(context);
 
   // If the version was successfully created and there are no errors
@@ -88,7 +90,11 @@ export const generateTemplateVersion = async (
           ...section
         });
 
-        if (!await generateSectionVersion(context, sectionInstance, created.id)) {
+        const passed = await generateSectionVersion(context, sectionInstance, created.id);
+
+console.log(`SECTION PASSED? ${passed}`)
+
+        if (!passed) {
           allSectionsWereVersioned = false;
         }
       });
@@ -98,20 +104,25 @@ export const generateTemplateVersion = async (
         // Update the template's version and reset the dirty flag
         template.currentVersion = newVersion;
         template.isDirty = false;
-        const updated = await template.update(context);
+
+        // Pass the noTouch flag to avoid default behavior of setting isDirty, modified, etc.
+        const updated = await template.update(context, true);
         if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
           return created;
         } else {
           const msg = `Unable to generateTemplateVersion for template: ${template.id}, errs: ${updated.errors}`;
           formatLogMessage(logger).error(null, msg);
+          throw new Error(msg);
         }
       }
     } catch (err) {
       formatLogMessage(logger).error(err, `Unable to generateTemplateVersion for id: ${template.id}`);
+      throw new Error(err.message);
     }
   } else {
-    const msg = `Unable to generateTemplateVersion for template: ${template.id}, errs: ${created.errors}`;
+    const msg = `Unable to generateTemplateVersion for versionedTemplate errs: ${created.errors}`;
     formatLogMessage(logger).error(null, msg);
+    throw new Error(msg);
   }
   // Something went wrong, so return a null instead
   return null;

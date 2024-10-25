@@ -29,10 +29,13 @@ export class MySqlModel {
   //   - createdById and modifiedById should be numbers
   //   - id should be a number or null if its a new record
   async isValid(): Promise<boolean> {
-    if (!validateDate(this.created)) {
+
+// console.log('MySQLModel validation check');
+
+    if (!await validateDate(this.created)) {
       this.errors.push('Created date can\'t be blank');
     }
-    if (!validateDate(this.modified)) {
+    if (!await validateDate(this.modified)) {
       this.errors.push('Modified date can\'t be blank');
     }
     if (this.createdById === null) {
@@ -41,6 +44,9 @@ export class MySqlModel {
     if (this.modifiedById === null) {
       this.errors.push('Modified by can\'t be blank');
     }
+
+// console.log('MYSQL ERRORS')
+// console.log(this.errors)
 
     return this.errors.length <= 0;
   }
@@ -74,10 +80,10 @@ export class MySqlModel {
     }
   }
 
-  // Fetches all of the property infor for the object to faciliate inserts and updates
+  // Fetches all of the property info for the object to faciliate inserts and updates
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static propertyInfo(obj: Record<string, any>, skipKeys: string[] = []): { name: string, value: string }[] {
-    const excludedKeys = ['id', 'errors'];
+    const excludedKeys = ['id', 'errors', 'tableName'];
     return Object.keys(obj)
       .filter((key) => ![...excludedKeys, ...skipKeys]
         .includes(key)).map((key) => ({
@@ -165,7 +171,6 @@ export class MySqlModel {
 
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj, skipKeys);
-
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
@@ -188,13 +193,16 @@ export class MySqlModel {
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
-    skipKeys?: string[]
+    skipKeys?: string[],
+    noTouch?: boolean,
   ): Promise<MySqlModel> {
     // Update the modifier info
-    obj.modifiedById = apolloContext.token.id;
-    const currentDate = getCurrentDate();
-    obj.modified = currentDate;
-    obj.created = currentDate;
+    if (!noTouch) {
+      obj.modifiedById = apolloContext.token.id;
+      const currentDate = getCurrentDate();
+      obj.modified = currentDate;
+      obj.created = currentDate;
+    }
 
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj, skipKeys);

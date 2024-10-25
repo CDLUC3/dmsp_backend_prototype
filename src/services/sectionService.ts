@@ -34,6 +34,10 @@ export const generateSectionVersion = async (
     guidance: section.guidance,
     displayOrder: section.displayOrder,
     tags: section.tags,
+    createdById: section.createdById,
+    created: section.created,
+    modifiedById: section.modifiedById,
+    modified: section.modified,
   });
 
   try {
@@ -49,7 +53,11 @@ export const generateSectionVersion = async (
         const questionInstance = new Question({
           ...question
         });
-        if (!await generateQuestionVersion(context, questionInstance, versionedTemplateId, created.id)) {
+        const passed = await generateQuestionVersion(context, questionInstance, versionedTemplateId, created.id);
+
+console.log(`QUESTION PASSED: ${passed}`);
+
+        if (!passed) {
           allQuestionsWereVersioned = false;
         }
       });
@@ -64,14 +72,17 @@ export const generateSectionVersion = async (
         } else {
           const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${updated.errors}`;
           formatLogMessage(logger).error(null, msg);
+          throw new Error(msg);
         }
       }
     } else {
-      const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${created.errors}`;
+      const msg = `Unable to generateSectionVersion for versionedSection errs: ${created.errors}`;
       formatLogMessage(logger).error(null, msg);
+      throw new Error(msg);
     }
   } catch (err) {
     formatLogMessage(logger).error(err, `Unable to generateSectionVersion for section: ${section.id}`);
+    throw err;
   }
 
   return false;
