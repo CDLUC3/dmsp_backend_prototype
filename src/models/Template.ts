@@ -88,7 +88,7 @@ export class Template extends MySqlModel {
     if (await this.isValid()) {
       if (id) {
         // if the template is versioned then set the isDirty flag
-        if (this.currentVersion && !noTouch) {
+        if (this.currentVersion && noTouch !== true) {
           this.isDirty = true;
         }
 

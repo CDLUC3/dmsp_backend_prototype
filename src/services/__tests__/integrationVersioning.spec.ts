@@ -108,9 +108,6 @@ describe('Integration test: Template Versioning', () => {
 
     // Fetch an item from the versionedQuestionStore
     mockFindVersionedQuestionById = jest.fn().mockImplementation(async (_, __, id) => {
-
-console.log(`FINDING VersionedQuestion by Id: ${id}`)
-
       return versionedQuestionStore.find((entry) => { return entry.id === id });
     });
 
@@ -128,8 +125,6 @@ console.log(`FINDING VersionedQuestion by Id: ${id}`)
       obj.createdById = userId;
       obj.modifed = tstamp;
       obj.modifiedById = userId;
-
-console.log(`INSERT MOCK CALLED FOR TABLE: ${table}`);
 
       switch(table) {
         case 'templates': {
@@ -397,7 +392,7 @@ console.log(`INSERT MOCK CALLED FOR TABLE: ${table}`);
     jest.clearAllMocks();
   })
 
-  it.only('can version a Template for the first time', async () => {
+  it('can version a Template for the first time', async () => {
     const tmplt = templateStore[0];
     const firstVersion = await generateTemplateVersion(
       context,
@@ -407,17 +402,6 @@ console.log(`INSERT MOCK CALLED FOR TABLE: ${table}`);
       getRandomEnumValue(TemplateVersionType),
     );
 
-console.log('FIRST')
-console.log(firstVersion)
-
-console.log('Mock Store entries after 1st version:')
-console.log(versionedTemplateStore)
-console.log(versionedSectionStore)
-console.log(versionedQuestionStore)
-console.log(versionedQuestionConditionStore)
-
-console.log(sectionStore)
-
     expect(firstVersion.version).toEqual('v1');
     expect(versionedTemplateStore.length).toBe(1);
     expect(versionedSectionStore.length).toBe(2);
@@ -425,10 +409,10 @@ console.log(sectionStore)
     expect(versionedQuestionStore.length).toBe(3);
     expect(versionedQuestionStore[0].versionedSectionId).toEqual(versionedSectionStore[0].id);
     expect(versionedQuestionConditionStore.length).toBe(2);
-    expect(versionedQuestionConditionStore[0].versionedQuestionId).toEqual(versionedQuestionStore[0].id);
+    expect(versionedQuestionConditionStore[0].versionedQuestionId).toEqual(versionedQuestionStore[1].id);
   });
 
-  it('can version a Template multiple times', async () => {
+  it.only('can version a Template multiple times', async () => {
     const tmplt = templateStore[0];
     const firstVersion = await generateTemplateVersion(
       context,
@@ -450,9 +434,12 @@ console.log(sectionStore)
       getRandomEnumValue(TemplateVersionType),
     );
     expect(secondVersion.version).toEqual('v2');
-    expect(versionedTemplateStore.length).toBe(1);
-    expect(versionedSectionStore.length).toBe(2);
-    expect(versionedQuestionStore.length).toBe(3);
-    expect(versionedQuestionConditionStore.length).toBe(1);
+    expect(versionedTemplateStore.length).toBe(2);
+    expect(versionedSectionStore.length).toBe(4);
+    expect(versionedSectionStore[3].versionedTemplateId).toEqual(versionedTemplateStore[1].id);
+    expect(versionedQuestionStore.length).toBe(6);
+    expect(versionedQuestionStore[5].versionedSectionId).toEqual(versionedSectionStore[3].id);
+    expect(versionedQuestionConditionStore.length).toBe(3);
+    expect(versionedQuestionConditionStore[2].versionedQuestionId).toEqual(versionedQuestionStore[4].id);
   });
 });

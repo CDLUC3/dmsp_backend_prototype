@@ -49,25 +49,23 @@ export const generateSectionVersion = async (
       const questions = await Question.findBySectionId('generateSectionVersion', context, section.id);
       let allQuestionsWereVersioned = true;
 
-      questions.forEach(async (question) => {
+      for (const question of questions) {
         const questionInstance = new Question({
           ...question
         });
         const passed = await generateQuestionVersion(context, questionInstance, versionedTemplateId, created.id);
-
-console.log(`QUESTION PASSED: ${passed}`);
-
         if (!passed) {
           allQuestionsWereVersioned = false;
         }
-      });
+      }
 
       // Only continue if all the associated questions were properly versioned
       if (allQuestionsWereVersioned) {
         // Reset the dirty flag on the section and save it
         section.isDirty = false;
-        const updated = await section.update(context);
-        if (updated && updated.errors?.length <= 0) {
+        const updated = await section.update(context, true);
+
+        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
           return true;
         } else {
           const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${updated.errors}`;

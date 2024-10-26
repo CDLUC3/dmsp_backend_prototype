@@ -85,19 +85,16 @@ export const generateTemplateVersion = async (
     try {
       let allSectionsWereVersioned = true;
 
-      sections.forEach(async (section) => {
+      for (const section of sections) {
         const sectionInstance = new Section({
           ...section
         });
 
         const passed = await generateSectionVersion(context, sectionInstance, created.id);
-
-console.log(`SECTION PASSED? ${passed}`)
-
         if (!passed) {
           allSectionsWereVersioned = false;
         }
-      });
+      }
 
       // Only continue if all of the sections were properly versioned
       if (allSectionsWereVersioned) {

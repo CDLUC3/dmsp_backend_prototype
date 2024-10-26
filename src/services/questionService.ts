@@ -54,41 +54,33 @@ export const generateQuestionVersion = async (
   });
 
   try {
-
-console.log('Pre VersionedQuestion create')
-
     const saved = await versionedQuestion.create(context);
-
-console.log('Post VersionedQuestion create')
 
     if (saved && (!saved.errors || (Array.isArray(saved.errors) && saved.errors.length === 0))) {
       // Version any QuestionConditions as well
       const questionConditions = await QuestionCondition.findByQuestionId('generateQuestionVersion', context, saved.questionId);
       let allConditionsWereVersioned = true;
-/*
+
       if (questionConditions.length > 0) {
-        questionConditions.forEach(async (condition) => {
+        for (const condition of questionConditions) {
           const questionConditionInstance = new QuestionCondition({
             ...condition
           });
 
           const passed = await generateQuestionConditionVersion(context, questionConditionInstance, saved.id);
-
-console.log(`CONDTION PASSED: ${passed}`);
-
           if (!passed) {
             // If one of the conditions failed to version
             allConditionsWereVersioned = false;
           }
-        });
+        }
       }
-*/
+
 
       // Only proceed if all the conditions were able to version properly
       if (allConditionsWereVersioned) {
         // Reset the dirty flag
         question.isDirty = false;
-        const updated = await question.update(context);
+        const updated = await question.update(context, true);
 
         if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
           return true;
@@ -106,10 +98,6 @@ console.log(`CONDTION PASSED: ${passed}`);
       throw new Error(msg);
     }
   } catch (err) {
-
-console.log('Error was thrown')
-console.log(err.message)
-
     formatLogMessage(logger).error(err, `Unable to generateQuestionVersion for question: ${question.id}`);
     throw err
   }

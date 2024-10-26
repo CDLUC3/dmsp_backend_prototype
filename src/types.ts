@@ -745,7 +745,7 @@ export type QueryUserArgs = {
 export type Question = {
   __typename?: 'Question';
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The display order of the question */
@@ -759,7 +759,7 @@ export type Question = {
   /** Whether or not the Question has had any changes since the related template was last published */
   isDirty?: Maybe<Scalars['Boolean']['output']>;
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The conditional logic triggered by this question */
@@ -795,7 +795,7 @@ export type QuestionCondition = {
   /** The type of condition in which to take the action */
   conditionType: QuestionConditionCondition;
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** Errors associated with the Object */
@@ -803,7 +803,7 @@ export type QuestionCondition = {
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The question id that the QuestionCondition belongs to */
@@ -836,7 +836,7 @@ export type QuestionConditionCondition =
 export type QuestionType = {
   __typename?: 'QuestionType';
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** Errors associated with the Object */
@@ -846,7 +846,7 @@ export type QuestionType = {
   /** Whether or not this is the default question type */
   isDefault: Scalars['Boolean']['output'];
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name of the QuestionType, like 'Short text question' */
@@ -1095,7 +1095,7 @@ export type User = {
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The user's preferred language */
-  languageId?: Maybe<Scalars['String']['output']>;
+  languageId: Scalars['String']['output'];
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
@@ -1118,7 +1118,7 @@ export type UserRole =
 export type VersionedQuestion = {
   __typename?: 'VersionedQuestion';
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The display order of the VersionedQuestion */
@@ -1130,7 +1130,7 @@ export type VersionedQuestion = {
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** Id of the original question that was versioned */
@@ -1162,7 +1162,7 @@ export type VersionedQuestionCondition = {
   /** The type of condition in which to take the action */
   conditionType: VersionedQuestionConditionCondition;
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['DateTimeISO']['output']>;
+  created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** Errors associated with the Object */
@@ -1170,7 +1170,7 @@ export type VersionedQuestionCondition = {
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['DateTimeISO']['output']>;
+  modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** Id of the original QuestionCondition */
@@ -1709,14 +1709,14 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
 };
 
 export type QuestionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Question'] = ResolversParentTypes['Question']> = {
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   displayOrder?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   guidanceText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   isDirty?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   questionConditions?: Resolver<Maybe<Array<ResolversTypes['QuestionCondition']>>, ParentType, ContextType>;
   questionText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1734,11 +1734,11 @@ export type QuestionConditionResolvers<ContextType = MyContext, ParentType exten
   action?: Resolver<ResolversTypes['QuestionConditionActionType'], ParentType, ContextType>;
   conditionMatch?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   conditionType?: Resolver<ResolversTypes['QuestionConditionCondition'], ParentType, ContextType>;
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   questionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   target?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1746,12 +1746,12 @@ export type QuestionConditionResolvers<ContextType = MyContext, ParentType exten
 };
 
 export type QuestionTypeResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['QuestionType'] = ResolversParentTypes['QuestionType']> = {
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   usageDescription?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1857,7 +1857,7 @@ export type UserResolvers<ContextType = MyContext, ParentType extends ResolversP
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  languageId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  languageId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
@@ -1867,13 +1867,13 @@ export type UserResolvers<ContextType = MyContext, ParentType extends ResolversP
 };
 
 export type VersionedQuestionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedQuestion'] = ResolversParentTypes['VersionedQuestion']> = {
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   displayOrder?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   guidanceText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   questionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   questionText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -1891,11 +1891,11 @@ export type VersionedQuestionConditionResolvers<ContextType = MyContext, ParentT
   action?: Resolver<ResolversTypes['VersionedQuestionConditionActionType'], ParentType, ContextType>;
   conditionMatch?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   conditionType?: Resolver<ResolversTypes['VersionedQuestionConditionCondition'], ParentType, ContextType>;
-  created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   questionConditionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   target?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
