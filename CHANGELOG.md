@@ -1,4 +1,5 @@
 ### Added
+- Added data-fns package to help with Date validation and formatting
 - Added Language model, resolver and type. Added LanguageId to User and Template
 - Built Question resolvers and models(#13)
 - Fixed some bugs to allow frontend to access token change(Frontend #116)

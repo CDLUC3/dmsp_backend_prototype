@@ -412,7 +412,7 @@ describe('Integration test: Template Versioning', () => {
     expect(versionedQuestionConditionStore[0].versionedQuestionId).toEqual(versionedQuestionStore[1].id);
   });
 
-  it.only('can version a Template multiple times', async () => {
+  it('can version a Template multiple times', async () => {
     const tmplt = templateStore[0];
     const firstVersion = await generateTemplateVersion(
       context,
