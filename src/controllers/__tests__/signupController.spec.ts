@@ -5,6 +5,7 @@ import { generateAuthTokens, setTokenCookie } from '../../services/tokenService'
 import { generalConfig } from '../../config/generalConfig';
 import * as UserModel from '../../models/User';
 import { signupController } from '../signupController';
+import { defaultLanguageId } from '../../models/Language';
 
 // Mocking external dependencies
 jest.mock('../../datasources/cache');
@@ -19,6 +20,7 @@ const mockedUser: UserModel.User = {
   affiliationId: casual.url,
   role: UserModel.UserRole.RESEARCHER,
   acceptedTerms: true,
+  languageId: defaultLanguageId,
   password: casual.uuid,
   created: new Date().toISOString(),
   errors: [],

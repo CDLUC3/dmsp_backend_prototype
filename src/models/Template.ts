@@ -1,5 +1,6 @@
 import { MyContext } from "../context";
 import { TemplateCollaborator } from "./Collaborator";
+import { defaultLanguageId, supportedLanguages } from "./Language";
 import { MySqlModel } from "./MySqlModel";
 
 export enum TemplateVisibility {
@@ -17,6 +18,7 @@ export class Template extends MySqlModel {
   public currentVersion?: string;
   public isDirty: boolean;
   public bestPractice: boolean;
+  public languageId: string;
 
   private tableName = 'templates';
 
@@ -31,6 +33,14 @@ export class Template extends MySqlModel {
     this.currentVersion = options.currentVersion || '';
     this.isDirty = options.isDirty || true;
     this.bestPractice = options.bestPractice || false;
+    this.languageId = options.languageId || defaultLanguageId;
+  }
+
+  // Ensure data integrity
+  cleanup() {
+    if (!supportedLanguages.map((l) => l.id).includes(this.languageId)){
+      this.languageId = defaultLanguageId;
+    }
   }
 
   // Validation to be used prior to saving the record
@@ -60,6 +70,7 @@ export class Template extends MySqlModel {
       if (current) {
         this.errors.push('Template with this name already exists');
       } else {
+        this.cleanup();
         // Save the record and then fetch it
         const newId = await Template.insert(context, this.tableName, this, 'Template.create');
         return await Template.findById('Template.create', context, newId);

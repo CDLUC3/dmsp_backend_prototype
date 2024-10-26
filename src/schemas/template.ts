@@ -61,6 +61,8 @@ export const typeDefs = gql`
     bestPractice: Boolean!
     "The Sections associated with the template"
     sections: [Section]
+    "The template's language"
+    languageId: String!
 
     "Users from different affiliations who have been invited to collaborate on this template"
     collaborators: [TemplateCollaborator!]
