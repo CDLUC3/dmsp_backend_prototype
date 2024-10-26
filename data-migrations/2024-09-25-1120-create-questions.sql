@@ -62,7 +62,7 @@ CREATE TABLE `versionedQuestions` (
   INDEX versionedQuestions_section_idx (`versionedSectionId`, `displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `versionedQuestionCondition` (
+CREATE TABLE `versionedQuestionConditions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `versionedQuestionId` INT NOT NULL,
   `questionConditionId` INT NOT NULL,

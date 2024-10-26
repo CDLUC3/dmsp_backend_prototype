@@ -29,10 +29,10 @@ export type Scalars = {
 export type AddQuestionConditionInput = {
   /** The action to take on a QuestionCondition */
   action: QuestionConditionActionType;
-  /** The condition in which to take the action */
-  condition: QuestionConditionCondition;
   /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
   conditionMatch?: InputMaybe<Scalars['String']['input']>;
+  /** The type of condition in which to take the action */
+  conditionType: QuestionConditionCondition;
   /** The id of the question that the QuestionCondition belongs to */
   questionId: Scalars['Int']['input'];
   /** The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise) */
@@ -775,10 +775,10 @@ export type QuestionCondition = {
   __typename?: 'QuestionCondition';
   /** The action to take on a QuestionCondition */
   action: QuestionConditionActionType;
-  /** The condition in which to take the action */
-  condition: QuestionConditionCondition;
   /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
   conditionMatch?: Maybe<Scalars['String']['output']>;
+  /** The type of condition in which to take the action */
+  conditionType: QuestionConditionCondition;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['DateTimeISO']['output']>;
   /** The user who created the Object */
@@ -1011,10 +1011,10 @@ export type TemplateVisibility =
 export type UpdateQuestionConditionInput = {
   /** The action to take on a QuestionCondition */
   action: QuestionConditionActionType;
-  /** The condition in which to take the action */
-  condition: QuestionConditionCondition;
   /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
   conditionMatch?: InputMaybe<Scalars['String']['input']>;
+  /** The type of condition in which to take the action */
+  conditionType: QuestionConditionCondition;
   /** The id of the QuestionCondition that will be updated */
   questionConditionId: Scalars['Int']['input'];
   /** The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise) */
@@ -1134,10 +1134,10 @@ export type VersionedQuestionCondition = {
   __typename?: 'VersionedQuestionCondition';
   /** The action to take on a QuestionCondition */
   action: VersionedQuestionConditionActionType;
-  /** The condition in which to take the action */
-  condition: VersionedQuestionConditionCondition;
   /** Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here) */
   conditionMatch?: Maybe<Scalars['String']['output']>;
+  /** The type of condition in which to take the action */
+  conditionType: VersionedQuestionConditionCondition;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['DateTimeISO']['output']>;
   /** The user who created the Object */
@@ -1696,8 +1696,8 @@ export type QuestionResolvers<ContextType = MyContext, ParentType extends Resolv
 
 export type QuestionConditionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['QuestionCondition'] = ResolversParentTypes['QuestionCondition']> = {
   action?: Resolver<ResolversTypes['QuestionConditionActionType'], ParentType, ContextType>;
-  condition?: Resolver<ResolversTypes['QuestionConditionCondition'], ParentType, ContextType>;
   conditionMatch?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  conditionType?: Resolver<ResolversTypes['QuestionConditionCondition'], ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
@@ -1849,8 +1849,8 @@ export type VersionedQuestionResolvers<ContextType = MyContext, ParentType exten
 
 export type VersionedQuestionConditionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedQuestionCondition'] = ResolversParentTypes['VersionedQuestionCondition']> = {
   action?: Resolver<ResolversTypes['VersionedQuestionConditionActionType'], ParentType, ContextType>;
-  condition?: Resolver<ResolversTypes['VersionedQuestionConditionCondition'], ParentType, ContextType>;
   conditionMatch?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  conditionType?: Resolver<ResolversTypes['VersionedQuestionConditionCondition'], ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['DateTimeISO']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
