@@ -56,6 +56,9 @@ type Question {
     sampleText: String
     "To indicate whether the question is required to be completed"
     required: Boolean
+
+    "The conditional logic triggered by this question"
+    questionConditions: [QuestionCondition!]
 }
 
 input AddQuestionInput {

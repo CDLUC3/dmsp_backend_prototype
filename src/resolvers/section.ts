@@ -7,6 +7,7 @@ import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
 import { cloneSection, hasPermissionOnSection, getTagsToAdd } from "../services/sectionService";
 import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErrors";
+import { Question } from "../models/Question";
 
 
 export const resolvers: Resolvers = {
@@ -170,10 +171,13 @@ export const resolvers: Resolvers = {
   Section: {
     // Chained resolver to fetch the Affiliation info for the user
     tags: async (parent: Section, _, context: MyContext): Promise<Tag[]> => {
-      return await Tag.getTagsBySectionId('updateSection resolver', context, parent.id);
+      return await Tag.getTagsBySectionId('Chained Section.tags', context, parent.id);
     },
     template: async (parent: Section, _, context: MyContext): Promise<Template> => {
-      return await Template.findById('template resolver', context, parent.templateId);
-    }
+      return await Template.findById('Chained Section.template', context, parent.templateId);
+    },
+    questions: async (parent: Section, _, context: MyContext): Promise<Question[]> => {
+      return await Question.findBySectionId('Chained Section.questions', context, parent.id)
+    },
   }
 };

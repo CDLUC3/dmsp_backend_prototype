@@ -41,6 +41,9 @@ type VersionedQuestion {
     sampleText: String
     "To indicate whether the question is required to be completed"
     required: Boolean
+
+    "The conditional logic associated with this VersionedQuestion"
+    versionedQuestionConditions: [VersionedQuestionCondition!]
 }
 
 

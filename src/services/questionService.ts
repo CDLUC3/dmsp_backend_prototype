@@ -65,7 +65,7 @@ console.log('Post VersionedQuestion create')
       // Version any QuestionConditions as well
       const questionConditions = await QuestionCondition.findByQuestionId('generateQuestionVersion', context, saved.questionId);
       let allConditionsWereVersioned = true;
-
+/*
       if (questionConditions.length > 0) {
         questionConditions.forEach(async (condition) => {
           const questionConditionInstance = new QuestionCondition({
@@ -82,6 +82,7 @@ console.log(`CONDTION PASSED: ${passed}`);
           }
         });
       }
+*/
 
       // Only proceed if all the conditions were able to version properly
       if (allConditionsWereVersioned) {
