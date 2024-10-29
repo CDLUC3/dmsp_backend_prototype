@@ -4,18 +4,21 @@ import { User } from '../models/User';
 import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
 import { Cache } from '../datasources/cache';
 import { generalConfig } from '../config/generalConfig';
+import { buildContext } from '../context';
 
 export const signupController = async (req: Request, res: Response) => {
   let user: User = new User(req.body);
 
   try {
-    user = await user.register() || null;
+    const cache = Cache.getInstance();
+    const context = buildContext(logger, cache);
+    user = await user.register(context) || null;
 
     if (user) {
       if (user.errors?.length >= 1) {
         res.status(400).json({ success: false, message: user.errors?.join(' | ') });
       } else {
-        const cache = Cache.getInstance();
+        // Generate the tokens
         const { accessToken, refreshToken } = await generateAuthTokens(cache, user);
 
         if (accessToken && refreshToken) {

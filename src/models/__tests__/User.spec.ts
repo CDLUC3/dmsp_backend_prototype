@@ -108,6 +108,7 @@ describe('validate a new User', () => {
       affiliationId: casual.url,
       role: UserRole.RESEARCHER,
       createdById: casual.integer(1, 999),
+      acceptedTerms: true,
     });
 
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
@@ -117,9 +118,6 @@ describe('validate a new User', () => {
 
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
-
-    // const sqlDataSource = mockDataSources.sqlDataSource;
-    // mockQuery = sqlDataSource.query as jest.MockedFunction<typeof sqlDataSource.query>;
   })
 
   afterEach(() => {
@@ -130,12 +128,12 @@ describe('validate a new User', () => {
     expect(await mockUser.isValid()).toBe(true);
   });
 
-  it('should return false when we have a new user with an invalid password', async () => {
+  it('should return false when the password is missing', async () => {
     mockQuery.mockResolvedValueOnce(null);
-    mockUser.password = 'abcde';
+    mockUser.password = null;
     expect(await mockUser.isValid()).toBe(false);
     expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Invalid password format')).toBe(true);
+    expect(mockUser.errors[0].includes('Password is required')).toBe(true);
   });
 
   it('should return false when we have an existing user', async () => {
@@ -374,6 +372,7 @@ describe('login()', () => {
     (user.recordLogIn as jest.Mock) = mockRecordLogIn;
     const response = await user.login(context);
     expect(response).not.toBeNull();
+    expect(mockRecordLogIn).toHaveBeenCalledTimes(1);
     expect(mockDebug).toHaveBeenCalledTimes(2);
     expect(mockError).toHaveBeenCalledTimes(0);
   });
@@ -397,6 +396,8 @@ describe('login()', () => {
 });
 
 describe('register()', () => {
+  let context;
+
   const bcryptSalt = jest.fn().mockReturnValue('abc');
   (bcrypt.genSalt as jest.Mock) = bcryptSalt;
 
@@ -405,6 +406,8 @@ describe('register()', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
 
     mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
     mockError = logger.error as jest.MockedFunction<typeof logger.error>;
@@ -432,11 +435,28 @@ describe('register()', () => {
       email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
-      surName: 'simple'
+      surName: 'simple',
+      affiliationId: casual.url,
+      acceptedTerms: true,
     });
+    jest.spyOn(user, 'validatePassword').mockReturnValue(true);
 
-    const response = await user.register();
+    const response = await user.register(context);
     expect(response).not.toBeNull();
+    expect(user.validatePassword).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return user object with an error if they did not accept the terms', async () => {
+    const user = new User({
+      email: 'test.user@example.com',
+      password: '@bcd3fGhijklmnop',
+      givenName: 'Test',
+      surName: 'simple',
+      affiliationId: casual.url,
+    });
+    const response = await user.register(context);
+    expect(response).toBe(user);
+    expect(response.errors).toEqual(['You must accept the terms and conditions']);
   });
 
   it('should return user object if there was an error creating user', async () => {
@@ -452,15 +472,18 @@ describe('register()', () => {
       email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
-      surName: 'simple'
+      surName: 'simple',
+      affiliationId: casual.url,
+      acceptedTerms: true
     });
 
 
-    const response = await user.register();
+    const response = await user.register(context);
     expect(response).toBe(user);
+    expect(response.errors.length > 0).toBe(true);
   });
 
-  it('should return null if there are errors validating the user', async () => {
+  it('should return the user with errors if there are errors validating the user', async () => {
     const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([{}, []]);
@@ -473,10 +496,27 @@ describe('register()', () => {
       email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
-      surName: 'simple'
+      surName: 'simple',
+      acceptedTerms: true,
     });
 
-    const response = await user.register();
+    const response = await user.register(context);
+    expect(response).toBeInstanceOf(User);
+    expect((response as User).errors.length > 0).toBe(true);
+  });
+
+  it('should return the user with errors if the terms were not accepted', async () => {
+    const user = new User({
+      email: 'test.user@example.com',
+      password: '@bcd3fGhijklmnop',
+      givenName: 'Test',
+      surName: 'simple',
+      acceptedTerms: false,
+    });
+    // First call to Mock mysql query from findByEmail()
+    mockQuery.mockResolvedValueOnce([{}, []]);
+
+    const response = await user.register(context);
     expect(response).toBeInstanceOf(User);
     expect((response as User).errors.length > 0).toBe(true);
   });
@@ -497,7 +537,8 @@ describe('update', () => {
       id: casual.integer(1, 9),
       createdById: casual.integer(1, 999),
       name: casual.sentence,
-      ownerId: casual.url,
+      affiliationId: casual.url,
+      password: 'Or1ginalPa$$2',
     })
   });
 
@@ -528,12 +569,80 @@ describe('update', () => {
 
     const mockFindById = jest.fn();
     (User.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(user);
+    mockFindById.mockResolvedValue(user);
 
     const result = await user.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(result.errors.length).toBe(0);
     expect(result).toEqual(user);
+  });
+
+  it('prevents the password from being updated', async () => {
+    const localValidator = jest.fn();
+    (user.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    const mockFindById = jest.fn();
+    (User.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValue(user);
+
+    user.password = 'N3wPa$$word1';
+    const result = await user.update(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(user);
+  });
+});
+
+describe('updatePassword', () => {
+  let context;
+  let updateQuery;
+  let user;
+  let oldPassword;
+  let newPassword;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    oldPassword = 'Test0ldP@ssw1';
+    oldPassword = 'TestN3wP@ssw2';
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      affiliationId: casual.url,
+    });
+
+    updateQuery = jest.fn().mockResolvedValue(user);
+    (User.update as jest.Mock) = updateQuery;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  })
+
+  it('returns the User without errors if it is valid and we could update the password', async () => {
+    const mockAuthCheck = jest.fn();
+    (User.authCheck as jest.Mock) = mockAuthCheck;
+    mockAuthCheck.mockResolvedValueOnce(true);
+
+    expect(await user.updatePassword(context, oldPassword, newPassword)).toBe(user);
+    expect(mockAuthCheck).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns null if the oldPassword is invalid', async () => {
+    const mockAuthCheck = jest.fn();
+    (User.authCheck as jest.Mock) = mockAuthCheck;
+    mockAuthCheck.mockResolvedValueOnce(false);
+
+    expect(await user.updatePassword(context, oldPassword, newPassword)).toBe(null);
+    expect(mockAuthCheck).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(0);
   });
 });

@@ -11,9 +11,6 @@ export const generateRandomPassword = () => {
   const chars = ['!', '@', '#', '$', '%', '^', '&', '*', '_', '+', '-', '=', '?', '~', ' '];
   // generate a random hex
   const basePwd = randomHex(24).split('');
-  for (const char of basePwd) {
-
-  }
 
   // Swap out 3 characters with special chars
   for (let i = 0; i < 3; i++) {
@@ -77,9 +74,7 @@ export const anonymizeUser = async (context: MyContext, user: User): Promise<Use
   // Deactivate the account
   user.active = false;
 
-  // Call the MySQLModel update directly to avoid the normal validations because we need to
-  // hash the password and the affiliationId will no longer match the current user's
-  const anonymized = await User.update(context, user.tableName, user, 'UserService.anonymizeUser');
+  const anonymized = await user.update(context);
 
   // If the anonymized record couldn't be saved add an error
   if (!anonymized) {

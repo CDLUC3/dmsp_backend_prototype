@@ -73,6 +73,7 @@ const mockedUser: UserModel.User = {
   login: jest.fn(),
   register: jest.fn(),
   update: jest.fn(),
+  updatePassword: jest.fn(),
 };
 
 // Mock a protected endpoint because it's easier than building the entire apollo server stack

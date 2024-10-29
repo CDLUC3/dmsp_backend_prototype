@@ -339,6 +339,7 @@ describe('findBy queries', () => {
       createdById: casual.integer(1, 999),
       templateId: casual.integer(1, 99),
       email: casual.email,
+      invitedById: casual.integer(1, 999),
     })
   });
 
@@ -391,6 +392,17 @@ describe('findBy queries', () => {
     expect(result).toEqual(null);
   });
 
+  it('findByInvitedById returns the Collaborator records', async () => {
+    localQuery.mockResolvedValueOnce([templateCollaborator]);
+
+    const invitedById = templateCollaborator.invitedById;
+    const result = await TemplateCollaborator.findByInvitedById('Test', context, invitedById);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE invitedById = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [invitedById.toString()], 'Test')
+    expect(result).toEqual([templateCollaborator]);
+  });
+
   it('findByEmail returns the Collaborator', async () => {
     localQuery.mockResolvedValueOnce([templateCollaborator]);
 
@@ -427,7 +439,6 @@ describe('findBy queries', () => {
 
   it('findByTemplateIdAndEmail returns null if there is no Collaborator', async () => {
     localQuery.mockResolvedValue([]);
-
 
     const templateId = templateCollaborator.templateId;
     const email = templateCollaborator.email;

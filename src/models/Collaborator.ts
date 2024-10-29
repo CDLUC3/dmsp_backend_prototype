@@ -165,6 +165,15 @@ export class TemplateCollaborator extends Collaborator {
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
+  static async findByInvitedById(
+    reference: string,
+    context: MyContext,
+    invitedById: number,
+  ): Promise<TemplateCollaborator[]> {
+    const sql = 'SELECT * FROM templateCollaborators WHERE invitedById = ?';
+    return await TemplateCollaborator.query(context, sql, [invitedById.toString()], reference);
+  }
+
   // Get all of the TemplateCollaborator records for the specified email
   static async findByEmail(
     reference: string,

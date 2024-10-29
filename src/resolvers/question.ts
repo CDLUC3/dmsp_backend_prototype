@@ -3,7 +3,7 @@ import { MyContext } from "../context";
 import { Question } from "../models/Question";
 import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
-import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErrors";
+import { ForbiddenError, NotFoundError, BadUserInputError } from "../utils/graphQLErrors";
 
 
 export const resolvers: Resolvers = {
@@ -60,7 +60,7 @@ export const resolvers: Resolvers = {
         // If there are errors than throw a Bad User Input error
         if (newQuestion.errors) {
           const errorMessages = newQuestion.errors.join(', ');
-          throw BadUserInput(errorMessages);
+          throw BadUserInputError(errorMessages);
         } else {
           const questionId = newQuestion.id;
 
@@ -109,7 +109,7 @@ export const resolvers: Resolvers = {
         // If there are errors than throw a Bad User Input error
         if (updatedQuestion.errors) {
           const errorMessages = updatedQuestion.errors.join(', ');
-          throw BadUserInput(errorMessages);
+          throw BadUserInputError(errorMessages);
         } else {
           // Return newly updated question
           return await Question.findById('updateQuestion resolver', context, updatedQuestion.id);
@@ -169,7 +169,7 @@ export const resolvers: Resolvers = {
         // If there are errors than throw a Bad User Input error
         if (updatedQuestionOptions.errors) {
           const errorMessages = updatedQuestionOptions.errors.join(', ');
-          throw BadUserInput(errorMessages);
+          throw BadUserInputError(errorMessages);
         } else {
           // Return newly updated question
           return await Question.findById('updateQuestionOptions resolver', context, updatedQuestionOptions.id);

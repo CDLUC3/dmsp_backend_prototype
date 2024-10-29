@@ -1,7 +1,7 @@
 import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { QuestionCondition } from "../models/QuestionCondition";
-import { NotFoundError, BadUserInput } from "../utils/graphQLErrors";
+import { NotFoundError, BadUserInputError } from "../utils/graphQLErrors";
 
 
 export const resolvers: Resolvers = {
@@ -32,7 +32,7 @@ export const resolvers: Resolvers = {
       // If there are errors than throw a Bad User Input error
       if (newQuestionCondition.errors) {
         const errorMessages = newQuestionCondition.errors.join(', ');
-        throw BadUserInput(errorMessages);
+        throw BadUserInputError(errorMessages);
       } else {
         const questionConditionId = newQuestionCondition.id;
 
@@ -70,7 +70,7 @@ export const resolvers: Resolvers = {
       // If there are errors than throw a Bad User Input error
       if (updatedQuestionCondition.errors) {
         const errorMessages = updatedQuestionCondition.errors.join(', ');
-        throw BadUserInput(errorMessages);
+        throw BadUserInputError(errorMessages);
       } else {
         // Return newly created question
         return await QuestionCondition.findById('updateQuestion resolver', context, updatedQuestionCondition.id);

@@ -6,6 +6,7 @@ import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
+import { UserEmail } from './UserEmail';
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -18,10 +19,6 @@ export enum LogInType {
   SSO = 'SSO',
 }
 
-export enum InvitedToType {
-  PLAN = 'PLAN',
-  TEMPLATE = 'TEMPLATE',
-}
 export class User extends MySqlModel {
   public email: string;
   public password: string;
@@ -103,8 +100,6 @@ export class User extends MySqlModel {
       }
       if (!this.password) {
         this.errors.push('Password is required');
-      } else {
-        this.validatePassword();
       }
       if (!validateURL(this.affiliationId)) {
         this.errors.push('Affiliation can\'t be blank');
@@ -237,9 +232,23 @@ export class User extends MySqlModel {
   }
 
   // Register the User if the data is valid
-  async register(): Promise<User> {
+  async register(context: MyContext): Promise<User> {
     this.cleanup();
     await this.isValid();
+
+    // Make sure the account does not already exist
+    const existing = await User.findByEmail('User.register', context, this.email);
+    if (existing) {
+      this.errors.push('Account already exists');
+    }
+
+    // Validate the password
+    this.validatePassword()
+
+    // Ensure that the user has accepted the terms and conditions
+    if (this.acceptedTerms !== true) {
+      this.errors.push('You must accept the terms and conditions');
+    }
 
     if (this.errors.length === 0) {
       const passwordHash = await this.hashPassword(this.password);
@@ -262,9 +271,16 @@ export class User extends MySqlModel {
 
         // Fetch the new record and blank out the password when returning so as not to expose it
         const user = await User.findById('User.register', context, result[0].insertId);
+
+        // Add the email to the UserEmail table and send out a 'please confirm' email
+        const userEmail = new UserEmail({ userId: user.id, email: user.email, primary: true });
+        if (!await userEmail.create(context)){
+          // If we couldn't add the UserEmail record, log the error but let them continue
+          formatLogMessage(context.logger).error(userEmail, `User.register - unable to add UserEmail!`);
+        }
+
         // Remove the password! No need to expose that to the caller
         user.password = null;
-
         return user;
       } catch (err) {
         formatLogMessage(logger)?.error(`Error creating User: ${this.email} - ${err.message}`);
@@ -280,7 +296,25 @@ export class User extends MySqlModel {
   async update(context: MyContext): Promise<User> {
     if (await this.isValid()) {
       if (this.id) {
-        await User.update(context, this.tableName, this, 'User.update');
+        const original = await User.findById('User.update', context, this.id);
+
+        // If the user changed their affiliationId
+        if (original.affiliationId !== this.affiliationId) {
+          // If the user is an ADMIN then demote them to RESEARCHER
+          if (this.role === UserRole.ADMIN) {
+            const msg = `User.update Admin changed affiliation so their role must change to Researcher`;
+            formatLogMessage(context.logger).info(`${msg} id: ${this.id}, email: ${this.email}`);
+            this.role = UserRole.RESEARCHER;
+          }
+
+          // Their ssoId will no longer be applicable (unless they are SUPERADMIN)
+          if (this.role !== UserRole.SUPERADMIN) {
+            this.ssoId = null;
+          }
+        }
+
+        // Don't allow password changes here
+        await User.update(context, this.tableName, this, 'User.update', ['password']);
         return await User.findById('User.update', context, this.id);
       }
       // This user has never been saved before so we cannot update it!
@@ -288,45 +322,22 @@ export class User extends MySqlModel {
     }
     return this;
   }
-}
 
-// Reepresents one of the user's email addresses
-export class UserEmail extends MySqlModel {
-  public userId: number;
-  public email: string;
-  public primary: boolean;
-  public confirmed: boolean;
+  // Function to update the user's password
+  async updatePassword(
+    context: MyContext,
+    oldPassword: string,
+    newPassword: string
+  ): Promise<User> {
+    const ref = 'User.updatePassword';
+    // First make sure the current password is valid
+    const validPassword = await User.authCheck(ref, context, this.email, oldPassword);
+    if (validPassword) {
+      this.password = await this.hashPassword(newPassword);
 
-  private tableName = 'userEmails';
-
-  // Initialize a new User
-  constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
-
-    this.userId = options.userId;
-    this.email = options.email;
-    this.primary = options.primary || false;
-    this.confirmed = options.confirmed || false;
-  }
-}
-
-// Represents an open invitation for the user to contribute to a Plan or Template
-// once the user creates an account, these are converted into Collaborator records
-export class UserInvitation extends MySqlModel {
-  public email: string;
-  public invtitedById: number;
-  public invitedToId: number;
-  public invitedToType: InvitedToType
-
-  private tableName = 'userInvitations';
-
-  // Initialize a new User
-  constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
-
-    this.email = options.email;
-    this.invtitedById = options.invtitedById;
-    this.invitedToId = options.invitedToId;
-    this.invitedToType = options.invitedToType;
+      const updated = await User.update(context, this.tableName, this, 'User.updatePassword');
+      return updated as User;
+    }
+    return null;
   }
 }

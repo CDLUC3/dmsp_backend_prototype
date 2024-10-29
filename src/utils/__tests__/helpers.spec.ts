@@ -6,6 +6,8 @@ import {
   verifyCriticalEnvVariable,
   incrementVersionNumber,
   validateURL,
+  getCurrentDate,
+  randomHex,
 } from '../helpers';
 
 describe('Date validation', () => {
@@ -133,5 +135,19 @@ describe('Version number incrementer', () => {
     expect(newVersion).toEqual('v13');
     newVersion = incrementVersionNumber('v12345');
     expect(newVersion).toEqual('v12346');
+  });
+});
+
+describe('getCurrentDate', () => {
+  it('returns a date (as string) in the expected format', () => {
+    const result = getCurrentDate();
+    expect(/[0-9]{4}-[0-9]{2}-[0-9]{2}\s([0-9]{2}:){2}[0-9]{2}/.test(result)).toBe(true);
+  });
+});
+
+describe('randomHex', () => {
+  it('returns a string in the expected format', () => {
+    const val = randomHex(32);
+    expect(/[a-z0-9]{32}/.test(val)).toBe(true);
   });
 });

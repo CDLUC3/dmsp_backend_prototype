@@ -6,6 +6,7 @@ import { anonymizeUser, generateRandomPassword, mergeUsers } from "../userServic
 import { getCurrentDate } from "../../utils/helpers";
 import { UserEmail } from "../../models/UserEmail";
 import { TemplateCollaborator } from "../../models/Collaborator";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { sendEmail } from "../emailService";
 import { defaultLanguageId } from "../../models/Language";
 import { generalConfig } from "../../config/generalConfig";
@@ -139,10 +140,12 @@ beforeEach(() => {
       case 'userEmails': {
         const obj = userEmailStore.find((e) => { return e.id === objId });
         userEmailStore.splice(userEmailStore.indexOf(obj), 1);
+        break;
       }
       case 'templateCollaborators': {
         const obj = templateCollaboratorStore.find((e) => { return e.id === objId });
         templateCollaboratorStore.splice(templateCollaboratorStore.indexOf(obj), 1);
+        break;
       }
     }
     return true;
@@ -221,7 +224,7 @@ describe('anonymizeUser', () => {
     const original = structuredClone(user);
     const result = await anonymizeUser(context, user);
 
-    expect(mockFindUserById).toHaveBeenCalledTimes(1);
+    expect(mockFindUserById).toHaveBeenCalledTimes(3);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     // Expect some properties to have been unchanged
     expect(result.id).toEqual(original.id);
@@ -271,14 +274,18 @@ describe('anonymizeUser', () => {
   it('removes all associated TemplateCollaborators', async () => {
     const secondaryEmail = casual.email;
     const templateId = casual.integer(1, 99);
-    userEmailStore = [new UserEmail({ id: 1, email: secondaryEmail, userId: user.id })];
+    userEmailStore = [
+      new UserEmail({ id: 1, email: user.email, userId: user.id, primary: true }),
+      new UserEmail({ id: 1, email: secondaryEmail, userId: user.id }),
+    ];
     templateCollaboratorStore = [
       new TemplateCollaborator({ id: 1, email: casual.email, invitedById: user.id, templateId }),
       new TemplateCollaborator({ id: 2, email: secondaryEmail, userId: user.id, templateId }),
-      new TemplateCollaborator({ id: 3, email: casual.email, userId: user.id, templateId }),
+      new TemplateCollaborator({ id: 3, email: user.email, userId: user.id, templateId }),
     ];
+
     await anonymizeUser(context, user);
-    expect(mockFindTemplateCollaboratorsByEmail).toHaveBeenCalledTimes(1);
+    expect(mockFindTemplateCollaboratorsByEmail).toHaveBeenCalledTimes(2);
     expect(templateCollaboratorStore.length).toBe(1);
   });
 });
