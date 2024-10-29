@@ -1,4 +1,5 @@
 ### Added
+- Added userService to handle random password generation, anonymization and merging
 - Added recordLogIn and update functions to User model
 - Added Language model, resolver and type. Added LanguageId to User and Template
 - Built Question resolvers and models(#13)
@@ -29,6 +30,7 @@
 - Data migrations for affiliations table
 
 ### Updated
+- Updated User registration so that the terms and conditions must have been accepted
 - Updated User schema, model and data migrations with new properties
 - Change default JWT TTL to 30 minutes
 - Added user id to the JTI to help ensure uniqueness
