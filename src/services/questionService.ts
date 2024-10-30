@@ -159,7 +159,7 @@ export const generateQuestionConditionVersion = async (
   });
 
   const created = await versionedQuestionCondition.create(context);
-  if (created && created.errors?.length <= 0) {
+  if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
     return true;
   } else {
     // There were errors on the object so report them
