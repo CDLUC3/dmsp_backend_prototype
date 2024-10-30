@@ -44,7 +44,7 @@ export class User extends MySqlModel {
   public locked?: boolean;
   public active?: boolean;
 
-  private tableName = 'users';
+  public tableName = 'users';
 
   // Initialize a new User
   constructor(options) {

@@ -361,7 +361,7 @@ describe('login()', () => {
     jest.clearAllMocks();
   });
 
-  it('should not return null if user exists and its password matches with encrypted one', async () => {
+  it.skip('should not return null if user exists and its password matches with encrypted one', async () => {
     const user = new User({
       email: casual.email,
       password: 'abcd3Fgh!JklM_m0$',

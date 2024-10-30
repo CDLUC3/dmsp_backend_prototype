@@ -160,20 +160,27 @@ export class Affiliation extends MySqlModel {
   // Some of the properties are stored as JSON strings in the DB so we need to parse them
   // after fetching them
   static processResult(affiliation: Affiliation): Affiliation {
-    affiliation.aliases = JSON.parse(affiliation.aliases.toString());
-    affiliation.acronyms = JSON.parse(affiliation.acronyms.toString());
-    affiliation.feedbackEmails = JSON.parse(affiliation.feedbackEmails.toString());
-
-    // Only include types that are in the enum
-    const types = JSON.parse(affiliation.types.toString());
-    affiliation.types = [];
-
-    for (const typ of types) {
-      if (AffiliationType[typ.toLocaleUpperCase()] !== undefined) {
-        affiliation.types.push(AffiliationType[typ.toLocaleUpperCase()]);
-      }
+    if (affiliation.aliases && typeof affiliation.aliases === 'string') {
+      affiliation.aliases = JSON.parse(affiliation.aliases);
+    }
+    if (affiliation.acronyms && typeof affiliation.acronyms === 'string') {
+      affiliation.acronyms = JSON.parse(affiliation.acronyms);
+    }
+    if (affiliation.feedbackEmails && typeof affiliation.feedbackEmails === 'string') {
+      affiliation.feedbackEmails = JSON.parse(affiliation.feedbackEmails);
     }
 
+    // Only include types that are in the enum
+    if (affiliation.types && typeof affiliation.types === 'string') {
+      const types = JSON.parse(affiliation.types);
+      affiliation.types = [];
+
+      for (const typ of types) {
+        if (AffiliationType[typ.toLocaleUpperCase()] !== undefined) {
+          affiliation.types.push(AffiliationType[typ.toLocaleUpperCase()]);
+        }
+      }
+    }
     return affiliation;
   }
 
