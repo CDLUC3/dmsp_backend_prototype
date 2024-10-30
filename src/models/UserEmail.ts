@@ -1,5 +1,6 @@
 import { MyContext } from "../context";
-import { sendEmail } from "../services/emailService";
+import { sendEmailConfirmationNotification } from "../services/emailService";
+import { TemplateCollaborator } from "./Collaborator";
 import { MySqlModel } from "./MySqlModel";
 
 // Reepresents one of the user's email addresses
@@ -39,16 +40,38 @@ export class UserEmail extends MySqlModel {
     const ref = 'UserEmail.confirmEmail';
     // Fetch all of the existing records with the current email
     const userEmail = await UserEmail.findByUserIdAndEmail(ref, context, userId, email);
-    if (userEmail) {
-      // Update the confirmed flag
-      userEmail.confirmed = true;
-      const updated = await userEmail.update(context);
 
-      // TODO: We will want to look for any open invitations for the email being confirmed,
-      //       and then convert them into Collaborator records
-      return updated;
+    if (userEmail) {
+      // Fetch all of the other instances of this email
+      const allEmails = await UserEmail.findByEmail(ref, context, email);
+      const otherEmails = allEmails.filter((entry) => { return entry.userId !== userId });
+
+      // If the email has already been confirmed by another account set an error message
+      if (otherEmails && otherEmails.find((other) => { return other.confirmed; })) {
+        userEmail.errors.push('Email has already been confirmed');
+        return userEmail;
+
+      } else {
+        // Update the confirmed flag
+        userEmail.confirmed = true;
+        const updated = await userEmail.update(context);
+
+        // Claim any invitations to collaborate on a Template by assigning the userId
+        const tmpltCollabs = await TemplateCollaborator.findByEmail(ref, context, email);
+        for (const collab of tmpltCollabs) {
+          collab.userId = userId;
+          await collab.update(context);
+        }
+
+        // Remove any other instances of the email that are out there for other users
+        for (const other of otherEmails) {
+          await other.delete(context);
+        }
+
+        return updated;
+      }
     }
-    return userEmail;
+    return null;
   }
 
   // Save the current record
@@ -75,10 +98,8 @@ export class UserEmail extends MySqlModel {
         const created = await UserEmail.findById(ref, context, newId);
 
         if (created) {
-          // TODO: Store the automated email in a table so we can eventually have a UI page for
-          //       SuperAdmins to update them.
-          //       Load the appropriate message and send it out
-          sendEmail(created.email, 'Please confirm your email address', 'Confirmation message');
+          // Send out an email confirmation notification. No async, can happen in background
+          sendEmailConfirmationNotification(created.email);
         }
         return created;
       }
@@ -96,7 +117,7 @@ export class UserEmail extends MySqlModel {
       if (id) {
         // Only allow this if the existing record or the update has been confirmed/verified
         const existing = await UserEmail.findById('UserEmail.update', context, this.id);
-        if (!existing.confirmed && !this.confirmed) {
+        if (existing && !existing.confirmed && !this.confirmed) {
           this.errors.push('Email has not yet been confirmed');
         }
 

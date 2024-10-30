@@ -7,6 +7,7 @@ import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
+import { TemplateCollaborator } from './Collaborator';
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -269,7 +270,7 @@ export class User extends MySqlModel {
         }
         formatLogMessage(logger).debug(`User was created: ${this.email}, id: ${result[0].insertId}`);
 
-        // Fetch the new record and blank out the password when returning so as not to expose it
+        // Fetch the new record
         const user = await User.findById('User.register', context, result[0].insertId);
 
         // Add the email to the UserEmail table and send out a 'please confirm' email

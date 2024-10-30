@@ -4,6 +4,7 @@ import { Template } from '../Template';
 import { User } from '../User';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';
+import { sendTemplateCollaborationEmail } from '../../services/emailService';
 
 jest.mock('../../logger.ts');
 jest.mock('../../context.ts');
@@ -120,7 +121,10 @@ describe('create', () => {
       createdById: casual.integer(1, 999),
       templateId: casual.integer(1, 999),
       email: casual.email,
-    })
+    });
+
+    const mockNotification = jest.fn();
+    (sendTemplateCollaborationEmail as jest.Mock) = mockNotification;
   });
 
   afterEach(() => {

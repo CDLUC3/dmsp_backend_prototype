@@ -1,4 +1,5 @@
 import { MyContext } from '../context';
+import { sendTemplateCollaborationEmail } from '../services/emailService';
 import { validateEmail } from '../utils/helpers';
 import { MySqlModel } from './MySqlModel';
 import { Template } from './Template';
@@ -92,6 +93,9 @@ export class TemplateCollaborator extends Collaborator {
           // Save the record and then fetch it
           const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
           if (newId) {
+            // Send out the invitation notification (no async here, can happen in the background)
+            sendTemplateCollaborationEmail(context, this.templateId, this.email, this.userId);
+
             return await TemplateCollaborator.findByTemplateIdAndEmail(
               reference,
               context,
