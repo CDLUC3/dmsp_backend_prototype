@@ -56,12 +56,9 @@ export class VersionedSection extends MySqlModel {
   async create(context: MyContext): Promise<VersionedSection> {
     // First make sure the record is valid
     if (await this.isValid()) {
-
       // Save the record and then fetch it
-      const newId = await VersionedSection.insert(context, this.tableName, this, 'VersionedSection.create', ['tableName', 'tags']);
+      const newId = await VersionedSection.insert(context, this.tableName, this, 'VersionedSection.create', ['tags']);
       return await VersionedSection.findById('VersionedSection.create', context, newId);
-
-
     }
     // Otherwise return as-is with all the errors
     return this;

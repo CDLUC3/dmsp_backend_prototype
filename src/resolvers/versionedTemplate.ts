@@ -47,8 +47,8 @@ export const resolvers: Resolvers = {
       return await User.findById('Chained VersionedTemplate.versionedBy', context, parent.versionedById);
     },
 
-    // Chained resolver to return the User who created the version
-    versionedSection: async (parent: VersionedTemplate, _, context: MyContext): Promise<VersionedSection[]> => {
+    // Chained resolver to return the VersionedSections associated with this VersioneTemplate
+    versionedSections: async (parent: VersionedTemplate, _, context: MyContext): Promise<VersionedSection[]> => {
       return await VersionedSection.findByTemplateId('Chained VersionedTemplate.versionedSection', context, parent.id);
     },
   },

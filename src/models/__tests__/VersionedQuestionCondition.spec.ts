@@ -26,7 +26,7 @@ describe('QuestionCondition', () => {
     versionedQuestionId: casual.integer(1, 9999),
     questionConditionId: casual.integer(1, 999),
     action: getRandomEnumValue(QuestionConditionActionType),
-    condition: getRandomEnumValue(QuestionConditionCondition),
+    conditionType: getRandomEnumValue(QuestionConditionCondition),
     conditionMatch: casual.words(3),
     target: casual.word,
   }
@@ -38,7 +38,7 @@ describe('QuestionCondition', () => {
     expect(versionedQuestionCondition.versionedQuestionId).toEqual(versionedQuestionConditionData.versionedQuestionId);
     expect(versionedQuestionCondition.questionConditionId).toEqual(versionedQuestionConditionData.questionConditionId);
     expect(versionedQuestionCondition.action).toEqual(versionedQuestionConditionData.action);
-    expect(versionedQuestionCondition.condition).toEqual(versionedQuestionConditionData.condition);
+    expect(versionedQuestionCondition.conditionType).toEqual(versionedQuestionConditionData.conditionType);
     expect(versionedQuestionCondition.conditionMatch).toEqual(versionedQuestionConditionData.conditionMatch);
     expect(versionedQuestionCondition.target).toEqual(versionedQuestionConditionData.target);
   });
@@ -68,11 +68,11 @@ describe('QuestionCondition', () => {
     expect(versionedQuestionCondition.errors[0].includes('Action')).toBe(true);
   });
 
-  it('isValid returns false if the condition is null', async () => {
-    versionedQuestionCondition.condition = null;
+  it('isValid returns false if the conditionType is null', async () => {
+    versionedQuestionCondition.conditionType = null;
     expect(await versionedQuestionCondition.isValid()).toBe(false);
     expect(versionedQuestionCondition.errors.length).toBe(1);
-    expect(versionedQuestionCondition.errors[0].includes('Condition text')).toBe(true);
+    expect(versionedQuestionCondition.errors[0].includes('Condition Type')).toBe(true);
   });
 
   it('isValid returns false if the target is null', async () => {

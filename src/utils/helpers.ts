@@ -1,5 +1,8 @@
 // Convert a string into an Array (return the default or an empty array if it is null or undefined)
 //
+
+import { formatISO9075 } from "date-fns";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function stringToArray(array: any, delimiter = ' ', defaultResponse: string[] = []): string[] {
   if (typeof array === 'string') {
@@ -22,7 +25,7 @@ export function capitalizeFirstLetter(str: string): string {
 }
 
 // Date validation
-export function validateDate(date: string): boolean {
+export async function validateDate(date: string): Promise<boolean> {
   return date !== null && !isNaN(new Date(date).getTime());
 }
 
@@ -69,9 +72,11 @@ export function incrementVersionNumber(version: string): string {
 
 // Get current date and put it into format that is acceptable to mariaDB
 export function getCurrentDate(): string {
-  const now = new Date().toISOString();
-  const currentDate = now.slice(0, 19).replace('T', ' ');
-  return currentDate;
+  // const now = new Date().toISOString();
+  // const currentDate = now.slice(0, 19).replace('T', ' ');
+  // return currentDate;
+
+  return formatISO9075(new Date());
 }
 
 // Generate a random hex code

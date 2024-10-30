@@ -34,6 +34,10 @@ export const generateSectionVersion = async (
     guidance: section.guidance,
     displayOrder: section.displayOrder,
     tags: section.tags,
+    createdById: section.createdById,
+    created: section.created,
+    modifiedById: section.modifiedById,
+    modified: section.modified,
   });
 
   try {
@@ -45,33 +49,38 @@ export const generateSectionVersion = async (
       const questions = await Question.findBySectionId('generateSectionVersion', context, section.id);
       let allQuestionsWereVersioned = true;
 
-      questions.forEach(async (question) => {
+      for (const question of questions) {
         const questionInstance = new Question({
           ...question
         });
-        if (!await generateQuestionVersion(context, questionInstance, versionedTemplateId, created.id)) {
+        const passed = await generateQuestionVersion(context, questionInstance, versionedTemplateId, created.id);
+        if (!passed) {
           allQuestionsWereVersioned = false;
         }
-      });
+      }
 
       // Only continue if all the associated questions were properly versioned
       if (allQuestionsWereVersioned) {
         // Reset the dirty flag on the section and save it
         section.isDirty = false;
-        const updated = await section.update(context);
-        if (updated && updated.errors?.length <= 0) {
+        const updated = await section.update(context, true);
+
+        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
           return true;
         } else {
           const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${updated.errors}`;
           formatLogMessage(logger).error(null, msg);
+          throw new Error(msg);
         }
       }
     } else {
-      const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${created.errors}`;
+      const msg = `Unable to generateSectionVersion for versionedSection errs: ${created.errors}`;
       formatLogMessage(logger).error(null, msg);
+      throw new Error(msg);
     }
   } catch (err) {
     formatLogMessage(logger).error(err, `Unable to generateSectionVersion for section: ${section.id}`);
+    throw err;
   }
 
   return false;

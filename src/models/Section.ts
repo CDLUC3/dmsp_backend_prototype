@@ -74,12 +74,12 @@ export class Section extends MySqlModel {
   }
 
   //Update an existing Section
-  async update(context: MyContext): Promise<Section> {
+  async update(context: MyContext, noTouch = false): Promise<Section> {
     const id = this.id;
 
     if (await this.isValid()) {
       if (id) {
-        await Section.update(context, this.tableName, this, 'Section.update', ['tableName', 'tags']);
+        await Section.update(context, this.tableName, this, 'Section.update', ['tags'], noTouch);
         return await Section.findById('Section.update', context, id);
       }
       // This template has never been saved before so we cannot update it!

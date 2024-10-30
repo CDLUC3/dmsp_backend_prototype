@@ -2,6 +2,7 @@ import { formatLogMessage } from "../logger";
 import { MyContext } from '../context';
 import { validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
+import { formatISO9075, isDate } from "date-fns";
 
 type MixedArray<T> = T[];
 
@@ -29,10 +30,10 @@ export class MySqlModel {
   //   - createdById and modifiedById should be numbers
   //   - id should be a number or null if its a new record
   async isValid(): Promise<boolean> {
-    if (!validateDate(this.created)) {
+    if (!await validateDate(this.created)) {
       this.errors.push('Created date can\'t be blank');
     }
-    if (!validateDate(this.modified)) {
+    if (!await validateDate(this.modified)) {
       this.errors.push('Modified date can\'t be blank');
     }
     if (this.createdById === null) {
@@ -41,8 +42,13 @@ export class MySqlModel {
     if (this.modifiedById === null) {
       this.errors.push('Modified by can\'t be blank');
     }
-
     return this.errors.length <= 0;
+  }
+
+  // Check whether or not the value is a Date
+  static valueIsDate(val: string): boolean {
+    const date = new Date(val);
+    return !isNaN(date.getTime());
   }
 
   /**
@@ -58,6 +64,7 @@ export class MySqlModel {
     if (val === null || val === undefined) {
       return null;
     }
+
     switch (type) {
       case 'number':
         return Number(val);
@@ -69,15 +76,19 @@ export class MySqlModel {
       case 'boolean':
         return Boolean(val);
       default:
-        return String(val);
-
+        if (isDate(val)) {
+          const date = new Date(val).toISOString();
+          return formatISO9075(date);
+        } else {
+          return String(val);
+        }
     }
   }
 
-  // Fetches all of the property infor for the object to faciliate inserts and updates
+  // Fetches all of the property info for the object to faciliate inserts and updates
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static propertyInfo(obj: Record<string, any>, skipKeys: string[] = []): { name: string, value: string }[] {
-    const excludedKeys = ['id', 'errors'];
+    const excludedKeys = ['id', 'errors', 'tableName'];
     return Object.keys(obj)
       .filter((key) => ![...excludedKeys, ...skipKeys]
         .includes(key)).map((key) => ({
@@ -165,7 +176,6 @@ export class MySqlModel {
 
     // Fetch all of the data from the object
     const props = this.propertyInfo(obj, skipKeys);
-
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
@@ -188,16 +198,20 @@ export class MySqlModel {
     table: string,
     obj: MySqlModel,
     reference = 'undefined caller',
-    skipKeys?: string[]
+    skipKeys?: string[],
+    noTouch?: boolean,
   ): Promise<MySqlModel> {
     // Update the modifier info
-    obj.modifiedById = apolloContext.token.id;
-    const currentDate = getCurrentDate();
-    obj.modified = currentDate;
-    obj.created = currentDate;
+    if (noTouch !== true) {
+      obj.modifiedById = apolloContext.token.id;
+      const currentDate = getCurrentDate();
+      obj.modified = currentDate;
+    }
 
     // Fetch all of the data from the object
-    const props = this.propertyInfo(obj, skipKeys);
+    let props = this.propertyInfo(obj, skipKeys);
+    // We are updating, so remove the created info
+    props = props.filter((entry) => { return !['created', 'createdById'].includes(entry.name) });
 
     props.map((entry) => `${entry.name} = ?`)
 
@@ -206,7 +220,7 @@ export class MySqlModel {
                  WHERE id = ?`;
 
     const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
-
+    // Make sure the record id is the last value
     vals.push(obj.id.toString());
 
     // Send the calcuated INSERT statement to the query function
