@@ -67,7 +67,7 @@ CREATE TABLE `versionedQuestionConditions` (
   `versionedQuestionId` INT NOT NULL,
   `questionConditionId` INT NOT NULL,
   `action` VARCHAR(255) NOT NULL DEFAULT 'SHOW_QUESTION',
-  `condition` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
+  `conditionType` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
   `conditionMatch` VARCHAR(255),
   `target` VARCHAR(255) NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
