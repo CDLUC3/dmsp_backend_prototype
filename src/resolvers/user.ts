@@ -237,16 +237,21 @@ export const resolvers: Resolvers = {
 
     // Deactivate the specified user Account (Admin only)
     deactivateUser: async (_, { userId }, context: MyContext): Promise<User> => {
+      const ref = 'deactivateUser resolver';
       if (isAdmin(context.token)) {
-        const user = await User.findById('deactivateUser resolver', context, userId);
+        const result = await User.findById(ref, context, userId);
+        // For some reason these are being returned a Objects and not User!
+        const user = new User(result);
         // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
         if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
           user.active = false;
-          const updated = user.update(context);
+          const updated = await User.update(context, user.tableName, user, ref, ['password']);
+
           if (!updated) {
             throw InternalServerError('Unable to deactivate the user at this time');
           }
-          return updated;
+          // Return the result, because updated will not return a User since they are now inactive
+          return result as User;
         }
       }
       // Unauthorized!
@@ -254,16 +259,20 @@ export const resolvers: Resolvers = {
     },
     // Reactivate the specified user Account (Admin only)
     activateUser: async (_, { userId }, context: MyContext): Promise<User> => {
+      const ref = 'activateUser resolver';
       if (isAdmin(context.token)) {
-        const user = await User.findById('activateUser resolver', context, userId);
+        const user = await User.findById(ref, context, userId);
         // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
         if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
           user.active = true;
-          const updated = user.update(context);
+
+console.log(user)
+
+          const updated = await User.update(context, user.tableName, user, ref, ['password']);
           if (!updated) {
             throw InternalServerError('Unable to activate the user at this time');
           }
-          return updated;
+          return updated as User;
         }
       }
       // Unauthorized!
@@ -295,11 +304,11 @@ export const resolvers: Resolvers = {
   User: {
     // Chained resolver to fetch the Affiliation info for the user
     affiliation: async (parent: User, _, context): Promise<Affiliation> => {
-      return Affiliation.findById('Chained User.affiliation', context, parent.affiliationId);
+      return await Affiliation.findByURI('Chained User.affiliation', context, parent.affiliationId);
     },
     // Chained resolver to fetch the secondary email addresses
     emails: async (parent: User, _, context): Promise<UserEmail[]> => {
-      return UserEmail.findByUserId('Chained User.emails', context, parent.id);
+      return await UserEmail.findByUserId('Chained User.emails', context, parent.id);
     },
   },
 };

@@ -77,7 +77,7 @@ export class MySqlModel {
   // Fetches all of the property infor for the object to faciliate inserts and updates
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static propertyInfo(obj: Record<string, any>, skipKeys: string[] = []): { name: string, value: string }[] {
-    const excludedKeys = ['id', 'errors'];
+    const excludedKeys = ['id', 'errors', 'tableName'];
     return Object.keys(obj)
       .filter((key) => ![...excludedKeys, ...skipKeys]
         .includes(key)).map((key) => ({

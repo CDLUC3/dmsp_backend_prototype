@@ -44,7 +44,7 @@ export class User extends MySqlModel {
   public locked?: boolean;
   public active?: boolean;
 
-  public tableName = 'users';
+  private tableName = 'users';
 
   // Initialize a new User
   constructor(options) {
@@ -169,23 +169,21 @@ export class User extends MySqlModel {
 
   // Find the User by their Id
   static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
-    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, languageId, created, modified \
-                 FROM users WHERE id = ?';
+    const sql = 'SELECT * FROM users WHERE id = ?';
+
     const results = await User.query(context, sql, [userId.toString()], reference);
-    return results[0];
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Find the User by their email address
   static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
-    const sql = 'SELECT id, email, givenName, surName, role, affiliationId, acceptedTerms, languageId, created, modified \
-                 FROM users WHERE email = ?';
+    const sql = 'SELECT * FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
     return results[0];
   }
 
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
-    const sql = 'SELECT id, givenName, surName, email, role, affiliationId, acceptedTerms, languageId, created, modified \
-                 FROM users WHERE affiliationId = ? ORDER BY created DESC';
+    const sql = 'SELECT * FROM users WHERE affiliationId = ? ORDER BY created DESC';
     return await User.query(context, sql, [affiliationId], reference);
   }
 
@@ -194,6 +192,8 @@ export class User extends MySqlModel {
     if (this.id) {
       this.last_sign_in = getCurrentDate();
       this.last_sign_in_via = loginType;
+
+console.log(this)
 
       if (await User.update(context, this.tableName, this, 'User.recordLogIn', [], true)) {
         return true;
@@ -217,11 +217,13 @@ export class User extends MySqlModel {
       const userId = await User.authCheck('User.login', context, this.email, this.password);
 
       if (userId) {
-        const user = await User.findById('User.login', context, userId) || null;
+        const existing = await User.findByEmail('User.login', context, this.email);
+
+console.log(existing)
 
         // Update the User's last_sign_in fields
-        if (await user.recordLogIn(context, LogInType.PASSWORD)) {
-          return user;
+        if (await new User(existing).recordLogIn(context, LogInType.PASSWORD)) {
+          return existing;
         }
       }
       return null;
