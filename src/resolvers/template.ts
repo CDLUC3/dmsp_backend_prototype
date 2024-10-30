@@ -111,7 +111,7 @@ export const resolvers: Resolvers = {
 
     // Publish the template or save as a draft
     //     - called from the Template overview page
-    createVersion: async (_, { templateId, comment, versionType }, context: MyContext): Promise<Template> => {
+    createTemplateVersion: async (_, { templateId, comment, versionType }, context: MyContext): Promise<Template> => {
       if (isAdmin(context.token)) {
         const reference = 'createVersion resolver';
         const template = await Template.findById(reference, context, templateId);
@@ -163,7 +163,7 @@ export const resolvers: Resolvers = {
 
     // Allow the GraphQL client to fetch the template when querying for a Section
     sections: async (parent: Template, _, context: MyContext): Promise<Section[]> => {
-      return await Section.findByTemplateId('sections resolver', context, parent.id);
+      return await Section.findByTemplateId('Chained Template.sections', context, parent.id);
     }
   },
 };

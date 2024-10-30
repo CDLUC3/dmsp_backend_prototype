@@ -13,11 +13,11 @@ type VersionedQuestion {
     "The user who created the Object"
     createdById: Int
     "The timestamp when the Object was created"
-    created: DateTimeISO
+    created: String
     "The user who last modified the Object"
     modifiedById: Int
     "The timestamp when the Object was last modifed"
-    modified: DateTimeISO
+    modified: String
     "Errors associated with the Object"
     errors: [String!]
 
@@ -41,6 +41,9 @@ type VersionedQuestion {
     sampleText: String
     "To indicate whether the question is required to be completed"
     required: Boolean
+
+    "The conditional logic associated with this VersionedQuestion"
+    versionedQuestionConditions: [VersionedQuestionCondition!]
 }
 
 

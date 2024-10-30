@@ -49,7 +49,12 @@ export class Question extends MySqlModel {
   }
 
   //Create a new Question
-  async create(context: MyContext, questionText: string, sectionId: number, templateId: number): Promise<Question> {
+  async create(
+    context: MyContext,
+    questionText: string,
+    sectionId: number,
+    templateId: number,
+  ): Promise<Question> {
     // First make sure the record is valid
     if (await this.isValid()) {
       const current = await Question.findByQuestionText(
@@ -65,7 +70,7 @@ export class Question extends MySqlModel {
         this.errors.push('Question with this question text already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['tableName']);
+        const newId = await Question.insert(context, this.tableName, this, 'Question.create');
         const response = await Question.findById('Section.create', context, newId);
         return response;
       }
@@ -75,12 +80,12 @@ export class Question extends MySqlModel {
   }
 
   //Update an existing Section
-  async update(context: MyContext): Promise<Question> {
+  async update(context: MyContext, noTouch = false): Promise<Question> {
     const id = this.id;
 
     if (await this.isValid()) {
       if (id) {
-        await Question.update(context, this.tableName, this, 'Question.update', ['tableName']);
+        await Question.update(context, this.tableName, this, 'Question.update', [], noTouch);
         return await Question.findById('Question.update', context, id);
       }
       // This template has never been saved before so we cannot update it!

@@ -5,6 +5,7 @@ import { VersionedSection } from "../models/VersionedSection";
 import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
 import { ForbiddenError } from "../utils/graphQLErrors";
+import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
 
 
 export const resolvers: Resolvers = {
@@ -19,4 +20,15 @@ export const resolvers: Resolvers = {
       throw ForbiddenError();
     },
   },
+
+  VersionedQuestion: {
+    // Chained resolver to return the VersionedQuestionConditionss associated with this VersionedQuestion
+    versionedQuestionConditions: async (parent: VersionedQuestion, _, context: MyContext): Promise<VersionedQuestionCondition[]> => {
+      return await VersionedQuestionCondition.findByVersionedQuestionId(
+        'Chained VersionedQuestion.versionedQuestionConditions',
+        context,
+        parent.id
+      );
+    },
+  }
 };

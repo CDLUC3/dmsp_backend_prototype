@@ -28,7 +28,7 @@ export const generateQuestionVersion = async (
   question: Question,
   versionedTemplateId: number,
   versionedSectionId: number,
-): Promise<VersionedQuestion> => {
+): Promise<boolean> => {
 
   // If the section has no id then it has not yet been saved so throw an error
   if (!question.id) {
@@ -47,6 +47,10 @@ export const generateQuestionVersion = async (
     sampleText: question.sampleText,
     displayOrder: question.displayOrder,
     required: question.required,
+    createdById: question.createdById,
+    created: question.created,
+    modifiedById: question.modifiedById,
+    modified: question.modified,
   });
 
   try {
@@ -58,41 +62,47 @@ export const generateQuestionVersion = async (
       let allConditionsWereVersioned = true;
 
       if (questionConditions.length > 0) {
-        questionConditions.forEach(async (condition) => {
+        for (const condition of questionConditions) {
           const questionConditionInstance = new QuestionCondition({
             ...condition
           });
-          if (!await generateQuestionConditionVersion(context, questionConditionInstance, saved.id)) {
+
+          const passed = await generateQuestionConditionVersion(context, questionConditionInstance, saved.id);
+          if (!passed) {
             // If one of the conditions failed to version
             allConditionsWereVersioned = false;
           }
-        });
+        }
       }
+
 
       // Only proceed if all the conditions were able to version properly
       if (allConditionsWereVersioned) {
         // Reset the dirty flag
         question.isDirty = false;
-        const updated = await question.update(context);
+        const updated = await question.update(context, true);
 
         if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          return saved;
+          return true;
         } else {
           // There were errors on the object so report them
           const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${updated.errors}`;
           formatLogMessage(logger).error(null, msg);
+          throw new Error(msg);
         }
       }
     } else {
       // There were errors on the object so report them
-      const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${saved.errors}`;
+      const msg = `Unable to generateQuestionVersion for versionedQuestion errs: ${saved.errors}`;
       formatLogMessage(logger).error(null, msg);
+      throw new Error(msg);
     }
   } catch (err) {
     formatLogMessage(logger).error(err, `Unable to generateQuestionVersion for question: ${question.id}`);
+    throw err
   }
 
-  return null;
+  return false;
 }
 
 // Make a copy of the specified Question (excluding any related QuestionConditions)
@@ -116,6 +126,10 @@ export const cloneQuestion = (
     displayOrder: question.displayOrder,
     required: false,
     isDirty: true,
+    createdById: question.createdById,
+    created: question.created,
+    modifiedById: question.modifiedById,
+    modified: question.modified,
   });
 
   questionCopy.createdById = clonedById;
@@ -128,7 +142,7 @@ export const generateQuestionConditionVersion = async (
   context: MyContext,
   questionCondition: QuestionCondition,
   versionedQuestionId: number,
-): Promise<VersionedQuestionCondition> => {
+): Promise<boolean> => {
   // If the section has no id then it has not yet been saved so throw an error
   if (!questionCondition.id) {
     throw new Error('Cannot publish unsaved QuestionCondition');
@@ -139,18 +153,18 @@ export const generateQuestionConditionVersion = async (
     versionedQuestionId,
     questionConditionId: questionCondition.id,
     action: questionCondition.action,
-    condition: questionCondition.condition,
+    conditionType: questionCondition.conditionType,
     conditionMatch: questionCondition.conditionMatch,
     target: questionCondition.target,
   });
 
   const created = await versionedQuestionCondition.create(context);
-  if (created && created.errors?.length <= 0) {
-    return versionedQuestionCondition;
+  if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
+    return true;
   } else {
     // There were errors on the object so report them
-    const msg = `Unable to generateQuestionConditionVersion for questionCondition: ${questionCondition.id}`
-    formatLogMessage(logger).error(null, `${msg}, errs: ${questionCondition.errors}`);
+    const msg = `Unable to generateQuestionConditionVersion for questionCondition errs: ${created.errors}`
+    formatLogMessage(logger).error(null, `${msg}, errs: ${created.errors}`);
+    throw new Error(msg);
   }
-  return null;
 }

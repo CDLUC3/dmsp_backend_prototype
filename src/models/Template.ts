@@ -81,14 +81,14 @@ export class Template extends MySqlModel {
   }
 
   // Save the changes made to the template
-  async update(context: MyContext): Promise<Template> {
+  async update(context: MyContext, noTouch = false): Promise<Template> {
     const id = this.id;
 
     // First make sure the record is valid
     if (await this.isValid()) {
       if (id) {
         // if the template is versioned then set the isDirty flag
-        if (this.currentVersion) {
+        if (this.currentVersion && noTouch !== true) {
           this.isDirty = true;
         }
 
@@ -104,10 +104,7 @@ export class Template extends MySqlModel {
         }
         So, we have to make a call to findById to get the updated data to return to user
         */
-        this.cleanup();
-        await Template.update(context, this.tableName, this, 'Template.update', ['tableName']);
-
-
+        await Template.update(context, this.tableName, this, 'Template.update', [], noTouch);
         return await Template.findById('Template.update', context, id);
       }
       // This template has never been saved before so we cannot update it!

@@ -14,14 +14,14 @@ export const resolvers: Resolvers = {
     addQuestionCondition: async (_, { input: {
       questionId,
       action,
-      condition,
+      conditionType,
       conditionMatch,
       target } }, context: MyContext): Promise<QuestionCondition> => {
 
       const questionCondition = new QuestionCondition({
         questionId,
         action,
-        condition,
+        conditionType,
         conditionMatch,
         target
       });
@@ -43,7 +43,7 @@ export const resolvers: Resolvers = {
     updateQuestionCondition: async (_, { input: {
       questionConditionId,
       action,
-      condition,
+      conditionType,
       conditionMatch,
       target } }, context: MyContext): Promise<QuestionCondition> => {
 
@@ -60,7 +60,7 @@ export const resolvers: Resolvers = {
         questionId: questionConditionData.questionId,
         action: action || questionConditionData.action,
         createdById: questionConditionData.createdById,
-        condition: condition || questionConditionData.condition,
+        condition: conditionType || questionConditionData.conditionType,
         conditionMatch: conditionMatch || questionConditionData.conditionMatch,
         target: target || questionConditionData.target
       });

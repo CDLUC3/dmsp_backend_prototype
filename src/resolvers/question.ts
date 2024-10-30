@@ -3,7 +3,8 @@ import { MyContext } from "../context";
 import { Question } from "../models/Question";
 import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
-import { ForbiddenError, NotFoundError, BadUserInputError } from "../utils/graphQLErrors";
+import { BadUserInputError, ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
+import { QuestionCondition } from "../models/QuestionCondition";
 
 
 export const resolvers: Resolvers = {
@@ -178,4 +179,14 @@ export const resolvers: Resolvers = {
       throw ForbiddenError();
     },
   },
+
+  Question: {
+    questionConditions: async (parent: Question, _, context: MyContext): Promise<QuestionCondition[]> => {
+      return await QuestionCondition.findByQuestionId(
+        'Chained Question.questionConditions',
+        context,
+        parent.id
+      );
+    },
+  }
 };

@@ -48,6 +48,9 @@ export const typeDefs = gql`
     tags: [Tag]
     "Indicates whether or not the section has changed since the template was last published"
     isDirty: Boolean!
+
+    "The questions associated with this section"
+    questions: [Question!]
   }
 
   "Input for adding a new section"

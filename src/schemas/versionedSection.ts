@@ -47,5 +47,8 @@ export const typeDefs = gql`
     guidance: String
     "The Tags associated with this VersionedSection"
     tags: [Tag]
+
+    "The questions associated with this VersionedSection"
+    versionedQuestions: [VersionedQuestion!]
   }
 `;
