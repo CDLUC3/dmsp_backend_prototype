@@ -80,16 +80,18 @@ export class UserEmail extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Fetch all of the existing records with the current email
-      const existing = await UserEmail.findByEmail(ref, context, this.email);
-      const confirmed = existing.find((entry) => { return entry.confirmed; });
-      if (confirmed) {
-        this.errors.push('Email has already been claimed by another account');
+      const entries = await UserEmail.findByEmail(ref, context, this.email);
+
+      // First make sure it's not already attached to this user account
+      const existing = entries.find((entry) => { return entry.userId === this.userId; });
+      if (existing) {
+        this.errors.push('Email is already associated with this account');
       }
 
-      const current = await UserEmail.findByUserIdAndEmail(ref, context, this.userId, this.email);
-      // Then make sure it doesn't already exist
-      if (current) {
-        this.errors.push('Email is already associated with this account');
+      // Then make sure it hasn't already been claimed/confirmed by another user account
+      const confirmed = entries.find((entry) => { return entry.confirmed; });
+      if (confirmed) {
+        this.errors.push('Email has already been confirmed by another account');
       }
 
       if (this.errors.length <= 0){
@@ -110,35 +112,24 @@ export class UserEmail extends MySqlModel {
 
   // Save the changes made to the UserEmail
   async update(context: MyContext): Promise<UserEmail> {
-    const id = this.id;
-
-    // First make sure the record is valid
-    if (await this.isValid()) {
-      if (id) {
+    if (this.id) {
+      // First make sure the record is valid
+      if (await this.isValid()) {
         // Only allow this if the existing record or the update has been confirmed/verified
         const existing = await UserEmail.findById('UserEmail.update', context, this.id);
         if (existing && !existing.confirmed && !this.confirmed) {
           this.errors.push('Email has not yet been confirmed');
         }
 
-        /*When calling 'update' in the mySqlModel, the query returns an object that looks something like this:
-        {
-          fieldCount: 0,
-          affectedRows: 1,
-          insertId: 0,
-          info: 'Rows matched: 1  Changed: 1  Warnings: 0',
-          serverStatus: 2,
-          warningStatus: 0,
-          changedRows: 1
+        if (this.errors.length === 0) {
+          await UserEmail.update(context, this.tableName, this, 'UserEmail.update');
+          return await UserEmail.findById('UserEmail.update', context, this.id);
         }
-        So, we have to make a call to findById to get the updated data to return to user
-        */
-        await UserEmail.update(context, this.tableName, this, 'UserEmail.update');
-        return await UserEmail.findById('UserEmail.update', context, this.id);
       }
-      // This template has never been saved before so we cannot update it!
-      this.errors.push('User email has never been saved');
+    } else {
+      this.errors.push('Email has not been created yet');
     }
+
     return this;
   }
 
@@ -147,14 +138,17 @@ export class UserEmail extends MySqlModel {
     if (this.id) {
       const deleted = await UserEmail.findById('UserEmail.delete', context, this.id);
 
-      const success = await UserEmail.delete(context, this.tableName, this.id, 'UserEmail.delete');
-      if (success) {
-        return deleted;
-      } else {
-        return null
+      if (deleted) {
+        const success = await UserEmail.delete(context, this.tableName, this.id, 'UserEmail.delete');
+        if (success) {
+          return deleted;
+        }
       }
+      return null;
+    } else {
+      this.errors.push('Email has not been created yet');
     }
-    return null;
+    return this;
   }
 
   // Return the specified UserEmail
@@ -182,7 +176,7 @@ export class UserEmail extends MySqlModel {
     context: MyContext,
     userId: number
   ): Promise<UserEmail[]> {
-    const sql = 'SELECT * FROM userEmails WHERE userId = ? AND confirmed = 1';
+    const sql = 'SELECT * FROM userEmails WHERE userId = ?';
     const results = await UserEmail.query(context, sql, [userId.toString()], reference);
     return Array.isArray(results) ? results : [];
   }
@@ -193,7 +187,7 @@ export class UserEmail extends MySqlModel {
     context: MyContext,
     email: string
   ): Promise<UserEmail[]> {
-    const sql = 'SELECT * FROM userEmails WHERE email = ? AND confirmed = 1';
+    const sql = 'SELECT * FROM userEmails WHERE email = ?';
     const results = await UserEmail.query(context, sql, [email], reference);
     return Array.isArray(results) ? results : [];
   }

@@ -457,7 +457,7 @@ describe('mergeUsers', () => {
 
     await mergeUsers(context, mergeUser, keepUser);
     expect(mockFindEmailsByUserId).toHaveBeenCalledTimes(2);
-    expect(mockUpdate).toHaveBeenCalledTimes(3);
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
     expect(mockDelete).toHaveBeenCalledTimes(2);
 
     const matchConfirmed = userEmailStore.filter((e) => { return e.email === 'match-confirmed@test.org' });
@@ -510,7 +510,7 @@ describe('mergeUsers', () => {
     await mergeUsers(context, mergeUser, keepUser);
     expect(mockfindTemplateCollaboratorByInvitedById).toHaveBeenCalledTimes(1);
     expect(mockFindTemplateCollaboratorsByEmail).toHaveBeenCalledTimes(2);
-    expect(mockUpdate).toHaveBeenCalledTimes(6);
+    expect(mockUpdate).toHaveBeenCalledTimes(4);
 
     const byInvitedById = templateCollaboratorStore.filter((e) => {
       return e.invitedById === keepUser.id;

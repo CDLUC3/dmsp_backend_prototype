@@ -7,7 +7,6 @@ import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
-import { TemplateCollaborator } from './Collaborator';
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',

@@ -2,8 +2,7 @@
 //       SuperAdmins to update them.
 //       Load the appropriate message and send it out
 
-import { buildContext, MyContext } from "../context";
-import { logger } from "../logger";
+import { MyContext } from "../context";
 import { User } from "../models/User";
 
 // TODO: Set this up once we get email infrastructure configured in AWS
@@ -17,7 +16,8 @@ export const sendEmail = async (to: string, subject: string, message: string, cc
 };
 
 // Send out an email asking the user to confirm the email address
-export const sendEmailConfirmationNotification = async (email: string): Promise<Boolean> => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const sendEmailConfirmationNotification = async (email: string): Promise<boolean> => {
   return true;
 }
 
@@ -29,7 +29,7 @@ export const sendTemplateCollaborationEmail = async (
   templateId: number,
   email: string,
   userId?: number
-): Promise<Boolean> => {
+): Promise<boolean> => {
   if (userId) {
     const user = await User.findById('sendTemplateCollaborationEmail', context, userId);
     // Bail out if the user has asked us not to send these notifications
