@@ -152,9 +152,9 @@ export const mergeUsers = async (
         }
 
       } else {
-        if (!matched.confirmed && mergeEmail.confirmed) {
+        if (!matched.isConfirmed && mergeEmail.isConfirmed) {
           // Otherwise update it if it exists and is confirmed in the User to merge but not the other
-          matched.confirmed = true;
+          matched.isConfirmed = true;
           await matched.update(context);
         }
 

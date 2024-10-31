@@ -7,8 +7,8 @@ import { MySqlModel } from "./MySqlModel";
 export class UserEmail extends MySqlModel {
   public userId: number;
   public email: string;
-  public primary: boolean;
-  public confirmed: boolean;
+  public isPrimary: boolean;
+  public isConfirmed: boolean;
 
   private tableName = 'userEmails';
 
@@ -18,8 +18,8 @@ export class UserEmail extends MySqlModel {
 
     this.userId = options.userId;
     this.email = options.email;
-    this.primary = options.primary || false;
-    this.confirmed = options.confirmed || false;
+    this.isPrimary = options.isPrimary || false;
+    this.isConfirmed = options.isConfirmed || false;
   }
 
   // Validation to be used prior to saving the record
@@ -47,13 +47,13 @@ export class UserEmail extends MySqlModel {
       const otherEmails = allEmails.filter((entry) => { return entry.userId !== userId });
 
       // If the email has already been confirmed by another account set an error message
-      if (otherEmails && otherEmails.find((other) => { return other.confirmed; })) {
+      if (otherEmails && otherEmails.find((other) => { return other.isConfirmed; })) {
         userEmail.errors.push('Email has already been confirmed');
         return userEmail;
 
       } else {
         // Update the confirmed flag
-        userEmail.confirmed = true;
+        userEmail.isConfirmed = true;
         const updated = await userEmail.update(context);
 
         // Claim any invitations to collaborate on a Template by assigning the userId
@@ -89,7 +89,7 @@ export class UserEmail extends MySqlModel {
       }
 
       // Then make sure it hasn't already been claimed/confirmed by another user account
-      const confirmed = entries.find((entry) => { return entry.confirmed; });
+      const confirmed = entries.find((entry) => { return entry.isConfirmed; });
       if (confirmed) {
         this.errors.push('Email has already been confirmed by another account');
       }
@@ -117,7 +117,7 @@ export class UserEmail extends MySqlModel {
       if (await this.isValid()) {
         // Only allow this if the existing record or the update has been confirmed/verified
         const existing = await UserEmail.findById('UserEmail.update', context, this.id);
-        if (existing && !existing.confirmed && !this.confirmed) {
+        if (existing && !existing.isConfirmed && !this.isConfirmed) {
           this.errors.push('Email has not yet been confirmed');
         }
 

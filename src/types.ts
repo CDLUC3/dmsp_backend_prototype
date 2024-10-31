@@ -1214,8 +1214,6 @@ export type User = {
 
 export type UserEmail = {
   __typename?: 'UserEmail';
-  /** Whether or not the email address has been confirmed */
-  confirmed: Scalars['Boolean']['output'];
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
@@ -1226,12 +1224,14 @@ export type UserEmail = {
   errors?: Maybe<Array<Scalars['String']['output']>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not the email address has been confirmed */
+  isConfirmed: Scalars['Boolean']['output'];
+  /** Whether or not this is the primary email address */
+  isPrimary: Scalars['Boolean']['output'];
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** Whether or not this is the primary email address */
-  primary: Scalars['Boolean']['output'];
   /** The user the email belongs to */
   userId: Scalars['Int']['output'];
 };
@@ -2049,15 +2049,15 @@ export type UserResolvers<ContextType = MyContext, ParentType extends ResolversP
 };
 
 export type UserEmailResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['UserEmail'] = ResolversParentTypes['UserEmail']> = {
-  confirmed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  isConfirmed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isPrimary?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  primary?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   userId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };

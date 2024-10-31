@@ -65,7 +65,7 @@ export const resolvers: Resolvers = {
         user.surName = surName;
         user.affiliationId = affiliationId;
         user.languageId = languageId || defaultLanguageId;
-        const updated = await user.update(context);
+        const updated = await new User(user).update(context);
         if (!updated) {
           throw InternalServerError('Unable to save the profile changes at this time');
         }
@@ -94,7 +94,7 @@ export const resolvers: Resolvers = {
         user.notify_on_feedback_complete = notify_on_feedback_complete || true;
         user.notify_on_plan_shared = notify_on_plan_shared || true;
         user.notify_on_plan_visibility_change = notify_on_plan_visibility_change || true;
-        const updated = await user.update(context);
+        const updated = await new User(user).update(context);
         if (!updated) {
           throw InternalServerError('Unable to save the notification settings at this time');
         }
@@ -130,7 +130,7 @@ export const resolvers: Resolvers = {
         }
 
         user.orcid = orcid;
-        const updated = await user.update(context);
+        const updated = await new User(user).update(context);
         if (!updated) {
           throw InternalServerError('Unable to save the ORCID at this time');
         }
@@ -150,7 +150,7 @@ export const resolvers: Resolvers = {
         const userEmail = new UserEmail({
           userId: context.token.id,
           email: email,
-          primary: isPrimary || false,
+          isPrimary: isPrimary || false,
         });
         const created = userEmail.create(context);
         if (!created) {
@@ -177,7 +177,7 @@ export const resolvers: Resolvers = {
         }
 
         const original = structuredClone(userEmail);
-        if (await userEmail.delete(context)) {
+        if (await new UserEmail(userEmail).delete(context)) {
           return original;
         }
         throw InternalServerError('Unable to remove the email at this time');
@@ -196,19 +196,27 @@ export const resolvers: Resolvers = {
         }
 
         const userEmails = await UserEmail.findByUserId(ref, context, context.token.id);
+
         const existing = userEmails.find((entry) => { return entry.email === email });
-        const oldPrimary = userEmails.find((entry) => { return entry.primary === true });
+        const oldPrimary = userEmails.find((entry) => { return entry.isPrimary === true });
         if (!existing) {
           throw NotFoundError();
         }
 
-        oldPrimary.primary = false;
-        existing.primary = true;
-        if (await oldPrimary.update(context) && existing.update(context)){
+        if (oldPrimary) {
+          oldPrimary.isPrimary = false;
+          await new UserEmail(oldPrimary).update(context);
+        }
+
+        existing.isPrimary = true;
+        const updated = await new UserEmail(existing).update(context);
+        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
           user.email = email;
-          if (user.update(context)) {
-            return await UserEmail.findByUserId(ref, context, context.token.id);
+          if (await User.update(context, new User(user).tableName, user, ref, ['password'])) {
+            return await UserEmail.findByUserId(ref, context, user.id);
           }
+        } else {
+          return [updated];
         }
 
         throw InternalServerError('Unable to remove the email at this time');
@@ -226,7 +234,7 @@ export const resolvers: Resolvers = {
           throw ForbiddenError();
         }
 
-        const updated = await user.updatePassword(context, oldPassword, newPassword);
+        const updated = await new User(user).updatePassword(context, oldPassword, newPassword);
         if (updated) {
           return updated;
         }
@@ -245,7 +253,7 @@ export const resolvers: Resolvers = {
         // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
         if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
           user.active = false;
-          const updated = await User.update(context, user.tableName, user, ref, ['password']);
+          const updated = await User.update(context, new User(user).tableName, user, ref, ['password']);
 
           if (!updated) {
             throw InternalServerError('Unable to deactivate the user at this time');
@@ -261,18 +269,18 @@ export const resolvers: Resolvers = {
     activateUser: async (_, { userId }, context: MyContext): Promise<User> => {
       const ref = 'activateUser resolver';
       if (isAdmin(context.token)) {
-        const user = await User.findById(ref, context, userId);
+        const result = await User.findById(ref, context, userId);
+        // For some reason these are being returned a Objects and not User!
+        const user = new User(result);
         // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
         if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
           user.active = true;
-
-console.log(user)
-
           const updated = await User.update(context, user.tableName, user, ref, ['password']);
+
           if (!updated) {
             throw InternalServerError('Unable to activate the user at this time');
           }
-          return updated as User;
+          return result as User;
         }
       }
       // Unauthorized!

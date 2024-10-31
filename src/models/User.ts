@@ -92,7 +92,7 @@ export class User extends MySqlModel {
     const context = buildContext(logger);
     const existing = await User.findByEmail('User.isValid', context, this.email);
 
-    if (existing) {
+    if (existing && existing.id !== this.id) {
       this.errors.push('Email address already in use');
     } else {
       if (!validateEmail(this.email)) {
@@ -193,8 +193,6 @@ export class User extends MySqlModel {
       this.last_sign_in = getCurrentDate();
       this.last_sign_in_via = loginType;
 
-console.log(this)
-
       if (await User.update(context, this.tableName, this, 'User.recordLogIn', [], true)) {
         return true;
       }
@@ -218,8 +216,6 @@ console.log(this)
 
       if (userId) {
         const existing = await User.findByEmail('User.login', context, this.email);
-
-console.log(existing)
 
         // Update the User's last_sign_in fields
         if (await new User(existing).recordLogIn(context, LogInType.PASSWORD)) {
@@ -274,8 +270,13 @@ console.log(existing)
         // Fetch the new record
         const user = await User.findById('User.register', context, result[0].insertId);
 
+        // Update the user's createdById and modifiedById to indicate themselves
+        const sqlUpdate = `UPDATE users SET createdById = ?, modifiedById = ? WHERE id = ?`;
+        const valsUpdate = [this.id.toString(), this.id.toString(), this.id.toString()];
+        await User.query(context, sqlUpdate, valsUpdate, 'User.register');
+
         // Add the email to the UserEmail table and send out a 'please confirm' email
-        const userEmail = new UserEmail({ userId: user.id, email: user.email, primary: true });
+        const userEmail = new UserEmail({ userId: user.id, email: user.email, isPrimary: true });
         if (!await userEmail.create(context)){
           // If we couldn't add the UserEmail record, log the error but let them continue
           formatLogMessage(context.logger).error(userEmail, `User.register - unable to add UserEmail!`);

@@ -35,16 +35,16 @@ describe('constructor', () => {
       id: casual.integer(1, 99999),
       email: casual.email,
       userId: casual.integer(1, 999),
-      primary: casual.boolean,
-      confirmed: casual.boolean,
+      isPrimary: casual.boolean,
+      isConfirmed: casual.boolean,
     }
 
     const userEmail = new UserEmail(props);
     expect(userEmail.id).toEqual(props.id);
     expect(userEmail.email).toEqual(props.email);
     expect(userEmail.userId).toEqual(props.userId);
-    expect(userEmail.primary).toEqual(props.primary);
-    expect(userEmail.confirmed).toEqual(props.confirmed);
+    expect(userEmail.isPrimary).toEqual(props.isPrimary);
+    expect(userEmail.isConfirmed).toEqual(props.isConfirmed);
   });
 
   it('should set the defaults properly', () => {
@@ -57,8 +57,8 @@ describe('constructor', () => {
     expect(userEmail.id).toBeFalsy();
     expect(userEmail.email).toEqual(props.email);
     expect(userEmail.userId).toEqual(props.userId);
-    expect(userEmail.primary).toBe(false);
-    expect(userEmail.confirmed).toBe(false);
+    expect(userEmail.isPrimary).toBe(false);
+    expect(userEmail.isConfirmed).toBe(false);
     expect(userEmail.created).toBeTruthy();
     expect(userEmail.createdById).toEqual(props.createdById);
     expect(userEmail.modified).toBeTruthy();
@@ -73,8 +73,8 @@ describe('validate a new UserEmail', () => {
     mockUserEmail = new UserEmail({
       email: casual.email,
       userId: casual.integer(1, 999),
-      primary: casual.boolean,
-      confirmed: casual.boolean,
+      isPrimary: casual.boolean,
+      isConfirmed: casual.boolean,
       createdById: casual.integer(1, 99),
       modifiedById: casual.integer(1, 99),
     });
@@ -109,8 +109,8 @@ describe('findBy functions', () => {
       id: casual.integer(1, 9999),
       email: casual.email,
       userId: casual.integer(1, 999),
-      primary: casual.boolean,
-      confirmed: casual.boolean,
+      isPrimary: casual.boolean,
+      isConfirmed: casual.boolean,
     });
 
     mockQuery = jest.fn();
@@ -245,7 +245,7 @@ describe('confirmEmail', () => {
   it('returns the UserEmail with errors if it was already confirmed by another user', async () => {
     mockFindUserEmailByUserIdAndEmail.mockResolvedValue(mockUserEmail);
 
-    mockOtherEmails[0].confirmed = true;
+    mockOtherEmails[0].isConfirmed = true;
     mockFindUserEmailByEmail.mockResolvedValue(mockOtherEmails);
     const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
     expect(result).toEqual(mockUserEmail);
@@ -256,7 +256,7 @@ describe('confirmEmail', () => {
     mockFindUserEmailByUserIdAndEmail.mockResolvedValue(mockUserEmail);
     mockFindUserEmailByEmail.mockResolvedValue([]);
     const confirmedEmail = structuredClone(mockUserEmail);
-    confirmedEmail.confirmed = true;
+    confirmedEmail.isConfirmed = true;
     mockFindUserEmailById.mockResolvedValue(confirmedEmail);
     mockFindTemplateCollaboratorByEmail.mockResolvedValue([]);
 
@@ -270,7 +270,7 @@ describe('confirmEmail', () => {
     mockFindUserEmailByUserIdAndEmail.mockResolvedValue(mockUserEmail);
     mockFindUserEmailByEmail.mockResolvedValue([]);
     const confirmedEmail = structuredClone(mockUserEmail);
-    confirmedEmail.confirmed = true;
+    confirmedEmail.isConfirmed = true;
     mockFindUserEmailById.mockResolvedValue(confirmedEmail);
     mockFindTemplateCollaboratorByEmail.mockResolvedValue(mockTemplateCollaborators);
 
@@ -284,7 +284,7 @@ describe('confirmEmail', () => {
     mockFindUserEmailByUserIdAndEmail.mockResolvedValue(mockUserEmail);
     mockFindUserEmailByEmail.mockResolvedValue(mockOtherEmails);
     const confirmedEmail = structuredClone(mockUserEmail);
-    confirmedEmail.confirmed = true;
+    confirmedEmail.isConfirmed = true;
     mockFindUserEmailById.mockResolvedValue(confirmedEmail);
     mockFindTemplateCollaboratorByEmail.mockResolvedValue([]);
 
@@ -308,8 +308,8 @@ describe('create', () => {
     mockUserEmail = new UserEmail({
       email: casual.email,
       userId: casual.integer(1, 999),
-      primary: casual.boolean,
-      confirmed: casual.boolean,
+      isPrimary: casual.boolean,
+      isConfirmed: casual.boolean,
     });
 
     mockValid = jest.fn();
@@ -354,7 +354,7 @@ describe('create', () => {
       new UserEmail({
         email: mockUserEmail.email,
         userId: casual.integer(1, 999),
-        confirmed: true,
+        isConfirmed: true,
       }),
     ]);
 
@@ -391,8 +391,8 @@ describe('update', () => {
       id: casual.integer(1, 9999),
       email: casual.email,
       userId: casual.integer(1, 999),
-      primary: casual.boolean,
-      confirmed: true,
+      isPrimary: casual.boolean,
+      isConfirmed: true,
     });
 
     mockValid = jest.fn();
@@ -421,7 +421,7 @@ describe('update', () => {
   });
 
   it('returns an error if the UserEmail has not been confirmed yet', async () => {
-    mockUserEmail.confirmed = false;
+    mockUserEmail.isConfirmed = false;
     mockValid.mockResolvedValueOnce(true);
     mockFindById.mockResolvedValueOnce(mockUserEmail);
 
@@ -455,8 +455,8 @@ describe('delete', () => {
       id: casual.integer(1, 9999),
       email: casual.email,
       userId: casual.integer(1, 999),
-      primary: casual.boolean,
-      confirmed: true,
+      isPrimary: casual.boolean,
+      isConfirmed: true,
     });
 
     mockFindById = jest.fn();

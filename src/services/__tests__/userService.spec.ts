@@ -263,8 +263,8 @@ describe('anonymizeUser', () => {
 
   it('removes all associated UserEmail records', async () => {
     userEmailStore = [
-      new UserEmail({ id: 1, email: casual.email, userId: user.id, confirmed: true }),
-      new UserEmail({ id: 2, email: casual.email, userId: user.id, confirmed: false }),
+      new UserEmail({ id: 1, email: casual.email, userId: user.id, isConfirmed: true }),
+      new UserEmail({ id: 2, email: casual.email, userId: user.id, isConfirmed: false }),
     ];
     await anonymizeUser(context, user);
     expect(mockFindEmailsByUserId).toHaveBeenCalledTimes(1);
@@ -275,7 +275,7 @@ describe('anonymizeUser', () => {
     const secondaryEmail = casual.email;
     const templateId = casual.integer(1, 99);
     userEmailStore = [
-      new UserEmail({ id: 1, email: user.email, userId: user.id, primary: true }),
+      new UserEmail({ id: 1, email: user.email, userId: user.id, isPrimary: true }),
       new UserEmail({ id: 1, email: secondaryEmail, userId: user.id }),
     ];
     templateCollaboratorStore = [
@@ -446,12 +446,12 @@ describe('mergeUsers', () => {
 
   it('merges UserEmail entries', async () => {
     userEmailStore = [
-      new UserEmail({ userId: mergeUser.id, email: 'match-confirmed@test.org', confirmed: true, id: 1 }),
-      new UserEmail({ userId: mergeUser.id, email: 'match-unconfirmed@test.org', confirmed: false, id: 2 }),
+      new UserEmail({ userId: mergeUser.id, email: 'match-confirmed@test.org', isConfirmed: true, id: 1 }),
+      new UserEmail({ userId: mergeUser.id, email: 'match-unconfirmed@test.org', isConfirmed: false, id: 2 }),
       new UserEmail({ userId: mergeUser.id, email: 'unmatched@test.org', id: 3 }),
 
-      new UserEmail({ userId: keepUser.id, email: 'match-confirmed@test.org', confirmed: false, id: 4 }),
-      new UserEmail({ userId: keepUser.id, email: 'match-unconfirmed@test.org', confirmed: true, id: 5 }),
+      new UserEmail({ userId: keepUser.id, email: 'match-confirmed@test.org', isConfirmed: false, id: 4 }),
+      new UserEmail({ userId: keepUser.id, email: 'match-unconfirmed@test.org', isConfirmed: true, id: 5 }),
       new UserEmail({ userId: keepUser.id, email: 'original@test.org', id: 6 }),
     ];
 
@@ -462,12 +462,12 @@ describe('mergeUsers', () => {
 
     const matchConfirmed = userEmailStore.filter((e) => { return e.email === 'match-confirmed@test.org' });
     expect(matchConfirmed.length).toBe(1);
-    expect(matchConfirmed[0].confirmed).toBe(true);
+    expect(matchConfirmed[0].isConfirmed).toBe(true);
     expect(matchConfirmed[0].userId).toBe(keepUser.id);
 
     const matchUnConfirmed = userEmailStore.filter((e) => { return e.email === 'match-unconfirmed@test.org' });
     expect(matchUnConfirmed.length).toBe(1);
-    expect(matchUnConfirmed[0].confirmed).toBe(true);
+    expect(matchUnConfirmed[0].isConfirmed).toBe(true);
     expect(matchUnConfirmed[0].userId).toBe(keepUser.id);
 
     const unmatched = userEmailStore.filter((e) => { return e.email === 'unmatched@test.org' });

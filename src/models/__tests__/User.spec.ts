@@ -137,7 +137,7 @@ describe('validate a new User', () => {
   });
 
   it('should return false when we have an existing user', async () => {
-    mockQuery.mockResolvedValueOnce([mockUser]);
+    mockQuery.mockResolvedValueOnce([{ id: 0, email: mockUser.email }]);
     expect(await mockUser.isValid()).toBe(false);
     expect(mockUser.errors.length).toBe(1);
     expect(mockUser.errors[0].includes('Email address already in use')).toBe(true);

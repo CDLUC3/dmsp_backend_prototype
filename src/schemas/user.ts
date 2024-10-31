@@ -131,9 +131,9 @@ export const typeDefs = gql`
     "The email address"
     email: String!
     "Whether or not the email address has been confirmed"
-    confirmed: Boolean!
+    isConfirmed: Boolean!
     "Whether or not this is the primary email address"
-    primary: Boolean!
+    isPrimary: Boolean!
   }
 
   input updateUserProfileInput {
