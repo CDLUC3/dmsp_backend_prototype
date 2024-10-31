@@ -213,12 +213,12 @@ export class User extends MySqlModel {
     try {
       formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const userId = await User.authCheck('User.login', context, this.email, this.password);
-
       if (userId) {
-        const existing = await User.findByEmail('User.login', context, this.email);
+        const existing = await User.findById('User.login', context, userId);
 
         // Update the User's last_sign_in fields
         if (await new User(existing).recordLogIn(context, LogInType.PASSWORD)) {
+          // return existing;
           return existing;
         }
       }
@@ -336,10 +336,15 @@ export class User extends MySqlModel {
     // First make sure the current password is valid
     const validPassword = await User.authCheck(ref, context, this.email, oldPassword);
     if (validPassword) {
-      this.password = await this.hashPassword(newPassword);
+      this.password = newPassword;
+      if (this.validatePassword()) {
+        this.password = await this.hashPassword(newPassword);
 
-      const updated = await User.update(context, this.tableName, this, 'User.updatePassword');
-      return updated as User;
+        const updated = await User.update(context, this.tableName, this, 'User.updatePassword');
+        return updated as User;
+      }
+      // The new password was invalid, so return the object with errors
+      return this;
     }
     return null;
   }

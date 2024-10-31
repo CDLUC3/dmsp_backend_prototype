@@ -337,7 +337,7 @@ describe('recordLogIn', () => {
 describe('login()', () => {
   let context;
   let mockAuthCheck;
-  let mockRecordLogIn;
+  let mockUpdate;
 
   beforeEach(() => {
     jest.resetAllMocks();
@@ -354,25 +354,25 @@ describe('login()', () => {
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
 
-    mockRecordLogIn = jest.fn();
+    mockUpdate = jest.fn().mockResolvedValue(true);
+    (User.update as jest.Mock) = mockUpdate;
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it.skip('should not return null if user exists and its password matches with encrypted one', async () => {
+  it.only('should succeed if user exists and its password matches with encrypted one', async () => {
     const user = new User({
       email: casual.email,
       password: 'abcd3Fgh!JklM_m0$',
     });
     mockAuthCheck.mockReturnValue(123);
-    mockQuery.mockResolvedValue([user]);
-    mockRecordLogIn.mockResolvedValueOnce(true);
-    (user.recordLogIn as jest.Mock) = mockRecordLogIn;
+    mockQuery.mockResolvedValue([{ id: 123, email: user.email, password: user.password }]);
+
     const response = await user.login(context);
     expect(response).not.toBeNull();
-    expect(mockRecordLogIn).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockDebug).toHaveBeenCalledTimes(2);
     expect(mockError).toHaveBeenCalledTimes(0);
   });
@@ -603,6 +603,9 @@ describe('updatePassword', () => {
   let oldPassword;
   let newPassword;
 
+  let mockValidator;
+  let mockAuthCheck;
+
   beforeEach(() => {
     jest.resetAllMocks();
 
@@ -618,6 +621,12 @@ describe('updatePassword', () => {
       affiliationId: casual.url,
     });
 
+    mockAuthCheck = jest.fn();
+    (User.authCheck as jest.Mock) = mockAuthCheck;
+
+    mockValidator = jest.fn();
+    (user.validatePassword as jest.Mock) = mockValidator;
+
     updateQuery = jest.fn().mockResolvedValue(user);
     (User.update as jest.Mock) = updateQuery;
   });
@@ -627,22 +636,31 @@ describe('updatePassword', () => {
   })
 
   it('returns the User without errors if it is valid and we could update the password', async () => {
-    const mockAuthCheck = jest.fn();
-    (User.authCheck as jest.Mock) = mockAuthCheck;
     mockAuthCheck.mockResolvedValueOnce(true);
+    mockValidator.mockReturnValueOnce(true);
 
     expect(await user.updatePassword(context, oldPassword, newPassword)).toBe(user);
     expect(mockAuthCheck).toHaveBeenCalledTimes(1);
+    expect(mockValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
   });
 
+  it('returns the User with errors if new password is invalid', async () => {
+    mockAuthCheck.mockResolvedValueOnce(true);
+    mockValidator.mockReturnValueOnce(false);
+
+    expect(await user.updatePassword(context, oldPassword, newPassword)).toBe(user);
+    expect(mockAuthCheck).toHaveBeenCalledTimes(1);
+    expect(mockValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).not.toHaveBeenCalled();
+  });
+
   it('returns null if the oldPassword is invalid', async () => {
-    const mockAuthCheck = jest.fn();
-    (User.authCheck as jest.Mock) = mockAuthCheck;
     mockAuthCheck.mockResolvedValueOnce(false);
 
     expect(await user.updatePassword(context, oldPassword, newPassword)).toBe(null);
     expect(mockAuthCheck).toHaveBeenCalledTimes(1);
-    expect(updateQuery).toHaveBeenCalledTimes(0);
+    expect(mockValidator).not.toHaveBeenCalled();
+    expect(updateQuery).not.toHaveBeenCalled();
   });
 });
