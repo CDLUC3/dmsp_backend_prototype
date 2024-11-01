@@ -37,7 +37,7 @@ export const resolvers: Resolvers = {
           throw NotFoundError();
         }
         // Make sure the Admin is from the same Affiliation or the user is a SuperAdmin
-        if (context.token?.affiliationId === user.affiliationId || await isSuperAdmin(context.token)) {
+        if (context.token?.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
           return user;
         }
       }
@@ -243,7 +243,7 @@ export const resolvers: Resolvers = {
       throw AuthenticationError();
     },
 
-    // Deactivate the specified user Account (Admin only)
+    // Deactivate the specified user Account (SuperAdmin and Admin only)
     deactivateUser: async (_, { userId }, context: MyContext): Promise<User> => {
       const ref = 'deactivateUser resolver';
       if (isAdmin(context.token)) {
@@ -265,7 +265,7 @@ export const resolvers: Resolvers = {
       // Unauthorized!
       throw context?.token ? ForbiddenError() : AuthenticationError();
     },
-    // Reactivate the specified user Account (Admin only)
+    // Reactivate the specified user Account (SuperAdmin and Admin only)
     activateUser: async (_, { userId }, context: MyContext): Promise<User> => {
       const ref = 'activateUser resolver';
       if (isAdmin(context.token)) {
@@ -286,7 +286,7 @@ export const resolvers: Resolvers = {
       // Unauthorized!
       throw context?.token ? ForbiddenError() : AuthenticationError();
     },
-    // Merge the 2 user accounts (Admin only)
+    // Merge the 2 user accounts (SuperAdmin and Admin only)
     mergeUsers: async (_, { userIdToBeMerged, userIdToKeep }, context: MyContext): Promise<User> => {
       if (isAdmin(context.token)) {
         const userToMerge = await User.findById('mergeUsers resolver', context, userIdToBeMerged);
