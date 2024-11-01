@@ -362,7 +362,7 @@ describe('login()', () => {
     jest.clearAllMocks();
   });
 
-  it.only('should succeed if user exists and its password matches with encrypted one', async () => {
+  it('should succeed if user exists and its password matches with encrypted one', async () => {
     const user = new User({
       email: casual.email,
       password: 'abcd3Fgh!JklM_m0$',
@@ -637,7 +637,9 @@ describe('updatePassword', () => {
 
   it('returns the User without errors if it is valid and we could update the password', async () => {
     mockAuthCheck.mockResolvedValueOnce(true);
-    mockValidator.mockReturnValueOnce(true);
+    mockValidator.mockReturnValue(true);
+    const mockFindById = jest.fn().mockResolvedValue(user);
+    (User.findById as jest.Mock) = mockFindById;
 
     expect(await user.updatePassword(context, oldPassword, newPassword)).toBe(user);
     expect(mockAuthCheck).toHaveBeenCalledTimes(1);

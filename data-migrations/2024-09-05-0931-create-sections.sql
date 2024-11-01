@@ -7,7 +7,7 @@ CREATE TABLE `sections` (
   `requirements` TEXT,
   `guidance` TEXT,
   `displayOrder` INT NOT NULL,
-  `isDirty` BOOLEAN NOT NULL DEFAULT 1,
+  `isDirty` TINYINT(1) NOT NULL DEFAULT 1,
   `createdById` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,

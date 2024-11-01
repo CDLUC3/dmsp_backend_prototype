@@ -300,7 +300,6 @@ export class User extends MySqlModel {
     if (await this.isValid()) {
       if (this.id) {
         const original = await User.findById('User.update', context, this.id);
-
         // If the user changed their affiliationId
         if (original.affiliationId !== this.affiliationId) {
           // If the user is an ADMIN then demote them to RESEARCHER
@@ -341,7 +340,12 @@ export class User extends MySqlModel {
         this.password = await this.hashPassword(newPassword);
 
         const updated = await User.update(context, this.tableName, this, 'User.updatePassword');
-        return updated as User;
+
+console.log(updated)
+
+        if (updated) {
+          return await User.findById('updatePassword resolver', context, this.id);
+        }
       }
       // The new password was invalid, so return the object with errors
       return this;

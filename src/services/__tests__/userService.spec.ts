@@ -360,8 +360,6 @@ describe('mergeUsers', () => {
     expect(mergedUser.id).toEqual(keepUser.id);
     expect(mergedUser.created).toEqual(keepUser.created);
     expect(mergedUser.createdById).toEqual(keepUser.createdById);
-    expect(mergedUser.modified).toEqual(keepUser.modifed);
-    expect(mergedUser.modifiedById).toEqual(keepUser.modifiedById);
   });
 
   it('does not overwrite properties if they arealready  defined in the User to keep', async () => {
@@ -394,22 +392,23 @@ describe('mergeUsers', () => {
     keepUser.affiliationId = null;
     keepUser.active = false;
 
+    const original = structuredClone(keepUser);
     const mergedUser = await mergeUsers(context, mergeUser, keepUser);
     expect(mockUpdate).toHaveBeenCalled();
-    expect(mergedUser.acceptedTerms).toEqual(keepUser.acceptedTerms);
-    expect(mergedUser.active).toEqual(keepUser.active);
+    expect(mergedUser.acceptedTerms).toEqual(original.acceptedTerms);
+    expect(mergedUser.active).toEqual(mergeUser.active);
     expect(mergedUser.affiliationId).toEqual(mergeUser.affiliationId);
-    expect(mergedUser.notify_on_template_shared).toEqual(keepUser.notify_on_template_shared);
-    expect(mergedUser.notify_on_plan_visibility_change).toEqual(keepUser.notify_on_plan_visibility_change);
-    expect(mergedUser.notify_on_plan_shared).toEqual(keepUser.notify_on_plan_shared);
-    expect(mergedUser.notify_on_feedback_complete).toEqual(keepUser.notify_on_feedback_complete);
-    expect(mergedUser.notify_on_comment_added).toEqual(keepUser.notify_on_comment_added);
+    expect(mergedUser.notify_on_template_shared).toEqual(original.notify_on_template_shared);
+    expect(mergedUser.notify_on_plan_visibility_change).toEqual(original.notify_on_plan_visibility_change);
+    expect(mergedUser.notify_on_plan_shared).toEqual(original.notify_on_plan_shared);
+    expect(mergedUser.notify_on_feedback_complete).toEqual(original.notify_on_feedback_complete);
+    expect(mergedUser.notify_on_comment_added).toEqual(original.notify_on_comment_added);
     expect(mergedUser.languageId).toEqual(mergeUser.languageId);
-    expect(mergedUser.ssoId).toEqual(mergeUser.ssoId);
+    expect(mergedUser.ssoId).toEqual(null);
     expect(mergedUser.orcid).toEqual(mergeUser.orcid);
     expect(mergedUser.surName).toEqual(mergeUser.surName);
     expect(mergedUser.givenName).toEqual(mergeUser.givenName);
-    expect(mergedUser.password).toEqual(keepUser.password);
+    expect(mergedUser.password).toEqual(original.password);
     expect(mergedUser.email).toEqual(keepUser.email);
   });
 

@@ -259,7 +259,7 @@ export const resolvers: Resolvers = {
             throw InternalServerError('Unable to deactivate the user at this time');
           }
           // Return the result, because updated will not return a User since they are now inactive
-          return result as User;
+          return await User.findById(ref, context, userId);
         }
       }
       // Unauthorized!
@@ -280,7 +280,7 @@ export const resolvers: Resolvers = {
           if (!updated) {
             throw InternalServerError('Unable to activate the user at this time');
           }
-          return result as User;
+          return await User.findById(ref, context, userId);
         }
       }
       // Unauthorized!

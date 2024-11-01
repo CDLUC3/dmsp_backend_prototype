@@ -107,32 +107,35 @@ export const mergeUsers = async (
   const ref = 'UserService.mergeUsers';
   const original = await User.findById(ref, context, userToKeep.id);
 
+  const toBeMerged = new User(userToMerge);
+  const toBeKept = new User(userToKeep);
+
   // Only replace these properties if the one we are keeping does not have them defined
   const propsToMergeIfEmpty = ['givenName', 'surName', 'affiliationId', 'orcid', 'ssoId', 'languageId'];
   for (const prop of propsToMergeIfEmpty) {
-    if (userToMerge[prop] && userToMerge[prop] !== '' && !userToKeep[prop] || userToKeep[prop] === '') {
-      userToKeep[prop] = userToMerge[prop];
+    if (toBeMerged[prop] && toBeMerged[prop] !== '' && !toBeKept[prop] || toBeKept[prop] === '') {
+      toBeKept[prop] = toBeMerged[prop];
     }
   }
 
   // Update the user's role ONLY if the one being merged is an admin
-  if (userToKeep.role === UserRole.RESEARCHER && userToMerge.role === UserRole.ADMIN) {
-    userToKeep.role = userToMerge.role
+  if (toBeKept.role === UserRole.RESEARCHER && toBeMerged.role === UserRole.ADMIN) {
+    toBeKept.role = toBeMerged.role
   }
 
-  const merged = await userToKeep.update(context);
+  const merged = await toBeKept.update(context);
   if (merged && Array.isArray(merged.errors) && merged.errors.length > 0) {
     original.errors.push('Unable to merge the user at this time');
     return original;
 
   } else {
-    const mergingEmails = await UserEmail.findByUserId(ref, context, userToMerge.id);
-    const keepingEmails = await UserEmail.findByUserId(ref, context, userToKeep.id);
+    const mergingEmails = await UserEmail.findByUserId(ref, context, toBeMerged.id);
+    const keepingEmails = await UserEmail.findByUserId(ref, context, toBeKept.id);
 
     // Update any Collaboration invites
-    const invites = await TemplateCollaborator.findByInvitedById(ref, context, userToMerge.id);
+    const invites = await TemplateCollaborator.findByInvitedById(ref, context, toBeMerged.id);
     for (const collab of invites) {
-      collab.invitedById = userToKeep.id;
+      collab.invitedById = toBeKept.id;
       await collab.update(context);
     }
 
@@ -141,13 +144,13 @@ export const mergeUsers = async (
       const matched = keepingEmails.find((entry) => { return entry.email === mergeEmail.email; });
       // If the User we are keeping doesn't have the email then update the UserId
       if (!matched) {
-        mergeEmail.userId = userToKeep.id;
+        mergeEmail.userId = toBeKept.id;
         await mergeEmail.update(context);
 
         // See if there are any collaborations for the email and attach it to the user to keep
         const tmpltCollaborators = await TemplateCollaborator.findByEmail(ref, context, mergeEmail.email);
         for (const collab of tmpltCollaborators) {
-          collab.userId = userToKeep.id;
+          collab.userId = toBeKept.id;
           await collab.update(context);
         }
 
@@ -167,9 +170,9 @@ export const mergeUsers = async (
 
     // TODO: Once we've solved the above issue with createdById we can delete
     //       for now just anonymize
-    if (!await anonymizeUser(context, userToMerge)) {
-      userToKeep.errors.push('Unable to anonymize the user being merged at this time');
+    if (!await anonymizeUser(context, toBeMerged)) {
+      toBeKept.errors.push('Unable to anonymize the user being merged at this time');
     }
-    return userToKeep;
+    return toBeKept;
   }
 }
