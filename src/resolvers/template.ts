@@ -153,7 +153,7 @@ export const resolvers: Resolvers = {
   Template: {
     // Chained resolver to fetch the Affiliation info for the user
     owner: async (parent: Template, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findById('Chained Template.owner', context, parent.ownerId);
+      return await Affiliation.findByURI('Chained Template.owner', context, parent.ownerId);
     },
 
     // Chained resolver to fetch the TemplateCollaborators

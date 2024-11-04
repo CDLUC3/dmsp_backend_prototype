@@ -54,7 +54,7 @@ export function InternalServerError(errMessage = DEFAULT_INTERNAL_SERVER_MESSAGE
   })
 };
 
-export function BadUserInput(errMessage = DEFAULT_BAD_USER_INPUT) {
+export function BadUserInputError(errMessage = DEFAULT_BAD_USER_INPUT) {
   return new GraphQLError(errMessage, {
     extensions: {
       code: BAD_USER_INPUT,

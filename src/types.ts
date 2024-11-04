@@ -338,6 +338,11 @@ export type Identifier = {
   type: Scalars['String']['output'];
 };
 
+/** The types of object a User can be invited to Collaborate on */
+export type InvitedToType =
+  | 'PLAN'
+  | 'TEMPLATE';
+
 /** A Language supported by the system */
 export type Language = {
   __typename?: 'Language';
@@ -352,6 +357,8 @@ export type Language = {
 export type Mutation = {
   __typename?: 'Mutation';
   _empty?: Maybe<Scalars['String']['output']>;
+  /** Reactivate the specified user Account (Admin only) */
+  activateUser?: Maybe<User>;
   /** Create a new Affiliation */
   addAffiliation?: Maybe<Affiliation>;
   /** Add a new contributor role (URL and label must be unique!) */
@@ -368,10 +375,16 @@ export type Mutation = {
   addTemplate?: Maybe<Template>;
   /** Add a collaborator to a Template */
   addTemplateCollaborator?: Maybe<TemplateCollaborator>;
+  /** Add an email address for the current user */
+  addUserEmail?: Maybe<UserEmail>;
   /** Archive a Template (unpublishes any associated PublishedTemplate */
   archiveTemplate?: Maybe<Scalars['Boolean']['output']>;
   /** Publish the template or save as a draft */
   createTemplateVersion?: Maybe<Template>;
+  /** Deactivate the specified user Account (Admin only) */
+  deactivateUser?: Maybe<User>;
+  /** Merge the 2 user accounts (Admin only) */
+  mergeUsers?: Maybe<User>;
   /** Delete an Affiliation (only applicable to AffiliationProvenance == DMPTOOL) */
   removeAffiliation?: Maybe<Affiliation>;
   /** Delete the contributor role */
@@ -386,10 +399,20 @@ export type Mutation = {
   removeTag?: Maybe<Tag>;
   /** Remove a TemplateCollaborator from a Template */
   removeTemplateCollaborator?: Maybe<Scalars['Boolean']['output']>;
+  /** Anonymize the current user's account (essentially deletes their account without orphaning things) */
+  removeUser?: Maybe<User>;
+  /** Remove an email address from the current user */
+  removeUserEmail?: Maybe<UserEmail>;
+  /** Designate the email as the current user's primary email address */
+  setPrimaryUserEmail?: Maybe<Array<Maybe<UserEmail>>>;
+  /** Set the user's ORCID */
+  setUserOrcid?: Maybe<User>;
   /** Update an Affiliation */
   updateAffiliation?: Maybe<Affiliation>;
   /** Update the contributor role */
   updateContributorRole?: Maybe<ContributorRoleMutationResponse>;
+  /** Change the current user's password */
+  updatePassword?: Maybe<User>;
   /** Update a Question */
   updateQuestion: Question;
   /** Update a QuestionCondition for a specific QuestionCondition id */
@@ -402,6 +425,15 @@ export type Mutation = {
   updateTag?: Maybe<Tag>;
   /** Update a Template */
   updateTemplate?: Maybe<Template>;
+  /** Update the current user's email notifications */
+  updateUserNotifications?: Maybe<User>;
+  /** Update the current user's information */
+  updateUserProfile?: Maybe<User>;
+};
+
+
+export type MutationActivateUserArgs = {
+  userId: Scalars['Int']['input'];
 };
 
 
@@ -451,6 +483,12 @@ export type MutationAddTemplateCollaboratorArgs = {
 };
 
 
+export type MutationAddUserEmailArgs = {
+  email: Scalars['String']['input'];
+  isPrimary: Scalars['Boolean']['input'];
+};
+
+
 export type MutationArchiveTemplateArgs = {
   templateId: Scalars['Int']['input'];
 };
@@ -460,6 +498,17 @@ export type MutationCreateTemplateVersionArgs = {
   comment?: InputMaybe<Scalars['String']['input']>;
   templateId: Scalars['Int']['input'];
   versionType?: InputMaybe<TemplateVersionType>;
+};
+
+
+export type MutationDeactivateUserArgs = {
+  userId: Scalars['Int']['input'];
+};
+
+
+export type MutationMergeUsersArgs = {
+  userIdToBeMerged: Scalars['Int']['input'];
+  userIdToKeep: Scalars['Int']['input'];
 };
 
 
@@ -499,6 +548,21 @@ export type MutationRemoveTemplateCollaboratorArgs = {
 };
 
 
+export type MutationRemoveUserEmailArgs = {
+  email: Scalars['String']['input'];
+};
+
+
+export type MutationSetPrimaryUserEmailArgs = {
+  email: Scalars['String']['input'];
+};
+
+
+export type MutationSetUserOrcidArgs = {
+  orcid: Scalars['String']['input'];
+};
+
+
 export type MutationUpdateAffiliationArgs = {
   input: AffiliationInput;
 };
@@ -510,6 +574,12 @@ export type MutationUpdateContributorRoleArgs = {
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
   url: Scalars['URL']['input'];
+};
+
+
+export type MutationUpdatePasswordArgs = {
+  newPassword: Scalars['String']['input'];
+  oldPassword: Scalars['String']['input'];
 };
 
 
@@ -545,6 +615,16 @@ export type MutationUpdateTemplateArgs = {
   name: Scalars['String']['input'];
   templateId: Scalars['Int']['input'];
   visibility: TemplateVisibility;
+};
+
+
+export type MutationUpdateUserNotificationsArgs = {
+  input: UpdateUserNotificationsInput;
+};
+
+
+export type MutationUpdateUserProfileArgs = {
+  input: UpdateUserProfileInput;
 };
 
 export type OrganizationIdentifier = {
@@ -1080,6 +1160,8 @@ export type User = {
   __typename?: 'User';
   /** Whether the user has accepted the terms and conditions of having an account */
   acceptedTerms?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not account is active */
+  active?: Maybe<Scalars['Boolean']['output']>;
   /** The user's organizational affiliation */
   affiliation?: Maybe<Affiliation>;
   /** The timestamp when the Object was created */
@@ -1088,24 +1170,70 @@ export type User = {
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The user's primary email address */
   email: Scalars['EmailAddress']['output'];
+  /** The user's email addresses */
+  emails?: Maybe<Array<Maybe<UserEmail>>>;
   /** Errors associated with the Object */
   errors?: Maybe<Array<Scalars['String']['output']>>;
+  /** The number of failed login attempts */
+  failed_sign_in_attemps?: Maybe<Scalars['Int']['output']>;
   /** The user's first/given name */
   givenName?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The user's preferred language */
   languageId: Scalars['String']['output'];
+  /** The timestamp of the last login */
+  last_sign_in?: Maybe<Scalars['String']['output']>;
+  /** The method user for the last login: PASSWORD or SSO */
+  last_sign_in_via?: Maybe<Scalars['String']['output']>;
+  /** Whether or not the account is locked from failed login attempts */
+  locked?: Maybe<Scalars['Boolean']['output']>;
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not email notifications are on for when a Plan has a new comment */
+  notify_on_comment_added?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not email notifications are on for when feedback on a Plan is completed */
+  notify_on_feedback_complete?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not email notifications are on for when a Plan is shared with the user */
+  notify_on_plan_shared?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not email notifications are on for Plan visibility changes */
+  notify_on_plan_visibility_change?: Maybe<Scalars['Boolean']['output']>;
+  /** Whether or not email notifications are on for when a Template is shared with the User (Admin only) */
+  notify_on_template_shared?: Maybe<Scalars['Boolean']['output']>;
   /** The user's ORCID */
   orcid?: Maybe<Scalars['Orcid']['output']>;
   /** The user's role within the DMPTool */
   role: UserRole;
+  /** The user's SSO ID */
+  ssoId?: Maybe<Scalars['String']['output']>;
   /** The user's last/family name */
   surName?: Maybe<Scalars['String']['output']>;
+};
+
+export type UserEmail = {
+  __typename?: 'UserEmail';
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** The email address */
+  email: Scalars['String']['output'];
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not the email address has been confirmed */
+  isConfirmed: Scalars['Boolean']['output'];
+  /** Whether or not this is the primary email address */
+  isPrimary: Scalars['Boolean']['output'];
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The user the email belongs to */
+  userId: Scalars['Int']['output'];
 };
 
 /** The types of roles supported by the DMPTool */
@@ -1282,6 +1410,30 @@ export type YesNoUnknown =
   | 'unknown'
   | 'yes';
 
+export type UpdateUserNotificationsInput = {
+  /** Whether or not email notifications are on for when a Plan has a new comment */
+  notify_on_comment_added: Scalars['Boolean']['input'];
+  /** Whether or not email notifications are on for when feedback on a Plan is completed */
+  notify_on_feedback_complete: Scalars['Boolean']['input'];
+  /** Whether or not email notifications are on for when a Plan is shared with the user */
+  notify_on_plan_shared: Scalars['Boolean']['input'];
+  /** Whether or not email notifications are on for Plan visibility changes */
+  notify_on_plan_visibility_change: Scalars['Boolean']['input'];
+  /** Whether or not email notifications are on for when a Template is shared with the User (Admin only) */
+  notify_on_template_shared: Scalars['Boolean']['input'];
+};
+
+export type UpdateUserProfileInput = {
+  /** The user's organizational affiliation id */
+  affiliationId: Scalars['String']['input'];
+  /** The user's first/given name */
+  givenName: Scalars['String']['input'];
+  /** The user's preferred language */
+  languageId?: InputMaybe<Scalars['String']['input']>;
+  /** The user's last/family name */
+  surName: Scalars['String']['input'];
+};
+
 
 
 export type ResolverTypeWrapper<T> = Promise<T> | T;
@@ -1382,6 +1534,7 @@ export type ResolversTypes = {
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Identifier: ResolverTypeWrapper<Identifier>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  InvitedToType: InvitedToType;
   Language: ResolverTypeWrapper<Language>;
   Mutation: ResolverTypeWrapper<{}>;
   Orcid: ResolverTypeWrapper<Scalars['Orcid']['output']>;
@@ -1412,6 +1565,7 @@ export type ResolversTypes = {
   UpdateQuestionInput: UpdateQuestionInput;
   UpdateSectionInput: UpdateSectionInput;
   User: ResolverTypeWrapper<User>;
+  UserEmail: ResolverTypeWrapper<UserEmail>;
   UserRole: UserRole;
   VersionedQuestion: ResolverTypeWrapper<VersionedQuestion>;
   VersionedQuestionCondition: ResolverTypeWrapper<VersionedQuestionCondition>;
@@ -1420,6 +1574,8 @@ export type ResolversTypes = {
   VersionedSection: ResolverTypeWrapper<VersionedSection>;
   VersionedTemplate: ResolverTypeWrapper<VersionedTemplate>;
   YesNoUnknown: YesNoUnknown;
+  updateUserNotificationsInput: UpdateUserNotificationsInput;
+  updateUserProfileInput: UpdateUserProfileInput;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -1472,10 +1628,13 @@ export type ResolversParentTypes = {
   UpdateQuestionInput: UpdateQuestionInput;
   UpdateSectionInput: UpdateSectionInput;
   User: User;
+  UserEmail: UserEmail;
   VersionedQuestion: VersionedQuestion;
   VersionedQuestionCondition: VersionedQuestionCondition;
   VersionedSection: VersionedSection;
   VersionedTemplate: VersionedTemplate;
+  updateUserNotificationsInput: UpdateUserNotificationsInput;
+  updateUserProfileInput: UpdateUserProfileInput;
 };
 
 export type AffiliationResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Affiliation'] = ResolversParentTypes['Affiliation']> = {
@@ -1617,6 +1776,7 @@ export type LanguageResolvers<ContextType = MyContext, ParentType extends Resolv
 
 export type MutationResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  activateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationActivateUserArgs, 'userId'>>;
   addAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationAddAffiliationArgs, 'input'>>;
   addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'displayOrder' | 'label' | 'url'>>;
   addQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationAddQuestionArgs, 'input'>>;
@@ -1625,8 +1785,11 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationAddTagArgs, 'name'>>;
   addTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationAddTemplateArgs, 'name'>>;
   addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['TemplateCollaborator']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
+  addUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationAddUserEmailArgs, 'email' | 'isPrimary'>>;
   archiveTemplate?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
   createTemplateVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateTemplateVersionArgs, 'templateId'>>;
+  deactivateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationDeactivateUserArgs, 'userId'>>;
+  mergeUsers?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationMergeUsersArgs, 'userIdToBeMerged' | 'userIdToKeep'>>;
   removeAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationRemoveAffiliationArgs, 'affiliationId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   removeQuestion?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionArgs, 'questionId'>>;
@@ -1634,14 +1797,21 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationRemoveSectionArgs, 'sectionId'>>;
   removeTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationRemoveTagArgs, 'tagId'>>;
   removeTemplateCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveTemplateCollaboratorArgs, 'email' | 'templateId'>>;
+  removeUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  removeUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationRemoveUserEmailArgs, 'email'>>;
+  setPrimaryUserEmail?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType, RequireFields<MutationSetPrimaryUserEmailArgs, 'email'>>;
+  setUserOrcid?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationSetUserOrcidArgs, 'orcid'>>;
   updateAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationUpdateAffiliationArgs, 'input'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
+  updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
   updateQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationUpdateQuestionArgs, 'input'>>;
   updateQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionConditionArgs, 'input'>>;
   updateQuestionOptions?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionsArgs, 'questionId' | 'required'>>;
   updateSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationUpdateSectionArgs, 'input'>>;
   updateTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationUpdateTagArgs, 'name' | 'tagId'>>;
   updateTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationUpdateTemplateArgs, 'name' | 'templateId' | 'visibility'>>;
+  updateUserNotifications?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserNotificationsArgs, 'input'>>;
+  updateUserProfile?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserProfileArgs, 'input'>>;
 };
 
 export interface OrcidScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Orcid'], any> {
@@ -1850,19 +2020,45 @@ export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes[
 
 export type UserResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
   acceptedTerms?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  active?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
+  emails?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  failed_sign_in_attemps?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   languageId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  last_sign_in?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  last_sign_in_via?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  locked?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  notify_on_comment_added?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  notify_on_feedback_complete?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  notify_on_plan_shared?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  notify_on_plan_visibility_change?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  notify_on_template_shared?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['Orcid']>, ParentType, ContextType>;
   role?: Resolver<ResolversTypes['UserRole'], ParentType, ContextType>;
+  ssoId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type UserEmailResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['UserEmail'] = ResolversParentTypes['UserEmail']> = {
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  isConfirmed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  isPrimary?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  userId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1979,6 +2175,7 @@ export type Resolvers<ContextType = MyContext> = {
   TemplateCollaborator?: TemplateCollaboratorResolvers<ContextType>;
   URL?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;
+  UserEmail?: UserEmailResolvers<ContextType>;
   VersionedQuestion?: VersionedQuestionResolvers<ContextType>;
   VersionedQuestionCondition?: VersionedQuestionConditionResolvers<ContextType>;
   VersionedSection?: VersionedSectionResolvers<ContextType>;

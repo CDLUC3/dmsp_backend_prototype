@@ -11,9 +11,10 @@ export const isAuthorized = (token: JWTAccessToken): boolean => {
 
 // An Admin has one of the Admin roles as well as an affiliation id.
 export const isAdmin = (token: JWTAccessToken): boolean => {
-  return isAuthorized(token)
-    && [UserRole.ADMIN.toString(), UserRole.SUPERADMIN.toString()].includes(token?.role)
-    && token?.affiliationId;
+  if(isAuthorized(token) && token.affiliationId) {
+    return [UserRole.ADMIN.toString(), UserRole.SUPERADMIN.toString()].includes(token?.role);
+  }
+  return false;
 }
 
 // A SuperAdmin has the SuperAdmin role.

@@ -157,18 +157,46 @@ export class Affiliation extends MySqlModel {
     return null;
   }
 
+  // Some of the properties are stored as JSON strings in the DB so we need to parse them
+  // after fetching them
+  static processResult(affiliation: Affiliation): Affiliation {
+    if (affiliation.aliases && typeof affiliation.aliases === 'string') {
+      affiliation.aliases = JSON.parse(affiliation.aliases);
+    }
+    if (affiliation.acronyms && typeof affiliation.acronyms === 'string') {
+      affiliation.acronyms = JSON.parse(affiliation.acronyms);
+    }
+    if (affiliation.feedbackEmails && typeof affiliation.feedbackEmails === 'string') {
+      affiliation.feedbackEmails = JSON.parse(affiliation.feedbackEmails);
+    }
+
+    // Only include types that are in the enum
+    if (affiliation.types && typeof affiliation.types === 'string') {
+      const types = JSON.parse(affiliation.types);
+      affiliation.types = [];
+
+      for (const typ of types) {
+        if (AffiliationType[typ.toLocaleUpperCase()] !== undefined) {
+          affiliation.types.push(AffiliationType[typ.toLocaleUpperCase()]);
+        }
+      }
+    }
+    return affiliation;
+  }
+
+
   // Return the specified AffiliationEmailDomain
   static async findById(reference: string, context: MyContext, id: string | number): Promise<Affiliation> {
     const sql = 'SELECT * FROM affiliations WHERE id = ?';
     const results = await Affiliation.query(context, sql, [id.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 
   // Return the specified AffiliationEmailDomain
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<Affiliation> {
     const sql = 'SELECT * FROM affiliations WHERE uri = ?';
     const results = await Affiliation.query(context, sql, [uri], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 }
 

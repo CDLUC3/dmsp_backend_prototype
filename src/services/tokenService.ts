@@ -17,6 +17,7 @@ export interface JWTAccessToken extends JwtPayload {
   givenName: string,
   surName: string,
   role: string,
+  affiliationId: string,
   languageId: string,
   jti: string,
   expiresIn: number,

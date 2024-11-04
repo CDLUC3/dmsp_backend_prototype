@@ -4,16 +4,18 @@ import { User } from '../models/User';
 import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
 import { Cache } from '../datasources/cache';
 import { generalConfig } from '../config/generalConfig';
+import { buildContext } from '../context';
 
 export const signinController = async (req: Request, res: Response) => {
   const userIn = new User(req.body);
   try {
-    const user = await userIn.login() || null;
+    const cache = Cache.getInstance();
+    const context = buildContext(logger, cache);
+    const user = await userIn.login(context) || null;
 
     if (user) {
-      const cache = Cache.getInstance();
       const { accessToken, refreshToken } = await generateAuthTokens(cache, user);
-
+      // Record the login and generate the tokens
       if (accessToken && refreshToken) {
         // Set the tokens as HTTP only cookies
         setTokenCookie(res, 'dmspt', accessToken, generalConfig.jwtTTL);

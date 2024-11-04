@@ -68,6 +68,7 @@ export const generateTemplateVersion = async (
     versionedById: versionerId,
     visibility: template.visibility,
     bestPactice: template.bestPractice,
+    languageId: template.languageId,
     versionType,
     comment,
     active: true,
@@ -136,6 +137,7 @@ export const cloneTemplate = (
   const templateCopy = new Template({
     name: `Copy of ${template.name}`,
     description: template.description,
+    languageId: template.languageId,
     ownerId: newOwnerId,
     sourceTemplateId: sourceId,
   });

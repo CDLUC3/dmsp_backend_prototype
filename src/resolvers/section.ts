@@ -6,7 +6,7 @@ import { VersionedSection } from "../models/VersionedSection";
 import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
 import { cloneSection, hasPermissionOnSection, getTagsToAdd } from "../services/sectionService";
-import { ForbiddenError, NotFoundError, BadUserInput } from "../utils/graphQLErrors";
+import { ForbiddenError, NotFoundError, BadUserInputError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 
 
@@ -63,7 +63,7 @@ export const resolvers: Resolvers = {
         // If there are errors than throw a Bad User Input error
         if (newSection.errors) {
           const errorMessages = newSection.errors.join(', ');
-          throw BadUserInput(errorMessages);
+          throw BadUserInputError(errorMessages);
         } else {
           const sectionId = newSection.id;
 
@@ -119,7 +119,7 @@ export const resolvers: Resolvers = {
         // If there are errors than throw a Bad User Input error
         if (updatedSection.errors) {
           const errorMessages = updatedSection.errors.join(', ');
-          throw BadUserInput(errorMessages);
+          throw BadUserInputError(errorMessages);
         } else {
           /*Get list of tags that aren't already mapped to the sectionId in SectionTags, to avoid duplicate tag entries*/
           const tagsToAdd = await getTagsToAdd(tags as Tag[], context, sectionId);
