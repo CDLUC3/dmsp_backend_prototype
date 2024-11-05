@@ -88,7 +88,7 @@ describe('validate a new UserEmail', () => {
     mockUserEmail.email = null;
     expect(await mockUserEmail.isValid()).toBe(false);
     expect(mockUserEmail.errors.length).toBe(1);
-    expect(mockUserEmail.errors[0].includes('Email can\'t be blank')).toBe(true);
+    expect(mockUserEmail.errors[0].includes('Enter valid email')).toBe(true);
   });
 
   it('should return false when the userId is missing', async () => {
@@ -208,8 +208,8 @@ describe('confirmEmail', () => {
     mockUserEmail = new UserEmail({ id: casual.integer(1, 99), email: mockUser.email, userId: mockUser.id });
 
     mockOtherEmails = [
-      new UserEmail({ id: 1, email: mockUser.email, userId: casual.integer(99991, 999999)}),
-      new UserEmail({ id: 2, email: mockUser.email, userId: casual.integer(99991, 999999)}),
+      new UserEmail({ id: 1, email: mockUser.email, userId: casual.integer(99991, 999999) }),
+      new UserEmail({ id: 2, email: mockUser.email, userId: casual.integer(99991, 999999) }),
     ];
 
     mockTemplateCollaborators = [

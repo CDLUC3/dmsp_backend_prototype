@@ -1,5 +1,6 @@
 import { MyContext } from "../context";
 import { sendEmailConfirmationNotification } from "../services/emailService";
+import { validateEmail } from '../utils/helpers';
 import { TemplateCollaborator } from "./Collaborator";
 import { MySqlModel } from "./MySqlModel";
 
@@ -25,13 +26,13 @@ export class UserEmail extends MySqlModel {
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
-
     if (this.userId === null) {
       this.errors.push('User can\'t be blank');
     }
-    if (!this.email) {
-      this.errors.push('Email can\'t be blank');
+    if (!validateEmail(this.email)) {
+      this.errors.push('Enter valid email');
     }
+
     return this.errors.length <= 0;
   }
 
@@ -94,7 +95,7 @@ export class UserEmail extends MySqlModel {
         this.errors.push('Email has already been confirmed by another account');
       }
 
-      if (this.errors.length <= 0){
+      if (this.errors.length <= 0) {
         // Save the record and then fetch it
         const newId = await UserEmail.insert(context, this.tableName, this, ref);
         const created = await UserEmail.findById(ref, context, newId);

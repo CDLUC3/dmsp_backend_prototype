@@ -13,7 +13,7 @@ export const resolvers: Resolvers = {
     // returns the current User
     me: async (_, __, context: MyContext): Promise<User> => {
       if (isAuthorized(context?.token)) {
-        return await User.findByEmail('me resolver', context, context.token.email);
+        return await User.findById('me resolver', context, context.token.id);
       }
       throw AuthenticationError();
     },
@@ -156,7 +156,7 @@ export const resolvers: Resolvers = {
         if (!created) {
           throw InternalServerError('Could not add the email at this time');
         }
-        return userEmail;
+        return created;
       }
       // Unauthenticated
       throw AuthenticationError();
@@ -176,9 +176,9 @@ export const resolvers: Resolvers = {
           throw NotFoundError();
         }
 
-        const original = structuredClone(userEmail);
-        if (await new UserEmail(userEmail).delete(context)) {
-          return original;
+        const deleted = await new UserEmail(userEmail).delete(context);
+        if (deleted) {
+          return deleted; //Return the deleted email with any errors from calling delete function
         }
         throw InternalServerError('Unable to remove the email at this time');
       }
@@ -196,27 +196,35 @@ export const resolvers: Resolvers = {
         }
 
         const userEmails = await UserEmail.findByUserId(ref, context, context.token.id);
-
         const existing = userEmails.find((entry) => { return entry.email === email });
-        const oldPrimary = userEmails.find((entry) => { return entry.isPrimary === true });
+        const originalState = { ...existing };
+        const oldPrimary = userEmails.find((entry) => { return Boolean(entry.isPrimary) === true });
+
         if (!existing) {
           throw NotFoundError();
-        }
-
-        if (oldPrimary) {
-          oldPrimary.isPrimary = false;
-          await new UserEmail(oldPrimary).update(context);
         }
 
         existing.isPrimary = true;
         const updated = await new UserEmail(existing).update(context);
         if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
+          // Update old primary record to isPrimary = false, if the new one was updated successfullly
+          if (oldPrimary) {
+            oldPrimary.isPrimary = false;
+            await new UserEmail(oldPrimary).update(context);
+          }
           user.email = email;
           if (await User.update(context, new User(user).tableName, user, ref, ['password'])) {
             return await UserEmail.findByUserId(ref, context, user.id);
           }
         } else {
-          return [updated];
+          // On error, revert to the original state
+          const mergedData = { ...existing, ...originalState, errors: updated.errors };
+          const originalWithErrors = new UserEmail(mergedData);
+
+          // Set errors explicitly to avoid being overwritten by the UserEmail instance initialization
+          originalWithErrors.errors = updated.errors || [];
+
+          return [originalWithErrors];
         }
 
         throw InternalServerError('Unable to remove the email at this time');
