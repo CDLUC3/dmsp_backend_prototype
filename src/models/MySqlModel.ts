@@ -64,13 +64,17 @@ export class MySqlModel {
     if (val === null || val === undefined) {
       return null;
     }
-
     switch (type) {
       case 'number':
         return Number(val);
       case 'json':
         return JSON.stringify(val);
+      case 'object':
+        return JSON.stringify(val);
       case Object:
+        return JSON.stringify(val);
+      case 'array':
+        return JSON.stringify(val);
       case Array:
         return JSON.stringify(val);
       case 'boolean':
@@ -89,6 +93,7 @@ export class MySqlModel {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static propertyInfo(obj: Record<string, any>, skipKeys: string[] = []): { name: string, value: string }[] {
     const excludedKeys = ['id', 'errors', 'tableName'];
+
     return Object.keys(obj)
       .filter((key) => ![...excludedKeys, ...skipKeys]
         .includes(key)).map((key) => ({
@@ -179,7 +184,6 @@ export class MySqlModel {
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
-
     const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
 
     // Send the calcuated INSERT statement to the query function

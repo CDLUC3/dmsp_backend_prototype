@@ -104,7 +104,7 @@ export const typeDefs = gql`
     "The message to display to users when they request feedback"
     feedbackMessage: String
     "The email address(es) to notify when feedback has been requested (stored as JSON array)"
-    feedbackEmails: String
+    feedbackEmails: [String!]
     "The properties of this object that are NOT editable. Determined by the record's provenance"
     uneditableProperties: [String!]!
   }

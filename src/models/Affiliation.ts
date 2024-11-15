@@ -48,7 +48,7 @@ export class Affiliation extends MySqlModel {
   public ssoEntityId: string;
   public feedbackEnabled: boolean;
   public feedbackMessage: string;
-  public feedbackEmails: string;
+  public feedbackEmails: string[];
 
   public uneditableProperties: string[];
 
@@ -98,6 +98,12 @@ export class Affiliation extends MySqlModel {
 
   // Perform tasks necessary to prepare the data to be saved
   prepForSave(): void {
+    this.managed = this.managed || false;
+    this.feedbackEnabled = this.feedbackEnabled || false;
+    this.acronyms = this.acronyms || [];
+    this.aliases = this.aliases || [];
+    this.types = this.types || [];
+    this.feedbackEmails = this.feedbackEmails || [];
     this.searchName = this.buildSearchName();
     this.displayName = this.homepage ? `${this.name} (${this.homepage})` : this.name;
   }
@@ -117,7 +123,13 @@ export class Affiliation extends MySqlModel {
     } else {
       // Save the record and then fetch it
       this.prepForSave();
-      const newId = await Affiliation.insert(context, this.tableName, this, 'Affiliation.create');
+      const newId = await Affiliation.insert(
+        context,
+        this.tableName,
+        this,
+        'Affiliation.create',
+        ['uneditableProperties']
+      );
       return await Affiliation.findById('Affiliation.create', context, newId);
     }
 
@@ -136,7 +148,7 @@ export class Affiliation extends MySqlModel {
           this.tableName,
           this,
           'Affiliation.update',
-          this.uneditableProperties
+          ['uneditableProperties', this.uneditableProperties].flat()
         );
         return result as Affiliation;
       }
