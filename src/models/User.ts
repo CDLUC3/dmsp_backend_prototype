@@ -193,7 +193,7 @@ export class User extends MySqlModel {
       this.last_sign_in = getCurrentDate();
       this.last_sign_in_via = loginType;
 
-      if (await User.update(context, this.tableName, this, 'User.recordLogIn', [], true)) {
+      if (await User.update(context, this.tableName, this, 'User.recordLogIn', ['password'], true)) {
         return true;
       }
     }

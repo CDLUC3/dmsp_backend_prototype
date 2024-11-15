@@ -4,10 +4,17 @@ import { authMiddleware } from './middleware/auth';
 import { signinController } from './controllers/signinController';
 import { signupController } from './controllers/signupController';
 import { signoutController } from './controllers/signoutController';
+import { emailTestController } from './controllers/emailTestController';
 import { csrfMiddleware } from './middleware/csrf';
 import { refreshTokenController } from './controllers/refreshTokenController';
 
 const router = express.Router();
+
+router.get('/apollo-email-test',
+  csrfMiddleware,
+  authMiddleware,
+  async (req: Request, res: Response) => await emailTestController(req, res)
+);
 
 // Support for acquiring an initial CSRF token
 router.get('/apollo-csrf',

@@ -2,6 +2,7 @@ import { verifyCriticalEnvVariable } from "../utils/helpers";
 
 // Verify these critical variables on startup!
 verifyCriticalEnvVariable('DOMAIN');
+verifyCriticalEnvVariable('APP_NAME');
 verifyCriticalEnvVariable('DEFAULT_AFFILIATION_URI');
 verifyCriticalEnvVariable('TOKEN_HASH_SECRET');
 verifyCriticalEnvVariable('JWT_SECRET');
@@ -11,6 +12,7 @@ export const generalConfig = {
   restDataSourceCacheTtl: Number.parseInt(process.env.REST_DATA_SOURCE_CACHE_TTL) || 180,
 
   domain: process.env.DOMAIN,
+  applicationName: process.env.APP_NAME,
   defaultAffiliatioURI: process.env.DEFAULT_AFFILIATION_URI,
 
   bcryptSaltRounds: Number.parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,

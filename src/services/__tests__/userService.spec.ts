@@ -7,7 +7,7 @@ import { getCurrentDate } from "../../utils/helpers";
 import { UserEmail } from "../../models/UserEmail";
 import { TemplateCollaborator } from "../../models/Collaborator";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { sendEmail } from "../emailService";
+import { sendEmailConfirmationNotification } from "../emailService";
 import { defaultLanguageId } from "../../models/Language";
 import { generalConfig } from "../../config/generalConfig";
 
@@ -48,7 +48,7 @@ beforeEach(() => {
   context = buildContext(logger, mockToken(adminUser));
 
   const mockSendEmail = jest.fn().mockReturnValue(true);
-  (sendEmail as jest.Mock) = mockSendEmail;
+  (sendEmailConfirmationNotification as jest.Mock) = mockSendEmail;
 
   userStore = [];
   userEmailStore = [];
