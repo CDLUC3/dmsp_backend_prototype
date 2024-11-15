@@ -1424,12 +1424,14 @@ export type UpdateUserNotificationsInput = {
 };
 
 export type UpdateUserProfileInput = {
-  /** The user's organizational affiliation id */
-  affiliationId: Scalars['String']['input'];
+  /** The id of the affiliation if the user selected one from the typeahead list */
+  affiliationId?: InputMaybe<Scalars['String']['input']>;
   /** The user's first/given name */
   givenName: Scalars['String']['input'];
   /** The user's preferred language */
   languageId?: InputMaybe<Scalars['String']['input']>;
+  /** The name of the affiliation if the user did not select one from the typeahead list */
+  otherAffiliationName?: InputMaybe<Scalars['String']['input']>;
   /** The user's last/family name */
   surName: Scalars['String']['input'];
 };

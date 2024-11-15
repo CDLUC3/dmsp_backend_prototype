@@ -1,4 +1,5 @@
 ### Added
+- Added support for creating "other" affiliations
 - Added update and updatePassword to User
 - Added resolvers for User
 - Added userService to handle random password generation, anonymization and merging

@@ -176,6 +176,9 @@ describe('generateRandomPassword', () => {
     expect(result.match(/[A-Z]/).length > 0).toBe(true);
     expect(result.match(/[a-z]/).length > 0).toBe(true);
     expect(result.match(/[0-9]/).length > 0).toBe(true);
+
+console.log(result)
+
     expect(result.match(/[`!@#$%^&*_+\-=?~\s]/g).length).toBe(3);
     expect(result.length >= 8).toBe(true);
   })
