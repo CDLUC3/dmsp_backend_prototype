@@ -10,7 +10,7 @@ CREATE TABLE `affiliations` (
   `homepage` VARCHAR(255),
   `acronyms` JSON DEFAULT NULL,
   `aliases` JSON DEFAULT NULL,
-  `types` JSON DEFAULT '["Education"]',
+  `types` JSON DEFAULT NULL,
   `logoURI` VARCHAR(255),
   `logoName` VARCHAR(255),
   `contactName` VARCHAR(255),
