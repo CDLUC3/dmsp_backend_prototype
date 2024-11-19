@@ -69,12 +69,7 @@ export class MySqlModel {
         return Number(val);
       case 'json':
         return JSON.stringify(val);
-      case 'object':
-        return JSON.stringify(val);
       case Object:
-        return JSON.stringify(val);
-      case 'array':
-        return JSON.stringify(val);
       case Array:
         return JSON.stringify(val);
       case 'boolean':
@@ -83,6 +78,10 @@ export class MySqlModel {
         if (isDate(val)) {
           const date = new Date(val).toISOString();
           return formatISO9075(date);
+
+        } else if (Array.isArray(val)) {
+          return JSON.stringify(val);
+
         } else {
           return String(val);
         }
@@ -227,7 +226,7 @@ export class MySqlModel {
     // Make sure the record id is the last value
     vals.push(obj.id.toString());
 
-    // Send the calcuated INSERT statement to the query function
+    // Send the calcuated UPDATE statement to the query function
     const result = await this.query(apolloContext, sql, vals, reference);
     return Array.isArray(result) ? result[0] : null;
   }
