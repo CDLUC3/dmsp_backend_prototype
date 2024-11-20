@@ -48,7 +48,7 @@ export class Affiliation extends MySqlModel {
   public ssoEntityId: string;
   public feedbackEnabled: boolean;
   public feedbackMessage: string;
-  public feedbackEmails: string;
+  public feedbackEmails: string[];
 
   public uneditableProperties: string[];
 
@@ -59,7 +59,7 @@ export class Affiliation extends MySqlModel {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
     this.uri = options.uri;
-    this.active = options.active || false;
+    this.active = options.active || true;
     this.provenance = options.provenance || AffiliationProvenance.DMPTOOL;
     this.name = options.name;
     this.displayName = options.displayName;
@@ -93,12 +93,19 @@ export class Affiliation extends MySqlModel {
   // Convert the name, homepage, acronyms and aliases into a search string
   buildSearchName(): string {
     const parts = [this.name, this.homepage, this.acronyms, this.aliases];
-    return parts.flat().join(' | ').substring(0, 249);
+    return parts.flat().filter((item) => item).join(' | ').substring(0, 249);
   }
 
   // Perform tasks necessary to prepare the data to be saved
   prepForSave(): void {
+    this.managed = this.managed || false;
+    this.feedbackEnabled = this.feedbackEnabled || false;
+    this.acronyms = this.acronyms || [];
+    this.aliases = this.aliases || [];
+    this.types = this.types || [];
+    this.feedbackEmails = this.feedbackEmails || [];
     this.searchName = this.buildSearchName();
+    this.displayName = this.homepage ? `${this.name} (${this.homepage})` : this.name;
   }
 
   // Save the current record
@@ -116,9 +123,16 @@ export class Affiliation extends MySqlModel {
     } else {
       // Save the record and then fetch it
       this.prepForSave();
-      const newId = await Affiliation.insert(context, this.tableName, this, 'Affiliation.create');
+      const newId = await Affiliation.insert(
+        context,
+        this.tableName,
+        this,
+        'Affiliation.create',
+        ['uneditableProperties']
+      );
       return await Affiliation.findById('Affiliation.create', context, newId);
     }
+
     // Otherwise return as-is with all the errors
     return this;
   }
@@ -134,7 +148,7 @@ export class Affiliation extends MySqlModel {
           this.tableName,
           this,
           'Affiliation.update',
-          this.uneditableProperties
+          ['uneditableProperties', this.uneditableProperties].flat()
         );
         return result as Affiliation;
       }
@@ -160,18 +174,18 @@ export class Affiliation extends MySqlModel {
   // Some of the properties are stored as JSON strings in the DB so we need to parse them
   // after fetching them
   static processResult(affiliation: Affiliation): Affiliation {
-    if (affiliation.aliases && typeof affiliation.aliases === 'string') {
+    if (affiliation?.aliases && typeof affiliation.aliases === 'string') {
       affiliation.aliases = JSON.parse(affiliation.aliases);
     }
-    if (affiliation.acronyms && typeof affiliation.acronyms === 'string') {
+    if (affiliation?.acronyms && typeof affiliation.acronyms === 'string') {
       affiliation.acronyms = JSON.parse(affiliation.acronyms);
     }
-    if (affiliation.feedbackEmails && typeof affiliation.feedbackEmails === 'string') {
+    if (affiliation?.feedbackEmails && typeof affiliation.feedbackEmails === 'string') {
       affiliation.feedbackEmails = JSON.parse(affiliation.feedbackEmails);
     }
 
     // Only include types that are in the enum
-    if (affiliation.types && typeof affiliation.types === 'string') {
+    if (affiliation?.types && typeof affiliation.types === 'string') {
       const types = JSON.parse(affiliation.types);
       affiliation.types = [];
 
@@ -185,17 +199,24 @@ export class Affiliation extends MySqlModel {
   }
 
 
-  // Return the specified AffiliationEmailDomain
+  // Return the specified Affiliation  based on the DB id
   static async findById(reference: string, context: MyContext, id: string | number): Promise<Affiliation> {
     const sql = 'SELECT * FROM affiliations WHERE id = ?';
     const results = await Affiliation.query(context, sql, [id.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 
-  // Return the specified AffiliationEmailDomain
+  // Return the specified Affiliation based on the URI
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<Affiliation> {
     const sql = 'SELECT * FROM affiliations WHERE uri = ?';
     const results = await Affiliation.query(context, sql, [uri], reference);
+    return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
+  }
+
+  // Return the specified Affiliation based on it's name
+  static async findByName(reference: string, context: MyContext, name: string): Promise<Affiliation> {
+    const sql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(name)) = ?';
+    const results = await Affiliation.query(context, sql, [name.toLowerCase().trim()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 }

@@ -141,8 +141,10 @@ export const typeDefs = gql`
     givenName: String!
     "The user's last/family name"
     surName: String!
-    "The user's organizational affiliation id"
-    affiliationId: String!
+    "The id of the affiliation if the user selected one from the typeahead list"
+    affiliationId: String
+    "The name of the affiliation if the user did not select one from the typeahead list"
+    otherAffiliationName: String
     "The user's preferred language"
     languageId: String
   }

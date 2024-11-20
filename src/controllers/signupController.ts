@@ -5,13 +5,30 @@ import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
 import { Cache } from '../datasources/cache';
 import { generalConfig } from '../config/generalConfig';
 import { buildContext } from '../context';
+import { processOtherAffiliationName } from '../services/affiliationService';
 
 export const signupController = async (req: Request, res: Response) => {
-  let user: User = new User(req.body);
+  const cache = Cache.getInstance();
+  const context = buildContext(logger, cache);
+
+  const props = req.body;
+
+  // Either use the affiliationId provided or create one
+  if (!props?.affiliationId && props?.otherAffiliationName) {
+    const affiliation = await processOtherAffiliationName(context, props.otherAffiliationName);
+    props.affiliationId = affiliation.uri;
+  }
+
+  let user: User = new User({
+    email: props?.email,
+    password: props?.password,
+    affiliationId: props?.affiliationId,
+    givenName: props?.givenName,
+    surName: props?.surName,
+    acceptedTerms: props?.acceptedTerms,
+  });
 
   try {
-    const cache = Cache.getInstance();
-    const context = buildContext(logger, cache);
     user = await user.register(context) || null;
 
     if (user) {
