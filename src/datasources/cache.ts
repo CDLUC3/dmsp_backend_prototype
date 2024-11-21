@@ -2,7 +2,7 @@ import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import Redis from "ioredis";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
-import { cacheConfig, cacheTLS } from "../config/cacheConfig";
+import { autoFailoverEnabled, cacheConfig, cacheTLS } from "../config/cacheConfig";
 import { logger, formatLogMessage } from '../logger';
 
 export class Cache {
@@ -14,10 +14,31 @@ export class Cache {
 
     // Setup the Redis Cluster
     formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
+
     if (!['development', 'test'].includes(process.env.NODE_ENV)) {
-      console.log(`Using TLS to connect to Redis - ${cacheTLS}`);
-      // The AWS env uses TLS!
-      cache = new Redis(cacheTLS);
+
+      if (autoFailoverEnabled === 'true') {
+        // ElastiCache instances with Auto-failover enabled, reconnectOnError does not execute.
+        // Instead of returning a Redis error, AWS closes all connections to the master endpoint
+        // until the new primary node is ready. ioredis reconnects via retryStrategy instead of
+        // reconnectOnError after about a minute.
+        cache = new Redis({ ...cacheConfig, tls: {} });
+
+      } else {
+        // ElastiCache instances with Auto-failover disabled, reconnectOnError can be used to catch
+        // the error READONLY thrown and force the connection to be restablished.
+        cache = new Redis({
+          ...cacheConfig,
+          tls: {},
+          reconnectOnError(err) {
+            const targetError = "READONLY";
+            if (err.message.includes(targetError)) {
+              // Only reconnect when the error contains "READONLY"
+              return true; // or `return 1;`
+            }
+          },
+        });
+      }
     } else {
       cache = new Redis(cacheConfig);
     }
