@@ -139,7 +139,7 @@ describe('CSRF', () => {
     const hashedToken = createHash('sha256')
       .update(`${resp.headers['x-csrf-token']}${generalConfig.hashTokenSecret}`)
       .digest('hex');
-    expect(mockRedis[`csrf:${resp.headers['x-csrf-token']}`]).toEqual(hashedToken);
+    expect(mockRedis[`{csrf}:${resp.headers['x-csrf-token']}`]).toEqual(hashedToken);
   });
 
   it('POST /test-protected should fail if the CSRF token is missing', async () => {
@@ -196,7 +196,7 @@ describe('Sign up', () => {
     expect(resp.body).toEqual({ success: true, message: 'ok' });
 
     // Make sure the cache contains the refresh tokens
-    const cachedToken = Object.keys(mockRedis).find((key) => { return key.includes(`dmspr:`) });
+    const cachedToken = Object.keys(mockRedis).find((key) => { return key.includes(`{dmspr}:`) });
     expect(cachedToken).toBeTruthy();
   });
 
@@ -268,7 +268,7 @@ describe('Sign in', () => {
     expect(resp.body).toEqual({ success: true, message: 'ok' });
 
     // Make sure the cache contains the refresh tokens
-    const cachedToken = Object.keys(mockRedis).find((key) => { return key.includes(`dmspr:`) });
+    const cachedToken = Object.keys(mockRedis).find((key) => { return key.includes(`{dmspr}:`) });
     expect(cachedToken).toBeTruthy();
 
     //Now make sure the user can make a call to a protected resource
@@ -347,9 +347,9 @@ describe('Sign out', () => {
     expect(signoutResp.body).toEqual({});
 
     // Make sure the cache contains the refresh tokens
-    const cachedRefresh = Object.keys(mockRedis).find((key) => { return key.includes(`dmspr:`) });
+    const cachedRefresh = Object.keys(mockRedis).find((key) => { return key.includes(`{dmspr}:`) });
     expect(cachedRefresh).toBeFalsy();
-    const cachedToken = Object.keys(mockRedis).find((key) => { return key.includes('dmspbl:') });
+    const cachedToken = Object.keys(mockRedis).find((key) => { return key.includes('{dmspbl}:') });
     expect(cachedToken).toBeTruthy();
 
     const protectedResp = await request(app)
@@ -423,7 +423,7 @@ describe('Sign out', () => {
 
     // Get the JTI from the token so we can add it to the blacklist
     const jwt = verifyAccessToken(accessToken);
-    mockRedis[`dmspbl:${jwt.jti}`] = 'testing revocation';
+    mockRedis[`{dmspbl}:${jwt.jti}`] = 'testing revocation';
 
     // Try a signout
     const signoutResp = await request(app)
@@ -491,7 +491,7 @@ describe('token refresh', () => {
     const hashedToken = createHash('sha256')
       .update(`${refreshToken}${generalConfig.hashTokenSecret}`)
       .digest('hex');
-    expect(mockRedis[`dmspr:${jwt.jti}`]).toEqual(hashedToken);
+    expect(mockRedis[`{dmspr}:${jwt.jti}`]).toEqual(hashedToken);
 
     (UserModel.User.findById as jest.Mock).mockImplementation(() => { throw new Error('testing') });
 
@@ -577,7 +577,7 @@ describe('token refresh', () => {
     const hashedToken = createHash('sha256')
       .update(`${refreshToken}${generalConfig.hashTokenSecret}`)
       .digest('hex');
-    expect(mockRedis[`dmspr:${jwt.jti}`]).toEqual(hashedToken);
+    expect(mockRedis[`{dmspr}:${jwt.jti}`]).toEqual(hashedToken);
 
     (UserModel.User.findById as jest.Mock).mockResolvedValueOnce(registeredUser);
 
@@ -718,7 +718,7 @@ describe('protected endpoint access', () => {
 
     // Get the JTI from the token so we can add it to the blacklist
     const jwt = verifyAccessToken(accessToken);
-    mockRedis[`dmspbl:${jwt.jti}`] = 'testing revocation';
+    mockRedis[`{dmspbl}:${jwt.jti}`] = 'testing revocation';
 
     const protectedResp = await request(app)
       .post('/test-protected')

@@ -2,7 +2,7 @@ import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import Redis from "ioredis";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
-import { autoFailoverEnabled, cacheConfig, cacheTLS } from "../config/cacheConfig";
+import { autoFailoverEnabled, cacheConfig } from "../config/cacheConfig";
 import { logger, formatLogMessage } from '../logger';
 
 export class Cache {

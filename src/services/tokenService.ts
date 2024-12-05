@@ -51,7 +51,7 @@ export const generateCSRFToken = async (cache: Cache): Promise<string> => {
     const hashedToken = await hashToken(csrfToken);
 
     // Add the refresh token to the Cache
-    await cache.adapter.set(`csrf:${csrfToken}`, hashedToken, { ttl: generalConfig.csrfTTL });
+    await cache.adapter.set(`{csrf}:${csrfToken}`, hashedToken, { ttl: generalConfig.csrfTTL });
     return csrfToken;
   } catch(err) {
     formatLogMessage(logger).error(err, 'generateCSRFToken error!');
@@ -95,7 +95,7 @@ const generateRefreshToken = async (cache: Cache, jti: string, userId: number): 
     const token = jwt.sign(payload, generalConfig.jwtRefreshSecret, { expiresIn: generalConfig.jwtRefreshTTL });
     const hashedToken = await hashToken(token);
     // Add the refresh token to the Cache
-    await cache.adapter.set(`dmspr:${jti}`, hashedToken, { ttl: generalConfig.jwtRefreshTTL })
+    await cache.adapter.set(`{dmspr}:${jti}`, hashedToken, { ttl: generalConfig.jwtRefreshTTL })
     return token;
   } catch(err) {
     if (logger) {
@@ -127,7 +127,7 @@ export const generateAuthTokens = async (cache: Cache, user: User): Promise<{ ac
 // Verify a CSRF Token
 export const verifyCSRFToken = async (cache: Cache, csrfToken: string): Promise<boolean> => {
   try {
-    const storedHash = await cache.adapter.get(`csrf:${csrfToken}`);
+    const storedHash = await cache.adapter.get(`{csrf}:${csrfToken}`);
     if (!storedHash) return false;
 
     const calculatedHash = hashToken(csrfToken);
@@ -161,7 +161,7 @@ const verifyRefreshToken = async (cache: Cache, refreshToken: string): Promise<J
 
     if (token) {
       // Make sure the token hasn't been tampered with
-      const storedHash = await cache.adapter.get(`dmspr:${token.jti}`);
+      const storedHash = await cache.adapter.get(`{dmspr}:${token.jti}`);
       const calculatedHash = hashToken(refreshToken);
       return timingSafeEqual(Buffer.from(storedHash), Buffer.from(calculatedHash)) ? token : null;
     }
@@ -184,7 +184,7 @@ export const isRevokedCallback = async (req: Express.Request, token?: jwt.Jwt): 
     if (jti) {
       try {
         // See if the JTI is in the black list
-        if (await cache.adapter.get(`dmspbl:${jti}`)) {
+        if (await cache.adapter.get(`{dmspbl}:${jti}`)) {
           formatLogMessage(logger).warn(`Attempt to access revoked access token! jti: ${jti}`);
           return true;
         }
@@ -224,7 +224,7 @@ export const refreshAccessToken = async (
 // Invalidate the Refresh Token (e.g., on logout or token rotation)
 export const revokeRefreshToken = async (cache: Cache, jti: string): Promise<boolean> => {
   try {
-    await cache.adapter.delete(`dmspr:${jti}`);
+    await cache.adapter.delete(`{dmspr}:${jti}`);
     return true;
   } catch(err) {
     formatLogMessage(logger).error(err, `revokeRefreshToken unable to delete token from cache - ${err.message}`);
@@ -234,7 +234,7 @@ export const revokeRefreshToken = async (cache: Cache, jti: string): Promise<boo
 
 export const revokeAccessToken = async (cache: Cache, jti: string): Promise<boolean> => {
   try {
-    await cache.adapter.set(`dmspbl:${jti}`, new Date().toISOString(), { ttl: generalConfig.jwtTTL });
+    await cache.adapter.set(`{dmspbl}:${jti}`, new Date().toISOString(), { ttl: generalConfig.jwtTTL });
     return true;
   } catch(err) {
     formatLogMessage(logger).error(err, `revokeAccessToken unable to add token to black list - ${err.message}`);
