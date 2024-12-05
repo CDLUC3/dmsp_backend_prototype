@@ -76,9 +76,8 @@ console.log(cache);
       formatLogMessage(logger).info( null, `Redis connection closed`);
     });
 
-
     // Set the Adapter which will be used to interact with the cache
-    this.adapter = new KeyvAdapter(keyV);
+    this.adapter = new KeyvAdapter(keyV, { disableBatchReads: true });
   }
 
   // Singleton instance of the Cache
