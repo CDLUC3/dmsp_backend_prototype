@@ -34,6 +34,7 @@ export class Cache {
           ...cacheConfig,
           tls: {},
           reconnectOnError(err) {
+            logger.error(err, 'Redis reconnect on error')
             const targetErrors = ["READONLY", "MOVED"];
             if (targetErrors.includes(err.message)) {
               // Only reconnect when the error contains "READONLY"
@@ -43,7 +44,8 @@ export class Cache {
         });
       }
     } else {
-      cache = new Redis(cacheConfig);
+      // We are running in the AW environment with an Elasticache cluster
+      cache = new Redis.Cluster([{ ...cacheConfig }]);
     }
 
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
