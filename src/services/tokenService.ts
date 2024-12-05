@@ -48,7 +48,7 @@ export const setTokenCookie = (res: Response, name: string, value: string, maxAg
 export const generateCSRFToken = async (cache: Cache): Promise<string> => {
   try {
     const csrfToken = uuidv4().replace(/-/g, '').slice(0, generalConfig.csrfLength);
-    const hashedToken = await hashToken(csrfToken);
+    const hashedToken = hashToken(csrfToken);
 
     // Add the refresh token to the Cache
     await cache.adapter.set(`{csrf}:${csrfToken}`, hashedToken, { ttl: generalConfig.csrfTTL });
@@ -93,7 +93,7 @@ const generateRefreshToken = async (cache: Cache, jti: string, userId: number): 
     };
 
     const token = jwt.sign(payload, generalConfig.jwtRefreshSecret, { expiresIn: generalConfig.jwtRefreshTTL });
-    const hashedToken = await hashToken(token);
+    const hashedToken = hashToken(token);
     // Add the refresh token to the Cache
     await cache.adapter.set(`{dmspr}:${jti}`, hashedToken, { ttl: generalConfig.jwtRefreshTTL })
     return token;
