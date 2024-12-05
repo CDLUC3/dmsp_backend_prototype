@@ -98,7 +98,7 @@ export type Affiliation = {
   /** The display name to help disambiguate similar names (typically with domain or country appended) */
   displayName: Scalars['String']['output'];
   /** The email address(es) to notify when feedback has been requested (stored as JSON array) */
-  feedbackEmails?: Maybe<Scalars['String']['output']>;
+  feedbackEmails?: Maybe<Array<Scalars['String']['output']>>;
   /** Whether or not the affiliation wants to use the feedback workflow */
   feedbackEnabled: Scalars['Boolean']['output'];
   /** The message to display to users when they request feedback */
@@ -1424,12 +1424,14 @@ export type UpdateUserNotificationsInput = {
 };
 
 export type UpdateUserProfileInput = {
-  /** The user's organizational affiliation id */
-  affiliationId: Scalars['String']['input'];
+  /** The id of the affiliation if the user selected one from the typeahead list */
+  affiliationId?: InputMaybe<Scalars['String']['input']>;
   /** The user's first/given name */
   givenName: Scalars['String']['input'];
   /** The user's preferred language */
   languageId?: InputMaybe<Scalars['String']['input']>;
+  /** The name of the affiliation if the user did not select one from the typeahead list */
+  otherAffiliationName?: InputMaybe<Scalars['String']['input']>;
   /** The user's last/family name */
   surName: Scalars['String']['input'];
 };
@@ -1644,7 +1646,7 @@ export type AffiliationResolvers<ContextType = MyContext, ParentType extends Res
   contactEmail?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   contactName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  feedbackEmails?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  feedbackEmails?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   feedbackEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   feedbackMessage?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   funder?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;

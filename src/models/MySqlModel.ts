@@ -64,7 +64,6 @@ export class MySqlModel {
     if (val === null || val === undefined) {
       return null;
     }
-
     switch (type) {
       case 'number':
         return Number(val);
@@ -79,6 +78,10 @@ export class MySqlModel {
         if (isDate(val)) {
           const date = new Date(val).toISOString();
           return formatISO9075(date);
+
+        } else if (Array.isArray(val)) {
+          return JSON.stringify(val);
+
         } else {
           return String(val);
         }
@@ -89,6 +92,7 @@ export class MySqlModel {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static propertyInfo(obj: Record<string, any>, skipKeys: string[] = []): { name: string, value: string }[] {
     const excludedKeys = ['id', 'errors', 'tableName'];
+
     return Object.keys(obj)
       .filter((key) => ![...excludedKeys, ...skipKeys]
         .includes(key)).map((key) => ({
@@ -179,7 +183,6 @@ export class MySqlModel {
     const sql = `INSERT INTO ${table} \
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
-
     const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
 
     // Send the calcuated INSERT statement to the query function
@@ -223,7 +226,7 @@ export class MySqlModel {
     // Make sure the record id is the last value
     vals.push(obj.id.toString());
 
-    // Send the calcuated INSERT statement to the query function
+    // Send the calcuated UPDATE statement to the query function
     const result = await this.query(apolloContext, sql, vals, reference);
     return Array.isArray(result) ? result[0] : null;
   }

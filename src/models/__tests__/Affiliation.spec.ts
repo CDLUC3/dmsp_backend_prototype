@@ -60,6 +60,30 @@ describe('Affiliation', () => {
   });
 });
 
+describe('prepForSave', () => {
+  it('sets the appropriate defaults', () => {
+    const name = casual.company_name;
+    const homepage = casual.url;
+    const acronyms = [casual.letter, casual.word, undefined];
+    const aliases = [casual.words(2), casual.word, null];
+    const affiliation = new Affiliation({ name, homepage, acronyms, aliases });
+    affiliation.prepForSave();
+    expect(affiliation.name).toEqual(name);
+    expect(affiliation.homepage).toEqual(homepage);
+    expect(affiliation.displayName).toEqual(`${name} (${homepage})`);
+    expect(affiliation.searchName.includes(name)).toBe(true);
+    expect(affiliation.searchName.includes(homepage)).toBe(true);
+    expect(affiliation.searchName.includes(aliases[0])).toBe(true);
+    expect(affiliation.searchName.includes(aliases[1])).toBe(true);
+    expect(affiliation.searchName.includes(acronyms[0])).toBe(true);
+    expect(affiliation.searchName.includes(acronyms[1])).toBe(true);
+    expect(affiliation.searchName.includes('undefined')).toBe(false);
+    expect(affiliation.searchName.includes('null')).toBe(false);
+    expect(affiliation.searchName.includes('||')).toBe(false);
+    expect(affiliation.searchName.includes('| |')).toBe(false);
+  });
+});
+
 describe('create', () => {
   const originalInsert = Affiliation.insert;
   const originalFindById = Affiliation.findById;
@@ -337,6 +361,52 @@ describe('findByURI', () => {
   });
 });
 
+describe('findByName', () => {
+  const originalQuery = Affiliation.query;
+
+  let localQuery;
+  let context;
+  let affiliation;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    affiliation = new Affiliation({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+
+    localQuery = jest.fn();
+    (Affiliation.query as jest.Mock) = localQuery;
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+    Affiliation.query = originalQuery;
+  });
+
+  it('should return the Affiliation when findByName gets a result', async () => {
+    localQuery.mockResolvedValueOnce([affiliation]);
+
+    const result = await Affiliation.findByName('Test', context, affiliation.name);
+    const expectedSql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(name)) = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliation.name.toLowerCase()], 'Test')
+    expect(result).toEqual(affiliation);
+  });
+
+  it('should return null when findByName has no results', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const result = await Affiliation.findByName('Test', context, affiliation.name);
+    expect(result).toEqual(null);
+  });
+});
+
 describe('AffiliationSearch', () => {
   let affiliationSearch;
 
@@ -403,4 +473,3 @@ describe('search', () => {
     expect(result).toEqual([]);
   });
 });
-

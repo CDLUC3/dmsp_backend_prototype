@@ -7,6 +7,7 @@ import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { defaultLanguageId } from "../models/Language";
 import { anonymizeUser, mergeUsers } from "../services/userService";
+import { processOtherAffiliationName } from "../services/affiliationService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -52,6 +53,7 @@ export const resolvers: Resolvers = {
       givenName,
       surName,
       affiliationId,
+      otherAffiliationName,
       languageId,
     } }, context: MyContext): Promise<User> => {
       if (isAuthorized(context?.token)) {
@@ -61,9 +63,16 @@ export const resolvers: Resolvers = {
           throw ForbiddenError();
         }
 
+        // Either use the affiliationId provided or create one
+        if (otherAffiliationName) {
+          const affiliation = await processOtherAffiliationName(context, otherAffiliationName);
+          user.affiliationId = affiliation.uri;
+        } else {
+          user.affiliationId = affiliationId;
+        }
+
         user.givenName = givenName;
         user.surName = surName;
-        user.affiliationId = affiliationId;
         user.languageId = languageId || defaultLanguageId;
         const updated = await new User(user).update(context);
         if (!updated) {
