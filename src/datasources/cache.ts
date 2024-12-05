@@ -45,8 +45,20 @@ export class Cache {
       }
     } else {
       // We are running in the AW environment with an Elasticache cluster
-      cache = new Redis.Cluster([{ ...cacheConfig }]);
+      cache = new Redis.Cluster(
+        [{ ...cacheConfig }],
+        {
+          clusterRetryStrategy(times) {
+            // Retry with a linear backoff
+            const delay = Math.min(times * 50, 2000);
+            return delay;
+          }
+        }
+      );
     }
+
+console.log('Cache initialized');
+console.log(cache);
 
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
