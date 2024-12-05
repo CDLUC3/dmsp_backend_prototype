@@ -34,8 +34,8 @@ export class Cache {
           ...cacheConfig,
           tls: {},
           reconnectOnError(err) {
-            const targetError = "READONLY";
-            if (err.message.includes(targetError)) {
+            const targetErrors = ["READONLY", "MOVED"];
+            if (targetErrors.includes(err.message)) {
               // Only reconnect when the error contains "READONLY"
               return true; // or `return 1;`
             }
