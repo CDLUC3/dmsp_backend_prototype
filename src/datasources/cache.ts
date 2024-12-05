@@ -5,6 +5,9 @@ import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { autoFailoverEnabled, cacheConfig } from "../config/cacheConfig";
 import { logger, formatLogMessage } from '../logger';
 
+// Note that Redis cache clusters require you to wrap keys in `{}` to ensure that they are stored
+// near one another and are able to be set and fetched.
+//    For example: `{csrf}:12345` instead of `csrf:12345`
 export class Cache {
   private static instance: Cache;
   public adapter: KeyvAdapter;

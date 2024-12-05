@@ -51,6 +51,7 @@
 - removed old oauth-server package which had security vulnerabilities
 - moved authMiddleware function from the router.ts into its own class in src/middelware
 - updated Affiliation Schema, Resolver, Models to use new affiliations tables in the database
+- updated all of the cache key structures to wrap them in `{}` due to the way Redis handles keys in cluster mode
 
 ### Fixed
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test
