@@ -2,6 +2,7 @@
 //       SuperAdmins to update them.
 //       Load the appropriate message and send it out
 import * as https from 'https';
+import nodemailer from 'nodemailer';
 import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { MyContext } from "../context";
@@ -9,6 +10,7 @@ import { User } from "../models/User";
 import { awsConfig } from "../config/awsConfig";
 import { emailConfig } from "../config/emailConfig";
 import { formatLogMessage, logger } from "../logger";
+import { generalConfig } from '../config/generalConfig';
 
 // Create an HTTPS agent that enforces TLSv1.2 and disables SSL verification
 const agent = new https.Agent({
@@ -17,6 +19,18 @@ const agent = new https.Agent({
 });
 
 const endpoint = awsConfig.sesEndpoint
+
+const transporter = nodemailer.createTransport({
+  host: endpoint.split(':')[0],
+  // Use the SES TLS port
+  port: 465,
+  // Use TLS/SSL from the start
+  secure: true,
+  auth: {
+    user: awsConfig.sesAccessKey,
+    pass: awsConfig.sesAccessSecret,
+  },
+});
 
 // Instantiate the SES Client
 const initSesClient = (): SESClient => {
@@ -32,6 +46,30 @@ const initSesClient = (): SESClient => {
     logger: logger,
     //requestHandler: new NodeHttpHandler({ httpsAgent: agent }),
   });
+}
+
+const sendEmailViaMailer = async (
+  emailType: string,
+  toAddresses: string[],
+  ccAddresses: string[] = [],
+  bccAddresses: string[] = [],
+  subject: string,
+  message: string,
+  asHTML = true,
+): Promise<boolean> => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
+      to: toAddresses.join(', '),
+      subject,
+      text: message,
+    });
+    console.log("Email sent: %s", info.messageId);
+    return true;
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
+  return false;
 }
 
 // Send an email via AWS Simple Email Service (SES)
@@ -122,7 +160,8 @@ const sendEmail = async (
     return true;
   } else {
     // Otherwise go ahead and send the email
-    return await sendEmailViaSES(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
+    //return await sendEmailViaSES(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
+    return await sendEmailViaMailer(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
   }
 }
 
