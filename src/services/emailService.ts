@@ -10,9 +10,10 @@ import { awsConfig } from "../config/awsConfig";
 import { emailConfig } from "../config/emailConfig";
 import { formatLogMessage, logger } from "../logger";
 
-// Create an HTTPS agent that enforces TLSv1.2
+// Create an HTTPS agent that enforces TLSv1.2 and disables SSL verification
 const agent = new https.Agent({
   secureProtocol: "TLSv1_2_method",
+  rejectUnauthorized: false,
 });
 
 // Instantiate the SES Client
