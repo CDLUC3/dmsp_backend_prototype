@@ -72,6 +72,9 @@ const sendEmailViaSES = async (
 
     const command = new SendEmailCommand(options);
     const response = await client.send(command);
+
+console.log(response);
+
     if (response && response.MessageId) {
       const msg = `emailService sent email of type ${emailType} to ${toAddresses.join(', ')}`;
       formatLogMessage(logger).debug(response, `${msg}, SES messageId: ${response.MessageId}`);
