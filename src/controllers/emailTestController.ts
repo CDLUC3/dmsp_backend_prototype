@@ -11,8 +11,6 @@ import { sendTestEmailNotification } from "../services/emailService";
 // balancer does not allow us to define headers!
 export const emailTestController = async (req: Request, res: Response) => {
   try {
-    // For some reason req.auth is `undefined` here even though authMiddleware is called.
-    // It's in req.cookies though :/
     const accessToken = req.cookies?.dmspt;
 
     // For some reason the brwoser isn't sending the dmpt cookie

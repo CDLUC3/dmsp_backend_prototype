@@ -71,6 +71,12 @@ const sendEmailViaSES = async (
     formatLogMessage(logger).debug(options, 'emailService.sendEmail preparing email');
 
     const command = new SendEmailCommand(options);
+
+console.log('SES CLIENT:');
+console.log(client);
+console.log('SES COMMAND:');
+console.log(command);
+
     const response = await client.send(command);
 
 console.log('RESPONSE:')
