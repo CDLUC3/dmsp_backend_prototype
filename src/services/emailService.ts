@@ -73,6 +73,7 @@ const sendEmailViaSES = async (
     const command = new SendEmailCommand(options);
     const response = await client.send(command);
 
+console.log('RESPONSE:')
 console.log(response);
 
     if (response && response.MessageId) {

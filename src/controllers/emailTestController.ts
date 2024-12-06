@@ -29,7 +29,7 @@ export const emailTestController = async (req: Request, res: Response) => {
         }
       //}
     //} else {
-      res.status(401).json({ error: 'Unauthorized' });
+      //res.status(401).json({ error: 'Unauthorized' });
     //}
   } catch (err) {
     formatLogMessage(logger).error(err, 'Email Test error!');
