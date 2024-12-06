@@ -3,8 +3,6 @@ import { verifyCriticalEnvVariable } from '../utils/helpers';
 
 dotenv.config();
 
-console.log(process.env.NODE_ENV)
-
 if (!['development', 'test'].includes(process.env.NODE_ENV)) {
   verifyCriticalEnvVariable('SES_ENDPOINT');
   verifyCriticalEnvVariable('SES_ACCESS_ID');

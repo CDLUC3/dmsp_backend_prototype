@@ -57,9 +57,6 @@ export class Cache {
       );
     }
 
-console.log('Cache initialized');
-console.log(cache);
-
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const keyV = new Keyv(new KeyvRedis(cache)) as any;

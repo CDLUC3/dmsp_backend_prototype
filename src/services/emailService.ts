@@ -94,7 +94,7 @@ const sendEmail = async (
   message: string,
   asHTML = true,
 ): Promise<boolean> => {
-  const prefix = process.env.NODE_ENV === 'production' ? 'DMPTool' : `DMPTool (${process.env.NODE_ENV})`;
+  const prefix = process.env.APP_ENV === 'prd' ? 'DMP Tool' : `DMP Tool (${process.env.APP_ENV})`;
   const subjectLine = `${prefix} - ${subject}`;
 
   if (['development', 'test'].includes(process.env.NODE_ENV)) {
