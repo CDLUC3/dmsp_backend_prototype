@@ -1,13 +1,19 @@
 // TODO: Store the automated email in a table so we can eventually have a UI page for
 //       SuperAdmins to update them.
 //       Load the appropriate message and send it out
-
+import * as https from 'https';
+import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { MyContext } from "../context";
 import { User } from "../models/User";
 import { awsConfig } from "../config/awsConfig";
 import { emailConfig } from "../config/emailConfig";
 import { formatLogMessage, logger } from "../logger";
+
+// Create an HTTPS agent that enforces TLSv1.2
+const agent = new https.Agent({
+  secureProtocol: "TLSv1_2_method",
+});
 
 // Instantiate the SES Client
 const initSesClient = (): SESClient => {
@@ -21,6 +27,7 @@ const initSesClient = (): SESClient => {
       secretAccessKey: awsConfig.sesAccessSecret,
     },
     logger: logger,
+    requestHandler: new NodeHttpHandler({ httpsAgent: agent }),
   });
 }
 
@@ -72,12 +79,6 @@ const sendEmailViaSES = async (
     formatLogMessage(logger).debug(options, 'emailService.sendEmail preparing email');
 
     const command = new SendEmailCommand(options);
-
-console.log('SES CLIENT:');
-console.log(client);
-console.log('SES COMMAND:');
-console.log(command);
-
     const response = await client.send(command);
 
 console.log('RESPONSE:')

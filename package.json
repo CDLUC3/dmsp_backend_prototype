@@ -31,6 +31,7 @@
     "@apollo/server": "^4.10.0",
     "@apollo/utils.keyvadapter": "^3.1.0",
     "@aws-sdk/client-ses": "^3.686.0",
+    "@aws-sdk/node-http-handler": "^3.370.0",
     "@elastic/ecs-pino-format": "^1.5.0",
     "@graphql-tools/merge": "^9.0.3",
     "@graphql-tools/mock": "^9.0.0",
