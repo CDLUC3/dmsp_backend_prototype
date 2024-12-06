@@ -246,7 +246,7 @@ describe('isRevokedCallback', () => {
 
     await isRevokedCallback(null, token as Jwt);
     const expoectedErr = 'isRevokedCallback - unable to fetch token from cache';
-    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl:${mockJti}`);
+    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`{dmspbl}:${mockJti}`);
     expect(logger.error).toHaveBeenLastCalledWith(mockErr, expoectedErr);
   });
 
@@ -257,7 +257,7 @@ describe('isRevokedCallback', () => {
     (mockCache.adapter.get as jest.Mock).mockReturnValueOnce(mockJti);
 
     expect(await isRevokedCallback(null, token as Jwt)).toBe(true);
-    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl:${mockJti}`);
+    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`{dmspbl}:${mockJti}`);
   });
 });
 
@@ -348,7 +348,7 @@ describe('revokeRefreshToken', () => {
     const result = await revokeRefreshToken(mockCache, mockUserJti);
 
     expect(result).toBe(true);
-    expect(mockCache.adapter.delete).toHaveBeenCalledWith(`dmspr:${mockUserJti}`);
+    expect(mockCache.adapter.delete).toHaveBeenCalledWith(`{dmspr}:${mockUserJti}`);
   });
 
   it('should throw and error and log error on failure', async () => {
