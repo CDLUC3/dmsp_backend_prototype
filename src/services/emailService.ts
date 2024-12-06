@@ -62,7 +62,7 @@ const sendEmailViaMailer = async (
       from: `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
       to: toAddresses.join(', '),
       subject,
-      text: message,
+      text: `NodeMailer - ${message}`,
     });
     console.log("Email sent: %s", info.messageId);
     return true;
@@ -107,7 +107,7 @@ const sendEmailViaSES = async (
           Data: subject,
           Charset: "UTF-8",
         },
-        Body: body,
+        Body: `SES - ${body}`,
       },
 
       Tags: [
