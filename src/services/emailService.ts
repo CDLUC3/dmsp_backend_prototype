@@ -11,10 +11,6 @@ import { formatLogMessage, logger } from "../logger";
 
 // Instantiate the SES Client
 const initSesClient = (): SESClient => {
-
-console.log(`ENDPOINT: ${awsConfig.sesEndpoint}, REGION: ${awsConfig.region}`);
-console.log(`KEY: ${awsConfig.sesAccessKey.slice(0, 4)}****, SECRET: ${awsConfig.sesAccessSecret.slice(0, 4)}****`);
-
   // crypto.subtle
   return new SESClient({
     region: awsConfig.region,
@@ -23,7 +19,8 @@ console.log(`KEY: ${awsConfig.sesAccessKey.slice(0, 4)}****, SECRET: ${awsConfig
     credentials:{
       accessKeyId: awsConfig.sesAccessKey,
       secretAccessKey: awsConfig.sesAccessSecret,
-    }
+    },
+    logger: logger,
   });
 }
 
