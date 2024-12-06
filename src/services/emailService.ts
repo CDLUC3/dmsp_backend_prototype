@@ -37,8 +37,8 @@ const initSesClient = (): SESClient => {
   // crypto.subtle
   return new SESClient({
     region: awsConfig.region,
-    endpoint: endpoint.replace(':587', ':465'),
-    tls: true,
+    endpoint: `https://${awsConfig.sesEndpoint}`,
+    // tls: true,
     credentials:{
       accessKeyId: awsConfig.sesAccessKey,
       secretAccessKey: awsConfig.sesAccessSecret,
@@ -160,8 +160,9 @@ const sendEmail = async (
     return true;
   } else {
     // Otherwise go ahead and send the email
-    //return await sendEmailViaSES(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
-    return await sendEmailViaMailer(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
+    await sendEmailViaSES(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
+    await sendEmailViaMailer(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
+    return true;
   }
 }
 
