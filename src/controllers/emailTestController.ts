@@ -18,13 +18,16 @@ export const emailTestController = async (req: Request, res: Response) => {
     // For some reason the brwoser isn't sending the dmpt cookie
 
     //if (accessToken) {
-      const token = verifyAccessToken(accessToken);
+      //const token = verifyAccessToken(accessToken);
 
       // Only allow this for Super Admins!
-      if (token && token.jti && isSuperAdmin(token as JWTAccessToken)) {
-        sendTestEmailNotification();
-        res.status(200).json({ message: 'Successfully sent test email message to the helpdesk address.' });
-      }
+      //if (token && token.jti && isSuperAdmin(token as JWTAccessToken)) {
+        if (sendTestEmailNotification()) {
+          res.status(200).json({ message: 'Successfully sent test email message to the helpdesk address.' });
+        } else {
+          res.status(500).json({ error: 'Something went wrong!' });
+        }
+      //}
     //} else {
       res.status(401).json({ error: 'Unauthorized' });
     //}
