@@ -18,10 +18,10 @@ const agent = new https.Agent({
   rejectUnauthorized: false,
 });
 
-const endpoint = awsConfig.sesEndpoint
+const endpoint = awsConfig.sesEndpoint;
 
 const transporter = nodemailer.createTransport({
-  host: endpoint.split(':')[0],
+  host: awsConfig.sesEndpoint,
   // Use the SES TLS port
   port: 465,
   // Use TLS/SSL from the start
