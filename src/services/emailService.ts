@@ -16,19 +16,21 @@ const agent = new https.Agent({
   rejectUnauthorized: false,
 });
 
+const endpoint = awsConfig.sesEndpoint
+
 // Instantiate the SES Client
 const initSesClient = (): SESClient => {
   // crypto.subtle
   return new SESClient({
     region: awsConfig.region,
-    endpoint: awsConfig.sesEndpoint,
-    // tls: true,
+    endpoint: endpoint.replace(':587', ':465'),
+    tls: true,
     credentials:{
       accessKeyId: awsConfig.sesAccessKey,
       secretAccessKey: awsConfig.sesAccessSecret,
     },
     logger: logger,
-    requestHandler: new NodeHttpHandler({ httpsAgent: agent }),
+    //requestHandler: new NodeHttpHandler({ httpsAgent: agent }),
   });
 }
 
