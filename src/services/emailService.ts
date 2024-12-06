@@ -61,8 +61,8 @@ const sendEmailViaMailer = async (
     const info = await transporter.sendMail({
       from: `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
       to: toAddresses.join(', '),
-      subject,
-      text: `NodeMailer - ${message}`,
+      subject: `NodeMailer - ${subject}`,
+      text: message,
     });
     console.log("Email sent: %s", info.messageId);
     return true;
@@ -104,10 +104,10 @@ const sendEmailViaSES = async (
 
       Message: {
         Subject: {
-          Data: subject,
+          Data: `SES - ${subject}`,
           Charset: "UTF-8",
         },
-        Body: `SES - ${body}`,
+        Body: body,
       },
 
       Tags: [
