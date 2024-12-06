@@ -160,7 +160,7 @@ const sendEmail = async (
     return true;
   } else {
     // Otherwise go ahead and send the email
-    await sendEmailViaSES(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
+    // await sendEmailViaSES(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
     await sendEmailViaMailer(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
     return true;
   }
