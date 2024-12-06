@@ -15,6 +15,11 @@ export const emailTestController = async (req: Request, res: Response) => {
     // It's in req.cookies though :/
     const accessToken = req.cookies?.dmspt;
 
+console.log('AUTH:');
+console.log(req.auth);
+console.log('COOKIES:');
+console.log(req.cookies);
+
     if (accessToken) {
       const token = verifyAccessToken(accessToken);
 
