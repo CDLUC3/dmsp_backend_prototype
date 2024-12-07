@@ -137,6 +137,12 @@ export class User extends MySqlModel {
     return false;
   }
 
+  // Helper function to return the user's full name
+  getName(): string {
+    return [this.givenName, this.surName].join(' ').trim();
+  }
+
+  // Hashes the user's password
   async hashPassword(password): Promise<string> {
     const salt = await bcrypt.genSalt(generalConfig.bcryptSaltRounds);
     return await bcrypt.hash(password, salt);

@@ -17,6 +17,7 @@ export const awsConfig = {
 
   // Simple Email Service (SES) configuration
   sesEndpoint: process.env.SES_ENDPOINT,
+  port: process.env.SES_PORT || 465,
   sesAccessKey: process.env.SES_ACCESS_ID,
   sesAccessSecret: process.env.SES_ACCESS_SECRET,
   sesBounceAddress: process.env.SES_BOUNCE_EMAIL_ADDRESS,

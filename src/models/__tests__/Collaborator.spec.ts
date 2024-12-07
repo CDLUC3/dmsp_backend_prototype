@@ -198,6 +198,17 @@ describe('create', () => {
     (Template.exists as jest.Mock) = mockExists;
     mockExists.mockResolvedValueOnce(true);
 
+    const tName = casual.sentence;
+    const mockFindTemplateById = jest.fn().mockResolvedValueOnce(new Template({ name: tName }));
+    (Template.findById as jest.Mock) = mockFindTemplateById;
+
+    const inviter = new User({ givenName: casual.first_name, surName: casual.last_name });
+    const mockFindUserById = jest.fn().mockResolvedValueOnce(inviter);
+    (User.findById as jest.Mock) = mockFindUserById;
+
+    const mockSendEmail = jest.fn();
+    (sendTemplateCollaborationEmail as jest.Mock) = mockSendEmail;
+
     insertQuery.mockResolvedValueOnce(casual.integer(1, 999));
 
     const result = await collaborator.create(context);
@@ -205,6 +216,9 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(2);
     expect(mockExists).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      context, tName, inviter.getName(), collaborator.email, collaborator.userId
+    );
     expect(result.errors.length).toBe(0);
     expect(result).toEqual(collaborator);
   });

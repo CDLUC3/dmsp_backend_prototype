@@ -11,6 +11,7 @@ verifyCriticalEnvVariable('JWT_REFRESH_SECRET');
 export const generalConfig = {
   restDataSourceCacheTtl: Number.parseInt(process.env.REST_DATA_SOURCE_CACHE_TTL) || 180,
 
+  env: process.env.APP_ENV,
   domain: process.env.DOMAIN,
   applicationName: process.env.APP_NAME,
   defaultAffiliatioURI: process.env.DEFAULT_AFFILIATION_URI,

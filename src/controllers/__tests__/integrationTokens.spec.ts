@@ -65,6 +65,7 @@ const mockedUser: UserModel.User = {
 
   tableName: 'testUsers',
 
+  getName: jest.fn(),
   recordLogIn: jest.fn(),
   isValid: jest.fn(),
   validatePassword: jest.fn(),

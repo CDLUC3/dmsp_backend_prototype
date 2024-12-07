@@ -1,10 +1,7 @@
 // TODO: Store the automated email in a table so we can eventually have a UI page for
 //       SuperAdmins to update them.
 //       Load the appropriate message and send it out
-import * as https from 'https';
 import nodemailer from 'nodemailer';
-import { NodeHttpHandler } from '@aws-sdk/node-http-handler';
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { MyContext } from "../context";
 import { User } from "../models/User";
 import { awsConfig } from "../config/awsConfig";
@@ -12,18 +9,28 @@ import { emailConfig } from "../config/emailConfig";
 import { formatLogMessage, logger } from "../logger";
 import { generalConfig } from '../config/generalConfig';
 
-// Create an HTTPS agent that enforces TLSv1.2 and disables SSL verification
-const agent = new https.Agent({
-  secureProtocol: "TLSv1_2_method",
-  rejectUnauthorized: false,
-});
+export const emailSubjects = {
+  emailConfirmation: 'Please confirm your email address',
+  planCollaboration: 'You were invited to collaborate on a plan',
+  templateCollaboration: 'You were invited to collaborate on a template',
+}
 
-const endpoint = awsConfig.sesEndpoint;
+export const emailMessages = {
+  emailConfirmation: `<p>This is a placeholder until we get the email confirmation tokens setup.</p>`,
+  planCollaboration: `
+<p>%{inviterName} has invited you to collaborate on their DMP: "%{planTtitle}".</p>
+<p>Placeholder text for a plan collaboration email.</p>
+`,
+  templateCollaboration: `
+<p>%{inviterName} has invited you to collaborate on their template: "%{templateTitle}".</p>
+<p>Placeholder text for a template collaboration email.</p>
+`,
+}
 
 const transporter = nodemailer.createTransport({
   host: awsConfig.sesEndpoint,
   // Use the SES TLS port
-  port: 465,
+  port: awsConfig.port,
   // Use TLS/SSL from the start
   secure: true,
   auth: {
@@ -31,111 +38,6 @@ const transporter = nodemailer.createTransport({
     pass: awsConfig.sesAccessSecret,
   },
 });
-
-// Instantiate the SES Client
-const initSesClient = (): SESClient => {
-  // crypto.subtle
-  return new SESClient({
-    region: awsConfig.region,
-    endpoint: `https://${awsConfig.sesEndpoint}`,
-    // tls: true,
-    credentials:{
-      accessKeyId: awsConfig.sesAccessKey,
-      secretAccessKey: awsConfig.sesAccessSecret,
-    },
-    logger: logger,
-    //requestHandler: new NodeHttpHandler({ httpsAgent: agent }),
-  });
-}
-
-const sendEmailViaMailer = async (
-  emailType: string,
-  toAddresses: string[],
-  ccAddresses: string[] = [],
-  bccAddresses: string[] = [],
-  subject: string,
-  message: string,
-  asHTML = true,
-): Promise<boolean> => {
-  try {
-    const info = await transporter.sendMail({
-      from: `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
-      to: toAddresses.join(', '),
-      subject: `NodeMailer - ${subject}`,
-      text: message,
-    });
-    console.log("Email sent: %s", info.messageId);
-    return true;
-  } catch (error) {
-    console.error("Error sending email:", error);
-  }
-  return false;
-}
-
-// Send an email via AWS Simple Email Service (SES)
-const sendEmailViaSES = async (
-  emailType: string,
-  toAddresses: string[],
-  ccAddresses: string[] = [],
-  bccAddresses: string[] = [],
-  subject: string,
-  message: string,
-  asHTML = true,
-): Promise<boolean> => {
-  try {
-    const client = initSesClient();
-
-    const msgObj = { Data: message, Charset: "UTF-8" };
-    const body = asHTML ? { Html: msgObj } : { Text: msgObj };
-
-    const options = {
-      // the address sending the email
-      Source: emailConfig.doNotReplyAddress,
-      // the address that any spam complaints or mailserver bounces goes to
-      ReturnPath: awsConfig.sesBounceAddress,
-      // the address that is used when the reipient tries to reply
-      ReplyToAddresses: [emailConfig.doNotReplyAddress],
-
-      Destination: {
-        ToAddresses: toAddresses,
-        CcAddresses: ccAddresses,
-        BccAddresses: bccAddresses,
-      },
-
-      Message: {
-        Subject: {
-          Data: `SES - ${subject}`,
-          Charset: "UTF-8",
-        },
-        Body: body,
-      },
-
-      Tags: [
-        {
-          Name: "emailType",
-          Value: emailType,
-        },
-      ],
-    }
-    formatLogMessage(logger).debug(options, 'emailService.sendEmail preparing email');
-
-    const command = new SendEmailCommand(options);
-    const response = await client.send(command);
-
-console.log('RESPONSE:')
-console.log(response);
-
-    if (response && response.MessageId) {
-      const msg = `emailService sent email of type ${emailType} to ${toAddresses.join(', ')}`;
-      formatLogMessage(logger).debug(response, `${msg}, SES messageId: ${response.MessageId}`);
-      return true;
-    }
-  } catch(err) {
-    formatLogMessage(logger).error(err, 'emailService failure');
-    throw(new Error(`Unable to send email: ${err.message}`));
-  }
-  return false;
-}
 
 // Function to either send or log an email notification based on the environment
 const sendEmail = async (
@@ -147,10 +49,11 @@ const sendEmail = async (
   message: string,
   asHTML = true,
 ): Promise<boolean> => {
-  const prefix = process.env.APP_ENV === 'prd' ? 'DMP Tool' : `DMP Tool (${process.env.APP_ENV})`;
+  const prefix = generalConfig.env === 'prd' ? 'DMP Tool' : `DMP Tool (${generalConfig.env})`;
+  // Add the App name to the start of the subject line. We include the env when not in production
   const subjectLine = `${prefix} - ${subject}`;
 
-  if (['development', 'test'].includes(process.env.NODE_ENV)) {
+  if (['development'].includes(process.env.NODE_ENV)) {
     // When running in development mode, we do not have access to AWS SES and we probably don't want to
     // actually send emails to people by accident so so just log the message
     formatLogMessage(logger).info(
@@ -158,53 +61,112 @@ const sendEmail = async (
       `Logging email notification of type '${emailType}' because we are in ${process.env.NODE_ENV} mode`
     );
     return true;
+
   } else {
     // Otherwise go ahead and send the email
-    // await sendEmailViaSES(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
-    await sendEmailViaMailer(emailType, toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML);
-    return true;
-  }
-}
+    let response;
+    const options = {
+      from: `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
+      sender: emailConfig.doNotReplyAddress,
+      replyTo: emailConfig.helpDeskAddress,
+      to: toAddresses.join(', '),
+      cc: ccAddresses.join(', '),
+      bcc: bccAddresses.join(', '),
+      subject: subjectLine,
+    };
+    formatLogMessage(logger).debug(options, `Preparing to send ${emailType} email`);
 
-// Send out a test email notifications (should be accessible by super admins only!)
-export const sendTestEmailNotification = async (): Promise<boolean> => {
-  return await sendEmail('Test', [emailConfig.helpDeskAddress], [], [], emailSubjects.test, emailMessages.test);
+    try {
+      // Send as HTML (default) or text depending on what was specified
+      if (asHTML) {
+        response = await transporter.sendMail({ ...options, html: message });
+      } else {
+        response = await transporter.sendMail({ ...options, text: message });
+      }
+      const logInfo = { id: response?.messageId, to: toAddresses, subject: subject };
+      formatLogMessage(logger).info(logInfo, `${emailType} email sent`);
+
+      return true;
+    } catch (err) {
+      formatLogMessage(logger).fatal(err, `Unable to send ${emailType} email`);
+    }
+    return false;
+  }
 }
 
 // Send out an email asking the user to confirm the email address
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const sendEmailConfirmationNotification = async (email: string): Promise<boolean> => {
-  return await sendEmail('Confirmation', [email], [], [], emailSubjects.confirmation, emailMessages.confirmation);
+  return await sendEmail(
+    'EmailConfirmation',
+    [email],
+    [],
+    [],
+    emailSubjects.emailConfirmation,
+    emailMessages.emailConfirmation,
+  );
 }
 
-// Send out the collaboration email. Note that the emails should be different
-// based on whether or not the userId is present.
-// If no userId is present we are inviting them to create an account.
+// Send out the collaboration email. Note that the emails should be different based on whether or not
+// the userId is present. If no userId is present we are inviting them to create an account.
 export const sendTemplateCollaborationEmail = async (
   context: MyContext,
-  templateId: number,
+  templateName: string,
+  inviterName: string,
   email: string,
   userId?: number
 ): Promise<boolean> => {
+  let toAddress = email;
+  const message = emailMessages.templateCollaboration;
+
   if (userId) {
     const user = await User.findById('sendTemplateCollaborationEmail', context, userId);
     // Bail out if the user has asked us not to send these notifications
     if (!user.notify_on_template_shared) {
       return false;
     }
+    // Use the user's primary email address, regardless of what was provided
+    toAddress = user.email;
   }
-  return true;
+
+  return await sendEmail(
+    'TemplateCollaboration',
+    [toAddress],
+    [],
+    [],
+    emailSubjects.templateCollaboration,
+    message.replace('%{inviterName}', inviterName).replace('%{templateTitle}', templateName),
+  );
 }
 
-export const emailSubjects = {
-  confirmation: 'Please confirm your email address',
-  test: 'Email test',
-}
+// Send out the collaboration email. Note that the emails should be different based on whether or not
+// the userId is present. If no userId is present we are inviting them to create an account.
+export const sendPlanCollaborationEmail = async (
+  context: MyContext,
+  planName: string,
+  inviterName: string,
+  email: string,
+  userId?: number
+): Promise<boolean> => {
+  let toAddress = email;
+  const message = emailMessages.planCollaboration;
 
-export const emailMessages = {
-  confirmation: `<p>This is a placeholder until we get the confirmation tokens setup.</p>`,
-  test: `
-<p>This is a test email from the Apollo server backend.</p>
-<p>If you received it, it indicates that the system is able to successfully send out email notifications.</p>
-`,
+  if (userId) {
+    const user = await User.findById('sendTemplateCollaborationEmail', context, userId);
+    // Bail out if the user has asked us not to send these notifications
+    if (!user.notify_on_plan_shared) {
+      return false;
+    }
+    // Use the user's primary email address, regardless of what was provided
+    toAddress = user.email;
+  }
+
+  return await sendEmail(
+    'PlanCollaboration',
+    [toAddress],
+    [],
+    [],
+    emailSubjects.planCollaboration,
+    message.replace('%{inviterName}', inviterName).replace('%{planTitle}', planName),
+  );
 }

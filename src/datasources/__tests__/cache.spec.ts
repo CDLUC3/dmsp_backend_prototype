@@ -4,7 +4,16 @@ import KeyvRedis from '@keyv/redis';
 import { KeyvAdapter } from '@apollo/utils.keyvadapter';
 import { logger } from '../../__mocks__/logger';
 
-jest.mock('ioredis');
+jest.mock('ioredis', () => {
+  return {
+    Cluster: jest.fn(() => {
+      return {
+        __esModules: true
+      };
+    }),
+  };
+});
+
 jest.mock('keyv');
 jest.mock('@keyv/redis');
 jest.mock('@apollo/utils.keyvadapter');
@@ -26,7 +35,7 @@ describe('Cache', () => {
     Cache.getInstance();
 
     expect(Keyv).toHaveBeenCalledWith(expect.any(KeyvRedis));
-    expect(KeyvAdapter).toHaveBeenCalledWith(mockKeyvInstance);
+    expect(KeyvAdapter).toHaveBeenCalledWith(mockKeyvInstance, { disableBatchReads: true });
     Cache.removeInstance();
   });
 
