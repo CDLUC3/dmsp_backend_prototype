@@ -96,7 +96,7 @@ export class TemplateCollaborator extends Collaborator {
             const inviter = await User.findById(reference, context, this.invitedById);
             const template = await Template.findById(reference, context, this.templateId);
             // Send out the invitation notification (no async here, can happen in the background)
-            sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId);
+            await sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId);
 
             return await TemplateCollaborator.findByTemplateIdAndEmail(
               reference,

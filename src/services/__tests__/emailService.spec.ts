@@ -24,6 +24,8 @@ import { User } from "../../models/User";
 
 let context;
 
+const subjectPrefix = `${generalConfig.applicationName}`;
+
 beforeEach(() => {
   jest.resetAllMocks();
 
@@ -40,7 +42,7 @@ describe('sendEmail', () => {
     const email = casual.email;
     const sent = await sendEmailConfirmationNotification(email);
 
-    const expectedSubject = `DMP Tool (test) - ${emailSubjects.emailConfirmation}`
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.emailConfirmation}`
 
     expect(sent).toBe(true);
     expect(logger.info).toHaveBeenCalledTimes(1);
@@ -63,7 +65,7 @@ describe('sendEmail', () => {
     const inviterName = `${casual.first_name} ${casual.last_name}`;
     const sent = await sendTemplateCollaborationEmail(context, templateName, inviterName, email);
 
-    const expectedSubject = `DMP Tool (test) - ${emailSubjects.templateCollaboration}`
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.templateCollaboration}`
     const expectedMessage = emailMessages.templateCollaboration;
 
     expect(sent).toBe(true);
@@ -95,7 +97,7 @@ describe('sendEmail', () => {
     (User.findById as jest.Mock) = jest.fn().mockResolvedValueOnce(user);
     const sent = await sendTemplateCollaborationEmail(context, templateName, inviterName, email, user.id);
 
-    const expectedSubject = `DMP Tool (test) - ${emailSubjects.templateCollaboration}`
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.templateCollaboration}`
     const expectedMessage = emailMessages.templateCollaboration;
 
     expect(sent).toBe(true);
@@ -119,7 +121,7 @@ describe('sendEmail', () => {
     const inviterName = `${casual.first_name} ${casual.last_name}`;
     const sent = await sendPlanCollaborationEmail(context, planName, inviterName, email);
 
-    const expectedSubject = `DMP Tool (test) - ${emailSubjects.planCollaboration}`
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.planCollaboration}`
     const expectedMessage = emailMessages.planCollaboration;
 
     expect(sent).toBe(true);
@@ -151,7 +153,7 @@ describe('sendEmail', () => {
     (User.findById as jest.Mock) = jest.fn().mockResolvedValueOnce(user);
     const sent = await sendPlanCollaborationEmail(context, planName, inviterName, email, user.id);
 
-    const expectedSubject = `DMP Tool (test) - ${emailSubjects.planCollaboration}`
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.planCollaboration}`
     const expectedMessage = emailMessages.planCollaboration;
 
     expect(sent).toBe(true);

@@ -49,9 +49,9 @@ const sendEmail = async (
   message: string,
   asHTML = true,
 ): Promise<boolean> => {
-  const prefix = generalConfig.env === 'prd' ? 'DMP Tool' : `DMP Tool (${generalConfig.env})`;
+
   // Add the App name to the start of the subject line. We include the env when not in production
-  const subjectLine = `${prefix} - ${subject}`;
+  const subjectLine = `${generalConfig.applicationName} - ${subject}`;
 
   if (['development'].includes(process.env.NODE_ENV)) {
     // When running in development mode, we do not have access to AWS SES and we probably don't want to
