@@ -18,6 +18,8 @@ export class Cache {
     // Setup the Redis Cluster
     formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
 
+formatLogMessage(logger).debug(`NODE ENV: ${process.env.NODE_ENV}, FAILOVER ENABLED? ${autoFailoverEnabled}`)
+
     if (!['development', 'test'].includes(process.env.NODE_ENV)) {
 
       if (autoFailoverEnabled === 'true') {
