@@ -2,7 +2,7 @@ import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import Redis from "ioredis";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
-import { autoFailoverEnabled, cacheConfig } from "../config/cacheConfig";
+import { autoFailoverEnabled, cacheConfig, connectTimeout } from "../config/cacheConfig";
 import { logger, formatLogMessage } from '../logger';
 
 // Note that Redis cache clusters require you to wrap keys in `{}` to ensure that they are stored
@@ -20,7 +20,26 @@ export class Cache {
 
 formatLogMessage(logger).debug(`NODE ENV: ${process.env.NODE_ENV}, FAILOVER ENABLED? ${autoFailoverEnabled}`)
 
-    if (!['development', 'test'].includes(process.env.NODE_ENV)) {
+    if (['development', 'test'].includes(process.env.NODE_ENV)) {
+      // We are running locally, so use we are dealing with a single Redis node
+      cache = new Redis({ ...cacheConfig, connectTimeout });
+
+    } else {
+      // We are running in the AW environment with an Elasticache cluster
+      cache = new Redis.Cluster(
+        [{ ...cacheConfig }],
+        {
+          clusterRetryStrategy(times) {
+            // Retry with a linear backoff
+            const delay = Math.min(times * 50, 2000);
+            return delay;
+          }
+        }
+      );
+    }
+
+    /*
+    if (['development', 'test'].includes(process.env.NODE_ENV)) {
 
       if (autoFailoverEnabled === 'true') {
         // ElastiCache instances with Auto-failover enabled, reconnectOnError does not execute.
@@ -58,6 +77,7 @@ formatLogMessage(logger).debug(`NODE ENV: ${process.env.NODE_ENV}, FAILOVER ENAB
         }
       );
     }
+    */
 
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
