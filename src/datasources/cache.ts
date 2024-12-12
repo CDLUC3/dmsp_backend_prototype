@@ -15,32 +15,17 @@ export class Cache {
   private constructor() {
     let cache;
 
+console.log(Redis)
+
     // Setup the Redis Cluster
     formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
-
-formatLogMessage(logger).debug(`NODE ENV: ${process.env.NODE_ENV}, FAILOVER ENABLED? ${autoFailoverEnabled}`)
 
     if (['development', 'test'].includes(process.env.NODE_ENV)) {
       // We are running locally, so use we are dealing with a single Redis node
       cache = new Redis({ ...cacheConfig, connectTimeout });
 
     } else {
-      // We are running in the AW environment with an Elasticache cluster
-      cache = new Redis.Cluster(
-        [{ ...cacheConfig }],
-        {
-          clusterRetryStrategy(times) {
-            // Retry with a linear backoff
-            const delay = Math.min(times * 50, 2000);
-            return delay;
-          }
-        }
-      );
-    }
-
-    /*
-    if (['development', 'test'].includes(process.env.NODE_ENV)) {
-
+      // We are running in the AW environment with an Elasticache
       if (autoFailoverEnabled === 'true') {
         // ElastiCache instances with Auto-failover enabled, reconnectOnError does not execute.
         // Instead of returning a Redis error, AWS closes all connections to the master endpoint
@@ -64,20 +49,7 @@ formatLogMessage(logger).debug(`NODE ENV: ${process.env.NODE_ENV}, FAILOVER ENAB
           },
         });
       }
-    } else {
-      // We are running in the AW environment with an Elasticache cluster
-      cache = new Redis.Cluster(
-        [{ ...cacheConfig }],
-        {
-          clusterRetryStrategy(times) {
-            // Retry with a linear backoff
-            const delay = Math.min(times * 50, 2000);
-            return delay;
-          }
-        }
-      );
     }
-    */
 
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

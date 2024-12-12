@@ -6,6 +6,7 @@ import { logger } from '../../__mocks__/logger';
 
 jest.mock('ioredis', () => {
   return {
+    __esModules: true,
     Cluster: jest.fn(() => {
       return {
         __esModules: true
