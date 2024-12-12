@@ -15,8 +15,6 @@ export class Cache {
   private constructor() {
     let cache;
 
-console.log(Redis)
-
     // Setup the Redis Cluster
     formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
 

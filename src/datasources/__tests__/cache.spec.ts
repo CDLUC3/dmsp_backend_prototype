@@ -4,16 +4,17 @@ import KeyvRedis from '@keyv/redis';
 import { KeyvAdapter } from '@apollo/utils.keyvadapter';
 import { logger } from '../../__mocks__/logger';
 
-jest.mock('ioredis', () => {
-  return {
-    __esModules: true,
-    Cluster: jest.fn(() => {
-      return {
-        __esModules: true
-      };
-    }),
-  };
-});
+jest.mock('ioredis', () => (
+  jest.fn(() => {
+    return {
+      Cluster: jest.fn(() => {
+        return {
+          __esModules: true
+        };
+      }),
+    };
+  })
+));
 
 jest.mock('keyv');
 jest.mock('@keyv/redis');
