@@ -137,6 +137,12 @@ export class User extends MySqlModel {
     return false;
   }
 
+  // Helper function to return the user's full name
+  getName(): string {
+    return [this.givenName, this.surName].join(' ').trim();
+  }
+
+  // Hashes the user's password
   async hashPassword(password): Promise<string> {
     const salt = await bcrypt.genSalt(generalConfig.bcryptSaltRounds);
     return await bcrypt.hash(password, salt);
@@ -193,7 +199,7 @@ export class User extends MySqlModel {
       this.last_sign_in = getCurrentDate();
       this.last_sign_in_via = loginType;
 
-      if (await User.update(context, this.tableName, this, 'User.recordLogIn', [], true)) {
+      if (await User.update(context, this.tableName, this, 'User.recordLogIn', ['password'], true)) {
         return true;
       }
     }

@@ -296,6 +296,24 @@ describe('authCheck', () => {
   });
 });
 
+it('getName returns the user\'s full name', () => {
+  mockUser.givenName = casual.first_name;
+  mockUser.surName = casual.last_name;
+  expect(mockUser.getName()).toEqual(`${mockUser.givenName} ${mockUser.surName}`);
+
+  mockUser.givenName = null;
+  mockUser.surName = casual.last_name;
+  expect(mockUser.getName()).toEqual(`${mockUser.surName}`);
+
+  mockUser.givenName = casual.first_name;
+  mockUser.surName = null;
+  expect(mockUser.getName()).toEqual(`${mockUser.givenName}`);
+
+  mockUser.givenName = undefined;
+  mockUser.surName = null;
+  expect(mockUser.getName()).toEqual('');
+});
+
 describe('recordLogIn', () => {
   let context;
 

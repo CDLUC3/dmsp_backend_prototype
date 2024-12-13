@@ -2,7 +2,7 @@ import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import Redis from "ioredis";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
-import { autoFailoverEnabled, cacheConfig } from "../config/cacheConfig";
+import { autoFailoverEnabled, cacheConfig, connectTimeout } from "../config/cacheConfig";
 import { logger, formatLogMessage } from '../logger';
 
 // Note that Redis cache clusters require you to wrap keys in `{}` to ensure that they are stored
@@ -18,8 +18,12 @@ export class Cache {
     // Setup the Redis Cluster
     formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
 
-    if (!['development', 'test'].includes(process.env.NODE_ENV)) {
+    if (['development', 'test'].includes(process.env.NODE_ENV)) {
+      // We are running locally, so use we are dealing with a single Redis node
+      cache = new Redis({ ...cacheConfig, connectTimeout });
 
+    } else {
+      // We are running in the AW environment with an Elasticache
       if (autoFailoverEnabled === 'true') {
         // ElastiCache instances with Auto-failover enabled, reconnectOnError does not execute.
         // Instead of returning a Redis error, AWS closes all connections to the master endpoint
@@ -34,16 +38,15 @@ export class Cache {
           ...cacheConfig,
           tls: {},
           reconnectOnError(err) {
-            const targetError = "READONLY";
-            if (err.message.includes(targetError)) {
+            logger.error(err, 'Redis reconnect on error')
+            const targetErrors = ["READONLY", "MOVED"];
+            if (targetErrors.includes(err.message)) {
               // Only reconnect when the error contains "READONLY"
               return true; // or `return 1;`
             }
           },
         });
       }
-    } else {
-      cache = new Redis(cacheConfig);
     }
 
     // Having trouble figuring how how to type `Keyv` as `Keyv<string, Record<string, any>>`
@@ -62,9 +65,8 @@ export class Cache {
       formatLogMessage(logger).info( null, `Redis connection closed`);
     });
 
-
     // Set the Adapter which will be used to interact with the cache
-    this.adapter = new KeyvAdapter(keyV);
+    this.adapter = new KeyvAdapter(keyV, { disableBatchReads: true });
   }
 
   // Singleton instance of the Cache
