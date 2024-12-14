@@ -1,4 +1,5 @@
 ### Added
+- Added "lastPublishedDate" field to templates table, and changed "currentVersion" field to "lastPublishedVersion"
 - Added support for creating "other" affiliations
 - Added update and updatePassword to User
 - Added resolvers for User
