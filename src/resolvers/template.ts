@@ -56,6 +56,7 @@ export const resolvers: Resolvers = {
           template.name = name;
         }
         if (!template) {
+
           // Create a new blank template
           template = new Template({ name, ownerId: context.token.affiliationId });
         }
@@ -98,9 +99,13 @@ export const resolvers: Resolvers = {
         //       get deleted and orphan those records but instead just unpublishes and sets a flag
 
         const template = await Template.findById('archiveTemplate resolver', context, templateId);
-        if (template) {
+        // Need to create an instance of template in order to access the "delete" method below
+        const templateInstance = new Template({
+          ...template
+        });
+        if (templateInstance) {
           if (hasPermissionOnTemplate(context, template)) {
-            return await template.delete(context);
+            return await templateInstance.delete(context);
           }
           throw ForbiddenError();
         }
@@ -111,7 +116,7 @@ export const resolvers: Resolvers = {
 
     // Publish the template or save as a draft
     //     - called from the Template overview page
-    createTemplateVersion: async (_, { templateId, comment, versionType }, context: MyContext): Promise<Template> => {
+    createTemplateVersion: async (_, { templateId, comment, versionType, visibility }, context: MyContext): Promise<Template> => {
       if (isAdmin(context.token)) {
         const reference = 'createVersion resolver';
         const template = await Template.findById(reference, context, templateId);
@@ -131,6 +136,7 @@ export const resolvers: Resolvers = {
               versions,
               context.token.id,
               comment,
+              visibility as TemplateVisibility,
               TemplateVersionType[versionType]
             );
 

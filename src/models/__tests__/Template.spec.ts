@@ -40,7 +40,7 @@ describe('Template', () => {
     expect(template.visibility).toEqual(TemplateVisibility.PRIVATE);
     expect(template.created).toBeTruthy();
     expect(template.modified).toBeTruthy();
-    expect(template.currentVersion).toBeFalsy();
+    expect(template.latestPublishVersion).toBeFalsy();
     expect(template.isDirty).toBeTruthy();
     expect(template.errors).toEqual([]);
     expect(template.languageId).toEqual(defaultLanguageId);

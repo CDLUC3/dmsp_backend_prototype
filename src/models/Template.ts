@@ -15,7 +15,8 @@ export class Template extends MySqlModel {
   public description?: string;
   public ownerId?: string;
   public visibility: TemplateVisibility;
-  public currentVersion?: string;
+  public latestPublishVersion?: string;
+  public latestPublishDate?: string;
   public isDirty: boolean;
   public bestPractice: boolean;
   public languageId: string;
@@ -30,7 +31,8 @@ export class Template extends MySqlModel {
     this.description = options.description;
     this.sourceTemplateId = options.sourceTemplateId
     this.visibility = options.visibility || TemplateVisibility.PRIVATE;
-    this.currentVersion = options.currentVersion || '';
+    this.latestPublishVersion = options.latestPublishVersion || '';
+    this.latestPublishDate = options.latestPublishDate || null;
     this.isDirty = options.isDirty || true;
     this.bestPractice = options.bestPractice || false;
     this.languageId = options.languageId || defaultLanguageId;
@@ -38,7 +40,7 @@ export class Template extends MySqlModel {
 
   // Ensure data integrity
   cleanup() {
-    if (!supportedLanguages.map((l) => l.id).includes(this.languageId)){
+    if (!supportedLanguages.map((l) => l.id).includes(this.languageId)) {
       this.languageId = defaultLanguageId;
     }
   }
@@ -88,7 +90,7 @@ export class Template extends MySqlModel {
     if (await this.isValid()) {
       if (id) {
         // if the template is versioned then set the isDirty flag
-        if (this.currentVersion && noTouch !== true) {
+        if (this.latestPublishVersion && noTouch !== true) {
           this.isDirty = true;
         }
 

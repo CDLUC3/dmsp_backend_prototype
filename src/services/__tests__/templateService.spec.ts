@@ -130,7 +130,7 @@ describe('cloneTemplate', () => {
     expect(copy.name).toEqual(`Copy of ${tmplt.name}`);
     expect(copy.ownerId).toEqual(newOwnerId);
     expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
-    expect(copy.currentVersion).toBeFalsy();
+    expect(copy.latestPublishVersion).toBeFalsy();
     expect(copy.errors).toEqual([]);
     expect(copy.description).toEqual(description);
     expect(copy.created).toBeTruthy();
@@ -159,7 +159,7 @@ describe('cloneTemplate', () => {
     expect(copy.name).toEqual(`Copy of ${published.name}`);
     expect(copy.ownerId).toEqual(newOwnerId);
     expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
-    expect(copy.currentVersion).toBeFalsy();
+    expect(copy.latestPublishVersion).toBeFalsy();
     expect(copy.errors).toEqual([]);
     expect(copy.createdById).toEqual(clonedById);
     expect(copy.description).toEqual(description);
@@ -191,7 +191,7 @@ describe('template versioning', () => {
         description: casual.sentences(5),
         ownerId: casual.url,
         visibility: getRandomEnumValue(TemplateVisibility),
-        currentVersion: '',
+        latestPublishVersion: '',
         isDirty: true,
         bestPractice: false,
         createdById: casual.integer(1, 999),
@@ -222,7 +222,7 @@ describe('template versioning', () => {
       obj.modifed = tstamp;
       obj.modifiedById = userId;
 
-      switch(table) {
+      switch (table) {
         case 'templates': {
           templateStore.push(obj);
           break;
@@ -245,7 +245,7 @@ describe('template versioning', () => {
         obj.modifiedById = userId;
       }
 
-      switch(table) {
+      switch (table) {
         case 'templates': {
           const existing = templateStore.find((entry) => { return entry.id === obj.id });
           if (!existing) {
@@ -279,7 +279,7 @@ describe('template versioning', () => {
     const tmplt = new Template({
       id: casual.integer(1, 99),
       name: casual.words(4),
-      currentVersion: 'v1',
+      latestPublishVersion: 'v1',
     });
 
     // isDirty is true when the class is instantiated, so reset it
@@ -326,6 +326,7 @@ describe('template versioning', () => {
   it('versions the Template when it has no prior versions', async () => {
     const tmplt = new Template(templateStore[0]);
     const comment = casual.sentences(3);
+    const visibility = TemplateVisibility.PRIVATE;
     const versionType = getRandomEnumValue(TemplateVersionType);
 
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
@@ -339,6 +340,7 @@ describe('template versioning', () => {
       [],
       context.token.id,
       comment,
+      visibility,
       versionType
     );
 
@@ -353,7 +355,7 @@ describe('template versioning', () => {
     expect(newVersion.name).toEqual(tmplt.name);
     expect(newVersion.description).toEqual(tmplt.description);
     expect(newVersion.ownerId).toEqual(tmplt.ownerId);
-    expect(newVersion.visibility).toEqual(tmplt.visibility);
+    expect(newVersion.visibility).toEqual(visibility);
     expect(newVersion.bestPractice).toEqual(tmplt.bestPractice);
     expect(newVersion.version).toEqual('v1');
     expect(newVersion.versionedById).toEqual(context.token.id);
@@ -366,13 +368,13 @@ describe('template versioning', () => {
     const updated = templateStore.find((entry) => { return entry.id === tmplt.id; });
     expect(updated.modifiedById).toEqual(tmplt.modifiedById);
     expect(updated.modified).toEqual(tmplt.modified);
-    expect(updated.currentVersion).toEqual(newVersion.version);
+    expect(updated.latestPublishVersion).toEqual(newVersion.version);
     expect(updated.isDirty).toEqual(false);
   });
 
   it('versions the Template when there are prior versions', async () => {
     const tmplt = new Template(templateStore[0]);
-    tmplt.currentVersion = 'v1';
+    tmplt.latestPublishVersion = 'v1';
 
     const oldVersion = new VersionedTemplate({
       templateId: tmplt.id,
@@ -390,6 +392,7 @@ describe('template versioning', () => {
     versionedTemplateStore.push(oldVersion);
     const comment = casual.sentences(3);
     const versionType = getRandomEnumValue(TemplateVersionType);
+    const visibility = TemplateVisibility.PUBLIC;
 
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
     (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindVersionedTemplatebyId;
@@ -402,6 +405,7 @@ describe('template versioning', () => {
       [oldVersion],
       context.token.id,
       comment,
+      visibility,
       versionType
     );
 
@@ -416,7 +420,7 @@ describe('template versioning', () => {
     expect(newVersion.name).toEqual(tmplt.name);
     expect(newVersion.description).toEqual(tmplt.description);
     expect(newVersion.ownerId).toEqual(tmplt.ownerId);
-    expect(newVersion.visibility).toEqual(tmplt.visibility);
+    expect(newVersion.visibility).toEqual(visibility);
     expect(newVersion.bestPractice).toEqual(tmplt.bestPractice);
     expect(newVersion.version).toEqual('v2');
     expect(newVersion.versionedById).toEqual(context.token.id);
@@ -429,7 +433,7 @@ describe('template versioning', () => {
     const updated = templateStore.find((entry) => { return entry.id === tmplt.id; });
     expect(updated.modifiedById).toEqual(tmplt.modifiedById);
     expect(updated.modified).toEqual(tmplt.modified);
-    expect(updated.currentVersion).toEqual(newVersion.version);
+    expect(updated.latestPublishVersion).toEqual(newVersion.version);
     expect(updated.isDirty).toEqual(false);
   });
 });
