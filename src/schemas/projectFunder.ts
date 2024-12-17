@@ -2,11 +2,25 @@ import gql from "graphql-tag";
 
 export const typeDefs = gql`
   extend type Query {
+    "Get all of the Users that a Funders to the research project"
+    projectFunders(projectId: Int!): [ProjectFunder]
 
+    "Get all of the Users that are Funders for the specific Plan"
+    planFunders(planId: Int!): [ProjectFunder]
   }
 
   extend type Mutation {
+    "Add a Funder to a research project"
+    addProjectFunder(input: AddProjectFunderInput!): ProjectFunder
+    "Update a Funder on the research project"
+    editProjectFunder(input: EditProjectFunderInput!): ProjectFunder
+    "Remove a research project Funder"
+    removeProjectFunder(projectFunderId: Int!): Boolean
 
+    "Add a Funder to a Plan"
+    addPlanFunder(planId: Int!, projectFunderId: Int!): PlanFunder
+    "Remove a PlanFunder from a Plan"
+    removePlanFunder(planId: Int!, projectFunderId: Int!): Boolean
   }
 
   "The status of the funding"
@@ -38,6 +52,34 @@ export const typeDefs = gql`
     project: Project!
     "The funder"
     funder: Affiliation!
+    "The status of the funding resquest"
+    status: ProjectFunderStatus
+    "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
+    funderProjectNumber: String
+    "The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded)"
+    grantId: String
+    "The funder's unique id/url for the call for submissions to apply for a grant"
+    funderOpportunityNumber: String
+  }
+
+  input AddProjectFunderInput {
+    "The project"
+    projectId: Int!
+    "The funder"
+    funder: Affiliation!
+    "The status of the funding resquest"
+    status: ProjectFunderStatus
+    "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
+    funderProjectNumber: String
+    "The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded)"
+    grantId: String
+    "The funder's unique id/url for the call for submissions to apply for a grant"
+    funderOpportunityNumber: String
+  }
+
+  input EditProjectFunderInput {
+    "The project funder"
+    projectFunderId: Int!
     "The status of the funding resquest"
     status: ProjectFunderStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"

@@ -33,6 +33,8 @@
 - Added supertest to support integration tests
 - Added integration tests for token management (signin, signup, signout, refresh)
 - Data migrations for affiliations table
+- Added Project, ProjectContributor, ProjectFunder schemas and supporting tables
+- Added Plan, PlanContributor, PlanCollaborator, PlanFunder, PlanFeedback, PlanFeedbackComment, Answer and AnswerComment schemas and supporting tables
 
 ### Updated
 - Updated User update method to prevent password manipulation
