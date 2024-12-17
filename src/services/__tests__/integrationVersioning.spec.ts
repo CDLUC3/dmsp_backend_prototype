@@ -126,7 +126,7 @@ describe('Integration test: Template Versioning', () => {
       obj.modifed = tstamp;
       obj.modifiedById = userId;
 
-      switch(table) {
+      switch (table) {
         case 'templates': {
           templateStore.push(obj);
           break;
@@ -174,7 +174,7 @@ describe('Integration test: Template Versioning', () => {
         obj.modifiedById = userId;
       }
 
-      switch(table) {
+      switch (table) {
         case 'templates': {
           updateStore(templateStore, 'templateStore', obj);
           break;
@@ -222,7 +222,7 @@ describe('Integration test: Template Versioning', () => {
         description: casual.sentences(5),
         ownerId: casual.url,
         visibility: getRandomEnumValue(TemplateVisibility),
-        currentVersion: '',
+        latestPublishVersion: '',
         isDirty: true,
         bestPractice: false,
         createdById: casual.integer(1, 999),

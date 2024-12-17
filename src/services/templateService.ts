@@ -1,5 +1,5 @@
 import { incrementVersionNumber } from "../utils/helpers";
-import { Template } from "../models/Template";
+import { Template, TemplateVisibility } from "../models/Template";
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 import { MyContext } from "../context";
 import { isSuperAdmin } from "./authService";
@@ -30,7 +30,7 @@ export const hasPermissionOnTemplate = async (context: MyContext, template: Temp
 }
 
 // Creates a new Version/Snapshot the specified Template (as a point in time snapshot)
-//    - bumps the `currentVersion` on the specified `template`
+//    - bumps the `latestPublishVersion` on the specified `template`
 //    - deactivates all of the existing VersionedTemplates in the `versions` array
 //    - creates a new VersionedTemplate that is active and adds it to the `versions` array
 export const generateTemplateVersion = async (
@@ -39,6 +39,7 @@ export const generateTemplateVersion = async (
   versions: VersionedTemplate[],
   versionerId: number,
   comment = '',
+  visibility = TemplateVisibility.PRIVATE,
   versionType = TemplateVersionType.DRAFT,
 ): Promise<VersionedTemplate> => {
   // If the template has no id then it has not yet been saved so throw an error
@@ -47,7 +48,7 @@ export const generateTemplateVersion = async (
   }
 
   // If the template has a current version but no recent changes throw an error
-  if (template.currentVersion && !template.isDirty) {
+  if (template.latestPublishVersion && !template.isDirty) {
     throw new Error('There are no changes to publish');
   }
 
@@ -66,7 +67,7 @@ export const generateTemplateVersion = async (
     description: template.description,
     ownerId: template.ownerId,
     versionedById: versionerId,
-    visibility: template.visibility,
+    visibility: visibility || template.visibility,
     bestPactice: template.bestPractice,
     languageId: template.languageId,
     versionType,
@@ -100,7 +101,8 @@ export const generateTemplateVersion = async (
       // Only continue if all of the sections were properly versioned
       if (allSectionsWereVersioned) {
         // Update the template's version and reset the dirty flag
-        template.currentVersion = newVersion;
+        template.latestPublishVersion = newVersion;
+        template.latestPublishDate = created.created;
         template.isDirty = false;
 
         // Pass the noTouch flag to avoid default behavior of setting isDirty, modified, etc.
