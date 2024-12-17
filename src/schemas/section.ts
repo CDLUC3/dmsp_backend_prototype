@@ -44,6 +44,8 @@ export const typeDefs = gql`
     guidance: String
     "The order in which the section will be displayed in the template"
     displayOrder: Int
+    "Whether or not this Section is designated as a 'Best Practice' section"
+    bestPractice: Boolean
     "The Tags associated with this section. A section might not have any tags"
     tags: [Tag]
     "Indicates whether or not the section has changed since the template was last published"
@@ -87,6 +89,8 @@ export const typeDefs = gql`
     guidance: String
     "The order in which the section will be displayed in the template"
     displayOrder: Int
+    "Whether or not this Section is designated as a 'Best Practice' section"
+    bestPractice: Boolean
     "The Tags associated with this section. A section might not have any tags"
     tags: [TagInput!]
   }

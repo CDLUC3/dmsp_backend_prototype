@@ -11,14 +11,11 @@ export class Section extends MySqlModel {
   public requirements?: string;
   public guidance?: string;
   public displayOrder: number;
+  public bestPractice: boolean;
   public tags: Tag[];
   public isDirty: boolean;
 
   private tableName = 'sections';
-
-  // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
-  //public bestPractice: boolean;
-
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
@@ -30,10 +27,9 @@ export class Section extends MySqlModel {
     this.requirements = options.requirements;
     this.guidance = options.guidance;
     this.displayOrder = options.displayOrder;
+    this.bestPractice = options.bestPractice || false;
     this.tags = options.tags;
     this.isDirty = options.isDirty || true;
-    // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated Template
-    //this.bestPractice = options.bestPractice || false;
   }
 
   //Check that the Section data contains the required name field
