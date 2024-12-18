@@ -82,8 +82,8 @@ export const typeDefs = gql`
   input AddProjectContributorInput {
     "The research project"
     projectId: Int!
-    "The contributor's affiliation"
-    affiliation: Affiliation
+    "The contributor's affiliation URI"
+    affiliationId: String
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"
@@ -99,8 +99,8 @@ export const typeDefs = gql`
   input EditProjectContributorInput {
     "The project contributor"
     projectContributorId: Int!
-    "The contributor's affiliation"
-    affiliation: Affiliation
+    "The contributor's affiliation URI"
+    affiliationId: String
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"

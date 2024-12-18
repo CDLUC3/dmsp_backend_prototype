@@ -65,8 +65,8 @@ export const typeDefs = gql`
   input AddProjectFunderInput {
     "The project"
     projectId: Int!
-    "The funder"
-    funder: Affiliation!
+    "The funder URI"
+    funder: String!
     "The status of the funding resquest"
     status: ProjectFunderStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
