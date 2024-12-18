@@ -20,6 +20,7 @@ CREATE TABLE `repositories` (
   `description` TEXT NOT NULL,
   `website` VARCHAR(255),
   `keywords` JSON,
+  `repositoryTypes` JSON,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

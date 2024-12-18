@@ -4,6 +4,7 @@ CREATE TABLE `researchDomains` (
   `name` VARCHAR(255) NOT NULL,
   `url` VARCHAR(255) NOT NULL,
   `description` TEXT NOT NULL,
+  `parentResearchDomainId` INT,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
