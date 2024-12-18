@@ -8,6 +8,7 @@ import { Template } from "../models/Template";
 import { cloneSection, hasPermissionOnSection, getTagsToAdd } from "../services/sectionService";
 import { ForbiddenError, NotFoundError, BadUserInputError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
+import { isSuperAdmin } from "../services/authService";
 
 
 export const resolvers: Resolvers = {
@@ -90,7 +91,7 @@ export const resolvers: Resolvers = {
       }
     },
 
-    updateSection: async (_, { input: { sectionId, name, introduction, requirements, guidance, tags, displayOrder } }, context: MyContext): Promise<Section> => {
+    updateSection: async (_, { input: { sectionId, name, introduction, requirements, guidance, tags, displayOrder, bestPractice } }, context: MyContext): Promise<Section> => {
 
       // Get Section based on provided sectionId
       const sectionData = await Section.findById('section resolver', context, sectionId);
@@ -113,6 +114,9 @@ export const resolvers: Resolvers = {
           displayOrder: displayOrder,
           isDirty: true  // Mark as dirty for update
         });
+
+        // Only allow the bestPractice flag to be changed if the user is a Super admin!
+        section.bestPractice = isSuperAdmin(context.token) ? bestPractice : sectionData.bestPractice;
 
         const updatedSection = await section.update(context);
 
