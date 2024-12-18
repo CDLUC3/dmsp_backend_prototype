@@ -23,6 +23,8 @@ export const typeDefs = gql`
 
     "The name of the domain"
     name: String!
+    "The URL of the research domain"
+    uri: String!
     "A description of the type of research covered by the domain"
     description: String
   }

@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get all rounds of admin feedback for the plan"
-    planFeedbacks(planId: Int!): [PlanFeedback]
+    planFeedback(planId: Int!): [PlanFeedback]
 
     "Get all of the comments associated with the round of admin feedback"
     planFeedbackComments(planFeedbackId: Int!): [PlanFeedbackComment]

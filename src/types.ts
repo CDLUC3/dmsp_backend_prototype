@@ -24,6 +24,38 @@ export type Scalars = {
   URL: { input: any; output: any; }
 };
 
+export type AddProjectContributorInput = {
+  /** The contributor's affiliation */
+  affiliation?: InputMaybe<Affiliation>;
+  /** The contributor's email address */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's first/given name */
+  givenName?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's ORCID */
+  orcid?: InputMaybe<Scalars['String']['input']>;
+  /** The research project */
+  projectId: Scalars['Int']['input'];
+  /** The roles the contributor has on the research project */
+  roles?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** The contributor's last/sur name */
+  surname?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type AddProjectFunderInput = {
+  /** The funder */
+  funder: Affiliation;
+  /** The funder's unique id/url for the call for submissions to apply for a grant */
+  funderOpportunityNumber?: InputMaybe<Scalars['String']['input']>;
+  /** The funder's unique id/url for the research project (normally assigned after the grant has been awarded) */
+  funderProjectNumber?: InputMaybe<Scalars['String']['input']>;
+  /** The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded) */
+  grantId?: InputMaybe<Scalars['String']['input']>;
+  /** The project */
+  projectId: Scalars['Int']['input'];
+  /** The status of the funding resquest */
+  status?: InputMaybe<ProjectFunderStatus>;
+};
+
 /** Input for adding a new QuestionCondition */
 export type AddQuestionConditionInput = {
   /** The action to take on a QuestionCondition */
@@ -298,6 +330,21 @@ export type AnswerComment = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
 };
 
+/** The result of the findCollaborator query */
+export type CollaboratorSearchResult = {
+  __typename?: 'CollaboratorSearchResult';
+  /** The collaborator's affiliation */
+  affiliation?: Maybe<Affiliation>;
+  /** The collaborator's first/given name */
+  givenName?: Maybe<Scalars['String']['output']>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The collaborator's ORCID */
+  orcid?: Maybe<Scalars['String']['output']>;
+  /** The collaborator's last/sur name */
+  surName?: Maybe<Scalars['String']['output']>;
+};
+
 export type ContributorRole = {
   __typename?: 'ContributorRole';
   /** The timestamp when the Object was created */
@@ -337,6 +384,36 @@ export type ContributorRoleMutationResponse = {
   success: Scalars['Boolean']['output'];
 };
 
+export type EditProjectContributorInput = {
+  /** The contributor's affiliation */
+  affiliation?: InputMaybe<Affiliation>;
+  /** The contributor's email address */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's first/given name */
+  givenName?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's ORCID */
+  orcid?: InputMaybe<Scalars['String']['input']>;
+  /** The project contributor */
+  projectContributorId: Scalars['Int']['input'];
+  /** The roles the contributor has on the research project */
+  roles?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** The contributor's last/sur name */
+  surname?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type EditProjectFunderInput = {
+  /** The funder's unique id/url for the call for submissions to apply for a grant */
+  funderOpportunityNumber?: InputMaybe<Scalars['String']['input']>;
+  /** The funder's unique id/url for the research project (normally assigned after the grant has been awarded) */
+  funderProjectNumber?: InputMaybe<Scalars['String']['input']>;
+  /** The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded) */
+  grantId?: InputMaybe<Scalars['String']['input']>;
+  /** The project funder */
+  projectFunderId: Scalars['Int']['input'];
+  /** The status of the funding resquest */
+  status?: InputMaybe<ProjectFunderStatus>;
+};
+
 /** The types of object a User can be invited to Collaborate on */
 export type InvitedToType =
   | 'PLAN'
@@ -362,8 +439,22 @@ export type Mutation = {
   addAffiliation?: Maybe<Affiliation>;
   /** Add a new contributor role (URL and label must be unique!) */
   addContributorRole?: Maybe<ContributorRoleMutationResponse>;
+  /** Add a comment to an answer within a round of feedback */
+  addFeedbackComment?: Maybe<PlanFeedbackComment>;
+  /** Create a plan */
+  addPlan?: Maybe<Plan>;
+  /** Answer a question */
+  addPlanAnswer?: Maybe<Answer>;
   /** Add a collaborator to a Plan */
   addPlanCollaborator?: Maybe<PlanCollaborator>;
+  /** Add a Contributor to a Plan */
+  addPlanContributor?: Maybe<PlanContributor>;
+  /** Add a Funder to a Plan */
+  addPlanFunder?: Maybe<ProjectFunder>;
+  /** Add a contributor to a research project */
+  addProjectContributor?: Maybe<ProjectContributor>;
+  /** Add a Funder to a research project */
+  addProjectFunder?: Maybe<ProjectFunder>;
   /** Create a new Question */
   addQuestion: Question;
   /** Create a new QuestionCondition associated with a question */
@@ -380,18 +471,44 @@ export type Mutation = {
   addUserEmail?: Maybe<UserEmail>;
   /** Archive a Template (unpublishes any associated PublishedTemplate */
   archiveTemplate?: Maybe<Scalars['Boolean']['output']>;
+  /** Mark the feedback round as complete */
+  completeFeedback?: Maybe<PlanFeedback>;
   /** Publish the template or save as a draft */
   createTemplateVersion?: Maybe<Template>;
   /** Deactivate the specified user Account (Admin only) */
   deactivateUser?: Maybe<User>;
+  /** Download the plan */
+  downloadPlan?: Maybe<Scalars['String']['output']>;
+  /** Edit an answer */
+  editPlanAnswer?: Maybe<Answer>;
+  /** Update a contributor on the research project */
+  editProjectContributor?: Maybe<ProjectContributor>;
+  /** Update a Funder on the research project */
+  editProjectFunder?: Maybe<ProjectFunder>;
+  /** Change the plan's status to COMPLETE (cannot be done once the plan is PUBLISHED) */
+  markPlanComplete?: Maybe<Plan>;
+  /** Change the plan's status to DRAFT (cannot be done once the plan is PUBLISHED) */
+  markPlanDraft?: Maybe<Plan>;
   /** Merge the 2 user accounts (Admin only) */
   mergeUsers?: Maybe<User>;
+  /** Publish a plan (changes status to PUBLISHED) */
+  publishPlan?: Maybe<Plan>;
   /** Delete an Affiliation (only applicable to AffiliationProvenance == DMPTOOL) */
   removeAffiliation?: Maybe<Affiliation>;
   /** Delete the contributor role */
   removeContributorRole?: Maybe<ContributorRoleMutationResponse>;
+  /** Remove a comment to an answer within a round of feedback */
+  removeFeedbackComment?: Maybe<Scalars['Boolean']['output']>;
   /** Remove a PlanCollaborator from a Plan */
   removePlanCollaborator?: Maybe<Scalars['Boolean']['output']>;
+  /** Remove a PlanContributor from a Plan */
+  removePlanContributor?: Maybe<Scalars['Boolean']['output']>;
+  /** Remove a PlanFunder from a Plan */
+  removePlanFunder?: Maybe<Scalars['Boolean']['output']>;
+  /** Remove a research project contributor */
+  removeProjectContributor?: Maybe<Scalars['Boolean']['output']>;
+  /** Remove a research project Funder */
+  removeProjectFunder?: Maybe<Scalars['Boolean']['output']>;
   /** Delete a Question */
   removeQuestion?: Maybe<Question>;
   /** Remove a QuestionCondition using a specific QuestionCondition id */
@@ -406,6 +523,8 @@ export type Mutation = {
   removeUser?: Maybe<User>;
   /** Remove an email address from the current user */
   removeUserEmail?: Maybe<UserEmail>;
+  /** Request a round of admin feedback */
+  requestFeedback?: Maybe<PlanFeedback>;
   /** Designate the email as the current user's primary email address */
   setPrimaryUserEmail?: Maybe<Array<Maybe<UserEmail>>>;
   /** Set the user's ORCID */
@@ -418,6 +537,8 @@ export type Mutation = {
   updatePassword?: Maybe<User>;
   /** Chnage a collaborator's accessLevel on a Plan */
   updatePlanCollaborator?: Maybe<PlanCollaborator>;
+  /** Chnage a Contributor's accessLevel on a Plan */
+  updatePlanContributor?: Maybe<PlanContributor>;
   /** Update a Question */
   updateQuestion: Question;
   /** Update a QuestionCondition for a specific QuestionCondition id */
@@ -434,6 +555,8 @@ export type Mutation = {
   updateUserNotifications?: Maybe<User>;
   /** Update the current user's information */
   updateUserProfile?: Maybe<User>;
+  /** Upload a plan */
+  uploadPlan?: Maybe<Plan>;
 };
 
 
@@ -455,9 +578,53 @@ export type MutationAddContributorRoleArgs = {
 };
 
 
+export type MutationAddFeedbackCommentArgs = {
+  answerId: Scalars['Int']['input'];
+  commentText: Scalars['String']['input'];
+  planFeedbackId: Scalars['Int']['input'];
+};
+
+
+export type MutationAddPlanArgs = {
+  projectId: Scalars['Int']['input'];
+  versionedTemplateId: Scalars['Int']['input'];
+};
+
+
+export type MutationAddPlanAnswerArgs = {
+  answerText?: InputMaybe<Scalars['String']['input']>;
+  planId: Scalars['Int']['input'];
+  versionedQuestionId: Scalars['Int']['input'];
+  versionedSectionId: Scalars['Int']['input'];
+};
+
+
 export type MutationAddPlanCollaboratorArgs = {
   email: Scalars['String']['input'];
   planId: Scalars['Int']['input'];
+};
+
+
+export type MutationAddPlanContributorArgs = {
+  planId: Scalars['Int']['input'];
+  projectContributorId: Scalars['Int']['input'];
+  roles?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+
+export type MutationAddPlanFunderArgs = {
+  planId: Scalars['Int']['input'];
+  projectFunderId: Scalars['Int']['input'];
+};
+
+
+export type MutationAddProjectContributorArgs = {
+  input: AddProjectContributorInput;
+};
+
+
+export type MutationAddProjectFunderArgs = {
+  input: AddProjectFunderInput;
 };
 
 
@@ -505,6 +672,12 @@ export type MutationArchiveTemplateArgs = {
 };
 
 
+export type MutationCompleteFeedbackArgs = {
+  planFeedbackId: Scalars['Int']['input'];
+  summaryText?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationCreateTemplateVersionArgs = {
   comment?: InputMaybe<Scalars['String']['input']>;
   templateId: Scalars['Int']['input'];
@@ -518,9 +691,47 @@ export type MutationDeactivateUserArgs = {
 };
 
 
+export type MutationDownloadPlanArgs = {
+  format: PlanDownloadFormat;
+  planId: Scalars['Int']['input'];
+};
+
+
+export type MutationEditPlanAnswerArgs = {
+  answerId: Scalars['Int']['input'];
+  answerText?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationEditProjectContributorArgs = {
+  input: EditProjectContributorInput;
+};
+
+
+export type MutationEditProjectFunderArgs = {
+  input: EditProjectFunderInput;
+};
+
+
+export type MutationMarkPlanCompleteArgs = {
+  planId: Scalars['Int']['input'];
+};
+
+
+export type MutationMarkPlanDraftArgs = {
+  planId: Scalars['Int']['input'];
+};
+
+
 export type MutationMergeUsersArgs = {
   userIdToBeMerged: Scalars['Int']['input'];
   userIdToKeep: Scalars['Int']['input'];
+};
+
+
+export type MutationPublishPlanArgs = {
+  planId: Scalars['Int']['input'];
+  visibility?: InputMaybe<PlanVisibility>;
 };
 
 
@@ -534,8 +745,34 @@ export type MutationRemoveContributorRoleArgs = {
 };
 
 
+export type MutationRemoveFeedbackCommentArgs = {
+  PlanFeedbackCommentId: Scalars['Int']['input'];
+};
+
+
 export type MutationRemovePlanCollaboratorArgs = {
   planCollaboratorId: Scalars['Int']['input'];
+};
+
+
+export type MutationRemovePlanContributorArgs = {
+  planContributorId: Scalars['Int']['input'];
+};
+
+
+export type MutationRemovePlanFunderArgs = {
+  planId: Scalars['Int']['input'];
+  projectFunderId: Scalars['Int']['input'];
+};
+
+
+export type MutationRemoveProjectContributorArgs = {
+  projectContributorId: Scalars['Int']['input'];
+};
+
+
+export type MutationRemoveProjectFunderArgs = {
+  projectFunderId: Scalars['Int']['input'];
 };
 
 
@@ -567,6 +804,11 @@ export type MutationRemoveTemplateCollaboratorArgs = {
 
 export type MutationRemoveUserEmailArgs = {
   email: Scalars['String']['input'];
+};
+
+
+export type MutationRequestFeedbackArgs = {
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -603,6 +845,12 @@ export type MutationUpdatePasswordArgs = {
 export type MutationUpdatePlanCollaboratorArgs = {
   accessLevel: PlanCollaboratorAccessLevel;
   planCollaboratorId: Scalars['Int']['input'];
+};
+
+
+export type MutationUpdatePlanContributorArgs = {
+  planContributorId: Scalars['Int']['input'];
+  roles?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 
@@ -651,6 +899,13 @@ export type MutationUpdateUserProfileArgs = {
   input: UpdateUserProfileInput;
 };
 
+
+export type MutationUploadPlanArgs = {
+  fileContent?: InputMaybe<Scalars['String']['input']>;
+  fileName?: InputMaybe<Scalars['String']['input']>;
+  projectId: Scalars['Int']['input'];
+};
+
 /** A Data Managament Plan (DMP) */
 export type Plan = {
   __typename?: 'Plan';
@@ -669,7 +924,7 @@ export type Plan = {
   /** Errors associated with the Object */
   errors?: Maybe<Array<Scalars['String']['output']>>;
   /** Rounds of administrator feedback provided for the Plan */
-  feedbacks?: Maybe<Array<PlanFeedback>>;
+  feedback?: Maybe<Array<PlanFeedback>>;
   /** The funder who is supporting the work defined by the DMP */
   funders?: Maybe<Array<ProjectFunder>>;
   /** The unique identifer for the Object */
@@ -682,7 +937,7 @@ export type Plan = {
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** The type of research being done */
+  /** The status of the plan */
   status?: Maybe<PlanStatus>;
   /** The template the plan is based on */
   versionedTemplate: VersionedTemplate;
@@ -747,6 +1002,14 @@ export type PlanContributor = {
   /** The roles the contributor has for this specific plan (can differ from the project) */
   roles?: Maybe<Array<ContributorRole>>;
 };
+
+export type PlanDownloadFormat =
+  | 'CSV'
+  | 'DOCX'
+  | 'HTML'
+  | 'JSON'
+  | 'PDF'
+  | 'TEXT';
 
 /** A round of administrative feedback for a Data Managament Plan (DMP) */
 export type PlanFeedback = {
@@ -929,18 +1192,42 @@ export type Query = {
   affiliationTypes?: Maybe<Array<Scalars['String']['output']>>;
   /** Perform a search for Affiliations matching the specified name */
   affiliations?: Maybe<Array<Maybe<AffiliationSearch>>>;
+  /** Archive a plan */
+  archivePlan?: Maybe<Plan>;
   /** Get the contributor role by it's id */
   contributorRoleById?: Maybe<ContributorRole>;
   /** Get the contributor role by it's URL */
   contributorRoleByURL?: Maybe<ContributorRole>;
   /** Get all of the contributor role types */
   contributorRoles?: Maybe<Array<Maybe<ContributorRole>>>;
+  /** Search for a User to add as a collaborator */
+  findCollaborator?: Maybe<Array<Maybe<CollaboratorSearchResult>>>;
   /** Get all of the supported Languages */
   languages?: Maybe<Array<Maybe<Language>>>;
   /** Returns the currently logged in user's information */
   me?: Maybe<User>;
+  /** Get a specific plan */
+  plan?: Maybe<Plan>;
   /** Get all of the Users that are collaborators for the Plan */
   planCollaborators?: Maybe<Array<Maybe<PlanCollaborator>>>;
+  /** Get all of the Users that are contributors for the specific Plan */
+  planContributors?: Maybe<Array<Maybe<PlanContributor>>>;
+  /** Get all rounds of admin feedback for the plan */
+  planFeedback?: Maybe<Array<Maybe<PlanFeedback>>>;
+  /** Get all of the comments associated with the round of admin feedback */
+  planFeedbackComments?: Maybe<Array<Maybe<PlanFeedbackComment>>>;
+  /** Get all of the Users that are Funders for the specific Plan */
+  planFunders?: Maybe<Array<Maybe<ProjectFunder>>>;
+  /** Get all of the comments associated with the round of admin feedback */
+  planQuestionAnswer?: Maybe<Answer>;
+  /** Get all rounds of admin feedback for the plan */
+  planSectionAnswers?: Maybe<Array<Maybe<Answer>>>;
+  /** Get all plans for the research project */
+  plans?: Maybe<Array<Maybe<Plan>>>;
+  /** Get all of the Users that a contributors to the research project */
+  projectContributors?: Maybe<Array<Maybe<ProjectContributor>>>;
+  /** Get all of the Users that a Funders to the research project */
+  projectFunders?: Maybe<Array<Maybe<ProjectFunder>>>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
   publishedConditionsForQuestion?: Maybe<Array<Maybe<VersionedQuestionCondition>>>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
@@ -999,6 +1286,11 @@ export type QueryAffiliationsArgs = {
 };
 
 
+export type QueryArchivePlanArgs = {
+  planId: Scalars['Int']['input'];
+};
+
+
 export type QueryContributorRoleByIdArgs = {
   contributorRoleId: Scalars['Int']['input'];
 };
@@ -1009,8 +1301,65 @@ export type QueryContributorRoleByUrlArgs = {
 };
 
 
+export type QueryFindCollaboratorArgs = {
+  term?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryPlanArgs = {
+  planId: Scalars['Int']['input'];
+};
+
+
 export type QueryPlanCollaboratorsArgs = {
   planId: Scalars['Int']['input'];
+};
+
+
+export type QueryPlanContributorsArgs = {
+  planId: Scalars['Int']['input'];
+};
+
+
+export type QueryPlanFeedbackArgs = {
+  planId: Scalars['Int']['input'];
+};
+
+
+export type QueryPlanFeedbackCommentsArgs = {
+  planFeedbackId: Scalars['Int']['input'];
+};
+
+
+export type QueryPlanFundersArgs = {
+  planId: Scalars['Int']['input'];
+};
+
+
+export type QueryPlanQuestionAnswerArgs = {
+  answerId: Scalars['Int']['input'];
+  questionId: Scalars['Int']['input'];
+};
+
+
+export type QueryPlanSectionAnswersArgs = {
+  planId: Scalars['Int']['input'];
+  sectionId: Scalars['Int']['input'];
+};
+
+
+export type QueryPlansArgs = {
+  projectId: Scalars['Int']['input'];
+};
+
+
+export type QueryProjectContributorsArgs = {
+  projectId: Scalars['Int']['input'];
+};
+
+
+export type QueryProjectFundersArgs = {
+  projectId: Scalars['Int']['input'];
 };
 
 
@@ -1776,6 +2125,8 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
+  AddProjectContributorInput: AddProjectContributorInput;
+  AddProjectFunderInput: AddProjectFunderInput;
   AddQuestionConditionInput: AddQuestionConditionInput;
   AddQuestionInput: AddQuestionInput;
   AddSectionInput: AddSectionInput;
@@ -1791,10 +2142,13 @@ export type ResolversTypes = {
   Answer: ResolverTypeWrapper<Answer>;
   AnswerComment: ResolverTypeWrapper<AnswerComment>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CollaboratorSearchResult: ResolverTypeWrapper<CollaboratorSearchResult>;
   ContributorRole: ResolverTypeWrapper<ContributorRole>;
   ContributorRoleMutationResponse: ResolverTypeWrapper<ContributorRoleMutationResponse>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
+  EditProjectContributorInput: EditProjectContributorInput;
+  EditProjectFunderInput: EditProjectFunderInput;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
@@ -1806,6 +2160,7 @@ export type ResolversTypes = {
   PlanCollaborator: ResolverTypeWrapper<PlanCollaborator>;
   PlanCollaboratorAccessLevel: PlanCollaboratorAccessLevel;
   PlanContributor: ResolverTypeWrapper<PlanContributor>;
+  PlanDownloadFormat: PlanDownloadFormat;
   PlanFeedback: ResolverTypeWrapper<PlanFeedback>;
   PlanFeedbackComment: ResolverTypeWrapper<PlanFeedbackComment>;
   PlanStatus: PlanStatus;
@@ -1850,6 +2205,8 @@ export type ResolversTypes = {
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
+  AddProjectContributorInput: AddProjectContributorInput;
+  AddProjectFunderInput: AddProjectFunderInput;
   AddQuestionConditionInput: AddQuestionConditionInput;
   AddQuestionInput: AddQuestionInput;
   AddSectionInput: AddSectionInput;
@@ -1863,10 +2220,13 @@ export type ResolversParentTypes = {
   Answer: Answer;
   AnswerComment: AnswerComment;
   Boolean: Scalars['Boolean']['output'];
+  CollaboratorSearchResult: CollaboratorSearchResult;
   ContributorRole: ContributorRole;
   ContributorRoleMutationResponse: ContributorRoleMutationResponse;
   DateTimeISO: Scalars['DateTimeISO']['output'];
   DmspId: Scalars['DmspId']['output'];
+  EditProjectContributorInput: EditProjectContributorInput;
+  EditProjectFunderInput: EditProjectFunderInput;
   EmailAddress: Scalars['EmailAddress']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
@@ -1984,6 +2344,15 @@ export type AnswerCommentResolvers<ContextType = MyContext, ParentType extends R
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type CollaboratorSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['CollaboratorSearchResult'] = ResolversParentTypes['CollaboratorSearchResult']> = {
+  affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type ContributorRoleResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ContributorRole'] = ResolversParentTypes['ContributorRole']> = {
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -2030,7 +2399,14 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   activateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationActivateUserArgs, 'userId'>>;
   addAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationAddAffiliationArgs, 'input'>>;
   addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'displayOrder' | 'label' | 'url'>>;
+  addFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationAddFeedbackCommentArgs, 'answerId' | 'commentText' | 'planFeedbackId'>>;
+  addPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationAddPlanArgs, 'projectId' | 'versionedTemplateId'>>;
+  addPlanAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationAddPlanAnswerArgs, 'planId' | 'versionedQuestionId' | 'versionedSectionId'>>;
   addPlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationAddPlanCollaboratorArgs, 'email' | 'planId'>>;
+  addPlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationAddPlanContributorArgs, 'planId' | 'projectContributorId'>>;
+  addPlanFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationAddPlanFunderArgs, 'planId' | 'projectFunderId'>>;
+  addProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationAddProjectContributorArgs, 'input'>>;
+  addProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationAddProjectFunderArgs, 'input'>>;
   addQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationAddQuestionArgs, 'input'>>;
   addQuestionCondition?: Resolver<ResolversTypes['QuestionCondition'], ParentType, ContextType, RequireFields<MutationAddQuestionConditionArgs, 'input'>>;
   addSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationAddSectionArgs, 'input'>>;
@@ -2039,12 +2415,25 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['TemplateCollaborator']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   addUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationAddUserEmailArgs, 'email' | 'isPrimary'>>;
   archiveTemplate?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
+  completeFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationCompleteFeedbackArgs, 'planFeedbackId'>>;
   createTemplateVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateTemplateVersionArgs, 'templateId' | 'visibility'>>;
   deactivateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationDeactivateUserArgs, 'userId'>>;
+  downloadPlan?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, RequireFields<MutationDownloadPlanArgs, 'format' | 'planId'>>;
+  editPlanAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationEditPlanAnswerArgs, 'answerId'>>;
+  editProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationEditProjectContributorArgs, 'input'>>;
+  editProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationEditProjectFunderArgs, 'input'>>;
+  markPlanComplete?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanCompleteArgs, 'planId'>>;
+  markPlanDraft?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanDraftArgs, 'planId'>>;
   mergeUsers?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationMergeUsersArgs, 'userIdToBeMerged' | 'userIdToKeep'>>;
+  publishPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationPublishPlanArgs, 'planId'>>;
   removeAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationRemoveAffiliationArgs, 'affiliationId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
+  removeFeedbackComment?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveFeedbackCommentArgs, 'PlanFeedbackCommentId'>>;
   removePlanCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemovePlanCollaboratorArgs, 'planCollaboratorId'>>;
+  removePlanContributor?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemovePlanContributorArgs, 'planContributorId'>>;
+  removePlanFunder?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemovePlanFunderArgs, 'planId' | 'projectFunderId'>>;
+  removeProjectContributor?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveProjectContributorArgs, 'projectContributorId'>>;
+  removeProjectFunder?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveProjectFunderArgs, 'projectFunderId'>>;
   removeQuestion?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionArgs, 'questionId'>>;
   removeQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionConditionArgs, 'questionConditionId'>>;
   removeSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationRemoveSectionArgs, 'sectionId'>>;
@@ -2052,12 +2441,14 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeTemplateCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   removeUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   removeUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationRemoveUserEmailArgs, 'email'>>;
+  requestFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationRequestFeedbackArgs, 'planId'>>;
   setPrimaryUserEmail?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType, RequireFields<MutationSetPrimaryUserEmailArgs, 'email'>>;
   setUserOrcid?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationSetUserOrcidArgs, 'orcid'>>;
   updateAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationUpdateAffiliationArgs, 'input'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
   updatePlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdatePlanCollaboratorArgs, 'accessLevel' | 'planCollaboratorId'>>;
+  updatePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationUpdatePlanContributorArgs, 'planContributorId'>>;
   updateQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationUpdateQuestionArgs, 'input'>>;
   updateQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionConditionArgs, 'input'>>;
   updateQuestionOptions?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionsArgs, 'questionId' | 'required'>>;
@@ -2066,6 +2457,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationUpdateTemplateArgs, 'name' | 'templateId' | 'visibility'>>;
   updateUserNotifications?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserNotificationsArgs, 'input'>>;
   updateUserProfile?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserProfileArgs, 'input'>>;
+  uploadPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUploadPlanArgs, 'projectId'>>;
 };
 
 export interface OrcidScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Orcid'], any> {
@@ -2080,7 +2472,7 @@ export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversP
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   dmpId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  feedbacks?: Resolver<Maybe<Array<ResolversTypes['PlanFeedback']>>, ParentType, ContextType>;
+  feedback?: Resolver<Maybe<Array<ResolversTypes['PlanFeedback']>>, ParentType, ContextType>;
   funders?: Resolver<Maybe<Array<ResolversTypes['ProjectFunder']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   lastUpdatedBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -2208,12 +2600,24 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliationByURI?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByUriArgs, 'uri'>>;
   affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
+  archivePlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryArchivePlanArgs, 'planId'>>;
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
+  findCollaborator?: Resolver<Maybe<Array<Maybe<ResolversTypes['CollaboratorSearchResult']>>>, ParentType, ContextType, Partial<QueryFindCollaboratorArgs>>;
   languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
   planCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanCollaborator']>>>, ParentType, ContextType, RequireFields<QueryPlanCollaboratorsArgs, 'planId'>>;
+  planContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanContributor']>>>, ParentType, ContextType, RequireFields<QueryPlanContributorsArgs, 'planId'>>;
+  planFeedback?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedback']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackArgs, 'planId'>>;
+  planFeedbackComments?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedbackComment']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackCommentsArgs, 'planFeedbackId'>>;
+  planFunders?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectFunder']>>>, ParentType, ContextType, RequireFields<QueryPlanFundersArgs, 'planId'>>;
+  planQuestionAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryPlanQuestionAnswerArgs, 'answerId' | 'questionId'>>;
+  planSectionAnswers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryPlanSectionAnswersArgs, 'planId' | 'sectionId'>>;
+  plans?: Resolver<Maybe<Array<Maybe<ResolversTypes['Plan']>>>, ParentType, ContextType, RequireFields<QueryPlansArgs, 'projectId'>>;
+  projectContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectContributor']>>>, ParentType, ContextType, RequireFields<QueryProjectContributorsArgs, 'projectId'>>;
+  projectFunders?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectFunder']>>>, ParentType, ContextType, RequireFields<QueryProjectFundersArgs, 'projectId'>>;
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
   publishedSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
@@ -2503,6 +2907,7 @@ export type Resolvers<ContextType = MyContext> = {
   AffiliationSearch?: AffiliationSearchResolvers<ContextType>;
   Answer?: AnswerResolvers<ContextType>;
   AnswerComment?: AnswerCommentResolvers<ContextType>;
+  CollaboratorSearchResult?: CollaboratorSearchResultResolvers<ContextType>;
   ContributorRole?: ContributorRoleResolvers<ContextType>;
   ContributorRoleMutationResponse?: ContributorRoleMutationResponseResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;

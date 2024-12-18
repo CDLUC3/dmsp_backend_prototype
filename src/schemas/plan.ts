@@ -92,6 +92,6 @@ export const typeDefs = gql`
     "The plan's answers to the template questions"
     answers: [Answer!]
     "Rounds of administrator feedback provided for the Plan"
-    feedbacks: [PlanFeedback!]
+    feedback: [PlanFeedback!]
   }
 `;

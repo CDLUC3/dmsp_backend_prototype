@@ -18,9 +18,9 @@ export const typeDefs = gql`
     removeProjectFunder(projectFunderId: Int!): Boolean
 
     "Add a Funder to a Plan"
-    addPlanFunder(planId: Int!, projectFunderId: Int!): PlanFunder
+    selectProjectFunderForPlan(planId: Int!, projectFunderId: Int!): ProjectFunder
     "Remove a PlanFunder from a Plan"
-    removePlanFunder(planId: Int!, projectFunderId: Int!): Boolean
+    removeProjectFunderFromPlan(planId: Int!, projectFunderId: Int!): Boolean
   }
 
   "The status of the funding"
