@@ -1,6 +1,26 @@
 import gql from "graphql-tag";
 
 export const typeDefs = gql`
+  extend type Query {
+    "Get all of the user's projects"
+    projects: [Project]
+
+    "Get a specific project"
+    project(projectId: Int!): Project
+
+    "Archive a project"
+    archiveProject(projectId: Int!): Project
+  }
+
+  extend type Mutation {
+    "Create a project"
+    addProject(name: String!, isTestProject: Boolean): Project
+    "Edit a project"
+    updateProject(input: UpdateProjectInput): Project
+    "Download the plan"
+    archiveProject(projectId: Int!): Project
+  }
+
   type Project {
     "The unique identifer for the Object"
     id: Int
@@ -32,5 +52,20 @@ export const typeDefs = gql`
     contributors: [ProjectContributor!]
     "The funders who are supporting the research project"
     funders: [ProjectFunder!]
+  }
+
+  input UpdateProjectInput {
+    "The project's id"
+    projectId: Int!
+    "The name of the research project"
+    name: String!
+    "The research project description/abstract"
+    abstract: String
+    "The actual or anticipated start date for the project"
+    startDate: String
+    "The actual or anticipated end date of the project"
+    endDate: String
+    "Whether or not the project is a mock/test"
+    isTestProject: Boolean
   }
 `;

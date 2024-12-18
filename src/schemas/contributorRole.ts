@@ -51,7 +51,7 @@ export const typeDefs = gql`
     displayOrder: Int!
     "The Ui label to display for the contributor role"
     label: String!
-    "The URL for the contributor role"
+    "The taxonomy URL for the contributor role"
     url: URL!
     "A longer description of the contributor role useful for tooltips"
     description: String

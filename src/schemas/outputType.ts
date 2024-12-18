@@ -2,12 +2,12 @@ import gql from 'graphql-tag';
 
 export const typeDefs = gql`
   extend type Query {
-    "Get all the QuestionTypes"
-    researchDomains: [ResearchDomain]
+    "Get all the research output types"
+    outputTypes: [OutputType]
   }
 
-  "An aread of research (e.g. Electrical Engineering, Cellular biology, etc.)"
-  type ResearchDomain {
+  "An output collected/produced during or as a result of a research project"
+  type OutputType {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"
@@ -21,11 +21,11 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: [String!]
 
-    "The name of the domain"
+    "The name of the output type"
     name: String!
-    "The taxonomy URL of the research domain"
+    "The taxonomy URL of the output type"
     uri: String!
-    "A description of the type of research covered by the domain"
+    "A description of the type of output to be collected/generated during the project"
     description: String
   }
 `;

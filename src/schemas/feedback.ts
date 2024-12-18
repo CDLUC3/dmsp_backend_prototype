@@ -17,7 +17,7 @@ export const typeDefs = gql`
     "Add a comment to an answer within a round of feedback"
     addFeedbackComment(planFeedbackId: Int!, answerId: Int!, commentText: String!): PlanFeedbackComment
     "Remove a comment to an answer within a round of feedback"
-    removeFeedbackComment(PlanFeedbackCommentId: Int!): Boolean
+    removeFeedbackComment(PlanFeedbackCommentId: Int!): PlanFeedbackComment
   }
 
   "A round of administrative feedback for a Data Managament Plan (DMP)"

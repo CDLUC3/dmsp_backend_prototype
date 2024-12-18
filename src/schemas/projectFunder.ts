@@ -15,12 +15,12 @@ export const typeDefs = gql`
     "Update a Funder on the research project"
     editProjectFunder(input: EditProjectFunderInput!): ProjectFunder
     "Remove a research project Funder"
-    removeProjectFunder(projectFunderId: Int!): Boolean
+    removeProjectFunder(projectFunderId: Int!): ProjectFunder
 
     "Add a Funder to a Plan"
     selectProjectFunderForPlan(planId: Int!, projectFunderId: Int!): ProjectFunder
     "Remove a PlanFunder from a Plan"
-    removeProjectFunderFromPlan(planId: Int!, projectFunderId: Int!): Boolean
+    removeProjectFunderFromPlan(planId: Int!, projectFunderId: Int!): ProjectFunder
   }
 
   "The status of the funding"
