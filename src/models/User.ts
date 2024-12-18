@@ -278,7 +278,7 @@ export class User extends MySqlModel {
 
         // Update the user's createdById and modifiedById to indicate themselves
         const sqlUpdate = `UPDATE users SET createdById = ?, modifiedById = ? WHERE id = ?`;
-        const valsUpdate = [this.id.toString(), this.id.toString(), this.id.toString()];
+        const valsUpdate = [user.id.toString(), user.id.toString(), user.id.toString()];
         await User.query(context, sqlUpdate, valsUpdate, 'User.register');
 
         // Add the email to the UserEmail table and send out a 'please confirm' email
