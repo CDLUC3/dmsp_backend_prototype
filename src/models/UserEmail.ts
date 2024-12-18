@@ -1,6 +1,9 @@
 import { MyContext } from "../context";
 import { sendEmailConfirmationNotification } from "../services/emailService";
-import { validateEmail } from '../utils/helpers';
+import {
+  validateEmail,
+  getCurrentDate,
+} from '../utils/helpers';
 import { TemplateCollaborator } from "./Collaborator";
 import { MySqlModel } from "./MySqlModel";
 
@@ -73,6 +76,33 @@ export class UserEmail extends MySqlModel {
       }
     }
     return null;
+  }
+
+  // Custom Insert logic
+  static async insert(
+    apolloContext: MyContext,
+    table: string,
+    obj: UserEmail,
+    reference = 'undefined caller',
+    skipKeys?: string[]
+  ): Promise<number> {
+    // Update the creator/modifier info
+    const currentDate = getCurrentDate();
+    obj.createdById = obj.userId;
+    obj.created = currentDate;
+    obj.modifiedById = obj.userId;
+    obj.modified = currentDate;
+
+    // Fetch all of the data from the object
+    const props = this.propertyInfo(obj, skipKeys);
+    const sql = `INSERT INTO ${table} \
+                  (${props.map((entry) => entry.name).join(', ')}) \
+                 VALUES (${Array(props.length).fill('?').join(', ')})`
+    const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
+
+    // Send the calcuated INSERT statement to the query function
+    const result = await this.query(apolloContext, sql, vals, reference);
+    return Array.isArray(result) ? result[0]?.insertId : null;
   }
 
   // Save the current record
