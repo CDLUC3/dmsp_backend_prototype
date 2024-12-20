@@ -167,15 +167,15 @@ export class MySqlModel {
   static async insert(
     apolloContext: MyContext,
     table: string,
-    obj: MySqlModel,
+    obj: MySqlModel & { userId?: number },
     reference = 'undefined caller',
     skipKeys?: string[]
   ): Promise<number> {
     // Update the creator/modifier info
     const currentDate = getCurrentDate();
-    obj.createdById = apolloContext.token.id;
+    obj.createdById = apolloContext?.token?.id || obj.userId;
     obj.created = currentDate;
-    obj.modifiedById = apolloContext.token.id;
+    obj.modifiedById = apolloContext?.token?.id || obj.userId;
     obj.modified = currentDate;
 
     // Fetch all of the data from the object
