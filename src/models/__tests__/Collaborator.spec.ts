@@ -4,6 +4,8 @@ import { Template } from '../Template';
 import { User } from '../User';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { sendTemplateCollaborationEmail } from '../../services/emailService';
 
 jest.mock('../../logger.ts');
 jest.mock('../../context.ts');
@@ -120,7 +122,10 @@ describe('create', () => {
       createdById: casual.integer(1, 999),
       templateId: casual.integer(1, 999),
       email: casual.email,
-    })
+    });
+
+    const mockNotification = jest.fn();
+    (sendTemplateCollaborationEmail as jest.Mock) = mockNotification;
   });
 
   afterEach(() => {
@@ -193,6 +198,17 @@ describe('create', () => {
     (Template.exists as jest.Mock) = mockExists;
     mockExists.mockResolvedValueOnce(true);
 
+    const tName = casual.sentence;
+    const mockFindTemplateById = jest.fn().mockResolvedValueOnce(new Template({ name: tName }));
+    (Template.findById as jest.Mock) = mockFindTemplateById;
+
+    const inviter = new User({ givenName: casual.first_name, surName: casual.last_name });
+    const mockFindUserById = jest.fn().mockResolvedValueOnce(inviter);
+    (User.findById as jest.Mock) = mockFindUserById;
+
+    const mockSendEmail = jest.fn();
+    (sendTemplateCollaborationEmail as jest.Mock) = mockSendEmail;
+
     insertQuery.mockResolvedValueOnce(casual.integer(1, 999));
 
     const result = await collaborator.create(context);
@@ -200,6 +216,9 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(2);
     expect(mockExists).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      context, tName, inviter.getName(), collaborator.email, collaborator.userId
+    );
     expect(result.errors.length).toBe(0);
     expect(result).toEqual(collaborator);
   });
@@ -339,6 +358,7 @@ describe('findBy queries', () => {
       createdById: casual.integer(1, 999),
       templateId: casual.integer(1, 99),
       email: casual.email,
+      invitedById: casual.integer(1, 999),
     })
   });
 
@@ -391,6 +411,17 @@ describe('findBy queries', () => {
     expect(result).toEqual(null);
   });
 
+  it('findByInvitedById returns the Collaborator records', async () => {
+    localQuery.mockResolvedValueOnce([templateCollaborator]);
+
+    const invitedById = templateCollaborator.invitedById;
+    const result = await TemplateCollaborator.findByInvitedById('Test', context, invitedById);
+    const expectedSql = 'SELECT * FROM templateCollaborators WHERE invitedById = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [invitedById.toString()], 'Test')
+    expect(result).toEqual([templateCollaborator]);
+  });
+
   it('findByEmail returns the Collaborator', async () => {
     localQuery.mockResolvedValueOnce([templateCollaborator]);
 
@@ -427,7 +458,6 @@ describe('findBy queries', () => {
 
   it('findByTemplateIdAndEmail returns null if there is no Collaborator', async () => {
     localQuery.mockResolvedValue([]);
-
 
     const templateId = templateCollaborator.templateId;
     const email = templateCollaborator.email;

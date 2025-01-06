@@ -2,6 +2,7 @@ CREATE TABLE `questionTypes` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(255) NOT NULL,
   `usageDescription` text,
+  `isDefault` TINYINT(1) NOT NULL DEFAULT 0,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

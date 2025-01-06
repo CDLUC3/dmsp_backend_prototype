@@ -7,6 +7,21 @@ CREATE TABLE `users` (
   `surName` VARCHAR(255) NOT NULL,
   `affiliationId` VARCHAR(255) NOT NULL,
   `acceptedTerms` TINYINT(1) NOT NULL DEFAULT 0,
+  `orcid` VARCHAR(255),
+  `ssoId` VARCHAR(255),
+  `locked` TINYINT(1) NOT NULL DEFAULT 0,
+  `active` TINYINT(1) NOT NULL DEFAULT 1,
+
+  `last_sign_in` TIMESTAMP,
+  `last_sign_in_via` VARCHAR(10),
+  `failed_sign_in_attemps` INT NOT NULL DEFAULT 0,
+
+  `notify_on_comment_added` TINYINT(1) NOT NULL DEFAULT 1,
+  `notify_on_template_shared` TINYINT(1) NOT NULL DEFAULT 1,
+  `notify_on_feedback_complete` TINYINT(1) NOT NULL DEFAULT 1,
+  `notify_on_plan_shared` TINYINT(1) NOT NULL DEFAULT 1,
+  `notify_on_plan_visibility_change` TINYINT(1) NOT NULL DEFAULT 1,
+
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -10,7 +10,7 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch"
-    addSection(input: AddSectionInput!): Section!     
+    addSection(input: AddSectionInput!): Section!
     "Update a Section"
     updateSection(input: UpdateSectionInput!): Section!
     "Delete a section"
@@ -31,9 +31,7 @@ export const typeDefs = gql`
     modified: String
     "Errors associated with the Object"
     errors: [String!]
-    
-    "The template ID that the section belongs to"
-    templateId: Int
+
     "The template that the section is associated with"
     template: Template
     "The section title"
@@ -46,10 +44,15 @@ export const typeDefs = gql`
     guidance: String
     "The order in which the section will be displayed in the template"
     displayOrder: Int
+    "Whether or not this Section is designated as a 'Best Practice' section"
+    bestPractice: Boolean
     "The Tags associated with this section. A section might not have any tags"
     tags: [Tag]
     "Indicates whether or not the section has changed since the template was last published"
     isDirty: Boolean!
+
+    "The questions associated with this section"
+    questions: [Question!]
   }
 
   "Input for adding a new section"
@@ -86,6 +89,8 @@ export const typeDefs = gql`
     guidance: String
     "The order in which the section will be displayed in the template"
     displayOrder: Int
+    "Whether or not this Section is designated as a 'Best Practice' section"
+    bestPractice: Boolean
     "The Tags associated with this section. A section might not have any tags"
     tags: [TagInput!]
   }
@@ -101,4 +106,3 @@ export const typeDefs = gql`
   }
 
 `;
-

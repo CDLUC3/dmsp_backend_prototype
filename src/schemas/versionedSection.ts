@@ -30,16 +30,11 @@ export const typeDefs = gql`
     modified: String
     "Errors associated with the Object"
     errors: [String!]
-    
+
     "The parent VersionedTemplate"
     versionedTemplate: VersionedTemplate!
-    "The sectionId for the snapshot section"
-    sectionId: Int
     "The section that this is a snapshot of"
     section: Section
-    "The type of version: Published or Draft (default: Draft)"
-    versionType: SectionVersionType
-
     "The displayOrder of this VersionedSection"
     displayOrder: Int!
     "The VersionedSection name/title"
@@ -52,5 +47,8 @@ export const typeDefs = gql`
     guidance: String
     "The Tags associated with this VersionedSection"
     tags: [Tag]
+
+    "The questions associated with this VersionedSection"
+    versionedQuestions: [VersionedQuestion!]
   }
 `;

@@ -109,3 +109,6 @@ INSERT INTO `users` (`email`, `affiliationId`, `password`, `givenName`, `surName
 INSERT INTO `users` (`email`, `affiliationId`, `password`, `givenName`, `surName`, `role`) VALUES ('admin@harvard.edu', 'https://ror.org/03vek6s52', '$2a$10$f3wCBdUVt/2aMcPOb.GX1OBO9WMGxDXx5HKeSBBnrMhat4.pis4Pe', 'Harvard University Admin', 'Test User', 'ADMIN');
 INSERT INTO `users` (`email`, `affiliationId`, `password`, `givenName`, `surName`, `role`) VALUES ('admin@massgeneralbrigham.org', 'https://ror.org/04py2rh25', '$2a$10$f3wCBdUVt/2aMcPOb.GX1OBO9WMGxDXx5HKeSBBnrMhat4.pis4Pe', 'Mass General Brigham Admin', 'Test User', 'ADMIN');
 INSERT INTO `users` (`email`, `affiliationId`, `password`, `givenName`, `surName`, `role`) VALUES ('admin@ohsu.edu', 'https://ror.org/03e62d071', '$2a$10$f3wCBdUVt/2aMcPOb.GX1OBO9WMGxDXx5HKeSBBnrMhat4.pis4Pe', 'Oregon Health & Science University School of Medicine Admin', 'Test User', 'ADMIN');
+
+# Go back and update all of the users so that they are their own creator/modifier
+UPDATE users SET createdById = id, modifiedById = id;

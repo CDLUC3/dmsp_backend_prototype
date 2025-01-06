@@ -1,219 +1,475 @@
-import { Affiliation, AffiliationSearch } from '../Affiliation';
+import casual from "casual";
+import { Affiliation, AffiliationSearch } from "../Affiliation";
+import { logger } from '../../__mocks__/logger';
+import { buildContext, mockToken } from "../../__mocks__/context";
 
-const rawAffiliationSearchRecord = {
-  "PK": "AFFILIATION",
-  "SK": "advancedphotonsciencesunitedstates",
-  "aliases": ["Photon Sciences", "APS"],
-  "countryCode": "us",
-  "countryName": "United States",
-  "fundref_id": "100006389",
-  "fundref_url": "https://api.crossref.org/funders/100006389",
-  "links": [ "photonsci.com" ],
-  "name": "Advanced Photon Sciences (United States)",
-  "ror_id": "00182ep39",
-  "ror_url": "https://ror.org/00182ep39",
-  "searchName": "advancedphotonsciencesunitedstates"
-};
+let context;
+jest.mock('../../context.ts');
 
-const rawAffiliationRecord = {
-  "RESOURCE_TYPE": "AFFILIATION",
-  "ID": "https://ror.org/00dmfq477",
-  "acronyms": [ "UCOP" ],
-  "aliases": ["UC Office of the President"],
-  "active": 1,
-  "addresses": [
-    {
-      "city": "Oakland",
-      "country_geonames_id": 6252001,
-      "geonames_city": {
-        "city": "Oakland",
-        "geonames_admin1": {
-          "ascii_name": "California",
-          "code": "US.CA",
-          "id": 5332921,
-          "name": "California"
-        },
-        "geonames_admin2": {
-          "ascii_name": "Alameda",
-          "code": "US.CA.001",
-          "id": 5322745,
-          "name": "Alameda"
-        },
-        "id": 5378538,
-        "license": {
-          "attribution": "Data from geonames.org under a CC-BY 3.0 license",
-          "license": "http://creativecommons.org/licenses/by/3.0/"
-        }
-      },
-      "lat": 37.80437,
-      "lng": -122.2708,
-      "state": "California",
-      "state_code": "US-CA"
-    }
-  ],
-  "country": { "country_code": "US", "country_name": "United States" },
-  "domain": "ucop.edu",
-  "external_ids": {
-    "FundRef": { "all": [ "100014576" ], "preferred": "100014576" },
-    "ISNI": { "all": [ "0000 0004 0615 4051" ], "preferred": "0000 0004 0615 4051" }
-  },
-  "lables": [
-    {
-      "label": "Oficina del Presidente de la Universidad de California",
-      "iso639": "es"
-    }
-  ],
-  "funder": 1,
-  "label": "University of California Office of the President (ucop.edu)",
-  "links": [ "https://www.ucop.edu" ],
-  "name": "University of California Office of the President",
-  "parents": [ "https://ror.org/00pjdza24" ],
-  "relationships": [
-    {
-      "id": "https://ror.org/00pjdza24",
-      "label": "University of California System",
-      "type": "Parent"
-    }
-  ],
-  "searchable_names": [
-    "university of california office of the president",
-    "ucop.edu",
-    "UCOP"
-  ],
-  "types": [ "Education" ],
-  "_SOURCE": "ROR",
-  "_SOURCE_SYNCED_AT": "2024-07-23T00:04:11Z",
-}
-
-describe('Affiliation constructor', () => {
-  it('should set the expected defaults', () => {
-    const affiliation = new Affiliation({});
-    expect(affiliation.provenance).toEqual('dmptool');
-    expect(affiliation.provenanceSyncDate === undefined).toBe(false);
-    expect(affiliation.active).toBe(false);
-    expect(affiliation.funder).toBe(false);
-    expect(affiliation.types).toEqual([]);
-    expect(affiliation.acronyms).toEqual([]);
-    expect(affiliation.aliases).toEqual([]);
-    expect(affiliation.links).toEqual([]);
-    expect(affiliation.addresses).toEqual([]);
-    expect(affiliation.relationships).toEqual([]);
-    expect(affiliation.id).toBe(undefined);
-    expect(affiliation.name).toBe(undefined);
-    expect(affiliation.displayName).toBe(undefined);
-    expect(affiliation.countryCode).toBe(undefined);
-    expect(affiliation.countryName).toBe(undefined);
-    expect(affiliation.domain).toBe(undefined);
+describe('Affiliation', () => {
+  let affiliation;
+  const affiliationData = {
+    uri: 'https://ror.org/01234',
+    active: true,
+    provenance: 'ROR',
+    name: 'University of Virginia',
+    displayName: 'University of Virginia (virginia.edu)',
+    searchName: 'University of Virginia | virginia.edu | UVA ',
+    funder: 1,
+    fundrefId: 1000001234,
+    homepage: 'http://www.virginia.edu/',
+    acronyms: ["UVA"],
+    aliases: [],
+    types: ["Education"],
+    contactName: 'Data Management Consulting Group',
+    contactEmail: 'admin@virginia.edu',
+    ssoEntityId: 'entity:virginia.edu',
+    feedbackEnabled: 1,
+    feedbackMessage: '<p>Will response to your request within 48 hours</p>',
+    feedbackEmails: ["admin@virginia.edu"],
+    managed: 1,
+  }
+  beforeEach(() => {
+    affiliation = new Affiliation(affiliationData);
   });
 
-  it('should set the expected properties', () => {
-    const affiliation = new Affiliation(rawAffiliationRecord);
-    expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
-    expect(affiliation.provenance).toEqual(rawAffiliationRecord._SOURCE);
-    expect(affiliation.provenanceSyncDate).toEqual(rawAffiliationRecord._SOURCE_SYNCED_AT);
-    expect(affiliation.types).toEqual(Array.isArray(rawAffiliationRecord.types) ? rawAffiliationRecord.types : []);
-    expect(affiliation.name).toEqual(rawAffiliationRecord.name);
-    expect(affiliation.displayName).toEqual(rawAffiliationRecord.label);
-    expect(affiliation.active).toEqual(rawAffiliationRecord.active === 1);
-    expect(affiliation.funder).toEqual(rawAffiliationRecord.funder === 1);
-    expect(affiliation.acronyms).toEqual(Array.isArray(rawAffiliationRecord.acronyms) ? rawAffiliationRecord.acronyms : []);
-    expect(affiliation.aliases).toEqual(Array.isArray(rawAffiliationRecord.aliases) ? rawAffiliationRecord.aliases : []);
-    expect(affiliation.countryCode).toEqual(rawAffiliationRecord.country?.country_code);
-    expect(affiliation.countryName).toEqual(rawAffiliationRecord.country?.country_name);
-    expect(affiliation.domain).toEqual(rawAffiliationRecord.domain);
-    expect(affiliation.links).toEqual(Array.isArray(rawAffiliationRecord.links) ? rawAffiliationRecord.links : []);
+  it('should initialize options as expected', () => {
+    expect(affiliation.uri).toEqual(affiliationData.uri);
+    expect(affiliation.active).toEqual(affiliationData.active);
+    expect(affiliation.provenance).toEqual(affiliationData.provenance);
+    expect(affiliation.name).toEqual(affiliationData.name);
+    expect(affiliation.displayName).toEqual(affiliationData.displayName);
+    expect(affiliation.searchName).toEqual(affiliationData.searchName);
+    expect(affiliation.funder).toEqual(affiliationData.funder);
+    expect(affiliation.fundrefId).toEqual(affiliationData.fundrefId);
+    expect(affiliation.homepage).toEqual(affiliationData.homepage);
+    expect(affiliation.acronyms).toEqual(affiliationData.acronyms);
+    expect(affiliation.aliases).toEqual(affiliationData.aliases);
+    expect(affiliation.types).toEqual(affiliationData.types);
+    expect(affiliation.contactName).toEqual(affiliationData.contactName);
+    expect(affiliation.contactEmail).toEqual(affiliationData.contactEmail);
+    expect(affiliation.ssoEntityId).toEqual(affiliationData.ssoEntityId);
+    expect(affiliation.feedbackEnabled).toEqual(affiliationData.feedbackEnabled);
+    expect(affiliation.feedbackMessage).toEqual(affiliationData.feedbackMessage);
+    expect(affiliation.feedbackEmails).toEqual(affiliationData.feedbackEmails);
+    expect(affiliation.managed).toEqual(affiliationData.managed);
   });
 
-  it('should ignore unexpected properties', () => {
-    const affiliation = new Affiliation(rawAffiliationRecord);
-    expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
-    expect(affiliation['test']).toBeUndefined();
-  });
-
-  it('should include an AffiliationAddress for each addresses entry', () => {
-    const affiliation = new Affiliation(rawAffiliationRecord);
-    expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
-    affiliation.addresses.forEach(address => {
-      const addrs = rawAffiliationRecord.addresses.find((a) => a.lat === address.lat && a.lng === address.lng);
-      expect(addrs.city).toEqual(address.city);
-      expect(addrs.state).toEqual(address.state);
-      expect(addrs.state_code).toEqual(address.stateCode);
-      expect(addrs.country_geonames_id).toEqual(address.countryGeonamesId);
-      expect(addrs.lat).toEqual(address.lat);
-      expect(addrs.lng).toEqual(address.lng);
-    });
-  });
-
-  it('should include an AffiliationRelationship for each relationships entry', () => {
-    const affiliation = new Affiliation(rawAffiliationRecord);
-    expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
-    affiliation.relationships.forEach(relation => {
-      const relations = rawAffiliationRecord.relationships.find((r) => r.id === relation.id);
-      expect(relations.type).toEqual(relation.type);
-      expect(relations.label).toEqual(relation.name);
-    });
-  });
-
-  it('should include an AffiliationLocale for each locale entry', () => {
-    const affiliation = new Affiliation(rawAffiliationRecord);
-    expect(affiliation.id).toEqual(rawAffiliationRecord.ID);
-    affiliation.locales.forEach(locale => {
-      const locales = rawAffiliationRecord.lables.find((l) => l.iso639 === locale.locale);
-      expect(locales.iso639).toEqual(locale.locale);
-      expect(locales.label).toEqual(locale.label);
-    });
-  });
-
-  it('should handle Fundref as the `preferred` id in the `external_id`', () => {
-    const props = { "external_ids": [{ "type": "FundRef", "preferred": "9999999999" }] };
-    const affiliation = new Affiliation(props);
-    expect(affiliation.fundref).toEqual(props.external_ids[0].preferred);
-  });
-
-  it('should handle Fundref as the 1st `all` entry when it is an Array', () => {
-    const props = { "external_ids": [{ "type": "FundRef", "all": ["9999999999", "000000000"] }] };
-    const affiliation = new Affiliation(props);
-    expect(affiliation.fundref).toEqual(props.external_ids[0].all[0]);
-  });
-
-  it('should handle Fundref as the `all` entry what it is a string', () => {
-    const props = { "external_ids": [{ "type": "FundRef", "all": "9999999999" }] };
-    const affiliation = new Affiliation(props);
-    expect(affiliation.fundref).toEqual(props.external_ids[0].all);
-  });
-
-  it('handles relationship with a `name` instead of `label', () => {
-    const props = { "relationships": [{ "type": "Tester", "name": "TEST" }] };
-    const affiliation = new Affiliation(props);
-    expect(affiliation.relationships[0].name).toEqual(props.relationships[0].name);
+  it('should add additional properties to uneditableProperties if provenance is ROR', async () => {
+    expect(await affiliation.uneditableProperties).toEqual(['uri', 'provenance', 'searchName', 'name', 'funder', 'fundrefId', 'homepage', 'acronyms', 'aliases', 'types']);
   });
 });
 
-describe('AffiliationSearch constructor', () => {
-  it('should set the expected defaults', () => {
-    const affiliation = new AffiliationSearch({});
-    expect(affiliation.id).toBe(undefined);
-    expect(affiliation.fetchId).toBe(undefined);
-    expect(affiliation.name).toBe(undefined);
-    expect(affiliation.funder).toBe(false);
-    expect(affiliation.fundref).toBe(undefined);
-    expect(affiliation.aliases).toEqual([]);
-    expect(affiliation.countryCode).toBe(undefined);
-    expect(affiliation.countryName).toBe(undefined);
-    expect(affiliation.links).toEqual([]);
+describe('prepForSave', () => {
+  it('sets the appropriate defaults', () => {
+    const name = casual.company_name;
+    const homepage = casual.url;
+    const acronyms = [casual.letter, casual.word, undefined];
+    const aliases = [casual.words(2), casual.word, null];
+    const affiliation = new Affiliation({ name, homepage, acronyms, aliases });
+    affiliation.prepForSave();
+    expect(affiliation.name).toEqual(name);
+    expect(affiliation.homepage).toEqual(homepage);
+    expect(affiliation.displayName).toEqual(`${name} (${homepage})`);
+    expect(affiliation.searchName.includes(name)).toBe(true);
+    expect(affiliation.searchName.includes(homepage)).toBe(true);
+    expect(affiliation.searchName.includes(aliases[0])).toBe(true);
+    expect(affiliation.searchName.includes(aliases[1])).toBe(true);
+    expect(affiliation.searchName.includes(acronyms[0])).toBe(true);
+    expect(affiliation.searchName.includes(acronyms[1])).toBe(true);
+    expect(affiliation.searchName.includes('undefined')).toBe(false);
+    expect(affiliation.searchName.includes('null')).toBe(false);
+    expect(affiliation.searchName.includes('||')).toBe(false);
+    expect(affiliation.searchName.includes('| |')).toBe(false);
+  });
+});
+
+describe('create', () => {
+  const originalInsert = Affiliation.insert;
+  const originalFindById = Affiliation.findById;
+  const originalFindByURI = Affiliation.findByURI;
+  let insertQuery;
+  let affiliation;
+
+  beforeEach(() => {
+    // jest.resetAllMocks();
+
+    insertQuery = jest.fn();
+    (Affiliation.insert as jest.Mock) = insertQuery;
+
+    affiliation = new Affiliation({
+      uri: 'https://ror.org/01234',
+      active: true,
+      provenance: 'ROR',
+      name: 'University of Virginia',
+      displayName: 'University of Virginia (virginia.edu)',
+      searchName: 'University of Virginia | virginia.edu | UVA ',
+      funder: 1,
+      fundrefId: 1000001234,
+      homepage: 'http://www.virginia.edu/',
+      acronyms: ["UVA"],
+      aliases: [],
+      types: ["Education"],
+      contactName: 'Data Management Consulting Group',
+      contactEmail: 'admin@virginia.edu',
+      ssoEntityId: 'entity:virginia.edu',
+      feedbackEnabled: 1,
+      feedbackMessage: '<p>Will response to your request within 48 hours</p>',
+      feedbackEmails: ["admin@virginia.edu"],
+      managed: 1,
+    })
   });
 
-  it('should set the expected properties', () => {
-    const affiliation = new AffiliationSearch(rawAffiliationSearchRecord);
-    expect(affiliation.id).toEqual(rawAffiliationSearchRecord.ror_url);
-    expect(affiliation.fetchId).toEqual(affiliation.id.replace(/https?:\/\//g, ''));
-    expect(affiliation.name).toEqual(rawAffiliationSearchRecord.name);
-    const isFunder = Object.prototype.hasOwnProperty.call(rawAffiliationSearchRecord, "fundref_id");
-    expect(affiliation.funder).toEqual(isFunder);
-    expect(affiliation.fundref).toEqual(rawAffiliationSearchRecord.fundref_url);
-    expect(affiliation.aliases).toEqual(Array.isArray(rawAffiliationSearchRecord.aliases) ? rawAffiliationSearchRecord.aliases : []);
-    expect(affiliation.countryCode).toEqual(rawAffiliationSearchRecord.countryCode);
-    expect(affiliation.countryName).toEqual(rawAffiliationSearchRecord.countryName);
-    expect(affiliation.links).toEqual(Array.isArray(rawAffiliationSearchRecord.links) ? rawAffiliationSearchRecord.links : []);
+  afterEach(() => {
+    // jest.resetAllMocks();
+    Affiliation.insert = originalInsert;
+    Affiliation.findById = originalFindById;
+    Affiliation.findByURI = originalFindByURI;
+  });
+
+  it('should return the newly added Affiliation', async () => {
+    const mockFindByURI = jest.fn();
+    (Affiliation.findByURI as jest.Mock) = mockFindByURI;
+    mockFindByURI.mockResolvedValue(false);
+
+    const mockFindById = jest.fn();
+    (Affiliation.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(affiliation);
+
+    const result = await affiliation.create(context);
+    expect(mockFindByURI).toHaveBeenCalledTimes(1);
+    expect(mockFindById).toHaveBeenCalledTimes(1);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(affiliation);
+  });
+
+  it('should add an error if affiliation already exists', async () => {
+    const mockFindByURI = jest.fn();
+    (Affiliation.findByURI as jest.Mock) = mockFindByURI;
+    mockFindByURI.mockResolvedValue(true);
+
+    const mockFindById = jest.fn();
+    (Affiliation.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(affiliation);
+
+    await affiliation.create(context);
+    expect(affiliation.errors).toContain('That Affiliation already exists')
+  });
+});
+
+describe('update', () => {
+  const originalUpdate = Affiliation.update;
+  let updateQuery;
+  let affiliation;
+
+  beforeEach(() => {
+    // jest.resetAllMocks();
+
+    affiliation = new Affiliation({
+      uri: 'https://ror.org/01234',
+      active: true,
+      provenance: 'ROR',
+      name: 'University of Virginia',
+      displayName: 'University of Virginia (virginia.edu)',
+      searchName: 'University of Virginia | virginia.edu | UVA ',
+      funder: 1,
+      fundrefId: 1000001234,
+      homepage: 'http://www.virginia.edu/',
+      acronyms: ["UVA"],
+      aliases: [],
+      types: ["Education"],
+      contactName: 'Data Management Consulting Group',
+      contactEmail: 'admin@virginia.edu',
+      ssoEntityId: 'entity:virginia.edu',
+      feedbackEnabled: 1,
+      feedbackMessage: '<p>Will response to your request within 48 hours</p>',
+      feedbackEmails: ["admin@virginia.edu"],
+      managed: 1,
+    })
+    updateQuery = jest.fn().mockResolvedValue(affiliation);
+    (Affiliation.update as jest.Mock) = updateQuery;
+  });
+
+  afterEach(() => {
+    // jest.resetAllMocks();
+    Affiliation.update = originalUpdate;
+  });
+
+  it('should return Affiliation with no errors if affiliation is valid', async () => {
+    const localValidator = jest.fn();
+    (affiliation.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    expect(await affiliation.update(context)).toBe(affiliation);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(affiliation.errors).not.toContain('The affiliation is not valid')
+  });
+
+  it('should set an error if there is no uri in the affiliation data', async () => {
+    affiliation = new Affiliation({
+      active: true,
+      provenance: 'ROR',
+      name: 'University of Virginia',
+      displayName: 'University of Virginia (virginia.edu)',
+      searchName: 'University of Virginia | virginia.edu | UVA ',
+    });
+
+    const localValidator = jest.fn();
+    (affiliation.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    expect(await affiliation.update(context)).toBe(affiliation);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(affiliation.errors).toContain('Affiliation has never been saved');
+  })
+});
+
+describe('delete', () => {
+  const originalDelete = Affiliation.delete;
+  let deleteQuery;
+  let affiliation;
+
+  beforeEach(() => {
+    // jest.resetAllMocks();
+
+    affiliation = new Affiliation({
+      id: casual.integer(1, 99),
+      uri: 'http://test.com',
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
+      name: casual.sentence,
+    });
+    deleteQuery = jest.fn().mockResolvedValue(affiliation);
+    (Affiliation.delete as jest.Mock) = deleteQuery;
+  });
+
+  afterEach(() => {
+    // jest.resetAllMocks();
+    Affiliation.delete = originalDelete;
+  });
+
+  it('should return Affiliation if there is uri data', async () => {
+    expect(await affiliation.delete(context)).toBe(affiliation);
+    expect(affiliation.errors.length).toBe(0);
+  });
+
+  it('should return null if there is no uri data', async () => {
+    affiliation = new Affiliation({
+      id: casual.integer(1, 99),
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
+      name: casual.sentence,
+    });
+
+    expect(await affiliation.delete(context)).toBe(null);
+  })
+});
+
+describe('findById', () => {
+  const originalQuery = Affiliation.query;
+
+  let localQuery;
+  let context;
+  let affiliation;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    affiliation = new Affiliation({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+
+    localQuery = jest.fn();
+    (Affiliation.query as jest.Mock) = localQuery;
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+    Affiliation.query = originalQuery;
+  });
+
+  it('should return the Affiliation when findById gets a result', async () => {
+    localQuery.mockResolvedValueOnce([affiliation]);
+
+    const id = affiliation.id;
+    const result = await Affiliation.findById('Test', context, affiliation.id);
+    const expectedSql = 'SELECT * FROM affiliations WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+    expect(result).toEqual(affiliation);
+  });
+
+  it('should return null when findById has no results', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const result = await Affiliation.findById('Test', context, affiliation.id);
+    expect(result).toEqual(null);
+  });
+});
+
+describe('findByURI', () => {
+  const originalQuery = Affiliation.query;
+
+  let localQuery;
+  let context;
+  let affiliation;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    affiliation = new Affiliation({
+      id: casual.integer(1, 9),
+      uri: 'http://test.com',
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+
+    localQuery = jest.fn();
+    (Affiliation.query as jest.Mock) = localQuery;
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+    Affiliation.query = originalQuery;
+  });
+
+  it('should return the Affiliation when findByURI gets a result', async () => {
+    localQuery.mockResolvedValueOnce([affiliation]);
+
+    const id = affiliation.uri;
+    const result = await Affiliation.findByURI('Test', context, affiliation.uri);
+    const expectedSql = 'SELECT * FROM affiliations WHERE uri = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id], 'Test')
+    expect(result).toEqual(affiliation);
+  });
+
+  it('should return null when findByURI has no results', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const result = await Affiliation.findByURI('Test', context, affiliation.id);
+    expect(result).toEqual(null);
+  });
+});
+
+describe('findByName', () => {
+  const originalQuery = Affiliation.query;
+
+  let localQuery;
+  let context;
+  let affiliation;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    affiliation = new Affiliation({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+
+    localQuery = jest.fn();
+    (Affiliation.query as jest.Mock) = localQuery;
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
+    Affiliation.query = originalQuery;
+  });
+
+  it('should return the Affiliation when findByName gets a result', async () => {
+    localQuery.mockResolvedValueOnce([affiliation]);
+
+    const result = await Affiliation.findByName('Test', context, affiliation.name);
+    const expectedSql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(name)) = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliation.name.toLowerCase()], 'Test')
+    expect(result).toEqual(affiliation);
+  });
+
+  it('should return null when findByName has no results', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const result = await Affiliation.findByName('Test', context, affiliation.name);
+    expect(result).toEqual(null);
+  });
+});
+
+describe('AffiliationSearch', () => {
+  let affiliationSearch;
+
+  const affiliationSearchData = new AffiliationSearch({
+    id: casual.integer(1, 9),
+    uri: 'https://ror.org/01234',
+    displayName: 'University of Virginia (virginia.edu)',
+    funder: 1,
+    types: ["Education"],
+  });
+  beforeEach(() => {
+    affiliationSearch = new AffiliationSearch(affiliationSearchData);
+  });
+
+  it('should initialize AffiliationSerach options as expected', () => {
+    expect(affiliationSearch.uri).toEqual(affiliationSearchData.uri);
+    expect(affiliationSearch.id).toEqual(affiliationSearchData.id);
+    expect(affiliationSearch.displayName).toEqual(affiliationSearchData.displayName);
+    expect(affiliationSearch.funder).toEqual(affiliationSearchData.funder);
+    expect(affiliationSearch.types).toEqual(affiliationSearchData.types);
+  });
+});
+
+describe('search', () => {
+  const originalQuery = Affiliation.query;
+
+  let localQuery;
+  let context;
+  let affiliationSearch;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (Affiliation.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    affiliationSearch = new AffiliationSearch({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Affiliation.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the affiliation', async () => {
+    localQuery.mockResolvedValueOnce([affiliationSearch]);
+    const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
+    const expectedSql = 'SELECT * FROM affiliations WHERE active = 1 AND LOWER(searchName) LIKE ? AND funder = 1';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%test%'], 'AffiliationSearch.search')
+    expect(result).toEqual([affiliationSearch]);
+  });
+
+  it('should return an empty array if it finds no affiliation', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
+    expect(result).toEqual([]);
   });
 });

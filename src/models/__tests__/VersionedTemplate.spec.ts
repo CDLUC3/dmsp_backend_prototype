@@ -3,6 +3,7 @@ import { TemplateVisibility } from "../Template";
 import { TemplateVersionType, VersionedTemplate } from '../VersionedTemplate';
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
+import { defaultLanguageId } from '../Language';
 
 jest.mock('../../context.ts');
 
@@ -44,6 +45,7 @@ describe('VersionedTemplate', () => {
     expect(versioned.ownerId).toEqual(ownerId);
     expect(versioned.versionedById).toEqual(versionedById);
     expect(versioned.visibility).toEqual(TemplateVisibility.PRIVATE);
+    expect(versioned.languageId).toEqual(defaultLanguageId);
     expect(versioned.created).toBeTruthy();
     expect(versioned.active).toBe(false);
     expect(versioned.comment).toEqual('');

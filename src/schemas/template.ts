@@ -12,12 +12,12 @@ export const typeDefs = gql`
     "Create a new Template. Leave the 'copyFromTemplateId' blank to create a new template from scratch"
     addTemplate(name: String!, copyFromTemplateId: Int): Template
     "Update a Template"
-    updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!): Template
+    updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!, bestPractice: Boolean): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
     archiveTemplate(templateId: Int!): Boolean
 
     "Publish the template or save as a draft"
-    createVersion(templateId: Int!, comment: String, versionType: TemplateVersionType): Template
+    createTemplateVersion(templateId: Int!, comment: String, versionType: TemplateVersionType, visibility: TemplateVisibility!): Template
   }
 
   "Template visibility"
@@ -53,14 +53,18 @@ export const typeDefs = gql`
     owner: Affiliation
     "The template's availability setting: Public is available to everyone, Private only your affiliation"
     visibility: TemplateVisibility!
-    "The current published version"
-    currentVersion: String
+    "The last published version"
+    latestPublishVersion: String
+    "The last published date"
+    latestPublishDate: String
     "Whether or not the Template has had any changes since it was last published"
     isDirty: Boolean!
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean!
     "The Sections associated with the template"
     sections: [Section]
+    "The template's language"
+    languageId: String!
 
     "Users from different affiliations who have been invited to collaborate on this template"
     collaborators: [TemplateCollaborator!]

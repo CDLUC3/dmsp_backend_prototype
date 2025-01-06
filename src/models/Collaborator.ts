@@ -1,4 +1,5 @@
 import { MyContext } from '../context';
+import { sendTemplateCollaborationEmail } from '../services/emailService';
 import { validateEmail } from '../utils/helpers';
 import { MySqlModel } from './MySqlModel';
 import { Template } from './Template';
@@ -92,6 +93,11 @@ export class TemplateCollaborator extends Collaborator {
           // Save the record and then fetch it
           const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
           if (newId) {
+            const inviter = await User.findById(reference, context, this.invitedById);
+            const template = await Template.findById(reference, context, this.templateId);
+            // Send out the invitation notification (no async here, can happen in the background)
+            await sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId);
+
             return await TemplateCollaborator.findByTemplateIdAndEmail(
               reference,
               context,
@@ -163,6 +169,15 @@ export class TemplateCollaborator extends Collaborator {
     const sql = 'SELECT * FROM templateCollaborators WHERE id = ?';
     const results = await TemplateCollaborator.query(context, sql, [id.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  }
+
+  static async findByInvitedById(
+    reference: string,
+    context: MyContext,
+    invitedById: number,
+  ): Promise<TemplateCollaborator[]> {
+    const sql = 'SELECT * FROM templateCollaborators WHERE invitedById = ?';
+    return await TemplateCollaborator.query(context, sql, [invitedById.toString()], reference);
   }
 
   // Get all of the TemplateCollaborator records for the specified email

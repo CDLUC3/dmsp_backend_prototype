@@ -4,13 +4,13 @@ CREATE TABLE `questions` (
   `sectionId` INT NOT NULL,
   `sourceQuestionId` INT,
   `displayOrder` INT NOT NULL,
-  `isDirty` BOOLEAN NOT NULL DEFAULT 1,
+  `isDirty` TINYINT(1) NOT NULL DEFAULT 1,
   `questionTypeId` INT NOT NULL,
   `questionText` TEXT NOT NULL,
   `requirementText` TEXT,
   `guidanceText` TEXT,
   `sampleText` TEXT,
-  `required` BOOLEAN NOT NULL DEFAULT 0,
+  `required` TINYINT(1) NOT NULL DEFAULT 0,
   `createdById` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE `questionConditions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `questionId` INT NOT NULL,
   `action` VARCHAR(255) NOT NULL DEFAULT 'SHOW_QUESTION',
-  `condition` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
+  `conditionType` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
   `conditionMatch` VARCHAR(255),
   `target` VARCHAR(255) NOT NULL,
   `createdById` INT NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE `versionedQuestions` (
   `requirementText` TEXT,
   `guidanceText` TEXT,
   `sampleText` TEXT,
-  `required` BOOLEAN NOT NULL DEFAULT 0,
+  `required` TINYINT(1) NOT NULL DEFAULT 0,
   `displayOrder` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int NOT NULL,
@@ -62,11 +62,12 @@ CREATE TABLE `versionedQuestions` (
   INDEX versionedQuestions_section_idx (`versionedSectionId`, `displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `versionedQuestionCondition` (
+CREATE TABLE `versionedQuestionConditions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `versionedQuestionId` INT NOT NULL,
+  `questionConditionId` INT NOT NULL,
   `action` VARCHAR(255) NOT NULL DEFAULT 'SHOW_QUESTION',
-  `condition` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
+  `conditionType` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
   `conditionMatch` VARCHAR(255),
   `target` VARCHAR(255) NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

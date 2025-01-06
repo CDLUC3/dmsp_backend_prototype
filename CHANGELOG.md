@@ -1,5 +1,13 @@
-
 ### Added
+- Added "lastPublishedDate" field to templates table, and changed "currentVersion" field to "lastPublishedVersion"
+- Added support for creating "other" affiliations
+- Added update and updatePassword to User
+- Added resolvers for User
+- Added userService to handle random password generation, anonymization and merging
+- Added recordLogIn and update functions to User model
+- Added data-fns package to help with Date validation and formatting
+- Added Language model, resolver and type. Added LanguageId to User and Template
+- Built Question resolvers and models(#13)
 - Fixed some bugs to allow frontend to access token change(Frontend #116)
 - Added data migrations for QuestionType, Question, QuestionCondition, VersionedQuestion and VersionedQuestionCondition
 - Added missing VersionedQuestionCondition schema file
@@ -24,8 +32,14 @@
 - Added tests for all Controllers
 - Added supertest to support integration tests
 - Added integration tests for token management (signin, signup, signout, refresh)
+- Data migrations for affiliations table
+- Added Project, ProjectContributor, ProjectFunder schemas and supporting tables
+- Added Plan, PlanContributor, PlanCollaborator, PlanFunder, PlanFeedback, PlanFeedbackComment, Answer and AnswerComment schemas and supporting tables
 
 ### Updated
+- Updated User update method to prevent password manipulation
+- Updated User registration so that the terms and conditions must have been accepted
+- Updated User schema, model and data migrations with new properties
 - Change default JWT TTL to 30 minutes
 - Added user id to the JTI to help ensure uniqueness
 - Update sign out controller to always clear the cookies and return 200 regardless of the state of the tokens
@@ -39,6 +53,10 @@
 - updated express middelware to fetch the access token and refresh tokens from the cookies instead of the headers
 - removed old oauth-server package which had security vulnerabilities
 - moved authMiddleware function from the router.ts into its own class in src/middelware
+- updated Affiliation Schema, Resolver, Models to use new affiliations tables in the database
+- updated all of the cache key structures to wrap them in `{}` due to the way Redis handles keys in cluster mode
+- updated emailService to use nodemailer and to support emailConfirmation templateCollaboration and planCollaboration email messages
+- added bestPractice flag to the Section
 
 ### Fixed
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test

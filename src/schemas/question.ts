@@ -1,6 +1,6 @@
 import gql from "graphql-tag";
 
-export const typedefs = gql`
+export const typeDefs = gql`
   extend type Query {
     "Get the Questions that belong to the associated sectionId"
     questions(sectionId: Int!): [Question]
@@ -10,11 +10,13 @@ export const typedefs = gql`
 
 extend type Mutation {
     "Create a new Question"
-    addQuestion(input: AddQuestionInput): Question
+    addQuestion(input: AddQuestionInput!): Question!
     "Update a Question"
-    updateQuestion(input: UpdateQuestionInput): Question
+    updateQuestion(input: UpdateQuestionInput!): Question!
     "Delete a Question"
-    removeQuestion(questionId: Int!): Boolean
+    removeQuestion(questionId: Int!): Question
+    "Separate Question update specifically for options"
+    updateQuestionOptions(questionId: Int!, required:Boolean = false ): Question
   }
 
 "Question always belongs to a Section, which always belongs to a Template"
@@ -24,11 +26,11 @@ type Question {
     "The user who created the Object"
     createdById: Int
     "The timestamp when the Object was created"
-    created: DateTimeISO
+    created: String
     "The user who last modified the Object"
     modifiedById: Int
     "The timestamp when the Object was last modifed"
-    modified: DateTimeISO
+    modified: String
     "Errors associated with the Object"
     errors: [String!]
 
@@ -36,6 +38,8 @@ type Question {
     templateId: Int!
     "The unique id of the Section that the question belongs to"
     sectionId: Int!
+    "The original question id if this question is a copy of another"
+    sourceQestionId: Int
     "The display order of the question"
     displayOrder: Int
     "Whether or not the Question has had any changes since the related template was last published"
@@ -52,6 +56,9 @@ type Question {
     sampleText: String
     "To indicate whether the question is required to be completed"
     required: Boolean
+
+    "The conditional logic triggered by this question"
+    questionConditions: [QuestionCondition!]
 }
 
 input AddQuestionInput {

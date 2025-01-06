@@ -18,6 +18,7 @@ import {
   generateCSRFToken,
 } from '../tokenService'; // assuming the original code is in auth.ts
 import { buildContext, mockToken } from '../../__mocks__/context';
+import { defaultLanguageId } from '../../models/Language';
 
 jest.mock('jsonwebtoken');
 jest.mock('../../datasources/cache');
@@ -51,6 +52,7 @@ beforeEach(() => {
     surName: casual.last_name,
     affiliationId: casual.url,
     role: UserRole.RESEARCHER,
+    languageId: defaultLanguageId,
   };
 });
 
@@ -244,7 +246,7 @@ describe('isRevokedCallback', () => {
 
     await isRevokedCallback(null, token as Jwt);
     const expoectedErr = 'isRevokedCallback - unable to fetch token from cache';
-    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl:${mockJti}`);
+    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`{dmspbl}:${mockJti}`);
     expect(logger.error).toHaveBeenLastCalledWith(mockErr, expoectedErr);
   });
 
@@ -255,7 +257,7 @@ describe('isRevokedCallback', () => {
     (mockCache.adapter.get as jest.Mock).mockReturnValueOnce(mockJti);
 
     expect(await isRevokedCallback(null, token as Jwt)).toBe(true);
-    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`dmspbl:${mockJti}`);
+    expect(mockCache.adapter.get).toHaveBeenLastCalledWith(`{dmspbl}:${mockJti}`);
   });
 });
 
@@ -346,7 +348,7 @@ describe('revokeRefreshToken', () => {
     const result = await revokeRefreshToken(mockCache, mockUserJti);
 
     expect(result).toBe(true);
-    expect(mockCache.adapter.delete).toHaveBeenCalledWith(`dmspr:${mockUserJti}`);
+    expect(mockCache.adapter.delete).toHaveBeenCalledWith(`{dmspr}:${mockUserJti}`);
   });
 
   it('should throw and error and log error on failure', async () => {

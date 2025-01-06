@@ -1,12 +1,25 @@
 import { verifyCriticalEnvVariable } from "../utils/helpers";
 
 // Verify these critical variables on startup!
+verifyCriticalEnvVariable('DOMAIN');
+verifyCriticalEnvVariable('APP_NAME');
+verifyCriticalEnvVariable('DEFAULT_AFFILIATION_URI');
 verifyCriticalEnvVariable('TOKEN_HASH_SECRET');
 verifyCriticalEnvVariable('JWT_SECRET');
 verifyCriticalEnvVariable('JWT_REFRESH_SECRET');
 
+// Get the application environment code. This can differ from the NODE_ENV which bears special
+// meaning for Node applictions. For example when we deploy to the AWS development environment,
+// the NODE_ENV is `staging` but the APP_ENV is `dev`.
+const env = process.env.APP_ENV || 'dev';
+
 export const generalConfig = {
   restDataSourceCacheTtl: Number.parseInt(process.env.REST_DATA_SOURCE_CACHE_TTL) || 180,
+
+  env,
+  domain: process.env.DOMAIN,
+  applicationName: env === 'prd' ? process.env.APP_NAME : `${process.env.APP_NAME} (${env})`,
+  defaultAffiliatioURI: process.env.DEFAULT_AFFILIATION_URI,
 
   bcryptSaltRounds: Number.parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,
 

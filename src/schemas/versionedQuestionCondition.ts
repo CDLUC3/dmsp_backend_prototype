@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for VersionedQuestions that belong to Section specified by sectionId"
-    publishedConditionsForQuestion(questionId: Int!): [VersionedQuestionCondition]
+    publishedConditionsForQuestion(versionedQuestionId: Int!): [VersionedQuestionCondition]
   }
 
     "VersionedQuestionCondition action"
@@ -33,20 +33,22 @@ export const typeDefs = gql`
     "The user who created the Object"
     createdById: Int
     "The timestamp when the Object was created"
-    created: DateTimeISO
+    created: String
     "The user who last modified the Object"
     modifiedById: Int
     "The timestamp when the Object was last modifed"
-    modified: DateTimeISO
+    modified: String
     "Errors associated with the Object"
     errors: [String!]
 
     "The versionedQuestion id that the QuestionCondition belongs to"
     versionedQuestionId: Int!
+    "Id of the original QuestionCondition"
+    questionConditionId: Int!
     "The action to take on a QuestionCondition"
     action: VersionedQuestionConditionActionType!
-    "The condition in which to take the action"
-    condition: VersionedQuestionConditionCondition!
+    "The type of condition in which to take the action"
+    conditionType: VersionedQuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
     conditionMatch: String
     "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"

@@ -3,6 +3,7 @@ import { Template, TemplateVisibility } from "../Template";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { TemplateCollaborator } from '../Collaborator';
+import { defaultLanguageId } from '../Language';
 
 jest.mock('../../context.ts');
 
@@ -39,9 +40,16 @@ describe('Template', () => {
     expect(template.visibility).toEqual(TemplateVisibility.PRIVATE);
     expect(template.created).toBeTruthy();
     expect(template.modified).toBeTruthy();
-    expect(template.currentVersion).toBeFalsy();
+    expect(template.latestPublishVersion).toBeFalsy();
     expect(template.isDirty).toBeTruthy();
     expect(template.errors).toEqual([]);
+    expect(template.languageId).toEqual(defaultLanguageId);
+  });
+
+  it('should cleanup the data', () => {
+    template.languageId = 'test';
+    template.cleanup();
+    expect(template.languageId).toEqual(defaultLanguageId);
   });
 
   it('isValid returns true when the record is valid', async () => {
@@ -309,6 +317,10 @@ describe('update', () => {
     const localValidator = jest.fn();
     (template.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
+
+    const mockFindById = jest.fn();
+    (Template.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(template);
 
     updateQuery.mockResolvedValueOnce(template);
 

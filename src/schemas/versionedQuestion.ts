@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for VersionedQuestions that belong to Section specified by sectionId"
-    publishedQuestions(sectionId: Int!): [VersionedQuestion]
+    publishedQuestions(versionedSectionId: Int!): [VersionedQuestion]
   }
 
 "A snapshot of a Question when it became published."
@@ -13,11 +13,11 @@ type VersionedQuestion {
     "The user who created the Object"
     createdById: Int
     "The timestamp when the Object was created"
-    created: DateTimeISO
+    created: String
     "The user who last modified the Object"
     modifiedById: Int
     "The timestamp when the Object was last modifed"
-    modified: DateTimeISO
+    modified: String
     "Errors associated with the Object"
     errors: [String!]
 
@@ -25,6 +25,8 @@ type VersionedQuestion {
     versionedTemplateId: Int!
     "The unique id of the VersionedSection that the VersionedQuestion belongs to"
     versionedSectionId: Int!
+    "Id of the original question that was versioned"
+    questionId: Int!
     "The display order of the VersionedQuestion"
     displayOrder: Int
     "The type of question, such as text field, select box, radio buttons, etc"
@@ -39,6 +41,9 @@ type VersionedQuestion {
     sampleText: String
     "To indicate whether the question is required to be completed"
     required: Boolean
+
+    "The conditional logic associated with this VersionedQuestion"
+    versionedQuestionConditions: [VersionedQuestionCondition!]
 }
 
 

@@ -9,13 +9,11 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Create a new QuestionCondition associated with a question"
-    addQuestionCondition(input: AddQuestionConditionInput!): QuestionCondition! 
+    addQuestionCondition(input: AddQuestionConditionInput!): QuestionCondition!
     "Update a QuestionCondition for a specific QuestionCondition id"
     updateQuestionCondition(input: UpdateQuestionConditionInput!): QuestionCondition
     "Remove a QuestionCondition using a specific QuestionCondition id"
     removeQuestionCondition(questionConditionId: Int!): QuestionCondition
-    "Separate Question update specifically for options"
-    updateQuestionOptions(questionId: Int!, required:Boolean = false ): Question
   }
 
   "QuestionCondition action"
@@ -41,7 +39,7 @@ export const typeDefs = gql`
   }
 
   """
-  if [Question content] [condition] [conditionMatch] then [action] on [target] so 
+  if [Question content] [condition] [conditionMatch] then [action] on [target] so
   for example if 'Yes' EQUAL 'Yes' then 'SHOW_Question' 123
   """
   type QuestionCondition {
@@ -50,22 +48,22 @@ export const typeDefs = gql`
     "The user who created the Object"
     createdById: Int
     "The timestamp when the Object was created"
-    created: DateTimeISO
+    created: String
     "The user who last modified the Object"
     modifiedById: Int
     "The timestamp when the Object was last modifed"
-    modified: DateTimeISO
+    modified: String
     "Errors associated with the Object"
     errors: [String!]
     "The question id that the QuestionCondition belongs to"
     questionId: Int!
     "The action to take on a QuestionCondition"
     action: QuestionConditionActionType!
-    "The condition in which to take the action"
-    condition: QuestionConditionCondition!
+    "The type of condition in which to take the action"
+    conditionType: QuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
     conditionMatch: String
-    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)
+    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"
     target: String!
 }
 
@@ -75,11 +73,11 @@ export const typeDefs = gql`
     questionId: Int!
     "The action to take on a QuestionCondition"
     action: QuestionConditionActionType!
-    "The condition in which to take the action"
-    condition: QuestionConditionCondition!
+    "The type of condition in which to take the action"
+    conditionType: QuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
     conditionMatch: String
-    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)
+    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"
     target: String!
   }
 
@@ -89,11 +87,11 @@ export const typeDefs = gql`
     questionConditionId: Int!
     "The action to take on a QuestionCondition"
     action: QuestionConditionActionType!
-    "The condition in which to take the action"
-    condition: QuestionConditionCondition!
+    "The type of condition in which to take the action"
+    conditionType: QuestionConditionCondition!
     "Relative to the condition type, it is the value to match on (e.g., HAS_ANSWER should equate to null here)"
     conditionMatch: String
-    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)
+    "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"
     target: String!
   }
 
