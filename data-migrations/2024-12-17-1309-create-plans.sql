@@ -1,6 +1,7 @@
 # Data Management Plans (DMPs)
 CREATE TABLE `plans` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `projectId` INT NOT NULL,
   `versionedTemplateId` INT NOT NULL,
   `visibility` VARCHAR(16) NOT NULL,
   `status` VARCHAR(16) NOT NULL,
@@ -11,7 +12,8 @@ CREATE TABLE `plans` (
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (versionedTemplateId) REFERENCES versionedTemplates(id) ON DELETE CASCADE,
+  FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+  FOREIGN KEY (versionedTemplateId) REFERENCES versionedTemplates(id),
   INDEX plans_dmpid_idx (`dmpId`),
   INDEX plans_modified_idx (`id`, `modified`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;

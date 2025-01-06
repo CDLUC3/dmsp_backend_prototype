@@ -42,6 +42,9 @@ process_migration() {
     if [ $WAS_PROCESSED -eq 0 ]; then
       mariadb ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< "INSERT INTO dataMigrations (migrationFile) VALUES ('$1');"
       echo "    done"
+      # Sleep for 2 seconds to allow the DB engine to fully process the last script
+      # MariaDB tables have a tendency to get corrupted if too many schema changes happen in rapid sequence
+      sleep 2
     else
       echo "    Something went wrong!"
       exit 1

@@ -2,7 +2,7 @@
 CREATE TABLE `researchDomains` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
-  `url` VARCHAR(255) NOT NULL,
+  `uri` VARCHAR(255) NOT NULL,
   `description` TEXT NOT NULL,
   `parentResearchDomainId` INT,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -10,5 +10,5 @@ CREATE TABLE `researchDomains` (
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` int NOT NULL,
   CONSTRAINT unique_research_domain_name UNIQUE (`name`),
-  CONSTRAINT unique_research_domain_uri UNIQUE (`url`)
+  CONSTRAINT unique_research_domain_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
