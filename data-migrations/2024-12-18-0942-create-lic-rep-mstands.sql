@@ -30,8 +30,8 @@ CREATE TABLE `repositories` (
   CONSTRAINT unique_license_website UNIQUE (`website`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-# Repository research domains
-CREATE TABLE `respoitoryResearchDomains` (
+# Research domains associated with a Repository
+CREATE TABLE `repositoryResearchDomains` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `repositoryId` INT NOT NULL,
   `researchDomainId` INT NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE `metadataStandards` (
   CONSTRAINT unique_mstandard_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-# Repository research domains
+# Research domains associated with a Metadata Standard
 CREATE TABLE `metadataStandardResearchDomains` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `metadataStandardId` INT NOT NULL,

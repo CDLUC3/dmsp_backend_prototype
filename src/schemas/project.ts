@@ -38,7 +38,7 @@ export const typeDefs = gql`
     "The name/title of the research project"
     title: String!
     "The research project abstract"
-    abstract: String
+    abstractText: String
     "The estimated date the research project will begin (use YYYY-MM-DD format)"
     startDate: String
     "The estimated date the research project will end (use YYYY-MM-DD format)"

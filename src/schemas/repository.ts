@@ -55,7 +55,7 @@ export const typeDefs = gql`
     "Keywords to assist in finding the repository"
     keywords: [String!]
     "The Categories/Types of the repository"
-    respoitoryTypes: [RepositoryType!]
+    repositoryTypes: [RepositoryType!]
   }
 
   input RepositorySearchInput {
@@ -79,7 +79,7 @@ export const typeDefs = gql`
     "Keywords to assist in finding the repository"
     keywords: [String!]
     "The Categories/Types of the repository"
-    respoitoryTypes: [String!]
+    repositoryTypes: [String!]
     "The taxonomy URL (do not make this up! should resolve to an HTML/JSON representation of the object)"
     uri: String
   }
@@ -98,6 +98,6 @@ export const typeDefs = gql`
     "Keywords to assist in finding the repository"
     keywords: [String!]
     "The Categories/Types of the repository"
-    respoitoryTypes: [String!]
+    repositoryTypes: [String!]
   }
 `;
