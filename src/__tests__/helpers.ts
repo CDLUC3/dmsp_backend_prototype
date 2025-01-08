@@ -1,3 +1,4 @@
+import casual from 'casual';
 import { validateDmspId } from '../resolvers/scalars/dmspId';
 import { validateOrcid } from '../resolvers/scalars/orcid';
 import { validateRor } from '../resolvers/scalars/ror';
@@ -5,6 +6,11 @@ import { validateRor } from '../resolvers/scalars/ror';
 const emailRegex = new RegExp(/^[a-zA-Z0–9._-]+@[a-zA-Z0–9.-]+\.[a-zA-Z]{2,4}$/);
 const timestampRegex = new RegExp(/[0-9]{4}-[0-9]{2}-[0-9]{2}\s([0-9]{2}:){2}[0-9]{2}/);
 const urlRegex = new RegExp(/(https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\/)?[a-zA-Z0-9]{2,}(\.[a-zA-Z0-9]{2,})(\.[a-zA-Z0-9]{2,})?/);
+
+// Generate a random bogus ORCID
+export function getMockORCID(): string {
+  return Array.from({ length: 4 }, () => casual.integer(1111, 9999)).join('-');
+}
 
 // Pass in an enum and receive a random selection from that enum
 export function getRandomEnumValue<T>(anEnum: T): T[keyof T] {

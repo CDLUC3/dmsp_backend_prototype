@@ -1,3 +1,4 @@
+import { generalConfig } from '../../config/generalConfig';
 import {
   validateDate,
   validateEmail,
@@ -8,6 +9,7 @@ import {
   validateURL,
   getCurrentDate,
   randomHex,
+  stripIdentifierBaseURL,
 } from '../helpers';
 
 describe('Date validation', () => {
@@ -73,6 +75,37 @@ describe('URL validation', () => {
     expect(validateURL('example.com/path')).toBe(false);
     expect(validateURL('hehgiehgehgerge')).toBe(false);
     expect(validateURL('58757899')).toBe(false);
+  });
+});
+
+describe('Strips the protocol and domain from known identifiers', () => {
+  test('it handles ORCIDs properly', () => {
+    const orcidId = '0000-0000-0000-0000 ';
+    expect(stripIdentifierBaseURL(`${generalConfig.orcidBaseURL}${orcidId}`)).toEqual(orcidId.trim());
+    expect(stripIdentifierBaseURL(orcidId)).toEqual(orcidId.trim());
+  });
+
+  test('it handles RORs properly', () => {
+    const rorId = 'a0000z ';
+    expect(stripIdentifierBaseURL(`${generalConfig.rorBaseURL}${rorId}`)).toEqual(rorId.trim());
+    expect(stripIdentifierBaseURL(rorId)).toEqual(rorId.trim());
+  });
+
+  test('it handles DOIs properly', () => {
+    const dmpId = `${generalConfig.dmpIdShoulder}B2C3D4 `;
+    expect(stripIdentifierBaseURL(`${generalConfig.dmpIdBaseURL}${dmpId}`)).toEqual(dmpId.trim());
+    expect(stripIdentifierBaseURL(dmpId)).toEqual(dmpId.trim());
+  });
+
+  test('leaves others alone', () => {
+    let id = 'http://test.com/0000-0000-0000-0000';
+    expect(stripIdentifierBaseURL(id)).toEqual(id);
+    id = 'http://orcid.org/0000';
+    expect(stripIdentifierBaseURL(id)).toEqual(id);
+    id = 'http://ror.org/0000-0000-0000-0000';
+    expect(stripIdentifierBaseURL(id)).toEqual(id);
+    id = 'http://doi.org/98724896247698457604597645067452706';
+    expect(stripIdentifierBaseURL(id)).toEqual(id);
   });
 });
 

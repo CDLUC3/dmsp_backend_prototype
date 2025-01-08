@@ -2,6 +2,7 @@
 //
 
 import { formatISO9075 } from "date-fns";
+import { generalConfig } from "../config/generalConfig";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function stringToArray(array: any, delimiter = ' ', defaultResponse: string[] = []): string[] {
@@ -22,6 +23,15 @@ export function capitalizeFirstLetter(str: string): string {
     return val;
   }
   return '';
+}
+
+// Remove know Protocol and Domain portions of identifiers from the string
+export function stripIdentifierBaseURL(str: string): string {
+  return str.replace(generalConfig.dmpIdBaseURL, '')
+            .replace(generalConfig.orcidBaseURL, '')
+            .replace(generalConfig.rorBaseURL, '')
+            .replace(/^\//, '')
+            .trim();
 }
 
 // Date validation

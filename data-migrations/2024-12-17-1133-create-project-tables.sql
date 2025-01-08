@@ -26,7 +26,7 @@ CREATE TABLE `projectContributors` (
   `surName` VARCHAR(255),
   `orcid` VARCHAR(255),
   `email` VARCHAR(255),
-  `roles` JSON NOT NULL,
+  `roles` JSON,
   `createdById` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,

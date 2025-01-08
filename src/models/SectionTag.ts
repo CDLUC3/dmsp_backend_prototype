@@ -14,7 +14,6 @@ export class SectionTag extends MySqlModel {
         this.tagId = options.tagId;
     }
 
-
     // Save the current record
     async create(context: MyContext): Promise<SectionTag> {
         // Insert new SectionTag records
@@ -29,4 +28,3 @@ export class SectionTag extends MySqlModel {
         return Array.isArray(results) ? results : [];
     }
 }
-
