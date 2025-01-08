@@ -137,7 +137,7 @@ export const getTagsToAdd = async (tags: Tag[], context: MyContext, sectionId: n
 
 export const getTagsToRemove = async (tags: Tag[], context: MyContext, sectionId: number): Promise<SectionTag[]> => {
   //Get all the existing tags associated with this section in SectionTags
-  const existingTags = await SectionTag.getSectionTagsBySectionId('updateSection resolver', context, sectionId);
+  const existingTags = await SectionTag.getSectionTagsBySectionId('sectionService-updateSection', context, sectionId);
 
   // Create a Set of tag ids
   const tagIds = new Set(tags.map(tag => tag.id));
@@ -145,6 +145,5 @@ export const getTagsToRemove = async (tags: Tag[], context: MyContext, sectionId
   // Get tags that exist in db table, but are not included in updated tags
   const tagsToRemove = existingTags.filter(existing => !tagIds.has(existing.tagId))
 
-  console.log("****TAGS TO REMOVE", tagsToRemove);
   return Array.isArray(tagsToRemove) ? tagsToRemove : [];
 }
