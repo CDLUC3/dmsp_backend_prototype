@@ -122,6 +122,7 @@ export const hasPermissionOnSection = async (context: MyContext, templateId: num
 }
 
 export const getTagsToAdd = async (tags: Tag[], context: MyContext, sectionId: number): Promise<Tag[]> => {
+
   //Get all the existing tags associated with this section in SectionTags
   const existingTags = await SectionTag.getSectionTagsBySectionId('updateSection resolver', context, sectionId);
 
@@ -132,4 +133,17 @@ export const getTagsToAdd = async (tags: Tag[], context: MyContext, sectionId: n
   const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.id));
 
   return Array.isArray(tagsToAdd) ? tagsToAdd : [];
+}
+
+export const getTagsToRemove = async (tags: Tag[], context: MyContext, sectionId: number): Promise<SectionTag[]> => {
+  //Get all the existing tags associated with this section in SectionTags
+  const existingTags = await SectionTag.getSectionTagsBySectionId('sectionService-updateSection', context, sectionId);
+
+  // Create a Set of tag ids
+  const tagIds = new Set(tags.map(tag => tag.id));
+
+  // Get tags that exist in db table, but are not included in updated tags
+  const tagsToRemove = existingTags.filter(existing => !tagIds.has(existing.tagId))
+
+  return Array.isArray(tagsToRemove) ? tagsToRemove : [];
 }
