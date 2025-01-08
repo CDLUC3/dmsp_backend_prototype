@@ -98,6 +98,7 @@ export class Affiliation extends MySqlModel {
 
   // Perform tasks necessary to prepare the data to be saved
   prepForSave(): void {
+    this.name = this.name?.trim();
     this.managed = this.managed || false;
     this.feedbackEnabled = this.feedbackEnabled || false;
     this.acronyms = this.acronyms || [];

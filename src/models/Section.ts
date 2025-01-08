@@ -42,6 +42,14 @@ export class Section extends MySqlModel {
     return this.errors.length <= 0;
   }
 
+  // Ensure data integrity
+  cleanup(): void {
+    // Remove leading/trailing blank spaces
+    this.name = this.name?.trim();
+    this.introduction = this.introduction?.trim();
+    this.requirements = this.requirements?.trim();
+    this.guidance = this.guidance?.trim();
+  }
 
   //Create a new Section
   async create(context: MyContext, templateId: number): Promise<Section> {
@@ -59,6 +67,8 @@ export class Section extends MySqlModel {
       if (current) {
         this.errors.push('Section with this name already exists');
       } else {
+        this.cleanup();
+
         // Save the record and then fetch it
         const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
         const response = await Section.findById('Section.create', context, newId);
@@ -75,6 +85,8 @@ export class Section extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
+        this.cleanup();
+
         await Section.update(context, this.tableName, this, 'Section.update', ['tags'], noTouch);
         return await Section.findById('Section.update', context, id);
       }

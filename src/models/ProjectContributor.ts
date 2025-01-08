@@ -119,12 +119,10 @@ export class ProjectContributor extends MySqlModel {
     return this;
   }
 
-  //Delete Question based on the Question object's id and return
+  //Delete ProjectContributor
   async delete(context: MyContext): Promise<ProjectContributor> {
     if (this.id) {
-      /*First get the question to be deleted so we can return this info to the user
-      since calling 'delete' doesn't return anything*/
-      const deletedSection = await ProjectContributor.findById('ProjectContributor.delete', context, this.id);
+      const deleted = await ProjectContributor.findById('ProjectContributor.delete', context, this.id);
 
       const successfullyDeleted = await ProjectContributor.delete(
         context,
@@ -133,7 +131,7 @@ export class ProjectContributor extends MySqlModel {
         'ProjectContributor.delete'
       );
       if (successfullyDeleted) {
-        return deletedSection;
+        return deleted;
       } else {
         return null
       }

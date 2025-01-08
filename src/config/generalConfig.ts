@@ -4,7 +4,7 @@ import { verifyCriticalEnvVariable } from "../utils/helpers";
 verifyCriticalEnvVariable('DOMAIN');
 verifyCriticalEnvVariable('APP_NAME');
 verifyCriticalEnvVariable('DEFAULT_AFFILIATION_URI');
-verifyCriticalEnvVariable('DMP_SHOULDER');
+verifyCriticalEnvVariable('DMP_ID_SHOULDER');
 verifyCriticalEnvVariable('TOKEN_HASH_SECRET');
 verifyCriticalEnvVariable('JWT_SECRET');
 verifyCriticalEnvVariable('JWT_REFRESH_SECRET');

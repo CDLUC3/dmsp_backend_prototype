@@ -51,7 +51,7 @@ export const typeDefs = gql`
     "The project that is seeking (or has aquired) funding"
     project: Project!
     "The funder"
-    funder: Affiliation!
+    affiliation: Affiliation!
     "The status of the funding resquest"
     status: ProjectFunderStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"

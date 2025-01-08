@@ -1,7 +1,7 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { ProjectContributor } from "../Contributor";
+import { ProjectContributor } from "../ProjectContributor";
 import { getMockORCID } from "../../__tests__/helpers";
 
 jest.mock('../../context.ts');
@@ -243,6 +243,7 @@ describe('update', () => {
     (ProjectContributor.update as jest.Mock) = updateQuery;
 
     projectContributor = new ProjectContributor({
+      id: casual.integer(1, 9999),
       projectId: casual.integer(1, 999),
       affiliationId: casual.url,
       givenName: casual.first_name,
@@ -329,12 +330,12 @@ describe('create', () => {
   it('returns the ProjectContributor with errors if it is invalid', async () => {
     projectContributor.projectId = undefined;
     const response = await projectContributor.create(context);
-    expect(response.errors[0]).toBe('Project ID can\'t be blank');
+    expect(response.errors[0]).toBe('Project can\'t be blank');
   });
 
   it('returns the ProjectContributor with an error if the question already exists', async () => {
     const mockFindBy = jest.fn();
-    (ProjectContributor.findByProjectAndEmail as jest.Mock) = mockFindBy;
+    (ProjectContributor.findByProjectAndORCID as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(projectContributor);
 
     const result = await projectContributor.create(context);
@@ -355,7 +356,7 @@ describe('create', () => {
     mockFindById.mockResolvedValueOnce(projectContributor);
 
     const result = await projectContributor.create(context);
-    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(mockFindBy).toHaveBeenCalledTimes(3);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(result.errors.length).toBe(0);
@@ -368,6 +369,7 @@ describe('delete', () => {
 
   beforeEach(() => {
     projectContributor = new ProjectContributor({
+      id: casual.integer(1, 9999),
       projectId: casual.integer(1, 999),
       affiliationId: casual.url,
       givenName: casual.first_name,
