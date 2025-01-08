@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { capitalizeFirstLetter, getCurrentDate, validateEmail, validateURL } from '../utils/helpers';
+import { capitalizeFirstLetter, getCurrentDate, validateEmail } from '../utils/helpers';
 import { buildContext } from '../context';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
@@ -100,9 +100,6 @@ export class User extends MySqlModel {
       }
       if (!this.password) {
         this.errors.push('Password is required');
-      }
-      if (!validateURL(this.affiliationId)) {
-        this.errors.push('Affiliation can\'t be blank');
       }
       if (!this.role) {
         this.errors.push('Role can\'t be blank');
