@@ -9,7 +9,6 @@ import { TemplateCollaborator } from "../../models/Collaborator";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { sendEmailConfirmationNotification } from "../emailService";
 import { defaultLanguageId } from "../../models/Language";
-import { generalConfig } from "../../config/generalConfig";
 
 let affiliationId;
 let adminUser;
@@ -245,7 +244,7 @@ describe('anonymizeUser', () => {
     expect(result.givenName).not.toEqual(original.givenName);
     expect(result.surName).not.toEqual(original.surName);
     expect(result.languageId).toEqual(defaultLanguageId);
-    expect(result.affiliationId).toEqual(generalConfig.defaultAffiliatioURI);
+    expect(result.affiliationId).toEqual(null);
     expect(result.orcid).toBeFalsy();
     expect(result.ssoId).toBeFalsy();
     expect(result.role).toEqual(UserRole.RESEARCHER);
