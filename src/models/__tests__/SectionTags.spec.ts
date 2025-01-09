@@ -53,6 +53,34 @@ describe('create', () => {
   });
 });
 
+describe('remove', () => {
+  const originalDelete = SectionTag.delete;
+  let deleteQuery;
+  let sectionTag;
+
+  beforeEach(() => {
+    deleteQuery = jest.fn();
+    (SectionTag.delete as jest.Mock) = deleteQuery;
+
+    sectionTag = new SectionTag({
+      sectionId: casual.integer(1, 9),
+      tagId: casual.integer(1, 999),
+    })
+  });
+
+  afterEach(() => {
+    SectionTag.delete = originalDelete;
+  });
+
+
+  it('returns the SectionTag ', async () => {
+    const localValidator = jest.fn();
+    localValidator.mockResolvedValueOnce(false);
+
+    expect(await sectionTag.remove(context)).toBe(sectionTag);
+  });
+});
+
 describe('getSectionTagsBySectionId', () => {
   const originalQuery = SectionTag.query;
 

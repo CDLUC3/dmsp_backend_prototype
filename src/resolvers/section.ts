@@ -5,7 +5,7 @@ import { SectionTag } from "../models/SectionTag";
 import { VersionedSection } from "../models/VersionedSection";
 import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
-import { cloneSection, hasPermissionOnSection, getTagsToAdd } from "../services/sectionService";
+import { cloneSection, hasPermissionOnSection, getTagsToAdd, getTagsToRemove } from "../services/sectionService";
 import { ForbiddenError, NotFoundError, BadUserInputError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { isSuperAdmin } from "../services/authService";
@@ -128,6 +128,9 @@ export const resolvers: Resolvers = {
           /*Get list of tags that aren't already mapped to the sectionId in SectionTags, to avoid duplicate tag entries*/
           const tagsToAdd = await getTagsToAdd(tags as Tag[], context, sectionId);
 
+          // Get list of tags that need to be removed
+          const tagsToRemove = await getTagsToRemove(tags as Tag[], context, sectionId);
+
           // Add tags to sectionTags table that did not already exist
           if (tags && tags.length > 0 && tagsToAdd.length > 0) {
             await Promise.all(
@@ -138,6 +141,20 @@ export const resolvers: Resolvers = {
                 });
 
                 await sectionTag.create(context);
+              })
+            );
+          }
+
+          // Remove tags that are no longer in the updated tags array
+          if (tagsToRemove.length > 0) {
+            await Promise.all(
+              tagsToRemove.map(async (tagId) => {
+                const sectionTag = new SectionTag({
+                  sectionId: updatedSection.id,
+                  tagId: tagId.id
+                });
+
+                await sectionTag.remove(context);
               })
             );
           }
