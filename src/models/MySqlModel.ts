@@ -171,11 +171,17 @@ export class MySqlModel {
     reference = 'undefined caller',
     skipKeys?: string[]
   ): Promise<number> {
-    // Update the creator/modifier info
+    // If the createdById and modifiedById have not alredy been set, use the value in the token or the userId
+    if (!obj.createdById) {
+      obj.createdById = apolloContext?.token?.id || obj.userId;
+    }
+    if (!obj.modifiedById) {
+      obj.modifiedById = apolloContext?.token?.id || obj.userId;
+    }
+
+    // Update the created/modified dates
     const currentDate = getCurrentDate();
-    obj.createdById = apolloContext?.token?.id || obj.userId;
     obj.created = currentDate;
-    obj.modifiedById = apolloContext?.token?.id || obj.userId;
     obj.modified = currentDate;
 
     // Fetch all of the data from the object
@@ -206,7 +212,10 @@ export class MySqlModel {
   ): Promise<MySqlModel> {
     // Update the modifier info
     if (noTouch !== true) {
-      obj.modifiedById = apolloContext.token.id;
+      // Only update the modifiedById if we have a token otherwise leave it as is
+      if (apolloContext?.token?.id) {
+        obj.modifiedById = apolloContext?.token?.id;
+      }
       const currentDate = getCurrentDate();
       obj.modified = currentDate;
     }

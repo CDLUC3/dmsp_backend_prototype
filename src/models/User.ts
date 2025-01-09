@@ -175,7 +175,7 @@ export class User extends MySqlModel {
     const sql = 'SELECT * FROM users WHERE id = ?';
 
     const results = await User.query(context, sql, [userId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
   // Find the User by their email address
