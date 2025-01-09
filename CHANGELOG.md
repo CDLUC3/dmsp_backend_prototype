@@ -33,6 +33,8 @@
 - Added supertest to support integration tests
 - Added integration tests for token management (signin, signup, signout, refresh)
 - Data migrations for affiliations table
+- Added Project, ProjectContributor, ProjectFunder schemas and supporting tables
+- Added Plan, PlanContributor, PlanCollaborator, PlanFunder, PlanFeedback, PlanFeedbackComment, Answer and AnswerComment schemas and supporting tables
 
 ### Updated
 - Updated User update method to prevent password manipulation
@@ -54,6 +56,7 @@
 - updated Affiliation Schema, Resolver, Models to use new affiliations tables in the database
 - updated all of the cache key structures to wrap them in `{}` due to the way Redis handles keys in cluster mode
 - updated emailService to use nodemailer and to support emailConfirmation templateCollaboration and planCollaboration email messages
+- added bestPractice flag to the Section
 
 ### Fixed
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test

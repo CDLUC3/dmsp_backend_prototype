@@ -5,7 +5,7 @@ import { Affiliation } from "../models/Affiliation";
 import { TemplateCollaborator } from "../models/Collaborator";
 import { Section } from "../models/Section";
 import { cloneTemplate, generateTemplateVersion, hasPermissionOnTemplate } from "../services/templateService";
-import { isAdmin } from "../services/authService";
+import { isAdmin, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 
@@ -68,7 +68,7 @@ export const resolvers: Resolvers = {
 
     // Update the specified template
     //    - called by the Template options page
-    updateTemplate: async (_, { templateId, name, visibility }, context: MyContext): Promise<Template> => {
+    updateTemplate: async (_, { templateId, name, visibility, bestPractice }, context: MyContext): Promise<Template> => {
       if (isAdmin(context.token)) {
         const template = await Template.findById('updateTemplate resolver', context, templateId);
 
@@ -76,6 +76,9 @@ export const resolvers: Resolvers = {
         const templateInstance = new Template({
           ...template
         });
+
+        // Only allow the bestPractice flag to be changed if the user is a Super admin!
+        templateInstance.bestPractice = isSuperAdmin(context.token) ? bestPractice : template.bestPractice;
 
         if (templateInstance) {
           if (hasPermissionOnTemplate(context, template)) {

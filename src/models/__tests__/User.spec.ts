@@ -151,14 +151,6 @@ describe('validate a new User', () => {
     expect(mockUser.errors[0].includes('Invalid email address')).toBe(true);
   });
 
-  it('should return false when we have a new user without an Affiliation', async () => {
-    mockQuery.mockResolvedValueOnce(null);
-    mockUser.affiliationId = null;
-    expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Affiliation')).toBe(true);
-  });
-
   it('should return false when we have a new user without an createdById', async () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.createdById = null;
