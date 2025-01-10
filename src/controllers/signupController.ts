@@ -36,9 +36,11 @@ export const signupController = async (req: Request, res: Response) => {
           if (!affiliation) {
              res.status(500).json({success: false, message: 'Unable to create the new user affiliation at this time' });
           } else {
+            // Need to reload here because the object returned by `register` does not have functions!
+            const registeredUser = await User.findById('signupController', context, user.id);
             // Update the user's affiliationId with the new id
-            user.affiliationId = affiliation.uri;
-            await user.update(context);
+            registeredUser.affiliationId = affiliation.uri;
+            await registeredUser.update(context);
           }
         }
 
