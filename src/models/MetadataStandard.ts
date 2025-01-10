@@ -1,12 +1,14 @@
 import { MyContext } from "../context";
-import { validateURL } from "../utils/helpers";
+import { ResearchDomain } from "../types";
+import { randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
+export const DEFAULT_DMPTOOL_METADATA_STANDARD_URL = 'https://dmptool.org/metadata-standards/';;
 export class MetadataStandard extends MySqlModel {
   public name: string;
   public uri: string;
   public description?: string;
-  public researchDomainIds: number[];
+  public researchDomains: ResearchDomain[];
   public keywords: string[];
 
   private tableName = 'metadataStandards';
@@ -18,7 +20,7 @@ export class MetadataStandard extends MySqlModel {
     this.name = options.name;
     this.uri = options.uri;
     this.description = options.description;
-    this.researchDomainIds = options.researchDomainIds || [];
+    this.researchDomains = options.researchDomains || [];
     this.keywords = options.keywords || [];
   }
 
@@ -37,8 +39,8 @@ export class MetadataStandard extends MySqlModel {
 
   // Ensure data integrity
   cleanup(): void {
-    if (!Array.isArray(this.researchDomainIds)) {
-      this.researchDomainIds = []
+    if (!Array.isArray(this.researchDomains)) {
+      this.researchDomains = []
     }
     if (!Array.isArray(this.keywords)) {
       this.keywords = []
@@ -54,6 +56,11 @@ export class MetadataStandard extends MySqlModel {
   //Create a new MetadataStandard
   async create(context: MyContext): Promise<MetadataStandard> {
     const reference = 'MetadataStandard.create';
+
+    // If no URI is present, then use the DMPTool's default URI
+    if (!this.uri) {
+      this.uri = `${DEFAULT_DMPTOOL_METADATA_STANDARD_URL}${randomHex(6)}`;
+    }
 
     // First make sure the record is valid
     if (await this.isValid()) {
@@ -111,7 +118,7 @@ export class MetadataStandard extends MySqlModel {
     return null;
   }
 
-  // Return all of the projectFunders for the Project
+  // Search for Metadata standards
   static async search(
     reference: string,
     context: MyContext,
@@ -119,15 +126,20 @@ export class MetadataStandard extends MySqlModel {
     researchDomainId: number,
   ): Promise<MetadataStandard[]> {
     const searchTerm = term ? `%${term.toLocaleLowerCase().trim()}%` : '%';
+    const sql = `SELECT * FROM metadataStandards WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name`;
+    const results = await MetadataStandard.query(context, sql, [searchTerm, searchTerm], reference);
 
-    let sql = `SELECT * FROM metadataStandards WHERE (LOWER(term) LIKE ? OR keywords LIKE ?)`;
-    const vals = [searchTerm, searchTerm];
-    if (researchDomainId) {
-      sql = `${sql} AND JSON_CONTAINS(researchDomainIds, ?, '$')`;
-      vals.push(researchDomainId.toString());
+    // Apply any filters
+    if (Array.isArray(results) && researchDomainId) {
+      const standardIds = await MetadataStandard.findMetadataStandardIdsByResearchDomainId(
+        reference,
+        context,
+        researchDomainId
+      );
+      return results.filter((standard) => standardIds.includes(standard.id))
     }
 
-    const results = await MetadataStandard.query(context, `${sql} ORDER BY name`, vals, reference);
+    // No need to reinitialize all of the results to objects here because they're just search results
     return Array.isArray(results) ? results : [];
   }
 
@@ -135,18 +147,29 @@ export class MetadataStandard extends MySqlModel {
   static async findById(reference: string, context: MyContext, metadataStandardId: number): Promise<MetadataStandard> {
     const sql = `SELECT * FROM metadataStandards WHERE id = ?`;
     const results = await MetadataStandard.query(context, sql, [metadataStandardId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new MetadataStandard(results[0]) : null;
   }
 
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<MetadataStandard> {
     const sql = `SELECT * FROM metadataStandards WHERE uri = ?`;
     const results = await MetadataStandard.query(context, sql, [uri], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new MetadataStandard(results[0]) : null;
   }
 
   static async findByName(reference: string, context: MyContext, name: string): Promise<MetadataStandard> {
     const sql = `SELECT * FROM metadataStandards WHERE LOWER(name) = ?`;
     const results = await MetadataStandard.query(context, sql, [name.toLowerCase().trim()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new MetadataStandard(results[0]) : null;
+  }
+
+  // Fetch all of the MetadataStandards associated with a ResearchDomain
+  static async findMetadataStandardIdsByResearchDomainId(
+    reference: string,
+    context: MyContext,
+    researchDomainId: number
+  ): Promise<number[]> {
+    const sql = 'SELECT metadataStandardId FROM metadataStandardResearchDomains WHERE = researchDomainId = ?';
+    const results = await MetadataStandard.query(context, sql, [researchDomainId.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? results.map((rec) => rec.metadataStandardId) : [];
   }
 };

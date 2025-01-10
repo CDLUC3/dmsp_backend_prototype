@@ -41,7 +41,7 @@ export type AddMetadataStandardInput = {
   /** The name of the metadata standard */
   name: Scalars['String']['input'];
   /** Research domains associated with the metadata standard */
-  researchDomains?: InputMaybe<Array<ResearchDomain>>;
+  researchDomainIds?: InputMaybe<Array<Scalars['Int']['input']>>;
   /** The taxonomy URL (do not make this up! should resolve to an HTML/JSON representation of the object) */
   uri?: InputMaybe<Scalars['String']['input']>;
 };
@@ -147,8 +147,10 @@ export type AddRepositoryInput = {
   keywords?: InputMaybe<Array<Scalars['String']['input']>>;
   /** The name of the repository */
   name: Scalars['String']['input'];
+  /** The Categories/Types of the repository */
+  repositoryTypes?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Research domains associated with the repository */
-  researchDomains?: InputMaybe<Array<ResearchDomain>>;
+  researchDomainIds?: InputMaybe<Array<Scalars['Int']['input']>>;
   /** The taxonomy URL (do not make this up! should resolve to an HTML/JSON representation of the object) */
   uri?: InputMaybe<Scalars['String']['input']>;
   /** The website URL */
@@ -745,7 +747,7 @@ export type MutationAddLicenseArgs = {
 
 
 export type MutationAddMetadataStandardArgs = {
-  input?: InputMaybe<AddMetadataStandardInput>;
+  input: AddMetadataStandardInput;
 };
 
 
@@ -953,7 +955,7 @@ export type MutationRemoveLicenseArgs = {
 
 
 export type MutationRemoveMetadataStandardArgs = {
-  metadataStandardId: Scalars['Int']['input'];
+  uri: Scalars['String']['input'];
 };
 
 
@@ -1079,7 +1081,7 @@ export type MutationUpdateLicenseArgs = {
 
 
 export type MutationUpdateMetadataStandardArgs = {
-  input?: InputMaybe<UpdateMetadataStandardInput>;
+  input: UpdateMetadataStandardInput;
 };
 
 
@@ -1368,7 +1370,7 @@ export type PlanVisibility =
 export type Project = {
   __typename?: 'Project';
   /** The research project abstract */
-  abstract?: Maybe<Scalars['String']['output']>;
+  abstractText?: Maybe<Scalars['String']['output']>;
   /** People who are contributing to the research project (not just the DMP) */
   contributors?: Maybe<Array<ProjectContributor>>;
   /** The timestamp when the Object was created */
@@ -1431,14 +1433,14 @@ export type ProjectContributor = {
 /** A funder affiliation that is supporting a research project */
 export type ProjectFunder = {
   __typename?: 'ProjectFunder';
+  /** The funder */
+  affiliation: Affiliation;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** Errors associated with the Object */
   errors?: Maybe<Array<Scalars['String']['output']>>;
-  /** The funder */
-  funder: Affiliation;
   /** The funder's unique id/url for the call for submissions to apply for a grant */
   funderOpportunityNumber?: Maybe<Scalars['String']['output']>;
   /** The funder's unique id/url for the research project (normally assigned after the grant has been awarded) */
@@ -1520,6 +1522,8 @@ export type Query = {
   archivePlan?: Maybe<Plan>;
   /** Archive a project */
   archiveProject?: Maybe<Project>;
+  /** Get all of the research domains related to the specified top level domain (more nuanced ones) */
+  childResearchDomains?: Maybe<Array<Maybe<ResearchDomain>>>;
   /** Get the contributor role by it's id */
   contributorRoleById?: Maybe<ContributorRole>;
   /** Get the contributor role by it's URL */
@@ -1534,6 +1538,8 @@ export type Query = {
   licenses?: Maybe<Array<Maybe<License>>>;
   /** Returns the currently logged in user's information */
   me?: Maybe<User>;
+  /** Fetch a specific metadata standard */
+  metadataStandard?: Maybe<MetadataStandard>;
   /** Search for a metadata standard */
   metadataStandards?: Maybe<Array<Maybe<MetadataStandard>>>;
   /** Get all the research output types */
@@ -1586,8 +1592,8 @@ export type Query = {
   questions?: Maybe<Array<Maybe<Question>>>;
   /** Search for a repository */
   repositories?: Maybe<Array<Maybe<Repository>>>;
-  /** Get all the QuestionTypes */
-  researchDomains?: Maybe<Array<Maybe<ResearchDomain>>>;
+  /** Fetch a specific repository */
+  repository?: Maybe<Repository>;
   /** Get the specified section */
   section?: Maybe<Section>;
   /** Get all of the VersionedSection for the specified Section ID */
@@ -1605,6 +1611,8 @@ export type Query = {
   templateVersions?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Get the Templates that belong to the current user's affiliation (user must be an Admin) */
   templates?: Maybe<Array<Maybe<Template>>>;
+  /** Get all of the top level research domains (the most generic ones) */
+  topLevelResearchDomains?: Maybe<Array<Maybe<ResearchDomain>>>;
   /** Returns the specified user (Admin only) */
   user?: Maybe<User>;
   /** Returns all of the users associated with the current user's affiliation (Admin only) */
@@ -1638,6 +1646,11 @@ export type QueryArchiveProjectArgs = {
 };
 
 
+export type QueryChildResearchDomainsArgs = {
+  parentResearchDomainId: Scalars['Int']['input'];
+};
+
+
 export type QueryContributorRoleByIdArgs = {
   contributorRoleId: Scalars['Int']['input'];
 };
@@ -1659,7 +1672,13 @@ export type QueryLicensesArgs = {
 };
 
 
+export type QueryMetadataStandardArgs = {
+  uri: Scalars['String']['input'];
+};
+
+
 export type QueryMetadataStandardsArgs = {
+  researchDomainId?: InputMaybe<Scalars['Int']['input']>;
   term?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1772,7 +1791,12 @@ export type QueryQuestionsArgs = {
 
 
 export type QueryRepositoriesArgs = {
-  input?: InputMaybe<RepositorySearchInput>;
+  input: RepositorySearchInput;
+};
+
+
+export type QueryRepositoryArgs = {
+  uri: Scalars['String']['input'];
 };
 
 
@@ -1950,6 +1974,8 @@ export type Repository = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name of the repository */
   name: Scalars['String']['output'];
+  /** The Categories/Types of the repository */
+  repositoryTypes?: Maybe<Array<RepositoryType>>;
   /** Research domains associated with the repository */
   researchDomains?: Maybe<Array<ResearchDomain>>;
   /** The taxonomy URL of the repository */
@@ -1978,6 +2004,8 @@ export type RepositoryType =
 /** An aread of research (e.g. Electrical Engineering, Cellular biology, etc.) */
 export type ResearchDomain = {
   __typename?: 'ResearchDomain';
+  /** The child research domains (if applicable) */
+  childResearchDomains?: Maybe<Array<ResearchDomain>>;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
@@ -1994,6 +2022,8 @@ export type ResearchDomain = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name of the domain */
   name: Scalars['String']['output'];
+  /** The parent research domain (if applicable). If this is blank then it is a top level domain. */
+  parentResearchDomain?: Maybe<ResearchDomain>;
   /** The taxonomy URL of the research domain */
   uri: Scalars['String']['output'];
 };
@@ -2163,7 +2193,9 @@ export type UpdateMetadataStandardInput = {
   /** The name of the metadata standard */
   name: Scalars['String']['input'];
   /** Research domains associated with the metadata standard */
-  researchDomains?: InputMaybe<Array<ResearchDomain>>;
+  researchDomainIds?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** The taxonomy URL (do not make this up! should resolve to an HTML/JSON representation of the object) */
+  uri?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type UpdateProjectInput = {
@@ -2246,8 +2278,10 @@ export type UpdateRepositoryInput = {
   keywords?: InputMaybe<Array<Scalars['String']['input']>>;
   /** The name of the repository */
   name: Scalars['String']['input'];
+  /** The Categories/Types of the repository */
+  repositoryTypes?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Research domains associated with the repository */
-  researchDomains?: InputMaybe<Array<ResearchDomain>>;
+  researchDomainIds?: InputMaybe<Array<Scalars['Int']['input']>>;
   /** The website URL */
   website?: InputMaybe<Scalars['String']['input']>;
 };
@@ -2951,7 +2985,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationAddContributorRoleArgs, 'displayOrder' | 'label' | 'url'>>;
   addFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationAddFeedbackCommentArgs, 'answerId' | 'commentText' | 'planFeedbackId'>>;
   addLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationAddLicenseArgs, 'name'>>;
-  addMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, Partial<MutationAddMetadataStandardArgs>>;
+  addMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationAddMetadataStandardArgs, 'input'>>;
   addPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationAddPlanArgs, 'projectId' | 'versionedTemplateId'>>;
   addPlanAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationAddPlanAnswerArgs, 'planId' | 'versionedQuestionId' | 'versionedSectionId'>>;
   addPlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationAddPlanCollaboratorArgs, 'email' | 'planId'>>;
@@ -2988,7 +3022,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   removeFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationRemoveFeedbackCommentArgs, 'PlanFeedbackCommentId'>>;
   removeLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationRemoveLicenseArgs, 'licenseId'>>;
-  removeMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationRemoveMetadataStandardArgs, 'metadataStandardId'>>;
+  removeMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationRemoveMetadataStandardArgs, 'uri'>>;
   removePlanCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemovePlanCollaboratorArgs, 'planCollaboratorId'>>;
   removePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationRemovePlanContributorArgs, 'planContributorId'>>;
   removeProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationRemoveProjectContributorArgs, 'projectContributorId'>>;
@@ -3012,7 +3046,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationUpdateAffiliationArgs, 'input'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updateLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationUpdateLicenseArgs, 'licenseId' | 'name'>>;
-  updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, Partial<MutationUpdateMetadataStandardArgs>>;
+  updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
   updatePlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdatePlanCollaboratorArgs, 'accessLevel' | 'planCollaboratorId'>>;
   updatePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationUpdatePlanContributorArgs, 'planContributorId'>>;
@@ -3127,7 +3161,7 @@ export type PlanFeedbackCommentResolvers<ContextType = MyContext, ParentType ext
 };
 
 export type ProjectResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Project'] = ResolversParentTypes['Project']> = {
-  abstract?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  abstractText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   contributors?: Resolver<Maybe<Array<ResolversTypes['ProjectContributor']>>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -3162,10 +3196,10 @@ export type ProjectContributorResolvers<ContextType = MyContext, ParentType exte
 };
 
 export type ProjectFunderResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ProjectFunder'] = ResolversParentTypes['ProjectFunder']> = {
+  affiliation?: Resolver<ResolversTypes['Affiliation'], ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  funder?: Resolver<ResolversTypes['Affiliation'], ParentType, ContextType>;
   funderOpportunityNumber?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   funderProjectNumber?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   grantId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -3206,6 +3240,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
   archivePlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryArchivePlanArgs, 'planId'>>;
   archiveProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<QueryArchiveProjectArgs, 'projectId'>>;
+  childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
@@ -3213,6 +3248,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
   licenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, Partial<QueryLicensesArgs>>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  metadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<QueryMetadataStandardArgs, 'uri'>>;
   metadataStandards?: Resolver<Maybe<Array<Maybe<ResolversTypes['MetadataStandard']>>>, ParentType, ContextType, Partial<QueryMetadataStandardsArgs>>;
   outputTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['OutputType']>>>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
@@ -3238,8 +3274,8 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   questionConditions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryQuestionConditionsArgs, 'questionId'>>;
   questionTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionType']>>>, ParentType, ContextType>;
   questions?: Resolver<Maybe<Array<Maybe<ResolversTypes['Question']>>>, ParentType, ContextType, RequireFields<QueryQuestionsArgs, 'sectionId'>>;
-  repositories?: Resolver<Maybe<Array<Maybe<ResolversTypes['Repository']>>>, ParentType, ContextType, Partial<QueryRepositoriesArgs>>;
-  researchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType>;
+  repositories?: Resolver<Maybe<Array<Maybe<ResolversTypes['Repository']>>>, ParentType, ContextType, RequireFields<QueryRepositoriesArgs, 'input'>>;
+  repository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<QueryRepositoryArgs, 'uri'>>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;
   sectionVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QuerySectionVersionsArgs, 'sectionId'>>;
   sections?: Resolver<Maybe<Array<Maybe<ResolversTypes['Section']>>>, ParentType, ContextType, RequireFields<QuerySectionsArgs, 'templateId'>>;
@@ -3249,6 +3285,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   templateCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateCollaborator']>>>, ParentType, ContextType, RequireFields<QueryTemplateCollaboratorsArgs, 'templateId'>>;
   templateVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryTemplateVersionsArgs, 'templateId'>>;
   templates?: Resolver<Maybe<Array<Maybe<ResolversTypes['Template']>>>, ParentType, ContextType>;
+  topLevelResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
 };
@@ -3313,6 +3350,7 @@ export type RepositoryResolvers<ContextType = MyContext, ParentType extends Reso
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  repositoryTypes?: Resolver<Maybe<Array<ResolversTypes['RepositoryType']>>, ParentType, ContextType>;
   researchDomains?: Resolver<Maybe<Array<ResolversTypes['ResearchDomain']>>, ParentType, ContextType>;
   uri?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   website?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -3320,6 +3358,7 @@ export type RepositoryResolvers<ContextType = MyContext, ParentType extends Reso
 };
 
 export type ResearchDomainResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ResearchDomain'] = ResolversParentTypes['ResearchDomain']> = {
+  childResearchDomains?: Resolver<Maybe<Array<ResolversTypes['ResearchDomain']>>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -3328,6 +3367,7 @@ export type ResearchDomainResolvers<ContextType = MyContext, ParentType extends 
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  parentResearchDomain?: Resolver<Maybe<ResolversTypes['ResearchDomain']>, ParentType, ContextType>;
   uri?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };

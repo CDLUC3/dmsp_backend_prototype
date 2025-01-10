@@ -12,6 +12,15 @@ export function stringToArray(array: any, delimiter = ' ', defaultResponse: stri
   return array || defaultResponse;
 }
 
+// Convert a string to a value within an enum
+// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
+export function stringToEnumValue<T extends { [key: string]: string }>(
+  enumType: T,
+  str: string
+): T[keyof T] | null {
+  return Object.values(enumType).includes(str as T[keyof T]) ? (str as T[keyof T]) : null;
+}
+
 // Capitalize the first letter of the string.
 export function capitalizeFirstLetter(str: string): string {
   if (str) {

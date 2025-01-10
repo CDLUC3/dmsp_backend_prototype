@@ -143,21 +143,21 @@ export class ProjectContributor extends MySqlModel {
   static async findByProjectId(reference: string, context: MyContext, projectId: number): Promise<ProjectContributor[]> {
     const sql = `SELECT * FROM projectContributors WHERE projectId = ? ORDER BY surName, givenName`;
     const results = await ProjectContributor.query(context, sql, [projectId.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((item) => new ProjectContributor(item)) : [];
   }
 
   // Return all of the contributors for the Project
   static async findByAffiliation(reference: string, context: MyContext, affiliationId: string): Promise<ProjectContributor[]> {
     const sql = `SELECT * FROM projectContributors WHERE affiliationId = ? ORDER BY surName, givenName`;
     const results = await ProjectContributor.query(context, sql, [affiliationId], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((item) => new ProjectContributor(item)) : [];
   }
 
   // Fetch a contributor by it's id
   static async findById(reference: string, context: MyContext, projectContributorId: number): Promise<ProjectContributor> {
     const sql = `SELECT * FROM projectContributors WHERE id = ?`;
     const results = await ProjectContributor.query(context, sql, [projectContributorId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
   }
 
   // Fetch a contributor by it's project and email
@@ -169,7 +169,7 @@ export class ProjectContributor extends MySqlModel {
   ): Promise<ProjectContributor> {
     const sql = `SELECT * FROM projectContributors WHERE projectId = ? AND email = ?`;
     const results = await ProjectContributor.query(context, sql, [projectId.toString(), email], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
   }
 
   // Fetch a contributor by it's Project and ORCID
@@ -181,7 +181,7 @@ export class ProjectContributor extends MySqlModel {
   ): Promise<ProjectContributor> {
     const sql = `SELECT * FROM projectContributors WHERE projectId = ? AND orcid = ?`;
     const results = await ProjectContributor.query(context, sql, [projectId.toString(), orcid], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
   }
 
   // Fetch a contributor by it's project and name
@@ -195,6 +195,6 @@ export class ProjectContributor extends MySqlModel {
     const sql = `SELECT * FROM projectContributors WHERE projectId = ? AND LOWER(givenName) = ? AND LOWER(surName) = ?`;
     const vals = [projectId.toString(), givenName.trim().toLowerCase(), surName.trim().toLowerCase()];
     const results = await ProjectContributor.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
   }
 };

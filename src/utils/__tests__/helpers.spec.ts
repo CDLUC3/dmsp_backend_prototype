@@ -10,6 +10,7 @@ import {
   getCurrentDate,
   randomHex,
   stripIdentifierBaseURL,
+  stringToEnumValue,
 } from '../helpers';
 
 describe('Date validation', () => {
@@ -182,5 +183,20 @@ describe('randomHex', () => {
   it('returns a string in the expected format', () => {
     const val = randomHex(32);
     expect(/[a-z0-9]{32}/.test(val)).toBe(true);
+  });
+});
+
+describe('stringToEnumValue', () => {
+  enum testEnum {
+    A = "A",
+    B = "B"
+  }
+
+  it('returns null if the string is not one of the items in the enum', () => {
+    expect(stringToEnumValue(testEnum, 'C')).toBe(null);
+  });
+
+  it('returns the enum value for the string', () => {
+    expect(stringToEnumValue(testEnum, 'B')).toBe(testEnum.B);
   });
 });

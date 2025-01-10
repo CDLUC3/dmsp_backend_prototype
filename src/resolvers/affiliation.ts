@@ -52,7 +52,7 @@ export const resolvers: Resolvers = {
           }
 
           const affiliation = new Affiliation(input);
-          return await affiliation.create(context);
+          return await affiliation.update(context);
         }
         throw ForbiddenError();
       } catch (err) {
