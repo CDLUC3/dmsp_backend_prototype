@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { capitalizeFirstLetter, getCurrentDate, validateEmail, validateURL } from '../utils/helpers';
+import { capitalizeFirstLetter, getCurrentDate, validateEmail } from '../utils/helpers';
 import { buildContext } from '../context';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
@@ -101,9 +101,6 @@ export class User extends MySqlModel {
       if (!this.password) {
         this.errors.push('Password is required');
       }
-      if (!validateURL(this.affiliationId)) {
-        this.errors.push('Affiliation can\'t be blank');
-      }
       if (!this.role) {
         this.errors.push('Role can\'t be blank');
       }
@@ -178,7 +175,7 @@ export class User extends MySqlModel {
     const sql = 'SELECT * FROM users WHERE id = ?';
 
     const results = await User.query(context, sql, [userId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
   // Find the User by their email address
@@ -278,7 +275,7 @@ export class User extends MySqlModel {
 
         // Update the user's createdById and modifiedById to indicate themselves
         const sqlUpdate = `UPDATE users SET createdById = ?, modifiedById = ? WHERE id = ?`;
-        const valsUpdate = [this.id.toString(), this.id.toString(), this.id.toString()];
+        const valsUpdate = [user.id.toString(), user.id.toString(), user.id.toString()];
         await User.query(context, sqlUpdate, valsUpdate, 'User.register');
 
         // Add the email to the UserEmail table and send out a 'please confirm' email

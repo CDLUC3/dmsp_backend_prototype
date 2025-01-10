@@ -26,6 +26,7 @@ services:
       - 3307
     volumes:
       - "./docker/mariadb-persistence:/bitnami/mariadb"
+      - "./mariadb.cnf:/etc/mysql/conf.d/appollo.cnf"
 
   redis:
     image: "public.ecr.aws/docker/library/redis:alpine"
@@ -62,7 +63,6 @@ services:
       - "MYSQL_DATABASE=dmsp"
       - "MYSQL_USER=dmspuser"
       - "MYSQL_PASSWORD=abcd3fgh1j"
-
       - "CACHE_HOST=apollo-redis"
       - "CACHE_PORT=6379"
       - "CACHE_CONNECT_TIMEOUT=10000"
