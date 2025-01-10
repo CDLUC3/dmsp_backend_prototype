@@ -513,6 +513,8 @@ export type License = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name of the license */
   name: Scalars['String']['output'];
+  /** Whether or not the license is recommended */
+  recommended: Scalars['Boolean']['output'];
   /** The taxonomy URL of the license */
   uri: Scalars['String']['output'];
 };
@@ -742,6 +744,7 @@ export type MutationAddFeedbackCommentArgs = {
 export type MutationAddLicenseArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
+  recommended?: InputMaybe<Scalars['Boolean']['input']>;
   uri?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -950,7 +953,7 @@ export type MutationRemoveFeedbackCommentArgs = {
 
 
 export type MutationRemoveLicenseArgs = {
-  licenseId: Scalars['Int']['input'];
+  uri: Scalars['String']['input'];
 };
 
 
@@ -1075,8 +1078,9 @@ export type MutationUpdateContributorRoleArgs = {
 
 export type MutationUpdateLicenseArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
-  licenseId: Scalars['Int']['input'];
   name: Scalars['String']['input'];
+  recommended?: InputMaybe<Scalars['Boolean']['input']>;
+  uri: Scalars['String']['input'];
 };
 
 
@@ -1534,6 +1538,8 @@ export type Query = {
   findCollaborator?: Maybe<Array<Maybe<CollaboratorSearchResult>>>;
   /** Get all of the supported Languages */
   languages?: Maybe<Array<Maybe<Language>>>;
+  /** Fetch a specific license */
+  license?: Maybe<License>;
   /** Search for a license */
   licenses?: Maybe<Array<Maybe<License>>>;
   /** Returns the currently logged in user's information */
@@ -1590,6 +1596,8 @@ export type Query = {
   questionTypes?: Maybe<Array<Maybe<QuestionType>>>;
   /** Get the Questions that belong to the associated sectionId */
   questions?: Maybe<Array<Maybe<Question>>>;
+  /** Return the recommended Licenses */
+  recommendedLicenses?: Maybe<Array<Maybe<License>>>;
   /** Search for a repository */
   repositories?: Maybe<Array<Maybe<Repository>>>;
   /** Fetch a specific repository */
@@ -1666,8 +1674,12 @@ export type QueryFindCollaboratorArgs = {
 };
 
 
+export type QueryLicenseArgs = {
+  uri: Scalars['String']['input'];
+};
+
+
 export type QueryLicensesArgs = {
-  recommended?: InputMaybe<Scalars['Boolean']['input']>;
   term?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1787,6 +1799,11 @@ export type QueryQuestionConditionsArgs = {
 
 export type QueryQuestionsArgs = {
   sectionId: Scalars['Int']['input'];
+};
+
+
+export type QueryRecommendedLicensesArgs = {
+  recommended: Scalars['Boolean']['input'];
 };
 
 
@@ -2959,6 +2976,7 @@ export type LicenseResolvers<ContextType = MyContext, ParentType extends Resolve
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  recommended?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   uri?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -3021,7 +3039,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationRemoveAffiliationArgs, 'affiliationId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   removeFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationRemoveFeedbackCommentArgs, 'PlanFeedbackCommentId'>>;
-  removeLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationRemoveLicenseArgs, 'licenseId'>>;
+  removeLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationRemoveLicenseArgs, 'uri'>>;
   removeMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationRemoveMetadataStandardArgs, 'uri'>>;
   removePlanCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemovePlanCollaboratorArgs, 'planCollaboratorId'>>;
   removePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationRemovePlanContributorArgs, 'planContributorId'>>;
@@ -3045,7 +3063,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   setUserOrcid?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationSetUserOrcidArgs, 'orcid'>>;
   updateAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationUpdateAffiliationArgs, 'input'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRoleMutationResponse']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
-  updateLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationUpdateLicenseArgs, 'licenseId' | 'name'>>;
+  updateLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationUpdateLicenseArgs, 'name' | 'uri'>>;
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
   updatePlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdatePlanCollaboratorArgs, 'accessLevel' | 'planCollaboratorId'>>;
@@ -3246,6 +3264,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
   findCollaborator?: Resolver<Maybe<Array<Maybe<ResolversTypes['CollaboratorSearchResult']>>>, ParentType, ContextType, Partial<QueryFindCollaboratorArgs>>;
   languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
+  license?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<QueryLicenseArgs, 'uri'>>;
   licenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, Partial<QueryLicensesArgs>>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   metadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<QueryMetadataStandardArgs, 'uri'>>;
@@ -3274,6 +3293,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   questionConditions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryQuestionConditionsArgs, 'questionId'>>;
   questionTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionType']>>>, ParentType, ContextType>;
   questions?: Resolver<Maybe<Array<Maybe<ResolversTypes['Question']>>>, ParentType, ContextType, RequireFields<QueryQuestionsArgs, 'sectionId'>>;
+  recommendedLicenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, RequireFields<QueryRecommendedLicensesArgs, 'recommended'>>;
   repositories?: Resolver<Maybe<Array<Maybe<ResolversTypes['Repository']>>>, ParentType, ContextType, RequireFields<QueryRepositoriesArgs, 'input'>>;
   repository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<QueryRepositoryArgs, 'uri'>>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;

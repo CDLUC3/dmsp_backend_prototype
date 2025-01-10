@@ -169,8 +169,8 @@ describe('findBy Queries', () => {
     const term = casual.words(3);
     const researchDomainId = casual.integer(1, 9);
     const result = await MetadataStandard.search('testing', context, term, researchDomainId);
-    const sql = 'SELECT * FROM metadataStandards WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name';
-    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
+    const sql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
+    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenCalledWith(context, sql, vals, 'testing');
@@ -185,10 +185,10 @@ describe('findBy Queries', () => {
     mockStandardQry.mockResolvedValueOnce([standard.id]);
     const researchDomainId = casual.integer(1, 9);
     const result = await MetadataStandard.search('testing', context, null, researchDomainId);
-    const sql = 'SELECT * FROM metadataStandards WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name';
+    const sql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, [`%`, `%`], 'testing');
+    expect(localQuery).toHaveBeenCalledWith(context, sql, [`%`, `%`, '%'], 'testing');
     expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
     expect(result).toEqual([standard]);
   });
@@ -197,8 +197,8 @@ describe('findBy Queries', () => {
     localQuery.mockResolvedValueOnce([standard]);
     const term = casual.words(3);
     const result = await MetadataStandard.search('testing', context, term, null);
-    const expectedSql = 'SELECT * FROM metadataStandards WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name';
-    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
+    const expectedSql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
+    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
     expect(result).toEqual([standard]);
@@ -207,9 +207,9 @@ describe('findBy Queries', () => {
   it('search should work when no Research Domain or search term are specified', async () => {
     localQuery.mockResolvedValueOnce([standard]);
     const result = await MetadataStandard.search('testing', context, null, null);
-    const expectedSql = 'SELECT * FROM metadataStandards WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name';
+    const expectedSql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%', '%'], 'testing')
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%', '%', '%'], 'testing')
     expect(result).toEqual([standard]);
   });
 

@@ -9,6 +9,7 @@ import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as collaboratorResolvers } from './resolvers/collaborator';
 import { resolvers as contributorRoleResolvers } from './resolvers/contributorRole';
 import { resolvers as languageResolvers } from './resolvers/language';
+import { resolvers as licenseResolvers } from './resolvers/license';
 import { resolvers as metadataStandardResolvers } from './resolvers/metadataStandard';
 import { resolvers as questionResolvers } from './resolvers/question';
 import { resolvers as questionConditionResolvers } from './resolvers/questionCondition';
@@ -35,6 +36,7 @@ export const resolvers: IResolvers = mergeResolvers([
   affiliationResolvers,
   collaboratorResolvers,
   languageResolvers,
+  licenseResolvers,
   metadataStandardResolvers,
   contributorRoleResolvers,
   questionResolvers,

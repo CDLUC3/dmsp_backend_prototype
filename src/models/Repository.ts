@@ -93,7 +93,7 @@ export class Repository extends MySqlModel {
         this.errors.push('Repository already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await Repository.insert(context, this.tableName, this, reference);
+        const newId = await Repository.insert(context, this.tableName, this, reference, ['researchDomains']);
         const response = await Repository.findById(reference, context, newId);
         return response;
       }
@@ -108,7 +108,7 @@ export class Repository extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await Repository.update(context, this.tableName, this, 'Repository.update', [], noTouch);
+        await Repository.update(context, this.tableName, this, 'Repository.update', ['researchDomains'], noTouch);
         return await Repository.findById('Repository.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -147,8 +147,8 @@ export class Repository extends MySqlModel {
   ): Promise<Repository[]> {
     const searchTerm = term ? `%${term.toLocaleLowerCase().trim()}%` : '%';
 
-    let sql = `SELECT * FROM repositories WHERE (LOWER(name) LIKE ? OR keywords LIKE ?)`;
-    const vals = [searchTerm, searchTerm];
+    let sql = `SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ?`;
+    const vals = [searchTerm, searchTerm, searchTerm];
     if (repositoryType) {
       sql = `${sql} AND JSON_CONTAINS(repositoryTypes, ?, '$')`;
       vals.push(repositoryType);

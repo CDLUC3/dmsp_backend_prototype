@@ -74,7 +74,7 @@ export class MetadataStandard extends MySqlModel {
         this.errors.push('MetadataStandard already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await MetadataStandard.insert(context, this.tableName, this, reference);
+        const newId = await MetadataStandard.insert(context, this.tableName, this, reference, ['researchDomains']);
         const response = await MetadataStandard.findById(reference, context, newId);
         return response;
       }
@@ -89,7 +89,14 @@ export class MetadataStandard extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await MetadataStandard.update(context, this.tableName, this, 'MetadataStandard.update', [], noTouch);
+        await MetadataStandard.update(
+          context,
+          this.tableName,
+          this,
+          'MetadataStandard.update',
+          ['researchDomains'],
+          noTouch
+        );
         return await MetadataStandard.findById('MetadataStandard.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -126,8 +133,8 @@ export class MetadataStandard extends MySqlModel {
     researchDomainId: number,
   ): Promise<MetadataStandard[]> {
     const searchTerm = term ? `%${term.toLocaleLowerCase().trim()}%` : '%';
-    const sql = `SELECT * FROM metadataStandards WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name`;
-    const results = await MetadataStandard.query(context, sql, [searchTerm, searchTerm], reference);
+    const sql = `SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name`;
+    const results = await MetadataStandard.query(context, sql, [searchTerm, searchTerm, searchTerm], reference);
 
     // Apply any filters
     if (Array.isArray(results) && researchDomainId) {

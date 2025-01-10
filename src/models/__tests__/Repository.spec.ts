@@ -182,8 +182,8 @@ describe('findBy Queries', () => {
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, term, researchDomainId, repositoryType);
-    const sql = 'SELECT * FROM repositories WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
-    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, repositoryType];
+    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
+    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, repositoryType];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenCalledWith(context, sql, vals, 'testing');
@@ -198,10 +198,10 @@ describe('findBy Queries', () => {
     mockStandardQry.mockResolvedValueOnce([repo.id]);
     const researchDomainId = casual.integer(1, 9);
     const result = await Repository.search('testing', context, null, researchDomainId, null);
-    const sql = 'SELECT * FROM repositories WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name';
+    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, ['%', '%'], 'testing');
+    expect(localQuery).toHaveBeenCalledWith(context, sql, ['%', '%', '%'], 'testing');
     expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
     expect(result).toEqual([repo]);
   });
@@ -210,9 +210,9 @@ describe('findBy Queries', () => {
     localQuery.mockResolvedValueOnce([repo]);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, null, null, repositoryType);
-    const sql = 'SELECT * FROM repositories WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
+    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, sql, ['%', '%', repositoryType], 'testing')
+    expect(localQuery).toHaveBeenLastCalledWith(context, sql, ['%', '%', '%', repositoryType], 'testing')
     expect(result).toEqual([repo]);
   });
 
@@ -224,8 +224,8 @@ describe('findBy Queries', () => {
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, null, researchDomainId, repositoryType);
-    const sql = 'SELECT * FROM repositories WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
-    const vals = ['%', '%', repositoryType];
+    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
+    const vals = ['%', '%', '%', repositoryType];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenCalledWith(context, sql, vals, 'testing');
@@ -237,8 +237,8 @@ describe('findBy Queries', () => {
     localQuery.mockResolvedValueOnce([repo]);
     const term = casual.words(3);
     const result = await Repository.search('testing', context, term, null, null);
-    const expectedSql = 'SELECT * FROM repositories WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name';
-    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
+    const expectedSql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
+    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
     expect(result).toEqual([repo]);
@@ -247,9 +247,9 @@ describe('findBy Queries', () => {
   it('search should work when no Research Domain or search term are specified', async () => {
     localQuery.mockResolvedValueOnce([repo]);
     const result = await Repository.search('testing', context, null, null, null);
-    const expectedSql = 'SELECT * FROM repositories WHERE (LOWER(name) LIKE ? OR keywords LIKE ?) ORDER BY name';
+    const expectedSql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%', '%'], 'testing')
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%', '%', '%'], 'testing')
     expect(result).toEqual([repo]);
   });
 
