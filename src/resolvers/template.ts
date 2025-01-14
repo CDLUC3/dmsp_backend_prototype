@@ -37,6 +37,10 @@ export const resolvers: Resolvers = {
       // Unauthorized!
       throw context?.token ? ForbiddenError() : AuthenticationError();
     },
+    // Get all public templates
+    publicTemplates: async (_, __, context: MyContext): Promise<Template[]> => {
+      return await Template.findPublicTemplates('templates resolver', context);
+    },
   },
 
   Mutation: {

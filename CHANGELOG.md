@@ -1,4 +1,5 @@
 ### Added
+- Added a query to get all PUBLIC templates, even ones outside of the user's org
 - Added "remove" method to SectionTag model. Updated "updateSection" method in Section resolvers to remove sectionTags when user is updating their Section. Added "getTagsToRemove" method to the Section resolver. Added associated unit tests.
 - Added "lastPublishedDate" field to templates table, and changed "currentVersion" field to "lastPublishedVersion"
 - Added support for creating "other" affiliations

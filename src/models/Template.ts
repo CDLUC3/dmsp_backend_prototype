@@ -134,6 +134,12 @@ export class Template extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
+  static async findPublicTemplates(reference: string, context: MyContext): Promise<Template[]> {
+    const sql = 'SELECT * FROM templates WHERE visibility = ?';
+    const results = await Template.query(context, sql, ['PUBLIC'], reference);
+    return Array.isArray(results) && results.length > 0 ? results : [];
+  }
+
   // Look for the template by it's name and owner
   static async findByNameAndOwnerId(
     reference: string,

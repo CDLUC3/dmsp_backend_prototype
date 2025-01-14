@@ -202,6 +202,16 @@ describe('findBy queries', () => {
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
     expect(result).toEqual([]);
   });
+
+  it('findPublicTemplates returns the Template', async () => {
+    localQuery.mockResolvedValueOnce([template]);
+
+    const result = await Template.findPublicTemplates('Test public templates', context);
+    const expectedSql = 'SELECT * FROM templates WHERE visibility = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['PUBLIC'], 'Test public templates')
+    expect(result).toEqual([template]);
+  });
 });
 
 describe('create', () => {
