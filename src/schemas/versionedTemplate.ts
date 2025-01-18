@@ -6,6 +6,10 @@ export const typeDefs = gql`
     templateVersions(templateId: Int!): [VersionedTemplate]
     "Search for VersionedTemplate whose name or owning Org's name contains the search term"
     publishedTemplates(term: String!): [VersionedTemplate]
+    "Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin)"
+    userAffiliationTemplates: [VersionedTemplate]
+    "Get all public versioned templates, regardless of affiliation"
+    publicVersionedTemplates: [VersionedTemplate]
   }
 
   "Template version type"

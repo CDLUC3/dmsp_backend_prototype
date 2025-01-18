@@ -29,6 +29,18 @@ export const resolvers: Resolvers = {
       // Unauthorized!
       throw context?.token ? ForbiddenError() : AuthenticationError();
     },
+    // Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin)
+    userAffiliationTemplates: async (_, __, context: MyContext): Promise<VersionedTemplate[]> => {
+      if (isAdmin(context.token)) {
+        return await VersionedTemplate.findByUser('versionedTemplate resolver', context);
+      }
+      // Unauthorized!
+      throw context?.token ? ForbiddenError() : AuthenticationError();
+    },
+    // Get all public templates
+    publicVersionedTemplates: async (_, __, context: MyContext): Promise<VersionedTemplate[]> => {
+      return await VersionedTemplate.findPublicTemplates('versionedTemplate resolver', context);
+    },
   },
 
   VersionedTemplate: {

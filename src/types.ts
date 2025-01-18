@@ -1228,8 +1228,8 @@ export type Query = {
   projectContributors?: Maybe<Array<Maybe<ProjectContributor>>>;
   /** Get all of the Users that a Funders to the research project */
   projectFunders?: Maybe<Array<Maybe<ProjectFunder>>>;
-  /** Get all public templates */
-  publicTemplates?: Maybe<Array<Maybe<Template>>>;
+  /** Get all public versioned templates, regardless of affiliation */
+  publicVersionedTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
   publishedConditionsForQuestion?: Maybe<Array<Maybe<VersionedQuestionCondition>>>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
@@ -1267,6 +1267,8 @@ export type Query = {
   templates?: Maybe<Array<Maybe<Template>>>;
   /** Returns the specified user (Admin only) */
   user?: Maybe<User>;
+  /** Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin) */
+  userAffiliationTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Returns all of the users associated with the current user's affiliation (Admin only) */
   users?: Maybe<Array<Maybe<User>>>;
 };
@@ -2622,7 +2624,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   plans?: Resolver<Maybe<Array<Maybe<ResolversTypes['Plan']>>>, ParentType, ContextType, RequireFields<QueryPlansArgs, 'projectId'>>;
   projectContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectContributor']>>>, ParentType, ContextType, RequireFields<QueryProjectContributorsArgs, 'projectId'>>;
   projectFunders?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectFunder']>>>, ParentType, ContextType, RequireFields<QueryProjectFundersArgs, 'projectId'>>;
-  publicTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['Template']>>>, ParentType, ContextType>;
+  publicVersionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
   publishedSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
@@ -2642,6 +2644,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   templateVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryTemplateVersionsArgs, 'templateId'>>;
   templates?: Resolver<Maybe<Array<Maybe<ResolversTypes['Template']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
+  userAffiliationTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
 };
 

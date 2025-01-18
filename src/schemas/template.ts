@@ -6,8 +6,6 @@ export const typeDefs = gql`
     templates: [Template]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
-    "Get all public templates"
-    publicTemplates: [Template]
   }
 
   extend type Mutation {
