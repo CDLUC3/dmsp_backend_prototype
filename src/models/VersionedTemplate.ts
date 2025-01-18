@@ -123,6 +123,16 @@ export class VersionedTemplate extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
+  static async findVersionedSectionsByVersionedTemplateId(
+    reference: string,
+    context: MyContext,
+    versionedTemplateId: number
+  ): Promise<VersionedTemplate> {
+    const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+    const results = await VersionedTemplate.query(context, sql, [versionedTemplateId.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  }
+
   static async findPublicTemplates(reference: string, context: MyContext): Promise<VersionedTemplate[]> {
     const sql = 'SELECT * FROM versionedTemplates WHERE visibility = ?';
     const results = await VersionedTemplate.query(context, sql, ['PUBLIC'], reference);
