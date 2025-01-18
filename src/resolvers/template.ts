@@ -44,7 +44,6 @@ export const resolvers: Resolvers = {
     //    - called by the Template Builder - prior template selection page AND the initial page
     addTemplate: async (_, { name, copyFromTemplateId }, context: MyContext): Promise<Template> => {
       if (isAdmin(context.token)) {
-        console.log("***ADDING TEMPLATE", name, copyFromTemplateId);
         let template;
         if (copyFromTemplateId) {
           // Fetch the VersionedTemplate we are cloning
@@ -53,7 +52,6 @@ export const resolvers: Resolvers = {
             context,
             copyFromTemplateId
           );
-          console.log("***ORIGINAL", original);
           template = await cloneTemplate(context.token?.id, context.token.affiliationId, original);
           template.name = name;
         }

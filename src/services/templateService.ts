@@ -135,7 +135,6 @@ export const cloneTemplate = (
   template: Template | VersionedTemplate
 ): Template => {
 
-  console.log("***TEMPLATE", template);
   // If the incoming is a VersionedTemplate, then use the templateId (the template it was based off of)
   const sourceId = Object.keys(template).includes('templateId') ? template['templateId'] : template.id;
   const templateCopy = new Template({
