@@ -93,7 +93,8 @@ export const resolvers: Resolvers = {
 
         return newTemplate;
       }
-      return null;
+      // Unauthorized!
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // Update the specified template
