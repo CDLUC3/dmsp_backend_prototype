@@ -8,12 +8,17 @@ import { typeDefs as contributorTypeDefs } from './schemas/contributor';
 import { typeDefs as contributorRoleTypeDefs } from './schemas/contributorRole';
 import { typeDefs as feedbackTypeDefs } from './schemas/feedback';
 import { typeDefs as languageTypeDefs } from './schemas/language';
+import { typeDefs as licenseTypeDefs } from './schemas/license'
+import { typeDefs as metadataStandardTypeDefs } from './schemas/metadataStandard';
+import { typeDefs as outputTypeDefs } from './schemas/outputType';
 import { typeDefs as planTypeDefs } from './schemas/plan';
 import { typeDefs as projectTypeDefs } from './schemas/project';
 import { typeDefs as projectFunderTypeDefs } from './schemas/projectFunder';
+import { typeDefs as projectOutputTypeDefs } from './schemas/projectOutput';
 import { typeDefs as questionTypeDefs } from './schemas/question';
 import { typeDefs as questionConditionTypeDefs } from './schemas/questionCondition';
 import { typeDefs as questionTypeTypeDefs } from './schemas/questionType';
+import { typeDefs as repositoryTypeDefs } from './schemas/repository';
 import { typeDefs as researchDomainTypeDefs } from './schemas/researchDomain';
 import { typeDefs as sectionTypeDefs } from './schemas/section';
 import { typeDefs as tagTypeDefs } from './schemas/tag';
@@ -31,9 +36,13 @@ export const typeDefs = mergeTypeDefs([
   collaboratorTypeDefs,
   feedbackTypeDefs,
   languageTypeDefs,
+  licenseTypeDefs,
+  metadataStandardTypeDefs,
+  outputTypeDefs,
   planTypeDefs,
   projectTypeDefs,
   projectFunderTypeDefs,
+  projectOutputTypeDefs,
   sectionTypeDefs,
   tagTypeDefs,
   versionedSectionTypeDefs,
@@ -42,6 +51,7 @@ export const typeDefs = mergeTypeDefs([
   questionTypeDefs,
   questionConditionTypeDefs,
   questionTypeTypeDefs,
+  repositoryTypeDefs,
   researchDomainTypeDefs,
   sectionTypeDefs,
   tagTypeDefs,

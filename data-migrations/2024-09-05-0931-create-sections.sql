@@ -7,6 +7,7 @@ CREATE TABLE `sections` (
   `requirements` TEXT,
   `guidance` TEXT,
   `displayOrder` INT NOT NULL,
+  `bestPractice` TINYINT(1) NOT NULL DEFAULT 0
   `isDirty` TINYINT(1) NOT NULL DEFAULT 1,
   `createdById` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -30,6 +31,7 @@ CREATE TABLE `versionedSections` (
   `requirements` TEXT,
   `guidance` TEXT,
   `displayOrder` INT NOT NULL,
+  `bestPractice` TINYINT(1) NOT NULL DEFAULT 0
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
