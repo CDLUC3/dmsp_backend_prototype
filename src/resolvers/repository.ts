@@ -28,7 +28,7 @@ export const resolvers: Resolvers = {
   },
 
   Mutation: {
-    // add a new ContributorRole
+    // add a new Repository
     addRepository: async (_, { input }, context: MyContext) => {
       if (isAuthorized(context.token)) {
         try {
