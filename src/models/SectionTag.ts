@@ -14,10 +14,17 @@ export class SectionTag extends MySqlModel {
         this.tagId = options.tagId;
     }
 
-    // Save the current record
+    // Create a sectionTag record
     async create(context: MyContext): Promise<SectionTag> {
         // Insert new SectionTag records
         await SectionTag.insert(context, tableName, this, 'SectionTag.create');
+        return this;
+    }
+
+    // Delete a sectionTag record
+    async remove(context: MyContext): Promise<SectionTag> {
+        // Delete SectionTag records
+        await SectionTag.delete(context, tableName, this.tagId, 'SectionTag.create');
         return this;
     }
 

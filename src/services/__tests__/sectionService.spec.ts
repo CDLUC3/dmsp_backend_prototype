@@ -3,11 +3,12 @@ import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
 import { MySQLDataSource } from "../../datasources/mySQLDataSource";
-import { cloneSection, generateSectionVersion, hasPermissionOnSection } from "../sectionService";
+import { cloneSection, generateSectionVersion, hasPermissionOnSection, getTagsToAdd, getTagsToRemove } from "../sectionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
 import { NotFoundError } from "../../utils/graphQLErrors";
 import { Section } from "../../models/Section";
+import { SectionTag } from "../../models/SectionTag";
 import { VersionedSection } from "../../models/VersionedSection";
 import { Tag } from "../../models/Tag";
 import { getCurrentDate } from "../../utils/helpers";
@@ -227,7 +228,7 @@ describe('generateSectionVersion', () => {
       obj.modifed = tstamp;
       obj.modifiedById = userId;
 
-      switch(table) {
+      switch (table) {
         case 'sections': {
           sectionStore.push(obj);
           break;
@@ -250,7 +251,7 @@ describe('generateSectionVersion', () => {
         obj.modifiedById = userId;
       }
 
-      switch(table) {
+      switch (table) {
         case 'sections': {
           const existing = sectionStore.find((entry) => { return entry.id === obj.id });
           if (!existing) {
@@ -347,5 +348,123 @@ describe('generateSectionVersion', () => {
     expect(updated.modifiedById).toEqual(section.modifiedById);
     expect(updated.modified).toEqual(section.modified);
     expect(updated.isDirty).toEqual(false);
+  });
+});
+
+describe('getTagsToAdd', () => {
+  let section;
+  let mockQuery;
+  let context;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    // Cast getInstance to a jest.Mock type to use mockReturnValue
+    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
+      query: jest.fn(), // Initialize the query mock function here
+    });
+
+    const instance = MySQLDataSource.getInstance();
+    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
+    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+
+    const existingTag1 = new SectionTag({ sectionId: 55, tagId: 1 });
+    const existingTag2 = new SectionTag({ sectionId: 55, tagId: 2 });
+    const existingTag3 = new SectionTag({ sectionId: 55, tagId: 3 });
+    const existingTags: SectionTag[] = [existingTag1, existingTag2, existingTag3];
+
+    section = new Section({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+
+    const mockGetSectionTagsBySectionId = jest.fn();
+    (SectionTag.getSectionTagsBySectionId as jest.Mock) = mockGetSectionTagsBySectionId;
+    mockGetSectionTagsBySectionId.mockResolvedValueOnce(existingTags);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('Should return an array with tag4', async () => {
+    const tag3 = new Tag({ name: 'Tag3', id: 3 });
+    const tag4 = new Tag({ name: 'Tag4', id: 4 });
+    const tags: Tag[] = [tag3, tag4];
+
+    const result = await getTagsToAdd(tags, context, section.id);
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 4,
+        name: 'Tag4',
+        createdById: undefined,
+        modifiedById: undefined,
+        errors: [],
+        description: undefined
+      })
+    ]);
+
+  });
+});
+
+describe('getTagsToRemove', () => {
+  let section;
+  let mockQuery;
+  let context;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    // Cast getInstance to a jest.Mock type to use mockReturnValue
+    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
+      query: jest.fn(), // Initialize the query mock function here
+    });
+
+    const instance = MySQLDataSource.getInstance();
+    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
+    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+
+    const existingTag1 = new SectionTag({ sectionId: 55, tagId: 1 });
+    const existingTag2 = new SectionTag({ sectionId: 55, tagId: 2 });
+    const existingTag3 = new SectionTag({ sectionId: 55, tagId: 3 });
+    const existingTags: SectionTag[] = [existingTag1, existingTag2, existingTag3];
+
+    section = new Section({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      name: casual.sentence,
+      ownerId: casual.url,
+    })
+
+    const mockGetSectionTagsBySectionId = jest.fn();
+    (SectionTag.getSectionTagsBySectionId as jest.Mock) = mockGetSectionTagsBySectionId;
+    mockGetSectionTagsBySectionId.mockResolvedValueOnce(existingTags);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('Should return an array with tagId = 1 since it does not exist in the new tags array', async () => {
+    const tag2 = new Tag({ name: 'Tag2', id: 2 });
+    const tag3 = new Tag({ name: 'Tag3', id: 3 });
+    const tags: Tag[] = [tag2, tag3];
+
+    const result = await getTagsToRemove(tags, context, section.id);
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: undefined,
+        createdById: undefined,
+        modifiedById: undefined,
+        errors: [],
+        sectionId: 55,
+        tagId: 1
+      })
+    ]);
+
   });
 });
