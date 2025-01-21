@@ -37,10 +37,6 @@ export const resolvers: Resolvers = {
       // Unauthorized!
       throw context?.token ? ForbiddenError() : AuthenticationError();
     },
-    // Get all public versionedTemplates, regardless of user's affiliation
-    publicVersionedTemplates: async (_, __, context: MyContext): Promise<VersionedTemplate[]> => {
-      return await VersionedTemplate.findPublicTemplates('versionedTemplate resolver', context);
-    },
   },
 
   VersionedTemplate: {

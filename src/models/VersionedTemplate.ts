@@ -108,7 +108,9 @@ export class VersionedTemplate extends MySqlModel {
     const sql = `SELECT * FROM versionedTemplates \
                  WHERE name LIKE ? AND active = 1 AND versionType = ? \
                  ORDER BY name ASC`;
-    const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
+    const searchTerm = (term ?? '');
+    const vals = [`%${searchTerm}%`, TemplateVersionType.PUBLISHED];
+
     return await VersionedTemplate.query(context, sql, vals, reference);
   }
 
@@ -121,13 +123,6 @@ export class VersionedTemplate extends MySqlModel {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
-  }
-
-  //Find all versionedTemplates that have a visibility = PUBLIC
-  static async findPublicTemplates(reference: string, context: MyContext): Promise<VersionedTemplate[]> {
-    const sql = 'SELECT * FROM versionedTemplates WHERE visibility = ?';
-    const results = await VersionedTemplate.query(context, sql, ['PUBLIC'], reference);
-    return Array.isArray(results) && results.length > 0 ? results : [];
   }
 
   // Find all of the templates associated with the context's User's affiliation

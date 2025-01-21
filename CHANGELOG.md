@@ -1,7 +1,7 @@
 ### Added
-- Added a query to get all PUBLIC versionedTemplates, even ones outside of the user's org
-  - Added a new query to get all versionedTemplates under user's affiliation
-  - Made updates to addTemplate to copy over versionedSections and versionedQuestions when copyFromTemplateId is passed in
+- Added a new query to get all versionedTemplates under user's affiliation
+- Updated `templates` resolver to handle updates to `sections` and `questions` when copying a `template`
+- Made updates to addTemplate to copy over versionedSections and versionedQuestions when copyFromTemplateId is passed in
 - Added "remove" method to SectionTag model. Updated "updateSection" method in Section resolvers to remove sectionTags when user is updating their Section. Added "getTagsToRemove" method to the Section resolver. Added associated unit tests.
 - Added "lastPublishedDate" field to templates table, and changed "currentVersion" field to "lastPublishedVersion"
 - Added support for creating "other" affiliations

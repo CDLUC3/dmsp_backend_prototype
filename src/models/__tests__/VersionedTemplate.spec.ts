@@ -132,15 +132,6 @@ describe('findBy queries', () => {
     expect(result).toEqual([versionedTemplate]);
   });
 
-  it('findPublicTemplates returns VersionedTemplates for the Template', async () => {
-    localQuery.mockResolvedValueOnce([versionedTemplate]);
-    const result = await VersionedTemplate.findPublicTemplates('Test', context);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE visibility = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['PUBLIC'], 'Test')
-    expect(result).toEqual([versionedTemplate]);
-  });
-
   it('findByUser returns the VersionedTemplates', async () => {
     localQuery.mockResolvedValueOnce([versionedTemplate]);
     const result = await VersionedTemplate.findByUser('Test', context);
