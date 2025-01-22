@@ -152,7 +152,7 @@ describe('findBy queries', () => {
     expect(result).toEqual(null);
   });
 
-  it('findByUser returns the Templates owned by the current user\'s Affiliation', async () => {
+  it('findByAffiliationId returns the Templates owned by the current user\'s Affiliation', async () => {
     localQuery.mockResolvedValueOnce([template]);
 
     const mockFindByEmail = jest.fn();
@@ -160,14 +160,14 @@ describe('findBy queries', () => {
     mockFindByEmail.mockResolvedValueOnce([]);
 
     const affiliationId = context.token.affiliationId;
-    const result = await Template.findByUser('Test', context);
+    const result = await Template.findByAffiliationId('Test', context, context.token.affiliationId);
     const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
     expect(result).toEqual([template]);
   });
 
-  it('findByUser returns the Templates shared with the current user', async () => {
+  it('findByAffiliationId returns the Templates shared with the current user', async () => {
     localQuery.mockResolvedValueOnce([template]);
 
     const sharedTemplate = new Template({
@@ -181,14 +181,14 @@ describe('findBy queries', () => {
     mockFindByEmail.mockResolvedValueOnce([sharedTemplate]);
 
     const affiliationId = context.token.affiliationId;
-    const result = await Template.findByUser('Test', context);
+    const result = await Template.findByAffiliationId('Test', context, context.token.affiliationId);
     const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
-    expect(result).toEqual([template, sharedTemplate]);
+    expect(result).toEqual([template]);
   });
 
-  it('findByUser returns null if there are no Templates for the current user', async () => {
+  it('findByAffiliationId returns null if there are no Templates for the current user', async () => {
     localQuery.mockResolvedValueOnce([]);
 
     const mockFindByEmail = jest.fn();
@@ -196,7 +196,7 @@ describe('findBy queries', () => {
     mockFindByEmail.mockResolvedValueOnce([]);
 
     const affiliationId = context.token.affiliationId;
-    const result = await Template.findByUser('Test', context);
+    const result = await Template.findByAffiliationId('Test', context, context.token.affiliationId);
     const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')

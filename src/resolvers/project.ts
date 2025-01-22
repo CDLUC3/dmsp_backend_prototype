@@ -3,7 +3,7 @@ import { Resolvers } from "../types";
 import { Project } from "../models/Project";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
-import { ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
+import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ProjectFunder } from '../models/Funder';
 import { ProjectContributor } from '../models/Contributor';
 import { hasPermissionOnProject } from '../services/projectService';
@@ -15,7 +15,7 @@ export const resolvers: Resolvers = {
       if (isAuthorized(context.token)) {
         return await Project.findByUserId('myProjects resolver', context, context.token?.id);
       }
-      throw ForbiddenError();
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // Fetch a single project
@@ -26,7 +26,7 @@ export const resolvers: Resolvers = {
           return project;
         }
       }
-      throw ForbiddenError();
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 
@@ -43,7 +43,7 @@ export const resolvers: Resolvers = {
           throw InternalServerError();
         }
       } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
     },
 
@@ -66,7 +66,7 @@ export const resolvers: Resolvers = {
           throw InternalServerError();
         }
       } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
     },
 
@@ -92,7 +92,7 @@ export const resolvers: Resolvers = {
           throw InternalServerError();
         }
       } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
     },
   },

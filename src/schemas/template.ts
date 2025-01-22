@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get the Templates that belong to the current user's affiliation (user must be an Admin)"
-    templates: [Template]
+    myTemplates: [Template]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
   }

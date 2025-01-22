@@ -12,9 +12,9 @@ import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTempl
 export const resolvers: Resolvers = {
   Query: {
     // Get the Templates that belong to the current user's affiliation (user must be an Admin)
-    templates: async (_, __, context: MyContext): Promise<Template[]> => {
+    myTemplates: async (_, __, context: MyContext): Promise<Template[]> => {
       if (isAdmin(context.token)) {
-        return await Template.findByUser('templates resolver', context);
+        return await Template.findByAffiliationId('templates resolver', context, context.token.affiliationId);
       }
       // Unauthorized!
       throw context?.token ? ForbiddenError() : AuthenticationError();
