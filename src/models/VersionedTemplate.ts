@@ -1,5 +1,4 @@
 import { TemplateVisibility } from "./Template";
-import { TemplateCollaborator } from "./Collaborator";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
@@ -126,16 +125,8 @@ export class VersionedTemplate extends MySqlModel {
   }
 
   // Find all of the templates associated with the context's User's affiliation
-  static async findByUser(reference: string, context: MyContext): Promise<VersionedTemplate[]> {
+  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<VersionedTemplate[]> {
     const sql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
-    const templates = await VersionedTemplate.query(context, sql, [context.token?.affiliationId], reference);
-
-    // Also look for any templates that the current user has been invited to collaborate on
-    const sharedTemplates = await TemplateCollaborator.findByEmail(
-      'VersionedTemplate.findByUser',
-      context,
-      context.token?.email
-    );
-    return [...templates, ...sharedTemplates];
+    return await VersionedTemplate.query(context, sql, [affiliationId], reference);
   }
 }

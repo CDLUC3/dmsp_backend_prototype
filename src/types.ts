@@ -1206,6 +1206,8 @@ export type Query = {
   languages?: Maybe<Array<Maybe<Language>>>;
   /** Returns the currently logged in user's information */
   me?: Maybe<User>;
+  /** Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin) */
+  myVersionedTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Get a specific plan */
   plan?: Maybe<Plan>;
   /** Get all of the Users that are collaborators for the Plan */
@@ -1265,8 +1267,6 @@ export type Query = {
   templates?: Maybe<Array<Maybe<Template>>>;
   /** Returns the specified user (Admin only) */
   user?: Maybe<User>;
-  /** Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin) */
-  userAffiliationTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Returns all of the users associated with the current user's affiliation (Admin only) */
   users?: Maybe<Array<Maybe<User>>>;
 };
@@ -2611,6 +2611,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   findCollaborator?: Resolver<Maybe<Array<Maybe<ResolversTypes['CollaboratorSearchResult']>>>, ParentType, ContextType, Partial<QueryFindCollaboratorArgs>>;
   languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  myVersionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
   planCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanCollaborator']>>>, ParentType, ContextType, RequireFields<QueryPlanCollaboratorsArgs, 'planId'>>;
   planContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanContributor']>>>, ParentType, ContextType, RequireFields<QueryPlanContributorsArgs, 'planId'>>;
@@ -2641,7 +2642,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   templateVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryTemplateVersionsArgs, 'templateId'>>;
   templates?: Resolver<Maybe<Array<Maybe<ResolversTypes['Template']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
-  userAffiliationTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
   users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
 };
 

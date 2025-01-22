@@ -132,12 +132,13 @@ describe('findBy queries', () => {
     expect(result).toEqual([versionedTemplate]);
   });
 
-  it('findByUser returns the VersionedTemplates', async () => {
+  it('findByAffiliationId returns the VersionedTemplates', async () => {
     localQuery.mockResolvedValueOnce([versionedTemplate]);
-    const result = await VersionedTemplate.findByUser('Test', context);
+    const affiliationId = '1234'
+    const result = await VersionedTemplate.findByAffiliationId('Test', context, affiliationId);
     const expectedSql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [context.token?.affiliationId], 'Test')
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
     expect(result).toEqual([versionedTemplate]);
   });
 
