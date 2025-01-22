@@ -97,7 +97,7 @@ export class ResearchDomain extends MySqlModel {
   }
 
   // Add the ResearchDomain to a MetadataStandard
-  async addToMetadataStandard(context: MyContext, metadataStandardId: number): Promise<ResearchDomain> {
+  async addToMetadataStandard(context: MyContext, metadataStandardId: number): Promise<boolean> {
     const reference = 'ResearchDomain.addToMetadataStandard';
     const sql = 'INSERT INTO metadataStandardResearchDomains (researchDomainId, metadataStandardId) (?, ?)';
     const vals = [this.id.toString(), metadataStandardId.toString()];
@@ -107,13 +107,13 @@ export class ResearchDomain extends MySqlModel {
       const payload = { researchDomainId: this.id, metadataStandardId };
       const msg = 'Unable to add the research domain to the metadata standard';
       formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
-      this.errors.push(msg);
+      return false;
     }
-    return this;
+    return true;
   }
 
   // Add the ResearchDomain to a MetadataStandard
-  async addToRepository(context: MyContext, repositoryId: number): Promise<ResearchDomain> {
+  async addToRepository(context: MyContext, repositoryId: number): Promise<boolean> {
     const reference = 'ResearchDomain.addToRepository';
     const sql = 'INSERT INTO repositoryResearchDomains (researchDomainId, repositoryId) (?, ?)';
     const vals = [this.id.toString(), repositoryId.toString()];
@@ -123,9 +123,9 @@ export class ResearchDomain extends MySqlModel {
       const payload = { researchDomainId: this.id, repositoryId };
       const msg = 'Unable to add the research domain to the repository';
       formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
-      this.errors.push(msg);
+      return false;
     }
-    return this;
+    return true;
   }
 
   //Delete the ResearchDomain
@@ -149,7 +149,7 @@ export class ResearchDomain extends MySqlModel {
   }
 
   // Remove the ResearchDomain from a MetadataStandard
-  async removeFromMetadataStandard(context: MyContext, metadataStandardId: number): Promise<ResearchDomain> {
+  async removeFromMetadataStandard(context: MyContext, metadataStandardId: number): Promise<boolean> {
     const reference = 'ResearchDomain.removeFromMetadataStandard';
     const sql = 'DELETE FROM metadataStandardResearchDomains WHERE researchDomainId = ? AND metadataStandardId = ?';
     const vals = [this.id.toString(), metadataStandardId.toString()];
@@ -159,13 +159,13 @@ export class ResearchDomain extends MySqlModel {
       const payload = { researchDomainId: this.id, metadataStandardId };
       const msg = 'Unable to remove the research domain from the metadata standard';
       formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
-      this.errors.push(msg);
+      return false;
     }
-    return this;
+    return true;
   }
 
   // Remove the ResearchDomain from a repository
-  async removeFromRepository(context: MyContext, repositoryId: number): Promise<ResearchDomain> {
+  async removeFromRepository(context: MyContext, repositoryId: number): Promise<boolean> {
     const reference = 'ResearchDomain.removeFromRepository';
     const sql = 'DELETE FROM repositoryResearchDomains WHERE researchDomainId = ? AND repositoryId = ?';
     const vals = [this.id.toString(), repositoryId.toString()];
@@ -175,9 +175,9 @@ export class ResearchDomain extends MySqlModel {
       const payload = { researchDomainId: this.id, repositoryId };
       const msg = 'Unable to remove the research domain from the repository';
       formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
-      this.errors.push(msg);
+      return false;
     }
-    return this;
+    return true;
   }
 
   // Return all of the top level Research Domains (meaning they have no parent)

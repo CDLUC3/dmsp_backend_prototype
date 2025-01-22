@@ -7,14 +7,14 @@ describe('ContributorRole', () => {
   it('constructor should initialize as expected', () => {
     const displayOrder = casual.integer(1, 9);
     const label = casual.words(3);
-    const url = casual.url;
+    const uri = casual.url;
     const createdById = casual.integer(1, 999);
 
-    const role = new ContributorRole({ displayOrder, label, url, createdById });
+    const role = new ContributorRole({ displayOrder, label, uri, createdById });
 
     expect(role.displayOrder).toEqual(displayOrder);
     expect(role.label).toEqual(label);
-    expect(role.url).toEqual(url);
+    expect(role.uri).toEqual(uri);
     expect(role.description).toBeFalsy();
     expect(role.createdById).toEqual(createdById);
   });
@@ -22,19 +22,19 @@ describe('ContributorRole', () => {
   it('isValid returns true when the displayOrder, label and url are present', async () => {
     const displayOrder = casual.integer(1, 9);
     const label = casual.words(3);
-    const url = casual.url;
+    const uri = casual.url;
     const createdById = casual.integer(1, 999);
 
-    const role = new ContributorRole({ displayOrder, label, url, createdById });
+    const role = new ContributorRole({ displayOrder, label, uri, createdById });
     expect(await role.isValid()).toBe(true);
   });
 
   it('isValid returns false when the displayOrder is NOT present', async () => {
     const label = casual.words(3);
-    const url = casual.url;
+    const uri = casual.url;
     const createdById = casual.integer(1, 999);
 
-    const role = new ContributorRole({ label, url, createdById });
+    const role = new ContributorRole({ label, uri, createdById });
     expect(await role.isValid()).toBe(false);
     expect(role.errors.length).toBe(1);
     expect(role.errors[0].includes('Display order')).toBe(true);
@@ -42,16 +42,16 @@ describe('ContributorRole', () => {
 
   it('isValid returns false when the label is NOT present', async () => {
     const displayOrder = casual.integer(1, 9);
-    const url = casual.url;
+    const uri = casual.url;
     const createdById = casual.integer(1, 999);
 
-    const role = new ContributorRole({ displayOrder, url, createdById });
+    const role = new ContributorRole({ displayOrder, uri, createdById });
     expect(await role.isValid()).toBe(false);
     expect(role.errors.length).toBe(1);
     expect(role.errors[0].includes('Label')).toBe(true);
   });
 
-  it('isValid returns false when the url is NOT present', async () => {
+  it('isValid returns false when the uri is NOT present', async () => {
     const displayOrder = casual.integer(1, 9);
     const label = casual.words(3);
     const createdById = casual.integer(1, 999);
@@ -60,6 +60,86 @@ describe('ContributorRole', () => {
     expect(await role.isValid()).toBe(false);
     expect(role.errors.length).toBe(1);
     expect(role.errors[0].includes('URL')).toBe(true);
+  });
+});
+
+describe('addToProjectContributor', () => {
+  let context;
+  let mockRole;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockRole = new ContributorRole({
+      id: casual.integer(1, 99),
+      label: casual.word,
+      uri: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the ContributorRole to the specified ProjectContributor', async () => {
+    const projectContributorId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(mockRole);
+    const result = await mockRole.addToProjectContributor(context, projectContributorId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'INSERT INTO projectContributorRoles (contributorRoleId, projectContributorId) (?, ?)';
+    const vals = [mockRole.id.toString(), projectContributorId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ContributorRole.addToProjectContributor')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the role cannot be associated with the ProjectContributor', async () => {
+    const projectContributorId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(null);
+    const result = await mockRole.addToProjectContributor(context, projectContributorId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('removeFromProjectContributor', () => {
+  let context;
+  let mockRole;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockRole = new ContributorRole({
+      id: casual.integer(1, 99),
+      label: casual.word,
+      uri: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('removes the ContributorRole association from the specified ProjectContributor', async () => {
+    const projectContributorId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(mockRole);
+    const result = await mockRole.removeFromProjectContributor(context, projectContributorId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'DELETE FROM projectContributorRoles WHERE contributorRoleId = ? AND projectContributorId = ?';
+    const vals = [mockRole.id.toString(), projectContributorId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ContributorRole.removeFromProjectContributor')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the role cannot be associated with the ProjectContributor', async () => {
+    const projectContributorId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(null);
+    const result = await mockRole.removeFromProjectContributor(context, projectContributorId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
   });
 });
 
@@ -80,7 +160,7 @@ describe('queries', () => {
     mockRole = {
       id: casual.integer(1, 99),
       label: casual.word,
-      url: casual.url
+      uri: casual.url
     };
   });
 

@@ -5,7 +5,7 @@ import { MySqlModel } from "./MySqlModel";
 
 export class ContributorRole extends MySqlModel {
   public displayOrder: number;
-  public url: string;
+  public uri: string;
   public label: string;
   public description?: string;
 
@@ -14,7 +14,7 @@ export class ContributorRole extends MySqlModel {
 
     this.id = options.id;
     this.displayOrder = options.displayOrder;
-    this.url = options.url;
+    this.uri = options.uri;
     this.label = options.label;
     this.description = options.description;
   }
@@ -23,7 +23,7 @@ export class ContributorRole extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!validateURL(this.url)) {
+    if (!validateURL(this.uri)) {
       this.errors.push('URL can\'t be blank');
     }
     if (!this.displayOrder || this.displayOrder < 0) {
@@ -36,7 +36,7 @@ export class ContributorRole extends MySqlModel {
   }
 
   // Add an association for a ContributorRole with a ProjectContributor
-  async addToProjectContributor(context: MyContext, projectContributorId: number): Promise<ContributorRole> {
+  async addToProjectContributor(context: MyContext, projectContributorId: number): Promise<boolean> {
     const reference = 'ContributorRole.addToProjectContributor';
     const sql = 'INSERT INTO projectContributorRoles (contributorRoleId, projectContributorId) (?, ?)';
     const vals = [this.id.toString(), projectContributorId.toString()];
@@ -46,13 +46,13 @@ export class ContributorRole extends MySqlModel {
       const payload = { contributorRoleId: this.id, projectContributorId };
       const msg = 'Unable to add the contributor role to the project contributor';
       formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
-      this.errors.push(msg);
+      return false;
     }
-    return this;
+    return true;
   }
 
   // Remove an association of a ContributorRole from a ProjectContributor
-  async removeFromProjectContributor(context: MyContext, projectContributorId: number): Promise<ContributorRole> {
+  async removeFromProjectContributor(context: MyContext, projectContributorId: number): Promise<boolean> {
     const reference = 'ContributorRole.removeFromProjectContributor';
     const sql = 'DELETE FROM projectContributorRoles WHERE contributorRoleId = ? AND projectContributorId = ?';
     const vals = [this.id.toString(), projectContributorId.toString()];
@@ -62,9 +62,9 @@ export class ContributorRole extends MySqlModel {
       const payload = { contributorRoleId: this.id, projectContributorId };
       const msg = 'Unable to remove the contributor role from the project contributor';
       formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
-      this.errors.push(msg);
+      return false;
     }
-    return this;
+    return true;
   }
 
   // Return all of the contributor roles

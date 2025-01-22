@@ -398,3 +398,163 @@ describe('delete', () => {
     expect(result).toEqual(domain);
   });
 });
+
+describe('addToRepository', () => {
+  let context;
+  let mockDomain;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockDomain = new ResearchDomain({
+      id: casual.integer(1, 99),
+      label: casual.word,
+      url: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the ResearchDomain to the specified Repository', async () => {
+    const repositoryId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
+    const result = await mockDomain.addToRepository(context, repositoryId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'INSERT INTO repositoryResearchDomains (researchDomainId, repositoryId) (?, ?)';
+    const vals = [mockDomain.id.toString(), repositoryId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.addToRepository')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the domain cannot be associated with the Repository', async () => {
+    const repositoryId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null);
+    const result = await mockDomain.addToRepository(context, repositoryId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('addToMetadataStandard', () => {
+  let context;
+  let mockDomain;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockDomain = new ResearchDomain({
+      id: casual.integer(1, 99),
+      label: casual.word,
+      url: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the ResearchDomain to the specified MetadataStandard', async () => {
+    const standardId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
+    const result = await mockDomain.addToMetadataStandard(context, standardId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'INSERT INTO metadataStandardResearchDomains (researchDomainId, metadataStandardId) (?, ?)';
+    const vals = [mockDomain.id.toString(), standardId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.addToMetadataStandard')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the domain cannot be associated with the MetadataStandard', async () => {
+    const standardId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null);
+    const result = await mockDomain.addToMetadataStandard(context, standardId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('removeFromRepository', () => {
+  let context;
+  let mockDomain;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockDomain = new ResearchDomain({
+      id: casual.integer(1, 99),
+      label: casual.word,
+      url: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('removes the ResearchDomain association with the specified Repository', async () => {
+    const repositoryId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
+    const result = await mockDomain.removeFromRepository(context, repositoryId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'DELETE FROM repositoryResearchDomains WHERE researchDomainId = ? AND repositoryId = ?';
+    const vals = [mockDomain.id.toString(), repositoryId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.removeFromRepository')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the domain cannot be removed from the Repository', async () => {
+    const repositoryId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null);
+    const result = await mockDomain.removeFromRepository(context, repositoryId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('removeFromMetadataStandard', () => {
+  let context;
+  let mockDomain;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockDomain = new ResearchDomain({
+      id: casual.integer(1, 99),
+      label: casual.word,
+      url: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('removes the ResearchDomain association from the specified MetadataStandard', async () => {
+    const standardId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
+    const result = await mockDomain.removeFromMetadataStandard(context, standardId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'DELETE FROM metadataStandardResearchDomains WHERE researchDomainId = ? AND metadataStandardId = ?';
+    const vals = [mockDomain.id.toString(), standardId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.removeFromMetadataStandard')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the domain cannot be removed from the MetadataStandard', async () => {
+    const standardId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null);
+    const result = await mockDomain.removeFromMetadataStandard(context, standardId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
