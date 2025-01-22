@@ -132,6 +132,17 @@ describe('findBy queries', () => {
     expect(result).toEqual([versionedTemplate]);
   });
 
+  it('findByAffiliationId returns the VersionedTemplates', async () => {
+    localQuery.mockResolvedValueOnce([versionedTemplate]);
+    const affiliationId = '1234'
+    const result = await VersionedTemplate.findByAffiliationId('Test', context, affiliationId);
+    const expectedSql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
+    expect(result).toEqual([versionedTemplate]);
+  });
+
+
   it('findByTemplateId returns an empty array if there are no VersionedTemplates', async () => {
     localQuery.mockResolvedValueOnce([]);
 
