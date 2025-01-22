@@ -107,7 +107,9 @@ export class VersionedTemplate extends MySqlModel {
     const sql = `SELECT * FROM versionedTemplates \
                  WHERE name LIKE ? AND active = 1 AND versionType = ? \
                  ORDER BY name ASC`;
-    const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
+    const searchTerm = (term ?? '');
+    const vals = [`%${searchTerm}%`, TemplateVersionType.PUBLISHED];
+
     return await VersionedTemplate.query(context, sql, vals, reference);
   }
 
@@ -120,5 +122,11 @@ export class VersionedTemplate extends MySqlModel {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  }
+
+  // Find all of the templates associated with the context's User's affiliation
+  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<VersionedTemplate[]> {
+    const sql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
+    return await VersionedTemplate.query(context, sql, [affiliationId], reference);
   }
 }
