@@ -1,10 +1,14 @@
 import { Resolvers } from "../types";
 import { Template, TemplateVisibility } from "../models/Template";
-import { MyContext } from "../context";
 import { Affiliation } from "../models/Affiliation";
 import { TemplateCollaborator } from "../models/Collaborator";
 import { Section } from "../models/Section";
+import { VersionedSection } from '../models/VersionedSection';
+import { VersionedQuestion } from "../models/VersionedQuestion";
+import { MyContext } from "../context";
 import { cloneTemplate, generateTemplateVersion, hasPermissionOnTemplate } from "../services/templateService";
+import { cloneSection } from "../services/sectionService";
+import { cloneQuestion } from "../services/questionService";
 import { isAdmin, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
@@ -44,7 +48,7 @@ export const resolvers: Resolvers = {
     //    - called by the Template Builder - prior template selection page AND the initial page
     addTemplate: async (_, { name, copyFromTemplateId }, context: MyContext): Promise<Template> => {
       if (isAdmin(context.token)) {
-        let template;
+        let template: Template;
         if (copyFromTemplateId) {
           // Fetch the VersionedTemplate we are cloning
           const original = await VersionedTemplate.findVersionedTemplateById(
@@ -52,18 +56,45 @@ export const resolvers: Resolvers = {
             context,
             copyFromTemplateId
           );
-          template = await cloneTemplate(context.token?.id, context.token.affiliationId, original);
+          template = cloneTemplate(context.token?.id, context.token.affiliationId, original);
           template.name = name;
         }
         if (!template) {
-
           // Create a new blank template
           template = new Template({ name, ownerId: context.token.affiliationId });
         }
 
-        return await template.create(context);
+        // Create new template
+        const newTemplate = await template.create(context);
+        const templateId = newTemplate.id;
+
+        if (templateId && copyFromTemplateId) {
+          // Fetch and copy versionedSections to sections table for new template
+          const versionedSections = await VersionedSection.findByTemplateId('template resolver', context, copyFromTemplateId);
+          for (const versionedSection of versionedSections) {
+            const versionedSectionId = versionedSection.sectionId;
+            const section = cloneSection(context.token?.id, templateId, versionedSection)
+            if (section) {
+              const newSection = await section.create(context, templateId);
+              const sectionId = newSection.id;
+
+              //Fetch and copy all related versionedQuestions to copy to questions table for new template
+              const versionedQuestions = await VersionedQuestion.findByVersionedSectionId('template resolver', context, versionedSectionId);
+              for (const versionedQuestion of versionedQuestions) {
+                const question = await cloneQuestion(context.token?.id, templateId, sectionId, versionedQuestion);
+                if (question) {
+                  const questionText = question.questionText;
+                  await question.create(context, questionText, sectionId, templateId);
+                }
+              }
+            }
+          }
+        }
+
+        return newTemplate;
       }
-      return null;
+      // Unauthorized!
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // Update the specified template

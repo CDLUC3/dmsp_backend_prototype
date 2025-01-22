@@ -78,7 +78,7 @@ export class VersionedSection extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? results : null;
   }
 
-  // Find the VersionedSections by templateId
+  // Find the VersionedSections by versionedTemplateId
   static async findByTemplateId(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedSection[]> {
     const sql = 'SELECT * FROM versionedSections WHERE versionedTemplateId = ?';
     const results = await VersionedSection.query(context, sql, [versionedTemplateId.toString()], reference);
