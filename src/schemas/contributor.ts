@@ -15,14 +15,14 @@ export const typeDefs = gql`
     "Update a contributor on the research project"
     editProjectContributor(input: EditProjectContributorInput!): ProjectContributor
     "Remove a research project contributor"
-    removeProjectContributor(projectContributorId: Int!): Boolean
+    removeProjectContributor(projectContributorId: Int!): ProjectContributor
 
     "Add a Contributor to a Plan"
     addPlanContributor(planId: Int!, projectContributorId: Int!, roles: [String!]): PlanContributor
     "Chnage a Contributor's accessLevel on a Plan"
     updatePlanContributor(planContributorId: Int!, roles: [String!]): PlanContributor
     "Remove a PlanContributor from a Plan"
-    removePlanContributor(planContributorId: Int!): Boolean
+    removePlanContributor(planContributorId: Int!): PlanContributor
   }
 
   "A person involved with a research project"
@@ -93,7 +93,7 @@ export const typeDefs = gql`
     "The contributor's email address"
     email: String
     "The roles the contributor has on the research project"
-    roles: [String!]
+    roles: [Int!]
   }
 
   input EditProjectContributorInput {
@@ -110,6 +110,6 @@ export const typeDefs = gql`
     "The contributor's email address"
     email: String
     "The roles the contributor has on the research project"
-    roles: [String!]
+    roles: [Int!]
   }
 `;

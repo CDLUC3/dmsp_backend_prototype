@@ -11,9 +11,10 @@ CREATE TABLE `projects` (
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX projects_title (`id`, `title`),
-  INDEX projects_modified (`id`, `modified`),
-  INDEX projects_test (`id`, `isTestProject`)
+  INDEX projects_title_idx (`id`, `title`),
+  INDEX projects_modified_idx (`id`, `modified`),
+  INDEX projects_test_idx (`id`, `isTestProject`),
+  INDEX projects_dates_idx (`id`, `startDate`, `endDate`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
 # People who contribute to a research project (e.g. principal investigators, data curators, etc.)
@@ -25,7 +26,7 @@ CREATE TABLE `projectContributors` (
   `surName` VARCHAR(255),
   `orcid` VARCHAR(255),
   `email` VARCHAR(255),
-  `roles` JSON NOT NULL DEFAULT '[]',
+  `roles` JSON NOT NULL,
   `createdById` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
