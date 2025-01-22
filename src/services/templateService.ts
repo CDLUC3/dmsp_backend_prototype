@@ -26,6 +26,9 @@ export const hasPermissionOnTemplate = async (context: MyContext, template: Temp
   if (collaborator) {
     return true;
   }
+
+  const payload = { templateId: template.id, userId: context.token.id };
+  formatLogMessage(context.logger).error(payload, 'AUTH failure: hasPermissionOnTemplate')
   return false;
 }
 

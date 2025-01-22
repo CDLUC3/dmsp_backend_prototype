@@ -5,6 +5,9 @@ export const typeDefs = gql`
     "Get all of the Users that a contributors to the research project"
     projectContributors(projectId: Int!): [ProjectContributor]
 
+    "Get a specific contributor on the research project"
+    projectContributor(projectContributorId: Int!): ProjectContributor
+
     "Get all of the Users that are contributors for the specific Plan"
     planContributors(planId: Int!): [PlanContributor]
   }
@@ -41,7 +44,7 @@ export const typeDefs = gql`
     errors: [String!]
 
     "The research project"
-    project: Project!
+    project: Project
     "The contributor's affiliation"
     affiliation: Affiliation
     "The contributor's first/given name"
@@ -53,7 +56,7 @@ export const typeDefs = gql`
     "The contributor's email address"
     email: String
     "The roles the contributor has on the research project"
-    roles: [ContributorRole!]
+    contributorRoles: [ContributorRole!]
   }
 
   "A person involved with the research project who will appear in the Plan's citation and landing page"
@@ -72,11 +75,11 @@ export const typeDefs = gql`
     errors: [String!]
 
     "The Plan"
-    plan: Plan!
+    plan: Plan
     "The contributor's affiliation"
     ProjectContributor: ProjectContributor
     "The roles the contributor has for this specific plan (can differ from the project)"
-    roles: [ContributorRole!]
+    contributorRoles: [ContributorRole!]
   }
 
   input AddProjectContributorInput {

@@ -5,6 +5,9 @@ export const typeDefs = gql`
     "Get all of the Users that a Funders to the research project"
     projectFunders(projectId: Int!): [ProjectFunder]
 
+    "Get a specific ProjectFunder"
+    projectFunder(projectFunderId: Int!): ProjectFunder
+
     "Get all of the Users that are Funders for the specific Plan"
     planFunders(planId: Int!): [ProjectFunder]
   }
@@ -49,9 +52,9 @@ export const typeDefs = gql`
     errors: [String!]
 
     "The project that is seeking (or has aquired) funding"
-    project: Project!
+    project: Project
     "The funder"
-    affiliation: Affiliation!
+    affiliation: Affiliation
     "The status of the funding resquest"
     status: ProjectFunderStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"

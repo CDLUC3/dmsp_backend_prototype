@@ -189,16 +189,15 @@ describe('findBy Queries', () => {
   });
 
   it('findByMetadataStandardId should call query with correct params and return an array', async () => {
-    const mockId = casual.integer(1, 99);
-    localQuery.mockResolvedValueOnce([{ researchDomainId: mockId }]);
     localQuery.mockResolvedValueOnce([domain]);
     const standardId = casual.integer(1, 999);
     const result = await ResearchDomain.findByMetadataStandardId('testing', context, standardId);
-    const sql = 'SELECT researchDomainId FROM metadataStandardResearchDomains WHERE metadataStandardId = ?';
-    const sql2 = 'SELECT * FROM researchDomains WHERE id = ?';
-    expect(localQuery).toHaveBeenCalledTimes(2);
-    expect(localQuery).toHaveBeenNthCalledWith(1, context, sql, [standardId.toString()], 'testing');
-    expect(localQuery).toHaveBeenLastCalledWith(context, sql2, [mockId.toString()], 'testing');
+    const sql = 'SELECT ms.* FROM metadataStandardsResearchDomains jt';
+    const joinClause = 'INNER JOIN metadataStandards ms ON jt.metadataStandardId = ms.id';
+    const whereClause = 'WHERE jt.metadataStandardId = ?';
+    const vals = [standardId.toString()];
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing');
     expect(result).toEqual([domain]);
   });
 
@@ -210,16 +209,15 @@ describe('findBy Queries', () => {
   });
 
   it('findByRepositoryId should call query with correct params and return an array', async () => {
-    const mockId = casual.integer(1, 99);
-    localQuery.mockResolvedValueOnce([{ researchDomainId: mockId }]);
     localQuery.mockResolvedValueOnce([domain]);
     const repositoryId = casual.integer(1, 999);
     const result = await ResearchDomain.findByRepositoryId('testing', context, repositoryId);
-    const sql = 'SELECT researchDomainId FROM repositoryResearchDomains WHERE repositoryId = ?';
-    const sql2 = 'SELECT * FROM researchDomains WHERE id = ?';
-    expect(localQuery).toHaveBeenCalledTimes(2);
-    expect(localQuery).toHaveBeenNthCalledWith(1, context, sql, [repositoryId.toString()], 'testing');
-    expect(localQuery).toHaveBeenLastCalledWith(context, sql2, [mockId.toString()], 'testing');
+    const sql = 'SELECT rd.* FROM repositoryResearchDomains jt';
+    const joinClause = 'INNER JOIN researchDomains rd ON jt.researchDomainId = rd.id';
+    const whereClause = 'WHERE jt.repositoryId = ?';
+    const vals = [repositoryId.toString()];
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing');
     expect(result).toEqual([domain]);
   });
 

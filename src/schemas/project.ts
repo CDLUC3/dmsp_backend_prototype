@@ -3,18 +3,15 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get all of the user's projects"
-    projects: [Project]
+    myProjects: [Project]
 
     "Get a specific project"
     project(projectId: Int!): Project
-
-    "Archive a project"
-    archiveProject(projectId: Int!): Project
   }
 
   extend type Mutation {
     "Create a project"
-    addProject(name: String!, isTestProject: Boolean): Project
+    addProject(title: String!, isTestProject: Boolean): Project
     "Edit a project"
     updateProject(input: UpdateProjectInput): Project
     "Download the plan"
@@ -57,14 +54,16 @@ export const typeDefs = gql`
   input UpdateProjectInput {
     "The project's id"
     projectId: Int!
-    "The name of the research project"
-    name: String!
+    "The title of the research project"
+    title: String!
     "The research project description/abstract"
     abstract: String
     "The actual or anticipated start date for the project"
     startDate: String
     "The actual or anticipated end date of the project"
     endDate: String
+    "The id of the research domain"
+    researchDomainId: Int
     "Whether or not the project is a mock/test"
     isTestProject: Boolean
   }

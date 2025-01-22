@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { validateOrcid } from "../resolvers/scalars/orcid";
 import { capitalizeFirstLetter, stripIdentifierBaseURL, validateEmail } from "../utils/helpers";
+import { ContributorRole } from "./ContributorRole";
 import { MySqlModel } from "./MySqlModel";
 
 export class ProjectContributor extends MySqlModel {
@@ -10,7 +11,7 @@ export class ProjectContributor extends MySqlModel {
   public surName?: string;
   public orcid?: string;
   public email?: string;
-  public roles: number[];
+  public contributorRoles: ContributorRole[];
 
   private tableName = 'projectContributors';
 
@@ -24,7 +25,7 @@ export class ProjectContributor extends MySqlModel {
     this.surName = options.surName;
     this.orcid = options.orcid;
     this.email = options.email;
-    this.roles = options.roles;
+    this.contributorRoles = options.contributorRoles;
   }
 
   // Ensure data integrity
@@ -33,6 +34,11 @@ export class ProjectContributor extends MySqlModel {
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
     this.orcid = stripIdentifierBaseURL(this.orcid);
+
+    // Ensure that contributorRoles is always an array
+    if (!Array.isArray(this.contributorRoles)) {
+      this.contributorRoles = []
+    }
   }
 
   // Validation to be used prior to saving the record
@@ -45,7 +51,7 @@ export class ProjectContributor extends MySqlModel {
     if (!this.surName && !this.email && !this.orcid) {
       this.errors.push('You must specify at least one name, ORCID or email');
     }
-    if (!this.roles || this.roles.length === 0) {
+    if (!this.contributorRoles || this.contributorRoles.length === 0) {
       this.errors.push('You must specify at least one role');
     }
     if (this.orcid && this.orcid.trim().length > 0){
@@ -93,7 +99,13 @@ export class ProjectContributor extends MySqlModel {
         this.cleanup();
 
         // Save the record and then fetch it
-        const newId = await ProjectContributor.insert(context, this.tableName, this, reference);
+        const newId = await ProjectContributor.insert(
+          context,
+          this.tableName,
+          this,
+          reference,
+          ['contributorRoles']
+        );
         const response = await ProjectContributor.findById(reference, context, newId);
         return response;
       }
@@ -110,7 +122,14 @@ export class ProjectContributor extends MySqlModel {
       if (id) {
         this.cleanup();
 
-        await ProjectContributor.update(context, this.tableName, this, 'ProjectContributor.update', [], noTouch);
+        await ProjectContributor.update(
+          context,
+          this.tableName,
+          this,
+          'ProjectContributor.update',
+          ['contributorRoles'],
+          noTouch
+        );
         return await ProjectContributor.findById('ProjectContributor.update', context, id);
       }
       // This template has never been saved before so we cannot update it!

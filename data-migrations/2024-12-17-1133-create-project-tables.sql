@@ -26,13 +26,25 @@ CREATE TABLE `projectContributors` (
   `surName` VARCHAR(255),
   `orcid` VARCHAR(255),
   `email` VARCHAR(255),
-  `roles` JSON,
   `createdById` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
   FOREIGN KEY (affiliationId) REFERENCES affiliations(uri)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
+
+# The roles played by people who contribute to a research project
+CREATE TABLE `projectContributorRoles` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `projectContributorId` INT NOT NULL,
+  `contributorRoleId` INT NOT NULL,
+  `createdById` INT NOT NULL,
+  `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `modifiedById` INT NOT NULL,
+  `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (projectContributorId) REFERENCES projectContributors(id) ON DELETE CASCADE,
+  FOREIGN KEY (contributorRoleId) REFERENCES contributorRoles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
 # Institutions/organizations that provide financial support for a research project

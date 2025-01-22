@@ -67,6 +67,7 @@ describe('queries', () => {
   const originalQuery = ContributorRole.query;
   let mockQuery;
   let context;
+  let mockRole;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -75,6 +76,12 @@ describe('queries', () => {
     (ContributorRole.insert as jest.Mock) = mockQuery;
 
     context = buildContext(logger, mockToken());
+
+    mockRole = {
+      id: casual.integer(1, 99),
+      label: casual.word,
+      url: casual.url
+    };
   });
 
   afterEach(() => {
@@ -82,7 +89,7 @@ describe('queries', () => {
   });
 
   it('all performs the expected query', async () => {
-    const querySpy = jest.spyOn(ContributorRole, 'query');
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce([mockRole]);
     await ContributorRole.all('Testing', context);
     expect(querySpy).toHaveBeenCalledTimes(1);
     const expectedSql = 'SELECT * FROM contributorRoles ORDER BY label';
@@ -91,7 +98,7 @@ describe('queries', () => {
 
   it('findById performs the expected query', async () => {
     const contributorRoleId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ContributorRole, 'query');
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce([mockRole]);
     await ContributorRole.findById('Testing', context, contributorRoleId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     const expectedSql = 'SELECT * FROM contributorRoles WHERE id = ?';
@@ -100,10 +107,20 @@ describe('queries', () => {
 
   it('findByURL performs the expected query', async () => {
     const contributorRoleUrl = casual.url;
-    const querySpy = jest.spyOn(ContributorRole, 'query');
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce([mockRole]);
     await ContributorRole.findByURL('Testing', context, contributorRoleUrl);
     expect(querySpy).toHaveBeenCalledTimes(1);
     const expectedSql = 'SELECT * FROM contributorRoles WHERE url = ?';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [contributorRoleUrl], 'Testing')
+  });
+
+  it('findByProjectContributorId should call query with correct params and return an array', async () => {
+    const querySpy = jest.spyOn(ContributorRole, 'query');
+    const contributorId = casual.integer(1, 999);
+    await ContributorRole.findByProjectContributorId('testing', context, contributorId);
+    let sql = 'SELECT cr.* FROM projectContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
+    sql = `${sql} WHERE pcr.projectContributorId = ?`;
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(querySpy).toHaveBeenCalledWith(context, sql, [contributorId.toString()], 'testing');
   });
 });

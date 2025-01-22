@@ -1,8 +1,9 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { ProjectContributor } from "../ProjectContributor";
+import { ProjectContributor } from "../Contributor";
 import { getMockORCID } from "../../__tests__/helpers";
+import { ContributorRole } from "../ContributorRole";
 
 jest.mock('../../context.ts');
 
@@ -28,7 +29,7 @@ describe('ProjectContributor', () => {
     surName: casual.last_name,
     orcid: getMockORCID(),
     email: casual.email,
-    roles: [casual.integer(1, 9)]
+    contributorRoles: [new ContributorRole({ id: casual.integer(1, 99) })],
   }
   beforeEach(() => {
     projectContributor = new ProjectContributor(contributorData);
@@ -41,7 +42,7 @@ describe('ProjectContributor', () => {
     expect(projectContributor.surName).toEqual(contributorData.surName);
     expect(projectContributor.orcid).toEqual(contributorData.orcid);
     expect(projectContributor.email).toEqual(contributorData.email);
-    expect(projectContributor.roles).toEqual(contributorData.roles);
+    expect(projectContributor.contributorRoles).toEqual(contributorData.contributorRoles);
   });
 
   it('should return true when calling isValid with a name field', async () => {
@@ -79,14 +80,14 @@ describe('ProjectContributor', () => {
     expect(projectContributor.errors[0]).toEqual('You must specify at least one name, ORCID or email');
   });
 
-  it('should return false when calling isValid if no roles are specified', async () => {
-    projectContributor.roles = null;
+  it('should return false when calling isValid if no contributorRoles are specified', async () => {
+    projectContributor.contributorRoles = null;
     expect(await projectContributor.isValid()).toBe(false);
     expect(projectContributor.errors.length).toBe(1);
     expect(projectContributor.errors[0]).toEqual('You must specify at least one role');
 
     projectContributor.errors = [];
-    projectContributor.roles = [];
+    projectContributor.contributorRoles = [];
     expect(await projectContributor.isValid()).toBe(false);
     expect(projectContributor.errors.length).toBe(1);
     expect(projectContributor.errors[0]).toEqual('You must specify at least one role');
@@ -113,7 +114,7 @@ describe('findBy Queries', () => {
       surName: casual.last_name,
       orcid: getMockORCID(),
       email: casual.email,
-      roles: [casual.integer(1, 9)]
+      contributorRoles: [new ContributorRole({ id: casual.integer(1, 99) })]
     });
   });
 
@@ -250,7 +251,7 @@ describe('update', () => {
       surName: casual.last_name,
       orcid: getMockORCID(),
       email: casual.email,
-      roles: [casual.integer(1, 9)]
+      contributorRoles: [new ContributorRole({ id: casual.integer(1, 99) })]
     })
   });
 
@@ -309,7 +310,7 @@ describe('create', () => {
       surName: casual.last_name,
       orcid: getMockORCID(),
       email: casual.email,
-      roles: [casual.integer(1, 9)]
+      contributorRoles: [new ContributorRole({ id: casual.integer(1, 99) })]
     });
   });
 
@@ -376,7 +377,7 @@ describe('delete', () => {
       surName: casual.last_name,
       orcid: getMockORCID(),
       email: casual.email,
-      roles: [casual.integer(1, 9)]
+      contributorRoles: [new ContributorRole({ id: casual.integer(1, 99) })]
     });
   })
 

@@ -1,4 +1,5 @@
 import { MyContext } from "../context";
+import { formatLogMessage } from "../logger";
 import { randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
@@ -97,24 +98,32 @@ export class ResearchDomain extends MySqlModel {
 
   // Add the ResearchDomain to a MetadataStandard
   async addToMetadataStandard(context: MyContext, metadataStandardId: number): Promise<ResearchDomain> {
+    const reference = 'ResearchDomain.addToMetadataStandard';
     const sql = 'INSERT INTO metadataStandardResearchDomains (researchDomainId, metadataStandardId) (?, ?)';
     const vals = [this.id.toString(), metadataStandardId.toString()];
-    const results = await ResearchDomain.query(context, sql, vals, 'ResearchDomain.addToMetadataStandard');
+    const results = await ResearchDomain.query(context, sql, vals, reference);
 
     if (!results) {
-      this.errors.push('Unable to add the research domain to the metadata standard');
+      const payload = { researchDomainId: this.id, metadataStandardId };
+      const msg = 'Unable to add the research domain to the metadata standard';
+      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      this.errors.push(msg);
     }
     return this;
   }
 
   // Add the ResearchDomain to a MetadataStandard
   async addToRepository(context: MyContext, repositoryId: number): Promise<ResearchDomain> {
+    const reference = 'ResearchDomain.addToRepository';
     const sql = 'INSERT INTO repositoryResearchDomains (researchDomainId, repositoryId) (?, ?)';
     const vals = [this.id.toString(), repositoryId.toString()];
-    const results = await ResearchDomain.query(context, sql, vals, 'ResearchDomain.addToRepository');
+    const results = await ResearchDomain.query(context, sql, vals, reference);
 
     if (!results) {
-      this.errors.push('Unable to add the research domain to the repository');
+      const payload = { researchDomainId: this.id, repositoryId };
+      const msg = 'Unable to add the research domain to the repository';
+      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      this.errors.push(msg);
     }
     return this;
   }
@@ -141,24 +150,32 @@ export class ResearchDomain extends MySqlModel {
 
   // Remove the ResearchDomain from a MetadataStandard
   async removeFromMetadataStandard(context: MyContext, metadataStandardId: number): Promise<ResearchDomain> {
+    const reference = 'ResearchDomain.removeFromMetadataStandard';
     const sql = 'DELETE FROM metadataStandardResearchDomains WHERE researchDomainId = ? AND metadataStandardId = ?';
     const vals = [this.id.toString(), metadataStandardId.toString()];
-    const results = await ResearchDomain.query(context, sql, vals, 'ResearchDomain.removeFromMetadataStandard');
+    const results = await ResearchDomain.query(context, sql, vals, reference);
 
     if (!results) {
-      this.errors.push('Unable to remove the research domain from the metadata standard');
+      const payload = { researchDomainId: this.id, metadataStandardId };
+      const msg = 'Unable to remove the research domain from the metadata standard';
+      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      this.errors.push(msg);
     }
     return this;
   }
 
   // Remove the ResearchDomain from a repository
   async removeFromRepository(context: MyContext, repositoryId: number): Promise<ResearchDomain> {
+    const reference = 'ResearchDomain.removeFromRepository';
     const sql = 'DELETE FROM repositoryResearchDomains WHERE researchDomainId = ? AND repositoryId = ?';
     const vals = [this.id.toString(), repositoryId.toString()];
-    const results = await ResearchDomain.query(context, sql, vals, 'ResearchDomain.removeFromRepository');
+    const results = await ResearchDomain.query(context, sql, vals, reference);
 
     if (!results) {
-      this.errors.push('Unable to remove the research domain from the repository');
+      const payload = { researchDomainId: this.id, repositoryId };
+      const msg = 'Unable to remove the research domain from the repository';
+      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      this.errors.push(msg);
     }
     return this;
   }
@@ -185,17 +202,12 @@ export class ResearchDomain extends MySqlModel {
     context: MyContext,
     metadataStandardId: number
   ): Promise<ResearchDomain[]> {
-    const sql = 'SELECT researchDomainId FROM metadataStandardResearchDomains WHERE metadataStandardId = ?';
-    const results = await ResearchDomain.query(context, sql, [metadataStandardId.toString()], reference);
-    const domains = [];
-
-    // Load the actual ResearchDomain record based on the ids found in the join table
-    if (Array.isArray(results)) {
-      for (const entry of results) {
-        domains.push(await ResearchDomain.findById(reference, context, entry.researchDomainId));
-      }
-    }
-    return domains;
+    const sql = 'SELECT ms.* FROM metadataStandardsResearchDomains jt';
+    const joinClause = 'INNER JOIN metadataStandards ms ON jt.metadataStandardId = ms.id';
+    const whereClause = 'WHERE jt.metadataStandardId = ?';
+    const vals = [metadataStandardId.toString()];
+    const results = await ResearchDomain.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
+    return Array.isArray(results) ? results : [];
   }
 
   // Fetch all of the ResearchDomains associated with a Repository
@@ -204,17 +216,12 @@ export class ResearchDomain extends MySqlModel {
     context: MyContext,
     repositoryId: number
   ): Promise<ResearchDomain[]> {
-    const sql = 'SELECT researchDomainId FROM repositoryResearchDomains WHERE repositoryId = ?';
-    const results = await ResearchDomain.query(context, sql, [repositoryId.toString()], reference);
-    const domains = [];
-
-    // Load the actual ResearchDomain record based on the ids found in the join table
-    if (Array.isArray(results)) {
-      for (const entry of results) {
-        domains.push(await ResearchDomain.findById(reference, context, entry.researchDomainId));
-      }
-    }
-    return domains;
+    const sql = 'SELECT rd.* FROM repositoryResearchDomains jt';
+    const joinClause = 'INNER JOIN researchDomains rd ON jt.researchDomainId = rd.id';
+    const whereClause = 'WHERE jt.repositoryId = ?';
+    const vals = [repositoryId.toString()];
+    const results = await ResearchDomain.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
+    return Array.isArray(results) ? results : [];
   }
 
   // Fetch a ResearchDomain by it's id
