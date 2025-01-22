@@ -106,7 +106,9 @@ export class Affiliation extends MySqlModel {
     this.types = this.types || [];
     this.feedbackEmails = this.feedbackEmails || [];
     this.searchName = this.buildSearchName();
-    this.displayName = this.homepage ? `${this.name} (${this.homepage})` : this.name;
+    if (!this.displayName) {
+      this.displayName = this.homepage ? `${this.name} (${this.homepage})` : this.name;
+    }
   }
 
   // Save the current record
@@ -144,14 +146,17 @@ export class Affiliation extends MySqlModel {
     if (await this.isValid()) {
       if (this.uri) {
         this.prepForSave();
-        const result = await Affiliation.update(
+        const updated = await Affiliation.update(
           context,
           this.tableName,
           this,
           'Affiliation.update',
           ['uneditableProperties', this.uneditableProperties].flat()
         );
-        return result as Affiliation;
+
+        if (updated) {
+          return await Affiliation.findById('Affiliation.update', context, this.id);
+        }
       }
       // This template has never been saved before so we cannot update it!
       this.errors.push('Affiliation has never been saved');

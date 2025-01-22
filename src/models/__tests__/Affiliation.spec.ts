@@ -84,188 +84,6 @@ describe('prepForSave', () => {
   });
 });
 
-describe('create', () => {
-  const originalInsert = Affiliation.insert;
-  const originalFindById = Affiliation.findById;
-  const originalFindByURI = Affiliation.findByURI;
-  let insertQuery;
-  let affiliation;
-
-  beforeEach(() => {
-    // jest.resetAllMocks();
-
-    insertQuery = jest.fn();
-    (Affiliation.insert as jest.Mock) = insertQuery;
-
-    affiliation = new Affiliation({
-      uri: 'https://ror.org/01234',
-      active: true,
-      provenance: 'ROR',
-      name: 'University of Virginia',
-      displayName: 'University of Virginia (virginia.edu)',
-      searchName: 'University of Virginia | virginia.edu | UVA ',
-      funder: 1,
-      fundrefId: 1000001234,
-      homepage: 'http://www.virginia.edu/',
-      acronyms: ["UVA"],
-      aliases: [],
-      types: ["Education"],
-      contactName: 'Data Management Consulting Group',
-      contactEmail: 'admin@virginia.edu',
-      ssoEntityId: 'entity:virginia.edu',
-      feedbackEnabled: 1,
-      feedbackMessage: '<p>Will response to your request within 48 hours</p>',
-      feedbackEmails: ["admin@virginia.edu"],
-      managed: 1,
-    })
-  });
-
-  afterEach(() => {
-    // jest.resetAllMocks();
-    Affiliation.insert = originalInsert;
-    Affiliation.findById = originalFindById;
-    Affiliation.findByURI = originalFindByURI;
-  });
-
-  it('should return the newly added Affiliation', async () => {
-    const mockFindByURI = jest.fn();
-    (Affiliation.findByURI as jest.Mock) = mockFindByURI;
-    mockFindByURI.mockResolvedValue(false);
-
-    const mockFindById = jest.fn();
-    (Affiliation.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(affiliation);
-
-    const result = await affiliation.create(context);
-    expect(mockFindByURI).toHaveBeenCalledTimes(1);
-    expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(affiliation);
-  });
-
-  it('should add an error if affiliation already exists', async () => {
-    const mockFindByURI = jest.fn();
-    (Affiliation.findByURI as jest.Mock) = mockFindByURI;
-    mockFindByURI.mockResolvedValue(true);
-
-    const mockFindById = jest.fn();
-    (Affiliation.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(affiliation);
-
-    await affiliation.create(context);
-    expect(affiliation.errors).toContain('That Affiliation already exists')
-  });
-});
-
-describe('update', () => {
-  const originalUpdate = Affiliation.update;
-  let updateQuery;
-  let affiliation;
-
-  beforeEach(() => {
-    // jest.resetAllMocks();
-
-    affiliation = new Affiliation({
-      uri: 'https://ror.org/01234',
-      active: true,
-      provenance: 'ROR',
-      name: 'University of Virginia',
-      displayName: 'University of Virginia (virginia.edu)',
-      searchName: 'University of Virginia | virginia.edu | UVA ',
-      funder: 1,
-      fundrefId: 1000001234,
-      homepage: 'http://www.virginia.edu/',
-      acronyms: ["UVA"],
-      aliases: [],
-      types: ["Education"],
-      contactName: 'Data Management Consulting Group',
-      contactEmail: 'admin@virginia.edu',
-      ssoEntityId: 'entity:virginia.edu',
-      feedbackEnabled: 1,
-      feedbackMessage: '<p>Will response to your request within 48 hours</p>',
-      feedbackEmails: ["admin@virginia.edu"],
-      managed: 1,
-    })
-    updateQuery = jest.fn().mockResolvedValue(affiliation);
-    (Affiliation.update as jest.Mock) = updateQuery;
-  });
-
-  afterEach(() => {
-    // jest.resetAllMocks();
-    Affiliation.update = originalUpdate;
-  });
-
-  it('should return Affiliation with no errors if affiliation is valid', async () => {
-    const localValidator = jest.fn();
-    (affiliation.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
-
-    expect(await affiliation.update(context)).toBe(affiliation);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(affiliation.errors).not.toContain('The affiliation is not valid')
-  });
-
-  it('should set an error if there is no uri in the affiliation data', async () => {
-    affiliation = new Affiliation({
-      active: true,
-      provenance: 'ROR',
-      name: 'University of Virginia',
-      displayName: 'University of Virginia (virginia.edu)',
-      searchName: 'University of Virginia | virginia.edu | UVA ',
-    });
-
-    const localValidator = jest.fn();
-    (affiliation.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
-
-    expect(await affiliation.update(context)).toBe(affiliation);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(affiliation.errors).toContain('Affiliation has never been saved');
-  })
-});
-
-describe('delete', () => {
-  const originalDelete = Affiliation.delete;
-  let deleteQuery;
-  let affiliation;
-
-  beforeEach(() => {
-    // jest.resetAllMocks();
-
-    affiliation = new Affiliation({
-      id: casual.integer(1, 99),
-      uri: 'http://test.com',
-      createdById: casual.integer(1, 999),
-      ownerId: casual.url,
-      name: casual.sentence,
-    });
-    deleteQuery = jest.fn().mockResolvedValue(affiliation);
-    (Affiliation.delete as jest.Mock) = deleteQuery;
-  });
-
-  afterEach(() => {
-    // jest.resetAllMocks();
-    Affiliation.delete = originalDelete;
-  });
-
-  it('should return Affiliation if there is uri data', async () => {
-    expect(await affiliation.delete(context)).toBe(affiliation);
-    expect(affiliation.errors.length).toBe(0);
-  });
-
-  it('should return null if there is no uri data', async () => {
-    affiliation = new Affiliation({
-      id: casual.integer(1, 99),
-      createdById: casual.integer(1, 999),
-      ownerId: casual.url,
-      name: casual.sentence,
-    });
-
-    expect(await affiliation.delete(context)).toBe(null);
-  })
-});
-
 describe('findById', () => {
   const originalQuery = Affiliation.query;
 
@@ -311,6 +129,198 @@ describe('findById', () => {
     const result = await Affiliation.findById('Test', context, affiliation.id);
     expect(result).toEqual(null);
   });
+});
+
+describe('create', () => {
+  const originalInsert = Affiliation.insert;
+  const originalFindById = Affiliation.findById;
+  const originalFindByURI = Affiliation.findByURI;
+  let insertQuery;
+  let affiliation;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    insertQuery = jest.fn();
+    (Affiliation.insert as jest.Mock) = insertQuery;
+
+    affiliation = new Affiliation({
+      uri: 'https://ror.org/01234',
+      active: true,
+      provenance: 'ROR',
+      name: 'University of Virginia',
+      displayName: 'University of Virginia (virginia.edu)',
+      searchName: 'University of Virginia | virginia.edu | UVA ',
+      funder: 1,
+      fundrefId: 1000001234,
+      homepage: 'http://www.virginia.edu/',
+      acronyms: ["UVA"],
+      aliases: [],
+      types: ["Education"],
+      contactName: 'Data Management Consulting Group',
+      contactEmail: 'admin@virginia.edu',
+      ssoEntityId: 'entity:virginia.edu',
+      feedbackEnabled: 1,
+      feedbackMessage: '<p>Will response to your request within 48 hours</p>',
+      feedbackEmails: ["admin@virginia.edu"],
+      managed: 1,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Affiliation.insert = originalInsert;
+    Affiliation.findById = originalFindById;
+    Affiliation.findByURI = originalFindByURI;
+  });
+
+  it('should return the newly added Affiliation', async () => {
+    const mockFindByURI = jest.fn();
+    (Affiliation.findByURI as jest.Mock) = mockFindByURI;
+    mockFindByURI.mockResolvedValue(false);
+
+    const mockFindById = jest.fn();
+    (Affiliation.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(affiliation);
+
+    const result = await affiliation.create(context);
+    expect(mockFindByURI).toHaveBeenCalledTimes(1);
+    expect(mockFindById).toHaveBeenCalledTimes(1);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result.errors.length).toBe(0);
+    expect(result).toEqual(affiliation);
+  });
+
+  it('should add an error if affiliation already exists', async () => {
+    const mockFindByURI = jest.fn();
+    (Affiliation.findByURI as jest.Mock) = mockFindByURI;
+    mockFindByURI.mockResolvedValue(true);
+
+    const mockFindById = jest.fn();
+    (Affiliation.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(affiliation);
+
+    await affiliation.create(context);
+    expect(affiliation.errors).toContain('That Affiliation already exists')
+  });
+});
+
+describe('update', () => {
+  const originalUpdate = Affiliation.update;
+  let updateQuery;
+  let affiliation;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    affiliation = new Affiliation({
+      id: casual.integer(1, 999),
+      uri: 'https://ror.org/01234',
+      active: true,
+      provenance: 'ROR',
+      name: 'University of Virginia',
+      displayName: 'University of Virginia (virginia.edu)',
+      searchName: 'University of Virginia | virginia.edu | UVA ',
+      funder: 1,
+      fundrefId: 1000001234,
+      homepage: 'http://www.virginia.edu/',
+      acronyms: ["UVA"],
+      aliases: [],
+      types: ["Education"],
+      contactName: 'Data Management Consulting Group',
+      contactEmail: 'admin@virginia.edu',
+      ssoEntityId: 'entity:virginia.edu',
+      feedbackEnabled: 1,
+      feedbackMessage: '<p>Will response to your request within 48 hours</p>',
+      feedbackEmails: ["admin@virginia.edu"],
+      managed: 1,
+    })
+    updateQuery = jest.fn().mockResolvedValue(affiliation);
+    (Affiliation.update as jest.Mock) = updateQuery;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Affiliation.update = originalUpdate;
+  });
+
+  it('should return Affiliation with no errors if affiliation is valid', async () => {
+    const localValidator = jest.fn();
+    (affiliation.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+    const findByQuery = jest.fn().mockResolvedValue(affiliation);
+    (Affiliation.findById as jest.Mock) = findByQuery;
+
+    expect(await affiliation.update(context)).toBe(affiliation);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(affiliation.errors).not.toContain('The affiliation is not valid')
+  });
+
+  it('should set an error if there is no uri in the affiliation data', async () => {
+    affiliation = new Affiliation({
+      id: casual.integer(1, 999),
+      active: true,
+      provenance: 'ROR',
+      name: 'University of Virginia',
+      displayName: 'University of Virginia (virginia.edu)',
+      searchName: 'University of Virginia | virginia.edu | UVA ',
+    });
+
+    const localValidator = jest.fn();
+    (affiliation.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    expect(await affiliation.update(context)).toBe(affiliation);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(affiliation.errors).toContain('Affiliation has never been saved');
+  })
+});
+
+describe('delete', () => {
+  const originalDelete = Affiliation.delete;
+  let deleteQuery;
+  let affiliation;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    affiliation = new Affiliation({
+      id: casual.integer(1, 99),
+      uri: 'http://test.com',
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
+      name: casual.sentence,
+    });
+    deleteQuery = jest.fn().mockResolvedValue(affiliation);
+    (Affiliation.delete as jest.Mock) = deleteQuery;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Affiliation.delete = originalDelete;
+  });
+
+  it('should return Affiliation if there is uri data', async () => {
+    expect(await affiliation.delete(context)).toBe(affiliation);
+    expect(affiliation.errors.length).toBe(0);
+  });
+
+  it('should return null if there is no uri data', async () => {
+    affiliation = new Affiliation({
+      id: casual.integer(1, 99),
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
+      name: casual.sentence,
+    });
+
+    expect(await affiliation.delete(context)).toBe(null);
+  })
 });
 
 describe('findByURI', () => {

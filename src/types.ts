@@ -448,36 +448,6 @@ export type ContributorRoleMutationResponse = {
   success: Scalars['Boolean']['output'];
 };
 
-export type EditProjectContributorInput = {
-  /** The contributor's affiliation URI */
-  affiliationId?: InputMaybe<Scalars['String']['input']>;
-  /** The contributor's email address */
-  email?: InputMaybe<Scalars['String']['input']>;
-  /** The contributor's first/given name */
-  givenName?: InputMaybe<Scalars['String']['input']>;
-  /** The contributor's ORCID */
-  orcid?: InputMaybe<Scalars['String']['input']>;
-  /** The project contributor */
-  projectContributorId: Scalars['Int']['input'];
-  /** The roles the contributor has on the research project */
-  roles?: InputMaybe<Array<Scalars['Int']['input']>>;
-  /** The contributor's last/sur name */
-  surname?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type EditProjectFunderInput = {
-  /** The funder's unique id/url for the call for submissions to apply for a grant */
-  funderOpportunityNumber?: InputMaybe<Scalars['String']['input']>;
-  /** The funder's unique id/url for the research project (normally assigned after the grant has been awarded) */
-  funderProjectNumber?: InputMaybe<Scalars['String']['input']>;
-  /** The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded) */
-  grantId?: InputMaybe<Scalars['String']['input']>;
-  /** The project funder */
-  projectFunderId: Scalars['Int']['input'];
-  /** The status of the funding resquest */
-  status?: InputMaybe<ProjectFunderStatus>;
-};
-
 /** The types of object a User can be invited to Collaborate on */
 export type InvitedToType =
   | 'PLAN'
@@ -605,12 +575,6 @@ export type Mutation = {
   deactivateUser?: Maybe<User>;
   /** Download the plan */
   downloadPlan?: Maybe<Scalars['String']['output']>;
-  /** Edit an answer */
-  editPlanAnswer?: Maybe<Answer>;
-  /** Update a contributor on the research project */
-  editProjectContributor?: Maybe<ProjectContributor>;
-  /** Update a Funder on the research project */
-  editProjectFunder?: Maybe<ProjectFunder>;
   /** Change the plan's status to COMPLETE (cannot be done once the plan is PUBLISHED) */
   markPlanComplete?: Maybe<Plan>;
   /** Change the plan's status to DRAFT (cannot be done once the plan is PUBLISHED) */
@@ -685,12 +649,18 @@ export type Mutation = {
   updateMetadataStandard?: Maybe<MetadataStandard>;
   /** Change the current user's password */
   updatePassword?: Maybe<User>;
+  /** Edit an answer */
+  updatePlanAnswer?: Maybe<Answer>;
   /** Chnage a collaborator's accessLevel on a Plan */
   updatePlanCollaborator?: Maybe<PlanCollaborator>;
   /** Chnage a Contributor's accessLevel on a Plan */
   updatePlanContributor?: Maybe<PlanContributor>;
   /** Edit a project */
   updateProject?: Maybe<Project>;
+  /** Update a contributor on the research project */
+  updateProjectContributor?: Maybe<ProjectContributor>;
+  /** Update a Funder on the research project */
+  updateProjectFunder?: Maybe<ProjectFunder>;
   /** Update an output on the research project */
   updateProjectOutput?: Maybe<ProjectOutput>;
   /** Update a Question */
@@ -878,22 +848,6 @@ export type MutationDeactivateUserArgs = {
 export type MutationDownloadPlanArgs = {
   format: PlanDownloadFormat;
   planId: Scalars['Int']['input'];
-};
-
-
-export type MutationEditPlanAnswerArgs = {
-  answerId: Scalars['Int']['input'];
-  answerText?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationEditProjectContributorArgs = {
-  input: EditProjectContributorInput;
-};
-
-
-export type MutationEditProjectFunderArgs = {
-  input: EditProjectFunderInput;
 };
 
 
@@ -1095,6 +1049,12 @@ export type MutationUpdatePasswordArgs = {
 };
 
 
+export type MutationUpdatePlanAnswerArgs = {
+  answerId: Scalars['Int']['input'];
+  answerText?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type MutationUpdatePlanCollaboratorArgs = {
   accessLevel: PlanCollaboratorAccessLevel;
   planCollaboratorId: Scalars['Int']['input'];
@@ -1109,6 +1069,16 @@ export type MutationUpdatePlanContributorArgs = {
 
 export type MutationUpdateProjectArgs = {
   input?: InputMaybe<UpdateProjectInput>;
+};
+
+
+export type MutationUpdateProjectContributorArgs = {
+  input: UpdateProjectContributorInput;
+};
+
+
+export type MutationUpdateProjectFunderArgs = {
+  input: UpdateProjectFunderInput;
 };
 
 
@@ -2584,6 +2554,36 @@ export type VersionedTemplate = {
   visibility: TemplateVisibility;
 };
 
+export type UpdateProjectContributorInput = {
+  /** The contributor's affiliation URI */
+  affiliationId?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's email address */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's first/given name */
+  givenName?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's ORCID */
+  orcid?: InputMaybe<Scalars['String']['input']>;
+  /** The project contributor */
+  projectContributorId: Scalars['Int']['input'];
+  /** The roles the contributor has on the research project */
+  roles?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** The contributor's last/sur name */
+  surname?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateProjectFunderInput = {
+  /** The funder's unique id/url for the call for submissions to apply for a grant */
+  funderOpportunityNumber?: InputMaybe<Scalars['String']['input']>;
+  /** The funder's unique id/url for the research project (normally assigned after the grant has been awarded) */
+  funderProjectNumber?: InputMaybe<Scalars['String']['input']>;
+  /** The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded) */
+  grantId?: InputMaybe<Scalars['String']['input']>;
+  /** The project funder */
+  projectFunderId: Scalars['Int']['input'];
+  /** The status of the funding resquest */
+  status?: InputMaybe<ProjectFunderStatus>;
+};
+
 export type UpdateUserNotificationsInput = {
   /** Whether or not email notifications are on for when a Plan has a new comment */
   notify_on_comment_added: Scalars['Boolean']['input'];
@@ -2707,8 +2707,6 @@ export type ResolversTypes = {
   ContributorRoleMutationResponse: ResolverTypeWrapper<ContributorRoleMutationResponse>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
-  EditProjectContributorInput: EditProjectContributorInput;
-  EditProjectFunderInput: EditProjectFunderInput;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
@@ -2770,6 +2768,8 @@ export type ResolversTypes = {
   VersionedQuestionConditionCondition: VersionedQuestionConditionCondition;
   VersionedSection: ResolverTypeWrapper<VersionedSection>;
   VersionedTemplate: ResolverTypeWrapper<VersionedTemplate>;
+  updateProjectContributorInput: UpdateProjectContributorInput;
+  updateProjectFunderInput: UpdateProjectFunderInput;
   updateUserNotificationsInput: UpdateUserNotificationsInput;
   updateUserProfileInput: UpdateUserProfileInput;
 };
@@ -2799,8 +2799,6 @@ export type ResolversParentTypes = {
   ContributorRoleMutationResponse: ContributorRoleMutationResponse;
   DateTimeISO: Scalars['DateTimeISO']['output'];
   DmspId: Scalars['DmspId']['output'];
-  EditProjectContributorInput: EditProjectContributorInput;
-  EditProjectFunderInput: EditProjectFunderInput;
   EmailAddress: Scalars['EmailAddress']['output'];
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
@@ -2847,6 +2845,8 @@ export type ResolversParentTypes = {
   VersionedQuestionCondition: VersionedQuestionCondition;
   VersionedSection: VersionedSection;
   VersionedTemplate: VersionedTemplate;
+  updateProjectContributorInput: UpdateProjectContributorInput;
+  updateProjectFunderInput: UpdateProjectFunderInput;
   updateUserNotificationsInput: UpdateUserNotificationsInput;
   updateUserProfileInput: UpdateUserProfileInput;
 };
@@ -3037,9 +3037,6 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   createTemplateVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateTemplateVersionArgs, 'templateId' | 'visibility'>>;
   deactivateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationDeactivateUserArgs, 'userId'>>;
   downloadPlan?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, RequireFields<MutationDownloadPlanArgs, 'format' | 'planId'>>;
-  editPlanAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationEditPlanAnswerArgs, 'answerId'>>;
-  editProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationEditProjectContributorArgs, 'input'>>;
-  editProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationEditProjectFunderArgs, 'input'>>;
   markPlanComplete?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanCompleteArgs, 'planId'>>;
   markPlanDraft?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanDraftArgs, 'planId'>>;
   mergeLicenses?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationMergeLicensesArgs, 'licenseToKeepId' | 'licenseToRemoveId'>>;
@@ -3077,9 +3074,12 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationUpdateLicenseArgs, 'name' | 'uri'>>;
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
+  updatePlanAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationUpdatePlanAnswerArgs, 'answerId'>>;
   updatePlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdatePlanCollaboratorArgs, 'accessLevel' | 'planCollaboratorId'>>;
   updatePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationUpdatePlanContributorArgs, 'planContributorId'>>;
   updateProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationUpdateProjectArgs>>;
+  updateProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationUpdateProjectContributorArgs, 'input'>>;
+  updateProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationUpdateProjectFunderArgs, 'input'>>;
   updateProjectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationUpdateProjectOutputArgs, 'input'>>;
   updateQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationUpdateQuestionArgs, 'input'>>;
   updateQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionConditionArgs, 'input'>>;
