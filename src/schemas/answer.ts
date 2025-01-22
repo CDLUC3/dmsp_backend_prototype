@@ -13,7 +13,7 @@ export const typeDefs = gql`
     "Answer a question"
     addPlanAnswer(planId: Int!, versionedSectionId: Int!, versionedQuestionId: Int!, answerText: String): Answer
     "Edit an answer"
-    editPlanAnswer(answerId: Int!, answerText: String): Answer
+    updatePlanAnswer(answerId: Int!, answerText: String): Answer
   }
 
   "An answer to a question on a Data Managament Plan (DMP)"
