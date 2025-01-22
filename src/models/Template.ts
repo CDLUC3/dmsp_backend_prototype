@@ -43,6 +43,9 @@ export class Template extends MySqlModel {
     if (!supportedLanguages.map((l) => l.id).includes(this.languageId)) {
       this.languageId = defaultLanguageId;
     }
+    // Remove leading/trailing blank spaces
+    this.name = this.name?.trim();
+    this.description = this.description?.trim();
   }
 
   // Validation to be used prior to saving the record

@@ -3,16 +3,20 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for a license"
-    licenses(term: String, recommended: Boolean): [License]
+    licenses(term: String): [License]
+    "Return the recommended Licenses"
+    recommendedLicenses(recommended: Boolean!): [License]
+    "Fetch a specific license"
+    license(uri: String!): License
   }
 
   extend type Mutation {
     "Add a new License (don't make the URI up! should resolve to an taxonomy HTML/JSON representation of the object)"
-    addLicense(name: String!, description: String, uri: String): License
+    addLicense(name: String!, uri: String, description: String, recommended: Boolean): License
     "Update a License record"
-    updateLicense(licenseId: Int!, name: String!, description: String): License
+    updateLicense(uri: String!, name: String!, description: String, recommended: Boolean): License
     "Delete a License"
-    removeLicense(licenseId: Int!): License
+    removeLicense(uri: String!): License
 
     "Merge two licenses"
     mergeLicenses(licenseToKeepId: Int!, licenseToRemoveId: Int!): License
@@ -39,5 +43,7 @@ export const typeDefs = gql`
     uri: String!
     "A description of the license"
     description: String
+    "Whether or not the license is recommended"
+    recommended: Boolean!
   }
 `;

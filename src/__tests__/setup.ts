@@ -37,6 +37,13 @@ jest.mock('../config/generalConfig', () => ({
     domain: 'localhost:3000',
     applicationName: 'My test app',
     defaultAffiliatioURI: 'https://ror.org/1234abcd',
+
+    dmpIdBaseURL: 'http://dmsp.com/',
+    dmpIdShoulder: '11.22222/C3',
+
+    orcidBaseURL: 'http://orcid.example.com/',
+    rorBaseURL: 'http://ror.example.com/',
+
     jwtSecret: 'testJwtSecret',
     jwtTTL: 30,
     jwtRefreshSecret: 'testJwtRefreshSecret',

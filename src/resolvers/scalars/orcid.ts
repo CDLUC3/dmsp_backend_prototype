@@ -1,15 +1,15 @@
 import { GraphQLScalarType, Kind } from 'graphql';
+import { generalConfig } from '../../config/generalConfig';
 
-export const ORCID_DOMAIN = 'https://orcid.org/';
 const ORCID_ID_REGEX = /^([0-9a-zA-Z]{4}-){3}[0-9a-zA-Z]{4}$/;
 const ORCID_URL_REGEX = /^https?:\/\/orcid.org\/([0-9a-zA-Z]{4}-){3}[0-9a-zA-Z]{4}/;
 
 // Function to ensure the ORCID is properly formatted
 export function validateOrcid(val) {
   const match = val.startsWith('http') ? val.match(ORCID_URL_REGEX) : val.match(ORCID_ID_REGEX);
-  if (match.length > 0) {
+  if (match && match.length > 0) {
     // Prepend the ORCID URL to the id if it doesn't have it
-    return val.startsWith('http') ? val : `${ORCID_DOMAIN}${val}`;
+    return val.startsWith('http') ? val : `${generalConfig.orcidBaseURL}${val}`;
   }
   throw new Error(`Invalid ORCID format. Expected: "https://orcid.org/0000-0000-0000-0000" or "0000-0000-0000-0000"`);
 };

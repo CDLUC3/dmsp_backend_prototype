@@ -2,7 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from '../context';
 import { Affiliation, AffiliationSearch, AffiliationType } from '../models/Affiliation';
 import { isAdmin, isSuperAdmin } from "../services/authService";
-import { BadRequestError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
+import { ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
 
 export const resolvers: Resolvers = {
@@ -46,17 +46,22 @@ export const resolvers: Resolvers = {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.uri === input.uri)) {
           const existing = await Affiliation.findByURI('updateAffiliation resolver', context, input.uri);
+
           // If the URI already exists, throw an error
-          if (existing) {
-            throw BadRequestError('Affiliation already exists');
+          if (!existing) {
+            throw NotFoundError();
           }
 
           const affiliation = new Affiliation(input);
-          return await affiliation.create(context);
+          // since we pass around the URI for affiliations instead of the id we need to set it here
+          if (!affiliation.id) {
+            affiliation.id = existing.id;
+          }
+          return await affiliation.update(context);
         }
         throw ForbiddenError();
       } catch (err) {
-        formatLogMessage(context.logger).error(err, 'Failure in updateAffiliation rsolver');
+        formatLogMessage(context.logger).error(err, 'Failure in updateAffiliation resolver');
         throw InternalServerError();
       }
     },

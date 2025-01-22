@@ -3,7 +3,9 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for a repository"
-    repositories(input: RepositorySearchInput): [Repository]
+    repositories(input: RepositorySearchInput!): [Repository]
+    "Fetch a specific repository"
+    repository(uri: String!): Repository
   }
 
   extend type Mutation {

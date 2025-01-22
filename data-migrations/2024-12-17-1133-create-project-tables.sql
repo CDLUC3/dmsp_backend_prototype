@@ -26,7 +26,7 @@ CREATE TABLE `projectContributors` (
   `surName` VARCHAR(255),
   `orcid` VARCHAR(255),
   `email` VARCHAR(255),
-  `roles` JSON NOT NULL,
+  `roles` JSON,
   `createdById` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE `projectContributors` (
 CREATE TABLE `projectFunders` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectId` INT NOT NULL,
-  `funderId` VARCHAR(255) NOT NULL,
+  `affiliationId` VARCHAR(255) NOT NULL,
   `status` VARCHAR(16) NOT NULL,
   `funderProjectNumber` VARCHAR(255),
   `grantId` VARCHAR(255),
@@ -49,5 +49,5 @@ CREATE TABLE `projectFunders` (
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
-  FOREIGN KEY (funderId) REFERENCES affiliations(uri)
+  FOREIGN KEY (affiliationId) REFERENCES affiliations(uri)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;

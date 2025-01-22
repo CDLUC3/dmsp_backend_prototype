@@ -1,14 +1,14 @@
 import { GraphQLScalarType, Kind } from 'graphql';
+import { generalConfig } from '../../config/generalConfig';
 
-export const ROR_DOMAIN = 'https://ror.org/';
 const ROR_ID_REGEX = /^[0-9a-zA-Z]+$/;
 const ROR_URL_REGEX = /^https?:\/\/ror.org\/[0-9a-zA-Z]+/
 
 export function validateRor(val) {
   const match = val.startsWith('http') ? val.match(ROR_URL_REGEX) : val.match(ROR_ID_REGEX);
-  if (match.length > 0) {
+  if (match && match.length > 0) {
     // Prepend the ROR URL to the id if it doesn't have it
-    return val.startsWith('http') ? val : `${ROR_DOMAIN}${val}`;
+    return val.startsWith('http') ? val : `${generalConfig.rorBaseURL}${val}`;
   }
   throw new Error(`Invalid ROR format. Expected: "https://ror.org/abcd1234"`);
 }

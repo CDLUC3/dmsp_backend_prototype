@@ -48,6 +48,15 @@ export class Question extends MySqlModel {
     return this.errors.length <= 0;
   }
 
+  // Ensure data integrity
+  cleanup(): void {
+    // Remove leading/trailing blank spaces
+    this.questionText = this.questionText?.trim();
+    this.requirementText = this.requirementText?.trim();
+    this.guidanceText = this.guidanceText?.trim();
+    this.sampleText = this.sampleText?.trim();
+  }
+
   //Create a new Question
   async create(
     context: MyContext,
@@ -69,6 +78,8 @@ export class Question extends MySqlModel {
       if (current) {
         this.errors.push('Question with this question text already exists');
       } else {
+        this.cleanup();
+
         // Save the record and then fetch it
         const newId = await Question.insert(context, this.tableName, this, 'Question.create');
         const response = await Question.findById('Section.create', context, newId);
@@ -85,6 +96,8 @@ export class Question extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
+        this.cleanup();
+
         await Question.update(context, this.tableName, this, 'Question.update', [], noTouch);
         return await Question.findById('Question.update', context, id);
       }

@@ -13,7 +13,7 @@ export const typeDefs = gql`
     "Add a Funder to a research project"
     addProjectFunder(input: AddProjectFunderInput!): ProjectFunder
     "Update a Funder on the research project"
-    editProjectFunder(input: EditProjectFunderInput!): ProjectFunder
+    updateProjectFunder(input: updateProjectFunderInput!): ProjectFunder
     "Remove a research project Funder"
     removeProjectFunder(projectFunderId: Int!): ProjectFunder
 
@@ -51,7 +51,7 @@ export const typeDefs = gql`
     "The project that is seeking (or has aquired) funding"
     project: Project!
     "The funder"
-    funder: Affiliation!
+    affiliation: Affiliation!
     "The status of the funding resquest"
     status: ProjectFunderStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
@@ -77,7 +77,7 @@ export const typeDefs = gql`
     funderOpportunityNumber: String
   }
 
-  input EditProjectFunderInput {
+  input updateProjectFunderInput {
     "The project funder"
     projectFunderId: Int!
     "The status of the funding resquest"

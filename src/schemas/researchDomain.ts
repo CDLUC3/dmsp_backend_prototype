@@ -2,8 +2,10 @@ import gql from 'graphql-tag';
 
 export const typeDefs = gql`
   extend type Query {
-    "Get all the QuestionTypes"
-    researchDomains: [ResearchDomain]
+    "Get all of the top level research domains (the most generic ones)"
+    topLevelResearchDomains: [ResearchDomain]
+    "Get all of the research domains related to the specified top level domain (more nuanced ones)"
+    childResearchDomains(parentResearchDomainId: Int!): [ResearchDomain]
   }
 
   "An aread of research (e.g. Electrical Engineering, Cellular biology, etc.)"
@@ -27,5 +29,9 @@ export const typeDefs = gql`
     uri: String!
     "A description of the type of research covered by the domain"
     description: String
+    "The parent research domain (if applicable). If this is blank then it is a top level domain."
+    parentResearchDomain: ResearchDomain
+    "The child research domains (if applicable)"
+    childResearchDomains: [ResearchDomain!]
   }
 `;

@@ -38,6 +38,7 @@
 - Data migrations for affiliations table
 - Added Project, ProjectContributor, ProjectFunder schemas and supporting tables
 - Added Plan, PlanContributor, PlanCollaborator, PlanFunder, PlanFeedback, PlanFeedbackComment, Answer and AnswerComment schemas and supporting tables
+- Added models and resolvers for MetadataStandard, Repository, ResearchDomain, License, ProjectContributor and ProjectFunder
 
 ### Updated
 - Updated User update method to prevent password manipulation

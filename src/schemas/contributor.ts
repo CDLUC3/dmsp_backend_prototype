@@ -13,7 +13,7 @@ export const typeDefs = gql`
     "Add a contributor to a research project"
     addProjectContributor(input: AddProjectContributorInput!): ProjectContributor
     "Update a contributor on the research project"
-    editProjectContributor(input: EditProjectContributorInput!): ProjectContributor
+    updateProjectContributor(input: updateProjectContributorInput!): ProjectContributor
     "Remove a research project contributor"
     removeProjectContributor(projectContributorId: Int!): ProjectContributor
 
@@ -96,7 +96,7 @@ export const typeDefs = gql`
     roles: [Int!]
   }
 
-  input EditProjectContributorInput {
+  input updateProjectContributorInput {
     "The project contributor"
     projectContributorId: Int!
     "The contributor's affiliation URI"

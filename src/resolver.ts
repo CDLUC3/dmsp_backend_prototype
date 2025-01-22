@@ -9,10 +9,14 @@ import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as collaboratorResolvers } from './resolvers/collaborator';
 import { resolvers as contributorRoleResolvers } from './resolvers/contributorRole';
 import { resolvers as languageResolvers } from './resolvers/language';
+import { resolvers as licenseResolvers } from './resolvers/license';
+import { resolvers as metadataStandardResolvers } from './resolvers/metadataStandard';
 import { resolvers as questionResolvers } from './resolvers/question';
 import { resolvers as questionConditionResolvers } from './resolvers/questionCondition';
 import { resolvers as questionTypeResolvers } from './resolvers/questionType';
 import { resolvers as templateResolvers } from './resolvers/template';
+import { resolvers as repositoryResolvers } from './resolvers/repository';
+import { resolvers as researchDomainResolvers } from './resolvers/researchDomain';
 import { resolvers as sectionResolvers } from './resolvers/section';
 import { resolvers as tagResolvers } from './resolvers/tag';
 import { resolvers as userResolvers } from './resolvers/user';
@@ -32,10 +36,14 @@ export const resolvers: IResolvers = mergeResolvers([
   affiliationResolvers,
   collaboratorResolvers,
   languageResolvers,
+  licenseResolvers,
+  metadataStandardResolvers,
   contributorRoleResolvers,
   questionResolvers,
   questionConditionResolvers,
   questionTypeResolvers,
+  repositoryResolvers,
+  researchDomainResolvers,
   templateResolvers,
   sectionResolvers,
   tagResolvers,

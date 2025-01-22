@@ -1,6 +1,7 @@
 import { GraphQLScalarType, Kind } from 'graphql';
+import { generalConfig } from '../../config/generalConfig';
 
-export const DMSP_BASE_URL: string = process.env.DMSP_BASE_URL;
+const DMSP_BASE_URL: string = generalConfig.dmpIdBaseURL;
 const DMSP_REGEX = /^[0-9a-zA-Z]+$/;
 
 export function validateDmspId(val) {
