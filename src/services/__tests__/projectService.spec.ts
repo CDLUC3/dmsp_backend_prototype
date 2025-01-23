@@ -4,7 +4,7 @@ import { buildContext, mockToken } from "../../__mocks__/context";
 import { MySQLDataSource } from "../../datasources/mySQLDataSource";
 import { Project } from "../../models/Project";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { isSuperAdmin } from "../authService";
+import { isAdmin, isSuperAdmin } from "../authService";
 import { hasPermissionOnProject } from "../projectService";
 
 // Pulling context in here so that the MySQLDataSource gets mocked
@@ -26,6 +26,7 @@ describe('hasPermissionOnProject', () => {
   let project;
   let mockQuery;
   let mockIsSuperAdmin;
+  let mockIsAdmin;
 
   beforeEach(() => {
     // Cast getInstance to a jest.Mock type to use mockReturnValue
@@ -40,6 +41,9 @@ describe('hasPermissionOnProject', () => {
     mockIsSuperAdmin = jest.fn();
     (isSuperAdmin as jest.Mock) = mockIsSuperAdmin;
 
+    mockIsAdmin = jest.fn();
+    (isAdmin as jest.Mock) = mockIsAdmin;
+
     project = new Project({
       id: casual.integer(1, 999),
       title: casual.sentence,
@@ -52,6 +56,8 @@ describe('hasPermissionOnProject', () => {
 
     expect(await hasPermissionOnProject(context, project)).toBe(true)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+    expect(mockIsAdmin).toHaveBeenCalledTimes(0);
+    expect(mockQuery).toHaveBeenCalledTimes(0);
   });
 
   it('returns true if the current user\'s id is the same as the project\'s owner', async () => {
@@ -60,14 +66,29 @@ describe('hasPermissionOnProject', () => {
     context.token = { id: project.createdById };
     expect(await hasPermissionOnProject(context, project)).toBe(true)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+    expect(mockIsAdmin).toHaveBeenCalledTimes(0);
+    expect(mockQuery).toHaveBeenCalledTimes(0);
+  });
 
+  it('returns true if the current user\'s is an Admin and the project\'s owner are the same org', async () => {
+    mockIsSuperAdmin.mockResolvedValueOnce(false);
+    mockIsAdmin.mockResolvedValueOnce(true);
+    context.token = { id: casual.integer(1, 9999) };
+    mockQuery.mockResolvedValueOnce({ affiliationId: context.token.affiliationId });
+    expect(await hasPermissionOnProject(context, project)).toBe(true)
+    expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+    expect(mockIsAdmin).toHaveBeenCalledTimes(1);
+    expect(mockQuery).toHaveBeenCalledTimes(1);
   });
 
   it('returns false when the user does not have permission', async () => {
     mockIsSuperAdmin.mockResolvedValueOnce(false);
+    mockIsAdmin.mockResolvedValueOnce(false);
 
     context.token = { id: casual.integer(1, 9999) };
     expect(await hasPermissionOnProject(context, project)).toBe(false)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+    expect(mockIsAdmin).toHaveBeenCalledTimes(1);
+    expect(mockQuery).toHaveBeenCalledTimes(0);
   });
 });

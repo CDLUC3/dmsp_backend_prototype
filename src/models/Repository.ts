@@ -158,12 +158,15 @@ export class Repository extends MySqlModel {
 
     // Apply any filters
     if (Array.isArray(results) && researchDomainId) {
-      const repoIds = await Repository.findRepositoryIdsByResearchDomainId(
+      const repos = await Repository.findByResearchDomainId(
         reference,
         context,
         researchDomainId
       );
-      return results.filter((repo) => repoIds.includes(repo.id))
+      if (repos) {
+        const repoIds = repos.map((repo) => repo.id);
+        return results.filter((repo) => repoIds.includes(repo.id))
+      }
     }
 
     // No need to reinitialize all of the results to objects here because they're just search results
@@ -190,13 +193,31 @@ export class Repository extends MySqlModel {
   }
 
   // Fetch all of the Repositories associated with a ResearchDomain
-  static async findRepositoryIdsByResearchDomainId(
+  static async findByResearchDomainId(
     reference: string,
     context: MyContext,
     researchDomainId: number
-  ): Promise<number[]> {
-    const sql = `SELECT repositoryId FROM repositoryResearchDomains WHERE = researchDomainId = ?`;
-    const results = await Repository.query(context, sql, [researchDomainId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results.map((rec) => rec.repositoryId) : [];
+  ): Promise<Repository[]> {
+    const sql = 'SELECT r.* FROM repositories r';
+    const joinClause = 'INNER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+    const whereClause = 'WHERE = rrd.researchDomainId = ?';
+    const vals = [researchDomainId.toString()];
+    const results = await Repository.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results : [];
+  }
+
+  // Fetch all of the Repositories associated with a ProjectOutput
+  static async findByProjectOutputId(
+    reference: string,
+    context: MyContext,
+    projectOutputId: number
+  ): Promise<Repository[]> {
+    const sql = 'SELECT r.* FROM repositories r';
+    const joinClause = 'INNER JOIN projectOutputRepositories por ON r.id = por.repositoryId';
+    const whereClause = 'WHERE = por.projectOutputId = ?';
+    const vals = [projectOutputId.toString()];
+
+    const results = await Repository.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results : [];
   }
 };

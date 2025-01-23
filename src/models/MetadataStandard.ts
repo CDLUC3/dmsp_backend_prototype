@@ -138,12 +138,15 @@ export class MetadataStandard extends MySqlModel {
 
     // Apply any filters
     if (Array.isArray(results) && researchDomainId) {
-      const standardIds = await MetadataStandard.findMetadataStandardIdsByResearchDomainId(
+      const standards = await MetadataStandard.findByResearchDomainId(
         reference,
         context,
         researchDomainId
       );
-      return results.filter((standard) => standardIds.includes(standard.id))
+      if (standards) {
+        const standardIds = standards.map((standard) => standard.id);
+        return results.filter((standard) => standardIds.includes(standard.id))
+      }
     }
 
     // No need to reinitialize all of the results to objects here because they're just search results
@@ -170,13 +173,32 @@ export class MetadataStandard extends MySqlModel {
   }
 
   // Fetch all of the MetadataStandards associated with a ResearchDomain
-  static async findMetadataStandardIdsByResearchDomainId(
+  static async findByResearchDomainId(
     reference: string,
     context: MyContext,
     researchDomainId: number
-  ): Promise<number[]> {
-    const sql = 'SELECT metadataStandardId FROM metadataStandardResearchDomains WHERE = researchDomainId = ?';
-    const results = await MetadataStandard.query(context, sql, [researchDomainId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results.map((rec) => rec.metadataStandardId) : [];
+  ): Promise<MetadataStandard[]> {
+    const sql = 'SELECT ms.* FROM metadataStandards ms';
+    const joinClause = 'INNER JOIN metadataStandardResearchDomains msrd ON ms.id = msrd.metadataStandardId';
+    const whereClause = 'WHERE = msrd.researchDomainId = ?';
+    const vals = [researchDomainId.toString()];
+
+    const results = await MetadataStandard.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results : [];
+  }
+
+  // Fetch all of the MetadataStandards associated with a ProjectOutput
+  static async findByProjectOutputId(
+    reference: string,
+    context: MyContext,
+    projectOutputId: number
+  ): Promise<MetadataStandard[]> {
+    const sql = 'SELECT ms.* FROM metadataStandards ms';
+    const joinClause = 'INNER JOIN projectOutputMetadataStandards poms ON ms.id = poms.metadataStandardId';
+    const whereClause = 'WHERE = poms.projectOutputId = ?';
+    const vals = [projectOutputId.toString()];
+
+    const results = await MetadataStandard.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results : [];
   }
 };

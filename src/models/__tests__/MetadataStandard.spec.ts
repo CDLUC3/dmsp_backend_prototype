@@ -144,28 +144,51 @@ describe('findBy Queries', () => {
     expect(result).toEqual(null);
   });
 
-  it('findMetadataStandardIdsByResearchDomainId should call query with correct params and return the object', async () => {
-    localQuery.mockResolvedValueOnce([{ metadataStandardId: standard.id }]);
+  it('findByResearchDomainId should call query with correct params and return the object', async () => {
+    localQuery.mockResolvedValueOnce([standard]);
     const id = casual.integer(1, 99);
-    const result = await MetadataStandard.findMetadataStandardIdsByResearchDomainId('testing', context, id);
-    const expectedSql = 'SELECT metadataStandardId FROM metadataStandardResearchDomains WHERE = researchDomainId = ?';
+    const result = await MetadataStandard.findByResearchDomainId('testing', context, id);
+    const sql = 'SELECT ms.* FROM metadataStandards ms';
+    const joinClause = 'INNER JOIN metadataStandardResearchDomains msrd ON ms.id = msrd.metadataStandardId';
+    const whereClause = 'WHERE = msrd.researchDomainId = ?';
+    const vals = [id.toString()];
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
-    expect(result).toEqual([standard.id]);
+    expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
+    expect(result).toEqual([standard]);
   });
 
-  it('findMetadataStandardIdsByResearchDomainId should return an empty array if there are no records', async () => {
+  it('findByResearchDomainId should return an empty array if there are no records', async () => {
     localQuery.mockResolvedValueOnce([]);
     const id = casual.integer(1, 99);
-    const result = await MetadataStandard.findMetadataStandardIdsByResearchDomainId('testing', context, id);
+    const result = await MetadataStandard.findByResearchDomainId('testing', context, id);
+    expect(result).toEqual([]);
+  });
+
+  it('findByProjectOutputId should call query with correct params and return the objects', async () => {
+    localQuery.mockResolvedValueOnce([standard]);
+    const id = casual.integer(1, 99);
+    const result = await MetadataStandard.findByProjectOutputId('testing', context, id);
+    const sql = 'SELECT ms.* FROM metadataStandards ms';
+    const joinClause = 'INNER JOIN projectOutputMetadataStandards poms ON ms.id = poms.metadataStandardId';
+    const whereClause = 'WHERE = poms.projectOutputId = ?';
+    const vals = [id.toString()];
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
+    expect(result).toEqual([standard]);
+  });
+
+  it('findByProjectOutputId should return an empty array if there are no records', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const id = casual.integer(1, 99);
+    const result = await MetadataStandard.findByProjectOutputId('testing', context, id);
     expect(result).toEqual([]);
   });
 
   it('search should work when a Research Domain and a search term are specified', async () => {
     localQuery.mockResolvedValueOnce([standard]);
     const mockStandardQry = jest.fn();
-    (MetadataStandard.findMetadataStandardIdsByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([standard.id]);
+    (MetadataStandard.findByResearchDomainId as jest.Mock) = mockStandardQry;
+    mockStandardQry.mockResolvedValueOnce([standard]);
     const term = casual.words(3);
     const researchDomainId = casual.integer(1, 9);
     const result = await MetadataStandard.search('testing', context, term, researchDomainId);
@@ -181,8 +204,8 @@ describe('findBy Queries', () => {
   it('search should work when only a Research Domain is specified', async () => {
     localQuery.mockResolvedValueOnce([standard]);
     const mockStandardQry = jest.fn();
-    (MetadataStandard.findMetadataStandardIdsByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([standard.id]);
+    (MetadataStandard.findByResearchDomainId as jest.Mock) = mockStandardQry;
+    mockStandardQry.mockResolvedValueOnce([standard]);
     const researchDomainId = casual.integer(1, 9);
     const result = await MetadataStandard.search('testing', context, null, researchDomainId);
     const sql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';

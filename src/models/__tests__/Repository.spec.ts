@@ -85,6 +85,8 @@ describe('findBy Queries', () => {
   let repo;
 
   beforeEach(() => {
+    jest.resetAllMocks();
+
     localQuery = jest.fn();
     (Repository.query as jest.Mock) = localQuery;
 
@@ -156,37 +158,61 @@ describe('findBy Queries', () => {
     expect(result).toEqual(null);
   });
 
-  it('findRepositoryIdsByResearchDomainId should call query with correct params and return the object', async () => {
-    localQuery.mockResolvedValueOnce([{ repositoryId: repo.id }]);
+  it('findByResearchDomainId should call query with correct params and return the objects', async () => {
+    localQuery.mockResolvedValueOnce([repo]);
     const id = casual.integer(1, 99);
-    const result = await Repository.findRepositoryIdsByResearchDomainId('testing', context, id);
-    const expectedSql = 'SELECT repositoryId FROM repositoryResearchDomains WHERE = researchDomainId = ?';
+    const result = await Repository.findByResearchDomainId('testing', context, id);
+    const sql = 'SELECT r.* FROM repositories r';
+    const joinClause = 'INNER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+    const whereClause = 'WHERE = rrd.researchDomainId = ?';
+    const vals = [id.toString()];
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
-    expect(result).toEqual([repo.id]);
+    expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
+    expect(result).toEqual([repo]);
   });
 
-  it('findRepositoryIdsByResearchDomainId should return an empty array if there are no records', async () => {
+  it('findByResearchDomainId should return an empty array if there are no records', async () => {
     localQuery.mockResolvedValueOnce([]);
     const id = casual.integer(1, 99);
-    const result = await Repository.findRepositoryIdsByResearchDomainId('testing', context, id);
+    const result = await Repository.findByResearchDomainId('testing', context, id);
+    expect(result).toEqual([]);
+  });
+
+  it('findByProjectOutputId should call query with correct params and return the objects', async () => {
+    localQuery.mockResolvedValueOnce([repo]);
+    const id = casual.integer(1, 99);
+    const result = await Repository.findByProjectOutputId('testing', context, id);
+    const sql = 'SELECT r.* FROM repositories r';
+    const joinClause = 'INNER JOIN projectOutputRepositories por ON r.id = por.repositoryId';
+    const whereClause = 'WHERE = por.projectOutputId = ?';
+    const vals = [id.toString()];
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
+    expect(result).toEqual([repo]);
+  });
+
+  it('findByProjectOutputId should return an empty array if there are no records', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const id = casual.integer(1, 99);
+    const result = await Repository.findByProjectOutputId('testing', context, id);
     expect(result).toEqual([]);
   });
 
   it('search should work when a Research Domain, search term and repositoryType are specified', async () => {
     localQuery.mockResolvedValueOnce([repo]);
     const mockStandardQry = jest.fn();
-    (Repository.findRepositoryIdsByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo.id]);
+    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
+    mockStandardQry.mockResolvedValueOnce([repo]);
     const term = casual.words(3);
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, term, researchDomainId, repositoryType);
-    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
+    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ?';
+    const sql2 = 'OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
     const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, repositoryType];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, vals, 'testing');
+    expect(localQuery).toHaveBeenCalledWith(context, `${sql} ${sql2}`, vals, 'testing');
     expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
     expect(result).toEqual([repo]);
   });
@@ -194,8 +220,8 @@ describe('findBy Queries', () => {
   it('search should work when only a Research Domain is specified', async () => {
     localQuery.mockResolvedValueOnce([repo]);
     const mockStandardQry = jest.fn();
-    (Repository.findRepositoryIdsByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo.id]);
+    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
+    mockStandardQry.mockResolvedValueOnce([repo]);
     const researchDomainId = casual.integer(1, 9);
     const result = await Repository.search('testing', context, null, researchDomainId, null);
     const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
@@ -219,8 +245,8 @@ describe('findBy Queries', () => {
   it('search should work when only a Research Domain and Repository Type are specified', async () => {
     localQuery.mockResolvedValueOnce([repo]);
     const mockStandardQry = jest.fn();
-    (Repository.findRepositoryIdsByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo.id]);
+    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
+    mockStandardQry.mockResolvedValueOnce([repo]);
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, null, researchDomainId, repositoryType);

@@ -96,7 +96,7 @@ export const typeDefs = gql`
     "The contributor's email address"
     email: String
     "The roles the contributor has on the research project"
-    roles: [Int!]
+    contributorRoleIds: [Int!]
   }
 
   input updateProjectContributorInput {
@@ -113,6 +113,6 @@ export const typeDefs = gql`
     "The contributor's email address"
     email: String
     "The roles the contributor has on the research project"
-    roles: [Int!]
+    contributorRoleIds: [Int!]
   }
 `;

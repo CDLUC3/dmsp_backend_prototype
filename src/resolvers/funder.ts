@@ -61,9 +61,9 @@ export const resolvers: Resolvers = {
       }
     },
 
-    editProjectFunder: async (_, { input }, context) => {
+    updateProjectFunder: async (_, { input }, context) => {
       if (isAuthorized(context.token)) {
-        const reference = 'editProjectFunder resolver';
+        const reference = 'updateProjectFunder resolver';
         try {
           const contributor = await ProjectFunder.findById(reference, context, input.projectFunderId);
           if (!contributor) {

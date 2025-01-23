@@ -49,6 +49,8 @@ export type AddMetadataStandardInput = {
 export type AddProjectContributorInput = {
   /** The contributor's affiliation URI */
   affiliationId?: InputMaybe<Scalars['String']['input']>;
+  /** The roles the contributor has on the research project */
+  contributorRoleIds?: InputMaybe<Array<Scalars['Int']['input']>>;
   /** The contributor's email address */
   email?: InputMaybe<Scalars['String']['input']>;
   /** The contributor's first/given name */
@@ -57,8 +59,6 @@ export type AddProjectContributorInput = {
   orcid?: InputMaybe<Scalars['String']['input']>;
   /** The research project */
   projectId: Scalars['Int']['input'];
-  /** The roles the contributor has on the research project */
-  roles?: InputMaybe<Array<Scalars['Int']['input']>>;
   /** The contributor's last/sur name */
   surname?: InputMaybe<Scalars['String']['input']>;
 };
@@ -430,7 +430,7 @@ export type ContributorRole = {
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The taxonomy URL for the contributor role */
-  url: Scalars['URL']['output'];
+  uri: Scalars['URL']['output'];
 };
 
 export type ContributorRoleMutationResponse = {
@@ -1472,11 +1472,11 @@ export type ProjectOutput = {
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The type of output */
-  outputType: OutputType;
+  outputType?: Maybe<OutputType>;
   /** The project associated with the output */
-  project: Project;
+  project?: Maybe<Project>;
   /** The repositories the output will be deposited in */
-  respositories?: Maybe<Array<Repository>>;
+  repositories?: Maybe<Array<Repository>>;
   /** The title/name of the output */
   title: Scalars['String']['output'];
 };
@@ -1554,6 +1554,8 @@ export type Query = {
   projectFunder?: Maybe<ProjectFunder>;
   /** Get all of the Users that a Funders to the research project */
   projectFunders?: Maybe<Array<Maybe<ProjectFunder>>>;
+  /** Fetch a single project output */
+  projectOutput?: Maybe<ProjectOutput>;
   /** Get all of the outputs for the research project */
   projectOutputs?: Maybe<Array<Maybe<ProjectOutput>>>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
@@ -1738,6 +1740,11 @@ export type QueryProjectFunderArgs = {
 
 export type QueryProjectFundersArgs = {
   projectId: Scalars['Int']['input'];
+};
+
+
+export type QueryProjectOutputArgs = {
+  projectOutputId: Scalars['Int']['input'];
 };
 
 
@@ -2557,6 +2564,8 @@ export type VersionedTemplate = {
 export type UpdateProjectContributorInput = {
   /** The contributor's affiliation URI */
   affiliationId?: InputMaybe<Scalars['String']['input']>;
+  /** The roles the contributor has on the research project */
+  contributorRoleIds?: InputMaybe<Array<Scalars['Int']['input']>>;
   /** The contributor's email address */
   email?: InputMaybe<Scalars['String']['input']>;
   /** The contributor's first/given name */
@@ -2565,8 +2574,6 @@ export type UpdateProjectContributorInput = {
   orcid?: InputMaybe<Scalars['String']['input']>;
   /** The project contributor */
   projectContributorId: Scalars['Int']['input'];
-  /** The roles the contributor has on the research project */
-  roles?: InputMaybe<Array<Scalars['Int']['input']>>;
   /** The contributor's last/sur name */
   surname?: InputMaybe<Scalars['String']['input']>;
 };
@@ -2947,7 +2954,7 @@ export type ContributorRoleResolvers<ContextType = MyContext, ParentType extends
   label?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  url?: Resolver<ResolversTypes['URL'], ParentType, ContextType>;
+  uri?: Resolver<ResolversTypes['URL'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -3254,9 +3261,9 @@ export type ProjectOutputResolvers<ContextType = MyContext, ParentType extends R
   metadataStandards?: Resolver<Maybe<Array<ResolversTypes['MetadataStandard']>>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  outputType?: Resolver<ResolversTypes['OutputType'], ParentType, ContextType>;
-  project?: Resolver<ResolversTypes['Project'], ParentType, ContextType>;
-  respositories?: Resolver<Maybe<Array<ResolversTypes['Repository']>>, ParentType, ContextType>;
+  outputType?: Resolver<Maybe<ResolversTypes['OutputType']>, ParentType, ContextType>;
+  project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
+  repositories?: Resolver<Maybe<Array<ResolversTypes['Repository']>>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -3298,6 +3305,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   projectContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectContributor']>>>, ParentType, ContextType, RequireFields<QueryProjectContributorsArgs, 'projectId'>>;
   projectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<QueryProjectFunderArgs, 'projectFunderId'>>;
   projectFunders?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectFunder']>>>, ParentType, ContextType, RequireFields<QueryProjectFundersArgs, 'projectId'>>;
+  projectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<QueryProjectOutputArgs, 'projectOutputId'>>;
   projectOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryProjectOutputsArgs, 'projectId'>>;
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;

@@ -54,10 +54,10 @@ export const resolvers: Resolvers = {
           const newContributor = new ProjectContributor(input);
           const created = await newContributor.create(context, project.id);
 
-          if (created && Array.isArray(newContributor.contributorRoles)) {
+          if (created && Array.isArray(input.contributorRoleIds)) {
             // Now add any ContributorRole associations
-            for (const role of newContributor.contributorRoles) {
-              const newRole = await ContributorRole.findById(reference, context, role.id);
+            for (const roleId of input.contributorRoleIds) {
+              const newRole = await ContributorRole.findById(reference, context, roleId);
               if (newRole) {
                 await newRole.addToProjectContributor(context, created.id);
               }
@@ -73,9 +73,9 @@ export const resolvers: Resolvers = {
       }
     },
 
-    editProjectContributor: async (_, { input }, context) => {
+    updateProjectContributor: async (_, { input }, context) => {
       if (isAuthorized(context.token)) {
-        const reference = 'editProjectContributor resolver';
+        const reference = 'updateProjectContributor resolver';
         try {
           const contributor = await ProjectContributor.findById(reference, context, input.projectContributorId);
           if (!contributor) {
@@ -94,19 +94,21 @@ export const resolvers: Resolvers = {
           if (!toUpdate.contributorRoles) {
             toUpdate.contributorRoles = [];
           }
+          const currentRoleIds = contributor.contributorRoles.map((rl) => rl.id);
+          const incomingRoleIds = input.contributorRoleIds;
 
           // Delete any ContributorRole associations that were removed
-          const domainsToRemove = contributor.contributorRoles.filter((d) => !toUpdate.contributorRoles.includes(d));
-          for (const contributorRole of domainsToRemove) {
-            const role = await ContributorRole.findById(reference, context, contributorRole.id);
+          const domainsToRemove = currentRoleIds.filter((d) => !incomingRoleIds.includes(d));
+          for (const contributorRoleId of domainsToRemove) {
+            const role = await ContributorRole.findById(reference, context, contributorRoleId);
             if (role) {
               role.removeFromProjectContributor(context, updated.id)
             }
           }
           // Add any new ContributorRole associations
-          const rolesToAdd = toUpdate.contributorRoles.filter((d) => !contributor.contributorRoles.includes(d));
-          for (const contributorRole of rolesToAdd) {
-            const role = await ContributorRole.findById(reference, context, contributorRole.id);
+          const rolesToAdd = incomingRoleIds.filter((d) => !currentRoleIds.includes(d));
+          for (const contributorRoleId of rolesToAdd) {
+            const role = await ContributorRole.findById(reference, context, contributorRoleId);
             if (role) {
               role.addToProjectContributor(context, updated.id)
             }
