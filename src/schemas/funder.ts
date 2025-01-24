@@ -69,7 +69,7 @@ export const typeDefs = gql`
     "The project"
     projectId: Int!
     "The funder URI"
-    funder: String!
+    affiliationId: String!
     "The status of the funding resquest"
     status: ProjectFunderStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"

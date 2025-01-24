@@ -71,13 +71,13 @@ export class Tag extends MySqlModel {
     FROM sectionTags
     JOIN tags ON sectionTags.tagId = tags.id
     WHERE sectionTags.sectionId = ?;`;
-    const result = await Tag.query(context, sql, [sectionId.toString()], reference);
+    const result = await Tag.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
   }
 
   static async getTagById(reference: string, context: MyContext, tagId: number): Promise<Tag> {
     const sql = 'SELECT * FROM tags where id = ?';
-    const result = await Tag.query(context, sql, [tagId.toString()], reference);
+    const result = await Tag.query(context, sql, [tagId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? result[0] : null;
   }
 
@@ -88,7 +88,8 @@ export class Tag extends MySqlModel {
     name: string,
   ): Promise<Tag[]> {
     const sql = 'SELECT * FROM tags WHERE LOWER(name) = ?';
-    const vals = [name.toLowerCase()];
+    const searchTerm = (name ?? '');
+    const vals = [searchTerm?.toLowerCase()?.trim()];
     const results = await Tag.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }

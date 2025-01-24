@@ -79,19 +79,6 @@ describe('ProjectContributor', () => {
     expect(projectContributor.errors.length).toBe(1);
     expect(projectContributor.errors[0]).toEqual('You must specify at least one name, ORCID or email');
   });
-
-  it('should return false when calling isValid if no contributorRoles are specified', async () => {
-    projectContributor.contributorRoles = null;
-    expect(await projectContributor.isValid()).toBe(false);
-    expect(projectContributor.errors.length).toBe(1);
-    expect(projectContributor.errors[0]).toEqual('You must specify at least one role');
-
-    projectContributor.errors = [];
-    projectContributor.contributorRoles = [];
-    expect(await projectContributor.isValid()).toBe(false);
-    expect(projectContributor.errors.length).toBe(1);
-    expect(projectContributor.errors[0]).toEqual('You must specify at least one role');
-  });
 });
 
 describe('findBy Queries', () => {

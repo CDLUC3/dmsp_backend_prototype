@@ -50,7 +50,7 @@ export const typeDefs = gql`
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"
-    surname: String
+    surName: String
     "The contributor's ORCID"
     orcid: String
     "The contributor's email address"
@@ -90,7 +90,7 @@ export const typeDefs = gql`
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"
-    surname: String
+    surName: String
     "The contributor's ORCID"
     orcid: String
     "The contributor's email address"
@@ -107,7 +107,7 @@ export const typeDefs = gql`
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"
-    surname: String
+    surName: String
     "The contributor's ORCID"
     orcid: String
     "The contributor's email address"

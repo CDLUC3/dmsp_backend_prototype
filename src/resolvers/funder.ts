@@ -65,18 +65,21 @@ export const resolvers: Resolvers = {
       if (isAuthorized(context.token)) {
         const reference = 'updateProjectFunder resolver';
         try {
-          const contributor = await ProjectFunder.findById(reference, context, input.projectFunderId);
-          if (!contributor) {
+          const funder = await ProjectFunder.findById(reference, context, input.projectFunderId);
+          if (!funder) {
             throw NotFoundError();
           }
 
           // Only allow the owner of the project to edit it
-          const project = await Project.findById(reference, context, contributor.projectId);
+          const project = await Project.findById(reference, context, funder.projectId);
           if (!hasPermissionOnProject(context, project)) {
             throw ForbiddenError();
           }
 
           const toUpdate = new ProjectFunder(input);
+          toUpdate.projectId = funder?.projectId;
+          toUpdate.id = funder?.id;
+          toUpdate.affiliationId = funder.affiliationId;
           const updated = await toUpdate.update(context);
           return updated;
         } catch(err) {
@@ -92,18 +95,18 @@ export const resolvers: Resolvers = {
       if (isAuthorized(context.token)) {
         const reference = 'removeProjectFunder resolver';
         try {
-          const contributor = await ProjectFunder.findById(reference, context, projectFunderId);
-          if (!contributor) {
+          const funder = await ProjectFunder.findById(reference, context, projectFunderId);
+          if (!funder) {
             throw NotFoundError();
           }
 
           // Only allow the owner of the project to delete it
-          const project = await Project.findById(reference, context, contributor.projectId);
+          const project = await Project.findById(reference, context, funder.projectId);
           if (!hasPermissionOnProject(context, project)) {
             throw ForbiddenError();
           }
 
-          const deleted = await contributor.delete(context);
+          const deleted = await funder.delete(context);
           return deleted
         } catch(err) {
           formatLogMessage(context.logger).error(err, `Failure in ${reference}`);

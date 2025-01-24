@@ -15,13 +15,16 @@ export const typeDefs = gql`
   extend type Mutation {
     "Add an output to a research project"
     addProjectOutput(input: AddProjectOutputInput!): ProjectOutput
+
     "Update an output on the research project"
     updateProjectOutput(input: UpdateProjectOutputInput!): ProjectOutput
+
     "Remove a research project output"
     removeProjectOutput(projectOutputId: Int!): ProjectOutput
 
     "Add an Output to a Plan"
     selectProjectOutputForPlan(planId: Int!, projectOutputId: Int!): ProjectOutput
+
     "Remove an Output from a Plan"
     removeProjectOutputFromPlan(planId: Int!, projectOutputId: Int!): ProjectOutput
   }

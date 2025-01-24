@@ -17,6 +17,7 @@
     - [Building for Production](#building-for-production)
     - [Managing the database](#managing-the-database)
 - [Development](#development)
+    - [Data Model](#data-model)
     - [Adding or updating GraphQL functionality](#adding-or-updating-graphql-functionality)
     - [Context](#context)
     - [Schemas](#graphql-schemas)
@@ -231,6 +232,10 @@ Run the following to check that your container is up:
 `docker container ls -a`
 To run bash commands within the container (e.g. to run DB migrations):
 `docker-compose exec apollo bash path/to/script`
+
+### Data Model
+
+This system uses several data sources: A MySQL database, a DynamoDB table and a Redis cache to store information. The basic breakdown of
 
 ### Adding or updating GraphQL functionality
 

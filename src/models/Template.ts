@@ -132,7 +132,7 @@ export class Template extends MySqlModel {
   // Return the specified Template
   static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE id = ?';
-    const results = await Template.query(context, sql, [templateId.toString()], reference);
+    const results = await Template.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
@@ -143,7 +143,8 @@ export class Template extends MySqlModel {
     name: string
   ): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE LOWER(name) = ? AND ownerId = ?';
-    const vals = [name.toLowerCase(), context.token?.affiliationId];
+    const searchTerm = (name ?? '');
+    const vals = [searchTerm?.toLowerCase()?.trim(), context.token?.affiliationId];
     const results = await Template.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }

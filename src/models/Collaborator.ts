@@ -157,7 +157,7 @@ export class TemplateCollaborator extends Collaborator {
     templateId: number
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
-    return await TemplateCollaborator.query(context, sql, [templateId.toString()], reference);
+    return await TemplateCollaborator.query(context, sql, [templateId?.toString()], reference);
   }
 
   // Get the specified TemplateCollaborator
@@ -167,7 +167,7 @@ export class TemplateCollaborator extends Collaborator {
     id: number,
   ): Promise<TemplateCollaborator> {
     const sql = 'SELECT * FROM templateCollaborators WHERE id = ?';
-    const results = await TemplateCollaborator.query(context, sql, [id.toString()], reference);
+    const results = await TemplateCollaborator.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
@@ -177,7 +177,7 @@ export class TemplateCollaborator extends Collaborator {
     invitedById: number,
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE invitedById = ?';
-    return await TemplateCollaborator.query(context, sql, [invitedById.toString()], reference);
+    return await TemplateCollaborator.query(context, sql, [invitedById?.toString()], reference);
   }
 
   // Get all of the TemplateCollaborator records for the specified email
@@ -198,7 +198,7 @@ export class TemplateCollaborator extends Collaborator {
     email: string,
   ): Promise<TemplateCollaborator> {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
-    const vals = [templateId.toString(), email];
+    const vals = [templateId?.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }

@@ -27,6 +27,12 @@ function setupLogger(loggerInstance: Logger, context = null, errors = null) {
   });
 }
 
+// Apollo has the ability to log every phase of the process of receiving a GraphQL query,
+// validating it, etc. It is really noisy! So we have commented out most of them below.
+//
+// We currently only have the initial request and any errors received setup to log.
+// You can uncomment the others as needed
+
 // Initialize the Logging plugin that Apollo will use on each request/response
 export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
   return {
@@ -61,28 +67,34 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
 
       return {
         // Fires when Apollo Server was able to understand the incoming request
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async didResolveSource(context) {
-          setupLogger(logger, context).debug('Resolved source');
+          // setupLogger(logger, context).debug('Resolved source');
         },
 
         // Fires whenever Apollo Server starts parsing the query/mutation
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async parsingDidStart(context) {
-          setupLogger(logger, context).debug('Parsing started');
+          // setupLogger(logger, context).debug('Parsing started');
         },
 
         // Fires whenever Apollo Server will validates the query/mutation
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async validationDidStart(context) {
-          setupLogger(logger, context).debug('Validation started');
+          // setupLogger(logger, context).debug('Validation started');
         },
 
         // Fires whenever Apollo Server figures out what query/mutation to use
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async didResolveOperation(context) {
-          setupLogger(logger, context).debug('Resolved operation');
+          // setupLogger(logger, context).debug('Resolved operation');
         },
 
         // Fires right before Apollo server starts to process the operation
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async responseForOperation(context): Promise<GraphQLResponse | null> {
-          setupLogger(logger, context).debug('Ready to start operation');
+          // setupLogger(logger, context).debug('Ready to start operation');
+
           // This is an opportunity to interrupt the operation!
           // If its return value resolves to a non-null GraphQLResponse, that result
           // is used instead of executing the query
@@ -90,25 +102,26 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
         },
 
         // Fires once Apollo server has figured out what it needs to do
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async executionDidStart(context) {
-          const localLogger = setupLogger(logger, context);
-          localLogger.debug('Operation execution started');
+          // const localLogger = setupLogger(logger, context);
+          // localLogger.debug('Operation execution started');
 
-          return {
-            willResolveField({ info }) {
-              const start = process.hrtime.bigint();
-              const fld = `${info?.parentType?.name}.${info?.fieldName}`;
+          // return {
+          //   willResolveField({ info }) {
+          //     const start = process.hrtime.bigint();
+          //     const fld = `${info?.parentType?.name}.${info?.fieldName}`;
 
-              return (error) => {
-                const end = process.hrtime.bigint();
-                localLogger.debug(`Field ${fld} took ${end - start}ns`);
+          //     return (error) => {
+          //       const end = process.hrtime.bigint();
+          //       localLogger.debug(`Field ${fld} took ${end - start}ns`);
 
-                if (error) {
-                  localLogger.error(`Field ${fld} failed with ${error}`);
-                }
-              };
-            },
-          };
+          //      if (error) {
+          //         localLogger.error(`Field ${fld} failed with ${error}`);
+          //       }
+          //     };
+          //   },
+          // };
         },
 
         // Fires if Apollo server encountered any errors when processing the operation
@@ -122,13 +135,15 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
         },
 
         // Fires right before Apollo server sends its response
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async willSendResponse(context) {
-          setupLogger(logger, context).info('Ready to send response');
+          // setupLogger(logger, context).info('Ready to send response');
         },
 
         // Fires only when using incremental delivery methods like @defer
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         async willSendSubsequentPayload(context) {
-          setupLogger(logger, context).info('Ready to send subsequent responses');
+          // setupLogger(logger, context).info('Ready to send subsequent responses');
         },
       };
     },

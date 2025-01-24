@@ -185,7 +185,7 @@ export class UserEmail extends MySqlModel {
   // Return the specified UserEmail
   static async findById(reference: string, context: MyContext, id: number): Promise<UserEmail> {
     const sql = 'SELECT * FROM userEmails WHERE id = ?';
-    const results = await UserEmail.query(context, sql, [id.toString()], reference);
+    const results = await UserEmail.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
@@ -197,7 +197,7 @@ export class UserEmail extends MySqlModel {
     email: string
   ): Promise<UserEmail> {
     const sql = 'SELECT * FROM userEmails WHERE userId = ? AND email = ?';
-    const results = await UserEmail.query(context, sql, [userId.toString(), email], reference);
+    const results = await UserEmail.query(context, sql, [userId?.toString(), email], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
@@ -208,7 +208,7 @@ export class UserEmail extends MySqlModel {
     userId: number
   ): Promise<UserEmail[]> {
     const sql = 'SELECT * FROM userEmails WHERE userId = ?';
-    const results = await UserEmail.query(context, sql, [userId.toString()], reference);
+    const results = await UserEmail.query(context, sql, [userId?.toString()], reference);
     return Array.isArray(results) ? results : [];
   }
 

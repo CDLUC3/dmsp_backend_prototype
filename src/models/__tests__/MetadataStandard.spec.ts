@@ -150,7 +150,7 @@ describe('findBy Queries', () => {
     const result = await MetadataStandard.findByResearchDomainId('testing', context, id);
     const sql = 'SELECT ms.* FROM metadataStandards ms';
     const joinClause = 'INNER JOIN metadataStandardResearchDomains msrd ON ms.id = msrd.metadataStandardId';
-    const whereClause = 'WHERE = msrd.researchDomainId = ?';
+    const whereClause = 'WHERE msrd.researchDomainId = ?';
     const vals = [id.toString()];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
@@ -170,7 +170,7 @@ describe('findBy Queries', () => {
     const result = await MetadataStandard.findByProjectOutputId('testing', context, id);
     const sql = 'SELECT ms.* FROM metadataStandards ms';
     const joinClause = 'INNER JOIN projectOutputMetadataStandards poms ON ms.id = poms.metadataStandardId';
-    const whereClause = 'WHERE = poms.projectOutputId = ?';
+    const whereClause = 'WHERE poms.projectOutputId = ?';
     const vals = [id.toString()];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
@@ -211,7 +211,7 @@ describe('findBy Queries', () => {
     const sql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, [`%`, `%`, '%'], 'testing');
+    expect(localQuery).toHaveBeenCalledWith(context, sql, [`%%`, `%%`, '%%'], 'testing');
     expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
     expect(result).toEqual([standard]);
   });
@@ -232,7 +232,7 @@ describe('findBy Queries', () => {
     const result = await MetadataStandard.search('testing', context, null, null);
     const expectedSql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%', '%', '%'], 'testing')
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%%', '%%', '%%'], 'testing')
     expect(result).toEqual([standard]);
   });
 
@@ -412,5 +412,87 @@ describe('delete', () => {
     const result = await standard.delete(context);
     expect(result.errors.length).toBe(0);
     expect(result).toEqual(standard);
+  });
+});
+
+describe('addToProjectOutput', () => {
+  let context;
+  let mockStandard;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockStandard = new MetadataStandard({
+      id: casual.integer(1, 99),
+      name: casual.words(3),
+      url: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the Repository to the specified ProjectOutput', async () => {
+    const outputId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(MetadataStandard, 'query').mockResolvedValueOnce(mockStandard);
+    const result = await mockStandard.addToProjectOutput(context, outputId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    let expectedSql = 'INSERT INTO projectOutputMetadataStandards (metadataStandardId, projectOutputId, ';
+    expectedSql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockStandard.id.toString(), outputId.toString(), userId, userId]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'MetadataStandard.addToProjectOutput')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the domain cannot be associated with the ProjectOutput', async () => {
+    const outputId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(MetadataStandard, 'query').mockResolvedValueOnce(null);
+    const result = await mockStandard.addToProjectOutput(context, outputId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('removeFromProjectOutput', () => {
+  let context;
+  let mockStandard;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockStandard = new MetadataStandard({
+      id: casual.integer(1, 99),
+      name: casual.word,
+      url: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('removes the Repository association with the specified ProjectOutput', async () => {
+    const outputId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(MetadataStandard, 'query').mockResolvedValueOnce(mockStandard);
+    const result = await mockStandard.removeFromProjectOutput(context, outputId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'DELETE FROM projectOutputMetadataStandards WHERE repositoryId = ? AND projectOutputId = ?';
+    const vals = [mockStandard.id.toString(), outputId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'MetadataStandard.removeFromProjectOutput')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the domain cannot be removed from the ProjectOutput', async () => {
+    const repositoryId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(MetadataStandard, 'query').mockResolvedValueOnce(null);
+    const result = await mockStandard.removeFromProjectOutput(context, repositoryId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
   });
 });

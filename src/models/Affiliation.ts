@@ -208,7 +208,7 @@ export class Affiliation extends MySqlModel {
   // Return the specified Affiliation  based on the DB id
   static async findById(reference: string, context: MyContext, id: string | number): Promise<Affiliation> {
     const sql = 'SELECT * FROM affiliations WHERE id = ?';
-    const results = await Affiliation.query(context, sql, [id.toString()], reference);
+    const results = await Affiliation.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 
@@ -222,7 +222,7 @@ export class Affiliation extends MySqlModel {
   // Return the specified Affiliation based on it's name
   static async findByName(reference: string, context: MyContext, name: string): Promise<Affiliation> {
     const sql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(name)) = ?';
-    const results = await Affiliation.query(context, sql, [name.toLowerCase().trim()], reference);
+    const results = await Affiliation.query(context, sql, [name?.toLowerCase()?.trim()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 }

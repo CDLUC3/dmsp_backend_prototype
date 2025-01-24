@@ -192,8 +192,8 @@ describe('findBy Queries', () => {
     localQuery.mockResolvedValueOnce([domain]);
     const standardId = casual.integer(1, 999);
     const result = await ResearchDomain.findByMetadataStandardId('testing', context, standardId);
-    const sql = 'SELECT ms.* FROM metadataStandardsResearchDomains jt';
-    const joinClause = 'INNER JOIN metadataStandards ms ON jt.metadataStandardId = ms.id';
+    const sql = 'SELECT rd.* FROM metadataStandardResearchDomains jt';
+    const joinClause = 'INNER JOIN researchDomains rd ON jt.researchDomainId = rd.id';
     const whereClause = 'WHERE jt.metadataStandardId = ?';
     const vals = [standardId.toString()];
     expect(localQuery).toHaveBeenCalledTimes(1);
@@ -424,8 +424,10 @@ describe('addToRepository', () => {
     const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
     const result = await mockDomain.addToRepository(context, repositoryId);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'INSERT INTO repositoryResearchDomains (researchDomainId, repositoryId) (?, ?)';
-    const vals = [mockDomain.id.toString(), repositoryId.toString()]
+    let expectedSql = 'INSERT INTO repositoryResearchDomains (researchDomainId, repositoryId, createdById,';
+    expectedSql += 'modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockDomain.id.toString(), repositoryId.toString(), userId, userId]
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.addToRepository')
     expect(result).toBe(true);
   });
@@ -464,8 +466,10 @@ describe('addToMetadataStandard', () => {
     const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
     const result = await mockDomain.addToMetadataStandard(context, standardId);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'INSERT INTO metadataStandardResearchDomains (researchDomainId, metadataStandardId) (?, ?)';
-    const vals = [mockDomain.id.toString(), standardId.toString()]
+    let expectedSql = 'INSERT INTO metadataStandardResearchDomains (researchDomainId, metadataStandardId, '
+    expectedSql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockDomain.id.toString(), standardId.toString(), userId, userId]
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.addToMetadataStandard')
     expect(result).toBe(true);
   });

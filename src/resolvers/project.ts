@@ -7,6 +7,8 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { ProjectFunder } from '../models/Funder';
 import { ProjectContributor } from '../models/Contributor';
 import { hasPermissionOnProject } from '../services/projectService';
+import { ResearchDomain } from '../models/ResearchDomain';
+import { ProjectOutput } from '../models/Output';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -50,7 +52,7 @@ export const resolvers: Resolvers = {
     updateProject: async (_, { input }, context) => {
       if (isAuthorized(context.token)) {
         try {
-          const project = await Project.findById('updateProject resolver', context, input.projectId);
+          const project = await Project.findById('updateProject resolver', context, input.id);
           if (!project) {
             throw NotFoundError();
           }
@@ -98,6 +100,13 @@ export const resolvers: Resolvers = {
   },
 
   Project: {
+    researchDomain: async (parent: Project, _, context: MyContext): Promise<ResearchDomain> => {
+      return await ResearchDomain.findById(
+        'Chained Project.researchDomain',
+        context,
+        parent.researchDomainId
+      );
+    },
     contributors: async (parent: Project, _, context: MyContext): Promise<ProjectContributor[]> => {
       return await ProjectContributor.findByProjectId(
         'Chained Project.contributors',
@@ -108,6 +117,13 @@ export const resolvers: Resolvers = {
     funders: async (parent: Project, _, context: MyContext): Promise<ProjectFunder[]> => {
       return await ProjectFunder.findByProjectId(
         'Chained Project.funders',
+        context,
+        parent.id
+      );
+    },
+    outputs: async (parent: Project, _, context: MyContext): Promise<ProjectOutput[]> => {
+      return await ProjectOutput.findByProjectId(
+        'Chained Project.outputs',
         context,
         parent.id
       );

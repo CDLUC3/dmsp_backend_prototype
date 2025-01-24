@@ -2,8 +2,8 @@
 CREATE TABLE `projects` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `title` VARCHAR(255) NOT NULL,
-  `abstractText` TEXT NOT NULL,
-  `researchDomainUrl` VARCHAR(255),
+  `abstractText` TEXT,
+  `researchDomainId` VARCHAR(255),
   `startDate` VARCHAR(16),
   `endDate` VARCHAR(16),
   `isTestProject` TINYINT(1) NOT NULL DEFAULT 0,

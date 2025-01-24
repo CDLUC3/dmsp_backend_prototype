@@ -49,15 +49,17 @@ export const typeDefs = gql`
     contributors: [ProjectContributor!]
     "The funders who are supporting the research project"
     funders: [ProjectFunder!]
+    "The outputs that will be/were created as a reult of the research project"
+    outputs: [ProjectOutput!]
   }
 
   input UpdateProjectInput {
     "The project's id"
-    projectId: Int!
+    id: Int!
     "The title of the research project"
     title: String!
     "The research project description/abstract"
-    abstract: String
+    abstractText: String
     "The actual or anticipated start date for the project"
     startDate: String
     "The actual or anticipated end date of the project"

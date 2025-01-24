@@ -27,12 +27,15 @@ export const resolvers: Resolvers = {
           const newStandard = new MetadataStandard(input);
           const created = await newStandard.create(context);
 
-          if (created && Array.isArray(newStandard.researchDomains)) {
-            // Now add any researchDomains associations
-            for (const researchDomain of newStandard.researchDomains) {
-              const newDomain = await ResearchDomain.findById('addMetadataStandard resolver', context, researchDomain.id);
-              if (newDomain) {
-                await newDomain.addToMetadataStandard(context, created.id);
+          // If any ResearchDomains were specified and there were no errors creating the record
+          if (Array.isArray(input.researchDomainIds)) {
+            if (created && Array.isArray(created.errors) && created.errors.length === 0){
+              // Add any researchDomains associations
+              for (const id of input.researchDomainIds) {
+                const domain = await ResearchDomain.findById('addMetadataStandard resolver', context, id);
+                if (domain) {
+                  await domain.addToMetadataStandard(context, created.id);
+                }
               }
             }
           }
@@ -46,10 +49,11 @@ export const resolvers: Resolvers = {
       }
     },
     updateMetadataStandard: async (_, { input }, context) => {
+      const reference = 'updateMetadataStandard resolver';
       // If the user is a an admin and its a DMPTool added standard (no updates to standards managed elsewhere!)
       if (isAdmin(context.token) && input.uri.startsWith(DEFAULT_DMPTOOL_METADATA_STANDARD_URL)) {
         try {
-          const standard = await MetadataStandard.findByURI('updateMetadataStandard resolver', context, input.uri);
+          const standard = await MetadataStandard.findByURI(reference, context, input.uri);
           if (!standard) {
             throw NotFoundError();
           }
@@ -57,36 +61,50 @@ export const resolvers: Resolvers = {
           const toUpdate = new MetadataStandard(input);
           const updated = await toUpdate.update(context);
 
-          if (!toUpdate.researchDomains) {
-            toUpdate.researchDomains = [];
-          }
+          if (updated && Array.isArray(updated.errors) && updated.errors.length === 0){
+            // Fetch all of the current ResearchDomains associated with this MetadataStandard
+            const researchDomains = await ResearchDomain.findByMetadataStandardId(
+              reference,
+              context,
+              standard.id
+            );
+            const currentDomainIds = researchDomains ? researchDomains.map((d) => d.id) : [];
 
-          // Delete any ResearchDomain associations that were removed
-          const domainsToRemove = standard.researchDomains.filter((d) => !toUpdate.researchDomains.includes(d));
-          for (const domain of domainsToRemove) {
-            const dom = await ResearchDomain.findById('updateMetadataStandard resolver', context, domain.id);
-            if (dom) {
-              dom.removeFromMetadataStandard(context, updated.id)
-            }
-          }
-          // Add any new ResearchDomain associations
-          const domainsToAdd = toUpdate.researchDomains.filter((d) => !standard.researchDomains.includes(d));
-          for (const domain of domainsToAdd) {
-            const dom = await ResearchDomain.findById('updateMetadataStandard resolver', context, domain.id);
-            if (dom) {
-              dom.addToMetadataStandard(context, updated.id)
-            }
-          }
+            // Use the helper function to determine which ResearchDomains to keep
+            const { idsToBeRemoved, idsToBeSaved } = MetadataStandard.reconcileAssociationIds(
+              currentDomainIds,
+              input.researchDomainIds
+            );
 
+            // Delete any ResearchDomain associations that were removed
+            for (const id of idsToBeRemoved) {
+              const dom = await ResearchDomain.findById(reference, context, id);
+              if (dom) {
+                dom.removeFromMetadataStandard(context, updated.id)
+              }
+            }
+            // Add any new ResearchDomain associations
+            for (const id of idsToBeSaved) {
+              const dom = await ResearchDomain.findById(reference, context, id);
+              if (dom) {
+                dom.addToMetadataStandard(context, updated.id)
+              }
+            }
+
+            // Reload since the research domains may have changed
+            return await MetadataStandard.findById(reference, context, standard.id);
+          }
+          // Otherwise there were errors so return the object with errors
           return updated;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in updateMetadataStandard resolver');
+          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
         throw ForbiddenError();
       }
     },
+
     removeMetadataStandard: async (_, { uri }, context) => {
       // If the user is a an admin and its a DMPTool added standard (no removals of standards managed elsewhere!)
       if (isAdmin(context.token) && uri.startsWith(DEFAULT_DMPTOOL_METADATA_STANDARD_URL)) {
@@ -100,15 +118,7 @@ export const resolvers: Resolvers = {
           //       or notify that it is being done and to what DMPs
           const deleted = await standard.delete(context);
 
-          if (deleted && Array.isArray(standard.researchDomains)) {
-            // Now remove any researchDomains associations
-            for (const researchDomain of standard.researchDomains) {
-              const newDomain = await ResearchDomain.findById('removeMetadataStandard resolver', context, researchDomain.id);
-              if (newDomain) {
-                await newDomain.removeFromMetadataStandard(context, deleted.id);
-              }
-            }
-          }
+          // No need to remove the related research domain associations the DB will cascade the deletion
           return deleted
         } catch(err) {
           formatLogMessage(context.logger).error(err, 'Failure in removeMetadataStandard resolver');
@@ -168,11 +178,14 @@ export const resolvers: Resolvers = {
 
   MetadataStandard: {
     researchDomains: async (parent: MetadataStandard, _, context: MyContext): Promise<ResearchDomain[]> => {
-      return await ResearchDomain.findByMetadataStandardId(
-        'Chained MetadataStandard.researchDomains',
-        context,
-        parent.id
-      );
+      if (parent.id) {
+        return await ResearchDomain.findByMetadataStandardId(
+          'Chained MetadataStandard.researchDomains',
+          context,
+          parent.id
+        );
+      }
+      return [];
     },
   },
 };

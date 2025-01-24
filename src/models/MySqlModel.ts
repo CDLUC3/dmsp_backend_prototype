@@ -257,4 +257,23 @@ export class MySqlModel {
     const result = await this.query(apolloContext, sql, [id.toString()], reference);
     return Array.isArray(result) && result[0].affectedRows ? true : false;
   }
+
+  // A helper function that can be used when updating an Object that has a many to many relationship.
+  // You pass in an array of the current ids for the relationship and another containing the desired
+  // ids for the relationship.
+  //     - idsOnCurrentRecord:  The foreign key ids that are in the DB now
+  //     - idsOnNewRecord:      The foreign key ids we want
+  // Return a list of the ids to delete, idsToBeRemoved,  and a list of ids to add idsToBeSaved
+  static reconcileAssociationIds(
+    idsOnCurrentRecord: number[],
+    idsOnNewRecord: number[]
+  ): { idsToBeRemoved: number[], idsToBeSaved: number[] } {
+    const current = new Set<number>(idsOnCurrentRecord);
+    const wanted = new Set<number>(idsOnNewRecord);
+
+    return {
+      idsToBeRemoved: idsOnCurrentRecord.filter((id) => !wanted.has(id)),
+      idsToBeSaved: idsOnNewRecord.filter((id) => !current.has(id))
+    }
+  }
 }

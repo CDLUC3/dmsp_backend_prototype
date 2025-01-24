@@ -65,14 +65,14 @@ export class VersionedQuestionCondition extends MySqlModel {
   // Find the VersionedQuestionCondition by id
   static async findById(reference: string, context: MyContext, id: number): Promise<VersionedQuestionCondition> {
     const sql = 'SELECT * FROM versionedQuestionConditions WHERE id = ?';
-    const results = await VersionedQuestionCondition.query(context, sql, [id.toString()], reference);
+    const results = await VersionedQuestionCondition.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Find all VersionedQuestionConditions that match versionedQuestionId
   static async findByVersionedQuestionId(reference: string, context: MyContext, versionedQuestionId: number): Promise<VersionedQuestionCondition[]> {
     const sql = 'SELECT * FROM versionedQuestionConditions WHERE versionedQuestionId = ?';
-    const results = await VersionedQuestionCondition.query(context, sql, [versionedQuestionId.toString()], reference);
+    const results = await VersionedQuestionCondition.query(context, sql, [versionedQuestionId?.toString()], reference);
     return Array.isArray(results) ? results : [];
   }
 }

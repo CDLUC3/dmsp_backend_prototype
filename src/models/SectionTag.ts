@@ -31,7 +31,7 @@ export class SectionTag extends MySqlModel {
     // Get SectionTags by sectionId
     static async getSectionTagsBySectionId(reference: string, context: MyContext, sectionId: number): Promise<SectionTag[]> {
         const sql = 'SELECT * FROM sectionTags WHERE sectionId = ?';
-        const results = await SectionTag.query(context, sql, [sectionId.toString()], reference);
+        const results = await SectionTag.query(context, sql, [sectionId?.toString()], reference);
         return Array.isArray(results) ? results : [];
     }
 }

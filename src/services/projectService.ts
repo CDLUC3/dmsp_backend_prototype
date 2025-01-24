@@ -7,6 +7,7 @@ import { isAdmin, isSuperAdmin } from "./authService";
 // Determine whether the specified user has permission to access the Section
 export const hasPermissionOnProject = async (context: MyContext, project: Project): Promise<boolean> => {
   const reference = 'projectService.hasPermissionOnProject';
+
   // Super admins always have permission
   if (await isSuperAdmin(context.token)) {
     return true;

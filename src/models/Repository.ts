@@ -1,4 +1,5 @@
 import { MyContext } from "../context";
+import { formatLogMessage } from "../logger";
 import { ResearchDomain } from "../types";
 import { randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
@@ -72,6 +73,15 @@ export class Repository extends MySqlModel {
     this.keywords = this.keywords.filter((item) => item).map((entry) => entry.toLowerCase().trim());
   }
 
+  // Some of the properties are stored as JSON strings in the DB so we need to parse them
+  // after fetching them
+  static processResult(repository: Repository): Repository {
+    if (repository?.keywords && typeof repository.keywords === 'string') {
+      repository.keywords = JSON.parse(repository.keywords);
+    }
+    return repository;
+  }
+
   //Create a new Repository
   async create(context: MyContext): Promise<Repository> {
     const reference = 'Repository.create';
@@ -137,6 +147,40 @@ export class Repository extends MySqlModel {
     return null;
   }
 
+  // Add this Repository to a ProjectOutput
+  async addToProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
+    const reference = 'Repository.addToProjectOutput';
+    let sql = 'INSERT INTO projectOutputRepositories (repositoryId, projectOutputId, createdById,';
+    sql += 'modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), projectOutputId?.toString(), userId, userId];
+    const results = await Repository.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { researchDomainId: this.id, projectOutputId };
+      const msg = 'Unable to add the repository to the project output';
+      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
+  // Remove this Repository from a ProjectOutput
+  async removeFromProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
+    const reference = 'Repository.removeFromProjectOutput';
+    const sql = 'DELETE FROM projectOutputRepositories WHERE repositoryId = ? AND projectOutputId = ?';
+    const vals = [this.id?.toString(), projectOutputId?.toString()];
+    const results = await Repository.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { researchDomainId: this.id, projectOutputId };
+      const msg = 'Unable to remove the repository from the project output';
+      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
   // Search for Repositories
   static async search(
     reference: string,
@@ -145,10 +189,13 @@ export class Repository extends MySqlModel {
     researchDomainId: number,
     repositoryType: RepositoryType
   ): Promise<Repository[]> {
-    const searchTerm = term ? `%${term.toLocaleLowerCase().trim()}%` : '%';
+    const searchTerm = (term ?? '');
+    const qryVal = `%${searchTerm?.toLowerCase()?.trim()}%`;
 
-    let sql = `SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ?`;
-    const vals = [searchTerm, searchTerm, searchTerm];
+    let sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? ';
+    sql += 'OR keywords LIKE ?';
+
+    const vals = [qryVal, qryVal, qryVal];
     if (repositoryType) {
       sql = `${sql} AND JSON_CONTAINS(repositoryTypes, ?, '$')`;
       vals.push(repositoryType);
@@ -170,26 +217,39 @@ export class Repository extends MySqlModel {
     }
 
     // No need to reinitialize all of the results to objects here because they're just search results
-    return Array.isArray(results) ? results : [];
+    if (Array.isArray(results) && results.length !== 0){
+      return results.map((res) => Repository.processResult(res))
+    }
+    return [];
   }
 
   // Fetch a Repository by it's id
   static async findById(reference: string, context: MyContext, repositoryId: number): Promise<Repository> {
     const sql = `SELECT * FROM repositories WHERE id = ?`;
-    const results = await Repository.query(context, sql, [repositoryId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? new Repository(results[0]) : null;
+    const results = await Repository.query(context, sql, [repositoryId?.toString()], reference);
+    if (Array.isArray(results) && results.length !== 0){
+      return Repository.processResult(new Repository(results[0]));
+    }
+    return null;
   }
 
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<Repository> {
     const sql = `SELECT * FROM repositories WHERE uri = ?`;
     const results = await Repository.query(context, sql, [uri], reference);
-    return Array.isArray(results) && results.length > 0 ? new Repository(results[0]) : null;
+    if (Array.isArray(results) && results.length !== 0){
+      return Repository.processResult(new Repository(results[0]));
+    }
+    return null;
   }
 
   static async findByName(reference: string, context: MyContext, name: string): Promise<Repository> {
     const sql = `SELECT * FROM repositories WHERE LOWER(name) = ?`;
-    const results = await Repository.query(context, sql, [name.toLowerCase().trim()], reference);
-    return Array.isArray(results) && results.length > 0 ? new Repository(results[0]) : null;
+    const searchTerm = (name ?? '');
+    const results = await Repository.query(context, sql, [searchTerm?.toLowerCase()?.trim()], reference);
+    if (Array.isArray(results) && results.length !== 0){
+      return Repository.processResult(new Repository(results[0]));
+    }
+    return null;
   }
 
   // Fetch all of the Repositories associated with a ResearchDomain
@@ -200,10 +260,14 @@ export class Repository extends MySqlModel {
   ): Promise<Repository[]> {
     const sql = 'SELECT r.* FROM repositories r';
     const joinClause = 'INNER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
-    const whereClause = 'WHERE = rrd.researchDomainId = ?';
-    const vals = [researchDomainId.toString()];
+    const whereClause = 'WHERE rrd.researchDomainId = ?';
+    const vals = [researchDomainId?.toString()];
     const results = await Repository.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results : [];
+    // No need to reinitialize all of the results to objects here because they're just search results
+    if (Array.isArray(results) && results.length !== 0){
+      return results.map((res) => Repository.processResult(res))
+    }
+    return [];
   }
 
   // Fetch all of the Repositories associated with a ProjectOutput
@@ -214,10 +278,14 @@ export class Repository extends MySqlModel {
   ): Promise<Repository[]> {
     const sql = 'SELECT r.* FROM repositories r';
     const joinClause = 'INNER JOIN projectOutputRepositories por ON r.id = por.repositoryId';
-    const whereClause = 'WHERE = por.projectOutputId = ?';
-    const vals = [projectOutputId.toString()];
+    const whereClause = 'WHERE por.projectOutputId = ?';
+    const vals = [projectOutputId?.toString()];
 
     const results = await Repository.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results : [];
+    // No need to reinitialize all of the results to objects here because they're just search results
+    if (Array.isArray(results) && results.length !== 0){
+      return results.map((res) => Repository.processResult(res))
+    }
+    return [];
   }
 };

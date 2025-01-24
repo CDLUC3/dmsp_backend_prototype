@@ -110,7 +110,7 @@ export class ProjectFunder extends MySqlModel {
   // Return all of the projectFunders for the Project
   static async findByProjectId(reference: string, context: MyContext, projectId: number): Promise<ProjectFunder[]> {
     const sql = `SELECT * FROM projectFunders WHERE projectId = ? ORDER BY created DESC`;
-    const results = await ProjectFunder.query(context, sql, [projectId.toString()], reference);
+    const results = await ProjectFunder.query(context, sql, [projectId?.toString()], reference);
     return Array.isArray(results) ? results.map((item) => new ProjectFunder(item)) : [];
   }
 
@@ -129,14 +129,14 @@ export class ProjectFunder extends MySqlModel {
     affiliationId: string,
   ): Promise<ProjectFunder> {
     const sql = `SELECT * FROM projectFunders WHERE projectId = ? AND affiliationId = ?`;
-    const results = await ProjectFunder.query(context, sql, [projectId.toString(), affiliationId], reference);
+    const results = await ProjectFunder.query(context, sql, [projectId?.toString(), affiliationId], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectFunder(results[0]) : null;
   }
 
   // Fetch a ProjectFunder by it's id
   static async findById(reference: string, context: MyContext, projectFunderId: number): Promise<ProjectFunder> {
     const sql = `SELECT * FROM projectFunders WHERE id = ?`;
-    const results = await ProjectFunder.query(context, sql, [projectFunderId.toString()], reference);
+    const results = await ProjectFunder.query(context, sql, [projectFunderId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectFunder(results[0]) : null;
   }
 };

@@ -98,14 +98,14 @@ export class QuestionCondition extends MySqlModel {
   // Fetch a QuestionConditions by it's id
   static async findById(reference: string, context: MyContext, questionConditionId: number): Promise<QuestionCondition> {
     const sql = 'SELECT * FROM questionConditions WHERE id = ?';
-    const results = await QuestionCondition.query(context, sql, [questionConditionId.toString()], reference);
+    const results = await QuestionCondition.query(context, sql, [questionConditionId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
   // Fetch all of the QuestionConditions for the specified Question
   static async findByQuestionId(reference: string, context: MyContext, questionId: number): Promise<QuestionCondition[]> {
     const sql = 'SELECT * FROM questionConditions WHERE questionId = ?';
-    const results = await QuestionCondition.query(context, sql, [questionId.toString()], reference);
+    const results = await QuestionCondition.query(context, sql, [questionId?.toString()], reference);
     return Array.isArray(results) ? results : [];
   }
 }

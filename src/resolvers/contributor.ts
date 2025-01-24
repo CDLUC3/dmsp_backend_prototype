@@ -47,19 +47,22 @@ export const resolvers: Resolvers = {
         const reference = 'addProjectContributor resolver';
         try {
           const project = await Project.findById(reference, context, input.projectId);
-          if (project || !hasPermissionOnProject(context, project)) {
+          if (!project || !hasPermissionOnProject(context, project)) {
             throw ForbiddenError();
           }
 
           const newContributor = new ProjectContributor(input);
           const created = await newContributor.create(context, project.id);
 
-          if (created && Array.isArray(input.contributorRoleIds)) {
-            // Now add any ContributorRole associations
-            for (const roleId of input.contributorRoleIds) {
-              const newRole = await ContributorRole.findById(reference, context, roleId);
-              if (newRole) {
-                await newRole.addToProjectContributor(context, created.id);
+          // If any ContributorRole were specified and there were no errors creating the record
+          if (Array.isArray(input.contributorRoleIds)) {
+            if (created && Array.isArray(created.errors) && created.errors.length === 0){
+              // Add any ContributorRole associations
+              for (const id of input.contributorRoleIds) {
+                const role = await ContributorRole.findById(reference, context, id);
+                if (role) {
+                  await role.addToProjectContributor(context, created.id);
+                }
               }
             }
           }
@@ -89,30 +92,44 @@ export const resolvers: Resolvers = {
           }
 
           const toUpdate = new ProjectContributor(input);
+          toUpdate.projectId = contributor?.projectId;
+          toUpdate.id = contributor?.id;
           const updated = await toUpdate.update(context);
 
-          if (!toUpdate.contributorRoles) {
-            toUpdate.contributorRoles = [];
-          }
-          const currentRoleIds = contributor.contributorRoles.map((rl) => rl.id);
-          const incomingRoleIds = input.contributorRoleIds;
+          if (updated && Array.isArray(updated.errors) && updated.errors.length === 0){
+            // Fetch all of the current Roles associated with this Contirbutor
+            const roles = await ContributorRole.findByProjectContributorId(
+              reference,
+              context,
+              contributor.id
+            );
+            const currentRoleids = roles ? roles.map((d) => d.id) : [];
 
-          // Delete any ContributorRole associations that were removed
-          const domainsToRemove = currentRoleIds.filter((d) => !incomingRoleIds.includes(d));
-          for (const contributorRoleId of domainsToRemove) {
-            const role = await ContributorRole.findById(reference, context, contributorRoleId);
-            if (role) {
-              role.removeFromProjectContributor(context, updated.id)
+            // Use the helper function to determine which Roles to keep
+            const { idsToBeRemoved, idsToBeSaved } = ContributorRole.reconcileAssociationIds(
+              currentRoleids,
+              input.contributorRoleIds
+            );
+
+            // Delete any Role associations that were removed
+            for (const id of idsToBeRemoved) {
+              const role = await ContributorRole.findById(reference, context, id);
+              if (role) {
+                role.removeFromProjectContributor(context, updated.id)
+              }
             }
-          }
-          // Add any new ContributorRole associations
-          const rolesToAdd = incomingRoleIds.filter((d) => !currentRoleIds.includes(d));
-          for (const contributorRoleId of rolesToAdd) {
-            const role = await ContributorRole.findById(reference, context, contributorRoleId);
-            if (role) {
-              role.addToProjectContributor(context, updated.id)
+            // Add any new Role associations
+            for (const id of idsToBeSaved) {
+              const role = await ContributorRole.findById(reference, context, id);
+              if (role) {
+                role.addToProjectContributor(context, updated.id)
+              }
             }
+
+            // Reload since the roles may have changed
+            return await ProjectContributor.findById(reference, context, contributor.id);
           }
+          // Otherwise there were errors so return the object with errors
           return updated;
         } catch(err) {
           formatLogMessage(context.logger).error(err, `Failure in ${reference}`);

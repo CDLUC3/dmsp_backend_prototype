@@ -128,7 +128,7 @@ export class Project extends MySqlModel {
   // Return all of projects for the User
   static async findByUserId(reference: string, context: MyContext, userId: number): Promise<Project[]> {
     const sql = 'SELECT * FROM projects WHERE createdById = ? ORDER BY created DESC';
-    const results = await Project.query(context, sql, [userId.toString()], reference);
+    const results = await Project.query(context, sql, [userId?.toString()], reference);
     return Array.isArray(results) ? results.map((item) => new Project(item)) : [];
   }
 
@@ -142,7 +142,8 @@ export class Project extends MySqlModel {
 
   static async findByOwnerAndTitle(reference: string, context: MyContext, title: string, userId: number): Promise<Project> {
     const sql = 'SELECT * FROM projects WHERE createdById = ? AND LOWER(title) LIKE ?';
-    const vals = [userId.toString(), `%${title.toLowerCase().trim()}%`]
+    const searchTerm = (title ?? '');
+    const vals = [userId?.toString(), `%${searchTerm?.toLowerCase()?.trim()}%`]
     const results = await Project.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? new Project(results[0]) : null;
   }
@@ -150,7 +151,7 @@ export class Project extends MySqlModel {
   // Fetch a Project by it's id
   static async findById(reference: string, context: MyContext, projectFunderId: number): Promise<Project> {
     const sql = 'SELECT * FROM projects WHERE id = ?';
-    const results = await Project.query(context, sql, [projectFunderId.toString()], reference);
+    const results = await Project.query(context, sql, [projectFunderId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Project(results[0]) : null;
   }
 };

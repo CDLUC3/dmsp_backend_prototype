@@ -88,8 +88,10 @@ describe('addToProjectContributor', () => {
     const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(mockRole);
     const result = await mockRole.addToProjectContributor(context, projectContributorId);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'INSERT INTO projectContributorRoles (contributorRoleId, projectContributorId) (?, ?)';
-    const vals = [mockRole.id.toString(), projectContributorId.toString()]
+    let expectedSql = 'INSERT INTO projectContributorRoles (contributorRoleId, projectContributorId, ';
+    expectedSql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockRole.id.toString(), projectContributorId.toString(), userId, userId]
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ContributorRole.addToProjectContributor')
     expect(result).toBe(true);
   });

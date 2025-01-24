@@ -35,12 +35,15 @@ export const resolvers: Resolvers = {
           const newRepo = new Repository(input);
           const created = await newRepo.create(context);
 
-          if (created && Array.isArray(newRepo.researchDomains)) {
-            // Now add any researchDomains associations
-            for (const researchDomain of newRepo.researchDomains) {
-              const newDomain = await ResearchDomain.findById('addRepository resolver', context, researchDomain.id);
-              if (newDomain) {
-                await newDomain.addToRepository(context, created.id);
+          // If any ResearchDomains were specified and there were no errors creating the record
+          if (Array.isArray(input.researchDomainIds)) {
+            if (created && Array.isArray(created.errors) && created.errors.length === 0){
+              // Add any researchDomains associations
+              for (const id of input.researchDomainIds) {
+                const domain = await ResearchDomain.findById('addRepository resolver', context, id);
+                if (domain) {
+                  await domain.addToRepository(context, created.id);
+                }
               }
             }
           }
@@ -54,7 +57,8 @@ export const resolvers: Resolvers = {
       }
     },
     updateRepository: async (_, { input }, context) => {
-      const repo = await Repository.findById('updateRepository resolver', context, input.id);
+      const reference = 'updateRepository resolver';
+      const repo = await Repository.findById(reference, context, input.id);
       if (!repo) {
         throw NotFoundError();
       }
@@ -65,25 +69,43 @@ export const resolvers: Resolvers = {
           const toUpdate = new Repository(input);
           const updated = await toUpdate.update(context);
 
-          // Delete any ResearchDomain associations that were removed
-          const domainsToRemove = repo.researchDomains.filter((d) => !toUpdate.researchDomains.includes(d));
-          for (const domain of domainsToRemove) {
-            const dom = await ResearchDomain.findById('updateMetadataStandard resolver', context, domain.id);
-            if (dom) {
-              dom.removeFromRepository(context, updated.id)
+          if (updated && Array.isArray(updated.errors) && updated.errors.length === 0){
+            // Fetch all of the current ResearchDomains associated with this MetadataStandard
+            const researchDomains = await ResearchDomain.findByRepositoryId(
+              reference,
+              context,
+              repo.id
+            );
+            const currentDomainIds = researchDomains ? researchDomains.map((d) => d.id) : [];
+
+            // Use the helper function to determine which ResearchDomains to keep
+            const { idsToBeRemoved, idsToBeSaved } = Repository.reconcileAssociationIds(
+              currentDomainIds,
+              input.researchDomainIds
+            );
+
+            // Delete any ResearchDomain associations that were removed
+            for (const id of idsToBeRemoved) {
+              const dom = await ResearchDomain.findById(reference, context, id);
+              if (dom) {
+                dom.removeFromRepository(context, updated.id)
+              }
             }
-          }
-          // Add any new ResearchDomain associations
-          const domainsToAdd = toUpdate.researchDomains.filter((d) => !repo.researchDomains.includes(d));
-          for (const domain of domainsToAdd) {
-            const dom = await ResearchDomain.findById('updateMetadataStandard resolver', context, domain.id);
-            if (dom) {
-              dom.addToRepository(context, updated.id)
+            // Add any new ResearchDomain associations
+            for (const id of idsToBeSaved) {
+              const dom = await ResearchDomain.findById(reference, context, id);
+              if (dom) {
+                dom.addToRepository(context, updated.id)
+              }
             }
+
+            // Reload since the research domains may have changed
+            return await Repository.findById(reference, context, repo.id);
           }
+          // Otherwise there were errors so return the object with errors
           return updated;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in updateRepository resolver');
+          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
@@ -102,16 +124,7 @@ export const resolvers: Resolvers = {
           // TODO: We should do a check to see if it has been used and then either NOT allow the deletion
           //       or notify that it is being done and to what DMPs
           const deleted = await repo.delete(context);
-
-          if (deleted && Array.isArray(repo.researchDomains)) {
-            // Now remove any researchDomains associations
-            for (const researchDomain of repo.researchDomains) {
-              const newDomain = await ResearchDomain.findById('removeRepository resolver', context, researchDomain.id);
-              if (newDomain) {
-                await newDomain.removeFromRepository(context, deleted.id);
-              }
-            }
-          }
+          // No need to remove the related research domain associations the DB will cascade the deletion
           return deleted
         } catch(err) {
           formatLogMessage(context.logger).error(err, 'Failure in removeRepository resolver');
