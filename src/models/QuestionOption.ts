@@ -42,7 +42,7 @@ export class QuestionOption extends MySqlModel {
 
       // Save the record and then fetch it
       const newId = await QuestionOption.insert(context, this.tableName, this, 'QuestionOption.create');
-      const response = await QuestionOption.findById('QuestionOption.create', context, newId);
+      const response = await QuestionOption.findByQuestionOptionId('QuestionOption.create', context, newId);
       return response;
     }
     // Otherwise return as-is with all the errors
@@ -58,7 +58,7 @@ export class QuestionOption extends MySqlModel {
         this.cleanup();
 
         await QuestionOption.update(context, this.tableName, this, 'QuestionOption.update', [], noTouch);
-        return await QuestionOption.findById('QuestionOption.update', context, id);
+        return await QuestionOption.findByQuestionOptionId('QuestionOption.update', context, id);
       }
       // This question option has never been saved before so we cannot update it!
       this.errors.push('QuestionOption has never been saved');
@@ -71,7 +71,7 @@ export class QuestionOption extends MySqlModel {
     if (this.id) {
       /*First get the questionOption to be deleted so we can return this info to the user
       since calling 'delete' doesn't return anything*/
-      const deletedQuestionOption = await QuestionOption.findById('QuestionOption.delete', context, this.id);
+      const deletedQuestionOption = await QuestionOption.findByQuestionOptionId('QuestionOption.delete', context, this.id);
 
       const successfullyDeleted = await QuestionOption.delete(context, this.tableName, this.id, 'QuestionOption.delete');
       if (successfullyDeleted) {
@@ -84,14 +84,14 @@ export class QuestionOption extends MySqlModel {
   }
 
   // Find the QuestionOption by it's id
-  static async findById(reference: string, context: MyContext, questionOptionId: number): Promise<QuestionOption> {
+  static async findByQuestionOptionId(reference: string, context: MyContext, questionOptionId: number): Promise<QuestionOption> {
     const sql = 'SELECT * FROM questionOptions WHERE id = ?';
     const result = await QuestionOption.query(context, sql, [questionOptionId.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? result[0] : null;
   }
 
-  // Fetch all of the QuestionOptions for the specified QuestionId
-  static async findByQuestionOptionId(reference: string, context: MyContext, questionId: number): Promise<QuestionOption[]> {
+  // Fetch all of the QuestionOptions for the specified questionId
+  static async findByQuestionId(reference: string, context: MyContext, questionId: number): Promise<QuestionOption[]> {
     const sql = 'SELECT * FROM questionOptions WHERE questionId = ?';
     const results = await QuestionOption.query(context, sql, [questionId.toString()], reference);
     return Array.isArray(results) ? results : [];

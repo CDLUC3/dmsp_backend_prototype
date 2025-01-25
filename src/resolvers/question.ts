@@ -4,6 +4,7 @@ import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
 import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
+import { getExistingQuestionOptions } from "../services/questionService";
 import { BadUserInputError, ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 
@@ -39,7 +40,8 @@ export const resolvers: Resolvers = {
       requirementText,
       guidanceText,
       sampleText,
-      required } }, context: MyContext): Promise<Question> => {
+      required,
+      questionOptions } }, context: MyContext): Promise<Question> => {
 
       if (await hasPermissionOnQuestion(context, templateId)) {
 
@@ -66,6 +68,22 @@ export const resolvers: Resolvers = {
         } else {
           const questionId = newQuestion.id;
 
+          // Add all the associated question options to the questionOptions table
+          if (questionOptions && questionOptions.length > 0) {
+            await Promise.all(
+              questionOptions.map(async (option) => {
+                const questionOption = new QuestionOption({
+                  questionId: newQuestion.id,
+                  text: option.text,
+                  orderNumber: option.orderNumber,
+                  isDefault: option.isDefault
+                });
+
+                await questionOption.create(context);
+              })
+            );
+          }
+
           // Return newly created question
           return await Question.findById('addQuestion resolver', context, questionId);
         }
@@ -79,7 +97,8 @@ export const resolvers: Resolvers = {
       requirementText,
       guidanceText,
       sampleText,
-      required } }, context: MyContext): Promise<Question> => {
+      required,
+      questionOptions } }, context: MyContext): Promise<Question> => {
 
       // Get Question based on provided questionId
       const questionData = await Question.findById('updateQuestion resolver', context, questionId);
@@ -113,6 +132,55 @@ export const resolvers: Resolvers = {
           const errorMessages = updatedQuestion.errors.join(', ');
           throw BadUserInputError(errorMessages);
         } else {
+
+          // Get existing questionOptions
+          const existingQuestionOptions = await getExistingQuestionOptions(context, questionId);
+
+          // Create a Map of existing options for quick lookup by ID or unique identifier
+          const existingOptionsMap = new Map(
+            existingQuestionOptions.map(option => [option.id, option])
+          );
+
+          // Separate incoming options into "to update" and "to create"
+          const optionsToUpdate = [];
+          const optionsToCreate = [];
+
+          questionOptions.forEach(option => {
+            if (existingOptionsMap.has(option.questionOptionId)) {
+              // Add to update list, merging the new data with the existing data
+              optionsToUpdate.push({
+                ...existingOptionsMap.get(option.questionOptionId), // existing option data
+                ...option // updated fields from input
+              });
+            } else {
+              // Add to create list
+              optionsToCreate.push({
+                questionId,
+                ...option // new option fields
+              });
+            }
+          });
+
+          // Update existing options
+          if (optionsToUpdate.length > 0) {
+            await Promise.all(
+              optionsToUpdate.map(async option => {
+                const questionOption = new QuestionOption(option);
+                await questionOption.update(context); // Call your update method
+              })
+            );
+          }
+
+          // Create new options
+          if (optionsToCreate.length > 0) {
+            await Promise.all(
+              optionsToCreate.map(async option => {
+                const questionOption = new QuestionOption(option);
+                await questionOption.create(context); // Call your create method
+              })
+            );
+          }
+
           // Return newly updated question
           return await Question.findById('updateQuestion resolver', context, updatedQuestion.id);
         }
@@ -135,50 +203,27 @@ export const resolvers: Resolvers = {
           id: questionId
         });
 
-        return await question.delete(context);
-      }
-      throw ForbiddenError();
-    },
-    updateQuestionOptions: async (_, { questionId, required }, context: MyContext): Promise<Question> => {
+        const deleteResponse = await question.delete(context);
 
-      // Get Question based on provided questionId
-      const questionData = await Question.findById('updateQuestionOptions resolver', context, questionId);
+        const existingQuestionOptions = await getExistingQuestionOptions(context, questionId);
 
-      // Throw Not Found error if Question is not found
-      if (!questionData) {
-        throw NotFoundError('Question not found')
-      }
+        if (existingQuestionOptions.length > 0) {
+          await Promise.all(
+            existingQuestionOptions.map(async (option) => {
+              const questionOption = new QuestionOption({
+                ...option
+              });
 
-      // Check that user has permission to update this question
-      if (await hasPermissionOnQuestion(context, questionData.templateId)) {
-        const question = new Question({
-          id: questionId,
-          sectionId: questionData.sectionId,
-          templateId: questionData.templateId,
-          createdById: questionData.createdById,
-          displayOrder: questionData.displayOrder,
-          questionTypeId: questionData.questionTypeId,
-          questionText: questionData.questionText,
-          requirementText: questionData.requirementText,
-          guidanceText: questionData.guidanceText,
-          sampleText: questionData.sampleText,
-          required: required,
-          isDirty: questionData.isDirty
-        });
-
-        const updatedQuestionOptions = await question.update(context);
-
-        // If there are errors than throw a Bad User Input error
-        if (updatedQuestionOptions.errors) {
-          const errorMessages = updatedQuestionOptions.errors.join(', ');
-          throw BadUserInputError(errorMessages);
-        } else {
-          // Return newly updated question
-          return await Question.findById('updateQuestionOptions resolver', context, updatedQuestionOptions.id);
+              await questionOption.delete(context);
+            })
+          );
         }
+
+        return deleteResponse;
+
       }
       throw ForbiddenError();
-    },
+    }
   },
 
   Question: {
@@ -190,7 +235,7 @@ export const resolvers: Resolvers = {
       );
     },
     questionOptions: async (parent: Question, _, context: MyContext): Promise<QuestionOption[]> => {
-      return await QuestionOption.findByQuestionOptionId(
+      return await QuestionOption.findByQuestionId(
         'Chained Question.questionOptions',
         context,
         parent.id

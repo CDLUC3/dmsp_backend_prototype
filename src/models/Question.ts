@@ -1,5 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
+import { QuestionOption } from "../types";
 
 export class Question extends MySqlModel {
   public templateId: number;
@@ -13,6 +14,7 @@ export class Question extends MySqlModel {
   public required: boolean;
   public displayOrder: number;
   public isDirty: boolean;
+  public questionOptions: QuestionOption[];
 
   private tableName = 'questions';
 
@@ -30,6 +32,7 @@ export class Question extends MySqlModel {
     this.required = options.required || false;
     this.displayOrder = options.displayOrder;
     this.isDirty = options.isDirty || false;
+    this.questionOptions = options.questionOptions;
   }
 
   // Validation to be used prior to saving the record
@@ -81,7 +84,7 @@ export class Question extends MySqlModel {
         this.cleanup();
 
         // Save the record and then fetch it
-        const newId = await Question.insert(context, this.tableName, this, 'Question.create');
+        const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionOptions']);
         const response = await Question.findById('Section.create', context, newId);
         return response;
       }

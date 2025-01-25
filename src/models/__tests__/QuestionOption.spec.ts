@@ -60,37 +60,37 @@ describe('findBy Queries', () => {
     QuestionOption.query = originalQuery;
   });
 
-  it('findById should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([questionOption]);
-    const id = 10;
-    const result = await QuestionOption.findById('testing', context, id);
-    const expectedSql = 'SELECT * FROM questionOptions WHERE id = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
-    expect(result).toEqual(questionOption);
-  });
-
-  it('findById should return null if it finds no default', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const id = casual.integer(1, 999);
-    const result = await QuestionOption.findById('testing', context, id);
-    expect(result).toEqual(null);
-  });
-
   it('findByQuestionOptionId should call query with correct params and return the default', async () => {
     localQuery.mockResolvedValueOnce([questionOption]);
-    const questionOptionId = casual.integer(1, 999);
+    const questionOptionId = 10;
     const result = await QuestionOption.findByQuestionOptionId('testing', context, questionOptionId);
-    const expectedSql = 'SELECT * FROM questionOptions WHERE questionId = ?';
+    const expectedSql = 'SELECT * FROM questionOptions WHERE id = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [questionOptionId.toString()], 'testing')
-    expect(result).toEqual([questionOption]);
+    expect(result).toEqual(questionOption);
   });
 
   it('findByQuestionOptionId should return null if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
+    const questionOptionId = casual.integer(1, 999);
+    const result = await QuestionOption.findByQuestionOptionId('testing', context, questionOptionId);
+    expect(result).toEqual(null);
+  });
+
+  it('findByQuestionId should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([questionOption]);
     const questionId = casual.integer(1, 999);
-    const result = await QuestionOption.findByQuestionOptionId('testing', context, questionId);
+    const result = await QuestionOption.findByQuestionId('testing', context, questionId);
+    const expectedSql = 'SELECT * FROM questionOptions WHERE questionId = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [questionId.toString()], 'testing')
+    expect(result).toEqual([questionOption]);
+  });
+
+  it('findByQuestionId should return an empty array if it finds no default', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const questionId = casual.integer(1, 999);
+    const result = await QuestionOption.findByQuestionId('testing', context, questionId);
     expect(result).toEqual([]);
   });
 });
@@ -140,7 +140,7 @@ describe('create', () => {
     localValidator.mockResolvedValueOnce(true);
 
     const mockFindById = jest.fn();
-    (QuestionOption.findById as jest.Mock) = mockFindById;
+    (QuestionOption.findByQuestionOptionId as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(questionOption);
 
     const result = await questionOption.create(context);
@@ -192,7 +192,7 @@ describe('update', () => {
     updateQuery.mockResolvedValueOnce(questionOption);
 
     const mockFindById = jest.fn();
-    (QuestionOption.findById as jest.Mock) = mockFindById;
+    (QuestionOption.findByQuestionOptionId as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(questionOption);
 
     const result = await questionOption.update(context);
@@ -234,7 +234,7 @@ describe('delete', () => {
     deleteQuery.mockResolvedValueOnce(questionOption);
 
     const mockFindById = jest.fn();
-    (QuestionOption.findById as jest.Mock) = mockFindById;
+    (QuestionOption.findByQuestionOptionId as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(questionOption);
 
     const result = await questionOption.delete(context);

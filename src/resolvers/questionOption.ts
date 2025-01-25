@@ -7,10 +7,10 @@ import { NotFoundError, BadUserInputError } from "../utils/graphQLErrors";
 export const resolvers: Resolvers = {
   Query: {
     questionOptions: async (_, { questionId }, context: MyContext): Promise<QuestionOption[]> => {
-      return await QuestionOption.findByQuestionOptionId('questionOption resolver', context, questionId);
+      return await QuestionOption.findByQuestionId('questionOption resolver', context, questionId);
     },
     questionOption: async (_, { questionOptionId }, context: MyContext): Promise<QuestionOption> => {
-      return await QuestionOption.findById('questionOption resolver', context, questionOptionId);
+      return await QuestionOption.findByQuestionOptionId('questionOption resolver', context, questionOptionId);
     },
   },
   Mutation: {
@@ -38,7 +38,7 @@ export const resolvers: Resolvers = {
         const questionOptionId = newQuestionOption.id;
 
         // Return newly created questionOption
-        return await QuestionOption.findById('questionOption resolver', context, questionOptionId);
+        return await QuestionOption.findByQuestionOptionId('questionOption resolver', context, questionOptionId);
       }
     },
     updateQuestionOption: async (_, { input: {
@@ -48,7 +48,7 @@ export const resolvers: Resolvers = {
       isDefault } }, context: MyContext): Promise<QuestionOption> => {
 
       // Get QuestionOption based on provided questionOptionId
-      const questionOptionData = await QuestionOption.findById('questionOption resolver', context, questionOptionId);
+      const questionOptionData = await QuestionOption.findByQuestionOptionId('questionOption resolver', context, questionOptionId);
 
       // Throw Not Found error if QuestionOption data is not found
       if (!questionOptionData) {
@@ -71,12 +71,12 @@ export const resolvers: Resolvers = {
         throw BadUserInputError(errorMessages);
       } else {
         // Return newly created question
-        return await QuestionOption.findById('updateQuestion resolver', context, updatedQuestionOption.id);
+        return await QuestionOption.findByQuestionOptionId('updateQuestion resolver', context, updatedQuestionOption.id);
       }
     },
     removeQuestionOption: async (_, { questionOptionId }, context: MyContext): Promise<QuestionOption> => {
       // Retrieve existing questionOption
-      const questionOptionData = await QuestionOption.findById('removeQuestion resolver', context, questionOptionId);
+      const questionOptionData = await QuestionOption.findByQuestionOptionId('removeQuestion resolver', context, questionOptionId);
 
       // Throw Not Found error if QuestionOption is not found
       if (!questionOptionData) {

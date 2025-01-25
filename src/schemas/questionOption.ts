@@ -56,7 +56,7 @@ input AddQuestionOptionInput {
 
 input UpdateQuestionOptionInput {
     "The id of the QuestionOption"
-    questionOptionId: Int!
+    questionOptionId: Int
     "The option text"
     text: String!
     "The option order number"

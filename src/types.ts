@@ -124,6 +124,8 @@ export type AddQuestionInput = {
   guidanceText?: InputMaybe<Scalars['String']['input']>;
   /** Whether or not the Question has had any changes since it was last published */
   isDirty?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Add options for a question type, like radio buttons */
+  questionOptions?: InputMaybe<Array<InputMaybe<QuestionOptionInput>>>;
   /** This will be used as a sort of title for the Question */
   questionText?: InputMaybe<Scalars['String']['input']>;
   /** The type of question, such as text field, select box, radio buttons, etc */
@@ -684,8 +686,6 @@ export type Mutation = {
   updateQuestionCondition?: Maybe<QuestionCondition>;
   /** Update a QuestionOption */
   updateQuestionOption: QuestionOption;
-  /** Separate Question update specifically for options */
-  updateQuestionOptions?: Maybe<Question>;
   /** Update a Repository record */
   updateRepository?: Maybe<Repository>;
   /** Update a Section */
@@ -1126,12 +1126,6 @@ export type MutationUpdateQuestionConditionArgs = {
 
 export type MutationUpdateQuestionOptionArgs = {
   input: UpdateQuestionOptionInput;
-};
-
-
-export type MutationUpdateQuestionOptionsArgs = {
-  questionId: Scalars['Int']['input'];
-  required?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 
@@ -1992,6 +1986,16 @@ export type QuestionOption = {
   text: Scalars['String']['output'];
 };
 
+/** Input for Question options operations */
+export type QuestionOptionInput = {
+  /** Whether the question option is the default selected one */
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The order of the question option */
+  orderNumber?: InputMaybe<Scalars['Int']['input']>;
+  /** The text for the question option */
+  text?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** The type of Question, such as text field, radio buttons, etc */
 export type QuestionType = {
   __typename?: 'QuestionType';
@@ -2321,6 +2325,8 @@ export type UpdateQuestionInput = {
   guidanceText?: InputMaybe<Scalars['String']['input']>;
   /** The unique identifier for the Question */
   questionId: Scalars['Int']['input'];
+  /** Update options for a question type like radio buttons */
+  questionOptions?: InputMaybe<Array<InputMaybe<UpdateQuestionOptionInput>>>;
   /** This will be used as a sort of title for the Question */
   questionText?: InputMaybe<Scalars['String']['input']>;
   /** To indicate whether the question is required to be completed */
@@ -2337,7 +2343,7 @@ export type UpdateQuestionOptionInput = {
   /** The option order number */
   orderNumber: Scalars['Int']['input'];
   /** The id of the QuestionOption */
-  questionOptionId: Scalars['Int']['input'];
+  questionOptionId?: InputMaybe<Scalars['Int']['input']>;
   /** The option text */
   text: Scalars['String']['input'];
 };
@@ -2813,6 +2819,7 @@ export type ResolversTypes = {
   QuestionConditionActionType: QuestionConditionActionType;
   QuestionConditionCondition: QuestionConditionCondition;
   QuestionOption: ResolverTypeWrapper<QuestionOption>;
+  QuestionOptionInput: QuestionOptionInput;
   QuestionType: ResolverTypeWrapper<QuestionType>;
   Repository: ResolverTypeWrapper<Repository>;
   RepositorySearchInput: RepositorySearchInput;
@@ -2900,6 +2907,7 @@ export type ResolversParentTypes = {
   Question: Question;
   QuestionCondition: QuestionCondition;
   QuestionOption: QuestionOption;
+  QuestionOptionInput: QuestionOptionInput;
   QuestionType: QuestionType;
   Repository: Repository;
   RepositorySearchInput: RepositorySearchInput;
@@ -3167,7 +3175,6 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationUpdateQuestionArgs, 'input'>>;
   updateQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionConditionArgs, 'input'>>;
   updateQuestionOption?: Resolver<ResolversTypes['QuestionOption'], ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionArgs, 'input'>>;
-  updateQuestionOptions?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionsArgs, 'questionId' | 'required'>>;
   updateRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, Partial<MutationUpdateRepositoryArgs>>;
   updateSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationUpdateSectionArgs, 'input'>>;
   updateTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationUpdateTagArgs, 'name' | 'tagId'>>;

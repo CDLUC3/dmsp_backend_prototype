@@ -15,8 +15,6 @@ extend type Mutation {
     updateQuestion(input: UpdateQuestionInput!): Question!
     "Delete a Question"
     removeQuestion(questionId: Int!): Question
-    "Separate Question update specifically for options"
-    updateQuestionOptions(questionId: Int!, required:Boolean = false ): Question
   }
 
 "Question always belongs to a Section, which always belongs to a Template"
@@ -84,6 +82,8 @@ input AddQuestionInput {
     sampleText: String
     "To indicate whether the question is required to be completed"
     required: Boolean
+    "Add options for a question type, like radio buttons"
+    questionOptions: [QuestionOptionInput]
 }
 
 input UpdateQuestionInput {
@@ -101,6 +101,8 @@ input UpdateQuestionInput {
     sampleText: String
     "To indicate whether the question is required to be completed"
     required: Boolean
+    "Update options for a question type like radio buttons"
+    questionOptions: [UpdateQuestionOptionInput]
 }
 
 "QuestionOption always belongs to a Question"
@@ -128,4 +130,14 @@ type QuestionOption {
     isDefault: Boolean
 
 }
+
+  "Input for Question options operations"
+  input QuestionOptionInput {
+    "The text for the question option"
+    text: String
+    "The order of the question option"
+    orderNumber: Int
+    "Whether the question option is the default selected one"
+    isDefault: Boolean
+  }
 `
