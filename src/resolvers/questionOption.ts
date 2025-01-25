@@ -28,7 +28,7 @@ export const resolvers: Resolvers = {
       });
 
       // create the new QuestionOption
-      const newQuestionOption = await questionOption.create(context, questionId, text, orderNumber, isDefault);
+      const newQuestionOption = await questionOption.create(context);
 
       // If there are errors than throw a Bad User Input error
       if (newQuestionOption.errors) {
