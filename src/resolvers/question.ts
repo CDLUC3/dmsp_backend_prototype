@@ -1,5 +1,6 @@
 import { Resolvers } from "../types";
 import { MyContext } from "../context";
+import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
 import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
@@ -184,6 +185,13 @@ export const resolvers: Resolvers = {
     questionConditions: async (parent: Question, _, context: MyContext): Promise<QuestionCondition[]> => {
       return await QuestionCondition.findByQuestionId(
         'Chained Question.questionConditions',
+        context,
+        parent.id
+      );
+    },
+    questionOptions: async (parent: Question, _, context: MyContext): Promise<QuestionOption[]> => {
+      return await QuestionOption.findByQuestionOptionId(
+        'Chained Question.questionOptions',
         context,
         parent.id
       );

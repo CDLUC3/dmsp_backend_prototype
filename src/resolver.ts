@@ -13,6 +13,7 @@ import { resolvers as licenseResolvers } from './resolvers/license';
 import { resolvers as metadataStandardResolvers } from './resolvers/metadataStandard';
 import { resolvers as questionResolvers } from './resolvers/question';
 import { resolvers as questionConditionResolvers } from './resolvers/questionCondition';
+import { resolvers as questionOptionResolvers } from './resolvers/questionOption';
 import { resolvers as questionTypeResolvers } from './resolvers/questionType';
 import { resolvers as templateResolvers } from './resolvers/template';
 import { resolvers as repositoryResolvers } from './resolvers/repository';
@@ -41,6 +42,7 @@ export const resolvers: IResolvers = mergeResolvers([
   contributorRoleResolvers,
   questionResolvers,
   questionConditionResolvers,
+  questionOptionResolvers,
   questionTypeResolvers,
   repositoryResolvers,
   researchDomainResolvers,
