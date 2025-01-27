@@ -153,6 +153,19 @@ GraphQL consists of:
 - Models - encapsulate the business logic that performs queries and mutations on data. The models understand where the data lives and how to interact with it.
 - Data Sources - lower level logic that allows models to interact with data (e.g. a MySQL database, DynamoDB database, external API, etc.)
 
+GraphQL/Apollo Server request -> response cycle
+```mermaid
+flowchart LR;
+  a[GraphQL Request]-->b[Validate request and Auth check];
+  b-->c{Success?};
+  c-->|yes| d[Pass request args and Token context to Resolver]
+  c-->|no| e[return 400 or 401]
+  d-->g[Resolver calls Model functions]
+  g-->h[Models query databases or external APIs]
+  h-->i[Resolver generates Response]
+  i-->j[Response returned to caller]
+```
+
 ## Getting Started
 
 ### Prerequisites
@@ -235,7 +248,18 @@ To run bash commands within the container (e.g. to run DB migrations):
 
 ### Data Model
 
-This system uses several data sources: A MySQL database, a DynamoDB table and a Redis cache to store information. The basic breakdown of
+This system uses several data sources: A MySQL database, a DynamoDB table and a Redis cache to store information.
+
+The Redis cache is used to store ephemeral data like refresh tokens and GraphQL query results. This data has TTL settings.
+
+The DynamoDB Table (aka the DMPHub) stores the metadata for a DMP in the [DMP Metadata Standard developed by the Research Data Alliance (RDA)](https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard).
+
+The MySQL database stores everything else (Templates, Guidance, Plan Feedback, Users, Affiliations, etc.). It also maintains a projectDOIs table that links Projects to the Plan DOIs to facilitate access to the DMPs stored in the DynamoDB table.
+
+The links for the data model images won't work until we have them in the `main` branch, so adding placeholders for now. Once merged we can come back and update these to display the images
+- Placeholder for Data Model image for Templates/Guidance
+- Placeholder for Data Model image for Projects/Plans
+
 
 ### Adding or updating GraphQL functionality
 
