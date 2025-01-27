@@ -243,7 +243,7 @@ describe('generateQuestionVersion', () => {
       obj.modifed = tstamp;
       obj.modifiedById = userId;
 
-      switch(table) {
+      switch (table) {
         case 'questions': {
           questionStore.push(obj);
           break;
@@ -266,7 +266,7 @@ describe('generateQuestionVersion', () => {
         obj.modifiedById = userId;
       }
 
-      switch(table) {
+      switch (table) {
         case 'questions': {
           const existing = questionStore.find((entry) => { return entry.id === obj.id });
           if (!existing) {
@@ -419,7 +419,7 @@ describe('generateQuestionConditionVersion', () => {
       obj.modifed = tstamp;
       obj.modifiedById = userId;
 
-      switch(table) {
+      switch (table) {
         case 'questionConditions': {
           questionConditionStore.push(obj);
           break;
@@ -442,7 +442,7 @@ describe('generateQuestionConditionVersion', () => {
         obj.modifiedById = userId;
       }
 
-      switch(table) {
+      switch (table) {
         case 'questionConditions': {
           const existing = questionConditionStore.find((entry) => { return entry.id === obj.id });
           if (!existing) {
