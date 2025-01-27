@@ -121,7 +121,8 @@ export class Section extends MySqlModel {
     templateId: number
   ): Promise<Section> {
     const sql = 'SELECT * FROM sections WHERE LOWER(name) = ? AND templateId = ?';
-    const vals = [name.toLowerCase(), templateId.toString()];
+    const searchTerm = (name ?? '');
+    const vals = [searchTerm?.toLowerCase()?.trim(), templateId?.toString()];
     const results = await Section.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
@@ -130,13 +131,13 @@ export class Section extends MySqlModel {
   // Find all Sections associated with the specified templateId
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
     const sql = 'SELECT * FROM sections WHERE templateId = ?';
-    const results = await Section.query(context, sql, [templateId.toString()], reference);
+    const results = await Section.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) ? results : [];
   }
 
   static async findById(reference: string, context: MyContext, sectionId: number): Promise<Section> {
     const sql = 'SELECT * FROM sections where id = ?';
-    const result = await Section.query(context, sql, [sectionId.toString()], reference);
+    const result = await Section.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? result[0] : null;
   }
 }

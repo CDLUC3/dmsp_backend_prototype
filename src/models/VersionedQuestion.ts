@@ -67,7 +67,7 @@ export class VersionedQuestion extends MySqlModel {
   // Find the VersionedQuestion by id
   static async findById(reference: string, context: MyContext, id: number): Promise<VersionedQuestion> {
     const sql = 'SELECT * FROM versionedQuestions WHERE id = ?';
-    const results = await VersionedQuestion.query(context, sql, [id.toString()], reference);
+    const results = await VersionedQuestion.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
@@ -75,7 +75,7 @@ export class VersionedQuestion extends MySqlModel {
   // Find all VersionedQuestion that match versionedSectionId
   static async findByVersionedSectionId(reference: string, context: MyContext, versionedSectionId: number): Promise<VersionedQuestion[]> {
     const sql = 'SELECT * FROM versionedQuestions WHERE versionedSectionId = ?';
-    const results = await VersionedQuestion.query(context, sql, [versionedSectionId.toString()], reference);
+    const results = await VersionedQuestion.query(context, sql, [versionedSectionId?.toString()], reference);
     return Array.isArray(results) ? results : [];
   }
 }

@@ -85,6 +85,8 @@ describe('findBy Queries', () => {
   let repo;
 
   beforeEach(() => {
+    jest.resetAllMocks();
+
     localQuery = jest.fn();
     (Repository.query as jest.Mock) = localQuery;
 
@@ -156,37 +158,61 @@ describe('findBy Queries', () => {
     expect(result).toEqual(null);
   });
 
-  it('findRepositoryIdsByResearchDomainId should call query with correct params and return the object', async () => {
-    localQuery.mockResolvedValueOnce([{ repositoryId: repo.id }]);
+  it('findByResearchDomainId should call query with correct params and return the objects', async () => {
+    localQuery.mockResolvedValueOnce([repo]);
     const id = casual.integer(1, 99);
-    const result = await Repository.findRepositoryIdsByResearchDomainId('testing', context, id);
-    const expectedSql = 'SELECT repositoryId FROM repositoryResearchDomains WHERE = researchDomainId = ?';
+    const result = await Repository.findByResearchDomainId('testing', context, id);
+    const sql = 'SELECT r.* FROM repositories r';
+    const joinClause = 'INNER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+    const whereClause = 'WHERE rrd.researchDomainId = ?';
+    const vals = [id.toString()];
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
-    expect(result).toEqual([repo.id]);
+    expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
+    expect(result).toEqual([repo]);
   });
 
-  it('findRepositoryIdsByResearchDomainId should return an empty array if there are no records', async () => {
+  it('findByResearchDomainId should return an empty array if there are no records', async () => {
     localQuery.mockResolvedValueOnce([]);
     const id = casual.integer(1, 99);
-    const result = await Repository.findRepositoryIdsByResearchDomainId('testing', context, id);
+    const result = await Repository.findByResearchDomainId('testing', context, id);
+    expect(result).toEqual([]);
+  });
+
+  it('findByProjectOutputId should call query with correct params and return the objects', async () => {
+    localQuery.mockResolvedValueOnce([repo]);
+    const id = casual.integer(1, 99);
+    const result = await Repository.findByProjectOutputId('testing', context, id);
+    const sql = 'SELECT r.* FROM repositories r';
+    const joinClause = 'INNER JOIN projectOutputRepositories por ON r.id = por.repositoryId';
+    const whereClause = 'WHERE por.projectOutputId = ?';
+    const vals = [id.toString()];
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
+    expect(result).toEqual([repo]);
+  });
+
+  it('findByProjectOutputId should return an empty array if there are no records', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const id = casual.integer(1, 99);
+    const result = await Repository.findByProjectOutputId('testing', context, id);
     expect(result).toEqual([]);
   });
 
   it('search should work when a Research Domain, search term and repositoryType are specified', async () => {
     localQuery.mockResolvedValueOnce([repo]);
     const mockStandardQry = jest.fn();
-    (Repository.findRepositoryIdsByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo.id]);
+    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
+    mockStandardQry.mockResolvedValueOnce([repo]);
     const term = casual.words(3);
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, term, researchDomainId, repositoryType);
-    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
+    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ?';
+    const sql2 = 'OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
     const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, repositoryType];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, vals, 'testing');
+    expect(localQuery).toHaveBeenCalledWith(context, `${sql} ${sql2}`, vals, 'testing');
     expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
     expect(result).toEqual([repo]);
   });
@@ -194,14 +220,14 @@ describe('findBy Queries', () => {
   it('search should work when only a Research Domain is specified', async () => {
     localQuery.mockResolvedValueOnce([repo]);
     const mockStandardQry = jest.fn();
-    (Repository.findRepositoryIdsByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo.id]);
+    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
+    mockStandardQry.mockResolvedValueOnce([repo]);
     const researchDomainId = casual.integer(1, 9);
     const result = await Repository.search('testing', context, null, researchDomainId, null);
     const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, ['%', '%', '%'], 'testing');
+    expect(localQuery).toHaveBeenCalledWith(context, sql, ['%%', '%%', '%%'], 'testing');
     expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
     expect(result).toEqual([repo]);
   });
@@ -212,20 +238,20 @@ describe('findBy Queries', () => {
     const result = await Repository.search('testing', context, null, null, repositoryType);
     const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, sql, ['%', '%', '%', repositoryType], 'testing')
+    expect(localQuery).toHaveBeenLastCalledWith(context, sql, ['%%', '%%', '%%', repositoryType], 'testing')
     expect(result).toEqual([repo]);
   });
 
   it('search should work when only a Research Domain and Repository Type are specified', async () => {
     localQuery.mockResolvedValueOnce([repo]);
     const mockStandardQry = jest.fn();
-    (Repository.findRepositoryIdsByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo.id]);
+    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
+    mockStandardQry.mockResolvedValueOnce([repo]);
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, null, researchDomainId, repositoryType);
     const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
-    const vals = ['%', '%', '%', repositoryType];
+    const vals = ['%%', '%%', '%%', repositoryType];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(mockStandardQry).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenCalledWith(context, sql, vals, 'testing');
@@ -249,7 +275,7 @@ describe('findBy Queries', () => {
     const result = await Repository.search('testing', context, null, null, null);
     const expectedSql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%', '%', '%'], 'testing')
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%%', '%%', '%%'], 'testing')
     expect(result).toEqual([repo]);
   });
 
@@ -430,5 +456,87 @@ describe('delete', () => {
     const result = await repo.delete(context);
     expect(result.errors.length).toBe(0);
     expect(result).toEqual(repo);
+  });
+});
+
+describe('addToProjectOutput', () => {
+  let context;
+  let mockRepository;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockRepository = new Repository({
+      id: casual.integer(1, 99),
+      name: casual.words(3),
+      url: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the Repository to the specified ProjectOutput', async () => {
+    const outputId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Repository, 'query').mockResolvedValueOnce(mockRepository);
+    const result = await mockRepository.addToProjectOutput(context, outputId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    let expectedSql = 'INSERT INTO projectOutputRepositories (repositoryId, projectOutputId, createdById,';
+    expectedSql += 'modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockRepository.id.toString(), outputId.toString(), userId, userId]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'Repository.addToProjectOutput')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the domain cannot be associated with the ProjectOutput', async () => {
+    const outputId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Repository, 'query').mockResolvedValueOnce(null);
+    const result = await mockRepository.addToProjectOutput(context, outputId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('removeFromProjectOutput', () => {
+  let context;
+  let mockRepository;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockRepository = new Repository({
+      id: casual.integer(1, 99),
+      name: casual.word,
+      url: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('removes the Repository association with the specified ProjectOutput', async () => {
+    const outputId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Repository, 'query').mockResolvedValueOnce(mockRepository);
+    const result = await mockRepository.removeFromProjectOutput(context, outputId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'DELETE FROM projectOutputRepositories WHERE repositoryId = ? AND projectOutputId = ?';
+    const vals = [mockRepository.id.toString(), outputId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'Repository.removeFromProjectOutput')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the domain cannot be removed from the ProjectOutput', async () => {
+    const repositoryId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Repository, 'query').mockResolvedValueOnce(null);
+    const result = await mockRepository.removeFromProjectOutput(context, repositoryId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
   });
 });

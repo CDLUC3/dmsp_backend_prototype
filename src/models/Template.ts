@@ -1,5 +1,4 @@
 import { MyContext } from "../context";
-import { TemplateCollaborator } from "./Collaborator";
 import { defaultLanguageId, supportedLanguages } from "./Language";
 import { MySqlModel } from "./MySqlModel";
 
@@ -133,7 +132,7 @@ export class Template extends MySqlModel {
   // Return the specified Template
   static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE id = ?';
-    const results = await Template.query(context, sql, [templateId.toString()], reference);
+    const results = await Template.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
@@ -144,22 +143,19 @@ export class Template extends MySqlModel {
     name: string
   ): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE LOWER(name) = ? AND ownerId = ?';
-    const vals = [name.toLowerCase(), context.token?.affiliationId];
+    const searchTerm = (name ?? '');
+    const vals = [searchTerm?.toLowerCase()?.trim(), context.token?.affiliationId];
     const results = await Template.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
-  // Find all of the templates associated with the context's User's affiliation
-  static async findByUser(reference: string, context: MyContext): Promise<Template[]> {
+  // Find all of the templates associated with the Affiliation
+  static async findByAffiliationId(
+    reference: string,
+    context: MyContext,
+    affiliationId: string
+  ): Promise<Template[]> {
     const sql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
-    const templates = await Template.query(context, sql, [context.token?.affiliationId], reference);
-
-    // Also look for any templates that the current user has been invited to collaborate on
-    const sharedTemplates = await TemplateCollaborator.findByEmail(
-      'Template.findByUser',
-      context,
-      context.token?.email
-    );
-    return [...templates, ...sharedTemplates];
+    return await Template.query(context, sql, [affiliationId], reference);
   }
 }

@@ -174,7 +174,7 @@ export class User extends MySqlModel {
   static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
     const sql = 'SELECT * FROM users WHERE id = ?';
 
-    const results = await User.query(context, sql, [userId.toString()], reference);
+    const results = await User.query(context, sql, [userId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 

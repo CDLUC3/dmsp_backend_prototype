@@ -434,3 +434,30 @@ describe('delete function', () => {
     expect(result).toEqual(true);
   });
 });
+
+describe('reconcileAssociationIds', () => {
+  it('Works when both arrays are empty', () => {
+    const expected = { idsToBeRemoved: [], idsToBeSaved: [] };
+    expect(MySqlModel.reconcileAssociationIds([], [])).toEqual(expected);
+  });
+
+  it('Works when the arrays are the same', () => {
+    const expected = { idsToBeRemoved: [], idsToBeSaved: [] };
+    expect(MySqlModel.reconcileAssociationIds([1, 2, 3], [1, 2, 3])).toEqual(expected);
+  });
+
+  it('Works when we need to remove all ids', () => {
+    const expected = { idsToBeRemoved: [1, 2, 3], idsToBeSaved: [] };
+    expect(MySqlModel.reconcileAssociationIds([1, 2, 3], [])).toEqual(expected);
+  });
+
+  it('Works when we need to add all ids', () => {
+    const expected = { idsToBeRemoved: [], idsToBeSaved: [1, 2, 3] };
+    expect(MySqlModel.reconcileAssociationIds([], [1, 2, 3])).toEqual(expected);
+  });
+
+  it('Works when we need to remove some ids and add others', () => {
+    const expected = { idsToBeRemoved: [4, 8], idsToBeSaved: [1, 5, 7] };
+    expect(MySqlModel.reconcileAssociationIds([2, 4, 6, 8], [1, 2, 5, 6, 7])).toEqual(expected);
+  });
+});

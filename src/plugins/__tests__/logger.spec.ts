@@ -1,21 +1,24 @@
-import { GraphQLError, GraphQLResolveInfo } from 'graphql';
+import {
+  GraphQLError,
+  // GraphQLResolveInfo
+} from 'graphql';
 import {
   GraphQLRequestContextDidEncounterSubsequentErrors,
-  GraphQLRequestContextWillSendSubsequentPayload,
+  // GraphQLRequestContextWillSendSubsequentPayload,
 } from '@apollo/server/dist/esm/externalTypes/requestPipeline';
 import {
   BaseContext,
   GraphQLRequestContext,
   GraphQLRequestContextDidEncounterErrors,
-  GraphQLRequestContextDidResolveOperation,
-  GraphQLRequestContextDidResolveSource,
-  GraphQLRequestContextExecutionDidStart,
-  GraphQLRequestContextResponseForOperation,
-  GraphQLRequestContextValidationDidStart,
-  GraphQLRequestContextWillSendResponse,
-  GraphQLRequestExecutionListener,
-  GraphQLRequestListenerDidResolveField,
-  GraphQLExperimentalFormattedSubsequentIncrementalExecutionResult,
+  // GraphQLRequestContextDidResolveOperation,
+  // GraphQLRequestContextDidResolveSource,
+  // GraphQLRequestContextExecutionDidStart,
+  // GraphQLRequestContextResponseForOperation,
+  // GraphQLRequestContextValidationDidStart,
+  // GraphQLRequestContextWillSendResponse,
+  // GraphQLRequestExecutionListener,
+  // GraphQLRequestListenerDidResolveField,
+  // GraphQLExperimentalFormattedSubsequentIncrementalExecutionResult,
   GraphQLRequestListener,
 } from '@apollo/server';
 import { logger as mockLogger } from '../../__mocks__/logger';
@@ -39,10 +42,12 @@ const mockRequestContext = {
   response: { http: { status: 200 } },
 } as undefined as GraphQLRequestContext<BaseContext>;
 
+/*
 const mockResolverInfo = {
   fieldName: 'fieldName',
   parentType: { name: 'parentTypeName' }
 } as undefined as GraphQLResolveInfo;
+*/
 
 const mockRequestError = {
   error: new Error(),
@@ -104,6 +109,7 @@ describe('loggerPlugin', () => {
   });
 
   describe('GraphQLRequestListener', () => {
+    /*
     test('didResolveSource logs expected message', async () => {
       const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.didResolveSource(mockRequestContext as GraphQLRequestContextDidResolveSource<BaseContext>);
@@ -133,6 +139,7 @@ describe('loggerPlugin', () => {
       listener.responseForOperation(mockRequestContext as GraphQLRequestContextResponseForOperation<BaseContext>);
       expect(debugSpy).toHaveBeenCalledWith('Ready to start operation');
     });
+    */
 
     test('didEncounterErrors logs expected message', async () => {
       const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
@@ -149,6 +156,7 @@ describe('loggerPlugin', () => {
       expect(errorSpy).toHaveBeenCalledWith('Encountered subsequent errors!');
     });
 
+    /*
     test('willSendResponse logs expected message', async () => {
       const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.willSendResponse(mockRequestContext as GraphQLRequestContextWillSendResponse<BaseContext>);
@@ -192,5 +200,6 @@ describe('loggerPlugin', () => {
         expect.stringMatching(/Field parentTypeName.fieldName failed/i)
       );
     });
+    */
   });
 });

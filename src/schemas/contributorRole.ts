@@ -52,7 +52,7 @@ export const typeDefs = gql`
     "The Ui label to display for the contributor role"
     label: String!
     "The taxonomy URL for the contributor role"
-    url: URL!
+    uri: String!
     "A longer description of the contributor role useful for tooltips"
     description: String
   }

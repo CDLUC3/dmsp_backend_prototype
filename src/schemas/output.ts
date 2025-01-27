@@ -5,6 +5,9 @@ export const typeDefs = gql`
     "Get all of the outputs for the research project"
     projectOutputs(projectId: Int!): [ProjectOutput]
 
+    "Fetch a single project output"
+    projectOutput(projectOutputId: Int!): ProjectOutput
+
     "The subset of project outputs associated with the sepcified Plan"
     planOutputs(planId: Int!): [ProjectOutput]
   }
@@ -12,13 +15,16 @@ export const typeDefs = gql`
   extend type Mutation {
     "Add an output to a research project"
     addProjectOutput(input: AddProjectOutputInput!): ProjectOutput
+
     "Update an output on the research project"
     updateProjectOutput(input: UpdateProjectOutputInput!): ProjectOutput
+
     "Remove a research project output"
     removeProjectOutput(projectOutputId: Int!): ProjectOutput
 
     "Add an Output to a Plan"
     selectProjectOutputForPlan(planId: Int!, projectOutputId: Int!): ProjectOutput
+
     "Remove an Output from a Plan"
     removeProjectOutputFromPlan(planId: Int!, projectOutputId: Int!): ProjectOutput
   }
@@ -49,9 +55,9 @@ export const typeDefs = gql`
     errors: [String!]
 
     "The project associated with the output"
-    project: Project!
+    project: Project
     "The type of output"
-    outputType: OutputType!
+    outputType: OutputType
     "The title/name of the output"
     title: String!
     "A description of the output"
@@ -68,7 +74,7 @@ export const typeDefs = gql`
     anticipatedReleaseDate: String
 
     "The repositories the output will be deposited in"
-    respositories: [Repository!]
+    repositories: [Repository!]
     "The metadata standards that will be used to describe the output"
     metadataStandards: [MetadataStandard!]
   }

@@ -120,7 +120,7 @@ export class VersionedTemplate extends MySqlModel {
     versionedTemplateId: number
   ): Promise<VersionedTemplate> {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
-    const results = await VersionedTemplate.query(context, sql, [versionedTemplateId.toString()], reference);
+    const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 

@@ -53,7 +53,7 @@ export class AffiliationLink extends MySqlModel {
   // Return the specified AffiliationEmailDomain
   static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationLink> {
     const sql = `SELECT * FROM affiliationLinks WHERE id = ?`;
-    const results = await AffiliationLink.query(context, sql, [id.toString()], reference);
+    const results = await AffiliationLink.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 
@@ -67,7 +67,7 @@ export class AffiliationLink extends MySqlModel {
   // Return all of the AffiliationEmailDomains for the Affiliation
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: number): Promise<AffiliationLink[]> {
     const sql = `SELECT * FROM affiliationLinks WHERE affiliationId = ?`;
-    const results = await AffiliationLink.query(context, sql, [affiliationId.toString()], reference);
+    const results = await AffiliationLink.query(context, sql, [affiliationId?.toString()], reference);
     return Array.isArray(results) ? results : [];
   }
 }

@@ -1,4 +1,5 @@
 import { MyContext } from "../context";
+import { formatLogMessage } from "../logger";
 import { ResearchDomain } from "../types";
 import { randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
@@ -51,6 +52,15 @@ export class MetadataStandard extends MySqlModel {
 
     // make sure all keywords are lower cased and trimmed
     this.keywords = this.keywords.filter((item) => item).map((entry) => entry.toLowerCase().trim());
+  }
+
+  // Some of the properties are stored as JSON strings in the DB so we need to parse them
+  // after fetching them
+  static processResult(metadataStandard: MetadataStandard): MetadataStandard {
+    if (metadataStandard?.keywords && typeof metadataStandard.keywords === 'string') {
+      metadataStandard.keywords = JSON.parse(metadataStandard.keywords);
+    }
+    return metadataStandard;
   }
 
   //Create a new MetadataStandard
@@ -125,6 +135,40 @@ export class MetadataStandard extends MySqlModel {
     return null;
   }
 
+  // Add this MetadataStandard to a ProjectOutput
+  async addToProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
+    const reference = 'MetadataStandard.addToProjectOutput';
+    let sql = 'INSERT INTO projectOutputMetadataStandards (metadataStandardId, projectOutputId, ';
+    sql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), projectOutputId?.toString(), userId, userId];
+    const results = await MetadataStandard.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { researchDomainId: this.id, projectOutputId };
+      const msg = 'Unable to add the standard to the project output';
+      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
+  // Remove this MetadataStandard from a ProjectOutput
+  async removeFromProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
+    const reference = 'MetadataStandard.removeFromProjectOutput';
+    const sql = 'DELETE FROM projectOutputMetadataStandards WHERE repositoryId = ? AND projectOutputId = ?';
+    const vals = [this.id?.toString(), projectOutputId?.toString()];
+    const results = await MetadataStandard.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { researchDomainId: this.id, projectOutputId };
+      const msg = 'Unable to remove the standard from the project output';
+      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
   // Search for Metadata standards
   static async search(
     reference: string,
@@ -132,51 +176,93 @@ export class MetadataStandard extends MySqlModel {
     term: string,
     researchDomainId: number,
   ): Promise<MetadataStandard[]> {
-    const searchTerm = term ? `%${term.toLocaleLowerCase().trim()}%` : '%';
-    const sql = `SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name`;
-    const results = await MetadataStandard.query(context, sql, [searchTerm, searchTerm, searchTerm], reference);
+    const searchTerm = (term ?? '');
+    const qryVal = `%${searchTerm?.toLowerCase()?.trim()}%`;
+    let sql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? ';
+    sql += 'OR keywords LIKE ? ORDER BY name';
+    const results = await MetadataStandard.query(context, sql, [qryVal, qryVal, qryVal], reference);
 
     // Apply any filters
     if (Array.isArray(results) && researchDomainId) {
-      const standardIds = await MetadataStandard.findMetadataStandardIdsByResearchDomainId(
+      const standards = await MetadataStandard.findByResearchDomainId(
         reference,
         context,
         researchDomainId
       );
-      return results.filter((standard) => standardIds.includes(standard.id))
+      if (standards) {
+        const standardIds = standards.map((standard) => standard.id);
+        return results.filter((standard) => standardIds.includes(standard.id))
+      }
     }
 
     // No need to reinitialize all of the results to objects here because they're just search results
-    return Array.isArray(results) ? results : [];
+    if (Array.isArray(results) && results.length !== 0){
+      return results.map((res) => MetadataStandard.processResult(res))
+    }
+    return [];
   }
 
   // Fetch a MetadataStandard by it's id
   static async findById(reference: string, context: MyContext, metadataStandardId: number): Promise<MetadataStandard> {
     const sql = `SELECT * FROM metadataStandards WHERE id = ?`;
-    const results = await MetadataStandard.query(context, sql, [metadataStandardId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? new MetadataStandard(results[0]) : null;
+    const results = await MetadataStandard.query(context, sql, [metadataStandardId?.toString()], reference);
+    if (Array.isArray(results) && results.length !== 0){
+      return MetadataStandard.processResult(new MetadataStandard(results[0]));
+    }
+    return null;
   }
 
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<MetadataStandard> {
     const sql = `SELECT * FROM metadataStandards WHERE uri = ?`;
     const results = await MetadataStandard.query(context, sql, [uri], reference);
-    return Array.isArray(results) && results.length > 0 ? new MetadataStandard(results[0]) : null;
+    if (Array.isArray(results) && results.length !== 0){
+      return MetadataStandard.processResult(new MetadataStandard(results[0]));
+    }
+    return null;
   }
 
   static async findByName(reference: string, context: MyContext, name: string): Promise<MetadataStandard> {
     const sql = `SELECT * FROM metadataStandards WHERE LOWER(name) = ?`;
-    const results = await MetadataStandard.query(context, sql, [name.toLowerCase().trim()], reference);
-    return Array.isArray(results) && results.length > 0 ? new MetadataStandard(results[0]) : null;
+    const results = await MetadataStandard.query(context, sql, [name?.toLowerCase()?.trim()], reference);
+    if (Array.isArray(results) && results.length !== 0){
+      return MetadataStandard.processResult(new MetadataStandard(results[0]));
+    }
+    return null;
   }
 
   // Fetch all of the MetadataStandards associated with a ResearchDomain
-  static async findMetadataStandardIdsByResearchDomainId(
+  static async findByResearchDomainId(
     reference: string,
     context: MyContext,
     researchDomainId: number
-  ): Promise<number[]> {
-    const sql = 'SELECT metadataStandardId FROM metadataStandardResearchDomains WHERE = researchDomainId = ?';
-    const results = await MetadataStandard.query(context, sql, [researchDomainId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results.map((rec) => rec.metadataStandardId) : [];
+  ): Promise<MetadataStandard[]> {
+    const sql = 'SELECT ms.* FROM metadataStandards ms';
+    const joinClause = 'INNER JOIN metadataStandardResearchDomains msrd ON ms.id = msrd.metadataStandardId';
+    const whereClause = 'WHERE msrd.researchDomainId = ?';
+    const vals = [researchDomainId?.toString()];
+
+    const results = await MetadataStandard.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
+    if (Array.isArray(results) && results.length !== 0){
+      return results.map((res) => MetadataStandard.processResult(res))
+    }
+    return [];
+  }
+
+  // Fetch all of the MetadataStandards associated with a ProjectOutput
+  static async findByProjectOutputId(
+    reference: string,
+    context: MyContext,
+    projectOutputId: number
+  ): Promise<MetadataStandard[]> {
+    const sql = 'SELECT ms.* FROM metadataStandards ms';
+    const joinClause = 'INNER JOIN projectOutputMetadataStandards poms ON ms.id = poms.metadataStandardId';
+    const whereClause = 'WHERE poms.projectOutputId = ?';
+    const vals = [projectOutputId?.toString()];
+
+    const results = await MetadataStandard.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
+    if (Array.isArray(results) && results.length !== 0){
+      return results.map((res) => MetadataStandard.processResult(res))
+    }
+    return [];
   }
 };

@@ -110,7 +110,7 @@ export class License extends MySqlModel {
   // Fetch a License by it's id
   static async findById(reference: string, context: MyContext, licenseId: number): Promise<License> {
     const sql = `SELECT * FROM licenses WHERE id = ?`;
-    const results = await License.query(context, sql, [licenseId.toString()], reference);
+    const results = await License.query(context, sql, [licenseId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new License(results[0]) : null;
   }
 
@@ -122,15 +122,16 @@ export class License extends MySqlModel {
 
   static async findByName(reference: string, context: MyContext, name: string): Promise<License> {
     const sql = `SELECT * FROM licenses WHERE LOWER(name) = ?`;
-    const results = await License.query(context, sql, [name.toLowerCase().trim()], reference);
+    const results = await License.query(context, sql, [name?.toLowerCase()?.trim()], reference);
     return Array.isArray(results) && results.length > 0 ? new License(results[0]) : null;
   }
 
   // Find licenses that match the search term
   static async search(reference: string, context: MyContext, name: string): Promise<License[]> {
-    const searchTerm = `%${name.toLowerCase().trim()}%`;
+    const searchTerm = (name ?? '');
+    const qryVal = `%${searchTerm?.toLowerCase()?.trim()}%`;
     const sql = `SELECT * FROM licenses WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ?`;
-    const results = await License.query(context, sql, [searchTerm, searchTerm], reference);
+    const results = await License.query(context, sql, [qryVal, qryVal], reference);
     // No need to initialize new License objects here as they are just search results
     return Array.isArray(results) ? results : [];
   }

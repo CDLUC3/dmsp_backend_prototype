@@ -51,7 +51,7 @@ export class AffiliationEmailDomain extends MySqlModel {
   // Return the specified AffiliationEmailDomain
   static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationEmailDomain> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE id = ?`;
-    const results = await AffiliationEmailDomain.query(context, sql, [id.toString()], reference);
+    const results = await AffiliationEmailDomain.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 

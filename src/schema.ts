@@ -13,8 +13,8 @@ import { typeDefs as metadataStandardTypeDefs } from './schemas/metadataStandard
 import { typeDefs as outputTypeDefs } from './schemas/outputType';
 import { typeDefs as planTypeDefs } from './schemas/plan';
 import { typeDefs as projectTypeDefs } from './schemas/project';
-import { typeDefs as projectFunderTypeDefs } from './schemas/projectFunder';
-import { typeDefs as projectOutputTypeDefs } from './schemas/projectOutput';
+import { typeDefs as funderTypeDefs } from './schemas/funder';
+import { typeDefs as projectOutputTypeDefs } from './schemas/output';
 import { typeDefs as questionTypeDefs } from './schemas/question';
 import { typeDefs as questionConditionTypeDefs } from './schemas/questionCondition';
 import { typeDefs as questionOptionTypeDefs } from './schemas/questionOption';
@@ -32,23 +32,21 @@ import { typeDefs as versionedTemplateTypeDefs } from './schemas/versionedTempla
 
 export const typeDefs = mergeTypeDefs([
   baseTypeDefs,
+
   affiliationTypeDefs,
   answerTypeDefs,
   collaboratorTypeDefs,
+  contributorRoleTypeDefs,
+  contributorTypeDefs,
   feedbackTypeDefs,
+  funderTypeDefs,
   languageTypeDefs,
   licenseTypeDefs,
   metadataStandardTypeDefs,
   outputTypeDefs,
   planTypeDefs,
   projectTypeDefs,
-  projectFunderTypeDefs,
   projectOutputTypeDefs,
-  sectionTypeDefs,
-  tagTypeDefs,
-  versionedSectionTypeDefs,
-  contributorRoleTypeDefs,
-  contributorTypeDefs,
   questionTypeDefs,
   questionConditionTypeDefs,
   questionOptionTypeDefs,

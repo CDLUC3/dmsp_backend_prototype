@@ -32,6 +32,19 @@ CREATE TABLE `planContributors` (
   FOREIGN KEY (projectContributorId) REFERENCES projectContributors(id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
+# The roles played by people who contribute to a research project
+CREATE TABLE `planContributorRoles` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `planContributorId` INT NOT NULL,
+  `contributorRoleId` INT NOT NULL,
+  `createdById` INT NOT NULL,
+  `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `modifiedById` INT NOT NULL,
+  `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (planContributorId) REFERENCES planContributors(id) ON DELETE CASCADE,
+  FOREIGN KEY (contributorRoleId) REFERENCES contributorRoles(id) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
+
 # People who have access to collaborate on writing the Plan
 CREATE TABLE `planCollaborators` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

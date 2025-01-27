@@ -130,14 +130,14 @@ export class Question extends MySqlModel {
   // Find the Question by it's id
   static async findById(reference: string, context: MyContext, questionId: number): Promise<Question> {
     const sql = 'SELECT * FROM questions WHERE id = ?';
-    const result = await Question.query(context, sql, [questionId.toString()], reference);
+    const result = await Question.query(context, sql, [questionId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? result[0] : null;
   }
 
   // Fetch all of the Questions for the specified Section
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Question[]> {
     const sql = 'SELECT * FROM questions WHERE sectionId = ?';
-    const results = await Question.query(context, sql, [sectionId.toString()], reference);
+    const results = await Question.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(results) ? results : [];
   }
 
@@ -151,7 +151,7 @@ export class Question extends MySqlModel {
 
   ): Promise<Question> {
     const sql = 'SELECT * FROM questions WHERE LOWER(questionText) = ? AND sectionId = ? AND templateId = ?';
-    const vals = [questionText.toLowerCase(), sectionId.toString(), templateId.toString()];
+    const vals = [questionText?.toLowerCase(), sectionId?.toString(), templateId?.toString()];
     const results = await Question.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
