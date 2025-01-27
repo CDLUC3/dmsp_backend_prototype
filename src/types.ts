@@ -124,6 +124,8 @@ export type AddQuestionInput = {
   guidanceText?: InputMaybe<Scalars['String']['input']>;
   /** Whether or not the Question has had any changes since it was last published */
   isDirty?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Add options for a question type, like radio buttons */
+  questionOptions?: InputMaybe<Array<InputMaybe<QuestionOptionInput>>>;
   /** This will be used as a sort of title for the Question */
   questionText?: InputMaybe<Scalars['String']['input']>;
   /** The type of question, such as text field, select box, radio buttons, etc */
@@ -138,6 +140,17 @@ export type AddQuestionInput = {
   sectionId: Scalars['Int']['input'];
   /** The unique id of the Template that the question belongs to */
   templateId: Scalars['Int']['input'];
+};
+
+export type AddQuestionOptionInput = {
+  /** Whether the option is the default selected one */
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The option order number */
+  orderNumber: Scalars['Int']['input'];
+  /** The question id that the QuestionOption belongs to */
+  questionId: Scalars['Int']['input'];
+  /** The option text */
+  text: Scalars['String']['input'];
 };
 
 export type AddRepositoryInput = {
@@ -551,6 +564,8 @@ export type Mutation = {
   addQuestion: Question;
   /** Create a new QuestionCondition associated with a question */
   addQuestionCondition: QuestionCondition;
+  /** Create a new QuestionOption */
+  addQuestionOption: QuestionOption;
   /** Add a new Repository */
   addRepository?: Maybe<Repository>;
   /** Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch */
@@ -617,6 +632,8 @@ export type Mutation = {
   removeQuestion?: Maybe<Question>;
   /** Remove a QuestionCondition using a specific QuestionCondition id */
   removeQuestionCondition?: Maybe<QuestionCondition>;
+  /** Delete a QuestionOption */
+  removeQuestionOption?: Maybe<QuestionOption>;
   /** Delete a Repository */
   removeRepository?: Maybe<Repository>;
   /** Delete a section */
@@ -667,8 +684,8 @@ export type Mutation = {
   updateQuestion: Question;
   /** Update a QuestionCondition for a specific QuestionCondition id */
   updateQuestionCondition?: Maybe<QuestionCondition>;
-  /** Separate Question update specifically for options */
-  updateQuestionOptions?: Maybe<Question>;
+  /** Update a QuestionOption */
+  updateQuestionOption: QuestionOption;
   /** Update a Repository record */
   updateRepository?: Maybe<Repository>;
   /** Update a Section */
@@ -779,6 +796,11 @@ export type MutationAddQuestionArgs = {
 
 export type MutationAddQuestionConditionArgs = {
   input: AddQuestionConditionInput;
+};
+
+
+export type MutationAddQuestionOptionArgs = {
+  input: AddQuestionOptionInput;
 };
 
 
@@ -963,6 +985,11 @@ export type MutationRemoveQuestionConditionArgs = {
 };
 
 
+export type MutationRemoveQuestionOptionArgs = {
+  questionOptionId: Scalars['Int']['input'];
+};
+
+
 export type MutationRemoveRepositoryArgs = {
   repositoryId: Scalars['Int']['input'];
 };
@@ -1097,9 +1124,8 @@ export type MutationUpdateQuestionConditionArgs = {
 };
 
 
-export type MutationUpdateQuestionOptionsArgs = {
-  questionId: Scalars['Int']['input'];
-  required?: InputMaybe<Scalars['Boolean']['input']>;
+export type MutationUpdateQuestionOptionArgs = {
+  input: UpdateQuestionOptionInput;
 };
 
 
@@ -1572,6 +1598,10 @@ export type Query = {
   question?: Maybe<Question>;
   /** Get the QuestionConditions that belong to a specific question */
   questionConditions?: Maybe<Array<Maybe<QuestionCondition>>>;
+  /** Get the specific Question Option based on questionOptionId */
+  questionOption?: Maybe<QuestionOption>;
+  /** Get the Question Options that belong to the associated questionId */
+  questionOptions?: Maybe<Array<Maybe<QuestionOption>>>;
   /** Get all the QuestionTypes */
   questionTypes?: Maybe<Array<Maybe<QuestionType>>>;
   /** Get the Questions that belong to the associated sectionId */
@@ -1785,6 +1815,16 @@ export type QueryQuestionConditionsArgs = {
 };
 
 
+export type QueryQuestionOptionArgs = {
+  questionOptionId: Scalars['Int']['input'];
+};
+
+
+export type QueryQuestionOptionsArgs = {
+  questionId: Scalars['Int']['input'];
+};
+
+
 export type QueryQuestionsArgs = {
   sectionId: Scalars['Int']['input'];
 };
@@ -1867,6 +1907,8 @@ export type Question = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The conditional logic triggered by this question */
   questionConditions?: Maybe<Array<QuestionCondition>>;
+  /** The question options associated with this question */
+  questionOptions?: Maybe<Array<QuestionOption>>;
   /** This will be used as a sort of title for the Question */
   questionText?: Maybe<Scalars['String']['output']>;
   /** The type of question, such as text field, select box, radio buttons, etc */
@@ -1934,6 +1976,41 @@ export type QuestionConditionCondition =
   | 'HAS_ANSWER'
   /** When a question includes a specific value */
   | 'INCLUDES';
+
+/** QuestionOption always belongs to a Question */
+export type QuestionOption = {
+  __typename?: 'QuestionOption';
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** Errors associated with the Object */
+  errors?: Maybe<Array<Scalars['String']['output']>>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** Whether the option is the default selected one */
+  isDefault?: Maybe<Scalars['Boolean']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The option order number */
+  orderNumber: Scalars['Int']['output'];
+  /** The question id that the QuestionOption belongs to */
+  questionId: Scalars['Int']['output'];
+  /** The option text */
+  text: Scalars['String']['output'];
+};
+
+/** Input for Question options operations */
+export type QuestionOptionInput = {
+  /** Whether the question option is the default selected one */
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The order of the question option */
+  orderNumber?: InputMaybe<Scalars['Int']['input']>;
+  /** The text for the question option */
+  text?: InputMaybe<Scalars['String']['input']>;
+};
 
 /** The type of Question, such as text field, radio buttons, etc */
 export type QuestionType = {
@@ -2266,6 +2343,8 @@ export type UpdateQuestionInput = {
   guidanceText?: InputMaybe<Scalars['String']['input']>;
   /** The unique identifier for the Question */
   questionId: Scalars['Int']['input'];
+  /** Update options for a question type like radio buttons */
+  questionOptions?: InputMaybe<Array<InputMaybe<UpdateQuestionOptionInput>>>;
   /** This will be used as a sort of title for the Question */
   questionText?: InputMaybe<Scalars['String']['input']>;
   /** To indicate whether the question is required to be completed */
@@ -2274,6 +2353,17 @@ export type UpdateQuestionInput = {
   requirementText?: InputMaybe<Scalars['String']['input']>;
   /** Sample text to possibly provide a starting point or example to answer question */
   sampleText?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateQuestionOptionInput = {
+  /** Whether the option is the default selected one */
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The option order number */
+  orderNumber: Scalars['Int']['input'];
+  /** The id of the QuestionOption */
+  questionOptionId?: InputMaybe<Scalars['Int']['input']>;
+  /** The option text */
+  text: Scalars['String']['input'];
 };
 
 export type UpdateRepositoryInput = {
@@ -2697,6 +2787,7 @@ export type ResolversTypes = {
   AddProjectOutputInput: AddProjectOutputInput;
   AddQuestionConditionInput: AddQuestionConditionInput;
   AddQuestionInput: AddQuestionInput;
+  AddQuestionOptionInput: AddQuestionOptionInput;
   AddRepositoryInput: AddRepositoryInput;
   AddSectionInput: AddSectionInput;
   Affiliation: ResolverTypeWrapper<Affiliation>;
@@ -2745,6 +2836,8 @@ export type ResolversTypes = {
   QuestionCondition: ResolverTypeWrapper<QuestionCondition>;
   QuestionConditionActionType: QuestionConditionActionType;
   QuestionConditionCondition: QuestionConditionCondition;
+  QuestionOption: ResolverTypeWrapper<QuestionOption>;
+  QuestionOptionInput: QuestionOptionInput;
   QuestionType: ResolverTypeWrapper<QuestionType>;
   Repository: ResolverTypeWrapper<Repository>;
   RepositorySearchInput: RepositorySearchInput;
@@ -2766,6 +2859,7 @@ export type ResolversTypes = {
   UpdateProjectOutputInput: UpdateProjectOutputInput;
   UpdateQuestionConditionInput: UpdateQuestionConditionInput;
   UpdateQuestionInput: UpdateQuestionInput;
+  UpdateQuestionOptionInput: UpdateQuestionOptionInput;
   UpdateRepositoryInput: UpdateRepositoryInput;
   UpdateSectionInput: UpdateSectionInput;
   User: ResolverTypeWrapper<User>;
@@ -2791,6 +2885,7 @@ export type ResolversParentTypes = {
   AddProjectOutputInput: AddProjectOutputInput;
   AddQuestionConditionInput: AddQuestionConditionInput;
   AddQuestionInput: AddQuestionInput;
+  AddQuestionOptionInput: AddQuestionOptionInput;
   AddRepositoryInput: AddRepositoryInput;
   AddSectionInput: AddSectionInput;
   Affiliation: Affiliation;
@@ -2829,6 +2924,8 @@ export type ResolversParentTypes = {
   Query: {};
   Question: Question;
   QuestionCondition: QuestionCondition;
+  QuestionOption: QuestionOption;
+  QuestionOptionInput: QuestionOptionInput;
   QuestionType: QuestionType;
   Repository: Repository;
   RepositorySearchInput: RepositorySearchInput;
@@ -2846,6 +2943,7 @@ export type ResolversParentTypes = {
   UpdateProjectOutputInput: UpdateProjectOutputInput;
   UpdateQuestionConditionInput: UpdateQuestionConditionInput;
   UpdateQuestionInput: UpdateQuestionInput;
+  UpdateQuestionOptionInput: UpdateQuestionOptionInput;
   UpdateRepositoryInput: UpdateRepositoryInput;
   UpdateSectionInput: UpdateSectionInput;
   User: User;
@@ -3034,6 +3132,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addProjectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationAddProjectOutputArgs, 'input'>>;
   addQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationAddQuestionArgs, 'input'>>;
   addQuestionCondition?: Resolver<ResolversTypes['QuestionCondition'], ParentType, ContextType, RequireFields<MutationAddQuestionConditionArgs, 'input'>>;
+  addQuestionOption?: Resolver<ResolversTypes['QuestionOption'], ParentType, ContextType, RequireFields<MutationAddQuestionOptionArgs, 'input'>>;
   addRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, Partial<MutationAddRepositoryArgs>>;
   addSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationAddSectionArgs, 'input'>>;
   addTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationAddTagArgs, 'name'>>;
@@ -3067,6 +3166,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeProjectOutputFromPlan?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationRemoveProjectOutputFromPlanArgs, 'planId' | 'projectOutputId'>>;
   removeQuestion?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionArgs, 'questionId'>>;
   removeQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionConditionArgs, 'questionConditionId'>>;
+  removeQuestionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionOptionArgs, 'questionOptionId'>>;
   removeRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<MutationRemoveRepositoryArgs, 'repositoryId'>>;
   removeSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationRemoveSectionArgs, 'sectionId'>>;
   removeTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationRemoveTagArgs, 'tagId'>>;
@@ -3092,7 +3192,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateProjectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationUpdateProjectOutputArgs, 'input'>>;
   updateQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationUpdateQuestionArgs, 'input'>>;
   updateQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionConditionArgs, 'input'>>;
-  updateQuestionOptions?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionsArgs, 'questionId' | 'required'>>;
+  updateQuestionOption?: Resolver<ResolversTypes['QuestionOption'], ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionArgs, 'input'>>;
   updateRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, Partial<MutationUpdateRepositoryArgs>>;
   updateSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationUpdateSectionArgs, 'input'>>;
   updateTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationUpdateTagArgs, 'name' | 'tagId'>>;
@@ -3316,6 +3416,8 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   publishedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
   question?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<QueryQuestionArgs, 'questionId'>>;
   questionConditions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryQuestionConditionsArgs, 'questionId'>>;
+  questionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<QueryQuestionOptionArgs, 'questionOptionId'>>;
+  questionOptions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionOption']>>>, ParentType, ContextType, RequireFields<QueryQuestionOptionsArgs, 'questionId'>>;
   questionTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionType']>>>, ParentType, ContextType>;
   questions?: Resolver<Maybe<Array<Maybe<ResolversTypes['Question']>>>, ParentType, ContextType, RequireFields<QueryQuestionsArgs, 'sectionId'>>;
   recommendedLicenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, RequireFields<QueryRecommendedLicensesArgs, 'recommended'>>;
@@ -3345,6 +3447,7 @@ export type QuestionResolvers<ContextType = MyContext, ParentType extends Resolv
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   questionConditions?: Resolver<Maybe<Array<ResolversTypes['QuestionCondition']>>, ParentType, ContextType>;
+  questionOptions?: Resolver<Maybe<Array<ResolversTypes['QuestionOption']>>, ParentType, ContextType>;
   questionText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   questionTypeId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   required?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
@@ -3368,6 +3471,20 @@ export type QuestionConditionResolvers<ContextType = MyContext, ParentType exten
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   questionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   target?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type QuestionOptionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['QuestionOption'] = ResolversParentTypes['QuestionOption']> = {
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  isDefault?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  orderNumber?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  questionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  text?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -3645,6 +3762,7 @@ export type Resolvers<ContextType = MyContext> = {
   Query?: QueryResolvers<ContextType>;
   Question?: QuestionResolvers<ContextType>;
   QuestionCondition?: QuestionConditionResolvers<ContextType>;
+  QuestionOption?: QuestionOptionResolvers<ContextType>;
   QuestionType?: QuestionTypeResolvers<ContextType>;
   Repository?: RepositoryResolvers<ContextType>;
   ResearchDomain?: ResearchDomainResolvers<ContextType>;
