@@ -4,7 +4,6 @@ import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
 import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
-import { getExistingQuestionOptions } from "../services/questionService";
 import { BadUserInputError, ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 
@@ -134,7 +133,7 @@ export const resolvers: Resolvers = {
         } else {
 
           // Get existing questionOptions
-          const existingQuestionOptions = await getExistingQuestionOptions(context, questionId);
+          const existingQuestionOptions = await QuestionOption.findByQuestionId('question resolver', context, questionId);
 
           // Create a Map of existing options for quick lookup by ID or unique identifier
           const existingOptionsMap = new Map(
@@ -203,25 +202,10 @@ export const resolvers: Resolvers = {
           id: questionId
         });
 
-        const deleteResponse = await question.delete(context);
-
-        const existingQuestionOptions = await getExistingQuestionOptions(context, questionId);
-
-        if (existingQuestionOptions.length > 0) {
-          await Promise.all(
-            existingQuestionOptions.map(async (option) => {
-              const questionOption = new QuestionOption({
-                ...option
-              });
-
-              await questionOption.delete(context);
-            })
-          );
-        }
-
-        return deleteResponse;
-
+        // The delete will also delete all associated questionOptions
+        return await question.delete(context);
       }
+
       throw ForbiddenError();
     }
   },

@@ -101,7 +101,7 @@ export class Question extends MySqlModel {
       if (id) {
         this.cleanup();
 
-        await Question.update(context, this.tableName, this, 'Question.update', [], noTouch);
+        await Question.update(context, this.tableName, this, 'Question.update', ['questionOptions'], noTouch);
         return await Question.findById('Question.update', context, id);
       }
       // This template has never been saved before so we cannot update it!

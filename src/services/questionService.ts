@@ -5,7 +5,6 @@ import { Question } from "../models/Question";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
-import { QuestionOption } from "../models/QuestionOption";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
 import { formatLogMessage, logger } from "../logger";
 
@@ -168,11 +167,5 @@ export const generateQuestionConditionVersion = async (
     formatLogMessage(logger).error(null, `${msg}, errs: ${created.errors}`);
     throw new Error(msg);
   }
-}
-
-export const getExistingQuestionOptions = async (context: MyContext, questionId: number): Promise<QuestionOption[]> => {
-
-  //Get all the existing question options already associated with this question
-  return await QuestionOption.findByQuestionId('questionService', context, questionId);
 }
 

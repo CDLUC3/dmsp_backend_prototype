@@ -43,6 +43,16 @@ type QuestionOption {
 
 }
 
+"Input for Question options operations"
+input QuestionOptionInput {
+  "The text for the question option"
+  text: String
+  "The order of the question option"
+  orderNumber: Int
+  "Whether the question option is the default selected one"
+  isDefault: Boolean
+}
+
 input AddQuestionOptionInput {
     "The question id that the QuestionOption belongs to"
     questionId: Int!

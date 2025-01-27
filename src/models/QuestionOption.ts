@@ -25,6 +25,14 @@ export class QuestionOption extends MySqlModel {
     if (!this.questionId) {
       this.errors.push('Question ID can\'t be blank');
     }
+
+    if (!this.text) {
+      this.errors.push('Text can\'t be blank');
+    }
+
+    if (!this.orderNumber) {
+      this.errors.push('Order number can\'t be blank');
+    }
     return this.errors.length <= 0;
   }
 

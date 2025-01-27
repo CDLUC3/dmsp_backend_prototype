@@ -45,7 +45,7 @@ export const resolvers: Resolvers = {
             }
           }
           return created
-        } catch(err) {
+        } catch (err) {
           formatLogMessage(context.logger).error(err, 'Failure in addRepository resolver');
           throw InternalServerError();
         }
@@ -82,7 +82,7 @@ export const resolvers: Resolvers = {
             }
           }
           return updated;
-        } catch(err) {
+        } catch (err) {
           formatLogMessage(context.logger).error(err, 'Failure in updateRepository resolver');
           throw InternalServerError();
         }
@@ -113,7 +113,7 @@ export const resolvers: Resolvers = {
             }
           }
           return deleted
-        } catch(err) {
+        } catch (err) {
           formatLogMessage(context.logger).error(err, 'Failure in removeRepository resolver');
           throw InternalServerError();
         }
@@ -148,17 +148,17 @@ export const resolvers: Resolvers = {
             // Merge the keywords
             if (toRemove.keywords && Array.isArray(toRemove.keywords)) {
               toRemove.keywords.filter((k) => !toKeep.keywords.includes(k))
-                               .forEach((key) => toKeep.keywords.push(key));
+                .forEach((key) => toKeep.keywords.push(key));
             }
             // Merge the repositoryTypes
             if (toRemove.repositoryTypes && Array.isArray(toRemove.repositoryTypes)) {
               toRemove.repositoryTypes.filter((rt) => !toKeep.repositoryTypes.includes(rt))
-                                      .forEach((typ) => toKeep.repositoryTypes.push(typ));
+                .forEach((typ) => toKeep.repositoryTypes.push(typ));
             }
             // Merge the researchDomains
             if (toRemove.researchDomains && Array.isArray(toRemove.researchDomains)) {
               toRemove.researchDomains.filter((rd) => !toKeep.researchDomains.includes(rd))
-                                      .forEach((dom) => toKeep.researchDomains.push(dom));
+                .forEach((dom) => toKeep.researchDomains.push(dom));
             }
             await toKeep.update(context);
           }
@@ -168,7 +168,7 @@ export const resolvers: Resolvers = {
           // Delete the one we want to remove
           await toRemove.delete(context);
           return toKeep;
-        } catch(err) {
+        } catch (err) {
           formatLogMessage(context.logger).error(err, 'Failure in removeRepository resolver');
           throw InternalServerError();
         }

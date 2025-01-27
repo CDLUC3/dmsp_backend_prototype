@@ -3,12 +3,11 @@ import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
 import { MySQLDataSource } from "../../datasources/mySQLDataSource";
-import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, getExistingQuestionOptions, hasPermissionOnQuestion } from "../questionService";
+import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion } from "../questionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
 import { NotFoundError } from "../../utils/graphQLErrors";
 import { Question } from "../../models/Question";
-import { QuestionOption } from "../../models/QuestionOption";
 import { VersionedQuestion } from "../../models/VersionedQuestion";
 import { QuestionType } from "../../models/QuestionType";
 import { QuestionCondition, QuestionConditionActionType, QuestionConditionCondition } from "../../models/QuestionCondition";
@@ -515,64 +514,5 @@ describe('generateQuestionConditionVersion', () => {
     expect(newVersion.conditionType).toEqual(questionCondition.conditionType);
     expect(newVersion.conditionMatch).toEqual(questionCondition.conditionMatch);
     expect(newVersion.target).toEqual(questionCondition.target);
-  });
-});
-
-describe('getExistingQuestionOptions', () => {
-  let mockQuery;
-
-  const expectedResponse = [
-    expect.objectContaining({
-      questionId: 50,
-      text: 'Yes',
-      orderNumber: 1,
-      isDefault: true,
-    }),
-    expect.objectContaining({
-      questionId: 50,
-      text: 'No',
-      orderNumber: 2,
-      isDefault: false,
-    }),
-    expect.objectContaining({
-      questionId: 50,
-      text: 'Maybe',
-      orderNumber: 3,
-      isDefault: false,
-    }),
-  ];
-
-  beforeEach(() => {
-    jest.resetAllMocks();
-
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
-
-    const existingOption1 = new QuestionOption({ questionId: 50, text: "Yes", orderNumber: 1, isDefault: true });
-    const existingOption2 = new QuestionOption({ questionId: 50, text: "No", orderNumber: 2, isDefault: false });
-    const existingOption3 = new QuestionOption({ questionId: 50, text: "Maybe", orderNumber: 3, isDefault: false });
-    const existingOptions: QuestionOption[] = [existingOption1, existingOption2, existingOption3];
-
-    const mockGetSectionTagsBySectionId = jest.fn();
-    (QuestionOption.findByQuestionId as jest.Mock) = mockGetSectionTagsBySectionId;
-    mockGetSectionTagsBySectionId.mockResolvedValueOnce(existingOptions);
-  });
-
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('Should return an array of question options', async () => {
-    const questionId = 50;
-    const result = await getExistingQuestionOptions(context, questionId);
-
-    expect(result).toEqual(expect.arrayContaining(expectedResponse));
   });
 });
