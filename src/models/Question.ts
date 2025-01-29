@@ -71,7 +71,7 @@ export class Question extends MySqlModel {
 
       // Save the record and then fetch it
       const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionOptions']);
-      const response = await Question.findById('Section.create', context, newId);
+      const response = await Question.findById('Question.create', context, newId);
       return response;
 
     }
