@@ -43,6 +43,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated `questionTypes` table to remove 'Rich Text Editor' and to add `usageDescription`. Also, updated Question model's `create` method to allow for entries with duplicate `questionText`
 - Updated User update method to prevent password manipulation
 - Updated User registration so that the terms and conditions must have been accepted
 - Updated User schema, model and data migrations with new properties

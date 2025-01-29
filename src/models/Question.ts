@@ -62,32 +62,18 @@ export class Question extends MySqlModel {
 
   //Create a new Question
   async create(
-    context: MyContext,
-    questionText: string,
-    sectionId: number,
-    templateId: number,
+    context: MyContext
   ): Promise<Question> {
     // First make sure the record is valid
     if (await this.isValid()) {
-      const current = await Question.findByQuestionText(
-        'Question.create',
-        context,
-        questionText,
-        sectionId,
-        templateId
-      );
 
-      // Then make sure it doesn't already exist
-      if (current) {
-        this.errors.push('Question with this question text already exists');
-      } else {
-        this.cleanup();
+      this.cleanup();
 
-        // Save the record and then fetch it
-        const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionOptions']);
-        const response = await Question.findById('Section.create', context, newId);
-        return response;
-      }
+      // Save the record and then fetch it
+      const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionOptions']);
+      const response = await Question.findById('Question.create', context, newId);
+      return response;
+
     }
     // Otherwise return as-is with all the errors
     return this;
@@ -139,20 +125,5 @@ export class Question extends MySqlModel {
     const sql = 'SELECT * FROM questions WHERE sectionId = ?';
     const results = await Question.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(results) ? results : [];
-  }
-
-  // Find question by questionText, sectionId and templateId
-  static async findByQuestionText(
-    reference: string,
-    context: MyContext,
-    questionText: string,
-    sectionId: number,
-    templateId: number,
-
-  ): Promise<Question> {
-    const sql = 'SELECT * FROM questions WHERE LOWER(questionText) = ? AND sectionId = ? AND templateId = ?';
-    const vals = [questionText?.toLowerCase(), sectionId?.toString(), templateId?.toString()];
-    const results = await Question.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
   }
 }

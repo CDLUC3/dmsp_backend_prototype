@@ -58,7 +58,7 @@ export const resolvers: Resolvers = {
         });
 
         // create the new question
-        const newQuestion = await question.create(context, questionText, sectionId, templateId,);
+        const newQuestion = await question.create(context);
 
         // If there are errors than throw a Bad User Input error
         if (newQuestion.errors) {

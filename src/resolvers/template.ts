@@ -83,8 +83,7 @@ export const resolvers: Resolvers = {
               for (const versionedQuestion of versionedQuestions) {
                 const question = await cloneQuestion(context.token?.id, templateId, sectionId, versionedQuestion);
                 if (question) {
-                  const questionText = question.questionText;
-                  await question.create(context, questionText, sectionId, templateId);
+                  await question.create(context);
                 }
               }
             }
