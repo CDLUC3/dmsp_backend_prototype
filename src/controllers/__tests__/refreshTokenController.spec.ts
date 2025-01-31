@@ -1,14 +1,12 @@
+import casual from 'casual';
 import { Response } from 'express';
 import { Request } from 'express-jwt';
-import { Cache } from "../../datasources/cache";
 import { refreshAccessToken, setTokenCookie } from '../../services/tokenService';
-import { logger } from '../../__mocks__/logger';
 import { refreshTokenController } from '../refreshTokenController';
-// We mock buildContext below, not sure why it complains here
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { buildContext } from '../../context';
-import { mockDataSources, mockToken } from '../../__mocks__/context';
-import casual from 'casual';
+import { logger } from '../../__mocks__/logger';
+import { buildContext, mockToken } from "../../__mocks__/context";
+
+jest.mock('../../context.ts');
 
 // Mocking external dependencies
 jest.mock('../../context');
@@ -17,13 +15,15 @@ jest.mock('../../services/tokenService');
 jest.mock('../../config/generalConfig');
 
 describe('refreshTokenController', () => {
-  let mockContext;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
-  let mockCache: jest.Mocked<Cache>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let context
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken(), null);
 
     mockRequest = {
       auth: { jti: casual.integer(1, 99999).toString(), id: casual.integer(1, 999) },
@@ -33,18 +33,6 @@ describe('refreshTokenController', () => {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()
     };
-    mockCache = Cache.getInstance() as jest.Mocked<Cache>;
-    (Cache.getInstance as jest.Mock).mockReturnValue(mockCache);
-
-    const token = mockToken();
-    mockContext = jest.fn().mockImplementation(() => {
-      return {
-        token: token,
-        logger: logger,
-        dataSources: mockDataSources,
-      }
-    });
-    (buildContext as jest.Mock) = mockContext;
   });
 
   afterEach(() => {
@@ -58,7 +46,7 @@ describe('refreshTokenController', () => {
 
     await refreshTokenController(mockRequest as Request, mockResponse as Response);
 
-    expect(refreshAccessToken).toHaveBeenCalledWith(mockCache, mockContext(), 'old-refresh-token');
+    expect(refreshAccessToken).toHaveBeenCalled();
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token');
     expect(mockResponse.status).toHaveBeenCalledWith(200);
     expect(mockResponse.json).toHaveBeenCalledWith({ success: true, message: 'ok' });

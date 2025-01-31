@@ -205,6 +205,8 @@ describe('confirmEmail', () => {
   let mockDelete;
 
   beforeEach(() => {
+    context = buildContext(logger);
+
     mockUserEmail = new UserEmail({ id: casual.integer(1, 99), email: mockUser.email, userId: mockUser.id });
 
     mockOtherEmails = [

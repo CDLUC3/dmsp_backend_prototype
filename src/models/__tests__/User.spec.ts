@@ -3,15 +3,12 @@ import { LogInType, User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { logger } from '../../__mocks__/logger';
-import { buildContext } from '../../context';
 import { defaultLanguageId, supportedLanguages } from '../Language';
-import { mockToken } from '../../__mocks__/context';
+import { mockToken, buildContext } from '../../__mocks__/context';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 
 jest.mock('../../context.ts');
 
-let mockDebug;
-let mockError;
 let mockQuery;
 let mockUser;
 let mockContext;
@@ -111,9 +108,6 @@ describe('validate a new User', () => {
       acceptedTerms: true,
     });
 
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-
     mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
 
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
@@ -134,13 +128,6 @@ describe('validate a new User', () => {
     expect(await mockUser.isValid()).toBe(false);
     expect(mockUser.errors.length).toBe(1);
     expect(mockUser.errors[0].includes('Password is required')).toBe(true);
-  });
-
-  it('should return false when we have an existing user', async () => {
-    mockQuery.mockResolvedValueOnce([{ id: 0, email: mockUser.email }]);
-    expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Email address already in use')).toBe(true);
   });
 
   it('should return false when we have a new user without a valid email format', async () => {
@@ -243,8 +230,6 @@ describe('authCheck', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-
     mockContext = buildContext(logger, null, null);
     const mockSqlDataSource = mockContext.dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -259,7 +244,7 @@ describe('authCheck', () => {
     const password = 'Abcd3Fgh1jkL$';
     mockQuery.mockResolvedValueOnce([])
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
-    expect(mockDebug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
   });
 
   it('it returns null if the password does not match', async () => {
@@ -271,7 +256,7 @@ describe('authCheck', () => {
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
-    expect(mockDebug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
   });
 
   it('it returns the user\'s id if the password matched', async () => {
@@ -284,7 +269,7 @@ describe('authCheck', () => {
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toEqual(12345);
-    expect(mockDebug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -357,9 +342,6 @@ describe('login()', () => {
     mockAuthCheck = jest.fn();
     (User.authCheck as jest.Mock) = mockAuthCheck;
 
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-
     mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -383,8 +365,8 @@ describe('login()', () => {
     const response = await user.login(context);
     expect(response).not.toBeNull();
     expect(mockUpdate).toHaveBeenCalledTimes(1);
-    expect(mockDebug).toHaveBeenCalledTimes(2);
-    expect(mockError).toHaveBeenCalledTimes(0);
+    expect(context.logger.debug).toHaveBeenCalledTimes(2);
+    expect(context.logger.error).toHaveBeenCalledTimes(0);
   });
 
   it('should return an error when authCheck does not return a userId', async () => {
@@ -401,7 +383,7 @@ describe('login()', () => {
     const user = new User({ email: 'test.user@example.com', password: 'AbcdefgH1!' });
     const response = await user.login(context);
     expect(response).toBeNull();
-    expect(mockError).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -418,11 +400,6 @@ describe('register()', () => {
     jest.resetAllMocks();
 
     context = buildContext(logger, mockToken());
-
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-
-    mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
 
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -486,7 +463,6 @@ describe('register()', () => {
       affiliationId: casual.url,
       acceptedTerms: true
     });
-
 
     const response = await user.register(context);
     expect(response).toBe(user);

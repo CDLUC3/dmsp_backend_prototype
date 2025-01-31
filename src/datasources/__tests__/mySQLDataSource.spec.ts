@@ -1,6 +1,7 @@
 import { MySQLDataSource } from '../mySQLDataSource';
 import * as mysql from 'mysql2/promise';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
+import { buildContext } from '../../__mocks__/context';
 
 jest.mock('mysql2/promise');
 jest.mock('../../config/mysqlConfig', () => ({
@@ -46,12 +47,15 @@ describe('MySQLDataSource', () => {
     });
 
     it('should log an error and throw if pool creation fails', () => {
+      const context = buildContext(logger);
       (mysql.createPool as jest.Mock).mockImplementationOnce(() => {
         throw new Error('Failed to create pool');
       });
 
       expect(() => MySQLDataSource.getInstance()).toThrow('Failed to create pool');
-      expect(formatLogMessage(logger).error).toHaveBeenCalledWith('Unable to establish the MySQL connection pool.');
+      expect(formatLogMessage(context).error).toHaveBeenCalledWith(
+        'Unable to establish the MySQL connection pool.'
+      );
     });
   });
 
@@ -80,11 +84,12 @@ describe('MySQLDataSource', () => {
 
   describe('query', () => {
     it('should execute a SQL query and return rows', async () => {
+      const context = buildContext(logger);
       const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = [' 1 ']; // Simulate a value that needs trimming
 
-      const result = await instance.query(sql, values);
+      const result = await instance.query(context, sql, values);
 
       expect(mockPool.execute).toHaveBeenCalledWith(sql, ['1']); // Trimmed value
       expect(result).toEqual([{ id: 1, name: 'Test' }]);
@@ -92,19 +97,15 @@ describe('MySQLDataSource', () => {
     });
 
     it('should log an error and throw if query execution fails', async () => {
+      const context = buildContext(logger);
       const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = ['1'];
 
       (mockPool.execute as jest.Mock).mockRejectedValueOnce(new Error('Query failed'));
 
-      await expect(instance.query(sql, values)).rejects.toThrow('Database query failed');
-      expect(formatLogMessage(logger, {
-        err: expect.any(Error),
-        sql,
-        values,
-        message: 'Unable to process SQL query!',
-      }).error).toHaveBeenCalled();
+      await expect(instance.query(context, sql, values)).rejects.toThrow('Database query failed');
+      expect(formatLogMessage(context).error).toHaveBeenCalled();
       await MySQLDataSource.removeInstance();
     });
   });

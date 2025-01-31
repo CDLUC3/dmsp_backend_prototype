@@ -1,6 +1,7 @@
 import * as mysql from 'mysql2/promise';
 import { mysqlConfig } from "../config/mysqlConfig";
 import { logger, formatLogMessage } from '../logger';
+import { MyContext } from '../context';
 
 export interface PoolConfig {
   connectionLimit: number;
@@ -36,7 +37,7 @@ export class MySQLDataSource {
     const queueLimit = Number.parseInt(process.env.MYSQL_QUEUE_LIMIT) || 100;
     const connectTimeout = Number.parseInt(process.env.MYSQL_CONNECT_TIMEOUT) || 60000;
 
-    formatLogMessage(logger).info('Establishing MySQL connection pool ...');
+    logger.info('Establishing MySQL connection pool ...');
 
     try {
       this.pool = mysql.createPool({
@@ -54,16 +55,16 @@ export class MySQLDataSource {
 
         this.close()
           .then(() => {
-            formatLogMessage(logger).debug('MySQL connection pool closed');
+            logger.debug('MySQL connection pool closed');
             process.exit(0);
           })
           .catch((err) => {
-            formatLogMessage(logger).error({ err, message: 'Error while closing MySQL connection pool' });
+            logger.error({ err, message: 'Error while closing MySQL connection pool' });
             process.exit(1);
           });
       });
     } catch (err) {
-      formatLogMessage(logger).error('Unable to establish the MySQL connection pool.');
+      logger.error('Unable to establish the MySQL connection pool.');
       throw(err);
     }
   }
@@ -103,18 +104,13 @@ export class MySQLDataSource {
 
   // Execute a SQL query
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async query(sql: string, values?: string[]): Promise<any> {
+  public async query(context: MyContext, sql: string, values?: string[]): Promise<any> {
     try {
       const vals = values.map((val) => (typeof val === 'string') ? val.trim() : val);
       const [rows] = await this.pool.execute(sql, vals);
       return rows;
     } catch (err) {
-      formatLogMessage(logger, {
-        err,
-        sql,
-        values,
-        message: 'Unable to process SQL query!'
-      }).error('Unable to process SQL query!');
+      formatLogMessage(context).error({ err, sql, values }, 'Unable to process SQL query!');
       throw new Error('Database query failed');
     }
   }
