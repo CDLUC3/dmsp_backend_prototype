@@ -8,17 +8,11 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { defaultLanguageId } from "../models/Language";
 import { anonymizeUser, mergeUsers } from "../services/userService";
 import { processOtherAffiliationName } from "../services/affiliationService";
-import { formatLogMessage } from "../logger";
 
 export const resolvers: Resolvers = {
   Query: {
     // returns the current User
     me: async (_, __, context: MyContext): Promise<User> => {
-
-formatLogMessage(context).info(null, 'Example A');
-formatLogMessage(context).info('Example B');
-
-
       if (isAuthorized(context?.token)) {
         return await User.findById('me resolver', context, context.token.id);
       }

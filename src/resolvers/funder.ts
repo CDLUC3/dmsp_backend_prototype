@@ -53,7 +53,7 @@ export const resolvers: Resolvers = {
           const created = await newFunder.create(context, project.id);
           return created
         } catch(err) {
-          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
+          formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
@@ -83,7 +83,7 @@ export const resolvers: Resolvers = {
           const updated = await toUpdate.update(context);
           return updated;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
+          formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
@@ -109,7 +109,7 @@ export const resolvers: Resolvers = {
           const deleted = await funder.delete(context);
           return deleted
         } catch(err) {
-          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
+          formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
