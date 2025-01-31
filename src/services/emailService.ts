@@ -6,7 +6,7 @@ import { MyContext } from "../context";
 import { User } from "../models/User";
 import { awsConfig } from "../config/awsConfig";
 import { emailConfig } from "../config/emailConfig";
-import { formatLogMessage, logger } from "../logger";
+import { formatLogMessage } from "../logger";
 import { generalConfig } from '../config/generalConfig';
 
 export const emailSubjects = {
@@ -41,6 +41,7 @@ const transporter = nodemailer.createTransport({
 
 // Function to either send or log an email notification based on the environment
 const sendEmail = async (
+  context: MyContext,
   emailType: string,
   toAddresses: string[],
   ccAddresses: string[] = [],
@@ -56,7 +57,7 @@ const sendEmail = async (
   if (['development'].includes(process.env.NODE_ENV)) {
     // When running in development mode, we do not have access to AWS SES and we probably don't want to
     // actually send emails to people by accident so so just log the message
-    formatLogMessage(logger).info(
+    formatLogMessage(context).info(
       { toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML },
       `Logging email notification of type '${emailType}' because we are in ${process.env.NODE_ENV} mode`
     );
@@ -74,7 +75,7 @@ const sendEmail = async (
       bcc: bccAddresses.join(', '),
       subject: subjectLine,
     };
-    formatLogMessage(logger).debug(options, `Preparing to send ${emailType} email`);
+    formatLogMessage(context).debug(options, `Preparing to send ${emailType} email`);
 
     try {
       // Send as HTML (default) or text depending on what was specified
@@ -84,11 +85,11 @@ const sendEmail = async (
         response = await transporter.sendMail({ ...options, text: message });
       }
       const logInfo = { id: response?.messageId, to: toAddresses, subject: subject };
-      formatLogMessage(logger).info(logInfo, `${emailType} email sent`);
+      formatLogMessage(context).info(logInfo, `${emailType} email sent`);
 
       return true;
     } catch (err) {
-      formatLogMessage(logger).fatal(err, `Unable to send ${emailType} email`);
+      formatLogMessage(context).fatal(err, `Unable to send ${emailType} email`);
     }
     return false;
   }
@@ -96,8 +97,9 @@ const sendEmail = async (
 
 // Send out an email asking the user to confirm the email address
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const sendEmailConfirmationNotification = async (email: string): Promise<boolean> => {
+export const sendEmailConfirmationNotification = async (context: MyContext, email: string): Promise<boolean> => {
   return await sendEmail(
+    context,
     'EmailConfirmation',
     [email],
     [],
@@ -130,6 +132,7 @@ export const sendTemplateCollaborationEmail = async (
   }
 
   return await sendEmail(
+    context,
     'TemplateCollaboration',
     [toAddress],
     [],
@@ -162,6 +165,7 @@ export const sendPlanCollaborationEmail = async (
   }
 
   return await sendEmail(
+    context,
     'PlanCollaboration',
     [toAddress],
     [],

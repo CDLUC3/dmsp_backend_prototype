@@ -190,16 +190,12 @@ describe('propertyInfo', () => {
 
 describe('query function', () => {
   let mockQuery;
-  let mockDebug;
-  let mockError;
   let context;
 
   beforeEach(() => {
     jest.resetAllMocks();
 
     context = buildContext(logger, mockToken());
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
 
     mockQuery = jest.fn();
     const dataSource = context.dataSources.sqlDataSource;
@@ -214,8 +210,8 @@ describe('query function', () => {
     mockQuery.mockResolvedValueOnce(['test']);
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql, ['1'], 'Testing');
-    expect(mockDebug).toHaveBeenCalledTimes(1);
-    expect(mockDebug).toHaveBeenCalledWith(`Testing, sql: ${sql}, vals: 1`);
+    expect(context.logger.debug).toHaveBeenCalledTimes(1);
+    expect(context.logger.debug).toHaveBeenCalledWith(`Testing, sql: ${sql}, vals: 1`);
     expect(result).toEqual(['test']);
   });
 
@@ -223,21 +219,22 @@ describe('query function', () => {
     mockQuery.mockResolvedValueOnce([]);
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql,);
-    expect(mockDebug).toHaveBeenCalledTimes(1);
-    expect(mockDebug).toHaveBeenCalledWith(`undefined caller, sql: ${sql}, vals: `);
+    expect(context.logger.debug).toHaveBeenCalledTimes(1);
+    expect(context.logger.debug).toHaveBeenCalledWith(`undefined caller, sql: ${sql}, vals: `);
     expect(result).toEqual([]);
   });
 
   it('query returns an empty array if an error occurs and logs the error', async () => {
-    mockQuery.mockImplementation(() => {
-      throw new Error('Testing error handler');
-    });
+    const mockError = new Error('Testing error handler');
+    mockQuery.mockImplementation(() => { throw mockError });
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql, ['123'], 'testing failure');
-    expect(mockDebug).toHaveBeenCalledTimes(1);
-    expect(mockError).toHaveBeenCalledTimes(1);
-    expect(mockDebug).toHaveBeenCalledWith(`testing failure, sql: ${sql}, vals: 123`);
-    expect(mockError).toHaveBeenCalledWith(`testing failure, ERROR: Testing error handler`);
+    expect(context.logger.debug).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
+    expect(context.logger.debug).toHaveBeenCalledWith(`testing failure, sql: ${sql}, vals: 123`);
+    expect(context.logger.error).toHaveBeenCalledWith(
+      mockError, "testing failure, ERROR: Testing error handler"
+    );
     expect(result).toEqual([]);
   });
 
@@ -248,8 +245,8 @@ describe('query function', () => {
     const sql = 'SELECT * FROM tests WHERE field = ?';
     context.dataSources = null;
     const result = await MySqlModel.query(context, sql, ['123'], 'testing failure');
-    expect(mockError).toHaveBeenCalledTimes(1);
-    expect(mockError).toHaveBeenCalledWith(`testing failure, ERROR: apolloContext and sqlStatement are required.`);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledWith(`testing failure, ERROR: apolloContext and sqlStatement are required.`);
     expect(result).toEqual([]);
   });
 });

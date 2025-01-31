@@ -151,7 +151,7 @@ export const resolvers: Resolvers = {
 
           return created;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
+          formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
@@ -194,7 +194,7 @@ export const resolvers: Resolvers = {
           // Otherwise there were errors so return the object with errors
           return updated;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
+          formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
@@ -222,7 +222,7 @@ export const resolvers: Resolvers = {
           // the DB will cascade the deletion.
           return deleted
         } catch(err) {
-          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
+          formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {

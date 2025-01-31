@@ -36,6 +36,33 @@ jest.spyOn(MySQLDataSource, 'getInstance').mockImplementation(function () {
 
 const mockedMysqlInstance = MySQLDataSource.getInstance();
 
+// Mock Cache for testing, just has a local storage hash
+let mockCacheStore = {};
+// eslint-disable-next-line  @typescript-eslint/no-extraneous-class
+export class MockCache {
+  public static getInstance() {
+    return {
+      adapter: {
+        set(key: string, val: string): void {
+          mockCacheStore[key] = val;
+        },
+        get(key: string): string {
+          return mockCacheStore[key];
+        },
+        delete(key: string): void {
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+          delete mockCacheStore[key];
+        },
+      },
+      getStore() {
+        return mockCacheStore
+      },
+      resetStore(): void {
+        mockCacheStore = {};
+      },
+    }
+  }
+}
 export class MockDMPHubAPI extends DMPHubAPI {
   getData = jest.fn();
   getDMSPs = jest.fn();
@@ -92,10 +119,12 @@ export const mockDataSources = {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-export function buildContext(logger: Logger, token: JWTAccessToken = null, _cache: any = null): MyContext {
+export function buildContext(logger: Logger, token: JWTAccessToken = null, cache: any = null): MyContext {
   return {
+    cache: cache,
     token: token,
     logger: logger,
+    requestId: casual.rgb_hex,
     dataSources: mockDataSources,
   }
 }

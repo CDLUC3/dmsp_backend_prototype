@@ -45,8 +45,7 @@ export const signupController = async (req: Request, res: Response) => {
         }
 
         // Generate the tokens
-        const { accessToken, refreshToken } = await generateAuthTokens(cache, user);
-
+        const { accessToken, refreshToken } = await generateAuthTokens(context, user);
         if (accessToken && refreshToken) {
           // Set the tokens as HTTP only cookies
           setTokenCookie(res, 'dmspt', accessToken, generalConfig.jwtTTL);
@@ -61,7 +60,7 @@ export const signupController = async (req: Request, res: Response) => {
       res.status(500).json({ success: false, message: 'Unable to register the account.' });
     }
   } catch (err) {
-    formatLogMessage(logger, { msg: `Signup error. userId: ${user.id}, error: ${err?.message}` });
+    formatLogMessage(context)?.error({ err, user }, 'Signup error');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

@@ -132,7 +132,7 @@ export class UserEmail extends MySqlModel {
 
         if (created) {
           // Send out an email confirmation notification. No async, can happen in background
-          sendEmailConfirmationNotification(created.email);
+          sendEmailConfirmationNotification(context, created.email);
         }
         return created;
       }

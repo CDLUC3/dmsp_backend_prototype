@@ -1,4 +1,5 @@
 ### Added
+- Added `requestId` to the Apollo context
 - Added `questionOptions` schema, resolver and `QuestionOption` model, which will be used for `option` question types
 - Added a new query to get all versionedTemplates, called `myVersionedTemplates`, under user's affiliation, and added a new method in the model called `findByAffiliationId`
 - Updated `templates` resolver to handle updates to `sections` and `questions` when copying a `template`
@@ -43,6 +44,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated `formatLogMessage` to accept the Apollo context instead of the logger so that it can being to record the `requestId`, `jti` and `userId` (when available)
 - Updated `questionTypes` table to remove 'Rich Text Editor' and to add `usageDescription`. Also, updated Question model's `create` method to allow for entries with duplicate `questionText`
 - Updated User update method to prevent password manipulation
 - Updated User registration so that the terms and conditions must have been accepted

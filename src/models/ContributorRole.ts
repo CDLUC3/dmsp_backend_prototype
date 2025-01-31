@@ -47,7 +47,7 @@ export class ContributorRole extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, projectContributorId };
       const msg = 'Unable to add the contributor role to the project contributor';
-      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -63,7 +63,7 @@ export class ContributorRole extends MySqlModel {
     if (!results) {
       const payload = { contributorRoleId: this.id, projectContributorId };
       const msg = 'Unable to remove the contributor role from the project contributor';
-      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
       return false;
     }
     return true;

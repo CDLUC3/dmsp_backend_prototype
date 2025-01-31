@@ -139,18 +139,18 @@ export class MySqlModel {
       const vals = values.map((entry) => this.prepareValue(entry, typeof (entry)));
 
       try {
-        formatLogMessage(logger).debug(logMessage);
-        const resp = await dataSources.sqlDataSource.query(sql, vals);
+        formatLogMessage(apolloContext).debug(logMessage);
+        const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
         const msg = `${reference}, ERROR: ${err.message}`;
-        formatLogMessage(logger).error(msg);
+        formatLogMessage(apolloContext).error(err, msg);
         return [];
       }
     }
     const errMsg = `${reference}, ERROR: apolloContext and sqlStatement are required.`;
     if (logger) {
-      formatLogMessage(logger).error(errMsg);
+      formatLogMessage(apolloContext).error(errMsg);
     } else {
       // In the event that there was no logger!
       console.log(errMsg);

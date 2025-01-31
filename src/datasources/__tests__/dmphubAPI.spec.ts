@@ -1,11 +1,12 @@
 import { DMPHubAPI } from '../dmphubAPI';
 import { RESTDataSource } from '@apollo/datasource-rest';
-import { logger, formatLogMessage } from '../../__mocks__/logger';
+import { logger } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { JWTAccessToken } from '../../services/tokenService';
 import { DmspModel as Dmsp } from '../../models/Dmsp';
 import casual from 'casual';
 import { ContributorRole } from '../../models/ContributorRole';
+import { buildContext } from '../../__mocks__/context';
 
 let mockError;
 
@@ -95,6 +96,7 @@ describe('DMPHubAPI', () => {
 
   describe('getDMSP', () => {
     it('should log and call RESTDataSource.get with the correct DMSP ID', async () => {
+      const context = buildContext(logger);
       const mockResponse = {
         status: 200,
         items: [{ dmp: { id: '123' } }],
@@ -105,8 +107,9 @@ describe('DMPHubAPI', () => {
       const result = await dmphubAPI.getDMSP(dmspID);
 
       // Ensure the log message is correct
-      expect(formatLogMessage(logger).info).toHaveBeenCalledWith(
-        `Calling DMPHub: https://dmphub.example.com/dmps/${dmspID}`
+      expect(context.logger.info).toHaveBeenCalledWith(
+        { dmphubUrl: process.env.DMPHUB_API_BASE_URL, dmspID: dmspID },
+        'Calling DMPHub'
       );
 
       // Ensure the RESTDataSource.get is called with the correct ID
@@ -122,6 +125,7 @@ describe('DMPHubAPI', () => {
     });
 
     it('should handle errors gracefully and log them', async () => {
+      const context = buildContext(logger);
       const mockError = new Error('API error');
       mockGet.mockRejectedValue(mockError);
 
@@ -130,8 +134,9 @@ describe('DMPHubAPI', () => {
       await expect(dmphubAPI.getDMSP(dmspID)).rejects.toThrow('API error');
 
       // Ensure the error was logged
-      expect(formatLogMessage(logger, { err: mockError }).error).toHaveBeenCalledWith(
-        'Error calling DMPHub API getDMSP.'
+      expect(context.logger.error).toHaveBeenCalledWith(
+        { dmphubURL: process.env.DMPHUB_API_BASE_URL, dmspID: dmspID, err: mockError },
+        'Error calling the DMPHub API'
       );
     });
   });

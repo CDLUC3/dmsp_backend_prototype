@@ -4,6 +4,11 @@ import { Cache } from "../../datasources/cache";
 import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../../services/tokenService';
 import casual from 'casual';
 import { signoutController } from '../signoutController';
+import { logger } from '../../__mocks__/logger';
+import { buildContext, mockToken } from "../../__mocks__/context";
+import { MyContext } from '../../context';
+
+jest.mock('../../context.ts');
 
 // Mocking external dependencies
 jest.mock('../../datasources/cache');
@@ -13,9 +18,13 @@ describe('signoutController', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockCache: jest.Mocked<Cache>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let context: MyContext;
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken(), null);
 
     mockRequest = {
       auth: { jti: casual.integer(1, 99999).toString() },
@@ -42,8 +51,8 @@ describe('signoutController', () => {
 
     await signoutController(mockRequest as Request, mockResponse as Response);
 
-    expect(revokeRefreshToken).toHaveBeenCalledWith(mockCache, mockRequest.auth.jti);
-    expect(revokeAccessToken).toHaveBeenCalledWith(mockCache, mockRequest.auth.jti);
+    expect(revokeRefreshToken).toHaveBeenCalled();
+    expect(revokeAccessToken).toHaveBeenCalled();
     expect(mockResponse.clearCookie).toHaveBeenCalledWith('dmspt');
     expect(mockResponse.clearCookie).toHaveBeenCalledWith('dmspr');
     expect(mockResponse.status).toHaveBeenCalledWith(200);

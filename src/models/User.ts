@@ -88,13 +88,7 @@ export class User extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    // check if email is already taken
-    const context = buildContext(logger);
-    const existing = await User.findByEmail('User.isValid', context, this.email);
-
-    if (existing && existing.id !== this.id) {
-      this.errors.push('Email address already in use');
-    } else {
+    {
       if (!validateEmail(this.email)) {
         this.errors.push('Invalid email address');
       }
@@ -161,12 +155,12 @@ export class User extends MySqlModel {
 
       // Otherwise check the password
       if (users[0] && await bcrypt.compare(password, users[0].password)) {
-        formatLogMessage(context.logger).debug(`Successful authCheck for ${email}`);
+        formatLogMessage(context).debug(`Successful authCheck for ${email}`);
         return users[0].id;
       }
     }
 
-    formatLogMessage(context.logger).debug(`Failed authCheck for ${email}`);
+    formatLogMessage(context).debug(`Failed authCheck for ${email}`);
     return null;
   }
 
@@ -201,7 +195,7 @@ export class User extends MySqlModel {
       }
     }
     // This recordSignIn could not update the record for some reason
-    formatLogMessage(context.logger).error(null, `recordSignIn failed for user ${this.id}`);
+    formatLogMessage(context).error(null, `recordSignIn failed for user ${this.id}`);
     return false;
   }
 
@@ -214,8 +208,8 @@ export class User extends MySqlModel {
     }
 
     try {
-      formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const userId = await User.authCheck('User.login', context, this.email, this.password);
+      formatLogMessage(context)?.debug({ userId }, 'User.login:');
       if (userId) {
         const existing = await User.findById('User.login', context, userId);
 
@@ -227,7 +221,7 @@ export class User extends MySqlModel {
       }
       return null;
     } catch (err) {
-      formatLogMessage(logger).error(`Error logging in User: ${this.email} - ${err.message}`);
+      formatLogMessage(context).error({ err, email: this.email }, 'Error logging in User');
       return null;
     }
   }
@@ -261,14 +255,16 @@ export class User extends MySqlModel {
                      VALUES(?, ?, ?, ?, ?, ?, ?)`;
         const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
         const context = buildContext(logger);
-        formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
+        formatLogMessage(context)?.debug({ email: this.email }, 'User.register');
         const result = await User.query(context, sql, vals, 'User.register');
 
         if (!Array.isArray(result) || !result[0].insertId) {
           this.errors.push('Unable to register your account.');
           return this;
         }
-        formatLogMessage(logger).debug(`User was created: ${this.email}, id: ${result[0].insertId}`);
+        formatLogMessage(context).debug(
+          { email: this.email, userId: result[0].insertId }, 'User was created'
+        );
 
         // Fetch the new record
         const user = await User.findById('User.register', context, result[0].insertId);
@@ -282,18 +278,18 @@ export class User extends MySqlModel {
         const userEmail = new UserEmail({ userId: user.id, email: user.email, isPrimary: true });
         if (!await userEmail.create(context)){
           // If we couldn't add the UserEmail record, log the error but let them continue
-          formatLogMessage(context.logger).error(userEmail, `User.register - unable to add UserEmail!`);
+          formatLogMessage(context).error({ email: userEmail }, 'User.register - unable to add UserEmail!');
         }
 
         // Remove the password! No need to expose that to the caller
         user.password = null;
         return user;
       } catch (err) {
-        formatLogMessage(logger)?.error(`Error creating User: ${this.email} - ${err.message}`);
+        formatLogMessage(context)?.error({ err, email: this.email }, 'Error creating User');
         return null;
       }
     } else {
-      formatLogMessage(logger)?.debug(`Invalid user: ${this.email}`);
+      formatLogMessage(context)?.debug({ email: this.email, errors: this.errors }, 'Invalid user');
       return this;
     }
   }
@@ -308,7 +304,7 @@ export class User extends MySqlModel {
           // If the user is an ADMIN then demote them to RESEARCHER
           if (this.role === UserRole.ADMIN) {
             const msg = `User.update Admin changed affiliation so their role must change to Researcher`;
-            formatLogMessage(context.logger).info(`${msg} id: ${this.id}, email: ${this.email}`);
+            formatLogMessage(context).info({ userId: this.id, email: this.email }, msg);
             this.role = UserRole.RESEARCHER;
           }
 

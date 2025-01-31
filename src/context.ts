@@ -3,11 +3,20 @@ import { DMPHubAPI } from './datasources/dmphubAPI';
 import { DMPToolAPI } from './datasources/dmptoolAPI';
 import { MySQLDataSource } from './datasources/mySQLDataSource';
 import { JWTAccessToken } from './services/tokenService';
-import { formatLogMessage } from './logger';
-export interface MyContext {
-  token: JWTAccessToken;
-  logger: Logger;
+import { randomHex } from './utils/helpers';
+import { Cache } from './datasources/cache';
 
+// The Apollo Server Context object passed in to the Resolver on each request
+export interface MyContext {
+  // The cache
+  cache: Cache;
+  // The caller's JSON Web Token
+  token: JWTAccessToken;
+  // An instance of he Logger
+  logger: Logger;
+  // A unique id that can be used to track all of the log output for a single request
+  requestId: string;
+  // Instances of the data sources the system uses to access information
   dataSources: {
     dmphubAPIDataSource: DMPHubAPI;
     dmptoolAPIDataSource: DMPToolAPI;
@@ -26,8 +35,10 @@ export function buildContext(logger: Logger, cache: any = null, token: JWTAccess
 
   try {
     return {
+      cache,
       token,
       logger,
+      requestId: randomHex(32),
       dataSources: {
         dmphubAPIDataSource: new DMPHubAPI({ cache, token }),
         dmptoolAPIDataSource: new DMPToolAPI({ cache, token }),
@@ -37,7 +48,7 @@ export function buildContext(logger: Logger, cache: any = null, token: JWTAccess
   } catch(err) {
     const msg = `Unable to buildContext - ${err.message}`;
     if (logger) {
-      formatLogMessage(logger).error(err, msg, { logger, cache, token });
+      logger.error({ err, logger, cache, token }, msg);
     } else {
       console.log(msg);
     }

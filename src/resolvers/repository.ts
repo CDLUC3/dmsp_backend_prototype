@@ -49,7 +49,7 @@ export const resolvers: Resolvers = {
           }
           return created
         } catch (err) {
-          formatLogMessage(context.logger).error(err, 'Failure in addRepository resolver');
+          formatLogMessage(context).error(err, 'Failure in addRepository resolver');
           throw InternalServerError();
         }
       } else {
@@ -105,7 +105,7 @@ export const resolvers: Resolvers = {
           // Otherwise there were errors so return the object with errors
           return updated;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
+          formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
@@ -127,7 +127,7 @@ export const resolvers: Resolvers = {
           // No need to remove the related research domain associations the DB will cascade the deletion
           return deleted
         } catch (err) {
-          formatLogMessage(context.logger).error(err, 'Failure in removeRepository resolver');
+          formatLogMessage(context).error(err, 'Failure in removeRepository resolver');
           throw InternalServerError();
         }
       } else {
@@ -182,7 +182,7 @@ export const resolvers: Resolvers = {
           await toRemove.delete(context);
           return toKeep;
         } catch (err) {
-          formatLogMessage(context.logger).error(err, 'Failure in removeRepository resolver');
+          formatLogMessage(context).error(err, 'Failure in removeRepository resolver');
           throw InternalServerError();
         }
       } else {

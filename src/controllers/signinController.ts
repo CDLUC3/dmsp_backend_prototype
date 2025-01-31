@@ -8,13 +8,14 @@ import { buildContext } from '../context';
 
 export const signinController = async (req: Request, res: Response) => {
   const userIn = new User(req.body);
+  const cache = Cache.getInstance();
+  const context = buildContext(logger, cache);
+
   try {
-    const cache = Cache.getInstance();
-    const context = buildContext(logger, cache);
     const user = await userIn.login(context) || null;
 
     if (user) {
-      const { accessToken, refreshToken } = await generateAuthTokens(cache, user);
+      const { accessToken, refreshToken } = await generateAuthTokens(context, user);
       // Record the login and generate the tokens
       if (accessToken && refreshToken) {
         // Set the tokens as HTTP only cookies
@@ -29,7 +30,7 @@ export const signinController = async (req: Request, res: Response) => {
       res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
   } catch (err) {
-    formatLogMessage(logger).error(err, 'Signin error')
+    formatLogMessage(context)?.error(err, 'Signin error');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

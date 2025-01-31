@@ -17,8 +17,8 @@ async function fetchContributorRole(dataSources, contributorRoleId): Promise<Con
 }
 
 // Generic error handler for mutations
-function handleMutationError(logger, args) {
-  formatLogMessage(logger, args)
+function handleMutationError(context, args) {
+  formatLogMessage(context).error(args);
 
   return {
     code: 400,
@@ -48,17 +48,17 @@ export const resolvers: Resolvers = {
 
   Mutation: {
     // add a new ContributorRole
-    addContributorRole: async (_, { url, label, displayOrder, description }, { logger, dataSources }) => {
+    addContributorRole: async (_, { url, label, displayOrder, description }, context) => {
       const logArgs = { url, label, displayOrder, description };
       const logMessage = `Resolving mutation addContributorRole`;
 
       try {
         const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
-        const resp = await dataSources.sqlDataSource.query(sql, [url, label, description, displayOrder]);
+        const resp = await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder]);
 
-        formatLogMessage(logger, logArgs).debug(logMessage);
+        formatLogMessage(context).debug(logArgs, logMessage);
 
-        const contributor = await fetchContributorRole(dataSources, resp.id);
+        const contributor = await fetchContributorRole(context.dataSources, resp.id);
 
         return {
           code: 201,
@@ -67,35 +67,35 @@ export const resolvers: Resolvers = {
           contributorRole: contributor
         };
       } catch (err) {
-        return handleMutationError(logger, { err, ...logArgs });
+        return handleMutationError(context, { err, ...logArgs });
       }
     },
-    updateContributorRole: async (_, { id, url, label, displayOrder, description }, { logger, dataSources }) => {
+    updateContributorRole: async (_, { id, url, label, displayOrder, description }, context) => {
       const logArgs = { id, url, label, displayOrder, description };
       const logMessage = `Resolving mutation updateContributorRole`;
       try {
         const sql = 'UPDATE contributorRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
-        await dataSources.sqlDataSource.query(sql, [url, label, description, displayOrder, id]);
+        await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder, id]);
 
-        formatLogMessage(logger, logArgs).debug(logMessage);
+        formatLogMessage(context).debug(logArgs, logMessage);
         return {
           code: 200,
           success: true,
           message: `Successfully updated ContributorRole ${id}`,
-          contributorRole: fetchContributorRole(dataSources, id),
+          contributorRole: fetchContributorRole(context.dataSources, id),
         };
       } catch (err) {
-        return handleMutationError(logger, { err, ...logArgs });
+        return handleMutationError(context, { err, ...logArgs });
       }
     },
-    removeContributorRole: async (_, { id }, { logger, dataSources }) => {
+    removeContributorRole: async (_, { id }, context) => {
       const logMessage = `Resolving mutation removeContributorRole`;
-      const original = fetchContributorRole(dataSources, id);
+      const original = fetchContributorRole(context.dataSources, id);
       try {
         const sql = 'DELETE FROM contributorRoles WHERE id = ?';
-        await dataSources.sqlDataSource.query(sql, [id]);
+        await context.dataSources.sqlDataSource.query(context, sql, [id]);
 
-        formatLogMessage(logger, { id }).debug(logMessage);
+        formatLogMessage(context).debug({ id }, logMessage);
         return {
           code: 200,
           success: true,
@@ -103,7 +103,7 @@ export const resolvers: Resolvers = {
           contributorRole: original,
         };
       } catch (err) {
-        return handleMutationError(logger, { err, id });
+        return handleMutationError(context, { err, id });
       }
     },
   },

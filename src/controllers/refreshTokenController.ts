@@ -9,10 +9,11 @@ export const refreshTokenController = async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.dmspr?.toString();
 
   if (refreshToken) {
+    const cache = Cache.getInstance();
+    const context = buildContext(logger, cache);
+
     try {
-      const cache = Cache.getInstance();
-      const context = buildContext(logger, cache);
-      const newAccessToken = await refreshAccessToken(cache, context, refreshToken);
+      const newAccessToken = await refreshAccessToken(context, refreshToken);
 
       if (newAccessToken) {
         // Set the new access token
@@ -25,7 +26,7 @@ export const refreshTokenController = async (req: Request, res: Response) => {
         res.status(401).json({ success: false, message: 'Refresh token has expired' });
       }
     } catch (err) {
-      formatLogMessage(logger).error(err, 'refreshTokenController error');
+      formatLogMessage(context)?.error(err, 'refreshTokenController error');
       res.status(401).json({ success: false, message: 'Server error: unable to refresh tokens at this time' });
     }
   } else {

@@ -8,7 +8,7 @@ import { VersionedSection } from "../models/VersionedSection";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { generateQuestionVersion } from "./questionService";
-import { formatLogMessage, logger } from "../logger";
+import { formatLogMessage } from "../logger";
 
 // Creates a new Version/Snapshot the specified Section (as a point in time snapshot)
 //    - Creates a new VersionedSection including all of the related Questions
@@ -69,17 +69,17 @@ export const generateSectionVersion = async (
           return true;
         } else {
           const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${updated.errors}`;
-          formatLogMessage(logger).error(null, msg);
+          formatLogMessage(context).error(null, msg);
           throw new Error(msg);
         }
       }
     } else {
       const msg = `Unable to generateSectionVersion for versionedSection errs: ${created.errors}`;
-      formatLogMessage(logger).error(null, msg);
+      formatLogMessage(context).error(null, msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(logger).error(err, `Unable to generateSectionVersion for section: ${section.id}`);
+    formatLogMessage(context).error(err, `Unable to generateSectionVersion for section: ${section.id}`);
     throw err;
   }
 
