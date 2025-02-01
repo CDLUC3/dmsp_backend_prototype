@@ -73,5 +73,7 @@ input UpdateQuestionOptionInput {
     orderNumber: Int!
     "Whether the option is the default selected one"
     isDefault: Boolean
+    "id of parent question"
+    questionId: Int
 }
 `

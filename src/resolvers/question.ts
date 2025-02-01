@@ -3,7 +3,7 @@ import { MyContext } from "../context";
 import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
 import { Section } from "../models/Section";
-import { hasPermissionOnQuestion } from "../services/questionService";
+import { getQuestionOptionsToRemove, hasPermissionOnQuestion } from "../services/questionService";
 import { BadUserInputError, ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 
@@ -176,6 +176,23 @@ export const resolvers: Resolvers = {
               optionsToCreate.map(async option => {
                 const questionOption = new QuestionOption(option);
                 await questionOption.create(context); // Call your create method
+              })
+            );
+          }
+
+          // Get list of options that need to be removed
+          const optionsToRemove = await getQuestionOptionsToRemove(questionOptions as QuestionOption[], context, questionId);
+
+          // Remove question options that are no longer in the updated questionOptions array
+          if (optionsToRemove.length > 0) {
+            await Promise.all(
+              optionsToRemove.map(async (option) => {
+                const questionOption = new QuestionOption({
+                  questionId: option.questionId,
+                  id: option.id
+                });
+
+                await questionOption.delete(context);
               })
             );
           }

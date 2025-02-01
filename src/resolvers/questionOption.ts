@@ -74,22 +74,5 @@ export const resolvers: Resolvers = {
         return await QuestionOption.findByQuestionOptionId('updateQuestion resolver', context, updatedQuestionOption.id);
       }
     },
-    removeQuestionOption: async (_, { questionOptionId }, context: MyContext): Promise<QuestionOption> => {
-      // Retrieve existing questionOption
-      const questionOptionData = await QuestionOption.findByQuestionOptionId('removeQuestion resolver', context, questionOptionId);
-
-      // Throw Not Found error if QuestionOption is not found
-      if (!questionOptionData) {
-        throw NotFoundError('QuestionOption not found')
-      }
-
-      //Need to create a new instance of QuestionOption so that it recognizes the 'delete' function of that instance
-      const questionOption = new QuestionOption({
-        ...questionOptionData,
-        id: questionOptionId
-      });
-
-      return await questionOption.delete(context);
-    },
   },
 };

@@ -5,6 +5,7 @@ import { Question } from "../models/Question";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
+import { QuestionOption } from "../models/QuestionOption";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
 import { formatLogMessage, logger } from "../logger";
 
@@ -167,5 +168,23 @@ export const generateQuestionConditionVersion = async (
     formatLogMessage(logger).error(null, `${msg}, errs: ${created.errors}`);
     throw new Error(msg);
   }
+}
+
+
+export const getQuestionOptionsToRemove = async (questionOptions: QuestionOption[], context: MyContext, questionId: number): Promise<QuestionOption[]> => {
+  //Get all the existing question options associated with this question
+  const existingOptions = await QuestionOption.findByQuestionId('questionService', context, questionId);
+  interface QuestionOptionWithId extends QuestionOption {
+    questionOptionId?: number;  // Mark as optional if not always present
+  }
+  // Create a Set of question option ids
+  const questionOptionIds = new Set(
+    (questionOptions as QuestionOptionWithId[]).map(option => option.questionOptionId)
+  );
+
+  // Get options that exist in questionOptions table, but are not included in updated questionOptions
+  const optionsToRemove = existingOptions.filter(existing => !questionOptionIds.has(existing.id))
+
+  return Array.isArray(optionsToRemove) ? optionsToRemove : [];
 }
 
