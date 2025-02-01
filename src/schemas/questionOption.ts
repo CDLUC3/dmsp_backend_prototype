@@ -4,8 +4,8 @@ export const typeDefs = gql`
   extend type Query {
     "Get the Question Options that belong to the associated questionId"
     questionOptions(questionId: Int!): [QuestionOption]
-    "Get the specific Question Option based on questionOptionId"
-    questionOption(questionOptionId: Int!): QuestionOption
+    "Get the specific Question Option based on question option id"
+    questionOption(id: Int!): QuestionOption
   }
 
 extend type Mutation {
@@ -14,7 +14,7 @@ extend type Mutation {
     "Update a QuestionOption"
     updateQuestionOption(input: UpdateQuestionOptionInput!): QuestionOption!
     "Delete a QuestionOption"
-    removeQuestionOption(questionOptionId: Int!): QuestionOption
+    removeQuestionOption(id: Int!): QuestionOption
   }
 
 "QuestionOption always belongs to a Question"
@@ -66,7 +66,7 @@ input AddQuestionOptionInput {
 
 input UpdateQuestionOptionInput {
     "The id of the QuestionOption"
-    questionOptionId: Int
+    id: Int
     "The option text"
     text: String!
     "The option order number"

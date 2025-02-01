@@ -9,8 +9,8 @@ export const resolvers: Resolvers = {
     questionOptions: async (_, { questionId }, context: MyContext): Promise<QuestionOption[]> => {
       return await QuestionOption.findByQuestionId('questionOption resolver', context, questionId);
     },
-    questionOption: async (_, { questionOptionId }, context: MyContext): Promise<QuestionOption> => {
-      return await QuestionOption.findByQuestionOptionId('questionOption resolver', context, questionOptionId);
+    questionOption: async (_, { id }, context: MyContext): Promise<QuestionOption> => {
+      return await QuestionOption.findByQuestionOptionId('questionOption resolver', context, id);
     },
   },
   Mutation: {
@@ -42,13 +42,13 @@ export const resolvers: Resolvers = {
       }
     },
     updateQuestionOption: async (_, { input: {
-      questionOptionId,
+      id,
       text,
       orderNumber,
       isDefault } }, context: MyContext): Promise<QuestionOption> => {
 
       // Get QuestionOption based on provided questionOptionId
-      const questionOptionData = await QuestionOption.findByQuestionOptionId('questionOption resolver', context, questionOptionId);
+      const questionOptionData = await QuestionOption.findByQuestionOptionId('questionOption resolver', context, id);
 
       // Throw Not Found error if QuestionOption data is not found
       if (!questionOptionData) {
@@ -56,7 +56,7 @@ export const resolvers: Resolvers = {
       }
 
       const questionOption = new QuestionOption({
-        id: questionOptionId,
+        id: questionOptionData.id,
         questionId: questionOptionData.questionId,
         text: text || questionOptionData.text,
         orderNumber: orderNumber || questionOptionData.orderNumber,

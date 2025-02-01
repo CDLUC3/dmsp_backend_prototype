@@ -140,15 +140,33 @@ export const resolvers: Resolvers = {
             existingQuestionOptions.map(option => [option.id, option])
           );
 
+
+          // Get list of options that need to be removed
+          const optionsToRemove = await getQuestionOptionsToRemove(questionOptions as QuestionOption[], context, questionId);
+
+          // Remove question options that are no longer in the updated questionOptions array
+          if (optionsToRemove.length > 0) {
+            await Promise.all(
+              optionsToRemove.map(async (option) => {
+                const questionOption = new QuestionOption({
+                  questionId: option.questionId,
+                  id: option.id
+                });
+
+                await questionOption.delete(context);
+              })
+            );
+          }
+
           // Separate incoming options into "to update" and "to create"
           const optionsToUpdate = [];
           const optionsToCreate = [];
 
           questionOptions.forEach(option => {
-            if (existingOptionsMap.has(option.questionOptionId)) {
+            if (existingOptionsMap.has(option.id)) {
               // Add to update list, merging the new data with the existing data
               optionsToUpdate.push({
-                ...existingOptionsMap.get(option.questionOptionId), // existing option data
+                ...existingOptionsMap.get(option.id), // existing option data
                 ...option // updated fields from input
               });
             } else {
@@ -160,6 +178,8 @@ export const resolvers: Resolvers = {
             }
           });
 
+          console.log("***OPTIONS TO UPDATE", optionsToUpdate);
+          console.log("***OPTIONS TO Create", optionsToCreate);
           // Update existing options
           if (optionsToUpdate.length > 0) {
             await Promise.all(
@@ -180,22 +200,6 @@ export const resolvers: Resolvers = {
             );
           }
 
-          // Get list of options that need to be removed
-          const optionsToRemove = await getQuestionOptionsToRemove(questionOptions as QuestionOption[], context, questionId);
-
-          // Remove question options that are no longer in the updated questionOptions array
-          if (optionsToRemove.length > 0) {
-            await Promise.all(
-              optionsToRemove.map(async (option) => {
-                const questionOption = new QuestionOption({
-                  questionId: option.questionId,
-                  id: option.id
-                });
-
-                await questionOption.delete(context);
-              })
-            );
-          }
 
           // Return newly updated question
           return await Question.findById('updateQuestion resolver', context, updatedQuestion.id);
