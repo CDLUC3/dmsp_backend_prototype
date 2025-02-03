@@ -174,21 +174,14 @@ export const generateQuestionConditionVersion = async (
 export const getQuestionOptionsToRemove = async (questionOptions: QuestionOption[], context: MyContext, questionId: number): Promise<QuestionOption[]> => {
   //Get all the existing question options associated with this question
   const existingOptions = await QuestionOption.findByQuestionId('questionService', context, questionId);
-  interface QuestionOptionWithId extends QuestionOption {
-    questionOptionId?: number;  // Mark as optional if not always present
-  }
 
-  console.log("***QUESTION OPTIONS", questionOptions);
-  console.log("***EXISTING OPTIONS", existingOptions);
   // Create a Set of question option ids
   const questionOptionIds = new Set(
-    (questionOptions as QuestionOptionWithId[]).map(option => option.id)
+    questionOptions.map(option => option.id)
   );
 
-  console.log("IDs", questionOptionIds);
   // Get options that exist in questionOptions table, but are not included in updated questionOptions
   const optionsToRemove = existingOptions.filter(existing => !questionOptionIds.has(existing.id))
-  console.log("***OPTIONS TO REMOVE", optionsToRemove);
 
   return Array.isArray(optionsToRemove) ? optionsToRemove : [];
 }
