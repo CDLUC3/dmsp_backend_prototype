@@ -43,7 +43,7 @@ export class Section extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.name = this.name?.trim();
     this.introduction = this.introduction?.trim();
@@ -67,7 +67,7 @@ export class Section extends MySqlModel {
       if (current) {
         this.errors.push('Section with this name already exists');
       } else {
-        this.cleanup();
+        this.prepForSave();
 
         // Save the record and then fetch it
         const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
@@ -85,7 +85,7 @@ export class Section extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await Section.update(context, this.tableName, this, 'Section.update', ['tags'], noTouch);
         return await Section.findById('Section.update', context, id);

@@ -45,7 +45,7 @@ export class ResearchDomain extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.name = this.name?.trim();
     this.uri = this.uri?.trim();

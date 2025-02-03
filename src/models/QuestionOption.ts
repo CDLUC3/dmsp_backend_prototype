@@ -37,7 +37,7 @@ export class QuestionOption extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.text = this.text?.trim();
   }
@@ -46,7 +46,7 @@ export class QuestionOption extends MySqlModel {
   async create(context: MyContext): Promise<QuestionOption> {
     // First make sure the record is valid
     if (await this.isValid()) {
-      this.cleanup();
+      this.prepForSave();
 
       // Save the record and then fetch it
       const newId = await QuestionOption.insert(context, this.tableName, this, 'QuestionOption.create');
@@ -63,7 +63,7 @@ export class QuestionOption extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await QuestionOption.update(context, this.tableName, this, 'QuestionOption.update', [], noTouch);
         return await QuestionOption.findByQuestionOptionId('QuestionOption.update', context, id);

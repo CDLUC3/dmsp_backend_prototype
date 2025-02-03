@@ -52,7 +52,7 @@ export class Question extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.questionText = this.questionText?.trim();
     this.requirementText = this.requirementText?.trim();
@@ -67,7 +67,7 @@ export class Question extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
 
-      this.cleanup();
+      this.prepForSave();
 
       // Save the record and then fetch it
       const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionOptions']);
@@ -85,7 +85,7 @@ export class Question extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await Question.update(context, this.tableName, this, 'Question.update', ['questionOptions'], noTouch);
         return await Question.findById('Question.update', context, id);

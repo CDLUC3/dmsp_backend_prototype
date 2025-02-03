@@ -53,7 +53,7 @@ export class Project extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.title = this.title?.trim();
     this.abstractText = this.abstractText?.trim();
@@ -76,7 +76,7 @@ export class Project extends MySqlModel {
       if (current) {
         this.errors.push('A Project with this title already exists');
       } else {
-        this.cleanup();
+        this.prepForSave();
 
         // Save the record and then fetch it
         const newId = await Project.insert(context, this.tableName, this, reference);
@@ -94,7 +94,7 @@ export class Project extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await Project.update(context, this.tableName, this, 'Project.update', [], noTouch);
         return await Project.findById('Project.update', context, id);

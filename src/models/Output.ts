@@ -59,7 +59,7 @@ export class ProjectOutput extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.title = this.title?.trim();
     this.description = this.description?.trim();

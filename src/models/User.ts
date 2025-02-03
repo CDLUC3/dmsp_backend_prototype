@@ -69,11 +69,11 @@ export class User extends MySqlModel {
     this.notify_on_plan_shared = options.notify_on_plan_shared || true;
     this.notify_on_plan_visibility_change = options.notify_on_plan_visibility_change || true;
 
-    this.cleanup();
+    this.prepForSave();
   }
 
   // Ensure data integrity
-  cleanup() {
+  prepForSave() {
     this.email = this.email?.trim()?.replace('%40', '@');
     this.role = this.role || UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
@@ -201,7 +201,7 @@ export class User extends MySqlModel {
 
   // Login making sure that the passwords match
   async login(context: MyContext): Promise<User> {
-    this.cleanup();
+    this.prepForSave();
 
     if (!validateEmail(this.email) || !this.validatePassword()) {
       return null;
@@ -228,7 +228,7 @@ export class User extends MySqlModel {
 
   // Register the User if the data is valid
   async register(context: MyContext): Promise<User> {
-    this.cleanup();
+    this.prepForSave();
     await this.isValid();
 
     // Make sure the account does not already exist

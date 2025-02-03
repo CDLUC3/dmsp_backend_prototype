@@ -53,7 +53,7 @@ export class Repository extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     if (!Array.isArray(this.researchDomains)) {
       this.researchDomains = []
     }

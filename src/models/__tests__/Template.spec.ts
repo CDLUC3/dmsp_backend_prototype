@@ -46,9 +46,9 @@ describe('Template', () => {
     expect(template.languageId).toEqual(defaultLanguageId);
   });
 
-  it('should cleanup the data', () => {
+  it('should prepForSave the data', () => {
     template.languageId = 'test';
-    template.cleanup();
+    template.prepForSave();
     expect(template.languageId).toEqual(defaultLanguageId);
   });
 

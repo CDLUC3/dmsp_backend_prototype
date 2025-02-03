@@ -29,7 +29,7 @@ export class ProjectContributor extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup() {
+  prepForSave() {
     this.email = this.email?.trim()?.replace('%40', '@');
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
@@ -93,7 +93,7 @@ export class ProjectContributor extends MySqlModel {
       if (current) {
         this.errors.push('Project already has an entry for this contributor');
       } else {
-        this.cleanup();
+        this.prepForSave();
 
         // Save the record and then fetch it
         const newId = await ProjectContributor.insert(
@@ -117,7 +117,7 @@ export class ProjectContributor extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await ProjectContributor.update(
           context,

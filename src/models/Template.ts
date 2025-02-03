@@ -38,7 +38,7 @@ export class Template extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup() {
+  prepForSave() {
     if (!supportedLanguages.map((l) => l.id).includes(this.languageId)) {
       this.languageId = defaultLanguageId;
     }
@@ -74,7 +74,7 @@ export class Template extends MySqlModel {
       if (current) {
         this.errors.push('Template with this name already exists');
       } else {
-        this.cleanup();
+        this.prepForSave();
         // Save the record and then fetch it
         const newId = await Template.insert(context, this.tableName, this, 'Template.create');
         return await Template.findById('Template.create', context, newId);

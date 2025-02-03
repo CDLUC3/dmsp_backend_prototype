@@ -39,7 +39,7 @@ export class MetadataStandard extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     if (!Array.isArray(this.researchDomains)) {
       this.researchDomains = []
     }

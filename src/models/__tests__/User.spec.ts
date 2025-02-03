@@ -76,7 +76,7 @@ describe('constructor', () => {
   });
 });
 
-describe('cleanup standardizes the format of properties', () => {
+describe('prepForSave standardizes the format of properties', () => {
   it('should properly format the properties', () => {
     const user = new User({
       email: 'TESTer%40exaMPle.cOm',
@@ -84,7 +84,7 @@ describe('cleanup standardizes the format of properties', () => {
       surName: '  user  ',
       languageId: 'test',
     });
-    user.cleanup();
+    user.prepForSave();
     expect(user.email).toEqual('TESTer@exaMPle.cOm');
     expect(user.givenName).toEqual('Test');
     expect(user.surName).toEqual('User');

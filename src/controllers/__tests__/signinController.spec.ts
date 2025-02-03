@@ -49,7 +49,7 @@ const mockedUser: UserModel.User = {
   isValid: jest.fn(),
   validatePassword: jest.fn(),
   hashPassword: jest.fn(),
-  cleanup: jest.fn(),
+  prepForSave: jest.fn(),
   login: jest.fn(),
   register: jest.fn(),
   update: jest.fn(),
