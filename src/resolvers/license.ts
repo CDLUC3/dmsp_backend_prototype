@@ -28,7 +28,7 @@ export const resolvers: Resolvers = {
           const newLicense = new License({ name, uri, description, recommended});
           return await newLicense.create(context);
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in addLicense resolver');
+          formatLogMessage(context).error(err, 'Failure in addLicense resolver');
           throw InternalServerError();
         }
       } else {
@@ -47,7 +47,7 @@ export const resolvers: Resolvers = {
           const toUpdate = new License({ id: license.id, uri: license.uri, name, description, recommended });
           return await toUpdate.update(context);
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in updateLicense resolver');
+          formatLogMessage(context).error(err, 'Failure in updateLicense resolver');
           throw InternalServerError();
         }
       } else {
@@ -67,7 +67,7 @@ export const resolvers: Resolvers = {
           //       or notify that it is being done and to what DMPs
           return await license.delete(context);
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in removeLicense resolver');
+          formatLogMessage(context).error(err, 'Failure in removeLicense resolver');
           throw InternalServerError();
         }
       } else {
@@ -108,7 +108,7 @@ export const resolvers: Resolvers = {
           await toRemove.delete(context);
           return toKeep;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in removeLicense resolver');
+          formatLogMessage(context).error(err, 'Failure in removeLicense resolver');
           throw InternalServerError();
         }
       } else {

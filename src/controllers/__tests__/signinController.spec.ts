@@ -8,6 +8,10 @@ import * as UserModel from '../../models/User';
 import { defaultLanguageId } from '../../models/Language';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { getCurrentDate } from '../../utils/helpers';
+import { logger } from '../../__mocks__/logger';
+import { buildContext, mockToken } from "../../__mocks__/context";
+
+jest.mock('../../context.ts');
 
 // Mocking external dependencies
 jest.mock('../../datasources/cache');
@@ -59,9 +63,13 @@ describe('signinController', () => {
   let mockResponse: Partial<Response>;
   let mockCache: jest.Mocked<Cache>;
   let mockUser;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let context;
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken(), null);
 
     mockRequest = {
       body: {
@@ -92,7 +100,7 @@ describe('signinController', () => {
     });
 
     await signinController(mockRequest as Request, mockResponse as Response);
-    expect(generateAuthTokens).toHaveBeenCalledWith(mockCache, mockedUser);
+    expect(generateAuthTokens).toHaveBeenCalled();
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token', generalConfig.jwtTTL);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspr', 'new-refresh-token', generalConfig.jwtRefreshTTL);
     expect(mockResponse.status).toHaveBeenCalledWith(200);

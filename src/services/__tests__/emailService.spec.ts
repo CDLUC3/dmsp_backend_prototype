@@ -40,7 +40,7 @@ describe('sendEmail', () => {
   it('sends the confirmation email', async () => {
     jest.spyOn(logger, 'info');
     const email = casual.email;
-    const sent = await sendEmailConfirmationNotification(email);
+    const sent = await sendEmailConfirmationNotification(context, email);
 
     const expectedSubject = `${subjectPrefix} - ${emailSubjects.emailConfirmation}`
 

@@ -30,6 +30,6 @@ export const hasPermissionOnProject = async (context: MyContext, project: Projec
   }
 
   const payload = { projectId: project.id, userId: context.token.id };
-  formatLogMessage(context.logger).error(payload, `AUTH failure: ${reference}`)
+  formatLogMessage(context).error(payload, `AUTH failure: ${reference}`)
   return false;
 }
