@@ -58,8 +58,8 @@ describe('create', () => {
 
     const result = await tag.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Tag with this name already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
   it('returns the newly added Tag', async () => {
     const mockFindBy = jest.fn();
@@ -85,7 +85,7 @@ describe('create', () => {
     const result = await tag.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(tag);
   });
 });
@@ -145,7 +145,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(tag);
 
     const result = await tag.delete(context);
-    expect(result?.errors.length).toBe(0);
+    expect(Object.keys(result?.errors).length).toBe(0);
     expect(result).toEqual(tag);
   });
 });

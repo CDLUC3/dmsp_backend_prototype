@@ -29,13 +29,10 @@ export class MetadataStandard extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    if (!validateURL(this.uri)) {
-      this.errors.push('Invalid URI format');
-    }
-    return this.errors.length <= 0;
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!validateURL(this.uri)) this.addError ('uri', 'Invalid URL');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
@@ -81,7 +78,7 @@ export class MetadataStandard extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('MetadataStandard already exists');
+        this.addError('general', 'MetadataStandard already exists');
       } else {
         // Save the record and then fetch it
         const newId = await MetadataStandard.insert(context, this.tableName, this, reference, ['researchDomains']);
@@ -110,7 +107,7 @@ export class MetadataStandard extends MySqlModel {
         return await MetadataStandard.findById('MetadataStandard.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('MetadataStandard has never been saved');
+      this.addError('general', 'MetadataStandard has never been saved');
     }
     return this;
   }

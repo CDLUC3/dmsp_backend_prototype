@@ -141,7 +141,7 @@ describe('cloneQuestion', () => {
     expect(copy.sampleText).toEqual(sampleText);
     expect(copy.requirementText).toEqual(requirementText);
     expect(copy.guidanceText).toEqual(guidanceText);
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.displayOrder).toEqual(displayOrder);
     expect(copy.required).toEqual(false);
     expect(copy.isDirty).toEqual(true);
@@ -176,7 +176,7 @@ describe('cloneQuestion', () => {
     expect(copy.sampleText).toEqual(published.sampleText);
     expect(copy.requirementText).toEqual(published.requirementText);
     expect(copy.guidanceText).toEqual(published.guidanceText);
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.createdById).toEqual(clonedById);
     expect(copy.displayOrder).toEqual(published.displayOrder);
     expect(copy.required).toEqual(false);

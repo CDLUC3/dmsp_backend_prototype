@@ -54,6 +54,8 @@ const mockedUser: UserModel.User = {
   register: jest.fn(),
   update: jest.fn(),
   updatePassword: jest.fn(),
+  addError: jest.fn(),
+  hasErrors: jest.fn(),
 };
 
 jest.mock('../../models/User');

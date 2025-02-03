@@ -80,6 +80,8 @@ const mockedUser: UserModel.User = {
   register: jest.fn(),
   update: jest.fn(),
   updatePassword: jest.fn(),
+  addError: jest.fn(),
+  hasErrors: jest.fn(),
 };
 
 // Mock a protected endpoint because it's easier than building the entire apollo server stack
@@ -210,7 +212,8 @@ describe('Sign up', () => {
   it('POST /apollo-signup should NOT generate access token and refresh token cookies on invalid input', async () => {
     // Simulate invalid input causing a register failure
     const registeredUser = mockedUser;
-    registeredUser.errors = ['foo must be present', 'bar must be present'];
+    registeredUser.errors = { foo: 'must be present', bar: 'must be present' };
+    jest.spyOn(mockedUser, 'hasErrors').mockReturnValue(true);
     (mockedUser.register as jest.Mock).mockResolvedValueOnce(registeredUser);
 
     const resp = await request(app)
@@ -223,7 +226,7 @@ describe('Sign up', () => {
     expect(resp.statusCode).toEqual(400);
     expect(resp.headers['x-csrf-token']).toBeTruthy();
     expect(resp.headers['set-cookie']).toBeFalsy();
-    expect(resp.body).toEqual({ success: false, message: 'foo must be present | bar must be present' });
+    expect(resp.body).toEqual({ success: false, message: registeredUser.errors });
   });
 
   it('POST /apollo-signup should NOT generate access token and refresh token cookies on failure', async () => {

@@ -22,18 +22,11 @@ export class QuestionOption extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.questionId) {
-      this.errors.push('Question ID can\'t be blank');
-    }
+    if (!this.questionId) this.addError('questionId', 'Question can\'t be blank');
+    if (!this.text) this.addError('text', 'Text can\'t be blank');
+    if (!this.orderNumber) this.addError('orderNumber', 'Order number can\'t be blank');
 
-    if (!this.text) {
-      this.errors.push('Text can\'t be blank');
-    }
-
-    if (!this.orderNumber) {
-      this.errors.push('Order number can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
@@ -69,7 +62,7 @@ export class QuestionOption extends MySqlModel {
         return await QuestionOption.findByQuestionOptionId('QuestionOption.update', context, id);
       }
       // This question option has never been saved before so we cannot update it!
-      this.errors.push('QuestionOption has never been saved');
+      this.addError('general', 'QuestionOption has never been saved');
     }
     return this;
   }

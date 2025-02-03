@@ -47,38 +47,38 @@ describe('Project', () => {
   it('should return false when calling isValid if the title field is missing', async () => {
     project.title = null;
     expect(await project.isValid()).toBe(false);
-    expect(project.errors.length).toBe(1);
-    expect(project.errors[0]).toEqual('Title can\'t be blank');
+    expect(Object.keys(project.errors).length).toBe(1);
+    expect(project.errors['title']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the startDate field is not in a valid date', async () => {
     project.startDate = '123A-12-1';
     expect(await project.isValid()).toBe(false);
-    expect(project.errors.length).toBe(1);
-    expect(project.errors[0]).toEqual('Start date must be a valid date');
+    expect(Object.keys(project.errors).length).toBe(1);
+    expect(project.errors['startDate']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the endDate field is not in a valid date', async () => {
     project.endDate = '123A-12-1';
     expect(await project.isValid()).toBe(false);
-    expect(project.errors.length).toBe(1);
-    expect(project.errors[0]).toEqual('End date must be a valid date');
+    expect(Object.keys(project.errors).length).toBe(1);
+    expect(project.errors['endDate']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the endDate is less than the startDate', async () => {
     project.startDate = '2025-01-21';
     project.endDate = '2025-01-01'
     expect(await project.isValid()).toBe(false);
-    expect(project.errors.length).toBe(1);
-    expect(project.errors[0]).toEqual('End date must come after the start date');
+    expect(Object.keys(project.errors).length).toBe(1);
+    expect(project.errors['endDate']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the endDate is equal to than the startDate', async () => {
     project.startDate = '2025-01-21';
     project.endDate = '2025-01-21'
     expect(await project.isValid()).toBe(false);
-    expect(project.errors.length).toBe(1);
-    expect(project.errors[0]).toEqual('End date must come after the start date');
+    expect(Object.keys(project.errors).length).toBe(1);
+    expect(project.errors['endDate']).toBeTruthy();
   });
 });
 
@@ -216,8 +216,8 @@ describe('update', () => {
 
     project.id = null;
     const result = await project.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Project has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated Project', async () => {
@@ -234,7 +234,7 @@ describe('update', () => {
     const result = await project.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(project);
   });
 });
@@ -274,7 +274,7 @@ describe('create', () => {
   it('returns the Project with errors if it is invalid', async () => {
     project.title = undefined;
     const response = await project.create(context);
-    expect(response.errors[0]).toBe('Title can\'t be blank');
+    expect(response.errors['title']).toBe('Title can\'t be blank');
   });
 
   it('returns the Project with an error if the question already exists', async () => {
@@ -284,8 +284,8 @@ describe('create', () => {
 
     const result = await project.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('A Project with this title already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added Project', async () => {
@@ -301,7 +301,7 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(project);
   });
 });
@@ -339,7 +339,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(project);
 
     const result = await project.delete(context);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(project);
   });
 });

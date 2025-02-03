@@ -57,6 +57,8 @@ const mockedUser: UserModel.User = {
   register: jest.fn(),
   update: jest.fn(),
   updatePassword: jest.fn(),
+  addError: jest.fn(),
+  hasErrors: jest.fn(),
 };
 
 jest.mock('../../models/User');
@@ -114,13 +116,14 @@ describe('signupController', () => {
   });
 
   it('should return 400 if user is invalid', async () => {
+    jest.spyOn(mockedUser, 'hasErrors').mockReturnValue(true);
     jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockedUser);
-    mockUser.errors = ['Test error 1', 'Test error 2'];
+
     await signupController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
     expect(mockResponse.json)
-      .toHaveBeenCalledWith({ success: false, message: 'Test error 1 | Test error 2' });
+      .toHaveBeenCalledWith({ success: false, message: mockedUser.errors });
     mockUser.errors = [];
   });
 

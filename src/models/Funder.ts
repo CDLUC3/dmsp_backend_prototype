@@ -33,16 +33,11 @@ export class ProjectFunder extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.projectId) {
-      this.errors.push('Project can\'t be blank');
-    }
-    if (!this.affiliationId) {
-      this.errors.push('Affiliation can\'t be blank');
-    }
-    if (!this.status) {
-      this.errors.push('Funding status can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
+    if (!this.affiliationId) this.addError('affiliationId', 'Affiliation can\'t be blank');
+    if (!this.status) this.addError('status', 'Funding status can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   //Create a new ProjectFunder
@@ -60,7 +55,7 @@ export class ProjectFunder extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Project already has an entry for this funder');
+        this.addError('general', 'Project already has an entry for this funder');
       } else {
         // Save the record and then fetch it
         const newId = await ProjectFunder.insert(context, this.tableName, this, reference);
@@ -82,7 +77,7 @@ export class ProjectFunder extends MySqlModel {
         return await ProjectFunder.findById('ProjectFunder.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('ProjectFunder has never been saved');
+      this.addError('general', 'ProjectFunder has never been saved');
     }
     return this;
   }

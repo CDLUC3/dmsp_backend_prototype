@@ -131,7 +131,7 @@ describe('cloneTemplate', () => {
     expect(copy.ownerId).toEqual(newOwnerId);
     expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
     expect(copy.latestPublishVersion).toBeFalsy();
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.description).toEqual(description);
     expect(copy.created).toBeTruthy();
     expect(copy.createdById).toEqual(clonedById)
@@ -160,7 +160,7 @@ describe('cloneTemplate', () => {
     expect(copy.ownerId).toEqual(newOwnerId);
     expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
     expect(copy.latestPublishVersion).toBeFalsy();
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.createdById).toEqual(clonedById);
     expect(copy.description).toEqual(description);
     expect(copy.created).toBeTruthy();

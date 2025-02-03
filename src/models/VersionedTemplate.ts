@@ -52,22 +52,13 @@ export class VersionedTemplate extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.templateId) {
-      this.errors.push('Template can\'t be blank');
-    }
-    if (!this.ownerId) {
-      this.errors.push('Owner can\'t be blank');
-    }
-    if (!this.versionedById) {
-      this.errors.push('Versioned by can\'t be blank');
-    }
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    if (!this.version) {
-      this.errors.push('Version can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.templateId) this.addError('templateId', 'Template can\'t be blank');
+    if (!this.ownerId) this.addError('ownerId', 'Owner can\'t be blank');
+    if (!this.versionedById) this.addError('versionedById', 'Versioned by can\'t be blank');
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!this.version) this.addError('version', 'Version can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Save the current record
@@ -91,7 +82,7 @@ export class VersionedTemplate extends MySqlModel {
         return result as VersionedTemplate;
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('VersionedTemplate has never been saved');
+      this.addError('general', 'VersionedTemplate has never been saved');
     }
     return this;
   }

@@ -45,23 +45,23 @@ export class ProjectContributor extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.projectId) {
-      this.errors.push('Project can\'t be blank');
-    }
+    if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
+
     if (!this.surName && !this.email && !this.orcid) {
-      this.errors.push('You must specify at least one name, ORCID or email');
+      this.addError('general', 'You must specify at least one name, ORCID or email');
     }
     if (this.orcid && this.orcid.trim().length > 0){
       try {
         validateOrcid(this.orcid);
       } catch(err) {
-        this.errors.push('Invalid ORCID format');
+        this.addError('orcid', err.message);
       }
     }
     if (this.email && this.email.trim().length > 0 && !validateEmail(this.email)) {
-      this.errors.push('Invalid email format');
+      this.addError('email', 'Invalid email format');
     }
-    return this.errors.length <= 0;
+
+    return Object.keys(this.errors).length === 0;
   }
 
   //Create a new ProjectContributor
@@ -91,7 +91,7 @@ export class ProjectContributor extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Project already has an entry for this contributor');
+        this.addError('general', 'Project already has an entry for this contributor');
       } else {
         this.prepForSave();
 
@@ -130,7 +130,7 @@ export class ProjectContributor extends MySqlModel {
         return await ProjectContributor.findById('ProjectContributor.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('ProjectContributor has never been saved');
+      this.addError('general', 'ProjectContributor has never been saved');
     }
     return this;
   }

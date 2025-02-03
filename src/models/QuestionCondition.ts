@@ -35,19 +35,12 @@ export class QuestionCondition extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.questionId) {
-      this.errors.push('Question ID can\'t be blank');
-    }
-    if (!this.action) {
-      this.errors.push('Action can\'t be blank');
-    }
-    if (!this.conditionType) {
-      this.errors.push('Condition Type can\'t be blank');
-    }
-    if (!this.target) {
-      this.errors.push('Target can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.questionId) this.addError('questionId', 'Question Id can\'t be blank');
+    if (!this.action) this.addError('action', 'Action can\'t be blank');
+    if (!this.conditionType) this.addError('conditionType', 'Condition Type can\'t be blank');
+    if (!this.target) this.addError('target', 'Target can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   //Create a new QuestionCondition
@@ -73,7 +66,7 @@ export class QuestionCondition extends MySqlModel {
         return await QuestionCondition.findById('QuestionCondition.update', context, id);
       }
       // This QuestionCondition has never been saved before so we cannot update it!
-      this.errors.push('QuestionCondition has never been saved');
+      this.addError('general', 'QuestionCondition has never been saved');
     }
     return this;
   }

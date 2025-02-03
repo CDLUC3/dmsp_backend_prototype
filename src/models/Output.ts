@@ -40,22 +40,16 @@ export class ProjectOutput extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.projectId) {
-      this.errors.push('Project can\'t be blank');
-    }
-    if (!this.outputTypeId) {
-      this.errors.push('Output type can\'t be blank');
-    }
-    if (!this.title) {
-      this.errors.push('Title can\'t be blank');
-    }
+    if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
+    if (!this.outputTypeId) this.addError('outputTypeId', 'Output type can\'t be blank');
+    if (!this.title) this.addError('title', 'Title can\'t be blank');
+
     if (this.anticipatedReleaseDate) {
-      const releaseIsValid = await validateDate(this.anticipatedReleaseDate);
-      if (!releaseIsValid){
-        this.errors.push('Anticipated release date must be a valid date');
-      }
+      const releaseIsValid = validateDate(this.anticipatedReleaseDate);
+      if (!releaseIsValid) this.addError('anticipatedReleaseDate', 'Anticipated release date must be a valid date');
     }
-    return this.errors.length <= 0;
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
@@ -80,7 +74,7 @@ export class ProjectOutput extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Project already has an entry for this output');
+        this.addError('general', 'Project already has an entry for this output');
       } else {
         // Save the record and then fetch it
         const newId = await ProjectOutput.insert(context, this.tableName, this, reference);
@@ -102,7 +96,7 @@ export class ProjectOutput extends MySqlModel {
         return await ProjectOutput.findById('ProjectOutput.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('ProjectOutput has never been saved');
+      this.addError('general', 'ProjectOutput has never been saved');
     }
     return this;
   }

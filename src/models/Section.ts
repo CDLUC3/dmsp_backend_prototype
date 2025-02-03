@@ -36,10 +36,9 @@ export class Section extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
@@ -65,7 +64,7 @@ export class Section extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Section with this name already exists');
+        this.addError('general', 'Section with this name already exists');
       } else {
         this.prepForSave();
 
@@ -91,7 +90,7 @@ export class Section extends MySqlModel {
         return await Section.findById('Section.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Section has never been saved');
+      this.addError('general', 'Section has never been saved');
     }
     return this;
   }

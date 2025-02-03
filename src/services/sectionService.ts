@@ -44,7 +44,7 @@ export const generateSectionVersion = async (
     const created = await versionedSection.create(context);
 
     // If the creation was successful
-    if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
+    if (created && !created.hasErrors()) {
       // Create a version for all the associated questions
       const questions = await Question.findBySectionId('generateSectionVersion', context, section.id);
       let allQuestionsWereVersioned = true;
@@ -65,13 +65,11 @@ export const generateSectionVersion = async (
         section.isDirty = false;
         const updated = await section.update(context, true);
 
-        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          return true;
-        } else {
-          const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${updated.errors}`;
-          formatLogMessage(context).error(null, msg);
-          throw new Error(msg);
-        }
+        if (updated && !updated.hasErrors()) return true;
+
+        const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${updated.errors}`;
+        formatLogMessage(context).error(null, msg);
+        throw new Error(msg);
       }
     } else {
       const msg = `Unable to generateSectionVersion for versionedSection errs: ${created.errors}`;

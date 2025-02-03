@@ -55,36 +55,36 @@ describe('VersionedQuestion', () => {
   it('isValid returns false if the versionedTemplateId is null', async () => {
     versionedQuestion.versionedTemplateId = null;
     expect(await versionedQuestion.isValid()).toBe(false);
-    expect(versionedQuestion.errors.length).toBe(1);
-    expect(versionedQuestion.errors[0].includes('Versioned Template')).toBe(true);
+    expect(Object.keys(versionedQuestion.errors).length).toBe(1);
+    expect(versionedQuestion.errors['versionedTemplateId'].includes('Versioned Template')).toBe(true);
   });
 
   it('isValid returns false if the versionedSectionId is null', async () => {
     versionedQuestion.versionedSectionId = null;
     expect(await versionedQuestion.isValid()).toBe(false);
-    expect(versionedQuestion.errors.length).toBe(1);
-    expect(versionedQuestion.errors[0].includes('Versioned Section')).toBe(true);
+    expect(Object.keys(versionedQuestion.errors).length).toBe(1);
+    expect(versionedQuestion.errors['versionedSectionId'].includes('Versioned Section')).toBe(true);
   });
 
   it('isValid returns false if the questionId is null', async () => {
     versionedQuestion.questionId = null;
     expect(await versionedQuestion.isValid()).toBe(false);
-    expect(versionedQuestion.errors.length).toBe(1);
-    expect(versionedQuestion.errors[0].includes('Question')).toBe(true);
+    expect(Object.keys(versionedQuestion.errors).length).toBe(1);
+    expect(versionedQuestion.errors['questionId'].includes('Question')).toBe(true);
   });
 
   it('isValid returns false if the questionTypeId is null', async () => {
     versionedQuestion.questionTypeId = null;
     expect(await versionedQuestion.isValid()).toBe(false);
-    expect(versionedQuestion.errors.length).toBe(1);
-    expect(versionedQuestion.errors[0].includes('Question type')).toBe(true);
+    expect(Object.keys(versionedQuestion.errors).length).toBe(1);
+    expect(versionedQuestion.errors['questionTypeId'].includes('Question type')).toBe(true);
   });
 
   it('isValid returns false if the questionText is null', async () => {
     versionedQuestion.questionText = null;
     expect(await versionedQuestion.isValid()).toBe(false);
-    expect(versionedQuestion.errors.length).toBe(1);
-    expect(versionedQuestion.errors[0].includes('Question text')).toBe(true);
+    expect(Object.keys(versionedQuestion.errors).length).toBe(1);
+    expect(versionedQuestion.errors['questionText'].includes('Question text')).toBe(true);
   });
 });
 
@@ -175,7 +175,7 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(versionedQuestion);
   });
 });

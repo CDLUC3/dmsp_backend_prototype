@@ -52,8 +52,8 @@ describe('Collaborator', () => {
     const collaborator = new Collaborator({ email, invitedById, createdById });
     collaborator.email = null;
     expect(await collaborator.isValid()).toBe(false);
-    expect(collaborator.errors.length).toBe(1);
-    expect(collaborator.errors[0].includes('Email')).toBe(true);
+    expect(Object.keys(collaborator.errors).length).toBe(1);
+    expect(collaborator.errors['email']).toBeTruthy()
   });
 
   it('isValid returns false when the invitedById is NOT present', async () => {
@@ -64,8 +64,8 @@ describe('Collaborator', () => {
     const collaborator = new Collaborator({ email, invitedById, createdById });
     collaborator.invitedById = null;
     expect(await collaborator.isValid()).toBe(false);
-    expect(collaborator.errors.length).toBe(1);
-    expect(collaborator.errors[0].includes('Invited by')).toBe(true);
+    expect(Object.keys(collaborator.errors).length).toBe(1);
+    expect(collaborator.errors['invitedById']).toBeTruthy()
   });
 });
 
@@ -103,8 +103,8 @@ describe('TemplateCollaborator', () => {
     const collaborator = new TemplateCollaborator({ email, invitedById, createdById, templateId });
     collaborator.templateId = null;
     expect(await collaborator.isValid()).toBe(false);
-    expect(collaborator.errors.length).toBe(1);
-    expect(collaborator.errors[0].includes('Template')).toBe(true);
+    expect(Object.keys(collaborator.errors).length).toBe(1);
+    expect(collaborator.errors['templateId']).toBeTruthy()
   });
 
   describe('create', () => {
@@ -153,8 +153,8 @@ describe('TemplateCollaborator', () => {
       const result = await collaborator.create(context);
       expect(localValidator).toHaveBeenCalledTimes(1);
       expect(mockFindBy).toHaveBeenCalledTimes(1);
-      expect(result.errors.length).toBe(1);
-      expect(result.errors[0]).toEqual('Collaborator has already been added');
+      expect(Object.keys(result.errors).length).toBe(1);
+      expect(result.errors['general']).toBeTruthy();
     });
 
     it('returns the TemplateCollaborator with an error is the Tempate doesn\'t exist', async () => {
@@ -175,8 +175,8 @@ describe('TemplateCollaborator', () => {
       expect(mockFindBy).toHaveBeenCalledTimes(1);
       expect(mockExists).toHaveBeenCalledTimes(1);
 
-      expect(result.errors.length).toBe(1);
-      expect(result.errors[0]).toEqual('Template does not exist');
+      expect(Object.keys(result.errors).length).toBe(1);
+      expect(result.errors['general']).toBeTruthy();
     });
 
     it('returns the newly added TemplateCollaborator', async () => {
@@ -218,7 +218,7 @@ describe('TemplateCollaborator', () => {
       expect(mockSendEmail).toHaveBeenCalledWith(
         context, tName, inviter.getName(), collaborator.email, collaborator.userId
       );
-      expect(result.errors.length).toBe(0);
+      expect(Object.keys(result.errors).length).toBe(0);
       expect(result).toEqual(collaborator);
     });
   });
@@ -263,8 +263,8 @@ describe('TemplateCollaborator', () => {
 
       collaborator.id = null;
       const result = await collaborator.update(context);
-      expect(result.errors.length).toBe(1);
-      expect(result.errors[0]).toEqual('Collaborator has never been saved before');
+      expect(Object.keys(result.errors).length).toBe(1);
+      expect(result.errors['general']).toBeTruthy();
     });
 
     it('returns the TemplateCollaborator with an error is the Tempate doesn\'t exist', async () => {
@@ -279,8 +279,8 @@ describe('TemplateCollaborator', () => {
       const result = await collaborator.update(context);
       expect(localValidator).toHaveBeenCalledTimes(1);
       expect(mockExists).toHaveBeenCalledTimes(1);
-      expect(result.errors.length).toBe(1);
-      expect(result.errors[0]).toEqual('Template does not exist');
+      expect(Object.keys(result.errors).length).toBe(1);
+      expect(result.errors['general']).toBeTruthy();
     });
 
     it('returns the updated TemplateCollaborator', async () => {
@@ -298,7 +298,7 @@ describe('TemplateCollaborator', () => {
       expect(localValidator).toHaveBeenCalledTimes(1);
       expect(mockExists).toHaveBeenCalledTimes(1);
       expect(updateQuery).toHaveBeenCalledTimes(1);
-      expect(result.errors.length).toBe(0);
+      expect(Object.keys(result.errors).length).toBe(0);
       expect(result).toEqual(collaborator);
     });
   });

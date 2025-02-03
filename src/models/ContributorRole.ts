@@ -23,16 +23,11 @@ export class ContributorRole extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!validateURL(this.uri)) {
-      this.errors.push('URL can\'t be blank');
-    }
-    if (!this.displayOrder || this.displayOrder < 0) {
-      this.errors.push('Display order must be a positive number');
-    }
-    if (!this.label) {
-      this.errors.push('Label can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!validateURL(this.uri)) this.addError('uri', 'URL is not valid');
+    if (!this.displayOrder || this.displayOrder < 0) this.addError('displayOrder', 'Display order must be a positive number');
+    if (!this.label) this.addError('label', 'Label can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Add an association for a ContributorRole with a ProjectContributor

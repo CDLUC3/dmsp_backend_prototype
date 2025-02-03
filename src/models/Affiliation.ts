@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { randomHex } from "../utils/helpers";
+import { randomHex, validateURL } from "../utils/helpers";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
@@ -90,6 +90,19 @@ export class Affiliation extends MySqlModel {
     }
   }
 
+  // Validate the Affiliation
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!validateURL(this.uri)) this.addError('uri', 'Invalid URL');
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!this.displayName) this.addError('displayName', 'Display name can\'t be blank');
+    if (!this.searchName) this.addError('searchName', 'Search name can\'t be blank');
+    if (!this.provenance) this.addError('provenance', 'Provenance can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
+  }
+
   // Convert the name, homepage, acronyms and aliases into a search string
   buildSearchName(): string {
     const parts = [this.name, this.homepage, this.acronyms, this.aliases];
@@ -122,18 +135,21 @@ export class Affiliation extends MySqlModel {
 
     // Then make sure it doesn't already exist
     if (current) {
-      this.errors.push('That Affiliation already exists');
+      this.addError('general', 'The Affiliation already exists');
     } else {
       // Save the record and then fetch it
       this.prepForSave();
-      const newId = await Affiliation.insert(
-        context,
-        this.tableName,
-        this,
-        'Affiliation.create',
-        ['uneditableProperties']
-      );
-      return await Affiliation.findById('Affiliation.create', context, newId);
+
+      if (await this.isValid()) {
+        const newId = await Affiliation.insert(
+          context,
+          this.tableName,
+          this,
+          'Affiliation.create',
+          ['uneditableProperties']
+        );
+        return await Affiliation.findById('Affiliation.create', context, newId);
+      }
     }
 
     // Otherwise return as-is with all the errors
@@ -142,10 +158,10 @@ export class Affiliation extends MySqlModel {
 
   // Save the changes made to the affiliation
   async update(context: MyContext): Promise<Affiliation> {
-    // First make sure the record is valid
-    if (await this.isValid()) {
-      if (this.uri) {
-        this.prepForSave();
+    this.prepForSave();
+
+    if (this.id) {
+      if (await this.isValid()) {
         const updated = await Affiliation.update(
           context,
           this.tableName,
@@ -158,11 +174,11 @@ export class Affiliation extends MySqlModel {
           return await Affiliation.findById('Affiliation.update', context, this.id);
         }
       }
-      // This template has never been saved before so we cannot update it!
-      this.errors.push('Affiliation has never been saved');
     } else {
-      this.errors.push('The affiliation is not valid');
+      // This template has never been saved before so we cannot update it!
+      this.addError('general', 'Affiliation has never been saved');
     }
+    // Return the affiliation as-is with all the errors
     return this;
   }
 

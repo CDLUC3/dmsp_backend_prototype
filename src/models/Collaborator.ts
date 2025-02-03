@@ -25,12 +25,12 @@ export class Collaborator extends MySqlModel {
     await super.isValid();
 
     if (!validateEmail(this.email)) {
-      this.errors.push('Email can\'t be blank');
+      this.addError('email', 'Email can\'t be blank');
     }
     if (!this.invitedById) {
-      this.errors.push('Invited by can\'t be blank');
+      this.addError('invitedById', 'Invited by can\'t be blank');
     }
-    return this.errors.length <= 0;
+    return Object.keys(this.errors).length === 0;
   }
 }
 
@@ -44,17 +44,15 @@ export class TemplateCollaborator extends Collaborator {
     super(options);
 
     this.templateId = options.templateId || null;
-    this.errors = [];
   }
 
   // Verify that the templateId is present
   async isValid(): Promise<boolean> {
     super.isValid()
 
-    if (this.templateId === null) {
-      this.errors.push('Template can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (this.templateId === null) this.addError('templateId', 'Template Id can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Save the current record
@@ -70,7 +68,7 @@ export class TemplateCollaborator extends Collaborator {
       );
 
       if (currentCollaborator) {
-        this.errors.push('Collaborator has already been added');
+        this.addError('general', 'Collaborator has already been added');
       } else {
         // Verify that the template we want to attach the collaborator to exists!
         const templateExists = await Template.exists(
@@ -81,7 +79,7 @@ export class TemplateCollaborator extends Collaborator {
         );
 
         if (!templateExists) {
-          this.errors.push('Template does not exist');
+          this.addError('general', 'Template does not exist');
         } else {
           // See if the user already has an account, if so grab their id
           const user = await User.findByEmail(reference, context, this.email);
@@ -127,13 +125,13 @@ export class TemplateCollaborator extends Collaborator {
         );
 
         if (!templateExists) {
-          this.errors.push('Template does not exist');
+          this.addError('general', 'Template does not exist');
         } else {
           const result = await TemplateCollaborator.update(context, this.tableName, this, 'TemplateCollaborator.update');
           return result as TemplateCollaborator;
         }
       } else {
-        this.errors.push('Collaborator has never been saved before');
+        this.addError('general', 'TemplateCollaborator has never been saved');
       }
     }
     return this;

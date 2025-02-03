@@ -40,16 +40,11 @@ export class Repository extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    if (!validateURL(this.uri)) {
-      this.errors.push('Invalid URI format');
-    }
-    if (this.website && !validateURL(this.website)) {
-      this.errors.push('Invalid website format');
-    }
-    return this.errors.length <= 0;
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!validateURL(this.uri)) this.addError('uri', 'Invalid URL');
+    if (this.website && !validateURL(this.website)) this.addError('website', 'Invalid website format');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
@@ -100,7 +95,7 @@ export class Repository extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Repository already exists');
+        this.addError('general', 'Repository already exists');
       } else {
         // Save the record and then fetch it
         const newId = await Repository.insert(context, this.tableName, this, reference, ['researchDomains']);
@@ -122,7 +117,7 @@ export class Repository extends MySqlModel {
         return await Repository.findById('Repository.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Repository has never been saved');
+      this.addError('general', 'Repository has never been saved');
     }
     return this;
   }

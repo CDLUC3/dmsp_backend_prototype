@@ -56,7 +56,7 @@ export const generateQuestionVersion = async (
   try {
     const saved = await versionedQuestion.create(context);
 
-    if (saved && (!saved.errors || (Array.isArray(saved.errors) && saved.errors.length === 0))) {
+    if (saved && !saved.hasErrors()) {
       // Version any QuestionConditions as well
       const questionConditions = await QuestionCondition.findByQuestionId('generateQuestionVersion', context, saved.questionId);
       let allConditionsWereVersioned = true;
@@ -75,21 +75,18 @@ export const generateQuestionVersion = async (
         }
       }
 
-
       // Only proceed if all the conditions were able to version properly
       if (allConditionsWereVersioned) {
         // Reset the dirty flag
         question.isDirty = false;
         const updated = await question.update(context, true);
 
-        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          return true;
-        } else {
-          // There were errors on the object so report them
-          const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${updated.errors}`;
-          formatLogMessage(context).error(null, msg);
-          throw new Error(msg);
-        }
+        if (updated && !updated.hasErrors()) return true;
+
+        // There were errors on the object so report them
+        const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${updated.errors}`;
+        formatLogMessage(context).error(null, msg);
+        throw new Error(msg);
       }
     } else {
       // There were errors on the object so report them
@@ -159,12 +156,10 @@ export const generateQuestionConditionVersion = async (
   });
 
   const created = await versionedQuestionCondition.create(context);
-  if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
-    return true;
-  } else {
-    // There were errors on the object so report them
-    const msg = `Unable to generateQuestionConditionVersion for questionCondition errs: ${created.errors}`
-    formatLogMessage(context).error(null, `${msg}, errs: ${created.errors}`);
-    throw new Error(msg);
-  }
+  if (created && !created.hasErrors()) return true;
+
+  // There were errors on the object so report them
+  const msg = `Unable to generateQuestionConditionVersion for questionCondition errs: ${created.errors}`
+  formatLogMessage(context).error(null, `${msg}, errs: ${created.errors}`);
+  throw new Error(msg);
 }

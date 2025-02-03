@@ -51,13 +51,10 @@ export class Template extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (this.ownerId === null) {
-      this.errors.push('Owner can\'t be blank');
-    }
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (this.ownerId === null) this.addError('ownerId', 'Owner can\'t be blank');
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Save the current record
@@ -72,7 +69,7 @@ export class Template extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Template with this name already exists');
+        this.addError('general', 'Template with this name already exists');
       } else {
         this.prepForSave();
         // Save the record and then fetch it
@@ -112,7 +109,7 @@ export class Template extends MySqlModel {
         return await Template.findById('Template.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Template has never been saved');
+      this.addError('general', 'Template has never been saved');
     }
     return this;
   }

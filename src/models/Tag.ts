@@ -13,6 +13,14 @@ export class Tag extends MySqlModel {
     this.description = options.description;
   }
 
+  // Validate the tag before saving
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
+  }
 
   // Save the current record
   async create(context: MyContext): Promise<Tag> {
@@ -24,14 +32,12 @@ export class Tag extends MySqlModel {
 
     // Then make sure it doesn't already exist
     if (current) {
-      this.errors.push('Tag with this name already exists');
+      this.addError('general', 'Tag already exists');
     } else {
-      if (context.token) {
+      if (await this.isValid()) {
         const newId = await Tag.insert(context, tableName, this, 'Tag.create');
         const response = await Tag.getTagById('Tag.create', context, newId);
         return response
-      } else {
-        return null;
       }
     }
     return this;
@@ -39,13 +45,12 @@ export class Tag extends MySqlModel {
 
   async update(context: MyContext): Promise<Tag> {
     const id = this.id;
-    if (context.token) {
+    if (await this.isValid()) {
       await Tag.update(context, tableName, this, 'Tag.update');
       const updatedTag = await Tag.getTagById('Tag.update', context, id);
       return updatedTag as Tag;
-    } else {
-      return null;
     }
+    return this;
   }
 
   async delete(context: MyContext): Promise<Tag> {

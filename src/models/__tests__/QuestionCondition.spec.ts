@@ -135,25 +135,25 @@ describe('create', () => {
   it('returns the QuestionCondition with an error if questionId is undefined', async () => {
     questionCondition.questionId = undefined;
     const response = await questionCondition.create(context);
-    expect(response.errors[0]).toBe('Question ID can\'t be blank');
+    expect(response.errors['questionId']).toBe('Question Id can\'t be blank');
   });
 
   it('returns the QuestionCondition with an error if action is undefined', async () => {
     questionCondition.action = undefined;
     const response = await questionCondition.create(context);
-    expect(response.errors[0]).toBe('Action can\'t be blank');
+    expect(response.errors['action']).toBe('Action can\'t be blank');
   });
 
   it('returns the QuestionCondition with an error if conditionType is undefined', async () => {
     questionCondition.conditionType = undefined;
     const response = await questionCondition.create(context);
-    expect(response.errors[0]).toBe('Condition Type can\'t be blank');
+    expect(response.errors['conditionType']).toBe('Condition Type can\'t be blank');
   });
 
   it('returns the QuestionCondition with an error if target is undefined', async () => {
     questionCondition.target = undefined;
     const response = await questionCondition.create(context);
-    expect(response.errors[0]).toBe('Target can\'t be blank');
+    expect(response.errors['target']).toBe('Target can\'t be blank');
   });
 
   it('returns the newly added QuestionCondition', async () => {
@@ -169,7 +169,7 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(questionCondition);
   });
 });
@@ -207,8 +207,8 @@ describe('update', () => {
 
     questionCondition.id = null;
     const result = await questionCondition.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('QuestionCondition has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated QuestionCondition', async () => {
@@ -220,7 +220,7 @@ describe('update', () => {
 
     const result = await questionCondition.update(context);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(questionCondition);
   });
 });
@@ -262,7 +262,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(questionCondition);
 
     const result = await questionCondition.delete(context);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(questionCondition);
   });
 });

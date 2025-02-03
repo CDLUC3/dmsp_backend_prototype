@@ -84,7 +84,7 @@ export const generateTemplateVersion = async (
   const created = await versionedTemplate.create(context);
 
   // If the version was successfully created and there are no errors
-  if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
+  if (created && !created.hasErrors()) {
     const sections = await Section.findByTemplateId('generateTemplateVersion', context, template.id);
 
     try {
@@ -110,13 +110,11 @@ export const generateTemplateVersion = async (
 
         // Pass the noTouch flag to avoid default behavior of setting isDirty, modified, etc.
         const updated = await template.update(context, true);
-        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          return created;
-        } else {
-          const msg = `Unable to generateTemplateVersion for template: ${template.id}, errs: ${updated.errors}`;
-          formatLogMessage(context).error(null, msg);
-          throw new Error(msg);
-        }
+        if (updated && !updated.hasErrors()) return created;
+
+        const msg = `Unable to generateTemplateVersion for template: ${template.id}, errs: ${updated.errors}`;
+        formatLogMessage(context).error(null, msg);
+        throw new Error(msg);
       }
     } catch (err) {
       formatLogMessage(context).error(err, `Unable to generateTemplateVersion for id: ${template.id}`);

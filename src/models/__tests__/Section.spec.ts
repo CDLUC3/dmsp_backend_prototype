@@ -30,7 +30,7 @@ describe('Section', () => {
     expect(section.isDirty).toBe(true);
     expect(section.created).toBeTruthy();
     expect(section.modified).toBeTruthy();
-    expect(section.errors).toEqual([]);
+    expect(section.errors).toEqual({});
   });
 
   it('should return true when calling isValid with a name field', async () => {
@@ -40,8 +40,8 @@ describe('Section', () => {
   it('should return false when calling isValid without a name field', async () => {
     section.name = null;
     expect(await section.isValid()).toBe(false);
-    expect(section.errors.length).toBe(1);
-    expect(section.errors[0]).toEqual('Name can\'t be blank');
+    expect(Object.keys(section.errors).length).toBe(1);
+    expect(section.errors['name']).toBeTruthy();
   });
 });
 
@@ -227,8 +227,8 @@ describe('create', () => {
     const result = await section.create(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Section with this name already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
   it('returns the newly added Section', async () => {
     const localValidator = jest.fn();
@@ -249,7 +249,7 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(section);
   });
 });
@@ -286,8 +286,8 @@ describe('update', () => {
 
     section.id = null;
     const result = await section.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Section has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated Section', async () => {
@@ -302,7 +302,7 @@ describe('update', () => {
     const result = await section.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(section);
   });
 });
@@ -343,7 +343,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(section);
 
     const result = await section.delete(context);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(section);
   });
 });

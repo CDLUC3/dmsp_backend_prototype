@@ -26,13 +26,10 @@ export class License extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    if (!validateURL(this.uri)) {
-      this.errors.push('Invalid URI format');
-    }
-    return this.errors.length <= 0;
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!validateURL(this.uri)) this.addError('uri', 'Invalid URL');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
@@ -60,7 +57,7 @@ export class License extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('License already exists');
+        this.addError('general', 'License already exists');
       } else {
         // Save the record and then fetch it
         const newId = await License.insert(context, this.tableName, this, reference);
@@ -82,7 +79,7 @@ export class License extends MySqlModel {
         return await License.findById('License.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('License has never been saved');
+      this.addError('general', 'License has never been saved');
     }
     return this;
   }

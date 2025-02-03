@@ -36,8 +36,8 @@ describe('ContributorRole', () => {
 
     const role = new ContributorRole({ label, uri, createdById });
     expect(await role.isValid()).toBe(false);
-    expect(role.errors.length).toBe(1);
-    expect(role.errors[0].includes('Display order')).toBe(true);
+    expect(Object.keys(role.errors).length).toBe(1);
+    expect(role.errors['displayOrder']).toBeTruthy();
   });
 
   it('isValid returns false when the label is NOT present', async () => {
@@ -47,8 +47,8 @@ describe('ContributorRole', () => {
 
     const role = new ContributorRole({ displayOrder, uri, createdById });
     expect(await role.isValid()).toBe(false);
-    expect(role.errors.length).toBe(1);
-    expect(role.errors[0].includes('Label')).toBe(true);
+    expect(Object.keys(role.errors).length).toBe(1);
+    expect(role.errors['label']).toBeTruthy();
   });
 
   it('isValid returns false when the uri is NOT present', async () => {
@@ -58,8 +58,8 @@ describe('ContributorRole', () => {
 
     const role = new ContributorRole({ displayOrder, label, createdById });
     expect(await role.isValid()).toBe(false);
-    expect(role.errors.length).toBe(1);
-    expect(role.errors[0].includes('URL')).toBe(true);
+    expect(Object.keys(role.errors).length).toBe(1);
+    expect(role.errors['uri']).toBeTruthy();
   });
 });
 

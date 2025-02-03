@@ -131,7 +131,7 @@ describe('cloneSection', () => {
     expect(copy.introduction).toEqual(introduction);
     expect(copy.requirements).toEqual(requirements);
     expect(copy.guidance).toEqual(guidance);
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.displayOrder).toEqual(displayOrder);
     expect(copy.isDirty).toEqual(true);//The cloneSection function accepts Section | VersionedSection, and VersionedSection doesn't have isDirty, so in this test will always be true
     expect(copy.created).toBeTruthy();
@@ -161,7 +161,7 @@ describe('cloneSection', () => {
     expect(copy.introduction).toEqual(published.introduction);
     expect(copy.requirements).toEqual(published.requirements);
     expect(copy.guidance).toEqual(published.guidance);
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.createdById).toEqual(clonedById);
     expect(copy.displayOrder).toEqual(published.displayOrder);
     expect(copy.isDirty).toEqual(true);
@@ -179,6 +179,8 @@ describe('generateSectionVersion', () => {
   let mockFindVersionedSectionbyId;
 
   beforeEach(() => {
+    jest.resetAllMocks();
+
     // Mock the Questions
     const mockQuestionFindBySectionId = jest.fn().mockResolvedValue([]);
     (Question.findBySectionId as jest.Mock) = mockQuestionFindBySectionId;
@@ -271,6 +273,10 @@ describe('generateSectionVersion', () => {
       }
       return obj;
     });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('does not allow an unsaved section to be versioned', async () => {
@@ -402,7 +408,7 @@ describe('getTagsToAdd', () => {
         name: 'Tag4',
         createdById: undefined,
         modifiedById: undefined,
-        errors: [],
+        errors: {},
         description: undefined
       })
     ]);
@@ -460,7 +466,7 @@ describe('getTagsToRemove', () => {
         id: undefined,
         createdById: undefined,
         modifiedById: undefined,
-        errors: [],
+        errors: {},
         sectionId: 55,
         tagId: 1
       })

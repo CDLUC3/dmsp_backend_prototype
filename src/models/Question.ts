@@ -39,16 +39,13 @@ export class Question extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.templateId) {
-      this.errors.push('Template ID can\'t be blank');
-    }
-    if (!this.sectionId) {
-      this.errors.push('Section ID can\'t be blank');
-    }
-    if (!this.questionText) {
-      this.errors.push('Question text can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.templateId) this.addError('templateId', 'Template can\'t be blank');
+
+    if (!this.sectionId) this.addError('sectionId', 'Section can\'t be blank');
+
+    if (!this.questionText) this.addError('questionText', 'Question text can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
@@ -91,7 +88,7 @@ export class Question extends MySqlModel {
         return await Question.findById('Question.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Question has never been saved');
+      this.addError('general', 'Question has never been saved');
     }
     return this;
   }

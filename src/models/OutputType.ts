@@ -20,13 +20,10 @@ export class OutputType extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!validateURL(this.uri)) {
-      this.errors.push('URL can\'t be blank');
-    }
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!validateURL(this.uri)) this.addError('uri', 'URL can\'t be blank');
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Return all of the output types

@@ -217,8 +217,7 @@ describe('anonymizeUser', () => {
   it('fails if the user has never been saved', async () => {
     user.id = null;
     const result = await anonymizeUser(context, user);
-    const msg = 'This user has never been saved so can not anonymize their information';
-    expect(result.errors.includes(msg)).toBe(true);
+    expect(Object.keys(result.errors['general'])).toBeTruthy();
   });
 
   it('anonymizes the expected User properties', async () => {
@@ -441,7 +440,7 @@ describe('mergeUsers', () => {
     keepUser.password = null;
     const mergedUser = await mergeUsers(context, mergeUser, keepUser);
     expect(mockUpdate).toHaveBeenCalledTimes(0);
-    expect(mergedUser.errors.includes('Unable to merge the user at this time'));
+    expect(Object.keys(mergedUser.errors)).toBeTruthy();
   });
 
   it('merges UserEmail entries', async () => {

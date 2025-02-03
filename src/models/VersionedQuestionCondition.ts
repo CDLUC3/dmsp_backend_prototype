@@ -27,22 +27,13 @@ export class VersionedQuestionCondition extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.versionedQuestionId) {
-      this.errors.push('Versioned Question can\'t be blank');
-    }
-    if (!this.questionConditionId) {
-      this.errors.push('Question Condition can\'t be blank');
-    }
-    if (!this.action) {
-      this.errors.push('Action can\'t be blank');
-    }
-    if (!this.conditionType) {
-      this.errors.push('Condition Type by can\'t be blank');
-    }
-    if (!this.target) {
-      this.errors.push('Target text by can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.versionedQuestionId) this.addError('versionedQuestionId', 'Versioned Question can\'t be blank');
+    if (!this.questionConditionId) this.addError('questionConditionId', 'Question Condition can\'t be blank');
+    if (!this.action) this.addError('action', 'Action can\'t be blank');
+    if (!this.conditionType) this.addError('conditionType', 'Condition Type can\'t be blank');
+    if (!this.target) this.addError('target', 'Target can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Insert the new record

@@ -88,18 +88,11 @@ export class User extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    {
-      if (!validateEmail(this.email)) {
-        this.errors.push('Invalid email address');
-      }
-      if (!this.password) {
-        this.errors.push('Password is required');
-      }
-      if (!this.role) {
-        this.errors.push('Role can\'t be blank');
-      }
-    }
-    return this.errors.length <= 0;
+    if (!validateEmail(this.email)) this.addError('email', 'Invalid email address');
+    if (!this.password) this.addError('password', 'Password is required');
+    if (!this.role) this.addError('role', 'Role can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Validate the password format
@@ -119,7 +112,7 @@ export class User extends MySqlModel {
     ) {
       return true;
     }
-    this.errors.push(`Invalid password format.
+    this.addError('password', `Invalid password format.
         Passwords must be greater than 8 characters, and contain at least
         one number,
         one upper case letter,
@@ -234,7 +227,7 @@ export class User extends MySqlModel {
     // Make sure the account does not already exist
     const existing = await User.findByEmail('User.register', context, this.email);
     if (existing) {
-      this.errors.push('Account already exists');
+      this.addError('general', 'Account already exists');
     }
 
     // Validate the password
@@ -242,10 +235,10 @@ export class User extends MySqlModel {
 
     // Ensure that the user has accepted the terms and conditions
     if (this.acceptedTerms !== true) {
-      this.errors.push('You must accept the terms and conditions');
+      this.addError('acceptedTerms', 'You must accept the terms and conditions');
     }
 
-    if (this.errors.length === 0) {
+    if (Object.keys(this.errors).length === 0) {
       const passwordHash = await this.hashPassword(this.password);
       this.password = passwordHash
 
@@ -259,7 +252,7 @@ export class User extends MySqlModel {
         const result = await User.query(context, sql, vals, 'User.register');
 
         if (!Array.isArray(result) || !result[0].insertId) {
-          this.errors.push('Unable to register your account.');
+          this.addError('general', 'Unable to register your account');
           return this;
         }
         formatLogMessage(context).debug(
@@ -319,7 +312,7 @@ export class User extends MySqlModel {
         return await User.findById('User.update', context, this.id);
       }
       // This user has never been saved before so we cannot update it!
-      this.errors.push('User has never been saved');
+      this.addError('general', 'User has never been saved');
     }
     return this;
   }

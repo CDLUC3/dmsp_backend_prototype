@@ -42,7 +42,7 @@ describe('Template', () => {
     expect(template.modified).toBeTruthy();
     expect(template.latestPublishVersion).toBeFalsy();
     expect(template.isDirty).toBeTruthy();
-    expect(template.errors).toEqual([]);
+    expect(template.errors).toEqual({});
     expect(template.languageId).toEqual(defaultLanguageId);
   });
 
@@ -59,22 +59,22 @@ describe('Template', () => {
   it('isValid returns false if the ownerId is null', async () => {
     template.ownerId = null;
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Owner')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['ownerId'].includes('Owner')).toBe(true);
   });
 
   it('isValid returns false if the name is null', async () => {
     template.name = null;
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Name')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['name'].includes('Name')).toBe(true);
   });
 
   it('isValid returns false if the name is blank', async () => {
     template.name = '';
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Name')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['name'].includes('Name')).toBe(true);
   });
 });
 
@@ -249,8 +249,8 @@ describe('create', () => {
     const result = await template.create(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Template with this name already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added Template', async () => {
@@ -272,7 +272,7 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(template);
   });
 });
@@ -309,8 +309,8 @@ describe('update', () => {
 
     template.id = null;
     const result = await template.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Template has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated Template', async () => {
@@ -327,7 +327,7 @@ describe('update', () => {
     const result = await template.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(template);
   });
 });

@@ -29,14 +29,11 @@ export class UserEmail extends MySqlModel {
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
-    if (this.userId === null) {
-      this.errors.push('User can\'t be blank');
-    }
-    if (!validateEmail(this.email)) {
-      this.errors.push('Enter valid email');
-    }
 
-    return this.errors.length <= 0;
+    if (this.userId === null) this.addError('userId', 'User can\'t be blank');
+    if (!validateEmail(this.email)) this.addError('email', 'Email can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Confirm the user owns the email
@@ -52,7 +49,7 @@ export class UserEmail extends MySqlModel {
 
       // If the email has already been confirmed by another account set an error message
       if (otherEmails && otherEmails.find((other) => { return other.isConfirmed; })) {
-        userEmail.errors.push('Email has already been confirmed');
+        userEmail.addError('email', 'Email has already been confirmed by another account');
         return userEmail;
 
       } else {
@@ -75,7 +72,7 @@ export class UserEmail extends MySqlModel {
         return updated;
       }
     }
-    return null;
+    return userEmail;
   }
 
   // Custom Insert logic
@@ -116,16 +113,16 @@ export class UserEmail extends MySqlModel {
       // First make sure it's not already attached to this user account
       const existing = entries.find((entry) => { return entry.userId === this.userId; });
       if (existing) {
-        this.errors.push('Email is already associated with this account');
+        this.addError('general', 'This email has already been associated with this account');
       }
 
       // Then make sure it hasn't already been claimed/confirmed by another user account
       const confirmed = entries.find((entry) => { return entry.isConfirmed; });
       if (confirmed) {
-        this.errors.push('Email has already been confirmed by another account');
+        this.addError('general', 'Email has already been confirmed by another account');
       }
 
-      if (this.errors.length <= 0) {
+      if (Object.keys(this.errors).length === 0) {
         // Save the record and then fetch it
         const newId = await UserEmail.insert(context, this.tableName, this, ref);
         const created = await UserEmail.findById(ref, context, newId);
@@ -149,16 +146,16 @@ export class UserEmail extends MySqlModel {
         // Only allow this if the existing record or the update has been confirmed/verified
         const existing = await UserEmail.findById('UserEmail.update', context, this.id);
         if (existing && !existing.isConfirmed && !this.isConfirmed) {
-          this.errors.push('Email has not yet been confirmed');
+          this.addError('general', 'Email has not yet been confirmed');
         }
 
-        if (this.errors.length === 0) {
+        if (Object.keys(this.errors).length === 0) {
           await UserEmail.update(context, this.tableName, this, 'UserEmail.update');
           return await UserEmail.findById('UserEmail.update', context, this.id);
         }
       }
     } else {
-      this.errors.push('Email has not been created yet');
+      this.addError('general', 'Email has not been created yet');
     }
 
     return this;
@@ -177,7 +174,7 @@ export class UserEmail extends MySqlModel {
       }
       return null;
     } else {
-      this.errors.push('Email has not been created yet');
+      this.addError('general', 'Cannot delete email that has never been saved');
     }
     return this;
   }

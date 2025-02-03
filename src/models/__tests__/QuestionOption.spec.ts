@@ -131,7 +131,7 @@ describe('create', () => {
   it('returns the QuestionOption with an error if questionId is undefined', async () => {
     questionOption.questionId = undefined;
     const response = await questionOption.create(context);
-    expect(response.errors[0]).toBe('Question ID can\'t be blank');
+    expect(response.errors['questionId']).toBe('Question can\'t be blank');
   });
 
   it('returns the newly added QuestionOption', async () => {
@@ -147,7 +147,7 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(questionOption);
   });
 });
@@ -184,8 +184,8 @@ describe('update', () => {
 
     questionOption.id = null;
     const result = await questionOption.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('QuestionOption has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated QuestionOption', async () => {
@@ -197,7 +197,7 @@ describe('update', () => {
 
     const result = await questionOption.update(context);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(questionOption);
   });
 });
@@ -238,7 +238,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(questionOption);
 
     const result = await questionOption.delete(context);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(questionOption);
   });
 });

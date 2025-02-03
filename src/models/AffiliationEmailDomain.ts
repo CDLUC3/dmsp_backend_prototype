@@ -15,6 +15,16 @@ export class AffiliationEmailDomain extends MySqlModel {
     this.domain = options.domain;
   }
 
+  // Validation to be used prior to saving the record
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!this.affiliationId) this.addError('affiliationId', 'Affiliation can\'t be blank');
+    if (!this.domain) this.addError('domain', 'Domain can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
+  }
+
   // Save the current record
   async create(context: MyContext): Promise<AffiliationEmailDomain> {
     // First make sure the record doesn't already exist
@@ -24,14 +34,15 @@ export class AffiliationEmailDomain extends MySqlModel {
       this.domain,
     );
 
-    // Then make sure it doesn't already exist
-    if (currentDomain) {
-      const assoc = currentDomain.affiliationId == this.affiliationId ? 'this Affiliation' : 'another Affiliation';
-      this.errors.push(`That email domain is already associated with ${assoc}`);
-    } else {
-    // Save the record and then fetch it
-      const newId = await AffiliationEmailDomain.insert(context, this.tableName, this, 'AffiliationEmailDomain.create');
-      return await AffiliationEmailDomain.findById('AffiliationEmailDomain.create', context, newId as number);
+    if (await this.isValid()) {
+      // Then make sure it doesn't already exist
+      if (currentDomain) {
+        this.addError('general', 'The AffiliationEmailDomain already exists');
+      } else {
+      // Save the record and then fetch it
+        const newId = await AffiliationEmailDomain.insert(context, this.tableName, this, 'AffiliationEmailDomain.create');
+        return await AffiliationEmailDomain.findById('AffiliationEmailDomain.create', context, newId as number);
+      }
     }
     // Otherwise return as-is with all the errors
     return this;

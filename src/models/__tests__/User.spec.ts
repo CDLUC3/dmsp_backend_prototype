@@ -126,32 +126,32 @@ describe('validate a new User', () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.password = null;
     expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Password is required')).toBe(true);
+    expect(Object.keys(mockUser.errors).length).toBe(1);
+    expect(mockUser.errors['password']).toBeTruthy();
   });
 
   it('should return false when we have a new user without a valid email format', async () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.email = 'abcde';
     expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Invalid email address')).toBe(true);
+    expect(Object.keys(mockUser.errors).length).toBe(1);
+    expect(mockUser.errors['email']).toBeTruthy();
   });
 
   it('should return false when we have a new user without an createdById', async () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.createdById = null;
     expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Created by')).toBe(true);
+    expect(Object.keys(mockUser.errors).length).toBe(1);
+    expect(mockUser.errors['createdById']).toBeTruthy();
   });
 
   it('should return false when we have a new user without a role', async () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.role = null;
     expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Role')).toBe(true);
+    expect(Object.keys(mockUser.errors).length).toBe(1);
+    expect(mockUser.errors['role']).toBeTruthy();
   });
 });
 
@@ -175,44 +175,44 @@ describe('Password validation', () => {
   it('should fail for a new user with a password that is too short', async () => {
     const user = new User({ email: 'test.user@example.com', password: 'abcde' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 uppercase letter', async () => {
     const user = new User({ password: 'abcd3fgh1jk' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
 
   it('should return error if password is missing', async () => {
     const user = new User({ email: 'test.user@example.com', password: null });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Password is required'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 lowercase letter', async () => {
     const user = new User({ email: 'test.user@example.com', password: 'ABCD3FGH1JKL' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 number letter', async () => {
     const user = new User({ email: 'test.user@example.com', password: 'Abcd$Fgh#jkL' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 special character', async () => {
     const user = new User({ email: 'test.user@example.com', password: 'Abcd3Fgh1jkL' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if it contains special characters that are not allowed', () => {
@@ -443,7 +443,7 @@ describe('register()', () => {
     });
     const response = await user.register(context);
     expect(response).toBe(user);
-    expect(response.errors).toEqual(['You must accept the terms and conditions']);
+    expect(response.errors['acceptedTerms']).toBeTruthy();
   });
 
   it('should return user object if there was an error creating user', async () => {
@@ -466,7 +466,7 @@ describe('register()', () => {
 
     const response = await user.register(context);
     expect(response).toBe(user);
-    expect(response.errors.length > 0).toBe(true);
+    expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
   it('should return the user with errors if there are errors validating the user', async () => {
@@ -488,7 +488,7 @@ describe('register()', () => {
 
     const response = await user.register(context);
     expect(response).toBeInstanceOf(User);
-    expect((response as User).errors.length > 0).toBe(true);
+    expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
   it('should return the user with errors if the terms were not accepted', async () => {
@@ -504,7 +504,7 @@ describe('register()', () => {
 
     const response = await user.register(context);
     expect(response).toBeInstanceOf(User);
-    expect((response as User).errors.length > 0).toBe(true);
+    expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 });
 
@@ -544,8 +544,8 @@ describe('update', () => {
 
     user.id = null;
     const result = await user.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('User has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated User', async () => {
@@ -560,7 +560,7 @@ describe('update', () => {
     const result = await user.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(user);
   });
 
@@ -577,7 +577,7 @@ describe('update', () => {
     const result = await user.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(user);
   });
 });

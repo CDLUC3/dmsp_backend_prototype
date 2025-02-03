@@ -42,22 +42,22 @@ describe('License', () => {
   it('should return false when calling isValid if the name field is missing', async () => {
     license.name = null;
     expect(await license.isValid()).toBe(false);
-    expect(license.errors.length).toBe(1);
-    expect(license.errors[0]).toEqual('Name can\'t be blank');
+    expect(Object.keys(license.errors).length).toBe(1);
+    expect(license.errors['name']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the uri field is missing', async () => {
     license.uri = null;
     expect(await license.isValid()).toBe(false);
-    expect(license.errors.length).toBe(1);
-    expect(license.errors[0]).toEqual('Invalid URI format');
+    expect(Object.keys(license.errors).length).toBe(1);
+    expect(license.errors['uri']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the uri field is not a URI', async () => {
     license.uri = casual.uuid;
     expect(await license.isValid()).toBe(false);
-    expect(license.errors.length).toBe(1);
-    expect(license.errors[0]).toEqual('Invalid URI format');
+    expect(Object.keys(license.errors).length).toBe(1);
+    expect(license.errors['uri']).toBeTruthy();
   });
 });
 
@@ -208,8 +208,8 @@ describe('update', () => {
 
     license.id = null;
     const result = await license.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('License has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated License', async () => {
@@ -226,7 +226,7 @@ describe('update', () => {
     const result = await license.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(license);
   });
 });
@@ -265,7 +265,7 @@ describe('create', () => {
   it('returns the License with errors if it is invalid', async () => {
     license.name = undefined;
     const response = await license.create(context);
-    expect(response.errors[0]).toBe('Name can\'t be blank');
+    expect(response.errors['name']).toBe('Name can\'t be blank');
   });
 
   it('returns the License with an error if the object already exists', async () => {
@@ -275,8 +275,8 @@ describe('create', () => {
 
     const result = await license.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('License already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added License', async () => {
@@ -297,7 +297,7 @@ describe('create', () => {
     expect(mockFindByName).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(license);
   });
 });
@@ -339,7 +339,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(license);
 
     const result = await license.delete(context);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toEqual(license);
   });
 });
