@@ -1,8 +1,6 @@
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { Template } from "../models/Template";
-import { SectionTag } from "../models/SectionTag";
-import { Tag } from "../models/Tag";
 import { hasPermissionOnTemplate } from "./templateService";
 import { VersionedSection } from "../models/VersionedSection";
 import { NotFoundError } from "../utils/graphQLErrors";
@@ -117,31 +115,4 @@ export const hasPermissionOnSection = async (context: MyContext, templateId: num
 
   // Offload permission checks to the Template
   return hasPermissionOnTemplate(context, template);
-}
-
-export const getTagsToAdd = async (tags: Tag[], context: MyContext, sectionId: number): Promise<Tag[]> => {
-
-  //Get all the existing tags associated with this section in SectionTags
-  const existingTags = await SectionTag.getSectionTagsBySectionId('updateSection resolver', context, sectionId);
-
-  // Create a Set of existing tag ids
-  const existingTagIds = new Set(existingTags.map(sectionTag => sectionTag.tagId));
-
-  // Filter out the tags that already exist in the sectiontable.
-  const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.id));
-
-  return Array.isArray(tagsToAdd) ? tagsToAdd : [];
-}
-
-export const getTagsToRemove = async (tags: Tag[], context: MyContext, sectionId: number): Promise<SectionTag[]> => {
-  //Get all the existing tags associated with this section in SectionTags
-  const existingTags = await SectionTag.getSectionTagsBySectionId('sectionService-updateSection', context, sectionId);
-
-  // Create a Set of tag ids
-  const tagIds = new Set(tags.map(tag => tag.id));
-
-  // Get tags that exist in db table, but are not included in updated tags
-  const tagsToRemove = existingTags.filter(existing => !tagIds.has(existing.tagId))
-
-  return Array.isArray(tagsToRemove) ? tagsToRemove : [];
 }

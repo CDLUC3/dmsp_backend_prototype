@@ -1,8 +1,8 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { ResearchDomain } from "../types";
 import { randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
+import { ResearchDomain } from "./ResearchDomain";
 
 export const DEFAULT_DMPTOOL_REPOSITORY_URL = 'https://dmptool.org/repositories/';;
 

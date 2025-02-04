@@ -4,7 +4,7 @@ import { Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_REPOSITORY_URL, Repository, RepositoryType } from "../models/Repository";
 import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
-import { ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
+import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { stringToEnumValue } from '../utils/helpers';
 
@@ -12,48 +12,78 @@ export const resolvers: Resolvers = {
   Query: {
     // searches the repositories table or returns all repos if no criteria is specified
     repositories: async (_, { input }, context: MyContext): Promise<Repository[]> => {
-      const { term, researchDomainId, repositoryType } = input
-      return await Repository.search(
-        'repositories resolver',
-        context,
-        term,
-        researchDomainId,
-        stringToEnumValue(RepositoryType, repositoryType),
-      );
+      const reference = 'repositories resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const { term, researchDomainId, repositoryType } = input
+          const repoType = stringToEnumValue(RepositoryType, repositoryType);
+          return await Repository.search(reference, context, term, researchDomainId, repoType);
+        }
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
 
+    // return a single repository
     repository: async (_, { uri }, context: MyContext): Promise<Repository> => {
-      return await Repository.findByURI('repository resolver', context, uri);
+      const reference = 'repository resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          return await Repository.findByURI(reference, context, uri);
+        }
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
   },
 
   Mutation: {
     // add a new Repository
     addRepository: async (_, { input }, context: MyContext) => {
-      if (isAuthorized(context.token)) {
-        try {
+      const reference = 'addRepository resolver';
+      try {
+        if (isAuthorized(context.token)) {
           const newRepo = new Repository(input);
           const created = await newRepo.create(context);
 
+          if (!created?.id) {
+            // A null was returned so add a generic error and return it
+            if (!newRepo.errors['general']) {
+              newRepo.addError('general', 'Unable to create Repository');
+            }
+            return newRepo;
+          }
+
           // If any ResearchDomains were specified and there were no errors creating the record
           if (Array.isArray(input.researchDomainIds)) {
-            if (created && Array.isArray(created.errors) && created.errors.length === 0){
+            if (created && !created.hasErrors()){
+              const addErrors = [];
               // Add any researchDomains associations
               for (const id of input.researchDomainIds) {
-                const domain = await ResearchDomain.findById('addRepository resolver', context, id);
+                const domain = await ResearchDomain.findById(reference, context, id);
                 if (domain) {
-                  await domain.addToRepository(context, created.id);
+                  const wasAdded = await domain.addToRepository(context, created.id);
+                  if (!wasAdded) {
+                    addErrors.push(domain.name);
+                  }
                 }
+              }
+              // if any errors were found when adding/removing tags then return them
+              if (addErrors.length > 0) {
+                created.addError('researchDomains', `Created but unable to assign domains: ${addErrors.join(', ')}`);
               }
             }
           }
-          return created
-        } catch (err) {
-          formatLogMessage(context).error(err, 'Failure in addRepository resolver');
-          throw InternalServerError();
+          return created.hasErrors() ? created : await Repository.findById(reference, context, created.id);
         }
-      } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch(err) {
+        formatLogMessage(context).error(err, reference);
+        throw InternalServerError();
       }
     },
     updateRepository: async (_, { input }, context) => {
@@ -69,7 +99,8 @@ export const resolvers: Resolvers = {
           const toUpdate = new Repository(input);
           const updated = await toUpdate.update(context);
 
-          if (updated && Array.isArray(updated.errors) && updated.errors.length === 0){
+          // If there were no errors creating the record
+          if (updated && !updated.hasErrors()) {
             // Fetch all of the current ResearchDomains associated with this MetadataStandard
             const researchDomains = await ResearchDomain.findByRepositoryId(
               reference,
@@ -84,23 +115,46 @@ export const resolvers: Resolvers = {
               input.researchDomainIds
             );
 
+            const associationErrors = [];
             // Delete any ResearchDomain associations that were removed
+            const removeErrors = [];
             for (const id of idsToBeRemoved) {
               const dom = await ResearchDomain.findById(reference, context, id);
               if (dom) {
-                dom.removeFromRepository(context, updated.id)
+                const wasRemoved = dom.removeFromRepository(context, updated.id);
+                if (!wasRemoved) {
+                  removeErrors.push(dom.name);
+                }
               }
             }
+            // if any errors were found when adding/removing tags then return them
+            if (removeErrors.length > 0) {
+              associationErrors.push(`unable to remove domains: ${removeErrors.join(', ')}`);
+            }
+
             // Add any new ResearchDomain associations
+            const addErrors = [];
             for (const id of idsToBeSaved) {
               const dom = await ResearchDomain.findById(reference, context, id);
               if (dom) {
-                dom.addToRepository(context, updated.id)
+                const wasAdded = dom.addToRepository(context, updated.id);
+                if (!wasAdded) {
+                  addErrors.push(dom.name);
+                }
               }
+            }
+            // if any errors were found when adding/removing tags then return them
+            if (addErrors.length > 0) {
+              associationErrors.push(`unable to assign domains: ${addErrors.join(', ')}`);
+            }
+
+            // If any errors were encountered adding/removing associations
+            if (associationErrors.length > 0) {
+              updated.addError('researchDomains', `Updated but ${associationErrors.join('; ')}`);
             }
 
             // Reload since the research domains may have changed
-            return await Repository.findById(reference, context, repo.id);
+            return updated.hasErrors() ? updated : await Repository.findById(reference, context, repo.id);
           }
           // Otherwise there were errors so return the object with errors
           return updated;
@@ -124,8 +178,13 @@ export const resolvers: Resolvers = {
           // TODO: We should do a check to see if it has been used and then either NOT allow the deletion
           //       or notify that it is being done and to what DMPs
           const deleted = await repo.delete(context);
+
+          if (!deleted || deleted.hasErrors()) {
+            repo.addError('general', 'Unable to delete the repository');
+          }
+
           // No need to remove the related research domain associations the DB will cascade the deletion
-          return deleted
+          return repo.hasErrors() ? repo : deleted;
         } catch (err) {
           formatLogMessage(context).error(err, 'Failure in removeRepository resolver');
           throw InternalServerError();

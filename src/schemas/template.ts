@@ -14,7 +14,7 @@ export const typeDefs = gql`
     "Update a Template"
     updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!, bestPractice: Boolean): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
-    archiveTemplate(templateId: Int!): Boolean
+    archiveTemplate(templateId: Int!): Template
 
     "Publish the template or save as a draft"
     createTemplateVersion(templateId: Int!, comment: String, versionType: TemplateVersionType, visibility: TemplateVisibility!): Template

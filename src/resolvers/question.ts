@@ -2,17 +2,15 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
-import { hasPermissionOnQuestion } from "../services/questionService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 import { formatLogMessage } from "../logger";
 import { isAdmin, isAuthorized } from "../services/authService";
 import { hasPermissionOnSection } from "../services/sectionService";
-import { hasPermissionOnTemplate } from "../services/templateService";
-
 
 export const resolvers: Resolvers = {
   Query: {
+    // return all of the questions for the specified section
     questions: async (_, { sectionId }, context: MyContext): Promise<Question[]> => {
       const reference = 'questions resolver';
       try {
@@ -26,6 +24,7 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // return a specific question
     question: async (_, { questionId }, context: MyContext): Promise<Question> => {
       try {
         if (isAuthorized(context.token)) {
@@ -39,6 +38,7 @@ export const resolvers: Resolvers = {
     }
   },
   Mutation: {
+    // add a new question
     addQuestion: async (_, { input: {
       templateId,
       sectionId,
@@ -56,7 +56,6 @@ export const resolvers: Resolvers = {
       try {
         // if the user is an admin and has permission on the section
         if (isAdmin(context.token) && await hasPermissionOnSection(context, templateId)) {
-
           const question = new Question({
             templateId,
             sectionId,
@@ -72,6 +71,14 @@ export const resolvers: Resolvers = {
 
           // create the new question
           const newQuestion = await question.create(context);
+
+          if (!newQuestion?.id) {
+            // A null was returned so add a generic error and return it
+            if (!question.errors['general']) {
+              question.addError('general', 'Unable to create Question');
+            }
+            return question;
+          }
 
           if (newQuestion && !newQuestion.hasErrors()) {
             const questionId = newQuestion.id;
@@ -104,6 +111,7 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // update an existing question
     updateQuestion: async (_, { input: {
       questionId,
       displayOrder,
@@ -120,7 +128,9 @@ export const resolvers: Resolvers = {
         const questionData = await Question.findById(reference, context, questionId);
 
         // Throw Not Found error if Question is not found
-        if (!questionData) throw NotFoundError('Question not found');
+        if (!questionData) {
+          throw NotFoundError('Question not found');
+        }
 
         // Check that user has permission to update this question
         if (isAdmin(context.token) && await hasPermissionOnSection(context, questionData.templateId)) {
@@ -197,6 +207,7 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // remove a question
     removeQuestion: async (_, { questionId }, context: MyContext): Promise<Question> => {
       const reference = 'removeQuestion resolver';
       try {
@@ -204,7 +215,9 @@ export const resolvers: Resolvers = {
         const questionData = await Question.findById(reference, context, questionId);
 
         // Throw Not Found error if Question is not found
-        if (!questionData) throw NotFoundError('Question not found');
+        if (!questionData) {
+          throw NotFoundError('Question not found');
+        }
 
         // if the user is an admin and has permission on the section
         if (isAdmin(context.token) && await hasPermissionOnSection(context, questionData.templateId)) {

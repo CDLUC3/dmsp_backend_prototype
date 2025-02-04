@@ -18,20 +18,42 @@ async function processRepositoryUpdates(
   projectOutputId: number,
   currentRepoIds: number[],
   newRepoIds: number[]
-) {
+): Promise<string[]> {
+  const out = [];
   // Use the helper function to determine which Repositories to keep
   const { idsToBeRemoved, idsToBeSaved } = ProjectOutput.reconcileAssociationIds(currentRepoIds, newRepoIds);
 
+  const removeErrors = [];
   // Delete any Repository associations that were removed
   for (const id of idsToBeRemoved) {
     const repo = await Repository.findById(reference, context, id);
-    if (repo) repo.removeFromProjectOutput(context, projectOutputId)
+    if (repo) {
+      const wasRemoved = repo.removeFromProjectOutput(context, projectOutputId);
+      if (!wasRemoved) {
+        removeErrors.push(id);
+      }
+    }
   }
+  // if any errors were found when adding/removing repositories then return them
+  if (removeErrors.length > 0) out.push(`unable to remove repositories: ${removeErrors.join(', ')}`);
+
+  const addErrors = [];
   // Add any new Repository associations
   for (const id of idsToBeSaved) {
     const repo = await Repository.findById(reference, context, id);
-    if (repo) repo.addToProjectOutput(context, projectOutputId)
+    if (repo) {
+      const wasAdded = repo.addToProjectOutput(context, projectOutputId);
+      if (!wasAdded) {
+        addErrors.push(id);
+      }
+    }
   }
+  // if any errors were found when adding/removing repositories then return them
+  if (addErrors.length > 0) {
+    out.push(`unable to assign repositories: ${addErrors.join(', ')}`);
+  }
+
+  return out;
 }
 
 // Process updates to the MetadataStandard associations
@@ -41,20 +63,42 @@ async function processMetadataStandardUpdates(
   projectOutputId: number,
   currentStandardIds: number[],
   newStandardIds: number[]
-) {
+): Promise<string[]> {
+  const out = [];
   // Use the helper function to determine which MetadataStandards to keep
   const { idsToBeRemoved, idsToBeSaved } = ProjectOutput.reconcileAssociationIds(currentStandardIds, newStandardIds);
 
+  const removeErrors = [];
   // Delete any MetadataStandards associations that were removed
   for (const id of idsToBeRemoved) {
     const standard = await MetadataStandard.findById(reference, context, id);
-    if (standard) standard.removeFromProjectOutput(context, projectOutputId)
+    if (standard) {
+      const wasRemoved = standard.removeFromProjectOutput(context, projectOutputId);
+      if (!wasRemoved) {
+        removeErrors.push(id);
+      }
+    }
   }
+  // if any errors were found when adding/removing metadata standards then return them
+  if (removeErrors.length > 0) out.push(`unable to remove metadata standards: ${removeErrors.join(', ')}`);
+
+  const addErrors = [];
   // Add any new MetadataStandards associations
   for (const id of idsToBeSaved) {
     const standard = await MetadataStandard.findById(reference, context, id);
-    if (standard) standard.addToProjectOutput(context, projectOutputId)
+    if (standard) {
+      const wasAdded = standard.addToProjectOutput(context, projectOutputId);
+      if (!wasAdded) {
+        addErrors.push(id);
+      }
+    }
   }
+  // if any errors were found when adding/removing metadata standards then return them
+  if (addErrors.length > 0) {
+    out.push(`unable to assign metadata standards: ${addErrors.join(', ')}`);
+  }
+
+  return out;
 }
 
 export const resolvers: Resolvers = {
@@ -115,30 +159,48 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) throw ForbiddenError();
+          if (!project || !hasPermissionOnProject(context, project)) {
+            throw ForbiddenError();
+          }
 
           const newOutput = new ProjectOutput(input);
           const created = await newOutput.create(context, project.id);
 
-          // If any Repositories were specified and there were no errors creating the record
-          if (Array.isArray(input.respositoryIds)) {
-            if (created && Array.isArray(created.errors) && created.errors.length === 0){
-              // Add any Repository associations
-              for (const id of input.respositoryIds) {
-                const repo = await Repository.findById(reference, context, id);
-                if (repo) await repo.addToProjectOutput(context, created.id);
-              }
+          if (!created?.id) {
+            // A null was returned so add a generic error and return it
+            if (!newOutput.errors['general']) {
+              newOutput.addError('general', 'Unable to create Project Output');
             }
+            return newOutput;
           }
 
-          // If any MetadataStandards were specified and there were no errors creating the record
-          if (Array.isArray(input.metadataStandardIds)) {
-            if (created && Array.isArray(created.errors) && created.errors.length === 0){
-              // Add any MetadataStandard associations
-              for (const id of input.metadataStandardIds) {
-                const standard = await MetadataStandard.findById(reference, context, id);
-                if (standard) await standard.addToProjectOutput(context, created.id);
-              }
+          if (created && !created.hasErrors()) {
+            // Process the Repository and MetadataStandard associations
+            const repoErrors = await processRepositoryUpdates(
+              reference,
+              context,
+              created.id,
+              [],
+              input.respositoryIds
+            );
+            const standardErrors = await processMetadataStandardUpdates(
+              reference,
+              context,
+              created.id,
+              [],
+              input.metadataStandardIds
+            );
+
+            if (repoErrors.length > 0) {
+              created.addError('repositories', `Create complete but ${repoErrors.join('. ')}`);
+            }
+            if (standardErrors.length > 0) {
+              created.addError('metadataStandards', `Create complete but ${standardErrors.join('. ')}`);
+            }
+
+            // If there were no errors reload since the roles may have changed
+            if (!created.hasErrors()) {
+              await ProjectOutput.findById(reference, context, created.id);
             }
           }
 
@@ -151,21 +213,26 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // update an existing ProjectOutput
     updateProjectOutput: async (_, { input }, context) => {
       const reference = 'updateProjectOutput resolver';
       try {
         if (isAuthorized(context.token)) {
           const output = await ProjectOutput.findById(reference, context, input.projectOutputId);
-          if (!output) throw NotFoundError();
+          if (!output) {
+            throw NotFoundError();
+          }
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, output.projectId);
-          if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
+          if (!hasPermissionOnProject(context, project)) {
+            throw ForbiddenError();
+          }
 
           const toUpdate = new ProjectOutput(input);
           const updated = await toUpdate.update(context);
 
-          if (updated && Array.isArray(updated.errors) && updated.errors.length === 0){
+          if (updated && !updated.hasErrors()) {
             // Fetch all of the current Repositories and MetadataStandards associated with this Output
             const repos = await Repository.findByProjectOutputId(reference, context, output.id);
             const standards = await MetadataStandard.findByProjectOutputId(reference, context, output.id);
@@ -173,11 +240,32 @@ export const resolvers: Resolvers = {
             const currentStandardIds = standards ? standards.map((d) => d.id) : [];
 
             // Process the Repository and MetadataStandard associations
-            processRepositoryUpdates(reference, context, output.id, currentRepoIds, input.respositoryIds);
-            processMetadataStandardUpdates(reference, context, output.id, currentStandardIds, input.metadataStandardIds);
+            const repoErrors = await processRepositoryUpdates(
+              reference,
+              context,
+              output.id,
+              currentRepoIds,
+              input.respositoryIds
+            );
+            const standardErrors = await processMetadataStandardUpdates(
+              reference,
+              context,
+              output.id,
+              currentStandardIds,
+              input.metadataStandardIds
+            );
 
-            // Reload since the roles may have changed
-            return await ProjectOutput.findById(reference, context, output.id);
+            if (repoErrors.length > 0) {
+              updated.addError('repositories', `Update completed but ${repoErrors.join('. ')}`);
+            }
+            if (standardErrors.length > 0) {
+              updated.addError('metadataStandards', `Update completed but ${standardErrors.join('. ')}`);
+            }
+
+            // If there were no errors reload since the roles may have changed
+            if (!updated.hasErrors()) {
+              return await ProjectOutput.findById(reference, context, output.id);
+            }
           }
           // Otherwise there were errors so return the object with errors
           return updated;
@@ -189,16 +277,21 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // delete an existing ProjectOutput
     removeProjectOutput: async (_, { projectOutputId }, context) => {
       const reference = 'removeProjectOutput resolver';
       try {
         if (isAuthorized(context.token)) {
           const output = await ProjectOutput.findById(reference, context, projectOutputId);
-          if (!output) throw NotFoundError();
+          if (!output) {
+            throw NotFoundError();
+          }
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, output.projectId);
-          if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
+          if (!hasPermissionOnProject(context, project)) {
+            throw ForbiddenError();
+          }
 
           const deleted = await output.delete(context);
           // No need to remove the related repsoitory and metadata standards associations

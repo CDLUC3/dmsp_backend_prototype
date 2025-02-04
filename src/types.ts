@@ -616,7 +616,7 @@ export type Mutation = {
   /** Download the plan */
   archiveProject?: Maybe<Project>;
   /** Archive a Template (unpublishes any associated PublishedTemplate */
-  archiveTemplate?: Maybe<Scalars['Boolean']['output']>;
+  archiveTemplate?: Maybe<Template>;
   /** Mark the feedback round as complete */
   completeFeedback?: Maybe<PlanFeedback>;
   /** Publish the template or save as a draft */
@@ -954,7 +954,7 @@ export type MutationRemoveAffiliationArgs = {
 
 
 export type MutationRemoveContributorRoleArgs = {
-  id: Scalars['ID']['input'];
+  id: Scalars['Int']['input'];
 };
 
 
@@ -1086,7 +1086,7 @@ export type MutationUpdateAffiliationArgs = {
 export type MutationUpdateContributorRoleArgs = {
   description?: InputMaybe<Scalars['String']['input']>;
   displayOrder: Scalars['Int']['input'];
-  id: Scalars['ID']['input'];
+  id: Scalars['Int']['input'];
   label: Scalars['String']['input'];
   url: Scalars['URL']['input'];
 };
@@ -3092,7 +3092,6 @@ export type ResolversTypes = {
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   InvitedToType: InvitedToType;
   Language: ResolverTypeWrapper<Language>;
@@ -3216,7 +3215,6 @@ export type ResolversParentTypes = {
   DateTimeISO: Scalars['DateTimeISO']['output'];
   DmspId: Scalars['DmspId']['output'];
   EmailAddress: Scalars['EmailAddress']['output'];
-  ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   Language: Language;
   License: License;
@@ -3508,7 +3506,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['TemplateCollaborator']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   addUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationAddUserEmailArgs, 'email' | 'isPrimary'>>;
   archiveProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<MutationArchiveProjectArgs, 'projectId'>>;
-  archiveTemplate?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
+  archiveTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
   completeFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationCompleteFeedbackArgs, 'planFeedbackId'>>;
   createTemplateVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateTemplateVersionArgs, 'templateId' | 'visibility'>>;
   deactivateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationDeactivateUserArgs, 'userId'>>;

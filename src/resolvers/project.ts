@@ -30,7 +30,9 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById('project resolver', context, projectId);
-          if (hasPermissionOnProject(context, project)) return project;
+          if (hasPermissionOnProject(context, project)) {
+            return project;
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -41,7 +43,7 @@ export const resolvers: Resolvers = {
   },
 
   Mutation: {
-    // add a new Metadata Standard
+    // add a new project
     addProject: async (_, { title, isTestProject }, context: MyContext) => {
       const reference = 'addProject resolver';
       try {
@@ -49,7 +51,16 @@ export const resolvers: Resolvers = {
           try {
             const newProject = new Project({ title, isTestProject });
             const created = await newProject.create(context);
-            return created
+
+            if (created?.id) {
+              return created;
+            }
+
+            // A null was returned so add a generic error and return it
+            if (!newProject.errors['general']) {
+              newProject.addError('general', 'Unable to create Project');
+            }
+            return newProject;
           } catch(err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
             throw InternalServerError();
@@ -62,15 +73,20 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // update a project
     updateProject: async (_, { input }, context) => {
       const reference = 'updateProject resolver';
       try {
         if (isAuthorized(context.token)) {
           try {
             const project = await Project.findById(reference, context, input.id);
-            if (!project) throw NotFoundError();
+            if (!project) {
+              throw NotFoundError();
+            }
 
-            if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
+            if (!hasPermissionOnProject(context, project)) {
+              throw ForbiddenError();
+            }
 
             const toUpdate = new Project(input);
             const updated = await toUpdate.update(context);
@@ -87,16 +103,21 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // archive a project
     archiveProject: async (_, { projectId }, context) => {
       const reference = 'archiveProject resolver';
       try {
         if (isAuthorized(context.token)) {
           try {
             const project = await Project.findById(reference, context, projectId);
-            if (!project) throw NotFoundError();
+            if (!project) {
+              throw NotFoundError();
+            }
 
             // Only allow the owner of the project to delete it
-            if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
+            if (!hasPermissionOnProject(context, project)) {
+              throw ForbiddenError();
+            }
 
             // TODO: We need to do a check to see if it has been used and whether any of the related DMPs have
             //       been published

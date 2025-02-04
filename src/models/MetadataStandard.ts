@@ -1,8 +1,8 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { ResearchDomain } from "../types";
 import { randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
+import { ResearchDomain } from "./ResearchDomain";
 
 export const DEFAULT_DMPTOOL_METADATA_STANDARD_URL = 'https://dmptool.org/metadata-standards/';;
 export class MetadataStandard extends MySqlModel {
@@ -104,6 +104,7 @@ export class MetadataStandard extends MySqlModel {
           ['researchDomains'],
           noTouch
         );
+
         return await MetadataStandard.findById('MetadataStandard.update', context, id);
       }
       // This template has never been saved before so we cannot update it!

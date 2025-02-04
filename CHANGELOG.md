@@ -44,6 +44,8 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated models and resolvers to handle errors in a consistent way
+- Refactored the way Sections handle the association with Tag to follow pattern used elsewhere
 - Updated `formatLogMessage` to accept the Apollo context instead of the logger so that it can being to record the `requestId`, `jti` and `userId` (when available)
 - Updated `questionTypes` table to remove 'Rich Text Editor' and to add `usageDescription`. Also, updated Question model's `create` method to allow for entries with duplicate `questionText`
 - Updated User update method to prevent password manipulation

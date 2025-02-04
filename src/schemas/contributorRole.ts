@@ -14,9 +14,9 @@ export const typeDefs = gql`
     "Add a new contributor role (URL and label must be unique!)"
     addContributorRole(url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRole
     "Update the contributor role"
-    updateContributorRole(id: ID!, url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRole
+    updateContributorRole(id: Int!, url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRole
     "Delete the contributor role"
-    removeContributorRole(id: ID!): ContributorRole
+    removeContributorRole(id: Int!): ContributorRole
   }
 
   type ContributorRole {

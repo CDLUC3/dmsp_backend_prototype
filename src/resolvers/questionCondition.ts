@@ -10,6 +10,7 @@ import { formatLogMessage } from "../logger";
 
 export const resolvers: Resolvers = {
   Query: {
+    // return all of the question conditions for the specified question
     questionConditions: async (_, { questionId }, context: MyContext): Promise<QuestionCondition[]> => {
       try {
         return await QuestionCondition.findByQuestionId('questionConditions resolver', context, questionId);
@@ -20,6 +21,7 @@ export const resolvers: Resolvers = {
     },
   },
   Mutation: {
+    // add a new question condition
     addQuestionCondition: async (_, { input: {
       questionId,
       action,
@@ -30,8 +32,18 @@ export const resolvers: Resolvers = {
       try {
         // If the user is an admin and has permission on the question
         if (isAdmin(context.token) && hasPermissionOnQuestion(context, questionId)) {
-          const questionCondition = new QuestionCondition({ questionId, action, conditionType, conditionMatch, target });
-          return await questionCondition.create(context);
+          const condition = new QuestionCondition({ questionId, action, conditionType, conditionMatch, target });
+          const created = await condition.create(context);
+
+          if (created?.id) {
+            return created;
+          }
+
+          // A null was returned so add a generic error and return it
+          if (!condition.errors['general']) {
+            condition.addError('general', 'Unable to create Question Condition');
+          }
+          return condition;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -40,6 +52,7 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // update an existing question condition
     updateQuestionCondition: async (_, { input: {
       questionConditionId,
       action,
@@ -54,7 +67,9 @@ export const resolvers: Resolvers = {
           const questionConditionData = await QuestionCondition.findById(reference, context, questionConditionId);
 
           // Throw Not Found error if QuestionConditionData is not found
-          if (!questionConditionData) throw NotFoundError('QuestionCondition not found');
+          if (!questionConditionData) {
+            throw NotFoundError('QuestionCondition not found');
+          }
 
           const question = await Question.findById(reference, context, questionConditionData.questionId);
           // If the user has permission on the Question
@@ -79,6 +94,7 @@ export const resolvers: Resolvers = {
       }
     },
 
+    // remove a question condition
     removeQuestionCondition: async (_, { questionConditionId }, context: MyContext): Promise<QuestionCondition> => {
       const reference = 'removeQuestionCondition resolver';
       try {
@@ -87,7 +103,9 @@ export const resolvers: Resolvers = {
           const questionConditionData = await QuestionCondition.findById(reference, context, questionConditionId);
 
           // Throw Not Found error if QuestionConditionData is not found
-          if (!questionConditionData) throw NotFoundError('QuestionCondition not found');
+          if (!questionConditionData) {
+            throw NotFoundError('QuestionCondition not found');
+          }
 
           const question = await Question.findById(reference, context, questionConditionId);
           // If the user has permission on the Question

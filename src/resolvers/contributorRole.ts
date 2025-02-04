@@ -6,91 +6,102 @@ import { MyContext } from '../context';
 import { isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError } from '../utils/graphQLErrors';
 
-// Extracting this particular query because we call it after mutations
-async function fetchContributorRole(dataSources, contributorRoleId): Promise<ContributorRole> {
-  return new Promise((resolve, reject) => {
-    const sql = 'SELECT * FROM contributorRoles WHERE id = ?';
-    dataSources.sqlDataSource.query(sql, [contributorRoleId])
-      .then(rows => {
-        resolve(rows[0])
-      })
-      .catch(error => reject(error));
-  });
-}
-
 export const resolvers: Resolvers = {
   Query: {
     // returns an array of all contributor roles
     contributorRoles: async (_, __, context: MyContext): Promise<ContributorRole[]> => {
-      return await ContributorRole.all('contributorRoles resolver', context);
+      const reference = 'contributorRoles resolver';
+      try {
+        return await ContributorRole.all(reference, context);
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
 
     // returns a contributor role that matches the specified ID
     contributorRoleById: async (_, { contributorRoleId }, context: MyContext): Promise<ContributorRole> => {
-      return await ContributorRole.findById('contributorRoleById resolver', context, contributorRoleId);
+      const reference = 'contributorRoleById resolver';
+      try {
+        return await ContributorRole.findById(reference, context, contributorRoleId);
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
 
     // returns the contributor role that matches the specified URL
     contributorRoleByURL: async (_, { contributorRoleURL }, context: MyContext): Promise<ContributorRole> => {
-      return await ContributorRole.findByURL('contributorRoleByURL resolver', context, contributorRoleURL);
+      const reference = 'contributorRoleByURL resolver';
+      try {
+        return await ContributorRole.findByURL(reference, context, contributorRoleURL);
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
   },
 
   Mutation: {
     // add a new ContributorRole
     addContributorRole: async (_, { url, label, displayOrder, description }, context) => {
-      const logArgs = { url, label, displayOrder, description };
-      const logMessage = `Resolving mutation addContributorRole`;
-
+      const reference = 'addContributorRole resolver';
       try {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
           const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
           const resp = await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder]);
+          const created = await ContributorRole.findById(reference, context, resp.insertId);
 
-          formatLogMessage(context).debug(logArgs, logMessage);
+          if (created?.id) {
+            return created;
+          }
 
-          return await fetchContributorRole(context.dataSources, resp.id);
+          // A null was returned so add a generic error and return it
+          const newRole = new ContributorRole({ url, label, description, displayOrder });
+          if (!newRole.errors['general']) {
+            newRole.addError('general', 'Unable to create Affiliation');
+          }
+          return newRole;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, 'Failure in updateAffiliation resolver');
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
+
+    // update an existing ContributorRole
     updateContributorRole: async (_, { id, url, label, displayOrder, description }, context) => {
-      const logArgs = { id, url, label, displayOrder, description };
-      const logMessage = `Resolving mutation updateContributorRole`;
+      const reference = 'updateContributorRole resolver';
       try {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
           const sql = 'UPDATE contributorRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
-          await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder, id]);
-
-          formatLogMessage(context).debug(logArgs, logMessage);
-          return await fetchContributorRole(context.dataSources, id);
+          await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder, id.toString()]);
+          return await ContributorRole.findById(reference, context, id);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, 'Failure in updateAffiliation resolver');
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
+
+    // remove a ContributorRole
     removeContributorRole: async (_, { id }, context) => {
-      const logMessage = `Resolving mutation removeContributorRole`;
-      const original = fetchContributorRole(context.dataSources, id);
+      const reference = 'removeContributorRole resolver';
+      const original = await ContributorRole.findById(reference, context, id);
       try {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
           const sql = 'DELETE FROM contributorRoles WHERE id = ?';
-          await context.dataSources.sqlDataSource.query(context, sql, [id]);
-
-          formatLogMessage(context).debug({ id }, logMessage);
+          await context.dataSources.sqlDataSource.query(context, sql, [id.toString()]);
           return original;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, 'Failure in updateAffiliation resolver');
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
