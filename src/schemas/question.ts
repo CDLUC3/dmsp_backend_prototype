@@ -30,7 +30,7 @@ type Question {
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: QuestionErrors
 
     "The unique id of the Template that the question belongs to"
     templateId: Int!
@@ -60,6 +60,17 @@ type Question {
     "The question options associated with this question"
     questionOptions: [QuestionOption!]
 }
+
+"A collection of errors related to the Question"
+type QuestionErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    templateId: String
+    sectionId: String
+    questionText: String
+    displayOrder: String
+  }
 
 input AddQuestionInput {
     "The unique id of the Template that the question belongs to"

@@ -2,30 +2,40 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
-import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
-import { BadUserInputError, ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
+import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
+import { formatLogMessage } from "../logger";
+import { isAdmin, isAuthorized } from "../services/authService";
+import { hasPermissionOnSection } from "../services/sectionService";
+import { hasPermissionOnTemplate } from "../services/templateService";
 
 
 export const resolvers: Resolvers = {
   Query: {
     questions: async (_, { sectionId }, context: MyContext): Promise<Question[]> => {
-      const section = await Section.findById('questions resolver', context, sectionId);
-      if (await hasPermissionOnQuestion(context, section.templateId)) {
-        return await Question.findBySectionId('questions resolver', context, sectionId);
+      const reference = 'questions resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          return await Question.findBySectionId(reference, context, sectionId);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw ForbiddenError();
     },
+
     question: async (_, { questionId }, context: MyContext): Promise<Question> => {
-
-      // Find question with questionId
-      const question = await Question.findById('section resolver', context, questionId);
-
-      if (await hasPermissionOnQuestion(context, question.templateId)) {
-        return question;
+      try {
+        if (isAuthorized(context.token)) {
+          return await Question.findById('section resolver', context, questionId);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, 'Failure in question resolver');
+        throw InternalServerError();
       }
-      throw ForbiddenError();
     }
   },
   Mutation: {
@@ -42,53 +52,58 @@ export const resolvers: Resolvers = {
       required,
       questionOptions } }, context: MyContext): Promise<Question> => {
 
-      if (await hasPermissionOnQuestion(context, templateId)) {
+      const reference = 'addQuestion resolver';
+      try {
+        // if the user is an admin and has permission on the section
+        if (isAdmin(context.token) && await hasPermissionOnSection(context, templateId)) {
 
-        const question = new Question({
-          templateId,
-          sectionId,
-          displayOrder,
-          isDirty,
-          questionTypeId,
-          questionText,
-          requirementText,
-          guidanceText,
-          sampleText,
-          required
-        });
+          const question = new Question({
+            templateId,
+            sectionId,
+            displayOrder,
+            isDirty,
+            questionTypeId,
+            questionText,
+            requirementText,
+            guidanceText,
+            sampleText,
+            required
+          });
 
-        // create the new question
-        const newQuestion = await question.create(context);
+          // create the new question
+          const newQuestion = await question.create(context);
 
-        // If there are errors than throw a Bad User Input error
-        if (newQuestion.errors) {
-          const errorMessages = newQuestion.errors.join(', ');
-          throw BadUserInputError(errorMessages);
-        } else {
-          const questionId = newQuestion.id;
+          if (newQuestion && !newQuestion.hasErrors()) {
+            const questionId = newQuestion.id;
+            // Add all the associated question options to the questionOptions table
+            if (questionOptions && questionOptions.length > 0) {
+              await Promise.all(
+                questionOptions.map(async (option) => {
+                  const questionOption = new QuestionOption({
+                    questionId: newQuestion.id,
+                    text: option.text,
+                    orderNumber: option.orderNumber,
+                    isDefault: option.isDefault
+                  });
 
-          // Add all the associated question options to the questionOptions table
-          if (questionOptions && questionOptions.length > 0) {
-            await Promise.all(
-              questionOptions.map(async (option) => {
-                const questionOption = new QuestionOption({
-                  questionId: newQuestion.id,
-                  text: option.text,
-                  orderNumber: option.orderNumber,
-                  isDefault: option.isDefault
-                });
+                  await questionOption.create(context);
+                })
+              );
+            }
 
-                await questionOption.create(context);
-              })
-            );
+            // Return newly created question
+            return await Question.findById(reference, context, questionId);
           }
-
-          // Return newly created question
-          return await Question.findById('addQuestion resolver', context, questionId);
+          // Otherwise it had errors so return it as-is
+          return newQuestion;
         }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw ForbiddenError();
     },
+
     updateQuestion: async (_, { input: {
       questionId,
       displayOrder,
@@ -99,114 +114,110 @@ export const resolvers: Resolvers = {
       required,
       questionOptions } }, context: MyContext): Promise<Question> => {
 
-      // Get Question based on provided questionId
-      const questionData = await Question.findById('updateQuestion resolver', context, questionId);
+      const reference = 'updateQuestion resolver';
+      try {
+        // Get Question based on provided questionId
+        const questionData = await Question.findById(reference, context, questionId);
 
-      // Throw Not Found error if Question is not found
-      if (!questionData) {
-        throw NotFoundError('Question not found')
-      }
+        // Throw Not Found error if Question is not found
+        if (!questionData) throw NotFoundError('Question not found');
 
-      // Check that user has permission to update this question
-      if (await hasPermissionOnQuestion(context, questionData.templateId)) {
-        const question = new Question({
-          id: questionId,
-          sectionId: questionData.sectionId,
-          templateId: questionData.templateId,
-          createdById: questionData.createdById,
-          displayOrder: displayOrder,
-          questionTypeId: questionData.questionTypeId,
-          questionText: questionText,
-          requirementText: requirementText,
-          guidanceText: guidanceText,
-          sampleText: sampleText,
-          required: required,
-          isDirty: questionData.isDirty
-        });
-
-        const updatedQuestion = await question.update(context);
-
-        // If there are errors than throw a Bad User Input error
-        if (updatedQuestion.errors) {
-          const errorMessages = updatedQuestion.errors.join(', ');
-          throw BadUserInputError(errorMessages);
-        } else {
-
-          // Get existing questionOptions
-          const existingQuestionOptions = await QuestionOption.findByQuestionId('question resolver', context, questionId);
-
-          // Create a Map of existing options for quick lookup by ID or unique identifier
-          const existingOptionsMap = new Map(
-            existingQuestionOptions.map(option => [option.id, option])
-          );
-
-          // Separate incoming options into "to update" and "to create"
-          const optionsToUpdate = [];
-          const optionsToCreate = [];
-
-          questionOptions.forEach(option => {
-            if (existingOptionsMap.has(option.questionOptionId)) {
-              // Add to update list, merging the new data with the existing data
-              optionsToUpdate.push({
-                ...existingOptionsMap.get(option.questionOptionId), // existing option data
-                ...option // updated fields from input
-              });
-            } else {
-              // Add to create list
-              optionsToCreate.push({
-                questionId,
-                ...option // new option fields
-              });
-            }
+        // Check that user has permission to update this question
+        if (isAdmin(context.token) && await hasPermissionOnSection(context, questionData.templateId)) {
+          const question = new Question({
+            id: questionId,
+            sectionId: questionData.sectionId,
+            templateId: questionData.templateId,
+            createdById: questionData.createdById,
+            displayOrder: displayOrder,
+            questionTypeId: questionData.questionTypeId,
+            questionText: questionText,
+            requirementText: requirementText,
+            guidanceText: guidanceText,
+            sampleText: sampleText,
+            required: required,
+            isDirty: questionData.isDirty
           });
 
-          // Update existing options
-          if (optionsToUpdate.length > 0) {
-            await Promise.all(
-              optionsToUpdate.map(async option => {
-                const questionOption = new QuestionOption(option);
-                await questionOption.update(context); // Call your update method
-              })
-            );
+          const updatedQuestion = await question.update(context);
+
+          // If there are errors than throw a Bad User Input error
+          if (updatedQuestion && !updatedQuestion.hasErrors()) {
+            // Get existing questionOptions
+            const existingQuestionOptions = await QuestionOption.findByQuestionId(reference, context, questionId);
+
+            // Create a Map of existing options for quick lookup by ID or unique identifier
+            const existingOptionsMap = new Map(existingQuestionOptions.map(option => [option.id, option]));
+
+            // Separate incoming options into "to update" and "to create"
+            const optionsToUpdate = [];
+            const optionsToCreate = [];
+
+            questionOptions.forEach(option => {
+              if (existingOptionsMap.has(option.questionOptionId)) {
+                // Add to update list, merging the new data with the existing data
+                optionsToUpdate.push({ ...existingOptionsMap.get(option.questionOptionId), ...option });
+              } else {
+                // Add to create list
+                optionsToCreate.push({ questionId, ...option });
+              }
+            });
+
+            // Update existing options
+            if (optionsToUpdate.length > 0) {
+              await Promise.all(
+                optionsToUpdate.map(async option => {
+                  const questionOption = new QuestionOption(option);
+                  await questionOption.update(context); // Call your update method
+                })
+              );
+            }
+
+            // Create new options
+            if (optionsToCreate.length > 0) {
+              await Promise.all(
+                optionsToCreate.map(async option => {
+                  const questionOption = new QuestionOption(option);
+                  await questionOption.create(context); // Call your create method
+                })
+              );
+            }
+
+            // Return newly updated question
+            return await Question.findById(reference, context, updatedQuestion.id);
           }
 
-          // Create new options
-          if (optionsToCreate.length > 0) {
-            await Promise.all(
-              optionsToCreate.map(async option => {
-                const questionOption = new QuestionOption(option);
-                await questionOption.create(context); // Call your create method
-              })
-            );
-          }
-
-          // Return newly updated question
-          return await Question.findById('updateQuestion resolver', context, updatedQuestion.id);
+          //otherwise it had errors so return it as-is
+          return updatedQuestion;
         }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw ForbiddenError();
     },
+
     removeQuestion: async (_, { questionId }, context: MyContext): Promise<Question> => {
-      // Retrieve existing Question
-      const questionData = await Question.findById('removeQuestion resolver', context, questionId);
+      const reference = 'removeQuestion resolver';
+      try {
+        // Retrieve existing Question
+        const questionData = await Question.findById(reference, context, questionId);
 
-      // Throw Not Found error if Question is not found
-      if (!questionData) {
-        throw NotFoundError('Question not found')
+        // Throw Not Found error if Question is not found
+        if (!questionData) throw NotFoundError('Question not found');
+
+        // if the user is an admin and has permission on the section
+        if (isAdmin(context.token) && await hasPermissionOnSection(context, questionData.templateId)) {
+          //Need to create a new instance of Question so that it recognizes the 'delete' function of that instance
+          const question = new Question({ ...questionData, id: questionId });
+          // The delete will also delete all associated questionOptions
+          return await question.delete(context);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-
-      if (await hasPermissionOnQuestion(context, questionData.templateId)) {
-        //Need to create a new instance of Question so that it recognizes the 'delete' function of that instance
-        const question = new Question({
-          ...questionData,
-          id: questionId
-        });
-
-        // The delete will also delete all associated questionOptions
-        return await question.delete(context);
-      }
-
-      throw ForbiddenError();
     }
   },
 

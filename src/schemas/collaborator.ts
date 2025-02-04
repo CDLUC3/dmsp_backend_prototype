@@ -48,7 +48,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: TemplateCollaboratorErrors
 
     "The template the collaborator may edit"
     template: Template
@@ -85,6 +85,14 @@ export const typeDefs = gql`
     invitedBy: User
     "The user's access level"
     accessLevel: PlanCollaboratorAccessLevel
+  }
+
+  "A collection of errors related to the TemplateCollaborator"
+  type TemplateCollaboratorErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    templateId: String
   }
 
   "The result of the findCollaborator query"

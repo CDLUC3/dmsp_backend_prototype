@@ -20,24 +20,17 @@ async function processRepositoryUpdates(
   newRepoIds: number[]
 ) {
   // Use the helper function to determine which Repositories to keep
-  const { idsToBeRemoved, idsToBeSaved } = ProjectOutput.reconcileAssociationIds(
-    currentRepoIds,
-    newRepoIds
-  );
+  const { idsToBeRemoved, idsToBeSaved } = ProjectOutput.reconcileAssociationIds(currentRepoIds, newRepoIds);
 
   // Delete any Repository associations that were removed
   for (const id of idsToBeRemoved) {
     const repo = await Repository.findById(reference, context, id);
-    if (repo) {
-      repo.removeFromProjectOutput(context, projectOutputId)
-    }
+    if (repo) repo.removeFromProjectOutput(context, projectOutputId)
   }
   // Add any new Repository associations
   for (const id of idsToBeSaved) {
     const repo = await Repository.findById(reference, context, id);
-    if (repo) {
-      repo.addToProjectOutput(context, projectOutputId)
-    }
+    if (repo) repo.addToProjectOutput(context, projectOutputId)
   }
 }
 
@@ -50,24 +43,17 @@ async function processMetadataStandardUpdates(
   newStandardIds: number[]
 ) {
   // Use the helper function to determine which MetadataStandards to keep
-  const { idsToBeRemoved, idsToBeSaved } = ProjectOutput.reconcileAssociationIds(
-    currentStandardIds,
-    newStandardIds
-  );
+  const { idsToBeRemoved, idsToBeSaved } = ProjectOutput.reconcileAssociationIds(currentStandardIds, newStandardIds);
 
   // Delete any MetadataStandards associations that were removed
   for (const id of idsToBeRemoved) {
     const standard = await MetadataStandard.findById(reference, context, id);
-    if (standard) {
-      standard.removeFromProjectOutput(context, projectOutputId)
-    }
+    if (standard) standard.removeFromProjectOutput(context, projectOutputId)
   }
   // Add any new MetadataStandards associations
   for (const id of idsToBeSaved) {
     const standard = await MetadataStandard.findById(reference, context, id);
-    if (standard) {
-      standard.addToProjectOutput(context, projectOutputId)
-    }
+    if (standard) standard.addToProjectOutput(context, projectOutputId)
   }
 }
 
@@ -75,50 +61,61 @@ export const resolvers: Resolvers = {
   Query: {
     // Fetch all of the possible project output types
     outputTypes: async (_, __, context: MyContext): Promise<OutputType[]> => {
-      if (isAuthorized(context.token)) {
-        return await OutputType.all('projectOutputTypes resolver', context);
+      const reference = 'outputTypes resolver';
+      try {
+        if (isAuthorized(context.token)) return await OutputType.all(reference, context);
+
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // return all of the outputs for the project
     projectOutputs: async (_, { projectId }, context: MyContext): Promise<ProjectOutput[]> => {
       const reference = 'projectFunders resolver';
-      if (isAuthorized(context.token)) {
-        const project = await Project.findById(reference, context, projectId);
+      try {
+        if (isAuthorized(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
 
-        if (project && hasPermissionOnProject(context, project)) {
-          return await ProjectOutput.findByProjectId(reference, context, projectId);
+          if (project && hasPermissionOnProject(context, project)) {
+            return await ProjectOutput.findByProjectId(reference, context, projectId);
+          }
         }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // return a specific project output
     projectOutput: async (_, { projectOutputId }, context: MyContext): Promise<ProjectOutput> => {
       const reference = 'projectFunder resolver';
-      if (isAuthorized(context.token)) {
-        const projectFunder = await ProjectOutput.findById(reference, context, projectOutputId);
-        const project = await Project.findById(reference, context, projectFunder.projectId);
+      try {
+        if (isAuthorized(context.token)) {
+          const projectFunder = await ProjectOutput.findById(reference, context, projectOutputId);
+          const project = await Project.findById(reference, context, projectFunder.projectId);
 
-        if (project && hasPermissionOnProject(context, project)) {
-          return projectFunder;
+          if (project && hasPermissionOnProject(context, project)) return projectFunder;
         }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 
   Mutation: {
     // add a new ProjectOutput
     addProjectOutput: async (_, { input }, context: MyContext) => {
-      if (isAuthorized(context.token)) {
-        const reference = 'addprojectFunder resolver';
-        try {
+      const reference = 'addprojectFunder resolver';
+      try {
+        if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!project || !hasPermissionOnProject(context, project)) throw ForbiddenError();
 
           const newOutput = new ProjectOutput(input);
           const created = await newOutput.create(context, project.id);
@@ -129,9 +126,7 @@ export const resolvers: Resolvers = {
               // Add any Repository associations
               for (const id of input.respositoryIds) {
                 const repo = await Repository.findById(reference, context, id);
-                if (repo) {
-                  await repo.addToProjectOutput(context, created.id);
-                }
+                if (repo) await repo.addToProjectOutput(context, created.id);
               }
             }
           }
@@ -142,37 +137,30 @@ export const resolvers: Resolvers = {
               // Add any MetadataStandard associations
               for (const id of input.metadataStandardIds) {
                 const standard = await MetadataStandard.findById(reference, context, id);
-                if (standard) {
-                  await standard.addToProjectOutput(context, created.id);
-                }
+                if (standard) await standard.addToProjectOutput(context, created.id);
               }
             }
           }
 
           return created;
-        } catch(err) {
-          formatLogMessage(context).error(err, `Failure in ${reference}`);
-          throw InternalServerError();
         }
-      } else {
         throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
 
     updateProjectOutput: async (_, { input }, context) => {
-      if (isAuthorized(context.token)) {
-        const reference = 'updateProjectOutput resolver';
-        try {
+      const reference = 'updateProjectOutput resolver';
+      try {
+        if (isAuthorized(context.token)) {
           const output = await ProjectOutput.findById(reference, context, input.projectOutputId);
-          if (!output) {
-            throw NotFoundError();
-          }
+          if (!output) throw NotFoundError();
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, output.projectId);
-          if (!hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
 
           const toUpdate = new ProjectOutput(input);
           const updated = await toUpdate.update(context);
@@ -193,40 +181,34 @@ export const resolvers: Resolvers = {
           }
           // Otherwise there were errors so return the object with errors
           return updated;
-        } catch(err) {
-          formatLogMessage(context).error(err, `Failure in ${reference}`);
-          throw InternalServerError();
         }
-      } else {
         throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch(err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
 
     removeProjectOutput: async (_, { projectOutputId }, context) => {
-      if (isAuthorized(context.token)) {
-        const reference = 'removeProjectOutput resolver';
-        try {
+      const reference = 'removeProjectOutput resolver';
+      try {
+        if (isAuthorized(context.token)) {
           const output = await ProjectOutput.findById(reference, context, projectOutputId);
-          if (!output) {
-            throw NotFoundError();
-          }
+          if (!output) throw NotFoundError();
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, output.projectId);
-          if (!hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
 
           const deleted = await output.delete(context);
           // No need to remove the related repsoitory and metadata standards associations
           // the DB will cascade the deletion.
           return deleted
-        } catch(err) {
-          formatLogMessage(context).error(err, `Failure in ${reference}`);
-          throw InternalServerError();
         }
-      } else {
         throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch(err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
   },

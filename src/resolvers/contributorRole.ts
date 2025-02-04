@@ -3,6 +3,8 @@ import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 import { ContributorRole } from "../models/ContributorRole";
 import { MyContext } from '../context';
+import { isSuperAdmin } from '../services/authService';
+import { AuthenticationError, ForbiddenError, InternalServerError } from '../utils/graphQLErrors';
 
 // Extracting this particular query because we call it after mutations
 async function fetchContributorRole(dataSources, contributorRoleId): Promise<ContributorRole> {
@@ -14,18 +16,6 @@ async function fetchContributorRole(dataSources, contributorRoleId): Promise<Con
       })
       .catch(error => reject(error));
   });
-}
-
-// Generic error handler for mutations
-function handleMutationError(context, args) {
-  formatLogMessage(context).error(args);
-
-  return {
-    code: 400,
-    success: false,
-    message: args?.err?.message || 'Fatal error occurred while trying to run the query.',
-    contributorRole: null,
-  };
 }
 
 export const resolvers: Resolvers = {
@@ -53,57 +43,55 @@ export const resolvers: Resolvers = {
       const logMessage = `Resolving mutation addContributorRole`;
 
       try {
-        const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
-        const resp = await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder]);
+        // If the current user is a superAdmin or an Admin and this is their Affiliation
+        if (isSuperAdmin(context.token)) {
+          const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
+          const resp = await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder]);
 
-        formatLogMessage(context).debug(logArgs, logMessage);
+          formatLogMessage(context).debug(logArgs, logMessage);
 
-        const contributor = await fetchContributorRole(context.dataSources, resp.id);
-
-        return {
-          code: 201,
-          success: true,
-          message: `Successfully added ContributorRole ${resp.id}`,
-          contributorRole: contributor
-        };
+          return await fetchContributorRole(context.dataSources, resp.id);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        return handleMutationError(context, { err, ...logArgs });
+        formatLogMessage(context).error(err, 'Failure in updateAffiliation resolver');
+        throw InternalServerError();
       }
     },
     updateContributorRole: async (_, { id, url, label, displayOrder, description }, context) => {
       const logArgs = { id, url, label, displayOrder, description };
       const logMessage = `Resolving mutation updateContributorRole`;
       try {
-        const sql = 'UPDATE contributorRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
-        await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder, id]);
+        // If the current user is a superAdmin or an Admin and this is their Affiliation
+        if (isSuperAdmin(context.token)) {
+          const sql = 'UPDATE contributorRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
+          await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder, id]);
 
-        formatLogMessage(context).debug(logArgs, logMessage);
-        return {
-          code: 200,
-          success: true,
-          message: `Successfully updated ContributorRole ${id}`,
-          contributorRole: fetchContributorRole(context.dataSources, id),
-        };
+          formatLogMessage(context).debug(logArgs, logMessage);
+          return await fetchContributorRole(context.dataSources, id);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        return handleMutationError(context, { err, ...logArgs });
+        formatLogMessage(context).error(err, 'Failure in updateAffiliation resolver');
+        throw InternalServerError();
       }
     },
     removeContributorRole: async (_, { id }, context) => {
       const logMessage = `Resolving mutation removeContributorRole`;
       const original = fetchContributorRole(context.dataSources, id);
       try {
-        const sql = 'DELETE FROM contributorRoles WHERE id = ?';
-        await context.dataSources.sqlDataSource.query(context, sql, [id]);
+        // If the current user is a superAdmin or an Admin and this is their Affiliation
+        if (isSuperAdmin(context.token)) {
+          const sql = 'DELETE FROM contributorRoles WHERE id = ?';
+          await context.dataSources.sqlDataSource.query(context, sql, [id]);
 
-        formatLogMessage(context).debug({ id }, logMessage);
-        return {
-          code: 200,
-          success: true,
-          message: `Successfully removed ContributorRole ${id}`,
-          contributorRole: original,
-        };
+          formatLogMessage(context).debug({ id }, logMessage);
+          return original;
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        return handleMutationError(context, { err, id });
+        formatLogMessage(context).error(err, 'Failure in updateAffiliation resolver');
+        throw InternalServerError();
       }
     },
   },

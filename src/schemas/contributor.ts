@@ -41,7 +41,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ProjectContributorErrors
 
     "The research project"
     project: Project
@@ -72,7 +72,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: PlanContributorErrors
 
     "The Plan"
     plan: Plan
@@ -80,6 +80,25 @@ export const typeDefs = gql`
     ProjectContributor: ProjectContributor
     "The roles the contributor has for this specific plan (can differ from the project)"
     contributorRoles: [ContributorRole!]
+  }
+
+  "A collection of errors related to the ProjectContributor"
+  type ProjectContributorErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    projectId: String
+    orcid: String
+    email: String
+  }
+
+  "A collection of errors related to the PlanContributor"
+  type PlanContributorErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    planId: String
+    projectContributorId: String
   }
 
   input AddProjectContributorInput {

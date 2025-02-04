@@ -41,7 +41,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: TemplateErrors
 
     "The template that this one was derived from"
     sourceTemplateId: Int
@@ -68,5 +68,14 @@ export const typeDefs = gql`
 
     "Users from different affiliations who have been invited to collaborate on this template"
     collaborators: [TemplateCollaborator!]
+  }
+
+  "A collection of errors related to the Template"
+  type TemplateErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    name: String
+    ownerId: String
   }
 `;

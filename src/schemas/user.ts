@@ -64,7 +64,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: UserErrors
 
     "The user's first/given name"
     givenName: String
@@ -112,6 +112,16 @@ export const typeDefs = gql`
     emails: [UserEmail]
   }
 
+  "A collection of errors related to the User"
+  type UserErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    email: String
+    password: String
+    role: String
+  }
+
   type UserEmail {
     "The unique identifer for the Object"
     id: Int
@@ -124,7 +134,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: UserEmailErrors
 
     "The user the email belongs to"
     userId: Int!
@@ -134,6 +144,15 @@ export const typeDefs = gql`
     isConfirmed: Boolean!
     "Whether or not this is the primary email address"
     isPrimary: Boolean!
+  }
+
+  "A collection of errors related to the UserEmail"
+  type UserEmailErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    userId: String
+    email: String
   }
 
   input updateUserProfileInput {

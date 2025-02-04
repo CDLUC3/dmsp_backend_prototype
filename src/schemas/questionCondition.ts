@@ -54,7 +54,8 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: QuestionConditionErrors
+
     "The question id that the QuestionCondition belongs to"
     questionId: Int!
     "The action to take on a QuestionCondition"
@@ -65,7 +66,18 @@ export const typeDefs = gql`
     conditionMatch: String
     "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"
     target: String!
-}
+  }
+
+  "A collection of errors related to the QuestionCondition"
+  type QuestionConditionErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    questionId: String
+    action: String
+    conditionType: String
+    target: String
+  }
 
   "Input for adding a new QuestionCondition"
   input AddQuestionConditionInput {

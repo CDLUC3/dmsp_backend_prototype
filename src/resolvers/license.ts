@@ -4,7 +4,7 @@ import { Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_LICENSE_URL, License } from "../models/License";
 import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
-import { ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
+import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -23,7 +23,7 @@ export const resolvers: Resolvers = {
   Mutation: {
     // add a new ContributorRole
     addLicense: async (_, { name, uri, description, recommended }, context: MyContext) => {
-      if (isAuthorized(context.token)) {
+      if (isAdmin(context.token)) {
         try {
           const newLicense = new License({ name, uri, description, recommended});
           return await newLicense.create(context);
@@ -31,18 +31,15 @@ export const resolvers: Resolvers = {
           formatLogMessage(context).error(err, 'Failure in addLicense resolver');
           throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
     updateLicense: async (_, { uri, name, description, recommended }, context) => {
       // If the user is a an admin and its a DMPTool added standard (no updates to standards managed elsewhere!)
       if (isAdmin(context.token) && uri.startsWith(DEFAULT_DMPTOOL_LICENSE_URL)) {
         try {
           const license = await License.findByURI('updateLicense resolver', context, uri);
-          if (!license) {
-            throw NotFoundError();
-          }
+          if (!license) throw NotFoundError();
 
           const toUpdate = new License({ id: license.id, uri: license.uri, name, description, recommended });
           return await toUpdate.update(context);
@@ -50,18 +47,15 @@ export const resolvers: Resolvers = {
           formatLogMessage(context).error(err, 'Failure in updateLicense resolver');
           throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
     removeLicense: async (_, { uri }, context) => {
       // If the user is a an admin and its a DMPTool added standard (no removals of standards managed elsewhere!)
       if (isAdmin(context.token) && uri.startsWith(DEFAULT_DMPTOOL_LICENSE_URL)) {
         try {
           const license = await License.findByURI('removeLicense resolver', context, uri);
-          if (!license) {
-            throw NotFoundError();
-          }
+          if (!license) throw NotFoundError();
 
           // TODO: We should do a check to see if it has been used and then either NOT allow the deletion
           //       or notify that it is being done and to what DMPs
@@ -70,9 +64,8 @@ export const resolvers: Resolvers = {
           formatLogMessage(context).error(err, 'Failure in removeLicense resolver');
           throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
     mergeLicenses: async (_, { licenseToKeepId, licenseToRemoveId }, context) => {
       if (isSuperAdmin(context.token)) {

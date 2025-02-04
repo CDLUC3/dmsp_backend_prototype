@@ -23,18 +23,13 @@ export const resolvers: Resolvers = {
     // Add a collaborator to a Template
     //     - called from the Template options page
     addTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<TemplateCollaborator> => {
-      if (!isAuthorized(context?.token)) {
-        // Invalid token!
-        throw AuthenticationError();
-      }
-
       if (isAdmin(context.token)){
         const invitedById = context.token?.id;
         const collaborator = await new TemplateCollaborator({ templateId, email, invitedById });
         return await collaborator.create(context);
       }
-      // Unauthorized!
-      throw ForbiddenError();
+      // Unauthorized! or Forbidden
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // Remove a TemplateCollaborator from a Template
@@ -47,14 +42,12 @@ export const resolvers: Resolvers = {
           templateId,
           email
         );
-        if (collaborator) {
-          return await collaborator.delete(context);
-        }
+        if (collaborator) return await collaborator.delete(context);
 
         // Couldn't find the TemplateCollaborator
         throw NotFoundError();
       }
-      // Unauthorized!
+      // Unauthorized! or Forbidden
       throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },

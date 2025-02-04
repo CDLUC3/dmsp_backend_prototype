@@ -47,9 +47,7 @@ export const resolvers: Resolvers = {
         const reference = 'addProjectContributor resolver';
         try {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!project || !hasPermissionOnProject(context, project)) throw ForbiddenError();
 
           const newContributor = new ProjectContributor(input);
           const created = await newContributor.create(context, project.id);
@@ -60,9 +58,7 @@ export const resolvers: Resolvers = {
               // Add any ContributorRole associations
               for (const id of input.contributorRoleIds) {
                 const role = await ContributorRole.findById(reference, context, id);
-                if (role) {
-                  await role.addToProjectContributor(context, created.id);
-                }
+                if (role) await role.addToProjectContributor(context, created.id);
               }
             }
           }
@@ -71,9 +67,8 @@ export const resolvers: Resolvers = {
           formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
-      } else {
-        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     updateProjectContributor: async (_, { input }, context) => {
@@ -81,15 +76,11 @@ export const resolvers: Resolvers = {
         const reference = 'updateProjectContributor resolver';
         try {
           const contributor = await ProjectContributor.findById(reference, context, input.projectContributorId);
-          if (!contributor) {
-            throw NotFoundError();
-          }
+          if (!contributor) throw NotFoundError();
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, contributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
 
           const toUpdate = new ProjectContributor(input);
           toUpdate.projectId = contributor?.projectId;
@@ -98,11 +89,7 @@ export const resolvers: Resolvers = {
 
           if (updated && Array.isArray(updated.errors) && updated.errors.length === 0){
             // Fetch all of the current Roles associated with this Contirbutor
-            const roles = await ContributorRole.findByProjectContributorId(
-              reference,
-              context,
-              contributor.id
-            );
+            const roles = await ContributorRole.findByProjectContributorId(reference, context, contributor.id);
             const currentRoleids = roles ? roles.map((d) => d.id) : [];
 
             // Use the helper function to determine which Roles to keep
@@ -114,16 +101,12 @@ export const resolvers: Resolvers = {
             // Delete any Role associations that were removed
             for (const id of idsToBeRemoved) {
               const role = await ContributorRole.findById(reference, context, id);
-              if (role) {
-                role.removeFromProjectContributor(context, updated.id)
-              }
+              if (role) role.removeFromProjectContributor(context, updated.id)
             }
             // Add any new Role associations
             for (const id of idsToBeSaved) {
               const role = await ContributorRole.findById(reference, context, id);
-              if (role) {
-                role.addToProjectContributor(context, updated.id)
-              }
+              if (role) role.addToProjectContributor(context, updated.id)
             }
 
             // Reload since the roles may have changed
@@ -135,9 +118,8 @@ export const resolvers: Resolvers = {
           formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
-      } else {
-        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     removeProjectContributor: async (_, { projectContributorId }, context) => {
@@ -145,35 +127,20 @@ export const resolvers: Resolvers = {
         const reference = 'removeProjectContributor resolver';
         try {
           const contributor = await ProjectContributor.findById(reference, context, projectContributorId);
-          if (!contributor) {
-            throw NotFoundError();
-          }
+          if (!contributor) throw NotFoundError();
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, contributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
 
-          const deleted = await contributor.delete(context);
-
-          if (deleted && Array.isArray(contributor.contributorRoles)) {
-            // Now remove any contributorRole associations
-            for (const contributorRole of contributor.contributorRoles) {
-              const role = await ContributorRole.findById(reference, context, contributorRole.id);
-              if (role) {
-                await role.removeFromProjectContributor(context, deleted.id);
-              }
-            }
-          }
-          return deleted
+          // Any related contributorRoles will be automatically deleted within the DB
+          return await contributor.delete(context);
         } catch(err) {
           formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
-      } else {
-        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 

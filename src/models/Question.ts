@@ -40,10 +40,9 @@ export class Question extends MySqlModel {
     await super.isValid();
 
     if (!this.templateId) this.addError('templateId', 'Template can\'t be blank');
-
     if (!this.sectionId) this.addError('sectionId', 'Section can\'t be blank');
-
     if (!this.questionText) this.addError('questionText', 'Question text can\'t be blank');
+    if (!this.displayOrder) this.addError('displayOrder', 'Order number can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
   }

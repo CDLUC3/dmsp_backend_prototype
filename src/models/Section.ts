@@ -37,6 +37,7 @@ export class Section extends MySqlModel {
     await super.isValid();
 
     if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!this.displayOrder) this.addError('displayOrder', 'Order number can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
   }

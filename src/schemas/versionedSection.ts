@@ -29,7 +29,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: VersionedSectionErrors
 
     "The parent VersionedTemplate"
     versionedTemplate: VersionedTemplate!
@@ -50,5 +50,16 @@ export const typeDefs = gql`
 
     "The questions associated with this VersionedSection"
     versionedQuestions: [VersionedQuestion!]
+  }
+
+  "A collection of errors related to the VersionedSection"
+  type VersionedSectionErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    versionedTemplateId: String
+    sectionId: String
+    name: String
+    displayOrder: String
   }
 `;

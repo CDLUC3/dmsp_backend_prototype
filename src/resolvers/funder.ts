@@ -45,20 +45,16 @@ export const resolvers: Resolvers = {
         const reference = 'addprojectFunder resolver';
         try {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!project || !hasPermissionOnProject(context, project)) throw ForbiddenError();
 
           const newFunder = new ProjectFunder(input);
-          const created = await newFunder.create(context, project.id);
-          return created
+          return await newFunder.create(context, project.id);
         } catch(err) {
           formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
-      } else {
-        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     updateProjectFunder: async (_, { input }, context) => {
@@ -66,29 +62,23 @@ export const resolvers: Resolvers = {
         const reference = 'updateProjectFunder resolver';
         try {
           const funder = await ProjectFunder.findById(reference, context, input.projectFunderId);
-          if (!funder) {
-            throw NotFoundError();
-          }
+          if (!funder) throw NotFoundError();
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, funder.projectId);
-          if (!hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
 
           const toUpdate = new ProjectFunder(input);
           toUpdate.projectId = funder?.projectId;
           toUpdate.id = funder?.id;
           toUpdate.affiliationId = funder.affiliationId;
-          const updated = await toUpdate.update(context);
-          return updated;
+          return await toUpdate.update(context);
         } catch(err) {
           formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
-      } else {
-        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     removeProjectFunder: async (_, { projectFunderId }, context) => {
@@ -96,25 +86,19 @@ export const resolvers: Resolvers = {
         const reference = 'removeProjectFunder resolver';
         try {
           const funder = await ProjectFunder.findById(reference, context, projectFunderId);
-          if (!funder) {
-            throw NotFoundError();
-          }
+          if (!funder) throw NotFoundError();
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, funder.projectId);
-          if (!hasPermissionOnProject(context, project)) {
-            throw ForbiddenError();
-          }
+          if (!hasPermissionOnProject(context, project)) throw ForbiddenError();
 
-          const deleted = await funder.delete(context);
-          return deleted
+          return await funder.delete(context);
         } catch(err) {
           formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
-      } else {
-        throw context?.token ? ForbiddenError() : AuthenticationError();
       }
+      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 

@@ -59,6 +59,17 @@ export const typeDefs = gql`
   type Affiliation {
     "The unique identifer for the affiliation (assigned by the Database)"
     id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: String
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: String
+    "Any errors with the Object"
+    errors: AffiliationErrors
+
     "The unique identifer for the affiliation (assigned by the provenance e.g. https://ror.org/12345)"
     uri: String!
     "Whether or not the affiliation is active. Inactive records should not appear in typeaheads!"
@@ -107,6 +118,18 @@ export const typeDefs = gql`
     feedbackEmails: [String!]
     "The properties of this object that are NOT editable. Determined by the record's provenance"
     uneditableProperties: [String!]!
+  }
+
+  "A collection of errors related to the Affiliation"
+  type AffiliationErrors {
+    "General error messages such as affiliation already exists"
+    general: String
+
+    uri: String
+    name: String
+    displayName: String
+    searchName: String
+    provenance: String
   }
 
   "Input for a hyperlink displayed in the sub-header of the UI for the afiliation's users"

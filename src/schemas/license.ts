@@ -35,7 +35,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: LicenseErrors
 
     "The name of the license"
     name: String!
@@ -45,5 +45,14 @@ export const typeDefs = gql`
     description: String
     "Whether or not the license is recommended"
     recommended: Boolean!
+  }
+
+  "A collection of errors related to the License"
+  type LicenseErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    name: String
+    uri: String
   }
 `;

@@ -49,7 +49,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ProjectFunderErrors
 
     "The project that is seeking (or has aquired) funding"
     project: Project
@@ -91,5 +91,15 @@ export const typeDefs = gql`
     grantId: String
     "The funder's unique id/url for the call for submissions to apply for a grant"
     funderOpportunityNumber: String
+  }
+
+  "A collection of errors related to the ProjectFunder"
+  type ProjectFunderErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    projectId: String
+    affiliationId: String
+    status: String
   }
 `;

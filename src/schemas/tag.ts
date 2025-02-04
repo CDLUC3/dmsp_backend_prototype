@@ -29,11 +29,19 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
-    
+    errors: TagErrors
+
     "The tag name"
     name: String!
     "The tag description"
     description: String
+  }
+
+  "A collection of errors related to the Tag"
+  type TagErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    name: String
   }
 `;

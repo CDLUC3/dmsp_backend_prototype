@@ -30,7 +30,7 @@ type QuestionOption {
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: QuestionOptionErrors
 
     "The question id that the QuestionOption belongs to"
     questionId: Int!
@@ -42,6 +42,16 @@ type QuestionOption {
     isDefault: Boolean
 
 }
+
+"A collection of errors related to the QuestionOption"
+type QuestionOptionErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    questionId: String
+    orderNumber: String
+    text: String
+  }
 
 "Input for Question options operations"
 input QuestionOptionInput {

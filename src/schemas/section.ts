@@ -30,7 +30,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: SectionErrors
 
     "The template that the section is associated with"
     template: Template
@@ -53,6 +53,15 @@ export const typeDefs = gql`
 
     "The questions associated with this section"
     questions: [Question!]
+  }
+
+  "A collection of errors related to the Section"
+  type SectionErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    name: String
+    displayOrder: String
   }
 
   "Input for adding a new section"
