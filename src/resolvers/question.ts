@@ -178,8 +178,6 @@ export const resolvers: Resolvers = {
             }
           });
 
-          console.log("***OPTIONS TO UPDATE", optionsToUpdate);
-          console.log("***OPTIONS TO Create", optionsToCreate);
           // Update existing options
           if (optionsToUpdate.length > 0) {
             await Promise.all(

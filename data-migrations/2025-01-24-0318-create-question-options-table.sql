@@ -8,7 +8,5 @@ CREATE TABLE `questionOptions` (
   `createdById` int,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` int,
-  CONSTRAINT unique_question_option_text UNIQUE (`questionId`, `text`),
-  CONSTRAINT unique_question_option_orderNumber UNIQUE (`questionId`, `orderNumber`),
   FOREIGN KEY (questionId) REFERENCES questions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
