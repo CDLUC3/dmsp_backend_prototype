@@ -5,6 +5,7 @@ import { DEFAULT_DMPTOOL_LICENSE_URL, License } from "../models/License";
 import { MyContext } from '../context';
 import { isAdmin, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
+import { GraphQLError } from 'graphql';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -62,8 +63,10 @@ export const resolvers: Resolvers = {
           return newLicense;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
-        formatLogMessage(context).error(err, reference);
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -83,7 +86,9 @@ export const resolvers: Resolvers = {
           return await toUpdate.update(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -105,7 +110,9 @@ export const resolvers: Resolvers = {
           return await license.delete(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -148,7 +155,9 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, reference);
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },

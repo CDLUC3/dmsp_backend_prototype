@@ -7,6 +7,7 @@ import { QuestionCondition } from "../models/QuestionCondition";
 import { formatLogMessage } from "../logger";
 import { isAdmin, isAuthorized } from "../services/authService";
 import { hasPermissionOnSection } from "../services/sectionService";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -19,6 +20,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -26,13 +29,16 @@ export const resolvers: Resolvers = {
 
     // return a specific question
     question: async (_, { questionId }, context: MyContext): Promise<Question> => {
+      const reference = 'question resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await Question.findById('section resolver', context, questionId);
+          return await Question.findById(reference, context, questionId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, 'Failure in question resolver');
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     }
@@ -106,6 +112,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -202,6 +210,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -228,6 +238,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

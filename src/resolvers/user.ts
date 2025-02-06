@@ -9,6 +9,7 @@ import { defaultLanguageId } from "../models/Language";
 import { anonymizeUser, mergeUsers } from "../services/userService";
 import { processOtherAffiliationName } from "../services/affiliationService";
 import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -21,6 +22,8 @@ export const resolvers: Resolvers = {
         }
         throw AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -37,6 +40,8 @@ export const resolvers: Resolvers = {
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -60,6 +65,8 @@ export const resolvers: Resolvers = {
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

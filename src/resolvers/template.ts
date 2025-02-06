@@ -13,6 +13,7 @@ import { isAdmin, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -26,6 +27,8 @@ export const resolvers: Resolvers = {
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -40,7 +43,7 @@ export const resolvers: Resolvers = {
           const template = await Template.findById(reference, context, templateId);
           if (template) {
             // Verify that the current user has permission to access the Template
-            if (hasPermissionOnTemplate(context, template)) {
+            if (await hasPermissionOnTemplate(context, template)) {
               return template;
             }
             throw ForbiddenError();
@@ -50,6 +53,8 @@ export const resolvers: Resolvers = {
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -123,6 +128,8 @@ export const resolvers: Resolvers = {
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -143,7 +150,7 @@ export const resolvers: Resolvers = {
           templateInstance.bestPractice = isSuperAdmin(context.token) ? bestPractice : template.bestPractice;
 
           if (templateInstance) {
-            if (hasPermissionOnTemplate(context, template)) {
+            if (await hasPermissionOnTemplate(context, template)) {
               // Update the fields and then save
               templateInstance.name = name;
               templateInstance.visibility = TemplateVisibility[visibility];
@@ -159,6 +166,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -178,7 +187,7 @@ export const resolvers: Resolvers = {
           const templateInstance = new Template({ ...template });
 
           if (templateInstance) {
-            if (hasPermissionOnTemplate(context, template)) {
+            if (await hasPermissionOnTemplate(context, template)) {
               const deleted = await templateInstance.delete(context);
               if (!deleted) {
                 templateInstance.addError('general', 'Unable to delete Template');
@@ -190,6 +199,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -206,7 +217,7 @@ export const resolvers: Resolvers = {
           const templateInstance = new Template({ ...template });
 
           if (templateInstance) {
-            if (hasPermissionOnTemplate(context, template)) {
+            if (await hasPermissionOnTemplate(context, template)) {
               const versions = await VersionedTemplate.findByTemplateId(reference, context, templateId);
 
               const versionedTemplate = await generateTemplateVersion(
@@ -234,6 +245,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

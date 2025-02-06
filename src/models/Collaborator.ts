@@ -68,45 +68,30 @@ export class TemplateCollaborator extends Collaborator {
       );
 
       if (currentCollaborator) {
-        this.addError('general', 'Collaborator has already been added');
+        currentCollaborator.addError('general', 'Collaborator has already been added');
+        return currentCollaborator
       } else {
-        // Verify that the template we want to attach the collaborator to exists!
-        const templateExists = await Template.exists(
-          context,
-          'templates',
-          this.templateId,
-          reference
-        );
+        // See if the user already has an account, if so grab their id
+        const user = await User.findByEmail(reference, context, this.email);
+        this.userId = user?.id;
 
-        if (!templateExists) {
-          this.addError('general', 'Template does not exist');
-        } else {
-          // See if the user already has an account, if so grab their id
-          const user = await User.findByEmail(reference, context, this.email);
-          this.userId = user?.id;
+        // Set the inviter's Id to the current user
+        this.invitedById = context.token?.id;
 
-          // Set the inviter's Id to the current user
-          this.invitedById = context.token?.id;
+        // Save the record and then fetch it
+        const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
+        if (newId) {
+          const inviter = await User.findById(reference, context, this.invitedById);
+          const template = await Template.findById(reference, context, this.templateId);
 
-          // Save the record and then fetch it
-          const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
-          if (newId) {
-            const inviter = await User.findById(reference, context, this.invitedById);
-            const template = await Template.findById(reference, context, this.templateId);
-            // Send out the invitation notification (no async here, can happen in the background)
-            await sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId);
+          // Send out the invitation notification (no async here, can happen in the background)
+          await sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId)
 
-            return await TemplateCollaborator.findByTemplateIdAndEmail(
-              reference,
-              context,
-              this.templateId,
-              this.email,
-            );
-          }
-          return null;
+          return await TemplateCollaborator.findById(reference, context, newId);
         }
       }
     }
+
     // Otherwise return as-is with all the errors
     return this;
   }
@@ -138,14 +123,16 @@ export class TemplateCollaborator extends Collaborator {
   }
 
   // Remove this record
-  async delete(context: MyContext): Promise<boolean> {
-    if (this.id) {
+  async delete(context: MyContext): Promise<TemplateCollaborator> {
+    const existing = await TemplateCollaborator.findById('TemplateCollaborator.delete', context, this.id);
+    if (existing) {
       const result = await TemplateCollaborator.delete(context, this.tableName, this.id, 'TemplateCollaborator.delete');
-      if (result) {
-        return true;
+      if (!result) {
+        existing.addError('general', 'Unable to delete the collaborator');
       }
+      return existing;
     }
-    return false;
+    return null;
   }
 
   // Get all of the collaborators for the specified Template

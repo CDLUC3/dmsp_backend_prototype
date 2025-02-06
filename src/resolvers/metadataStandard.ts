@@ -6,6 +6,7 @@ import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
+import { GraphQLError } from 'graphql';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -73,7 +74,9 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, reference);
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -148,7 +151,9 @@ export const resolvers: Resolvers = {
           return updated;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -173,7 +178,9 @@ export const resolvers: Resolvers = {
           return deleted
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -220,8 +227,10 @@ export const resolvers: Resolvers = {
           return toKeep;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
-        formatLogMessage(context).error(err, 'Failure in removeMetadataStandard resolver');
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },

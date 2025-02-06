@@ -10,6 +10,7 @@ import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
 import { OutputType } from '../models/OutputType';
+import { GraphQLError } from 'graphql';
 
 // Process updates to the Repository associations
 async function processRepositoryUpdates(
@@ -107,10 +108,14 @@ export const resolvers: Resolvers = {
     outputTypes: async (_, __, context: MyContext): Promise<OutputType[]> => {
       const reference = 'outputTypes resolver';
       try {
-        if (isAuthorized(context.token)) return await OutputType.all(reference, context);
+        if (isAuthorized(context.token)) {
+          return await OutputType.all(reference, context);
+        }
 
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -129,6 +134,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -142,10 +149,14 @@ export const resolvers: Resolvers = {
           const projectFunder = await ProjectOutput.findById(reference, context, projectOutputId);
           const project = await Project.findById(reference, context, projectFunder.projectId);
 
-          if (project && hasPermissionOnProject(context, project)) return projectFunder;
+          if (project && hasPermissionOnProject(context, project)) {
+            return projectFunder;
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -208,6 +219,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -271,7 +284,9 @@ export const resolvers: Resolvers = {
           return updated;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -299,7 +314,9 @@ export const resolvers: Resolvers = {
           return deleted
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

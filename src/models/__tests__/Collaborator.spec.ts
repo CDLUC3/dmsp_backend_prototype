@@ -107,236 +107,6 @@ describe('TemplateCollaborator', () => {
     expect(collaborator.errors['templateId']).toBeTruthy()
   });
 
-  describe('create', () => {
-    const originalFindByTemplateIdAndEmail = TemplateCollaborator.findByTemplateIdAndEmail;
-
-    let insertQuery;
-    let collaborator;
-
-    beforeEach(() => {
-      insertQuery = jest.fn();
-      (TemplateCollaborator.insert as jest.Mock) = insertQuery;
-
-      collaborator = new TemplateCollaborator({
-        createdById: casual.integer(1, 999),
-        templateId: casual.integer(1, 999),
-        email: casual.email,
-      });
-
-      const mockNotification = jest.fn();
-      (sendTemplateCollaborationEmail as jest.Mock) = mockNotification;
-    });
-
-    afterEach(() => {
-      jest.resetAllMocks();
-      TemplateCollaborator.findByTemplateIdAndEmail = originalFindByTemplateIdAndEmail;
-    })
-
-    it('returns the TemplateCollaborator with errors if it is not valid', async () => {
-      const localValidator = jest.fn();
-      (collaborator.isValid as jest.Mock) = localValidator;
-      localValidator.mockResolvedValueOnce(false);
-
-      expect(await collaborator.create(context)).toBe(collaborator);
-      expect(localValidator).toHaveBeenCalledTimes(1);
-    });
-
-    it('returns the TemplateCollaborator with an error if the template already has that email', async () => {
-      const localValidator = jest.fn();
-      (collaborator.isValid as jest.Mock) = localValidator;
-      localValidator.mockResolvedValueOnce(true);
-
-      const mockFindBy = jest.fn();
-      (TemplateCollaborator.findByTemplateIdAndEmail as jest.Mock) = mockFindBy;
-      mockFindBy.mockResolvedValueOnce(collaborator);
-
-      const result = await collaborator.create(context);
-      expect(localValidator).toHaveBeenCalledTimes(1);
-      expect(mockFindBy).toHaveBeenCalledTimes(1);
-      expect(Object.keys(result.errors).length).toBe(1);
-      expect(result.errors['general']).toBeTruthy();
-    });
-
-    it('returns the TemplateCollaborator with an error is the Tempate doesn\'t exist', async () => {
-      const localValidator = jest.fn();
-      (collaborator.isValid as jest.Mock) = localValidator;
-      localValidator.mockResolvedValueOnce(true);
-
-      const mockFindBy = jest.fn();
-      (TemplateCollaborator.findByTemplateIdAndEmail as jest.Mock) = mockFindBy;
-      mockFindBy.mockResolvedValue(null);
-
-      const mockExists = jest.fn();
-      (Template.exists as jest.Mock) = mockExists;
-      mockExists.mockResolvedValueOnce(false);
-
-      const result = await collaborator.create(context);
-      expect(localValidator).toHaveBeenCalledTimes(1);
-      expect(mockFindBy).toHaveBeenCalledTimes(1);
-      expect(mockExists).toHaveBeenCalledTimes(1);
-
-      expect(Object.keys(result.errors).length).toBe(1);
-      expect(result.errors['general']).toBeTruthy();
-    });
-
-    it('returns the newly added TemplateCollaborator', async () => {
-      const localValidator = jest.fn();
-      (collaborator.isValid as jest.Mock) = localValidator;
-      localValidator.mockResolvedValueOnce(true);
-
-      const mockFindBy = jest.fn();
-      (TemplateCollaborator.findByTemplateIdAndEmail as jest.Mock) = mockFindBy;
-      mockFindBy.mockResolvedValueOnce(null);
-      mockFindBy.mockResolvedValue(collaborator);
-
-      const mockUser = jest.fn();
-      (User.findByEmail as jest.Mock) = mockUser;
-      mockUser.mockResolvedValueOnce(null);
-
-      const mockExists = jest.fn();
-      (Template.exists as jest.Mock) = mockExists;
-      mockExists.mockResolvedValueOnce(true);
-
-      const tName = casual.sentence;
-      const mockFindTemplateById = jest.fn().mockResolvedValueOnce(new Template({ name: tName }));
-      (Template.findById as jest.Mock) = mockFindTemplateById;
-
-      const inviter = new User({ givenName: casual.first_name, surName: casual.last_name });
-      const mockFindUserById = jest.fn().mockResolvedValueOnce(inviter);
-      (User.findById as jest.Mock) = mockFindUserById;
-
-      const mockSendEmail = jest.fn();
-      (sendTemplateCollaborationEmail as jest.Mock) = mockSendEmail;
-
-      insertQuery.mockResolvedValueOnce(casual.integer(1, 999));
-
-      const result = await collaborator.create(context);
-      expect(localValidator).toHaveBeenCalledTimes(1);
-      expect(mockFindBy).toHaveBeenCalledTimes(2);
-      expect(mockExists).toHaveBeenCalledTimes(1);
-      expect(insertQuery).toHaveBeenCalledTimes(1);
-      expect(mockSendEmail).toHaveBeenCalledWith(
-        context, tName, inviter.getName(), collaborator.email, collaborator.userId
-      );
-      expect(Object.keys(result.errors).length).toBe(0);
-      expect(result).toEqual(collaborator);
-    });
-  });
-
-  describe('update', () => {
-    const originalUpdate = TemplateCollaborator.update;
-
-    let updateQuery;
-    let collaborator;
-
-    beforeEach(() => {
-      jest.resetAllMocks();
-      updateQuery = jest.fn();
-      (TemplateCollaborator.update as jest.Mock) = updateQuery;
-
-      collaborator = new TemplateCollaborator({
-        id: casual.integer(1, 99),
-        createdById: casual.integer(1, 999),
-        templateId: casual.integer(1, 999),
-        email: casual.email,
-      })
-    });
-
-    afterEach(() => {
-      jest.clearAllMocks();
-      TemplateCollaborator.update = originalUpdate;
-    });
-
-    it('returns the TemplateCollaborator with errors if it is not valid', async () => {
-      const localValidator = jest.fn();
-      (collaborator.isValid as jest.Mock) = localValidator;
-      localValidator.mockResolvedValueOnce(false);
-
-      expect(await collaborator.update(context)).toBe(collaborator);
-      expect(localValidator).toHaveBeenCalledTimes(1);
-    });
-
-    it('returns an error if the TemplateCollaborator has no id', async () => {
-      const localValidator = jest.fn();
-      (collaborator.isValid as jest.Mock) = localValidator;
-      localValidator.mockResolvedValueOnce(true);
-
-      collaborator.id = null;
-      const result = await collaborator.update(context);
-      expect(Object.keys(result.errors).length).toBe(1);
-      expect(result.errors['general']).toBeTruthy();
-    });
-
-    it('returns the TemplateCollaborator with an error is the Tempate doesn\'t exist', async () => {
-      const localValidator = jest.fn();
-      (collaborator.isValid as jest.Mock) = localValidator;
-      localValidator.mockResolvedValueOnce(true);
-
-      const mockExists = jest.fn();
-      (Template.exists as jest.Mock) = mockExists;
-      mockExists.mockResolvedValueOnce(false);
-
-      const result = await collaborator.update(context);
-      expect(localValidator).toHaveBeenCalledTimes(1);
-      expect(mockExists).toHaveBeenCalledTimes(1);
-      expect(Object.keys(result.errors).length).toBe(1);
-      expect(result.errors['general']).toBeTruthy();
-    });
-
-    it('returns the updated TemplateCollaborator', async () => {
-      const localValidator = jest.fn();
-      (collaborator.isValid as jest.Mock) = localValidator;
-      localValidator.mockResolvedValueOnce(true);
-
-      const mockExists = jest.fn();
-      (Template.exists as jest.Mock) = mockExists;
-      mockExists.mockResolvedValueOnce(true);
-
-      updateQuery.mockResolvedValueOnce(collaborator);
-
-      const result = await collaborator.update(context);
-      expect(localValidator).toHaveBeenCalledTimes(1);
-      expect(mockExists).toHaveBeenCalledTimes(1);
-      expect(updateQuery).toHaveBeenCalledTimes(1);
-      expect(Object.keys(result.errors).length).toBe(0);
-      expect(result).toEqual(collaborator);
-    });
-  });
-
-  describe('delete', () => {
-    let collaborator;
-
-    beforeEach(() => {
-      collaborator = new TemplateCollaborator({
-        id: casual.integer(1, 99),
-        createdById: casual.integer(1, 999),
-        templateId: casual.integer(1, 999),
-        email: casual.email,
-      });
-    })
-
-    it('returns false if the TemplateCollaborator has no id', async () => {
-      collaborator.id = null;
-      expect(await collaborator.delete(context)).toBe(false);
-    });
-
-    it('returns false if it was not able to delete the record', async () => {
-      const deleteQuery = jest.fn();
-      (TemplateCollaborator.delete as jest.Mock) = deleteQuery;
-
-      deleteQuery.mockResolvedValueOnce(null);
-      expect(await collaborator.delete(context)).toBe(false);
-    });
-
-    it('returns true if it was able to delete the record', async () => {
-      const deleteQuery = jest.fn();
-      (TemplateCollaborator.delete as jest.Mock) = deleteQuery;
-
-      deleteQuery.mockResolvedValueOnce(collaborator);
-      expect(await collaborator.delete(context)).toBe(true);
-    });
-  });
-
   describe('findBy queries', () => {
     const originalQuery = TemplateCollaborator.query;
 
@@ -467,5 +237,203 @@ describe('TemplateCollaborator', () => {
       expect(result).toEqual(null);
     });
 
+  });
+
+  describe('create', () => {
+    const originalFindByTemplateIdAndEmail = TemplateCollaborator.findByTemplateIdAndEmail;
+
+    let insertQuery;
+    let collaborator;
+
+    beforeEach(() => {
+      insertQuery = jest.fn();
+      (TemplateCollaborator.insert as jest.Mock) = insertQuery;
+
+      collaborator = new TemplateCollaborator({
+        createdById: casual.integer(1, 999),
+        templateId: casual.integer(1, 999),
+        email: casual.email,
+      });
+
+      const mockNotification = jest.fn();
+      (sendTemplateCollaborationEmail as jest.Mock) = mockNotification;
+    });
+
+    afterEach(() => {
+      jest.resetAllMocks();
+      TemplateCollaborator.findByTemplateIdAndEmail = originalFindByTemplateIdAndEmail;
+    })
+
+    it('returns the TemplateCollaborator with errors if it is not valid', async () => {
+      const localValidator = jest.fn();
+      (collaborator.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(false);
+
+      expect(await collaborator.create(context)).toBe(collaborator);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns the TemplateCollaborator with an error if the template already has that email', async () => {
+      const localValidator = jest.fn();
+      (collaborator.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(true);
+
+      const mockFindBy = jest.fn();
+      (TemplateCollaborator.findByTemplateIdAndEmail as jest.Mock) = mockFindBy;
+      mockFindBy.mockResolvedValueOnce(collaborator);
+
+      const result = await collaborator.create(context);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+      expect(mockFindBy).toHaveBeenCalledTimes(1);
+      expect(Object.keys(result.errors).length).toBe(1);
+      expect(result.errors['general']).toBeTruthy();
+    });
+
+    it('returns the newly added TemplateCollaborator', async () => {
+      const localValidator = jest.fn();
+      (collaborator.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(true);
+
+      const mockFindBy = jest.fn();
+      (TemplateCollaborator.findByTemplateIdAndEmail as jest.Mock) = mockFindBy;
+      mockFindBy.mockResolvedValue(null);
+
+      const mockUser = jest.fn();
+      (User.findByEmail as jest.Mock) = mockUser;
+      mockUser.mockResolvedValueOnce(null);
+
+      insertQuery.mockResolvedValueOnce(casual.integer(1, 999));
+
+      const inviter = new User({ givenName: casual.first_name, surName: casual.last_name });
+      const mockFindUserById = jest.fn().mockResolvedValueOnce(inviter);
+      (User.findById as jest.Mock) = mockFindUserById;
+
+      const tName = casual.sentence;
+      const mockFindTemplateById = jest.fn().mockResolvedValueOnce(new Template({ name: tName }));
+      (Template.findById as jest.Mock) = mockFindTemplateById;
+
+      const mockSendEmail = jest.fn();
+      (sendTemplateCollaborationEmail as jest.Mock) = mockSendEmail;
+
+      const mockFindById = jest.fn();
+      (TemplateCollaborator.findById as jest.Mock) = mockFindById;
+      mockFindById.mockResolvedValue(collaborator);
+
+      const result = await collaborator.create(context);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+      expect(mockFindBy).toHaveBeenCalledTimes(1);
+      expect(insertQuery).toHaveBeenCalledTimes(1);
+      expect(mockSendEmail).toHaveBeenCalledWith(
+        context, tName, inviter.getName(), collaborator.email, collaborator.userId
+      );
+      expect(Object.keys(result.errors).length).toBe(0);
+      expect(result).toEqual(collaborator);
+    });
+  });
+
+  describe('update', () => {
+    const originalUpdate = TemplateCollaborator.update;
+
+    let updateQuery;
+    let collaborator;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+      updateQuery = jest.fn();
+      (TemplateCollaborator.update as jest.Mock) = updateQuery;
+
+      collaborator = new TemplateCollaborator({
+        id: casual.integer(1, 99),
+        createdById: casual.integer(1, 999),
+        templateId: casual.integer(1, 999),
+        email: casual.email,
+      })
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+      TemplateCollaborator.update = originalUpdate;
+    });
+
+    it('returns the TemplateCollaborator with errors if it is not valid', async () => {
+      const localValidator = jest.fn();
+      (collaborator.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(false);
+
+      expect(await collaborator.update(context)).toBe(collaborator);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns an error if the TemplateCollaborator has no id', async () => {
+      const localValidator = jest.fn();
+      (collaborator.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(true);
+
+      collaborator.id = null;
+      const result = await collaborator.update(context);
+      expect(Object.keys(result.errors).length).toBe(1);
+      expect(result.errors['general']).toBeTruthy();
+    });
+
+    it('returns the updated TemplateCollaborator', async () => {
+      const localValidator = jest.fn();
+      (collaborator.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(true);
+
+      updateQuery.mockResolvedValueOnce(collaborator);
+
+      const result = await collaborator.update(context);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+      expect(updateQuery).toHaveBeenCalledTimes(1);
+      expect(Object.keys(result.errors).length).toBe(0);
+      expect(result).toEqual(collaborator);
+    });
+  });
+
+  describe('delete', () => {
+    let collaborator;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+
+      collaborator = new TemplateCollaborator({
+        id: casual.integer(1, 99),
+        createdById: casual.integer(1, 999),
+        templateId: casual.integer(1, 999),
+        email: casual.email,
+      });
+    })
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('returns null if the TemplateCollaborator has no id', async () => {
+      collaborator.id = null;
+      expect(await collaborator.delete(context)).toBe(null);
+    });
+
+    it('returns the original record with an error if it was not able to delete the record', async () => {
+      const deleteQuery = jest.fn();
+      const findQuery = jest.fn();
+      (TemplateCollaborator.findById as jest.Mock) = findQuery;
+      (TemplateCollaborator.delete as jest.Mock) = deleteQuery;
+
+      findQuery.mockResolvedValueOnce(collaborator);
+      deleteQuery.mockResolvedValueOnce(null);
+      const result = await collaborator.delete(context);
+      expect(result.errors?.general).toBeDefined();
+    });
+
+    it('returns the original record if it was able to delete the record', async () => {
+      const findQuery = jest.fn();
+      const deleteQuery = jest.fn();
+      (TemplateCollaborator.findById as jest.Mock) = findQuery;
+      (TemplateCollaborator.delete as jest.Mock) = deleteQuery;
+
+      findQuery.mockResolvedValueOnce(collaborator);
+      deleteQuery.mockResolvedValueOnce(collaborator);
+      expect(await collaborator.delete(context)).toBe(collaborator);
+    });
   });
 });

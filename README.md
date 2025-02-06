@@ -16,6 +16,7 @@
     - [Running the App](#running-the-app)
     - [Building for Production](#building-for-production)
     - [Managing the database](#managing-the-database)
+- [Querying the Apollo Server](#querying-apollo-server)
 - [Development](#development)
     - [Data Model](#data-model)
     - [Adding or updating GraphQL functionality](#adding-or-updating-graphql-functionality)
@@ -234,6 +235,19 @@ NEVER EVER do this in production! You will lose ALL data.
 - Drop the tables: `./data-migrations/nuke-db.sh`
 - Rebuild the tables and seed them: `./data-migrations/process.sh`
 
+## Querying Apollo Server
+
+You can interact with the Apollo server from your external system by submitting requests to any of the server's GraphQL queries or mutations.
+
+Please review the latest [GraphQL Schema files](https://github.com/CDLUC3/dmsp_backend_prototype/tree/main/src/schemas) for a list of the the up-to-date data types, queries and mutations available.
+
+### If your system is written in JS or TS
+
+We recommend making use of the [official Apollo Client](https://www.apollographql.com/docs/react) to handle communications with this Apollo server implementation.
+
+You can also run `npm run generate` on this repository to generate the `src/types.ts` file and import the types into your application.
+
+
 ## Development
 
 The local development environment is encapsulated within a docker container. To build and run the development Docker containers:
@@ -257,8 +271,8 @@ The DynamoDB Table (aka the DMPHub) stores the metadata for a DMP in the [DMP Me
 The MySQL database stores everything else (Templates, Guidance, Plan Feedback, Users, Affiliations, etc.). It also maintains a projectDOIs table that links Projects to the Plan DOIs to facilitate access to the DMPs stored in the DynamoDB table.
 
 The links for the data model images won't work until we have them in the `main` branch, so adding placeholders for now. Once merged we can come back and update these to display the images
-- Placeholder for Data Model image for Templates/Guidance
-- Placeholder for Data Model image for Projects/Plans
+- ![Templates and Guidance](https://github.com/CDLUC3/dmsp_backend_prototype/blob/9ef9b8ae5e4f380663da90a71ad40ccb35b66310/docs/data-model-templates.png)
+- ![Projects and Plans](https://github.com/CDLUC3/dmsp_backend_prototype/blob/9ef9b8ae5e4f380663da90a71ad40ccb35b66310/docs/data-model-projects.png)
 
 
 ### Adding or updating GraphQL functionality
@@ -391,13 +405,11 @@ TODO: update with documentation on how to provide translation support for DB bas
 
 ### Tests
 
-You MUST add unit tests if you added or modified a Model! To do so, find the corresponding file (or add a new one) in the `src/models/__tests_/` directory. We appreciate unit tests everywhere else too!
+You should try to add unit tests any time you add or modify a file! To do so, find the corresponding file (or add a new one) in the `src/models/__tests_/` directory. We appreciate unit tests everywhere else too!
 
-Resolver tests are not yet particularly useful. We will be updating this to add these integration tests in the near future.
+Resolver tests make use of mocks to simulate interaction with datasources. These mocks can be found in `src/models/__mocks__`. By using these mocks we are able to perform end-to-end integration testing.
 
 To run the unit tests `npm run test`
-
-To run the functional tests `npm run mocha`
 
 ## Environment variables
 

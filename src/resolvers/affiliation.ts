@@ -4,6 +4,7 @@ import { Affiliation, AffiliationSearch, AffiliationType, DEFAULT_DMPTOOL_AFFILI
 import { isAdmin, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -16,7 +17,7 @@ export const resolvers: Resolvers = {
     affiliations: async (_, { name, funderOnly }, context: MyContext): Promise<AffiliationSearch[]> => {
       const reference = 'affiliations resolver';
       try {
-        return AffiliationSearch.search(context, { name, funderOnly });
+        return await AffiliationSearch.search(context, { name, funderOnly });
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
@@ -27,7 +28,7 @@ export const resolvers: Resolvers = {
     affiliationById: async (_, { affiliationId }, context: MyContext): Promise<Affiliation> => {
       const reference = 'affiliationById resolver';
       try {
-        return Affiliation.findById(reference, context, affiliationId);
+        return await Affiliation.findById(reference, context, affiliationId);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
@@ -38,7 +39,7 @@ export const resolvers: Resolvers = {
     affiliationByURI: async (_, { uri }, context: MyContext): Promise<Affiliation> => {
       const reference = 'affiliationByURI resolver';
       try {
-        return Affiliation.findByURI(reference, context, uri);
+        return await Affiliation.findByURI(reference, context, uri);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
@@ -64,6 +65,8 @@ export const resolvers: Resolvers = {
         }
         return affiliation;
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -73,21 +76,18 @@ export const resolvers: Resolvers = {
     updateAffiliation: async (_, { input }, context: MyContext): Promise<Affiliation> => {
       const reference = 'updateAffiliation resolver';
       try {
+        let existing = await Affiliation.findById(reference, context, input.id);
+        existing = existing || await Affiliation.findByURI(reference, context, input.uri);
+
+        // If the record doesn't exist
+        if (!existing) {
+          throw NotFoundError();
+        }
+
         // If the current user is a superAdmin or an Admin and this is their Affiliation
-        if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.uri === input.uri)) {
-          const existing = await Affiliation.findByURI(reference, context, input.uri);
+        if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.affiliationId === existing.uri)) {
+          const affiliation = new Affiliation({ ...existing, ...input });
 
-          // If the URI already exists, throw an error
-          if (!existing) {
-            throw NotFoundError();
-          }
-
-          const affiliation = new Affiliation(input);
-
-          // Only allow name changes if the affiliation is manaed by the DMPTool
-          if (!existing.uri.startsWith(DEFAULT_DMPTOOL_AFFILIATION_URL)) {
-            affiliation.name = existing.name;
-          }
           // Since we pass around the URI for affiliations instead of the id we need to set it here
           if (!affiliation.id) {
             affiliation.id = existing.id;
@@ -97,6 +97,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -122,6 +124,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

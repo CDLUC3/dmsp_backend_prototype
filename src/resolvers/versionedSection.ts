@@ -8,6 +8,7 @@ import { ForbiddenError, AuthenticationError, InternalServerError } from "../uti
 import { hasPermissionOnSection } from "../services/sectionService";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -25,6 +26,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -36,6 +39,8 @@ export const resolvers: Resolvers = {
         // Find published versionedSections with similar names
         return await VersionedSection.findByName(reference, context, term);
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

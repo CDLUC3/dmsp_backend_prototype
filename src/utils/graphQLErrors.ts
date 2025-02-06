@@ -10,7 +10,7 @@ export const BAD_USER_INPUT = 'BAD_USER_INPUT';
 export const DEFAULT_UNAUTHORIZED_MESSAGE = 'Unauthorized';
 export const DEFAULT_BAD_REQUEST_MESSAGE = 'Bad Request';
 export const DEFAULT_FORBIDDEN_MESSAGE = 'Forbidden';
-export const DEFAULT_INTERNAL_SERVER_MESSAGE = 'Internal Server Error';
+export const DEFAULT_INTERNAL_SERVER_MESSAGE = 'Something went wrong';
 export const DEFAULT_NOT_FOUND_MESSAGE = 'Not Found';
 export const DEFAULT_BAD_USER_INPUT = 'Bad user input';
 

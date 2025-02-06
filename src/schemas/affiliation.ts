@@ -170,16 +170,18 @@ export const typeDefs = gql`
 
   "Input options for adding an Affiliation"
   input AffiliationInput {
+    "The id of the affiliation"
+    id: Int
     "Whether or not the Affiliation is active and available in search results"
-    active: Boolean!
+    active: Boolean
     "The unique identifer for the affiliation (Not editable!)"
-    uri: String!
+    uri: String
     "The official name for the affiliation (defined by the system of provenance)"
     name: String!
     "The display name to help disambiguate similar names (typically with domain or country appended)"
-    displayName: String!
+    displayName: String
     "Whether or not this affiliation is a funder"
-    funder: Boolean!
+    funder: Boolean
     "The Crossref Funder id"
     fundrefId: String
     "The official homepage for the affiliation"
@@ -189,10 +191,10 @@ export const typeDefs = gql`
     "Alias names for the affiliation"
     aliases: [String!]
     "The types of the affiliation (e.g. Company, Education, Government, etc.)"
-    types: [AffiliationType!]!
+    types: [AffiliationType!]
 
     "Whether or not the affiliation is allowed to have administrators"
-    managed: Boolean!
+    managed: Boolean
     "The URI of the logo"
     logoURI: String
     "The logo file name"
@@ -208,10 +210,10 @@ export const typeDefs = gql`
     "The email domains associated with the affiliation (for SSO)"
     ssoEmailDomains: [AffiliationEmailDomainInput!]
     "Whether or not the affiliation wants to use the feedback workflow"
-    feedbackEnabled: Boolean!
+    feedbackEnabled: Boolean
     "The message to display to users when they request feedback"
     feedbackMessage: String
     "The email address(es) to notify when feedback has been requested (stored as JSON array)"
-    feedbackEmails: String
+    feedbackEmails: [String]
   }
 `;

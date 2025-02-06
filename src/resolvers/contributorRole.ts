@@ -5,6 +5,7 @@ import { ContributorRole } from "../models/ContributorRole";
 import { MyContext } from '../context';
 import { isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError } from '../utils/graphQLErrors';
+import { GraphQLError } from 'graphql';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -66,6 +67,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -83,6 +86,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -101,6 +106,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

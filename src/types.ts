@@ -289,7 +289,7 @@ export type AffiliationInput = {
   /** Acronyms for the affiliation */
   acronyms?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Whether or not the Affiliation is active and available in search results */
-  active: Scalars['Boolean']['input'];
+  active?: InputMaybe<Scalars['Boolean']['input']>;
   /** Alias names for the affiliation */
   aliases?: InputMaybe<Array<Scalars['String']['input']>>;
   /** The primary contact email */
@@ -297,25 +297,27 @@ export type AffiliationInput = {
   /** The primary contact name */
   contactName?: InputMaybe<Scalars['String']['input']>;
   /** The display name to help disambiguate similar names (typically with domain or country appended) */
-  displayName: Scalars['String']['input'];
+  displayName?: InputMaybe<Scalars['String']['input']>;
   /** The email address(es) to notify when feedback has been requested (stored as JSON array) */
-  feedbackEmails?: InputMaybe<Scalars['String']['input']>;
+  feedbackEmails?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** Whether or not the affiliation wants to use the feedback workflow */
-  feedbackEnabled: Scalars['Boolean']['input'];
+  feedbackEnabled?: InputMaybe<Scalars['Boolean']['input']>;
   /** The message to display to users when they request feedback */
   feedbackMessage?: InputMaybe<Scalars['String']['input']>;
   /** Whether or not this affiliation is a funder */
-  funder: Scalars['Boolean']['input'];
+  funder?: InputMaybe<Scalars['Boolean']['input']>;
   /** The Crossref Funder id */
   fundrefId?: InputMaybe<Scalars['String']['input']>;
   /** The official homepage for the affiliation */
   homepage?: InputMaybe<Scalars['String']['input']>;
+  /** The id of the affiliation */
+  id?: InputMaybe<Scalars['Int']['input']>;
   /** The logo file name */
   logoName?: InputMaybe<Scalars['String']['input']>;
   /** The URI of the logo */
   logoURI?: InputMaybe<Scalars['String']['input']>;
   /** Whether or not the affiliation is allowed to have administrators */
-  managed: Scalars['Boolean']['input'];
+  managed?: InputMaybe<Scalars['Boolean']['input']>;
   /** The official name for the affiliation (defined by the system of provenance) */
   name: Scalars['String']['input'];
   /** The email domains associated with the affiliation (for SSO) */
@@ -325,9 +327,9 @@ export type AffiliationInput = {
   /** The links the affiliation's users can use to get help */
   subHeaderLinks?: InputMaybe<Array<AffiliationLinkInput>>;
   /** The types of the affiliation (e.g. Company, Education, Government, etc.) */
-  types: Array<AffiliationType>;
+  types?: InputMaybe<Array<AffiliationType>>;
   /** The unique identifer for the affiliation (Not editable!) */
-  uri: Scalars['String']['input'];
+  uri?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** A hyperlink displayed in the sub-header of the UI for the afiliation's users */
@@ -650,7 +652,7 @@ export type Mutation = {
   /** Delete a MetadataStandard */
   removeMetadataStandard?: Maybe<MetadataStandard>;
   /** Remove a PlanCollaborator from a Plan */
-  removePlanCollaborator?: Maybe<Scalars['Boolean']['output']>;
+  removePlanCollaborator?: Maybe<PlanCollaborator>;
   /** Remove a PlanContributor from a Plan */
   removePlanContributor?: Maybe<PlanContributor>;
   /** Remove a research project contributor */
@@ -676,7 +678,7 @@ export type Mutation = {
   /** Delete a tag */
   removeTag?: Maybe<Tag>;
   /** Remove a TemplateCollaborator from a Template */
-  removeTemplateCollaborator?: Maybe<Scalars['Boolean']['output']>;
+  removeTemplateCollaborator?: Maybe<TemplateCollaborator>;
   /** Anonymize the current user's account (essentially deletes their account without orphaning things) */
   removeUser?: Maybe<User>;
   /** Remove an email address from the current user */
@@ -3523,7 +3525,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationRemoveFeedbackCommentArgs, 'PlanFeedbackCommentId'>>;
   removeLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationRemoveLicenseArgs, 'uri'>>;
   removeMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationRemoveMetadataStandardArgs, 'uri'>>;
-  removePlanCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemovePlanCollaboratorArgs, 'planCollaboratorId'>>;
+  removePlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationRemovePlanCollaboratorArgs, 'planCollaboratorId'>>;
   removePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationRemovePlanContributorArgs, 'planContributorId'>>;
   removeProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationRemoveProjectContributorArgs, 'projectContributorId'>>;
   removeProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationRemoveProjectFunderArgs, 'projectFunderId'>>;
@@ -3536,7 +3538,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<MutationRemoveRepositoryArgs, 'repositoryId'>>;
   removeSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationRemoveSectionArgs, 'sectionId'>>;
   removeTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationRemoveTagArgs, 'tagId'>>;
-  removeTemplateCollaborator?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType, RequireFields<MutationRemoveTemplateCollaboratorArgs, 'email' | 'templateId'>>;
+  removeTemplateCollaborator?: Resolver<Maybe<ResolversTypes['TemplateCollaborator']>, ParentType, ContextType, RequireFields<MutationRemoveTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   removeUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   removeUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationRemoveUserEmailArgs, 'email'>>;
   requestFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationRequestFeedbackArgs, 'planId'>>;

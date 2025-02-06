@@ -12,7 +12,7 @@ import { formatLogMessage } from "../logger";
 // Determine whether the specified user has permission to access the Template
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
   // If the current user belongs to the same affiliation OR the user is a super admin
-  if (context.token?.affiliationId === template.ownerId || await isSuperAdmin(context.token)) {
+  if (context.token?.affiliationId === template?.ownerId || await isSuperAdmin(context.token)) {
     return true;
   }
 
@@ -20,14 +20,14 @@ export const hasPermissionOnTemplate = async (context: MyContext, template: Temp
   const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
     'template resolver.hasPermission',
     context,
-    template.id,
+    template?.id,
     context.token?.email,
   )
   if (collaborator) {
     return true;
   }
 
-  const payload = { templateId: template.id, userId: context.token.id };
+  const payload = { templateId: template?.id, userId: context.token?.id };
   formatLogMessage(context).error(payload, 'AUTH failure: hasPermissionOnTemplate')
   return false;
 }

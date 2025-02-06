@@ -7,6 +7,7 @@ import { isAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { hasPermissionOnTemplate } from "../services/templateService";
 import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -19,12 +20,15 @@ export const resolvers: Resolvers = {
         if (isAdmin(context.token)){
           const template = await Template.findById(reference, context, templateId);
           // If the user has permission on the Template
-          if (template && hasPermissionOnTemplate(context, template)) {
-            return await TemplateCollaborator.findByTemplateId(reference, context, templateId);
+          if (template && await hasPermissionOnTemplate(context, template)) {
+            const results = await TemplateCollaborator.findByTemplateId(reference, context, templateId);
+            return results;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -40,8 +44,14 @@ export const resolvers: Resolvers = {
         // if the user is an admin
         if (isAdmin(context.token)){
           const template = await Template.findById(reference, context, templateId);
+
+          // The template doesn't exist
+          if (!template) {
+            throw NotFoundError();
+          }
+
           // If the user has permission on the Template
-          if (template && hasPermissionOnTemplate(context, template)) {
+          if (await hasPermissionOnTemplate(context, template)) {
             const invitedById = context.token?.id;
             const collaborator = await new TemplateCollaborator({ templateId, email, invitedById });
             const created = await collaborator.create(context);
@@ -60,6 +70,8 @@ export const resolvers: Resolvers = {
         // Unauthorized! or Forbidden
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -67,23 +79,19 @@ export const resolvers: Resolvers = {
 
     // Remove a TemplateCollaborator from a Template
     //     - called from the Template options page
-    removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<boolean> => {
+    removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<TemplateCollaborator> => {
       const reference = 'removeTemplateCollaborator resolver';
       try {
+          // if the user is an admin
         if (isAdmin(context.token)){
           const template = await Template.findById(reference, context, templateId);
+
           // If the user has permission on the Template
-          if (template && hasPermissionOnTemplate(context, template)) {
-            const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
-              'removeTemplateCollaborator resolver',
-              context,
-              templateId,
-              email
-            );
+          if (template && await hasPermissionOnTemplate(context, template)) {
+            const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(reference, context, templateId, email);
             if (collaborator) {
               return await collaborator.delete(context);
             }
-
             // Couldn't find the TemplateCollaborator
             throw NotFoundError();
           }
@@ -91,6 +99,8 @@ export const resolvers: Resolvers = {
         // Unauthorized! or Forbidden
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

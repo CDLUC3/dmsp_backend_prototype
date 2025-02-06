@@ -5,6 +5,7 @@ import { NotFoundError, InternalServerError, ForbiddenError, AuthenticationError
 import { formatLogMessage } from "../logger";
 import { isAdmin } from "../services/authService";
 import { hasPermissionOnQuestion } from "../services/questionService";
+import { GraphQLError } from "graphql";
 
 
 export const resolvers: Resolvers = {
@@ -49,7 +50,7 @@ export const resolvers: Resolvers = {
         });
 
         // if the user is an admin and has permission on the question
-        if (isAdmin(context.token) && hasPermissionOnQuestion(context, questionId)) {
+        if (isAdmin(context.token) && await hasPermissionOnQuestion(context, questionId)) {
           const newQuestionOption = await questionOption.create(context);
 
           if (newQuestionOption?.id) {
@@ -64,6 +65,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -87,7 +90,7 @@ export const resolvers: Resolvers = {
         }
 
         // If the user has permission on the Question
-        if (isAdmin(context.token) || hasPermissionOnQuestion(context, questionOptionData.questionId)) {
+        if (isAdmin(context.token) || await hasPermissionOnQuestion(context, questionOptionData.questionId)) {
           const questionOption = new QuestionOption({
             id: questionOptionId,
             questionId: questionOptionData.questionId,
@@ -100,6 +103,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -118,7 +123,7 @@ export const resolvers: Resolvers = {
         }
 
         // If the user has permission on the Question
-        if (isAdmin(context.token) && hasPermissionOnQuestion(context, questionOptionData.questionId)) {
+        if (isAdmin(context.token) && await hasPermissionOnQuestion(context, questionOptionData.questionId)) {
           //Need to create a new instance of QuestionOption so that it recognizes the 'delete' function of that instance
           const questionOption = new QuestionOption({
             ...questionOptionData,
@@ -129,6 +134,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

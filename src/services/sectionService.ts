@@ -114,5 +114,5 @@ export const hasPermissionOnSection = async (context: MyContext, templateId: num
   }
 
   // Offload permission checks to the Template
-  return hasPermissionOnTemplate(context, template);
+  return await hasPermissionOnTemplate(context, template);
 }

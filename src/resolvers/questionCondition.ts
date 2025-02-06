@@ -6,6 +6,7 @@ import { isAdmin } from "../services/authService";
 import { hasPermissionOnQuestion } from "../services/questionService";
 import { Question } from "../models/Question";
 import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 
 export const resolvers: Resolvers = {
@@ -29,9 +30,10 @@ export const resolvers: Resolvers = {
       conditionMatch,
       target } }, context: MyContext): Promise<QuestionCondition> => {
 
+      const reference = 'addQuestionCondition resolver';
       try {
         // If the user is an admin and has permission on the question
-        if (isAdmin(context.token) && hasPermissionOnQuestion(context, questionId)) {
+        if (isAdmin(context.token) && await hasPermissionOnQuestion(context, questionId)) {
           const condition = new QuestionCondition({ questionId, action, conditionType, conditionMatch, target });
           const created = await condition.create(context);
 
@@ -47,7 +49,9 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, 'Failure in addQuestionCondition resolver');
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -89,6 +93,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -117,6 +123,8 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

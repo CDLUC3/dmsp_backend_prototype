@@ -16,14 +16,14 @@ export const typeDefs = gql`
     "Add a collaborator to a Template"
     addTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
     "Remove a TemplateCollaborator from a Template"
-    removeTemplateCollaborator(templateId: Int!, email: String!): Boolean
+    removeTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
 
     "Add a collaborator to a Plan"
     addPlanCollaborator(planId: Int!, email: String!): PlanCollaborator
     "Chnage a collaborator's accessLevel on a Plan"
     updatePlanCollaborator(planCollaboratorId: Int!, accessLevel: PlanCollaboratorAccessLevel!): PlanCollaborator
     "Remove a PlanCollaborator from a Plan"
-    removePlanCollaborator(planCollaboratorId: Int!): Boolean
+    removePlanCollaborator(planCollaboratorId: Int!): PlanCollaborator
   }
 
   enum PlanCollaboratorAccessLevel {

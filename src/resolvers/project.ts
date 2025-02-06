@@ -9,34 +9,41 @@ import { ProjectContributor } from '../models/Contributor';
 import { hasPermissionOnProject } from '../services/projectService';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { ProjectOutput } from '../models/Output';
+import { GraphQLError } from 'graphql';
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the projects that the current user owns or is a collaborator on
     myProjects: async (_, __, context: MyContext): Promise<Project[]> => {
+      const reference = 'myProjects resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await Project.findByUserId('myProjects resolver', context, context.token?.id);
+          return await Project.findByUserId(reference, context, context.token?.id);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, 'Failure in myProjects resolver');
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
     // Fetch a single project
     project: async (_, { projectId }, context: MyContext): Promise<Project> => {
+      const reference = 'project resolver';
       try {
         if (isAuthorized(context.token)) {
-          const project = await Project.findById('project resolver', context, projectId);
+          const project = await Project.findById(reference, context, projectId);
           if (hasPermissionOnProject(context, project)) {
             return project;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, 'Failure in project resolver');
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -68,7 +75,9 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, reference);
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -98,7 +107,9 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, reference);
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -130,7 +141,9 @@ export const resolvers: Resolvers = {
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, reference);
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },

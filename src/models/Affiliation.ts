@@ -26,13 +26,14 @@ export enum AffiliationType {
 
 // Represents an Institution, Organization or Company
 export class Affiliation extends MySqlModel {
-  public uri!: string;
-  public active!: boolean;
-  public provenance!: AffiliationProvenance;
+  // These fields can only be modified if the record is managed by the DMPTool
+  public uri: string;
+  public active: boolean;
+  public provenance: AffiliationProvenance;
   public name!: string;
-  public displayName!: string;
-  public searchName!: string;
-  public funder!: boolean;
+  public displayName: string;
+  public searchName: string;
+  public funder: boolean;
   public fundrefId: string;
   public homepage: string;
   public acronyms: string[];
@@ -59,17 +60,17 @@ export class Affiliation extends MySqlModel {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
     this.uri = options.uri;
-    this.active = options.active || true;
+    this.active = options.active ?? true;
     this.provenance = options.provenance || AffiliationProvenance.DMPTOOL;
     this.name = options.name;
     this.displayName = options.displayName;
     this.searchName = options.searchName;
-    this.funder = options.funder || false;
+    this.funder = options.funder ?? false;
     this.fundrefId = options.fundrefId
     this.homepage = options.homepage;
-    this.acronyms = options.acronyms || [];
-    this.aliases = options.aliases || [];
-    this.types = options.types || [AffiliationType.OTHER];
+    this.acronyms = options.acronyms ?? [];
+    this.aliases = options.aliases ?? [];
+    this.types = options.types ?? [AffiliationType.OTHER];
     this.managed = options.managed;
     this.logoURI = options.logoURI;
     this.logoName = options.logoName;
@@ -105,8 +106,19 @@ export class Affiliation extends MySqlModel {
 
   // Convert the name, homepage, acronyms and aliases into a search string
   buildSearchName(): string {
-    const parts = [this.name, this.homepage, this.acronyms, this.aliases];
+    const parts = [this.name, this.getDomain(), this.acronyms, this.aliases];
     return parts.flat().filter((item) => item).join(' | ').substring(0, 249);
+  }
+
+  // Get the domain from the homepage
+  getDomain(): string {
+    try {
+      const url = new URL(this.homepage);
+      return url.hostname;
+    } catch (err) {
+      // It's not a URL so just return as is
+      return this.homepage;
+    }
   }
 
   // Perform tasks necessary to prepare the data to be saved
@@ -116,26 +128,32 @@ export class Affiliation extends MySqlModel {
     this.feedbackEnabled = this.feedbackEnabled || false;
     this.acronyms = this.acronyms || [];
     this.aliases = this.aliases || [];
-    this.types = this.types || [];
+    this.types = this.types || [AffiliationType.OTHER];
     this.feedbackEmails = this.feedbackEmails || [];
     this.searchName = this.buildSearchName();
     if (!this.displayName) {
-      this.displayName = this.homepage ? `${this.name} (${this.homepage})` : this.name;
+      this.displayName = this.homepage ? `${this.name} (${this.getDomain()})` : this.name;
     }
   }
 
   // Save the current record
   async create(context: MyContext): Promise<Affiliation> {
-    // Assign a new DMPTool id if one was not provided (meaning it was manually added by a user)
-    if (!this.uri) {
+    let current;
+
+    // First make sure the record doesn't already exist based on the URI
+    if (this.uri) {
+      current = await Affiliation.findByURI('Affiliation.create', context, this.uri);
+    } else {
+      // Assign a new DMPTool id if one was not provided (meaning it was manually added by a user)
       this.uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${randomHex(6)}`;
     }
-    // First make sure the record doesn't already exist
-    const current = await Affiliation.findByURI('Affiliation.create', context, this.uri);
+
+    current = current ?? await Affiliation.findByName('Affiliation.create', context, this.name);
 
     // Then make sure it doesn't already exist
     if (current) {
       this.addError('general', 'The Affiliation already exists');
+      return current;
     } else {
       // Save the record and then fetch it
       this.prepForSave();
@@ -158,20 +176,39 @@ export class Affiliation extends MySqlModel {
 
   // Save the changes made to the affiliation
   async update(context: MyContext): Promise<Affiliation> {
-    this.prepForSave();
-
+    const reference = 'Affiliation.update';
     if (this.id) {
       if (await this.isValid()) {
+        const existing = await Affiliation.findById(reference, context, this.id);
+
+        // If the record is NOT managed by the DMP Tool then do not allow some fields to be changed
+        if (this.provenance !== AffiliationProvenance.DMPTOOL) {
+          this.uri = existing.uri;
+          this.name = existing.name;
+          this.provenance = existing.provenance;
+          this.funder = existing.funder;
+          this.types = existing.types;
+          this.fundrefId = existing.fundrefId;
+          this.homepage = existing.homepage;
+          this.aliases = existing.aliases;
+          this.acronyms = existing.acronyms;
+        }
+
+        // The following fields can never be modified here, they are auto-managed
+        this.provenance = existing.provenance;
+        this.searchName = existing.searchName;
+        this.prepForSave();
+
         const updated = await Affiliation.update(
           context,
           this.tableName,
           this,
-          'Affiliation.update',
+          reference,
           ['uneditableProperties', this.uneditableProperties].flat()
         );
 
         if (updated) {
-          return await Affiliation.findById('Affiliation.update', context, this.id);
+          return await Affiliation.findById(reference, context, this.id);
         }
       }
     } else {
@@ -219,7 +256,6 @@ export class Affiliation extends MySqlModel {
     }
     return affiliation;
   }
-
 
   // Return the specified Affiliation  based on the DB id
   static async findById(reference: string, context: MyContext, id: string | number): Promise<Affiliation> {

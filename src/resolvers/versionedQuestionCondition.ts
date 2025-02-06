@@ -7,6 +7,7 @@ import { hasPermissionOnQuestion } from "../services/questionService";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
 import { isAdmin } from "../services/authService";
+import { GraphQLError } from "graphql";
 
 
 export const resolvers: Resolvers = {
@@ -26,6 +27,8 @@ export const resolvers: Resolvers = {
         }
         context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }

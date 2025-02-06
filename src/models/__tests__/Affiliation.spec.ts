@@ -67,12 +67,13 @@ describe('prepForSave', () => {
     const acronyms = [casual.letter, casual.word, undefined];
     const aliases = [casual.words(2), casual.word, null];
     const affiliation = new Affiliation({ name, homepage, acronyms, aliases });
+    const domain = homepage.replace(/https?:\/\//, '').replace('/', '').toLowerCase();
     affiliation.prepForSave();
     expect(affiliation.name).toEqual(name);
     expect(affiliation.homepage).toEqual(homepage);
-    expect(affiliation.displayName).toEqual(`${name} (${homepage})`);
+    expect(affiliation.displayName).toEqual(`${name} (${domain})`);
     expect(affiliation.searchName.includes(name)).toBe(true);
-    expect(affiliation.searchName.includes(homepage)).toBe(true);
+    expect(affiliation.searchName.includes(domain)).toBe(true);
     expect(affiliation.searchName.includes(aliases[0])).toBe(true);
     expect(affiliation.searchName.includes(aliases[1])).toBe(true);
     expect(affiliation.searchName.includes(acronyms[0])).toBe(true);

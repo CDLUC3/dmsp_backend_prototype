@@ -7,6 +7,7 @@ import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { stringToEnumValue } from '../utils/helpers';
+import { GraphQLError } from 'graphql';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -21,6 +22,8 @@ export const resolvers: Resolvers = {
         }
         throw AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -35,6 +38,8 @@ export const resolvers: Resolvers = {
         }
         throw AuthenticationError();
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -81,21 +86,24 @@ export const resolvers: Resolvers = {
           return created.hasErrors() ? created : await Repository.findById(reference, context, created.id);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch(err) {
-        formatLogMessage(context).error(err, reference);
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
-    updateRepository: async (_, { input }, context) => {
-      const reference = 'updateRepository resolver';
-      const repo = await Repository.findById(reference, context, input.id);
-      if (!repo) {
-        throw NotFoundError();
-      }
 
-      // If the user is a an admin and its a DMPTool added repository (no updates to repos managed elsewhere!)
-      if (isAdmin(context.token) && repo.uri.startsWith(DEFAULT_DMPTOOL_REPOSITORY_URL)) {
-        try {
+    updateRepository: async (_, { input }, context): Promise<Repository> => {
+      const reference = 'updateRepository resolver';
+      try {
+        const repo = await Repository.findById(reference, context, input.id);
+        if (!repo) {
+          throw NotFoundError();
+        }
+
+        // If the user is a an admin and its a DMPTool added repository (no updates to repos managed elsewhere!)
+        if (isAdmin(context.token) && repo.uri.startsWith(DEFAULT_DMPTOOL_REPOSITORY_URL)) {
           const toUpdate = new Repository(input);
           const updated = await toUpdate.update(context);
 
@@ -158,45 +166,55 @@ export const resolvers: Resolvers = {
           }
           // Otherwise there were errors so return the object with errors
           return updated;
-        } catch(err) {
-          formatLogMessage(context).error(err, `Failure in ${reference}`);
-          throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
-    removeRepository: async (_, { repositoryId }, context) => {
-      const repo = await Repository.findById('updateRepository resolver', context, repositoryId);
-      if (!repo) {
-        throw NotFoundError();
-      }
 
-      // No removal of repositories managed outside the DMP Tool!
-      if (isAdmin(context.token) && repo.uri.startsWith(DEFAULT_DMPTOOL_REPOSITORY_URL)) {
-        try {
-          // TODO: We should do a check to see if it has been used and then either NOT allow the deletion
-          //       or notify that it is being done and to what DMPs
-          const deleted = await repo.delete(context);
+    removeRepository: async (_, { repositoryId }, context): Promise<Repository> => {
+      const reference = 'removeRepository resolver';
+      try {
+        const repo = await Repository.findById('updateRepository resolver', context, repositoryId);
+        if (!repo) {
+          throw NotFoundError();
+        }
 
-          if (!deleted || deleted.hasErrors()) {
-            repo.addError('general', 'Unable to delete the repository');
+        // No removal of repositories managed outside the DMP Tool!
+        if (isAdmin(context.token) && repo.uri.startsWith(DEFAULT_DMPTOOL_REPOSITORY_URL)) {
+          try {
+            // TODO: We should do a check to see if it has been used and then either NOT allow the deletion
+            //       or notify that it is being done and to what DMPs
+            const deleted = await repo.delete(context);
+
+            if (!deleted || deleted.hasErrors()) {
+              repo.addError('general', 'Unable to delete the repository');
+            }
+
+            // No need to remove the related research domain associations the DB will cascade the deletion
+            return repo.hasErrors() ? repo : deleted;
+          } catch (err) {
+            formatLogMessage(context).error(err, 'Failure in removeRepository resolver');
+            throw InternalServerError();
           }
-
-          // No need to remove the related research domain associations the DB will cascade the deletion
-          return repo.hasErrors() ? repo : deleted;
-        } catch (err) {
-          formatLogMessage(context).error(err, 'Failure in removeRepository resolver');
-          throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
-    mergeRepositories: async (_, { repositoryToKeepId, repositoryToRemoveId }, context) => {
-      if (isSuperAdmin(context.token)) {
-        const reference = 'mergeRepositorys resolver';
-        try {
+
+    mergeRepositories: async (_, { repositoryToKeepId, repositoryToRemoveId }, context): Promise<Repository> => {
+      const reference = 'mergeRepositorys resolver';
+      try {
+        if (isSuperAdmin(context.token)) {
           const toKeep = await Repository.findById(reference, context, repositoryToKeepId);
           const toRemove = await Repository.findById(reference, context, repositoryToRemoveId);
 
@@ -240,12 +258,13 @@ export const resolvers: Resolvers = {
           // Delete the one we want to remove
           await toRemove.delete(context);
           return toKeep;
-        } catch (err) {
-          formatLogMessage(context).error(err, 'Failure in removeRepository resolver');
-          throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
   },
