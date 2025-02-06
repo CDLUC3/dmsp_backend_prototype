@@ -241,6 +241,74 @@ You can interact with the Apollo server from your external system by submitting 
 
 Please review the latest [GraphQL Schema files](https://github.com/CDLUC3/dmsp_backend_prototype/tree/main/src/schemas) for a list of the the up-to-date data types, queries and mutations available.
 
+Here is an example call to fetch the list of collaborators for a DMP template:
+```ts
+import fetch from 'node-fetch';
+
+// Replace with your actual GraphQL endpoint
+const GRAPHQL_ENDPOINT = 'http://localhost:4000/graphql';
+// Replace with the actual access token
+const ACCESS_TOKEN = 'your_access_token_here';
+
+const query = `
+  query TemplateCollaborators($templateId: Int!) {
+    templateCollaborators(templateId: $templateId) {
+      id
+      email
+      invitedById
+      userId
+      templateId
+    }
+  }
+`;
+
+const variables = {
+  templateId: 123, // Replace with the actual template ID
+};
+
+async function fetchTemplateCollaborators() {
+  try {
+    const response = await fetch(GRAPHQL_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.errors) {
+      console.error('GraphQL errors:', result.errors);
+    } else {
+      console.log('Template Collaborators:', result.data.templateCollaborators);
+    }
+  } catch (error) {
+    console.error('Error fetching template collaborators:', error);
+  }
+}
+
+fetchTemplateCollaborators();
+```
+
+### Errors
+
+The system provides 2 levels of errors.
+
+1. **GraphQL errors**: The equate to HTTP status codes and are not typically resolvable by an end user.
+  1. **400: Bad Request/User Input** There was an error with the structure of your request. These errors are fairly descriptive. Make sure you review the GraphQL schema to make sure you're refering to the correct fields.
+  2. **401: Unauthorized** The user's access token is missing or is no longer valid
+  3. **403: Forbidden** The user does not have permission to perform the requested action
+  4. **404: Not Found** The requested mutation was for a record that does not exist
+  5. **500: Internal Server** An internal error occurred within this application.
+2. **Object level errors**: These errors provide information that the user can use to address the issue(s)
+  1. **Object.errors.general** Errors that are not specific to a field (e.g. "Failed to send email", "Updable to delete", etc.)
+  2. **Object.errors.field** An error that applies to a specific property of the object (e.g. "Name can't be blank", "Invalid URL", etc.)
+
 ### If your system is written in JS or TS
 
 We recommend making use of the [official Apollo Client](https://www.apollographql.com/docs/react) to handle communications with this Apollo server implementation.
