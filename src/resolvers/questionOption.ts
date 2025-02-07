@@ -22,10 +22,10 @@ export const resolvers: Resolvers = {
     },
 
     // return a specific questionOption
-    questionOption: async (_, { questionOptionId }, context: MyContext): Promise<QuestionOption> => {
+    questionOption: async (_, { id }, context: MyContext): Promise<QuestionOption> => {
       const reference = 'questionOption resolver';
       try {
-        return await QuestionOption.findByQuestionOptionId(reference, context, questionOptionId);
+        return await QuestionOption.findByQuestionOptionId(reference, context, id);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
@@ -74,7 +74,7 @@ export const resolvers: Resolvers = {
 
     // update an existing questionOption
     updateQuestionOption: async (_, { input: {
-      questionOptionId,
+      id,
       text,
       orderNumber,
       isDefault } }, context: MyContext): Promise<QuestionOption> => {
@@ -82,7 +82,7 @@ export const resolvers: Resolvers = {
       const reference = 'updateQuestionOption resolver';
       try {
         // Get QuestionOption based on provided questionOptionId
-        const questionOptionData = await QuestionOption.findByQuestionOptionId(reference, context, questionOptionId);
+        const questionOptionData = await QuestionOption.findByQuestionOptionId(reference, context, id);
 
         // Throw Not Found error if QuestionOption data is not found
         if (!questionOptionData) {
@@ -92,7 +92,7 @@ export const resolvers: Resolvers = {
         // If the user has permission on the Question
         if (isAdmin(context.token) || await hasPermissionOnQuestion(context, questionOptionData.questionId)) {
           const questionOption = new QuestionOption({
-            id: questionOptionId,
+            id: id,
             questionId: questionOptionData.questionId,
             text: text || questionOptionData.text,
             orderNumber: orderNumber || questionOptionData.orderNumber,
@@ -111,11 +111,11 @@ export const resolvers: Resolvers = {
     },
 
     // remove an existing questionOption
-    removeQuestionOption: async (_, { questionOptionId }, context: MyContext): Promise<QuestionOption> => {
+    removeQuestionOption: async (_, { id }, context: MyContext): Promise<QuestionOption> => {
       const reference = 'removeQuestionOption resolver';
       try {
         // Retrieve existing questionOption
-        const questionOptionData = await QuestionOption.findByQuestionOptionId(reference, context, questionOptionId);
+        const questionOptionData = await QuestionOption.findByQuestionOptionId(reference, context, id);
 
         // Throw Not Found error if QuestionOption is not found
         if (!questionOptionData) {
@@ -127,7 +127,7 @@ export const resolvers: Resolvers = {
           //Need to create a new instance of QuestionOption so that it recognizes the 'delete' function of that instance
           const questionOption = new QuestionOption({
             ...questionOptionData,
-            id: questionOptionId
+            id
           });
 
           return await questionOption.delete(context);

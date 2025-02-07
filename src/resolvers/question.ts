@@ -2,6 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
+import { getQuestionOptionsToRemove } from "../services/questionService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 import { formatLogMessage } from "../logger";
@@ -158,55 +159,103 @@ export const resolvers: Resolvers = {
           });
 
           const updatedQuestion = await question.update(context);
+          const associationErrors = [];
 
           // If there are errors than throw a Bad User Input error
           if (updatedQuestion && !updatedQuestion.hasErrors()) {
             // Get existing questionOptions
-            const existingQuestionOptions = await QuestionOption.findByQuestionId(reference, context, questionId);
+            const existingQuestionOptions = await QuestionOption.findByQuestionId('question resolver', context, questionId);
 
             // Create a Map of existing options for quick lookup by ID or unique identifier
-            const existingOptionsMap = new Map(existingQuestionOptions.map(option => [option.id, option]));
+            const existingOptionsMap = new Map(
+              existingQuestionOptions.map(option => [option.id, option])
+            );
+
+            // Get list of options that need to be removed
+            const optionsToRemove = await getQuestionOptionsToRemove(questionOptions as QuestionOption[], context, questionId);
+
+            const removeErrors = [];
+            // Remove question options that are no longer in the updated questionOptions array
+            if (optionsToRemove.length > 0) {
+              await Promise.all(
+                optionsToRemove.map(async (option) => {
+                  const questionOption = new QuestionOption({
+                    questionId: option.questionId,
+                    id: option.id
+                  });
+
+                  const result = await questionOption.delete(context);
+                  if (!result) {
+                    removeErrors.push(result.text);
+                  }
+                })
+              );
+            }
+            if (removeErrors.length > 0) {
+              associationErrors.push(`unable to remove options: ${removeErrors.join(', ')}`);
+            }
 
             // Separate incoming options into "to update" and "to create"
             const optionsToUpdate = [];
             const optionsToCreate = [];
 
             questionOptions.forEach(option => {
-              if (existingOptionsMap.has(option.questionOptionId)) {
+              if (existingOptionsMap.has(option.id)) {
                 // Add to update list, merging the new data with the existing data
-                optionsToUpdate.push({ ...existingOptionsMap.get(option.questionOptionId), ...option });
+                optionsToUpdate.push({
+                  ...existingOptionsMap.get(option.id), // existing option data
+                  ...option // updated fields from input
+                });
               } else {
                 // Add to create list
-                optionsToCreate.push({ questionId, ...option });
+                optionsToCreate.push({
+                  questionId,
+                  ...option // new option fields
+                });
               }
             });
 
+            const updateErrors = [];
             // Update existing options
             if (optionsToUpdate.length > 0) {
               await Promise.all(
                 optionsToUpdate.map(async option => {
                   const questionOption = new QuestionOption(option);
-                  await questionOption.update(context); // Call your update method
+                  const result = await questionOption.update(context); // Call your update method
+                  if (!result) {
+                    updateErrors.push(result.text);
+                  }
                 })
               );
             }
+            if (updateErrors.length > 0) {
+              associationErrors.push(`unable to update options: ${updateErrors.join(', ')}`);
+            }
 
+            const createErrors = [];
             // Create new options
             if (optionsToCreate.length > 0) {
               await Promise.all(
                 optionsToCreate.map(async option => {
                   const questionOption = new QuestionOption(option);
-                  await questionOption.create(context); // Call your create method
+                  const result = await questionOption.create(context); // Call your create method
+                  if (!result) {
+                    createErrors.push(result.text);
+                  }
                 })
               );
             }
+            if (createErrors.length > 0) {
+              associationErrors.push(`unable to create options: ${createErrors.join(', ')}`);
+            }
 
-            // Return newly updated question
-            return await Question.findById(reference, context, updatedQuestion.id);
+            if (associationErrors.length > 0) {
+              updatedQuestion.addError('questionOptions', `Update complete but we were ${associationErrors.join('; ')}`);
+            }
           }
 
-          //otherwise it had errors so return it as-is
-          return updatedQuestion;
+          // Refetch the question or the updated question with errors
+          return updatedQuestion.hasErrors() ? updatedQuestion : await Question.findById(reference, context, questionId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
