@@ -489,8 +489,6 @@ describe('removeTemplateCollaborator mutation', () => {
     const variables = { templateId: templateCollaboratorStore[0].templateId, email: templateCollaboratorStore[0].email };
     const resp = await executeQuery(query, variables, token);
 
-console.log(resp.body.singleResult.data.removeTemplateCollaborator);
-
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data.removeTemplateCollaborator).toBeDefined();
