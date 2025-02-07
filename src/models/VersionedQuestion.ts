@@ -26,7 +26,7 @@ export class VersionedQuestion extends MySqlModel {
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
     this.sampleText = options.sampleText;
-    this.required = options.required || false;
+    this.required = options.required ?? false;
     this.displayOrder = options.displayOrder;
   }
 

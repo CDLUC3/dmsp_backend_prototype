@@ -61,7 +61,7 @@ export class Affiliation extends MySqlModel {
 
     this.uri = options.uri;
     this.active = options.active ?? true;
-    this.provenance = options.provenance || AffiliationProvenance.DMPTOOL;
+    this.provenance = options.provenance ?? AffiliationProvenance.DMPTOOL;
     this.name = options.name;
     this.displayName = options.displayName;
     this.searchName = options.searchName;
@@ -124,12 +124,12 @@ export class Affiliation extends MySqlModel {
   // Perform tasks necessary to prepare the data to be saved
   prepForSave(): void {
     this.name = this.name?.trim();
-    this.managed = this.managed || false;
-    this.feedbackEnabled = this.feedbackEnabled || false;
-    this.acronyms = this.acronyms || [];
-    this.aliases = this.aliases || [];
-    this.types = this.types || [AffiliationType.OTHER];
-    this.feedbackEmails = this.feedbackEmails || [];
+    this.managed = this.managed ?? false;
+    this.feedbackEnabled = this.feedbackEnabled ?? false;
+    this.acronyms = this.acronyms ?? [];
+    this.aliases = this.aliases ?? [];
+    this.types = this.types ?? [AffiliationType.OTHER];
+    this.feedbackEmails = this.feedbackEmails ?? [];
     this.searchName = this.buildSearchName();
     if (!this.displayName) {
       this.displayName = this.homepage ? `${this.name} (${this.getDomain()})` : this.name;
@@ -298,8 +298,8 @@ export class AffiliationSearch {
     this.id = options.id;
     this.uri = options.uri;
     this.displayName = options.displayName;
-    this.funder = options.funder || false;
-    this.types = options.types || [AffiliationType.OTHER];
+    this.funder = options.funder ?? false;
+    this.types = options.types ?? [AffiliationType.OTHER];
   }
 
   // Search for Affiliations that match the term and the funder flag

@@ -22,8 +22,8 @@ export class UserEmail extends MySqlModel {
 
     this.userId = options.userId;
     this.email = options.email;
-    this.isPrimary = options.isPrimary || false;
-    this.isConfirmed = options.isConfirmed || false;
+    this.isPrimary = options.isPrimary ?? false;
+    this.isConfirmed = options.isConfirmed ?? false;
   }
 
   // Validation to be used prior to saving the record

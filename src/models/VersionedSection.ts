@@ -30,7 +30,7 @@ export class VersionedSection extends MySqlModel {
     this.displayOrder = options.displayOrder;
     this.tags = options.tags;
     // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
-    //this.bestPractice = options.bestPractice || false;
+    //this.bestPractice = options.bestPractice ?? false;
   }
 
   // Validation to be used prior to saving the record

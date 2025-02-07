@@ -14,7 +14,6 @@ describe('Section', () => {
     requirements: 'This is the requirements',
     guidance: 'This is the guidance',
     displayOrder: 1,
-    isDirty: false
   }
   beforeEach(() => {
     section = new Section(sectionData);

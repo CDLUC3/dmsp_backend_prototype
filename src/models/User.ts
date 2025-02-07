@@ -59,15 +59,15 @@ export class User extends MySqlModel {
     this.ssoId = options.ssoId;
     this.affiliationId = options.affiliationId;
     this.acceptedTerms = options.acceptedTerms;
-    this.languageId = options.languageId || defaultLanguageId;
-    this.failed_sign_in_attemps = options.failed_sign_in_attemps || 0;
-    this.locked = options.locked || false;
-    this.active = options.active || true;
-    this.notify_on_comment_added = options.notify_on_comment_added || true;
-    this.notify_on_template_shared = options.notify_on_template_shared || true;
-    this.notify_on_feedback_complete = options.notify_on_feedback_complete || true;
-    this.notify_on_plan_shared = options.notify_on_plan_shared || true;
-    this.notify_on_plan_visibility_change = options.notify_on_plan_visibility_change || true;
+    this.languageId = options.languageId ?? defaultLanguageId;
+    this.failed_sign_in_attemps = options.failed_sign_in_attemps ?? 0;
+    this.locked = options.locked ?? false;
+    this.active = options.active ?? true;
+    this.notify_on_comment_added = options.notify_on_comment_added ?? true;
+    this.notify_on_template_shared = options.notify_on_template_shared ?? true;
+    this.notify_on_feedback_complete = options.notify_on_feedback_complete ?? true;
+    this.notify_on_plan_shared = options.notify_on_plan_shared ?? true;
+    this.notify_on_plan_visibility_change = options.notify_on_plan_visibility_change ?? true;
 
     this.prepForSave();
   }
@@ -75,7 +75,7 @@ export class User extends MySqlModel {
   // Ensure data integrity
   prepForSave() {
     this.email = this.email?.trim()?.replace('%40', '@');
-    this.role = this.role || UserRole.RESEARCHER;
+    this.role = this.role ?? UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
     // Set the languageId to the default if it is not a supported language

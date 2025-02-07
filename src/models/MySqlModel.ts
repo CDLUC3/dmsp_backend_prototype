@@ -181,10 +181,10 @@ export class MySqlModel {
   ): Promise<number> {
     // If the createdById and modifiedById have not alredy been set, use the value in the token or the userId
     if (!obj.createdById) {
-      obj.createdById = apolloContext?.token?.id || obj.userId;
+      obj.createdById = apolloContext?.token?.id ?? obj.userId;
     }
     if (!obj.modifiedById) {
-      obj.modifiedById = apolloContext?.token?.id || obj.userId;
+      obj.modifiedById = apolloContext?.token?.id ?? obj.userId;
     }
 
     // Update the created/modified dates

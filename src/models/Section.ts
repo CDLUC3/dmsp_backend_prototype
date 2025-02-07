@@ -27,9 +27,9 @@ export class Section extends MySqlModel {
     this.requirements = options.requirements;
     this.guidance = options.guidance;
     this.displayOrder = options.displayOrder;
-    this.bestPractice = options.bestPractice || false;
+    this.bestPractice = options.bestPractice ?? false;
     this.tags = options.tags;
-    this.isDirty = options.isDirty || true;
+    this.isDirty = options.isDirty ?? true;
   }
 
   //Check that the Section data contains the required name field

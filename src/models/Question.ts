@@ -29,9 +29,9 @@ export class Question extends MySqlModel {
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
     this.sampleText = options.sampleText;
-    this.required = options.required || false;
+    this.required = options.required ?? false;
     this.displayOrder = options.displayOrder;
-    this.isDirty = options.isDirty || false;
+    this.isDirty = options.isDirty ?? false;
     this.questionOptions = options.questionOptions;
   }
 

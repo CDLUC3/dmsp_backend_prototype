@@ -21,7 +21,7 @@ export class Project extends MySqlModel {
     this.startDate = options.startDate;
     this.endDate = options.endDate;
     this.researchDomainId = options.researchDomainId;
-    this.isTestProject = options.isTestProject || false;
+    this.isTestProject = options.isTestProject ?? false;
   }
 
   // Validation to be used prior to saving the record

@@ -19,7 +19,7 @@ export class License extends MySqlModel {
     this.name = options.name;
     this.uri = options.uri;
     this.description = options.description;
-    this.recommended = options.recommended || false;
+    this.recommended = options.recommended ?? false;
   }
 
   // Validation to be used prior to saving the record

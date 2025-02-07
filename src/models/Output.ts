@@ -29,9 +29,9 @@ export class ProjectOutput extends MySqlModel {
     this.outputTypeId = options.outputTypeId;
     this.title = options.title;
     this.description = options.description;
-    this.mayContainSensitiveInformation = options.mayContainSensitiveInformation || false;
-    this.mayContainPII = options.mayContainPII || false;
-    this.initialAccessLevel = options.initialAccessLevel || OutputAccessLevel.UNRESTRICTED;
+    this.mayContainSensitiveInformation = options.mayContainSensitiveInformation ?? false;
+    this.mayContainPII = options.mayContainPII ?? false;
+    this.initialAccessLevel = options.initialAccessLevel ?? OutputAccessLevel.UNRESTRICTED;
     this.initialLicenseId = options.initialLicenseId;
     this.anticipatedReleaseDate = options.anticipatedReleaseDate;
   }

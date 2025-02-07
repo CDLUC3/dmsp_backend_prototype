@@ -23,7 +23,7 @@ export class ProjectFunder extends MySqlModel {
     this.id = options.id;
     this.projectId = options.projectId;
     this.affiliationId = options.affiliationId;
-    this.status = options.status || ProjectFunderStatus.PLANNED;
+    this.status = options.status ?? ProjectFunderStatus.PLANNED;
     this.funderOpportunityNumber = options.funderOpportunityNumber;
     this.funderProjectNumber = options.funderProjectNumber;
     this.grantId = options.grantId;

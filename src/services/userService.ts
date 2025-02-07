@@ -111,7 +111,7 @@ export const mergeUsers = async (
   const toBeKept = new User(userToKeep);
 
   // Only replace these properties if the one we are keeping does not have them defined
-  const propsToMergeIfEmpty = ['givenName', 'surName', 'affiliationId', 'orcid', 'ssoId', 'languageId'];
+  const propsToMergeIfEmpty = ['givenName', 'surName', 'affiliationId', 'orcid', 'ssoId', 'languageId', 'active'];
   for (const prop of propsToMergeIfEmpty) {
     if (toBeMerged[prop] && toBeMerged[prop] !== '' && !toBeKept[prop] || toBeKept[prop] === '') {
       toBeKept[prop] = toBeMerged[prop];

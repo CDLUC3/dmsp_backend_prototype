@@ -31,9 +31,9 @@ export class Repository extends MySqlModel {
     this.uri = options.uri;
     this.description = options.description;
     this.website = options.website;
-    this.researchDomains = options.researchDomains || [];
-    this.repositoryTypes = options.repositoryTypes || [];
-    this.keywords = options.keywords || [];
+    this.researchDomains = options.researchDomains ?? [];
+    this.repositoryTypes = options.repositoryTypes ?? [];
+    this.keywords = options.keywords ?? [];
   }
 
   // Validation to be used prior to saving the record

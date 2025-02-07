@@ -29,12 +29,12 @@ export class Template extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
     this.sourceTemplateId = options.sourceTemplateId
-    this.visibility = options.visibility || TemplateVisibility.PRIVATE;
-    this.latestPublishVersion = options.latestPublishVersion || '';
-    this.latestPublishDate = options.latestPublishDate || null;
-    this.isDirty = options.isDirty || true;
-    this.bestPractice = options.bestPractice || false;
-    this.languageId = options.languageId || defaultLanguageId;
+    this.visibility = options.visibility ?? TemplateVisibility.PRIVATE;
+    this.latestPublishVersion = options.latestPublishVersion ?? '';
+    this.latestPublishDate = options.latestPublishDate ?? null;
+    this.isDirty = options.isDirty ?? true;
+    this.bestPractice = options.bestPractice ?? false;
+    this.languageId = options.languageId ?? defaultLanguageId;
   }
 
   // Ensure data integrity

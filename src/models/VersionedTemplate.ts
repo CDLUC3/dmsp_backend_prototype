@@ -39,13 +39,13 @@ export class VersionedTemplate extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
 
-    this.versionType = options.versionType || TemplateVersionType.DRAFT;
-    this.comment = options.comment || '';
-    this.active = options.active || false;
+    this.versionType = options.versionType ?? TemplateVersionType.DRAFT;
+    this.comment = options.comment ?? '';
+    this.active = options.active ?? false;
 
-    this.visibility = options.visibility || TemplateVisibility.PRIVATE;
-    this.bestPractice = options.bestPractice || false;
-    this.languageId = options.languageId || defaultLanguageId;
+    this.visibility = options.visibility ?? TemplateVisibility.PRIVATE;
+    this.bestPractice = options.bestPractice ?? false;
+    this.languageId = options.languageId ?? defaultLanguageId;
   }
 
   // Validation to be used prior to saving the record

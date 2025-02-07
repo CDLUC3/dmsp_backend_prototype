@@ -17,7 +17,7 @@ export class Collaborator extends MySqlModel {
 
     this.email = options.email;
     this.invitedById = options.invitedById;
-    this.userId = options.userId || null;
+    this.userId = options.userId ?? null;
   }
 
   // Validation to be used prior to saving the record
@@ -43,7 +43,7 @@ export class TemplateCollaborator extends Collaborator {
   constructor(options) {
     super(options);
 
-    this.templateId = options.templateId || null;
+    this.templateId = options.templateId ?? null;
   }
 
   // Verify that the templateId is present

@@ -21,8 +21,8 @@ export class MetadataStandard extends MySqlModel {
     this.name = options.name;
     this.uri = options.uri;
     this.description = options.description;
-    this.researchDomains = options.researchDomains || [];
-    this.keywords = options.keywords || [];
+    this.researchDomains = options.researchDomains ?? [];
+    this.keywords = options.keywords ?? [];
   }
 
   // Validation to be used prior to saving the record

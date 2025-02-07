@@ -26,8 +26,8 @@ export class QuestionCondition extends MySqlModel {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
     this.questionId = options.questionId;
-    this.action = options.action || QuestionConditionActionType.SHOW_QUESTION;
-    this.conditionType = options.conditionType || QuestionConditionCondition.EQUAL;
+    this.action = options.action ?? QuestionConditionActionType.SHOW_QUESTION;
+    this.conditionType = options.conditionType ?? QuestionConditionCondition.EQUAL;
     this.conditionMatch = options.conditionMatch;
     this.target = options.target;
   }
