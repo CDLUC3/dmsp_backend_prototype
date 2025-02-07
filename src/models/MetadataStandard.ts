@@ -147,7 +147,7 @@ export class MetadataStandard extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, projectOutputId };
       const msg = 'Unable to add the standard to the project output';
-      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -163,7 +163,7 @@ export class MetadataStandard extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, projectOutputId };
       const msg = 'Unable to remove the standard from the project output';
-      formatLogMessage(context.logger).error(payload, `${reference} - ${msg}`);
+      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
       return false;
     }
     return true;

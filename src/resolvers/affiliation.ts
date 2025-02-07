@@ -35,7 +35,7 @@ export const resolvers: Resolvers = {
         const affiliation = new Affiliation(input);
         return await affiliation.create(context);
       } catch (err) {
-        formatLogMessage(context.logger).error(err, 'Failure in addAffiliation rsolver');
+        formatLogMessage(context).error(err, 'Failure in addAffiliation rsolver');
         throw InternalServerError();
       }
     },
@@ -61,7 +61,7 @@ export const resolvers: Resolvers = {
         }
         throw ForbiddenError();
       } catch (err) {
-        formatLogMessage(context.logger).error(err, 'Failure in updateAffiliation resolver');
+        formatLogMessage(context).error(err, 'Failure in updateAffiliation resolver');
         throw InternalServerError();
       }
     },
@@ -78,7 +78,7 @@ export const resolvers: Resolvers = {
         }
         throw ForbiddenError();
       } catch (err) {
-        formatLogMessage(context.logger).error(err, 'Failure in removeAffiliation rsolver');
+        formatLogMessage(context).error(err, 'Failure in removeAffiliation rsolver');
         throw InternalServerError();
       }
     },

@@ -2,7 +2,7 @@ import { buildContext } from '../context';
 import { DMPHubAPI } from '../datasources/dmphubAPI';
 import { DMPToolAPI } from '../datasources/dmptoolAPI';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
-import { formatLogMessage } from '../logger';
+import { MockCache } from '../__mocks__/context';
 
 // Mock dependencies
 jest.mock('../datasources/dmphubAPI');
@@ -22,7 +22,7 @@ describe('buildContext', () => {
       error: jest.fn(),
       info: jest.fn(),
     };
-    cacheMock = { skipCache: false };
+    cacheMock = MockCache.getInstance();
     tokenMock = { accessToken: 'test-token' };
     sqlDataSourceMock = {
       pool: null,
@@ -44,15 +44,13 @@ describe('buildContext', () => {
   it('should return a valid context with provided cache and token', () => {
     const context = buildContext(loggerMock, cacheMock, tokenMock);
 
-    expect(context).toEqual({
-      token: tokenMock,
-      logger: loggerMock,
-      dataSources: {
-        dmphubAPIDataSource: expect.any(DMPHubAPI),
-        dmptoolAPIDataSource: expect.any(DMPToolAPI),
-        sqlDataSource: sqlDataSourceMock,
-      },
-    });
+    expect(context.cache).toEqual(cacheMock);
+    expect(context.requestId).toBeTruthy();
+    expect(context.token).toBe(tokenMock);
+    expect(context.logger).toEqual(loggerMock);
+    expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
+    expect(context.dataSources.dmptoolAPIDataSource).toBeTruthy();
+    expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
 
     // Ensure data sources are initialized with cache and token
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: cacheMock, token: tokenMock });
@@ -63,15 +61,13 @@ describe('buildContext', () => {
   it('should return a valid context with default cache when cache is null', () => {
     const context = buildContext(loggerMock, null, tokenMock); // Passing null for cache
 
-    expect(context).toEqual({
-      token: tokenMock,
-      logger: loggerMock,
-      dataSources: {
-        dmphubAPIDataSource: expect.any(DMPHubAPI),
-        dmptoolAPIDataSource: expect.any(DMPToolAPI),
-        sqlDataSource: sqlDataSourceMock,
-      },
-    });
+    expect(context.cache).toBeTruthy();
+    expect(context.requestId).toBeTruthy();
+    expect(context.token).toBe(tokenMock);
+    expect(context.logger).toEqual(loggerMock);
+    expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
+    expect(context.dataSources.dmptoolAPIDataSource).toBeTruthy();
+    expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
 
     // Ensure cache is defaulted to { skipCache: true }
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: { skipCache: true }, token: tokenMock });
@@ -81,15 +77,13 @@ describe('buildContext', () => {
   it('should return a valid context with null token when token is null', () => {
     const context = buildContext(loggerMock, cacheMock, null); // Passing null for token
 
-    expect(context).toEqual({
-      token: null,
-      logger: loggerMock,
-      dataSources: {
-        dmphubAPIDataSource: expect.any(DMPHubAPI),
-        dmptoolAPIDataSource: expect.any(DMPToolAPI),
-        sqlDataSource: sqlDataSourceMock,
-      },
-    });
+    expect(context.cache).toEqual(cacheMock);
+    expect(context.requestId).toBeTruthy();
+    expect(context.token).toBe(null);
+    expect(context.logger).toEqual(loggerMock);
+    expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
+    expect(context.dataSources.dmptoolAPIDataSource).toBeTruthy();
+    expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
 
     // Ensure data sources are called with cache and null token
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: cacheMock, token: null });
@@ -107,10 +101,9 @@ describe('buildContext', () => {
     expect(context).toBeNull();
 
     // Ensure the error is logged with the expected message
-    expect(formatLogMessage(loggerMock).error).toHaveBeenCalledWith(
-      expect.any(Error),
-      'Unable to buildContext - API initialization error',
-      { logger: loggerMock, cache: cacheMock, token: tokenMock }
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      { err: expect.any(Error), logger: loggerMock, cache: cacheMock, token: tokenMock },
+      'Unable to buildContext - API initialization error'
     );
   });
 

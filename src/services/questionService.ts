@@ -7,7 +7,7 @@ import { NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 import { QuestionOption } from "../models/QuestionOption";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
-import { formatLogMessage, logger } from "../logger";
+import { formatLogMessage } from "../logger";
 
 // Determine whether the specified user has permission to access the Section
 export const hasPermissionOnQuestion = async (context: MyContext, templateId: number): Promise<boolean> => {
@@ -88,18 +88,18 @@ export const generateQuestionVersion = async (
         } else {
           // There were errors on the object so report them
           const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${updated.errors}`;
-          formatLogMessage(logger).error(null, msg);
+          formatLogMessage(context).error(null, msg);
           throw new Error(msg);
         }
       }
     } else {
       // There were errors on the object so report them
       const msg = `Unable to generateQuestionVersion for versionedQuestion errs: ${saved.errors}`;
-      formatLogMessage(logger).error(null, msg);
+      formatLogMessage(context).error(null, msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(logger).error(err, `Unable to generateQuestionVersion for question: ${question.id}`);
+    formatLogMessage(context).error(err, `Unable to generateQuestionVersion for question: ${question.id}`);
     throw err
   }
 
@@ -165,7 +165,7 @@ export const generateQuestionConditionVersion = async (
   } else {
     // There were errors on the object so report them
     const msg = `Unable to generateQuestionConditionVersion for questionCondition errs: ${created.errors}`
-    formatLogMessage(logger).error(null, `${msg}, errs: ${created.errors}`);
+    formatLogMessage(context).error(null, `${msg}, errs: ${created.errors}`);
     throw new Error(msg);
   }
 }

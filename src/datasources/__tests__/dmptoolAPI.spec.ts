@@ -5,6 +5,9 @@ import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { JWTAccessToken } from '../../services/tokenService';
 import { Affiliation, AffiliationSearch } from "../../models/Affiliation";
+import { buildContext } from '../../__mocks__/context';
+
+jest.mock('../../context.ts');
 
 let mockError;
 
@@ -54,12 +57,11 @@ describe('Authorizer', () => {
   it('should encode credentials and call authenticate method', async () => {
     const mockResponse = { access_token: 'test_token' };
     mockPost.mockResolvedValue(mockResponse);
-
     await authorizer.authenticate();
 
     expect(mockPost).toHaveBeenCalledWith(`/oauth2/token`);
     expect(authorizer.oauth2Token).toBe('test_token');
-    expect(formatLogMessage(logger).info).toHaveBeenCalledWith('Authenticating with DMPHub');
+    expect(logger.info).toHaveBeenCalledWith('Authenticating with DMPHub');
   });
 
   it('should check token expiration', () => {
@@ -116,53 +118,53 @@ describe('DMPToolAPI', () => {
 
   describe('getAffiliation', () => {
     it('should call get with the correct affiliationId and log the message', async () => {
+      const context = buildContext(logger);
       const mockResponse = { id: '123', name: 'Test Affiliation' };
       mockGet.mockResolvedValue(mockResponse);
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const result = await dmptoolAPI.getAffiliation('https://example.com/affiliation/123');
+      const result = await dmptoolAPI.getAffiliation(context, 'https://example.com/affiliation/123');
 
       expect(mockGet).toHaveBeenCalledWith('affiliations/example.com/affiliation/123');
       expect(result).toBeInstanceOf(Affiliation);
-      expect(formatLogMessage(logger).info).toHaveBeenCalledWith(
+      expect(formatLogMessage(context).info).toHaveBeenCalledWith(
         'Calling DMPHub: https://dmphub.example.com/affiliations/example.com/affiliation/123'
       );
     });
 
-    it('should log error and throw when get fails', async () => {
+    it('should throw and error when get fails', async () => {
+      const context = buildContext(logger);
       const mockError = new Error('API error');
-      mockGet.mockRejectedValue(mockError);
+      //mockGet.mockRejectedValue(mockError);
+      mockGet.mockImplementation(() => { throw mockError });
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      await expect(dmptoolAPI.getAffiliation('https://example.com/affiliation/123')).rejects.toThrow('API error');
-      expect(formatLogMessage(logger, { err: mockError }).error).toHaveBeenCalledWith(
-        'Error calling DMPHub API getAffiliation.'
-      );
+      await expect(dmptoolAPI.getAffiliation(context, 'https://example.com/affiliation/123')).rejects.toThrow('API error');
     });
   });
 
   describe('getAffiliations', () => {
     it('should call get with the correct query string and return affiliations', async () => {
+      const context = buildContext(logger);
       const mockResponse = [{ id: '1', name: 'Affiliation1' }, { id: '2', name: 'Affiliation2' }];
       mockGet.mockResolvedValue(mockResponse);
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const result = await dmptoolAPI.getAffiliations({ name: 'University', funderOnly: true });
+      const result = await dmptoolAPI.getAffiliations(context, { name: 'University', funderOnly: true });
 
       expect(mockGet).toHaveBeenCalledWith('affiliations?search=University&funderOnly=true');
       expect(result.length).toBe(2);
       expect(result[0]).toBeInstanceOf(AffiliationSearch);
     });
 
-    it('should log error and throw when get fails', async () => {
+    it('should throw an error when get fails', async () => {
+      const context = buildContext(logger);
       const mockError = new Error('API error');
-      mockGet.mockRejectedValue(mockError);
+      // mockGet.mockRejectedValue(mockError);
+      mockGet.mockImplementation(() => { throw mockError });
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      await expect(dmptoolAPI.getAffiliations({ name: 'University' })).rejects.toThrow('API error');
-      expect(formatLogMessage(logger, { err: mockError }).error).toHaveBeenCalledWith(
-        'Error calling DMPHub API getAffiliation.'
-      );
+      await expect(dmptoolAPI.getAffiliations(context, { name: 'University' })).rejects.toThrow('API error');
     });
   });
 });

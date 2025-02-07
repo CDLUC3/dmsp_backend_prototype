@@ -6,7 +6,7 @@ import { isSuperAdmin } from "./authService";
 import { TemplateCollaborator } from "../models/Collaborator";
 import { Section } from "../models/Section";
 import { generateSectionVersion } from "./sectionService";
-import { formatLogMessage, logger } from "../logger";
+import { formatLogMessage } from "../logger";
 
 
 // Determine whether the specified user has permission to access the Template
@@ -28,7 +28,7 @@ export const hasPermissionOnTemplate = async (context: MyContext, template: Temp
   }
 
   const payload = { templateId: template.id, userId: context.token.id };
-  formatLogMessage(context.logger).error(payload, 'AUTH failure: hasPermissionOnTemplate')
+  formatLogMessage(context).error(payload, 'AUTH failure: hasPermissionOnTemplate')
   return false;
 }
 
@@ -114,17 +114,17 @@ export const generateTemplateVersion = async (
           return created;
         } else {
           const msg = `Unable to generateTemplateVersion for template: ${template.id}, errs: ${updated.errors}`;
-          formatLogMessage(logger).error(null, msg);
+          formatLogMessage(context).error(null, msg);
           throw new Error(msg);
         }
       }
     } catch (err) {
-      formatLogMessage(logger).error(err, `Unable to generateTemplateVersion for id: ${template.id}`);
+      formatLogMessage(context).error(err, `Unable to generateTemplateVersion for id: ${template.id}`);
       throw new Error(err.message);
     }
   } else {
     const msg = `Unable to generateTemplateVersion for versionedTemplate errs: ${created.errors}`;
-    formatLogMessage(logger).error(null, msg);
+    formatLogMessage(context).error(null, msg);
     throw new Error(msg);
   }
   // Something went wrong, so return a null instead

@@ -1,12 +1,13 @@
 import { RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
-import { logger, formatLogMessage } from '../logger';
+import { logger } from '../logger';
 import { DmspModel as Dmsp } from "../models/Dmsp"
 import { JWTAccessToken } from '../services/tokenService';
 
 export class DMPHubAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private token: JWTAccessToken;
 
   constructor(options: { cache: KeyValueCache, token: JWTAccessToken }) {
@@ -51,13 +52,13 @@ export class DMPHubAPI extends RESTDataSource {
 
   // Fetch a specific DMSP by its DMP ID
   async getDMSP(dmspID: string) {
-    formatLogMessage(logger).info(`Calling DMPHub: ${this.baseURL}/dmps/${dmspID}`)
+    logger.info({ dmphubUrl: this.baseURL, dmspID }, 'Calling DMPHub');
     try {
       const id = this.dmspIdWithoutProtocol(dmspID);
       const response = await this.get<Dmsp>(`dmps/${encodeURI(id)}`);
       return this.handleResponse(response);
     } catch(err) {
-      formatLogMessage(logger, { err }).error('Error calling DMPHub API getDMSP.')
+      logger.error({ err, dmspID, dmphubURL: this.baseURL }, 'Error calling the DMPHub API');
       throw(err);
     }
   }

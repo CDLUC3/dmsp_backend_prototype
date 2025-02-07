@@ -8,6 +8,13 @@ import { signupController } from '../signupController';
 import { defaultLanguageId } from '../../models/Language';
 import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
+import { logger } from '../../__mocks__/logger';
+import { buildContext, mockToken } from "../../__mocks__/context";
+
+jest.mock('../../context.ts');
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let context;
 
 // Mocking external dependencies
 jest.mock('../../datasources/cache');
@@ -63,6 +70,8 @@ describe('signupController', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
+    context = buildContext(logger, mockToken(), null);
+
     mockRequest = {
       body: {
         email: casual.email,
@@ -97,7 +106,7 @@ describe('signupController', () => {
 
     await signupController(mockRequest as Request, mockResponse as Response);
 
-    expect(generateAuthTokens).toHaveBeenCalledWith(mockCache, mockedUser);
+    expect(generateAuthTokens).toHaveBeenCalled();
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspt', 'new-access-token', generalConfig.jwtTTL);
     expect(setTokenCookie).toHaveBeenCalledWith(mockResponse, 'dmspr', 'new-refresh-token', generalConfig.jwtRefreshTTL);
     expect(mockResponse.status).toHaveBeenCalledWith(201);

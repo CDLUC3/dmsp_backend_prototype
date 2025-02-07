@@ -41,7 +41,7 @@ export const resolvers: Resolvers = {
           const created = await newProject.create(context);
           return created
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in addProject resolver');
+          formatLogMessage(context).error(err, 'Failure in addProject resolver');
           throw InternalServerError();
         }
       } else {
@@ -64,7 +64,7 @@ export const resolvers: Resolvers = {
           const updated = await toUpdate.update(context);
           return updated;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in updateProject resolver');
+          formatLogMessage(context).error(err, 'Failure in updateProject resolver');
           throw InternalServerError();
         }
       } else {
@@ -90,7 +90,7 @@ export const resolvers: Resolvers = {
           const deleted = await project.delete(context);
           return deleted
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in removeProject resolver');
+          formatLogMessage(context).error(err, 'Failure in removeProject resolver');
           throw InternalServerError();
         }
       } else {

@@ -41,7 +41,7 @@ export const resolvers: Resolvers = {
           }
           return created
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in addMetadataStandard resolver');
+          formatLogMessage(context).error(err, 'Failure in addMetadataStandard resolver');
           throw InternalServerError();
         }
       } else {
@@ -97,7 +97,7 @@ export const resolvers: Resolvers = {
           // Otherwise there were errors so return the object with errors
           return updated;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, `Failure in ${reference}`);
+          formatLogMessage(context).error(err, `Failure in ${reference}`);
           throw InternalServerError();
         }
       } else {
@@ -121,7 +121,7 @@ export const resolvers: Resolvers = {
           // No need to remove the related research domain associations the DB will cascade the deletion
           return deleted
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in removeMetadataStandard resolver');
+          formatLogMessage(context).error(err, 'Failure in removeMetadataStandard resolver');
           throw InternalServerError();
         }
       } else {
@@ -167,7 +167,7 @@ export const resolvers: Resolvers = {
           await toRemove.delete(context);
           return toKeep;
         } catch(err) {
-          formatLogMessage(context.logger).error(err, 'Failure in removeMetadataStandard resolver');
+          formatLogMessage(context).error(err, 'Failure in removeMetadataStandard resolver');
           throw InternalServerError();
         }
       } else {

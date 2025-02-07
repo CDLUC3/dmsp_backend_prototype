@@ -1,9 +1,10 @@
 import { Buffer } from "buffer";
 import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
 import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
-import { logger, formatLogMessage } from '../logger';
+import { formatLogMessage, logger } from '../logger';
 import { Affiliation, AffiliationSearch } from "../models/Affiliation"
 import { JWTAccessToken } from '../services/tokenService';
+import { MyContext } from "../context";
 
 // Singleton class that retrieves an Auth token from the API
 export class Authorizer extends RESTDataSource {
@@ -24,6 +25,7 @@ export class Authorizer extends RESTDataSource {
     // Base64 encode the credentials for the auth request
     const hdr = `${process.env.DMPHUB_API_CLIENT_ID}:${process.env.DMPHUB_API_CLIENT_SECRET}`;
     this.creds = Buffer.from(hdr, 'binary').toString('base64');
+
     this.authenticate();
   }
 
@@ -38,10 +40,11 @@ export class Authorizer extends RESTDataSource {
 
   // Call the authenticate method and set this class' expiry timestamp
   async authenticate() {
+    // const context = buildContext(logger);
     const response = await this.post(`/oauth2/token`);
-    formatLogMessage(logger).info(`Authenticating with DMPHub`);
-    this.oauth2Token = response.access_token;
 
+    logger.info(`Authenticating with DMPHub`);
+    this.oauth2Token = response.access_token;
     const currentDate = new Date();
     this.expiry = new Date(currentDate.getTime() + 600 * 1000);
   }
@@ -66,6 +69,7 @@ export class Authorizer extends RESTDataSource {
 export class DMPToolAPI extends RESTDataSource {
   override baseURL = process.env.DMPHUB_API_BASE_URL;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private token: JWTAccessToken;
   private authorizer: Authorizer;
 
@@ -92,30 +96,33 @@ export class DMPToolAPI extends RESTDataSource {
   }
 
   // Retrieve a single affiliation record
-  async getAffiliation(affiliationId: string) {
+  async getAffiliation(context: MyContext, affiliationId: string) {
     try {
       const id = this.removeProtocol(affiliationId);
-      formatLogMessage(logger).info(`Calling DMPHub: ${this.baseURL}/affiliations/${id}`)
-
+      formatLogMessage(context).info(`Calling DMPHub: ${this.baseURL}/affiliations/${id}`)
       const response = await this.get(`affiliations/${encodeURI(id)}`);
+
       if (response) {
         const affiliation = new Affiliation(response);
         return affiliation ? affiliation : null;
       }
       return null;
     } catch(err) {
-      formatLogMessage(logger, { err }).error('Error calling DMPHub API getAffiliation.')
+      formatLogMessage(context).error(err, 'Error calling DMPHub API getAffiliation.');
       throw(err);
     }
   }
 
   // Perform a search for affiliation records
-  async getAffiliations({ name, funderOnly = false }: { name: string, funderOnly?: boolean } ) {
+  async getAffiliations(
+    context: MyContext,
+    { name, funderOnly = false }: { name: string, funderOnly?: boolean }
+  ) {
     try {
       const sanitizedName = encodeURI(name);
       const funderBool = funderOnly ? (funderOnly === true) : false;
       const queryString = `search=${sanitizedName}&funderOnly=${funderBool}`;
-      formatLogMessage(logger).info(`Calling DMPHub: ${this.baseURL}/affiliations?${queryString}`)
+      formatLogMessage(context).info(`Calling DMPHub: ${this.baseURL}/affiliations?${queryString}`)
 
       const response = await this.get(`affiliations?${queryString}`);
       if (response) {
@@ -124,7 +131,7 @@ export class DMPToolAPI extends RESTDataSource {
       }
       return null;
     } catch(err) {
-      formatLogMessage(logger, { err }).error('Error calling DMPHub API getAffiliation.')
+      formatLogMessage(context).error(err, 'Error calling DMPHub API getAffiliations.');
       throw(err);
     }
   }
