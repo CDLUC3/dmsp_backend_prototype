@@ -986,7 +986,7 @@ export type MutationRemoveQuestionConditionArgs = {
 
 
 export type MutationRemoveQuestionOptionArgs = {
-  questionOptionId: Scalars['Int']['input'];
+  id: Scalars['Int']['input'];
 };
 
 
@@ -1598,7 +1598,7 @@ export type Query = {
   question?: Maybe<Question>;
   /** Get the QuestionConditions that belong to a specific question */
   questionConditions?: Maybe<Array<Maybe<QuestionCondition>>>;
-  /** Get the specific Question Option based on questionOptionId */
+  /** Get the specific Question Option based on question option id */
   questionOption?: Maybe<QuestionOption>;
   /** Get the Question Options that belong to the associated questionId */
   questionOptions?: Maybe<Array<Maybe<QuestionOption>>>;
@@ -1816,7 +1816,7 @@ export type QueryQuestionConditionsArgs = {
 
 
 export type QueryQuestionOptionArgs = {
-  questionOptionId: Scalars['Int']['input'];
+  id: Scalars['Int']['input'];
 };
 
 
@@ -2356,12 +2356,14 @@ export type UpdateQuestionInput = {
 };
 
 export type UpdateQuestionOptionInput = {
+  /** The id of the QuestionOption */
+  id?: InputMaybe<Scalars['Int']['input']>;
   /** Whether the option is the default selected one */
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
   /** The option order number */
   orderNumber: Scalars['Int']['input'];
-  /** The id of the QuestionOption */
-  questionOptionId?: InputMaybe<Scalars['Int']['input']>;
+  /** id of parent question */
+  questionId?: InputMaybe<Scalars['Int']['input']>;
   /** The option text */
   text: Scalars['String']['input'];
 };
@@ -3166,7 +3168,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeProjectOutputFromPlan?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationRemoveProjectOutputFromPlanArgs, 'planId' | 'projectOutputId'>>;
   removeQuestion?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionArgs, 'questionId'>>;
   removeQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionConditionArgs, 'questionConditionId'>>;
-  removeQuestionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionOptionArgs, 'questionOptionId'>>;
+  removeQuestionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionOptionArgs, 'id'>>;
   removeRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<MutationRemoveRepositoryArgs, 'repositoryId'>>;
   removeSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationRemoveSectionArgs, 'sectionId'>>;
   removeTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationRemoveTagArgs, 'tagId'>>;
@@ -3416,7 +3418,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   publishedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
   question?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<QueryQuestionArgs, 'questionId'>>;
   questionConditions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryQuestionConditionsArgs, 'questionId'>>;
-  questionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<QueryQuestionOptionArgs, 'questionOptionId'>>;
+  questionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<QueryQuestionOptionArgs, 'id'>>;
   questionOptions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionOption']>>>, ParentType, ContextType, RequireFields<QueryQuestionOptionsArgs, 'questionId'>>;
   questionTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionType']>>>, ParentType, ContextType>;
   questions?: Resolver<Maybe<Array<Maybe<ResolversTypes['Question']>>>, ParentType, ContextType, RequireFields<QueryQuestionsArgs, 'sectionId'>>;
