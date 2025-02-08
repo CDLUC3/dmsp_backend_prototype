@@ -39,6 +39,7 @@ export const resolvers: Resolvers = {
       requirementText,
       guidanceText,
       sampleText,
+      useSampleTextAsDefault,
       required,
       questionOptions } }, context: MyContext): Promise<Question> => {
 
@@ -54,6 +55,7 @@ export const resolvers: Resolvers = {
           requirementText,
           guidanceText,
           sampleText,
+          useSampleTextAsDefault,
           required
         });
 
@@ -96,6 +98,7 @@ export const resolvers: Resolvers = {
       requirementText,
       guidanceText,
       sampleText,
+      useSampleTextAsDefault,
       required,
       questionOptions } }, context: MyContext): Promise<Question> => {
 
@@ -120,6 +123,7 @@ export const resolvers: Resolvers = {
           requirementText: requirementText,
           guidanceText: guidanceText,
           sampleText: sampleText,
+          useSampleTextAsDefault: useSampleTextAsDefault,
           required: required,
           isDirty: questionData.isDirty
         });

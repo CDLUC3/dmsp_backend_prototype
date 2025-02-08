@@ -11,6 +11,7 @@ export class Question extends MySqlModel {
   public requirementText?: string;
   public guidanceText?: string;
   public sampleText?: string;
+  public useSampleTextAsDefault?: boolean;
   public required: boolean;
   public displayOrder: number;
   public isDirty: boolean;
@@ -29,6 +30,7 @@ export class Question extends MySqlModel {
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
     this.sampleText = options.sampleText;
+    this.useSampleTextAsDefault = options.useSampleTextAsDefault;
     this.required = options.required || false;
     this.displayOrder = options.displayOrder;
     this.isDirty = options.isDirty || false;
