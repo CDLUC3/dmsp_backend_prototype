@@ -30,7 +30,7 @@ export class Question extends MySqlModel {
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
     this.sampleText = options.sampleText;
-    this.useSampleTextAsDefault = options.useSampleTextAsDefault;
+    this.useSampleTextAsDefault = options.useSampleTextAsDefault || false;
     this.required = options.required || false;
     this.displayOrder = options.displayOrder;
     this.isDirty = options.isDirty || false;

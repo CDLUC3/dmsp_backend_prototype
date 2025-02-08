@@ -28,10 +28,13 @@ describe('Question', () => {
     requirementText: casual.sentences(3),
     guidanceText: casual.sentences(10),
     sampleText: casual.sentences(10),
+    useSampleTextAsDefault: true,
     displayOrder: casual.integer(1, 20),
   }
   beforeEach(() => {
     question = new Question(questionData);
+
+    console.log("***QUESTION", question);
   });
 
   it('should initialize options as expected', () => {
@@ -40,6 +43,7 @@ describe('Question', () => {
     expect(question.requirementText).toEqual(questionData.requirementText);
     expect(question.guidanceText).toEqual(questionData.guidanceText);
     expect(question.sampleText).toEqual(questionData.sampleText);
+    expect(question.useSampleTextAsDefault).toEqual(questionData.useSampleTextAsDefault);
     expect(question.displayOrder).toEqual(questionData.displayOrder);
     expect(question.required).toEqual(false);
   });
