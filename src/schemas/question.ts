@@ -93,6 +93,8 @@ input AddQuestionInput {
 input UpdateQuestionInput {
     "The unique identifier for the Question"
     questionId: Int!
+    "The type of question, such as text field, select box, radio buttons, etc"
+    questionTypeId: Int
     "The display order of the Question"
     displayOrder: Int
     "This will be used as a sort of title for the Question"

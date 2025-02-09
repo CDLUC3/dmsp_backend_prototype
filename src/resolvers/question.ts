@@ -93,6 +93,7 @@ export const resolvers: Resolvers = {
     },
     updateQuestion: async (_, { input: {
       questionId,
+      questionTypeId,
       displayOrder,
       questionText,
       requirementText,
@@ -118,7 +119,7 @@ export const resolvers: Resolvers = {
           templateId: questionData.templateId,
           createdById: questionData.createdById,
           displayOrder: displayOrder,
-          questionTypeId: questionData.questionTypeId,
+          questionTypeId: questionTypeId || questionData.questionTypeId,
           questionText: questionText,
           requirementText: requirementText,
           guidanceText: guidanceText,
