@@ -88,7 +88,7 @@ describe('validate a new UserEmail', () => {
     mockUserEmail.email = null;
     expect(await mockUserEmail.isValid()).toBe(false);
     expect(Object.keys(mockUserEmail.errors).length).toBe(1);
-    expect(mockUserEmail.errors['email']).toEqual('Email can\'t be blank');
+    expect(mockUserEmail.errors['email']).toEqual('Invalid email address');
   });
 
   it('should return false when the userId is missing', async () => {

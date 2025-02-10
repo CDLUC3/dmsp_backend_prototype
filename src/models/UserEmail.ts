@@ -31,7 +31,7 @@ export class UserEmail extends MySqlModel {
     await super.isValid();
 
     if (this.userId === null) this.addError('userId', 'User can\'t be blank');
-    if (!validateEmail(this.email)) this.addError('email', 'Email can\'t be blank');
+    if (!validateEmail(this.email)) this.addError('email', 'Invalid email address');
 
     return Object.keys(this.errors).length === 0;
   }
