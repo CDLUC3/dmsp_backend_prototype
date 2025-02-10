@@ -1,4 +1,5 @@
 ### Added
+- Added `useSampleTextAsDefault` column to questions table
 - Added `requestId` to the Apollo context
 - Added `questionOptions` schema, resolver and `QuestionOption` model, which will be used for `option` question types
 - Added a new query to get all versionedTemplates, called `myVersionedTemplates`, under user's affiliation, and added a new method in the model called `findByAffiliationId`

@@ -52,6 +52,8 @@ type Question {
     guidanceText: String
     "Sample text to possibly provide a starting point or example to answer question"
     sampleText: String
+    "Boolean indicating whether we should use content from sampleText as the default answer"
+    useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
 
@@ -80,6 +82,8 @@ input AddQuestionInput {
     guidanceText: String
     "Sample text to possibly provide a starting point or example to answer question"
     sampleText: String
+    "Boolean indicating whether we should use content from sampleText as the default answer"
+    useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
     "Add options for a question type, like radio buttons"
@@ -89,6 +93,8 @@ input AddQuestionInput {
 input UpdateQuestionInput {
     "The unique identifier for the Question"
     questionId: Int!
+    "The type of question, such as text field, select box, radio buttons, etc"
+    questionTypeId: Int
     "The display order of the Question"
     displayOrder: Int
     "This will be used as a sort of title for the Question"
@@ -99,6 +105,8 @@ input UpdateQuestionInput {
     guidanceText: String
     "Sample text to possibly provide a starting point or example to answer question"
     sampleText: String
+    "Boolean indicating whether we should use content from sampleText as the default answer"
+    useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
     "Update options for a question type like radio buttons"

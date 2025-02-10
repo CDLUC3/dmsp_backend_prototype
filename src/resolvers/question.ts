@@ -39,6 +39,7 @@ export const resolvers: Resolvers = {
       requirementText,
       guidanceText,
       sampleText,
+      useSampleTextAsDefault,
       required,
       questionOptions } }, context: MyContext): Promise<Question> => {
 
@@ -54,6 +55,7 @@ export const resolvers: Resolvers = {
           requirementText,
           guidanceText,
           sampleText,
+          useSampleTextAsDefault,
           required
         });
 
@@ -91,11 +93,13 @@ export const resolvers: Resolvers = {
     },
     updateQuestion: async (_, { input: {
       questionId,
+      questionTypeId,
       displayOrder,
       questionText,
       requirementText,
       guidanceText,
       sampleText,
+      useSampleTextAsDefault,
       required,
       questionOptions } }, context: MyContext): Promise<Question> => {
 
@@ -115,11 +119,12 @@ export const resolvers: Resolvers = {
           templateId: questionData.templateId,
           createdById: questionData.createdById,
           displayOrder: displayOrder,
-          questionTypeId: questionData.questionTypeId,
+          questionTypeId: questionTypeId || questionData.questionTypeId,
           questionText: questionText,
           requirementText: requirementText,
           guidanceText: guidanceText,
           sampleText: sampleText,
+          useSampleTextAsDefault: useSampleTextAsDefault,
           required: required,
           isDirty: questionData.isDirty
         });
