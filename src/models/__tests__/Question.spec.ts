@@ -135,7 +135,8 @@ describe('update', () => {
     (question.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await question.update(context)).toBe(question);
+    const result = await question.update(context);
+    expect(result instanceof Question).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -165,7 +166,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(question);
+    expect(result).toBeInstanceOf(Question);
   });
 });
 
@@ -199,7 +200,8 @@ describe('create', () => {
     (question.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await question.create(context)).toBe(question);
+    const result = await question.create(context);
+    expect(result instanceof Question).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -230,7 +232,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(question);
+    expect(result).toBeInstanceOf(Question);
   });
 });
 
@@ -271,6 +273,6 @@ describe('delete', () => {
 
     const result = await question.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(question);
+    expect(result).toBeInstanceOf(Question);
   });
 });

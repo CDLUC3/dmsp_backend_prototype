@@ -9,7 +9,7 @@ export class AffiliationEmailDomain extends MySqlModel {
   private tableName = 'affiliationEmailDomains';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.affiliationId = options.affiliationId
     this.domain = options.domain;
@@ -45,7 +45,7 @@ export class AffiliationEmailDomain extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new AffiliationEmailDomain(this);
   }
 
   // Archive this record
@@ -53,7 +53,7 @@ export class AffiliationEmailDomain extends MySqlModel {
     if (this.id) {
       const result = await AffiliationEmailDomain.delete(context, this.tableName, this.id, 'AffiliationEmailDomain.delete');
       if (result) {
-        return this;
+        return new AffiliationEmailDomain(this);
       }
     }
     return null;
@@ -63,20 +63,20 @@ export class AffiliationEmailDomain extends MySqlModel {
   static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationEmailDomain> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE id = ?`;
     const results = await AffiliationEmailDomain.query(context, sql, [id?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new AffiliationEmailDomain(results[0]) : null;
   }
 
   // Search by the domain
   static async findByDomain(reference: string, context: MyContext, domain: string): Promise<AffiliationEmailDomain> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE domain LIKE ?`;
     const results = await AffiliationEmailDomain.query(context, sql, [domain], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new AffiliationEmailDomain(results[0]) : null;
   }
 
   // Return all of the AffiliationEmailDomains for the Affiliation
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<AffiliationEmailDomain[]> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE affiliationId = ?`;
     const results = await AffiliationEmailDomain.query(context, sql, [affiliationId], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new AffiliationEmailDomain(entry)) : [];
   }
 }

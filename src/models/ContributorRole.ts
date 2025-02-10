@@ -10,7 +10,7 @@ export class ContributorRole extends MySqlModel {
   public description?: string;
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.displayOrder = options.displayOrder;
@@ -68,7 +68,7 @@ export class ContributorRole extends MySqlModel {
   static async all(reference: string, context: MyContext): Promise<ContributorRole[]> {
     const sql = 'SELECT * FROM contributorRoles ORDER BY label';
     const results = await ContributorRole.query(context, sql, [], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new ContributorRole(entry)) : [];
   }
 
   // Fetch a contributor role by it's id
@@ -103,6 +103,6 @@ export class ContributorRole extends MySqlModel {
     const whereClause = 'WHERE pcr.projectContributorId = ?';
     const vals = [projectContributorId?.toString()];
     const results = await ContributorRole.query(context, `${sql} ${whereClause}`, vals, reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new ContributorRole(entry)) : [];
   }
 };

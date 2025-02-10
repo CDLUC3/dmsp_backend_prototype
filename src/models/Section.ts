@@ -18,7 +18,7 @@ export class Section extends MySqlModel {
   private tableName = 'sections';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
     this.sourceSectionId = options.sourceSectionId;
@@ -76,7 +76,7 @@ export class Section extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new Section(this);
   }
 
   //Update an existing Section
@@ -93,7 +93,7 @@ export class Section extends MySqlModel {
       // This template has never been saved before so we cannot update it!
       this.addError('general', 'Section has never been saved');
     }
-    return this;
+    return new Section(this);
   }
 
   //Delete Section based on the Section object's id and return
@@ -124,7 +124,7 @@ export class Section extends MySqlModel {
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim(), templateId?.toString()];
     const results = await Section.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new Section(results[0]) : null;
   }
 
 
@@ -132,12 +132,12 @@ export class Section extends MySqlModel {
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
     const sql = 'SELECT * FROM sections WHERE templateId = ?';
     const results = await Section.query(context, sql, [templateId?.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new Section(entry)) : [];
   }
 
   static async findById(reference: string, context: MyContext, sectionId: number): Promise<Section> {
     const sql = 'SELECT * FROM sections where id = ?';
     const result = await Section.query(context, sql, [sectionId?.toString()], reference);
-    return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    return Array.isArray(result) && result.length > 0 ? new Section(result[0]) : null;
   }
 }

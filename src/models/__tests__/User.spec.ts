@@ -441,6 +441,7 @@ describe('register()', () => {
       surName: 'simple',
       affiliationId: casual.url,
     });
+    mockQuery.mockResolvedValueOnce(user);
     const response = await user.register(context);
     expect(response).toBe(user);
     expect(response.errors['acceptedTerms']).toBeTruthy();
@@ -465,7 +466,7 @@ describe('register()', () => {
     });
 
     const response = await user.register(context);
-    expect(response).toBe(user);
+    expect(response).toBeInstanceOf(User);
     expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
@@ -533,7 +534,9 @@ describe('update', () => {
     (user.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await user.update(context)).toBe(user);
+    const result = await user.update(context);
+    expect(result).toBeInstanceOf(User);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -561,7 +564,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(user);
+    expect(result).toBeInstanceOf(User);
   });
 
   it('prevents the password from being updated', async () => {
@@ -578,7 +581,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(user);
+    expect(result).toBeInstanceOf(User);
   });
 });
 
@@ -637,7 +640,8 @@ describe('updatePassword', () => {
     mockAuthCheck.mockResolvedValueOnce(true);
     mockValidator.mockReturnValueOnce(false);
 
-    expect(await user.updatePassword(context, oldPassword, newPassword)).toBe(user);
+    const result = await user.updatePassword(context, oldPassword, newPassword);
+    expect(result).toBeInstanceOf(User);
     expect(mockAuthCheck).toHaveBeenCalledTimes(1);
     expect(mockValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).not.toHaveBeenCalled();

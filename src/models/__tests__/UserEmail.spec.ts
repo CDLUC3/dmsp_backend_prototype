@@ -202,6 +202,8 @@ describe('confirmEmail', () => {
   let mockFindUserEmailByEmail;
   let mockUpdate;
   let mockFindTemplateCollaboratorByEmail;
+  let mockFindTemplateCollaboratorById;
+  let mockUpdateTemplateCollaborator;
   let mockDelete;
 
   beforeEach(() => {
@@ -230,6 +232,12 @@ describe('confirmEmail', () => {
 
     mockFindTemplateCollaboratorByEmail = jest.fn();
     (TemplateCollaborator.findByEmail as jest.Mock) = mockFindTemplateCollaboratorByEmail;
+
+    mockFindTemplateCollaboratorById = jest.fn();
+    (TemplateCollaborator.findById as jest.Mock) = mockFindTemplateCollaboratorById;
+
+    mockUpdateTemplateCollaborator = jest.fn();
+    (TemplateCollaborator.update as jest.Mock) = mockUpdateTemplateCollaborator;
 
     mockUpdate = jest.fn();
     (UserEmail.update as jest.Mock) = mockUpdate;
@@ -275,6 +283,8 @@ describe('confirmEmail', () => {
     confirmedEmail.isConfirmed = true;
     mockFindUserEmailById.mockResolvedValue(confirmedEmail);
     mockFindTemplateCollaboratorByEmail.mockResolvedValue(mockTemplateCollaborators);
+    mockFindTemplateCollaboratorById.mockResolvedValue(mockTemplateCollaborators[0]);
+    mockUpdateTemplateCollaborator.mockResolvedValue(mockTemplateCollaborators[0]);
 
     const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
     expect(result).toEqual(confirmedEmail);
@@ -335,7 +345,8 @@ describe('create', () => {
   it('returns the UserEmail with errors if it is not valid', async () => {
     mockValid.mockResolvedValueOnce(false);
 
-    expect(await mockUserEmail.create(context)).toBe(mockUserEmail);
+    const result = await mockUserEmail.create(context);
+    expect(result.errors).toEqual({});
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockInsert).not.toHaveBeenCalled();
   });
@@ -379,6 +390,7 @@ describe('create', () => {
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockFindByEmail).toHaveBeenCalledTimes(1);
     expect(mockInsert).toHaveBeenCalled();
+    expect(result).toBeInstanceOf(UserEmail);
     expect(Object.keys(result.errors).length).toBe(0);
   });
 });
@@ -444,6 +456,7 @@ describe('update', () => {
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(2);
     expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(UserEmail);
     expect(mockUpdate).toHaveBeenCalled();
   });
 });

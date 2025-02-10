@@ -29,7 +29,7 @@ export class VersionedTemplate extends MySqlModel {
   private tableName = 'versionedTemplates';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
     this.version = options.version;
@@ -70,7 +70,7 @@ export class VersionedTemplate extends MySqlModel {
       return await VersionedTemplate.findVersionedTemplateById('VersionedTemplate.create', context, newId);
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new VersionedTemplate(this);
   }
 
   // Save the changes made to the VersionedTemplate
@@ -84,13 +84,14 @@ export class VersionedTemplate extends MySqlModel {
       // This template has never been saved before so we cannot update it!
       this.addError('general', 'VersionedTemplate has never been saved');
     }
-    return this;
+    return new VersionedTemplate(this);
   }
 
   // Return all of the versions for the specified Template
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<VersionedTemplate[]> {
     const sql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
-    return await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
+    const results = await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new VersionedTemplate(entry)) : [];
   }
 
   // Search all of the Published versions for the specified term
@@ -101,7 +102,9 @@ export class VersionedTemplate extends MySqlModel {
     const searchTerm = (term ?? '');
     const vals = [`%${searchTerm}%`, TemplateVersionType.PUBLISHED];
 
-    return await VersionedTemplate.query(context, sql, vals, reference);
+    const results = await VersionedTemplate.query(context, sql, vals, reference);
+    // These are just search results so no need to instantiate the objects
+    return Array.isArray(results) ? results : [];
   }
 
   // Return the specified version
@@ -112,12 +115,14 @@ export class VersionedTemplate extends MySqlModel {
   ): Promise<VersionedTemplate> {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : null;
   }
 
   // Find all of the templates associated with the context's User's affiliation
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<VersionedTemplate[]> {
     const sql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
-    return await VersionedTemplate.query(context, sql, [affiliationId], reference);
+    const results = await VersionedTemplate.query(context, sql, [affiliationId], reference);
+    // No need to instantiate the objects here
+    return Array.isArray(results) ? results : [];
   }
 }

@@ -86,7 +86,7 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(tag);
+    expect(result).toBeInstanceOf(Tag);
   });
 });
 
@@ -109,8 +109,9 @@ describe('update', () => {
     const mockFindById = jest.fn();
     (Tag.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(tag);
-    expect(await tag.update(context)).toBe(tag);
+    const result = await tag.update(context);
     expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(result).toBeInstanceOf(Tag);
   });
 });
 
@@ -146,7 +147,7 @@ describe('delete', () => {
 
     const result = await tag.delete(context);
     expect(Object.keys(result?.errors).length).toBe(0);
-    expect(result).toEqual(tag);
+    expect(result).toBeInstanceOf(Tag);
   });
 });
 
@@ -376,7 +377,7 @@ describe('findByName', () => {
     const expectedSql = 'SELECT * FROM tags WHERE LOWER(name) = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [name.toLowerCase()], 'Tag query')
-    expect(result).toEqual(tag);
+    expect(result).toEqual([tag]);
 
   });
 });

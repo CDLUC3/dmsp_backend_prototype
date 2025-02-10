@@ -11,7 +11,7 @@ export class AffiliationLink extends MySqlModel {
   private tableName = 'affiliationLinks';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.affiliationId = options.affiliationId;
     this.url = options.url;
@@ -49,7 +49,7 @@ export class AffiliationLink extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new AffiliationLink(this);
   }
 
   // Archive this record
@@ -57,7 +57,7 @@ export class AffiliationLink extends MySqlModel {
     if (this.id) {
       const result = await AffiliationLink.delete(context, this.tableName, this.id, 'AffiliationLink.delete');
       if (result) {
-        return this;
+        return new AffiliationLink(this);
       }
     }
     return null;
@@ -67,20 +67,20 @@ export class AffiliationLink extends MySqlModel {
   static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationLink> {
     const sql = `SELECT * FROM affiliationLinks WHERE id = ?`;
     const results = await AffiliationLink.query(context, sql, [id?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new AffiliationLink(results[0]) : null;
   }
 
   // Return the specified AffiliationEmailDomain
   static async findByURL(reference: string, context: MyContext, url: string): Promise<AffiliationLink> {
     const sql = `SELECT * FROM affiliationLinks WHERE url = ?`;
     const results = await AffiliationLink.query(context, sql, [url], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new AffiliationLink(results[0]) : null;
   }
 
   // Return all of the AffiliationEmailDomains for the Affiliation
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: number): Promise<AffiliationLink[]> {
     const sql = `SELECT * FROM affiliationLinks WHERE affiliationId = ?`;
     const results = await AffiliationLink.query(context, sql, [affiliationId?.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new AffiliationLink(entry)) : [];
   }
 }

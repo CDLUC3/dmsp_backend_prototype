@@ -252,7 +252,8 @@ describe('update', () => {
     (domain.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await domain.update(context)).toBe(domain);
+    const result = await domain.update(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -282,7 +283,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(domain);
+    expect(result).toBeInstanceOf(ResearchDomain);
   });
 });
 
@@ -313,7 +314,8 @@ describe('create', () => {
     (domain.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await domain.create(context)).toBe(domain);
+    const result = await domain.create(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -353,7 +355,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(domain);
+    expect(result).toBeInstanceOf(ResearchDomain);
   });
 });
 
@@ -395,7 +397,8 @@ describe('delete', () => {
 
     const result = await domain.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(domain);
+    expect(result.errors).toEqual({});
+    expect(result).toBeInstanceOf(ResearchDomain);
   });
 });
 

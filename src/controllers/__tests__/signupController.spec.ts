@@ -45,7 +45,7 @@ const mockedUser: UserModel.User = {
   failed_sign_in_attemps: 0,
   created: new Date().toISOString(),
   tableName: 'testUsers',
-  errors: [],
+  errors: {},
 
   getName: jest.fn(),
   recordLogIn: jest.fn(),

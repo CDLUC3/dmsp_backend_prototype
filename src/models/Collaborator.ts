@@ -13,7 +13,7 @@ export class Collaborator extends MySqlModel {
   public userId: number;
 
   constructor(options){
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.email = options.email;
     this.invitedById = options.invitedById;
@@ -93,7 +93,7 @@ export class TemplateCollaborator extends Collaborator {
     }
 
     // Otherwise return as-is with all the errors
-    return this;
+    return new TemplateCollaborator(this);
   }
 
   // Update the record
@@ -113,13 +113,18 @@ export class TemplateCollaborator extends Collaborator {
           this.addError('general', 'Template does not exist');
         } else {
           const result = await TemplateCollaborator.update(context, this.tableName, this, 'TemplateCollaborator.update');
-          return result as TemplateCollaborator;
+          if (!result) {
+            this.addError('general', 'Unable to update the collaborator');
+          }
+          if (!this.hasErrors()) {
+            return await TemplateCollaborator.findById('TemplateCollaborator.update', context, this.id);
+          }
         }
       } else {
         this.addError('general', 'TemplateCollaborator has never been saved');
       }
     }
-    return this;
+    return new TemplateCollaborator(this);
   }
 
   // Remove this record
@@ -130,7 +135,7 @@ export class TemplateCollaborator extends Collaborator {
       if (!result) {
         existing.addError('general', 'Unable to delete the collaborator');
       }
-      return existing;
+      return new TemplateCollaborator(existing);
     }
     return null;
   }
@@ -142,7 +147,8 @@ export class TemplateCollaborator extends Collaborator {
     templateId: number
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
-    return await TemplateCollaborator.query(context, sql, [templateId?.toString()], reference);
+    const results = await TemplateCollaborator.query(context, sql, [templateId?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
 
   // Get the specified TemplateCollaborator
@@ -153,7 +159,7 @@ export class TemplateCollaborator extends Collaborator {
   ): Promise<TemplateCollaborator> {
     const sql = 'SELECT * FROM templateCollaborators WHERE id = ?';
     const results = await TemplateCollaborator.query(context, sql, [id?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
   }
 
   static async findByInvitedById(
@@ -162,7 +168,8 @@ export class TemplateCollaborator extends Collaborator {
     invitedById: number,
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE invitedById = ?';
-    return await TemplateCollaborator.query(context, sql, [invitedById?.toString()], reference);
+    const results = await TemplateCollaborator.query(context, sql, [invitedById?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
 
   // Get all of the TemplateCollaborator records for the specified email
@@ -172,7 +179,8 @@ export class TemplateCollaborator extends Collaborator {
     email: string,
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE email = ?';
-    return await TemplateCollaborator.query(context, sql, [email], reference);
+    const results = await TemplateCollaborator.query(context, sql, [email], reference);
+    return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
 
   // Get the specified TemplateCollaborator
@@ -185,6 +193,6 @@ export class TemplateCollaborator extends Collaborator {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
     const vals = [templateId?.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
   }
 }

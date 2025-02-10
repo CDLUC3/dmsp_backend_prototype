@@ -85,18 +85,18 @@ export const generateQuestionVersion = async (
         if (updated && !updated.hasErrors()) return true;
 
         // There were errors on the object so report them
-        const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${updated.errors}`;
-        formatLogMessage(context).error(null, msg);
+        const msg = `Unable to set isDirty flag on question: ${question.id}`;
+        formatLogMessage(context).error(updated.errors, msg);
         throw new Error(msg);
       }
     } else {
       // There were errors on the object so report them
-      const msg = `Unable to generateQuestionVersion for versionedQuestion errs: ${saved.errors}`;
-      formatLogMessage(context).error(null, msg);
+      const msg = `Unable to create new version for question: ${question.id}`;
+      formatLogMessage(context).error(saved.errors, msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(context).error(err, `Unable to generateQuestionVersion for question: ${question.id}`);
+    formatLogMessage(context).error(err, `Unable to generate a new version for question: ${question.id}`);
     throw err
   }
 
@@ -157,11 +157,13 @@ export const generateQuestionConditionVersion = async (
   });
 
   const created = await versionedQuestionCondition.create(context);
-  if (created && !created.hasErrors()) return true;
+  if (created && !created.hasErrors()) {
+    return true;
+  }
 
   // There were errors on the object so report them
-  const msg = `Unable to generateQuestionConditionVersion for questionCondition errs: ${created.errors}`
-  formatLogMessage(context).error(null, `${msg}, errs: ${created.errors}`);
+  const msg = `Unable to generate a new version for questionCondition: ${questionCondition.id}`;
+  formatLogMessage(context).error(created.errors, msg);
   throw new Error(msg);
 }
 
@@ -180,4 +182,3 @@ export const getQuestionOptionsToRemove = async (questionOptions: QuestionOption
 
   return Array.isArray(optionsToRemove) ? optionsToRemove : [];
 }
-

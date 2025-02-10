@@ -15,7 +15,7 @@ export class MetadataStandard extends MySqlModel {
   private tableName = 'metadataStandards';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.name = options.name;
@@ -87,7 +87,7 @@ export class MetadataStandard extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new MetadataStandard(this);
   }
 
   //Update an existing MetadataStandard
@@ -110,7 +110,7 @@ export class MetadataStandard extends MySqlModel {
       // This template has never been saved before so we cannot update it!
       this.addError('general', 'MetadataStandard has never been saved');
     }
-    return this;
+    return new MetadataStandard(this);
   }
 
   //Delete the MetadataStandard

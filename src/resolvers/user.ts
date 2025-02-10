@@ -295,7 +295,7 @@ export const resolvers: Resolvers = {
             const originalWithErrors = new UserEmail(mergedData);
 
             // Set errors explicitly to avoid being overwritten by the UserEmail instance initialization
-            originalWithErrors.errors = updated.errors || [];
+            originalWithErrors.errors = updated.errors || {};
 
             return [originalWithErrors];
           }

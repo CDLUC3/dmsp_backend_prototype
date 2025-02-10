@@ -211,7 +211,8 @@ describe('create', () => {
     (section.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await section.create(context)).toBe(section);
+    const result = await section.create(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
   it('returns the Section with an error if the section already exists', async () => {
@@ -249,7 +250,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(section);
+    expect(result).toBeInstanceOf(Section);
   });
 });
 
@@ -274,7 +275,8 @@ describe('update', () => {
     (section.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await section.update(context)).toBe(section);
+    const result = await section.update(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -302,7 +304,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(section);
+    expect(result).toBeInstanceOf(Section);
   });
 });
 
@@ -343,6 +345,7 @@ describe('delete', () => {
 
     const result = await section.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(section);
+    expect(result.errors).toEqual({});
+    expect(result).toBeInstanceOf(Section);
   });
 });

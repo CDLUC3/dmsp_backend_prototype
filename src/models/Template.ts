@@ -23,7 +23,7 @@ export class Template extends MySqlModel {
   private tableName = 'templates';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.name = options.name;
     this.ownerId = options.ownerId;
@@ -78,7 +78,7 @@ export class Template extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new Template(this);
   }
 
   // Save the changes made to the template
@@ -111,26 +111,27 @@ export class Template extends MySqlModel {
       // This template has never been saved before so we cannot update it!
       this.addError('general', 'Template has never been saved');
     }
-    return this;
+    return new Template(this);
   }
 
   // Archive this record
-  async delete(context: MyContext): Promise<boolean> {
+  async delete(context: MyContext): Promise<Template> {
     if (this.id) {
+      const original = await Template.findById('Template.delete', context, this.id);
       // Associated TemplateCollaborators and VersionedTemplates will be deletd automatically by MySQL
       const result = await Template.delete(context, this.tableName, this.id, 'Template.delete');
       if (result) {
-        return true;
+        return original;
       }
     }
-    return false;
+    return null;
   }
 
   // Return the specified Template
   static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE id = ?';
     const results = await Template.query(context, sql, [templateId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new Template(results[0]) : null;
   }
 
   // Look for the template by it's name and owner
@@ -143,7 +144,7 @@ export class Template extends MySqlModel {
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim(), context.token?.affiliationId];
     const results = await Template.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new Template(results[0]) : null;
   }
 
   // Find all of the templates associated with the Affiliation
@@ -153,6 +154,7 @@ export class Template extends MySqlModel {
     affiliationId: string
   ): Promise<Template[]> {
     const sql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
-    return await Template.query(context, sql, [affiliationId], reference);
+    const results = await Template.query(context, sql, [affiliationId], reference);
+    return Array.isArray(results) ? results.map((item) => new Template(item)) : [];
   }
 }

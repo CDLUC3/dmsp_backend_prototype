@@ -19,7 +19,7 @@ export class Question extends MySqlModel {
   private tableName = 'questions';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
     this.sectionId = options.sectionId;
@@ -72,7 +72,7 @@ export class Question extends MySqlModel {
 
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new Question(this);
   }
 
   //Update an existing Section
@@ -89,7 +89,7 @@ export class Question extends MySqlModel {
       // This template has never been saved before so we cannot update it!
       this.addError('general', 'Question has never been saved');
     }
-    return this;
+    return new Question(this);
   }
 
   //Delete Question based on the Question object's id and return
@@ -113,13 +113,13 @@ export class Question extends MySqlModel {
   static async findById(reference: string, context: MyContext, questionId: number): Promise<Question> {
     const sql = 'SELECT * FROM questions WHERE id = ?';
     const result = await Question.query(context, sql, [questionId?.toString()], reference);
-    return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    return Array.isArray(result) && result.length > 0 ? new Question(result[0]) : null;
   }
 
   // Fetch all of the Questions for the specified Section
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Question[]> {
     const sql = 'SELECT * FROM questions WHERE sectionId = ?';
     const results = await Question.query(context, sql, [sectionId?.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new Question(entry)) : [];
   }
 }

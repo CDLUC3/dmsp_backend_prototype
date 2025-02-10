@@ -8,7 +8,7 @@ export class Tag extends MySqlModel {
   public description?: string;
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.name = options.name;
     this.description = options.description;
@@ -41,7 +41,7 @@ export class Tag extends MySqlModel {
         return response
       }
     }
-    return this;
+    return new Tag(this);
   }
 
   async update(context: MyContext): Promise<Tag> {
@@ -51,7 +51,7 @@ export class Tag extends MySqlModel {
       const updatedTag = await Tag.findById('Tag.update', context, id);
       return updatedTag as Tag;
     }
-    return this;
+    return new Tag(this);
   }
 
   async delete(context: MyContext): Promise<Tag> {
@@ -114,7 +114,7 @@ export class Tag extends MySqlModel {
   static async findById(reference: string, context: MyContext, tagId: number): Promise<Tag> {
     const sql = 'SELECT * FROM tags where id = ?';
     const result = await Tag.query(context, sql, [tagId?.toString()], reference);
-    return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    return Array.isArray(result) && result.length > 0 ? new Tag(result[0]) : null;
   }
 
   // Find tag by tag name
@@ -123,6 +123,6 @@ export class Tag extends MySqlModel {
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim()];
     const results = await Tag.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new Tag(entry)) : null;
   }
 }

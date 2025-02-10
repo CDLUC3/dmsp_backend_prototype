@@ -289,14 +289,14 @@ describe('generateSectionVersion', () => {
   it('does not version if the VersionedSection could not be created', async () => {
     const section = sectionStore[0];
     const versioned = new VersionedSection({ sectionId: section.id });
-    versioned.errors = ['Test failure'];
+    versioned.errors = { general: 'Test failure' };
 
     (context.dataSources.sqlDataSource.query as jest.Mock).mockResolvedValueOnce(null);
     (VersionedSection.insert as jest.Mock) = mockInsert;
     const mockFindByFailure = jest.fn().mockImplementation(() => { return versioned; });
     (VersionedSection.findById as jest.Mock) = mockFindByFailure;
 
-    const err = `Unable to generateSectionVersion for versionedSection errs: Test failure`;
+    const err = `Unable to create a new version for section: ${section.id}`;
     expect(async () => {
       await generateSectionVersion(context, section, casual.integer(1, 999));
     }).rejects.toThrow(Error(err));
@@ -305,7 +305,7 @@ describe('generateSectionVersion', () => {
   it('does not version if the Section could not be updated', async () => {
     const section = sectionStore[0];
     const updated = new Section({ id: section.id });
-    updated.errors = ['Test failure'];
+    updated.errors = { general: 'Test failure' };
 
     (VersionedSection.insert as jest.Mock) = mockInsert;
     (VersionedSection.findById as jest.Mock) = mockFindVersionedSectionbyId;
@@ -313,7 +313,7 @@ describe('generateSectionVersion', () => {
     (Section.update as jest.Mock) = mockUpdate;
     (Section.findById as jest.Mock) = mockUpdateFailure;
 
-    const err = `Unable to generateSectionVersion for section: ${section.id}, errs: Test failure`;
+    const err = `Unable to set the isDirty flag for section: ${section.id}`;
     expect(async () => {
       await generateSectionVersion(context, section, casual.integer(1, 999))
     }).rejects.toThrow(Error(err));

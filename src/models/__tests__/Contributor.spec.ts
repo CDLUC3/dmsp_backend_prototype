@@ -247,7 +247,8 @@ describe('update', () => {
     (projectContributor.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectContributor.update(context)).toBe(projectContributor);
+    const result = await projectContributor.update(context);
+    expect(result).toBeInstanceOf(ProjectContributor);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -277,7 +278,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(projectContributor);
+    expect(result).toBeInstanceOf(ProjectContributor);
   });
 });
 
@@ -311,7 +312,8 @@ describe('create', () => {
     (projectContributor.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectContributor.create(context)).toBe(projectContributor);
+    const result = await projectContributor.create(context);
+    expect(result).toBeInstanceOf(ProjectContributor);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -348,7 +350,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(projectContributor);
+    expect(result).toBeInstanceOf(ProjectContributor);
   });
 });
 
@@ -392,6 +394,6 @@ describe('delete', () => {
 
     const result = await projectContributor.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(projectContributor);
+    expect(result).toBeInstanceOf(ProjectContributor);
   });
 });

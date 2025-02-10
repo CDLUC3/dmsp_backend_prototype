@@ -23,7 +23,7 @@ export class QuestionCondition extends MySqlModel {
   private tableName = 'questionConditions';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.questionId = options.questionId;
     this.action = options.action ?? QuestionConditionActionType.SHOW_QUESTION;
@@ -52,8 +52,9 @@ export class QuestionCondition extends MySqlModel {
       const response = await QuestionCondition.findById('QuestionCondition.create', context, newId);
       return response;
     }
+
     // Otherwise return as-is with all the errors
-    return this;
+    return new QuestionCondition(this);
   }
 
   //Update an existing QuestionCondition
@@ -68,7 +69,7 @@ export class QuestionCondition extends MySqlModel {
       // This QuestionCondition has never been saved before so we cannot update it!
       this.addError('general', 'QuestionCondition has never been saved');
     }
-    return this;
+    return new QuestionCondition(this);
   }
 
   //Delete QuestionCondition based on the QuestionCondition object's id and return
@@ -92,13 +93,13 @@ export class QuestionCondition extends MySqlModel {
   static async findById(reference: string, context: MyContext, questionConditionId: number): Promise<QuestionCondition> {
     const sql = 'SELECT * FROM questionConditions WHERE id = ?';
     const results = await QuestionCondition.query(context, sql, [questionConditionId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new QuestionCondition(results[0]) : null;
   }
 
   // Fetch all of the QuestionConditions for the specified Question
   static async findByQuestionId(reference: string, context: MyContext, questionId: number): Promise<QuestionCondition[]> {
     const sql = 'SELECT * FROM questionConditions WHERE questionId = ?';
     const results = await QuestionCondition.query(context, sql, [questionId?.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new QuestionCondition(entry)) : [];
   }
 }

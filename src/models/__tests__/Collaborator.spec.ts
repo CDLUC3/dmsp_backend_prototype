@@ -269,7 +269,8 @@ describe('TemplateCollaborator', () => {
       (collaborator.isValid as jest.Mock) = localValidator;
       localValidator.mockResolvedValueOnce(false);
 
-      expect(await collaborator.create(context)).toBe(collaborator);
+      const result = await collaborator.create(context);
+      expect(result instanceof TemplateCollaborator).toBe(true);
       expect(localValidator).toHaveBeenCalledTimes(1);
     });
 
@@ -327,7 +328,7 @@ describe('TemplateCollaborator', () => {
         context, tName, inviter.getName(), collaborator.email, collaborator.userId
       );
       expect(Object.keys(result.errors).length).toBe(0);
-      expect(result).toEqual(collaborator);
+      expect(result).toBeInstanceOf(TemplateCollaborator);
     });
   });
 
@@ -360,7 +361,8 @@ describe('TemplateCollaborator', () => {
       (collaborator.isValid as jest.Mock) = localValidator;
       localValidator.mockResolvedValueOnce(false);
 
-      expect(await collaborator.update(context)).toBe(collaborator);
+      const result = await collaborator.update(context);
+      expect(result instanceof TemplateCollaborator).toBe(true);
       expect(localValidator).toHaveBeenCalledTimes(1);
     });
 
@@ -379,14 +381,16 @@ describe('TemplateCollaborator', () => {
       const localValidator = jest.fn();
       (collaborator.isValid as jest.Mock) = localValidator;
       localValidator.mockResolvedValueOnce(true);
-
+      const findById = jest.fn();
+      (TemplateCollaborator.findById as jest.Mock) = findById;
+      findById.mockResolvedValueOnce(collaborator);
       updateQuery.mockResolvedValueOnce(collaborator);
 
       const result = await collaborator.update(context);
       expect(localValidator).toHaveBeenCalledTimes(1);
       expect(updateQuery).toHaveBeenCalledTimes(1);
       expect(Object.keys(result.errors).length).toBe(0);
-      expect(result).toEqual(collaborator);
+      expect(result).toBeInstanceOf(TemplateCollaborator);
     });
   });
 
@@ -433,7 +437,9 @@ describe('TemplateCollaborator', () => {
 
       findQuery.mockResolvedValueOnce(collaborator);
       deleteQuery.mockResolvedValueOnce(collaborator);
-      expect(await collaborator.delete(context)).toBe(collaborator);
+      const result = await collaborator.delete(context);
+      expect(result.errors).toEqual({});
+      expect(result).toBeInstanceOf(TemplateCollaborator);
     });
   });
 });

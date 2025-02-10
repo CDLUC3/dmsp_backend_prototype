@@ -16,7 +16,7 @@ export class ProjectContributor extends MySqlModel {
   private tableName = 'projectContributors';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.projectId = options.projectId;
@@ -108,7 +108,7 @@ export class ProjectContributor extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new ProjectContributor(this);
   }
 
   //Update an existing Contributor
@@ -132,7 +132,7 @@ export class ProjectContributor extends MySqlModel {
       // This template has never been saved before so we cannot update it!
       this.addError('general', 'ProjectContributor has never been saved');
     }
-    return this;
+    return new ProjectContributor(this);
   }
 
   //Delete ProjectContributor

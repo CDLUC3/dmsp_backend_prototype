@@ -233,7 +233,8 @@ describe('create', () => {
     (template.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await template.create(context)).toBe(template);
+    const result = await template.create(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -273,7 +274,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(template);
+    expect(result).toBeInstanceOf(Template);
   });
 });
 
@@ -298,7 +299,8 @@ describe('update', () => {
     (template.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await template.update(context)).toBe(template);
+    const result = await template.update(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -328,7 +330,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(template);
+    expect(result).toBeInstanceOf(Template);
   });
 });
 
@@ -344,24 +346,29 @@ describe('delete', () => {
     });
   })
 
-  it('returns false if the Template has no id', async () => {
+  it('returns null if the Template has no id', async () => {
     template.id = null;
-    expect(await template.delete(context)).toBe(false);
+    expect(await template.delete(context)).toBe(null);
   });
 
-  it('returns false if it was not able to delete the record', async () => {
+  it('returns null if it was not able to delete the record', async () => {
     const deleteQuery = jest.fn();
     (Template.delete as jest.Mock) = deleteQuery;
 
     deleteQuery.mockResolvedValueOnce(null);
-    expect(await template.delete(context)).toBe(false);
+    expect(await template.delete(context)).toBe(null);
   });
 
-  it('returns true if it was able to delete the record', async () => {
+  it('returns the Template if it was able to delete the record', async () => {
     const deleteQuery = jest.fn();
     (Template.delete as jest.Mock) = deleteQuery;
-
     deleteQuery.mockResolvedValueOnce(template);
-    expect(await template.delete(context)).toBe(true);
+    const findById = jest.fn();
+    (Template.findById as jest.Mock) = findById;
+    findById.mockResolvedValueOnce(template);
+
+    const result = await template.delete(context);
+    expect(result).toBeInstanceOf(Template);
+    expect(result.errors).toEqual({});
   });
 });

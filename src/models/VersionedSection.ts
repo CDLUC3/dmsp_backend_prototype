@@ -19,7 +19,7 @@ export class VersionedSection extends MySqlModel {
   private tableName = 'versionedSections';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.versionedTemplateId = options.versionedTemplateId;
     this.sectionId = options.sectionId;
@@ -54,28 +54,28 @@ export class VersionedSection extends MySqlModel {
       return await VersionedSection.findById('VersionedSection.create', context, newId);
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new VersionedSection(this);
   }
 
   // Find the VersionedSection by id
   static async findById(reference: string, context: MyContext, id: number): Promise<VersionedSection> {
     const sql = 'SELECT * FROM versionedSections WHERE id= ?';
     const results = await VersionedSection.query(context, sql, [id?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new VersionedSection(results[0]) : null;
   }
 
   // Find the VersionedSections by sectionId
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
     const sql = 'SELECT * FROM versionedSections WHERE sectionId = ?';
     const results = await VersionedSection.query(context, sql, [sectionId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : null;
   }
 
   // Find the VersionedSections by versionedTemplateId
   static async findByTemplateId(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedSection[]> {
     const sql = 'SELECT * FROM versionedSections WHERE versionedTemplateId = ?';
     const results = await VersionedSection.query(context, sql, [versionedTemplateId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : null;
   }
 
   // Find the VersionedSection by name
@@ -83,6 +83,6 @@ export class VersionedSection extends MySqlModel {
     const sql = 'SELECT * FROM versionedSections WHERE name LIKE ?';
     const vals = [`%${term}%`];
     const results = await VersionedSection.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : null;
   }
 }

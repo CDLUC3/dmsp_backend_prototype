@@ -191,7 +191,8 @@ describe('update', () => {
     (projectFunder.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectFunder.update(context)).toBe(projectFunder);
+    const result = await projectFunder.update(context);
+    expect(result).toBeInstanceOf(ProjectFunder);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -221,7 +222,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(projectFunder);
+    expect(result).toBeInstanceOf(ProjectFunder);
   });
 });
 
@@ -253,7 +254,8 @@ describe('create', () => {
     (projectFunder.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectFunder.create(context)).toBe(projectFunder);
+    const result = await projectFunder.create(context);
+    expect(result).toBeInstanceOf(ProjectFunder);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -288,7 +290,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(projectFunder);
+    expect(result).toBeInstanceOf(ProjectFunder);
   });
 });
 
@@ -331,6 +333,6 @@ describe('delete', () => {
 
     const result = await projectFunder.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(projectFunder);
+    expect(result).toBeInstanceOf(ProjectFunder);
   });
 });

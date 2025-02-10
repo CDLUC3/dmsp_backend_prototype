@@ -60,6 +60,14 @@ export const typeDefs = gql`
     invitedBy: User
   }
 
+  "A collection of errors related to the TemplateCollaborator"
+  type TemplateCollaboratorErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    templateId: String
+  }
+
   "A user that that belongs to a different affiliation that can edit the Plan"
   type PlanCollaborator {
     "The unique identifer for the Object"
@@ -87,12 +95,12 @@ export const typeDefs = gql`
     accessLevel: PlanCollaboratorAccessLevel
   }
 
-  "A collection of errors related to the TemplateCollaborator"
-  type TemplateCollaboratorErrors {
-    "General error messages such as the object already exists"
+  "A collection of errors related to the PlanCollaborator"
+  type PlanCollaboratorErrors {
+    "General error messages such as affiliation already exists"
     general: String
 
-    templateId: String
+    planId: String
   }
 
   "The result of the findCollaborator query"

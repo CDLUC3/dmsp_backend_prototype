@@ -41,6 +41,16 @@ export const typeDefs = gql`
     answerText: String
   }
 
+  "A collection of errors related to the Answer"
+  type AffiliationErrors {
+    "General error messages such as affiliation already exists"
+    general: String
+
+    versionedSectionId: String
+    versionedQuestionId: String
+    planId: String
+  }
+
   type AnswerComment {
      "The unique identifer for the Object"
      id: Int
@@ -59,5 +69,14 @@ export const typeDefs = gql`
     answer: Answer!
     "The comment"
     commentText: String!
+  }
+
+  "A collection of errors related to the Answer Comment"
+  type AnswerCommentErrors {
+    "General error messages such as affiliation already exists"
+    general: String
+
+    answerId: String
+    commentText: String
   }
 `;

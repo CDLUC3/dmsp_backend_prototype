@@ -17,6 +17,7 @@
     - [Building for Production](#building-for-production)
     - [Managing the database](#managing-the-database)
 - [Querying the Apollo Server](#querying-apollo-server)
+    - [Errors](#errors)
 - [Development](#development)
     - [Data Model](#data-model)
     - [Adding or updating GraphQL functionality](#adding-or-updating-graphql-functionality)
@@ -306,7 +307,7 @@ The system provides 2 levels of errors.
   4. **404: Not Found** The requested mutation was for a record that does not exist
   5. **500: Internal Server** An internal error occurred within this application.
 2. **Object level errors**: These errors provide information that the user can use to address the issue(s)
-  1. **Object.errors.general** Errors that are not specific to a field (e.g. "Failed to send email", "Updable to delete", etc.)
+  1. **Object.errors.general** Errors that are not specific to a field (e.g. "Failed to send email", "Unable to delete", etc.)
   2. **Object.errors.field** An error that applies to a specific property of the object (e.g. "Name can't be blank", "Invalid URL", etc.)
 
 ### If your system is written in JS or TS

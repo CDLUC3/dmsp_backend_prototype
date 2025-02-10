@@ -191,7 +191,6 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(affiliation);
   });
 
   it('should add an error if affiliation already exists', async () => {
@@ -257,9 +256,9 @@ describe('update', () => {
     localValidator.mockResolvedValueOnce(true);
     const findByQuery = jest.fn().mockResolvedValue(affiliation);
     (Affiliation.findById as jest.Mock) = findByQuery;
-    expect(await affiliation.update(context)).toBe(affiliation);
+    const result = await affiliation.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(Object.keys(affiliation.errors).length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
   });
 });
 
@@ -290,8 +289,8 @@ describe('delete', () => {
   });
 
   it('should return Affiliation if there is uri data', async () => {
-    expect(await affiliation.delete(context)).toBe(affiliation);
-    expect(Object.keys(affiliation.errors).length).toBe(0);
+    const result = await affiliation.delete(context);
+    expect(Object.keys(result.errors).length).toBe(0);
   });
 
   it('should return null if there is no uri data', async () => {

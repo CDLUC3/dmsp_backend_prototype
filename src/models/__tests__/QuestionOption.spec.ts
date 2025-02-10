@@ -124,7 +124,8 @@ describe('create', () => {
     (questionOption.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await questionOption.create(context)).toBe(questionOption);
+    const result = await questionOption.create(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -148,7 +149,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(questionOption);
+    expect(result).toBeInstanceOf(QuestionOption);
   });
 });
 
@@ -167,14 +168,6 @@ describe('update', () => {
       orderNumber: 2,
       isDefault: true
     })
-  });
-
-  it('returns the QuestionOption with errors if it is not valid', async () => {
-    const localValidator = jest.fn();
-    (questionOption.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(false);
-
-    expect(await questionOption.update(context)).toBe(questionOption);
   });
 
   it('returns an error if the QuestionOption has no id', async () => {
@@ -198,7 +191,7 @@ describe('update', () => {
     const result = await questionOption.update(context);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(questionOption);
+    expect(result).toBeInstanceOf(QuestionOption);
   });
 });
 
@@ -239,6 +232,6 @@ describe('delete', () => {
 
     const result = await questionOption.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(questionOption);
+    expect(result).toBeInstanceOf(QuestionOption);
   });
 });

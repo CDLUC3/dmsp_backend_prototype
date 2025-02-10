@@ -216,7 +216,8 @@ describe('create', () => {
     (versionedSection.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await versionedSection.create(context)).toBe(versionedSection);
+    const result = await versionedSection.create(context);
+    expect(result instanceof VersionedSection).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -251,8 +252,8 @@ describe('create', () => {
 
     const result = await versionedSection.create(context);
     expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result).toBeInstanceOf(VersionedSection);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(versionedSection);
   });
 });
 describe('findById', () => {
@@ -293,6 +294,6 @@ describe('findById', () => {
     const expectedSql = 'SELECT * FROM versionedSections WHERE id= ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
-    expect(result).toEqual(versionedSection);
+    expect(result).toBeInstanceOf(VersionedSection);
   });
 });

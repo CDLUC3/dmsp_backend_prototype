@@ -65,17 +65,17 @@ export const generateSectionVersion = async (
 
         if (updated && !updated.hasErrors()) return true;
 
-        const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${updated.errors}`;
-        formatLogMessage(context).error(null, msg);
+        const msg = `Unable to set the isDirty flag for section: ${section.id}`;
+        formatLogMessage(context).error(updated.errors, msg);
         throw new Error(msg);
       }
     } else {
-      const msg = `Unable to generateSectionVersion for versionedSection errs: ${created.errors}`;
-      formatLogMessage(context).error(null, msg);
+      const msg = `Unable to create a new version for section: ${section.id}`;
+      formatLogMessage(context).error(created.errors, msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(context).error(err, `Unable to generateSectionVersion for section: ${section.id}`);
+    formatLogMessage(context).error(err, `Unable to generate a new version for section: ${section.id}`);
     throw err;
   }
 

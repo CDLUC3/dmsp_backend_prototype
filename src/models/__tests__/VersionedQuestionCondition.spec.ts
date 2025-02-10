@@ -154,7 +154,9 @@ describe('create', () => {
     (versionedQuestionCondition.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await versionedQuestionCondition.create(context)).toBe(versionedQuestionCondition);
+    const result = await versionedQuestionCondition.create(context);
+    expect(result).toBeInstanceOf(VersionedQuestionCondition);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -171,8 +173,8 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result).toBeInstanceOf(VersionedQuestionCondition);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(versionedQuestionCondition);
   });
 });
 
@@ -213,6 +215,6 @@ describe('findByVersionedQuestionId', () => {
     const expectedSql = 'SELECT * FROM versionedQuestionConditions WHERE versionedQuestionId = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
-    expect(result).toEqual([versionedQuestionCondition]);
+    expect(result[0]).toBeInstanceOf(VersionedQuestionCondition);
   });
 });

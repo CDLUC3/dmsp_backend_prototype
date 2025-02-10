@@ -254,7 +254,8 @@ describe('addTemplateCollaborator mutation', () => {
     affiliationId = casual.url;
 
     jest.spyOn(Template, 'findById').mockResolvedValue(new Template({ id: templateId, ownerId:  affiliationId }));
-    jest.spyOn(User, 'findById').mockResolvedValue(new User({ id: templateId }));
+    jest.spyOn(User, 'findByEmail').mockResolvedValue(new User({ id: casual.integer(1, 9999) }));
+    jest.spyOn(User, 'findById').mockResolvedValue(new User({ id: casual.integer(1, 9999) }));
   });
 
   it('returns the template collaborator when successful', async () => {

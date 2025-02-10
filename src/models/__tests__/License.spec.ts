@@ -197,7 +197,8 @@ describe('update', () => {
     (license.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await license.update(context)).toBe(license);
+    const result = await license.update(context);
+    expect(result instanceof License).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -227,7 +228,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(license);
+    expect(result).toBeInstanceOf(License);
   });
 });
 
@@ -258,7 +259,8 @@ describe('create', () => {
     (license.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await license.create(context)).toBe(license);
+    const result = await license.create(context);
+    expect(result instanceof License).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -298,7 +300,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(license);
+    expect(result).toBeInstanceOf(License);
   });
 });
 
@@ -340,6 +342,6 @@ describe('delete', () => {
 
     const result = await license.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(license);
+    expect(result).toBeInstanceOf(License);
   });
 });

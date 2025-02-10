@@ -14,7 +14,7 @@ export class ResearchDomain extends MySqlModel {
   private tableName = 'researchDomains';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.name = options.name;
@@ -75,7 +75,7 @@ export class ResearchDomain extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new ResearchDomain(this);
   }
 
   //Update an existing ResearchDomain
@@ -90,7 +90,7 @@ export class ResearchDomain extends MySqlModel {
       // This template has never been saved before so we cannot update it!
       this.addError('general', 'ResearchDomain has never been saved');
     }
-    return this;
+    return new ResearchDomain(this);
   }
 
   //Delete the ResearchDomain
@@ -208,7 +208,7 @@ export class ResearchDomain extends MySqlModel {
     const whereClause = 'WHERE jt.metadataStandardId = ?';
     const vals = [metadataStandardId?.toString()];
     const results = await ResearchDomain.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new ResearchDomain(entry)) : [];
   }
 
   // Fetch all of the ResearchDomains associated with a Repository
@@ -222,7 +222,7 @@ export class ResearchDomain extends MySqlModel {
     const whereClause = 'WHERE jt.repositoryId = ?';
     const vals = [repositoryId?.toString()];
     const results = await ResearchDomain.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new ResearchDomain(entry)) : [];
   }
 
   // Fetch a ResearchDomain by it's id

@@ -66,7 +66,7 @@ const mockedUser: UserModel.User = {
   failed_sign_in_attemps: 0,
   created: getCurrentDate(),
   modified: getCurrentDate(),
-  errors: [],
+  errors: {},
 
   tableName: 'testUsers',
 
@@ -149,7 +149,7 @@ describe('CSRF', () => {
       .post('/test-protected')
       .send({ msg: 'Should fail!' });
 
-    expect(resp.statusCode).toEqual(406);
+    expect(resp.statusCode).toEqual(403);
     expect(resp.headers['x-csrf-token']).toBeFalsy();
     expect(resp.body).toEqual({ error: 'Invalid CSRF token'});
   });
@@ -160,7 +160,7 @@ describe('CSRF', () => {
       .set('X-CSRF-Token', '1234567890')
       .send({ msg: 'Should fail!' });
 
-    expect(resp.statusCode).toEqual(406);
+    expect(resp.statusCode).toEqual(403);
     expect(resp.headers['x-csrf-token']).toBeFalsy();
     expect(resp.body).toEqual({ error: 'Invalid CSRF token'});
   });

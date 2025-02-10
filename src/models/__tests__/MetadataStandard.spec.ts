@@ -268,7 +268,8 @@ describe('update', () => {
     (standard.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await standard.update(context)).toBe(standard);
+    const result = await standard.update(context);
+    expect(result instanceof MetadataStandard).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -298,7 +299,7 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(standard);
+    expect(result).toBeInstanceOf(MetadataStandard);
   });
 });
 
@@ -329,7 +330,8 @@ describe('create', () => {
     (standard.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await standard.create(context)).toBe(standard);
+    const result = await standard.create(context);
+    expect(result instanceof MetadataStandard).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -369,7 +371,7 @@ describe('create', () => {
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(standard);
+    expect(result).toBeInstanceOf(MetadataStandard);
   });
 });
 
@@ -411,7 +413,7 @@ describe('delete', () => {
 
     const result = await standard.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(standard);
+    expect(result).toBeInstanceOf(MetadataStandard);
   });
 });
 

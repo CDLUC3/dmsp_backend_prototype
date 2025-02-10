@@ -10,7 +10,7 @@ export class QuestionOption extends MySqlModel {
   private tableName = 'questionOptions';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.questionId = options.questionId;
     this.text = options.text;
@@ -47,7 +47,7 @@ export class QuestionOption extends MySqlModel {
       return response;
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new QuestionOption(this);
   }
 
   //Update an existing QuestionOption
@@ -64,7 +64,7 @@ export class QuestionOption extends MySqlModel {
       // This question option has never been saved before so we cannot update it!
       this.addError('general', 'QuestionOption has never been saved');
     }
-    return this;
+    return new QuestionOption(this);
   }
 
   //Delete QuestionOption based on the QuestionOption's id and return
@@ -88,13 +88,13 @@ export class QuestionOption extends MySqlModel {
   static async findByQuestionOptionId(reference: string, context: MyContext, questionOptionId: number): Promise<QuestionOption> {
     const sql = 'SELECT * FROM questionOptions WHERE id = ?';
     const result = await QuestionOption.query(context, sql, [questionOptionId.toString()], reference);
-    return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    return Array.isArray(result) && result.length > 0 ? new QuestionOption(result[0]) : null;
   }
 
   // Fetch all of the QuestionOptions for the specified questionId
   static async findByQuestionId(reference: string, context: MyContext, questionId: number): Promise<QuestionOption[]> {
     const sql = 'SELECT * FROM questionOptions WHERE questionId = ?';
     const results = await QuestionOption.query(context, sql, [questionId.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new QuestionOption(entry)) : [];
   }
 }

@@ -18,7 +18,7 @@ export class ProjectFunder extends MySqlModel {
   private tableName = 'projectFunders';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.projectId = options.projectId;
@@ -64,7 +64,7 @@ export class ProjectFunder extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new ProjectFunder(this);
   }
 
   //Update an existing ProjectFunder
@@ -79,7 +79,7 @@ export class ProjectFunder extends MySqlModel {
       // This template has never been saved before so we cannot update it!
       this.addError('general', 'ProjectFunder has never been saved');
     }
-    return this;
+    return new ProjectFunder(this);
   }
 
   //Delete the ProjectFunder

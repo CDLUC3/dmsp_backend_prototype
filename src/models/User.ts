@@ -48,7 +48,7 @@ export class User extends MySqlModel {
 
   // Initialize a new User
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.email = options.email;
     this.password = options.password;
@@ -169,12 +169,13 @@ export class User extends MySqlModel {
   static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
     const sql = 'SELECT * FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
-    return results[0];
+    return new User(results[0]);
   }
 
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
     const sql = 'SELECT * FROM users WHERE affiliationId = ? ORDER BY created DESC';
-    return await User.query(context, sql, [affiliationId], reference);
+    const results = await User.query(context, sql, [affiliationId], reference);
+    return Array.isArray(results) ? results.map((item) => new User(item)) : [];
   }
 
   // Update the last_login fields
@@ -314,7 +315,7 @@ export class User extends MySqlModel {
       // This user has never been saved before so we cannot update it!
       this.addError('general', 'User has never been saved');
     }
-    return this;
+    return new User(this);
   }
 
   // Function to update the user's password
@@ -337,7 +338,7 @@ export class User extends MySqlModel {
         }
       }
       // The new password was invalid, so return the object with errors
-      return this;
+      return new User(this);
     }
     return null;
   }

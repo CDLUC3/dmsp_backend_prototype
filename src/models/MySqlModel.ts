@@ -14,7 +14,7 @@ export class MySqlModel {
     public createdById?: number,
     public modified?: string,
     public modifiedById?: number,
-    public errors = {},
+    public errors: Record<string, string> = {},
   ) {
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {
@@ -22,6 +22,10 @@ export class MySqlModel {
     }
     if (!this.modified) {
       this.modified = this.id ? getCurrentDate() : this.created;
+    }
+    // Only initialize the errors object if it is not already set
+    if (!this.errors) {
+      this.errors = {};
     }
   };
 

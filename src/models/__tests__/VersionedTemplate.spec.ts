@@ -260,7 +260,8 @@ describe('create', () => {
     (versionedTemplate.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await versionedTemplate.create(context)).toBe(versionedTemplate);
+    const result = await versionedTemplate.create(context);
+    expect(result).toBeInstanceOf(VersionedTemplate);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -277,8 +278,8 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(result).toBeInstanceOf(VersionedTemplate);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(versionedTemplate);
   });
 });
 
@@ -303,7 +304,8 @@ describe('update', () => {
     (versionedTemplate.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await versionedTemplate.update(context)).toBe(versionedTemplate);
+    const result = await versionedTemplate.update(context);
+    expect(result).toBeInstanceOf(VersionedTemplate);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -329,6 +331,6 @@ describe('update', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toEqual(versionedTemplate);
+    expect(result).toBeInstanceOf(VersionedTemplate);
   });
 });

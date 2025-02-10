@@ -197,7 +197,7 @@ describe('queries', () => {
   });
 
   it('findByProjectContributorId should call query with correct params and return an array', async () => {
-    const querySpy = jest.spyOn(ContributorRole, 'query');
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce([mockRole]);
     const contributorId = casual.integer(1, 999);
     await ContributorRole.findByProjectContributorId('testing', context, contributorId);
     let sql = 'SELECT cr.* FROM projectContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
