@@ -33,8 +33,6 @@ describe('Question', () => {
   }
   beforeEach(() => {
     question = new Question(questionData);
-
-    console.log("***QUESTION", question);
   });
 
   it('should initialize options as expected', () => {
