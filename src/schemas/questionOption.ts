@@ -49,8 +49,8 @@ type QuestionOptionErrors {
     general: String
 
     questionId: String
-    orderNumber: String
     text: String
+    orderNumber: String
   }
 
 "Input for Question options operations"

@@ -68,8 +68,15 @@ type QuestionErrors {
 
     templateId: String
     sectionId: String
-    questionText: String
+    sourceQestionId: String
     displayOrder: String
+    questionTypeId: String
+    questionText: String
+    requirementText: String
+    guidanceText: String
+    sampleText: String
+    questionConditionIds: String
+    questionOptionIds: String
   }
 
 input AddQuestionInput {

@@ -66,6 +66,9 @@ export const typeDefs = gql`
     general: String
 
     templateId: String
+    email: String
+    userId: String
+    invitedById: String
   }
 
   "A user that that belongs to a different affiliation that can edit the Plan"
@@ -101,6 +104,10 @@ export const typeDefs = gql`
     general: String
 
     planId: String
+    email: String
+    userId: String
+    invitedById: String
+    accessLevel: String
   }
 
   "The result of the findCollaborator query"

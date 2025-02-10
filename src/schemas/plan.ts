@@ -104,5 +104,14 @@ export const typeDefs = gql`
 
     projectId: String
     versionedTemplateId: String
+    visibility: String
+    dmpId: String
+    lastUpdatedById: String
+    status: String
+    contributorIds: String
+    collaboratorIds: String
+    funderIds: String
+    answerIds: String
+    feedbackIds: String
   }
 `;

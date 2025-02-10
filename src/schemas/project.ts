@@ -59,8 +59,13 @@ export const typeDefs = gql`
     general: String
 
     title: String
+    abstractText: String
     startDate: String
     endDate: String
+    researchDomainId: String
+    contributorIds: String
+    funderIds: String
+    outputIds: String
   }
 
   input UpdateProjectInput {

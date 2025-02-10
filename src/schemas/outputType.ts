@@ -36,5 +36,6 @@ export const typeDefs = gql`
 
     uri: String
     name: String
+    description: String
   }
 `;

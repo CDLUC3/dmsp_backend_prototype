@@ -81,6 +81,9 @@ export const typeDefs = gql`
 
     planId: String
     requestedById: String
+    completedById: String
+    adminSummary: String
+    feedbackComments: String
   }
 
   "A collection of errors related to the PlanFeedbackComment"
@@ -88,7 +91,8 @@ export const typeDefs = gql`
     "General error messages such as the object already exists"
     general: String
 
-    planFeedbackId: String
+    answer: String
+    planFeedback: String
     comment: String
   }
 `;

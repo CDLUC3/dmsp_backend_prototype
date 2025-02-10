@@ -49,7 +49,8 @@ export const typeDefs = gql`
     general: String
 
     uri: String
-    displayOrder: String
     label: String
+    displayOrder: String
+    description: String
   }
 `;

@@ -61,5 +61,10 @@ export const typeDefs = gql`
     sectionId: String
     name: String
     displayOrder: String
+    introduction: String
+    requirements: String
+    guidance: String
+    tagIds: String
+    versionedQuestionIds: String
   }
 `;

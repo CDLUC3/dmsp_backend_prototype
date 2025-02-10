@@ -126,10 +126,23 @@ export const typeDefs = gql`
     general: String
 
     uri: String
+    provenance: String
     name: String
     displayName: String
     searchName: String
-    provenance: String
+    fundrefId: String
+    homepage: String
+    acronyms: String
+    aliases: String
+    types: String
+    logoURI: String
+    logoName: String
+    contactEmail: String
+    contactName: String
+    ssoEntityId: String
+    feedbackMessage: String
+    feedbackEmails: String
+    subHeaderLinks: String
   }
 
   "Input for a hyperlink displayed in the sub-header of the UI for the afiliation's users"

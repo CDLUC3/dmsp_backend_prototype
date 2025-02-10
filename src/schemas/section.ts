@@ -60,8 +60,14 @@ export const typeDefs = gql`
     "General error messages such as the object already exists"
     general: String
 
+    templateId: String
     name: String
+    introduction: String
+    requirements: String
+    guidance: String
     displayOrder: String
+    tags: String
+    questionIds: String
   }
 
   "Input for adding a new section"

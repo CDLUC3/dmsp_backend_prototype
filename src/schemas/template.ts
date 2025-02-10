@@ -75,7 +75,14 @@ export const typeDefs = gql`
     "General error messages such as the object already exists"
     general: String
 
+    sourceTemplateId: String
     name: String
+    description: String
     ownerId: String
+    visibility: String
+    latestPublishVersion: String
+    sectionIds: String
+    languageId: String
+    collaboratorIds: String
   }
 `;

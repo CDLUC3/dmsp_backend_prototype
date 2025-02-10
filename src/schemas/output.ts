@@ -87,7 +87,12 @@ export const typeDefs = gql`
     projectId: String
     outputTypeId: String
     title: String
+    description: String
+    initialAccessLevel: String
+    initialLicenseId: String
     anticipatedReleaseDate: String
+    repositoryIds: String
+    metadataStandardIds: String
   }
 
   input AddProjectOutputInput {

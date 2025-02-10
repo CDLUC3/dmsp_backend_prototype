@@ -42,6 +42,8 @@ export const typeDefs = gql`
 
     name: String
     uri: String
-    parentResearchDomain: String
+    description: String
+    parentResearchDomainId: String
+    childResearchDomainIds: String
   }
 `;

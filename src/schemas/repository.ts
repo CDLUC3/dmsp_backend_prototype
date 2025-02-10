@@ -67,7 +67,11 @@ export const typeDefs = gql`
 
     name: String
     uri: String
+    description: String
     website: String
+    researchDomainIds: String
+    keywords: String
+    repositoryTypes: String
   }
 
   input RepositorySearchInput {

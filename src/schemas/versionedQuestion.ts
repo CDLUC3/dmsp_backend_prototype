@@ -54,7 +54,12 @@ type VersionedQuestionErrors {
     versionedTemplateId: String
     versionedSectionId: String
     questionId: String
+    displayOrder: String
     questionTypeId: String
     questionText: String
+    requirementText: String
+    guidanceText: String
+    sampleText: String
+    versionedQuestionConditionIds: String
   }
 `

@@ -49,6 +49,7 @@ export const typeDefs = gql`
     versionedSectionId: String
     versionedQuestionId: String
     planId: String
+    answerText: String
   }
 
   type AnswerComment {

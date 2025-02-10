@@ -101,5 +101,8 @@ export const typeDefs = gql`
     projectId: String
     affiliationId: String
     status: String
+    funderProjectNumber: String
+    grantId: String
+    funderOpportunityNumber: String
   }
 `;

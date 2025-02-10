@@ -117,9 +117,17 @@ export const typeDefs = gql`
     "General error messages such as the object already exists"
     general: String
 
+    givenName: String
+    surName: String
     email: String
-    password: String
     role: String
+    affiliationId: String
+    orcid: String
+    ssoId: String
+    languageId: String
+    password: String
+
+    emailIds: String
   }
 
   type UserEmail {

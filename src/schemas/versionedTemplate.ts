@@ -67,8 +67,15 @@ export const typeDefs = gql`
     general: String
 
     templateId: String
-    name: String
-    ownerId: String
     version: String
+    versionedById: String
+    versionType: String
+    comment: String
+
+    name: String
+    description: String
+    ownerId: String
+    visibility: String
+    versionedSectionIds: String
   }
 `;

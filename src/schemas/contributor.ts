@@ -88,8 +88,12 @@ export const typeDefs = gql`
     general: String
 
     projectId: String
+    affiliationId: String
+    givenName: String
+    surName: String
     orcid: String
     email: String
+    contributorRoleIds: String
   }
 
   "A collection of errors related to the PlanContributor"
@@ -97,8 +101,9 @@ export const typeDefs = gql`
     "General error messages such as the object already exists"
     general: String
 
-    planId: String
-    projectContributorId: String
+    plan: String
+    projectContributor: String
+    contributorRoleIds: String
   }
 
   input AddProjectContributorInput {

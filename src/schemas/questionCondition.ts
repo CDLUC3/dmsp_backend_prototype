@@ -76,6 +76,7 @@ export const typeDefs = gql`
     questionId: String
     action: String
     conditionType: String
+    conditionMatch: String
     target: String
   }
 
