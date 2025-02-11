@@ -41,18 +41,12 @@ export const resolvers: Resolvers = {
     //     - called from the Template options page
     removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<boolean> => {
       if (isAdmin(context.token)) {
-        const collaboratorData = await TemplateCollaborator.findByTemplateIdAndEmail(
+        const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
           'removeTemplateCollaborator resolver',
           context,
           templateId,
           email
         );
-
-        //Need to create a new instance of Section so that it recognizes the 'delete' function of that instance
-        const collaborator = new TemplateCollaborator({
-          ...collaboratorData,
-          templateId: templateId
-        });
 
         if (collaborator) {
           return await collaborator.delete(context);
