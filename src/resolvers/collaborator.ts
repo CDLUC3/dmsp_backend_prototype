@@ -11,7 +11,7 @@ export const resolvers: Resolvers = {
     // Get all of the Users that belong to another affiliation that can edit the Template
     //     - called from the Template options page
     templateCollaborators: async (_, { templateId }, context: MyContext): Promise<TemplateCollaborator[]> => {
-      if (isAdmin(context.token)){
+      if (isAdmin(context.token)) {
         return await TemplateCollaborator.findByTemplateId('templateCollaborators resolver', context, templateId);
       }
       // Unauthorized!
@@ -28,7 +28,7 @@ export const resolvers: Resolvers = {
         throw AuthenticationError();
       }
 
-      if (isAdmin(context.token)){
+      if (isAdmin(context.token)) {
         const invitedById = context.token?.id;
         const collaborator = await new TemplateCollaborator({ templateId, email, invitedById });
         return await collaborator.create(context);
@@ -40,13 +40,20 @@ export const resolvers: Resolvers = {
     // Remove a TemplateCollaborator from a Template
     //     - called from the Template options page
     removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<boolean> => {
-      if (isAdmin(context.token)){
-        const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
+      if (isAdmin(context.token)) {
+        const collaboratorData = await TemplateCollaborator.findByTemplateIdAndEmail(
           'removeTemplateCollaborator resolver',
           context,
           templateId,
           email
         );
+
+        //Need to create a new instance of Section so that it recognizes the 'delete' function of that instance
+        const collaborator = new TemplateCollaborator({
+          ...collaboratorData,
+          templateId: templateId
+        });
+
         if (collaborator) {
           return await collaborator.delete(context);
         }
