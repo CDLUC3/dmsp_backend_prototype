@@ -5,6 +5,7 @@ import { TemplateCollaborator } from "../models/Collaborator";
 import { Section } from "../models/Section";
 import { VersionedSection } from '../models/VersionedSection';
 import { VersionedQuestion } from "../models/VersionedQuestion";
+import { User, UserRole } from '../models/User';
 import { MyContext } from "../context";
 import { cloneTemplate, generateTemplateVersion, hasPermissionOnTemplate } from "../services/templateService";
 import { cloneSection } from "../services/sectionService";
@@ -203,6 +204,13 @@ export const resolvers: Resolvers = {
     // Allow the GraphQL client to fetch the template when querying for a Section
     sections: async (parent: Template, _, context: MyContext): Promise<Section[]> => {
       return await Section.findByTemplateId('Chained Template.sections', context, parent.id);
+    },
+
+    // Chained resolver to fetch the admins associated with the template's owner
+    admins: async (parent: Template, _, context: MyContext): Promise<User[]> => {
+      const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId);
+      return results.filter((user) => user.role === UserRole.ADMIN);
+
     }
   },
 };

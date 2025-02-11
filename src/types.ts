@@ -2192,6 +2192,8 @@ export type TagInput = {
 /** A Template used to create DMPs */
 export type Template = {
   __typename?: 'Template';
+  /** Admin users associated with the template's owner */
+  admins?: Maybe<Array<User>>;
   /** Whether or not this Template is designated as a 'Best Practice' template */
   bestPractice: Scalars['Boolean']['output'];
   /** Users from different affiliations who have been invited to collaborate on this template */
@@ -3581,6 +3583,7 @@ export type TagResolvers<ContextType = MyContext, ParentType extends ResolversPa
 };
 
 export type TemplateResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Template'] = ResolversParentTypes['Template']> = {
+  admins?: Resolver<Maybe<Array<ResolversTypes['User']>>, ParentType, ContextType>;
   bestPractice?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   collaborators?: Resolver<Maybe<Array<ResolversTypes['TemplateCollaborator']>>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
