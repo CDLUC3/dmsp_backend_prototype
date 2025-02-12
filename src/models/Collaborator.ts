@@ -12,7 +12,7 @@ export class Collaborator extends MySqlModel {
   public invitedById: number;
   public userId: number;
 
-  constructor(options){
+  constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
     this.email = options.email;
@@ -200,6 +200,6 @@ export class TemplateCollaborator extends Collaborator {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
     const vals = [templateId?.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
   }
 }
