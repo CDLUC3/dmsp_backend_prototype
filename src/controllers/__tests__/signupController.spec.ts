@@ -116,6 +116,7 @@ describe('signupController', () => {
   });
 
   it('should return 400 if user is invalid', async () => {
+    mockUser.errors = { 'email': 'Invalid email' };
     jest.spyOn(mockedUser, 'hasErrors').mockReturnValue(true);
     jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockedUser);
 
@@ -123,7 +124,7 @@ describe('signupController', () => {
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
     expect(mockResponse.json)
-      .toHaveBeenCalledWith({ success: false, message: mockedUser.errors });
+      .toHaveBeenCalledWith({ success: false, message: Object.values(mockedUser.errors).join(' | ') });
     mockUser.errors = [];
   });
 

@@ -94,6 +94,11 @@ export const resolvers: Resolvers = {
           // Either use the affiliationId provided or create one
           if (otherAffiliationName) {
             const affiliation = await processOtherAffiliationName(context, otherAffiliationName);
+            if (affiliation.hasErrors()) {
+              const err = affiliation.errors?.general ?? 'Unable to save the affiliation at this time';
+              user.addError('otherAffiliationName', err);
+              return user;
+            }
             user.affiliationId = affiliation.uri;
           } else {
             user.affiliationId = affiliationId;

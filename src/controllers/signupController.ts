@@ -27,7 +27,7 @@ export const signupController = async (req: Request, res: Response) => {
 
     if (user) {
       if (user.hasErrors()) {
-        res.status(400).json({ success: false, message: user.errors });
+        res.status(400).json({ success: false, message: Object.values(user.errors).join(' | ') });
       } else {
         // If the affiliationId was not provided then create a new Affiliation using the otherAffiliationName
         if (!props?.affiliationId && props?.otherAffiliationName) {

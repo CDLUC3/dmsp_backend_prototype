@@ -226,7 +226,7 @@ describe('Sign up', () => {
     expect(resp.statusCode).toEqual(400);
     expect(resp.headers['x-csrf-token']).toBeTruthy();
     expect(resp.headers['set-cookie']).toBeFalsy();
-    expect(resp.body).toEqual({ success: false, message: registeredUser.errors });
+    expect(resp.body).toEqual({ success: false, message: Object.values(registeredUser.errors).join(' | ') });
   });
 
   it('POST /apollo-signup should NOT generate access token and refresh token cookies on failure', async () => {

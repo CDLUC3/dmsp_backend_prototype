@@ -169,7 +169,7 @@ export class User extends MySqlModel {
   static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
     const sql = 'SELECT * FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
-    return new User(results[0]);
+    return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {

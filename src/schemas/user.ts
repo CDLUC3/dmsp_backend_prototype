@@ -122,10 +122,12 @@ export const typeDefs = gql`
     email: String
     role: String
     affiliationId: String
+    otherAffiliationName: String
     orcid: String
     ssoId: String
     languageId: String
     password: String
+    confirmPassword: String
 
     emailIds: String
   }
