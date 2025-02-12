@@ -68,6 +68,8 @@ export const typeDefs = gql`
 
     "Users from different affiliations who have been invited to collaborate on this template"
     collaborators: [TemplateCollaborator!]
+    "Admin users associated with the template's owner"
+    admins: [User!]
   }
 
   "A collection of errors related to the Template"

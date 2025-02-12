@@ -1,6 +1,7 @@
 ### Added
 - Added model mocks for Affiliation and Collaborator
 - Added resolver integration tests for affilian and collaborator resolvers
+- Added `useSampleTextAsDefault` column to questions table and add `admins` to Template schema and chained it in the resolver
 - Added `requestId` to the Apollo context
 - Added `questionOptions` schema, resolver and `QuestionOption` model, which will be used for `option` question types
 - Added a new query to get all versionedTemplates, called `myVersionedTemplates`, under user's affiliation, and added a new method in the model called `findByAffiliationId`
