@@ -1,6 +1,5 @@
 import { buildContext } from '../context';
 import { DMPHubAPI } from '../datasources/dmphubAPI';
-import { DMPToolAPI } from '../datasources/dmptoolAPI';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { MockCache } from '../__mocks__/context';
 
@@ -49,12 +48,10 @@ describe('buildContext', () => {
     expect(context.token).toBe(tokenMock);
     expect(context.logger).toEqual(loggerMock);
     expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
-    expect(context.dataSources.dmptoolAPIDataSource).toBeTruthy();
     expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
 
     // Ensure data sources are initialized with cache and token
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: cacheMock, token: tokenMock });
-    expect(DMPToolAPI).toHaveBeenCalledWith({ cache: cacheMock, token: tokenMock });
     expect(MySQLDataSource.getInstance).toHaveBeenCalled();
   });
 
@@ -66,12 +63,10 @@ describe('buildContext', () => {
     expect(context.token).toBe(tokenMock);
     expect(context.logger).toEqual(loggerMock);
     expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
-    expect(context.dataSources.dmptoolAPIDataSource).toBeTruthy();
     expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
 
     // Ensure cache is defaulted to { skipCache: true }
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: { skipCache: true }, token: tokenMock });
-    expect(DMPToolAPI).toHaveBeenCalledWith({ cache: { skipCache: true }, token: tokenMock });
   });
 
   it('should return a valid context with null token when token is null', () => {
@@ -82,12 +77,10 @@ describe('buildContext', () => {
     expect(context.token).toBe(null);
     expect(context.logger).toEqual(loggerMock);
     expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
-    expect(context.dataSources.dmptoolAPIDataSource).toBeTruthy();
     expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
 
     // Ensure data sources are called with cache and null token
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: cacheMock, token: null });
-    expect(DMPToolAPI).toHaveBeenCalledWith({ cache: cacheMock, token: null });
   });
 
   it('should log and return null when an error occurs', () => {

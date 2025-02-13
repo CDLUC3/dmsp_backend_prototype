@@ -1,4 +1,6 @@
 ### Added
+- Added `Plan` model
+- Added `projectPlans` join table which acts as a bridge between the `projects` table in the MySQL database and the `plans` stored in the DMPHub DynamoDB table
 - Added `useSampleTextAsDefault` column to questions table and add `admins` to Template schema and chained it in the resolver
 - Added `requestId` to the Apollo context
 - Added `questionOptions` schema, resolver and `QuestionOption` model, which will be used for `option` question types
@@ -67,6 +69,9 @@
 - updated all of the cache key structures to wrap them in `{}` due to the way Redis handles keys in cluster mode
 - updated emailService to use nodemailer and to support emailConfirmation templateCollaboration and planCollaboration email messages
 - added bestPractice flag to the Section
+
+### Removed
+- Old DMPHubAPI datascource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test

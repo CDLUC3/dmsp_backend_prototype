@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { DmspModel } from './models/Dmsp';
+import { DmspModel } from './models/Plan';
 import { MyContext } from './context';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -3793,4 +3793,3 @@ export type Resolvers<ContextType = MyContext> = {
   VersionedSection?: VersionedSectionResolvers<ContextType>;
   VersionedTemplate?: VersionedTemplateResolvers<ContextType>;
 };
-

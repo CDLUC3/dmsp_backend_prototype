@@ -1,12 +1,13 @@
-import { DMPHubAPI } from '../dmphubAPI';
+import nock from 'nock';
+import { DMPHubAPI, Authorizer } from '../dmphubAPI';
 import { RESTDataSource } from '@apollo/datasource-rest';
-import { logger } from '../../__mocks__/logger';
+import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { JWTAccessToken } from '../../services/tokenService';
-import { DmspModel as Dmsp } from '../../models/Dmsp';
-import casual from 'casual';
-import { ContributorRole } from '../../models/ContributorRole';
+import { Affiliation, AffiliationSearch } from "../../models/Affiliation";
 import { buildContext } from '../../__mocks__/context';
+
+jest.mock('../../context.ts');
 
 let mockError;
 
@@ -17,12 +18,73 @@ beforeEach(() => {
   (logger.error as jest.Mock) = mockError;
 });
 
-// Mock RESTDataSource.get method
+// Mock RESTDataSource methods
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockGet = jest.spyOn(RESTDataSource.prototype as any, 'get');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockPost = jest.spyOn(RESTDataSource.prototype as any, 'post');
 
-describe('DMPHubAPI', () => {
-  let dmphubAPI: DMPHubAPI;
+describe('Authorizer', () => {
+  let authorizer: Authorizer;
+
+  beforeEach(() => {
+    mockPost.mockClear();
+
+    // Mock environment variables
+    process.env.DMPHUB_AUTH_URL = 'https://dmphub.example.com';
+    process.env.DMPHUB_API_CLIENT_ID = 'test_client_id';
+    process.env.DMPHUB_API_CLIENT_SECRET = 'test_client_secret';
+
+    authorizer = Authorizer.instance;
+
+    // Set up nock to intercept the OAuth2 token request
+    nock(process.env.DMPHUB_AUTH_URL)
+      .post('/oauth2/token')
+      .reply(200, { access_token: 'test_token' });
+  });
+
+  afterEach(() => {
+    // Clean up all mocks after each test
+    nock.cleanAll();
+  });
+
+  it('should create a singleton instance', () => {
+    const instance1 = Authorizer.instance;
+    const instance2 = Authorizer.instance;
+    expect(instance1).toBe(instance2); // Both should be the same instance
+  });
+
+  it('should encode credentials and call authenticate method', async () => {
+    const mockResponse = { access_token: 'test_token' };
+    mockPost.mockResolvedValue(mockResponse);
+    await authorizer.authenticate();
+
+    expect(mockPost).toHaveBeenCalledWith(`/oauth2/token`);
+    expect(authorizer.oauth2Token).toBe('test_token');
+    expect(logger.info).toHaveBeenCalledWith('Authenticating with DMPHub');
+  });
+
+  it('should check token expiration', () => {
+    const expiredDate = new Date(Date.now() - 600 * 1000); // Set expired date
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (authorizer as any).expiry = expiredDate;
+    expect(authorizer.hasExpired()).toBe(true);
+  });
+
+  it('should correctly set request headers in willSendRequest', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const request: any = { headers: {}, body: '' };
+
+    authorizer.willSendRequest('/oauth2/token', request);
+
+    expect(request.headers['authorization']).toBe('Basic dGVzdF9jbGllbnRfaWQ6dGVzdF9jbGllbnRfc2VjcmV0');
+    expect(request.headers['content-type']).toBe('application/x-www-form-urlencoded');
+    expect(request.body).toContain('grant_type=client_credentials');
+  });
+});
+
+describe('DMPToolAPI', () => {
+  let dmptoolAPI: DMPHubAPI;
 
   beforeEach(() => {
     mockGet.mockClear();
@@ -30,147 +92,79 @@ describe('DMPHubAPI', () => {
     // Mock environment variable
     process.env.DMPHUB_API_BASE_URL = 'https://dmphub.example.com';
 
-    // Initialize the class
-    dmphubAPI = new DMPHubAPI({
+    // Initialize DMPToolAPI
+    dmptoolAPI = new DMPHubAPI({
       cache: {} as KeyValueCache,
       token: {} as JWTAccessToken,
     });
   });
 
-  describe('dmspIdWithoutProtocol', () => {
-    it('should remove protocol and keep the rest of the DMSP ID', () => {
-      const dmspId = 'https://example.com/dmsp';
-      const result = dmphubAPI.dmspIdWithoutProtocol(dmspId);
-      expect(result).toBe('example.com/dmsp');
-    });
+  describe('willSendRequest', () => {
+    it('should re-authenticate if token has expired and set headers', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const request: any = { headers: {} };
 
-    it('should handle encoded slashes and preserve them', () => {
-      const dmspId = 'https://example.com%2Fdmsp';
-      const result = dmphubAPI.dmspIdWithoutProtocol(dmspId);
-      expect(result).toBe('example.com/dmsp');
-    });
-  });
+      // Mock token expiration and authentication
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(true);
+      jest.spyOn(Authorizer.instance, 'authenticate').mockResolvedValue(undefined);
+      Authorizer.instance.oauth2Token = 'new_test_token';
 
-  describe('getDMSPs', () => {
-    it('should call RESTDataSource.get with the correct endpoint', async () => {
-      const mockDMSPs: Dmsp[] = [{
-        title: casual.sentence,
-        isFeatured: 'no',
-        description: casual.sentences(5),
-        primaryContact: {
-          name: casual.name,
-          mbox: casual.email,
-          affiliation: {
-            name: casual.company_name,
-            ror: casual.url,
-            affiliation_id: casual.url,
-          },
-          orcid: casual.url,
-        },
-        contributors: [{
-          name: casual.name,
-          mbox: casual.email,
-          role: [new ContributorRole({})],
-          orcid: casual.url,
-          affiliation: {
-            name: casual.company_name,
-            ror: casual.url,
-            affiliation_id: casual.url,
-          }
-        }],
-        hasEthicalConcerns: 'yes',
-        ethicalConcernsDescription: casual.sentences(3),
-        ethicalConcernsReportURL: casual.url,
-        visibility: 'PUBLIC',
-        language: 'eng',
-        created: new Date().toISOString(),
-        modified: new Date().toISOString(),
-      }];
-      mockGet.mockResolvedValue(mockDMSPs);
+      dmptoolAPI.willSendRequest('/affiliations', request);
 
-      const result = await dmphubAPI.getDMSPs();
-      expect(mockGet).toHaveBeenCalledWith('dmps');
-      expect(result).toEqual(mockDMSPs);
+      expect(Authorizer.instance.authenticate).toHaveBeenCalled();
+      expect(request.headers['authorization']).toBe('Bearer new_test_token');
     });
   });
 
-  describe('getDMSP', () => {
-    it('should log and call RESTDataSource.get with the correct DMSP ID', async () => {
+  describe('getAffiliation', () => {
+    it('should call get with the correct affiliationId and log the message', async () => {
       const context = buildContext(logger);
-      const mockResponse = {
-        status: 200,
-        items: [{ dmp: { id: '123' } }],
-      };
+      const mockResponse = { id: '123', name: 'Test Affiliation' };
       mockGet.mockResolvedValue(mockResponse);
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const dmspID = 'https://example.com/dmsp/123';
-      const result = await dmphubAPI.getDMSP(dmspID);
+      const result = await dmptoolAPI.getAffiliation(context, 'https://example.com/affiliation/123');
 
-      // Ensure the log message is correct
-      expect(context.logger.info).toHaveBeenCalledWith(
-        { dmphubUrl: process.env.DMPHUB_API_BASE_URL, dmspID: dmspID },
-        'Calling DMPHub'
+      expect(mockGet).toHaveBeenCalledWith('affiliations/example.com/affiliation/123');
+      expect(result).toBeInstanceOf(Affiliation);
+      expect(formatLogMessage(context).info).toHaveBeenCalledWith(
+        'Calling DMPHub: https://dmphub.example.com/affiliations/example.com/affiliation/123'
       );
-
-      // Ensure the RESTDataSource.get is called with the correct ID
-      expect(mockGet).toHaveBeenCalledWith('dmps/example.com/dmsp/123');
-
-      // Ensure the handleResponse logic is called and processes the mock response
-      expect(result).toEqual({
-        code: 200,
-        success: true,
-        message: 'Ok',
-        dmsp: { id: '123' },
-      });
     });
 
-    it('should handle errors gracefully and log them', async () => {
+    it('should throw and error when get fails', async () => {
       const context = buildContext(logger);
       const mockError = new Error('API error');
-      mockGet.mockRejectedValue(mockError);
+      //mockGet.mockRejectedValue(mockError);
+      mockGet.mockImplementation(() => { throw mockError });
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const dmspID = 'https://example.com/dmsp/123';
-
-      await expect(dmphubAPI.getDMSP(dmspID)).rejects.toThrow('API error');
-
-      // Ensure the error was logged
-      expect(context.logger.error).toHaveBeenCalledWith(
-        { dmphubURL: process.env.DMPHUB_API_BASE_URL, dmspID: dmspID, err: mockError },
-        'Error calling the DMPHub API'
-      );
+      await expect(dmptoolAPI.getAffiliation(context, 'https://example.com/affiliation/123')).rejects.toThrow('API error');
     });
   });
 
-  describe('handleResponse', () => {
-    it('should return a success response when status is 200', () => {
-      const response = {
-        status: 200,
-        items: [{ dmp: { id: '123' } }],
-      };
-      const result = dmphubAPI.handleResponse(response);
+  describe('getAffiliations', () => {
+    it('should call get with the correct query string and return affiliations', async () => {
+      const context = buildContext(logger);
+      const mockResponse = [{ id: '1', name: 'Affiliation1' }, { id: '2', name: 'Affiliation2' }];
+      mockGet.mockResolvedValue(mockResponse);
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      expect(result).toEqual({
-        code: 200,
-        success: true,
-        message: 'Ok',
-        dmsp: { id: '123' },
-      });
+      const result = await dmptoolAPI.getAffiliations(context, { name: 'University', funderOnly: true });
+
+      expect(mockGet).toHaveBeenCalledWith('affiliations?search=University&funderOnly=true');
+      expect(result.length).toBe(2);
+      expect(result[0]).toBeInstanceOf(AffiliationSearch);
     });
 
-    it('should return an error response when status is not 200', () => {
-      const response = {
-        status: 400,
-        errors: ['Bad request'],
-        items: [],
-      };
-      const result = dmphubAPI.handleResponse(response);
+    it('should throw an error when get fails', async () => {
+      const context = buildContext(logger);
+      const mockError = new Error('API error');
+      // mockGet.mockRejectedValue(mockError);
+      mockGet.mockImplementation(() => { throw mockError });
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      expect(result).toEqual({
-        code: 400,
-        success: false,
-        message: 'Bad request',
-        dmsp: undefined,
-      });
+      await expect(dmptoolAPI.getAffiliations(context, { name: 'University' })).rejects.toThrow('API error');
     });
   });
 });

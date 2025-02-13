@@ -2,7 +2,6 @@ import { Logger } from "pino";
 import { JWTAccessToken } from "../services/tokenService";
 import { MyContext } from "../context";
 import { DMPHubAPI } from "../datasources/dmphubAPI";
-import { DMPToolAPI } from "../datasources/dmptoolAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";
 import { User, UserRole } from "../models/User";
 import casual from "casual";
@@ -64,17 +63,6 @@ export class MockCache {
   }
 }
 export class MockDMPHubAPI extends DMPHubAPI {
-  getData = jest.fn();
-  getDMSPs = jest.fn();
-  handleResponse = jest.fn();
-  getDMSP = jest.fn();
-  baseURL = '';
-
-  // Mocking the private properties
-  dmspIdWithoutProtocol = jest.fn();
-}
-
-export class MockDMPToolAPI extends DMPToolAPI {
   getAffiliation = jest.fn();
   getAffiliations = jest.fn();
   handleResponse = jest.fn();
