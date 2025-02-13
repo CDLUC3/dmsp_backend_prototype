@@ -11,7 +11,7 @@ export class QuestionType extends MySqlModel {
 
     this.name = options.name;
     this.usageDescription = options.usageDescription;
-    this.isDefault = options.isDefault || false;
+    this.isDefault = options.isDefault ?? false;
   }
 
   // Find all QuestionTypes

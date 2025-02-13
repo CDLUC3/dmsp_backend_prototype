@@ -8,42 +8,68 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { defaultLanguageId } from "../models/Language";
 import { anonymizeUser, mergeUsers } from "../services/userService";
 import { processOtherAffiliationName } from "../services/affiliationService";
+import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
     // returns the current User
     me: async (_, __, context: MyContext): Promise<User> => {
-      if (isAuthorized(context?.token)) {
-        return await User.findById('me resolver', context, context.token.id);
+      const reference = 'me resolver';
+      try {
+        if (isAuthorized(context?.token)) {
+          return await User.findById(reference, context, context.token.id);
+        }
+        throw AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw AuthenticationError();
     },
 
     // Should only be callable by an Admin. Super returns all users, Admin gets only
     // the users associated with their affiliationId
     users: async (_, __, context): Promise<User[]> => {
-      if (isAdmin(context.token)) {
-        return await User.findByAffiliationId('users resolver', context, context.token.affiliationId);
+      const reference = 'users resolver';
+      try {
+        if (isAdmin(context.token)) {
+          return await User.findByAffiliationId(reference, context, context.token.affiliationId);
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // This query should only be available to Admins. Super can get any user and Admin can get
     // only users associated with their affiliationId
     user: async (_, { userId }, context: MyContext): Promise<User> => {
-      if (isAdmin(context.token)) {
-        const user = await User.findById('user resolver', context, userId);
-        if (!user) {
-          throw NotFoundError();
+      const reference = 'user resolver';
+      try {
+        if (isAdmin(context.token)) {
+          const user = await User.findById(reference, context, userId);
+          if (!user) {
+            throw NotFoundError();
+          }
+          // Make sure the Admin is from the same Affiliation or the user is a SuperAdmin
+          if (context.token?.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
+            return user;
+          }
         }
-        // Make sure the Admin is from the same Affiliation or the user is a SuperAdmin
-        if (context.token?.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
-          return user;
-        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 
@@ -56,33 +82,45 @@ export const resolvers: Resolvers = {
       otherAffiliationName,
       languageId,
     } }, context: MyContext): Promise<User> => {
-      if (isAuthorized(context?.token)) {
-        const user = await User.findById('updateUserProfile resolver', context, context.token.id);
-        // Only continue if the user is active and not locked
-        if (!user || !user.active || user.locked) {
-          throw ForbiddenError();
-        }
+      const reference = 'updateUserProfile resolver';
+      try {
+        if (isAuthorized(context?.token)) {
+          const user = await User.findById(reference, context, context.token.id);
+          // Only continue if the user is active and not locked
+          if (!user || !user.active || user.locked) {
+            throw ForbiddenError();
+          }
 
-        // Either use the affiliationId provided or create one
-        if (otherAffiliationName) {
-          const affiliation = await processOtherAffiliationName(context, otherAffiliationName);
-          user.affiliationId = affiliation.uri;
-        } else {
-          user.affiliationId = affiliationId;
-        }
+          // Either use the affiliationId provided or create one
+          if (otherAffiliationName) {
+            const affiliation = await processOtherAffiliationName(context, otherAffiliationName);
+            if (affiliation.hasErrors()) {
+              const err = affiliation.errors?.general ?? 'Unable to save the affiliation at this time';
+              user.addError('otherAffiliationName', err);
+              return user;
+            }
+            user.affiliationId = affiliation.uri;
+          } else {
+            user.affiliationId = affiliationId;
+          }
 
-        user.givenName = givenName;
-        user.surName = surName;
-        user.languageId = languageId || defaultLanguageId;
-        const updated = await new User(user).update(context);
-        if (!updated) {
-          throw InternalServerError('Unable to save the profile changes at this time');
+          user.givenName = givenName;
+          user.surName = surName;
+          user.languageId = languageId || defaultLanguageId;
+          const updated = await new User(user).update(context);
+          if (!updated || updated.hasErrors()) {
+            user.addError('general', 'Unable to save the profile changes at this time');
+          }
+          return user.hasErrors() ? user : updated;
         }
-        return updated;
+        // Unauthenticated
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthenticated
-      throw AuthenticationError();
     },
+
     // Update the current user's email notifications
     updateUserNotifications: async (_, { input: {
       notify_on_comment_added,
@@ -91,238 +129,314 @@ export const resolvers: Resolvers = {
       notify_on_plan_shared,
       notify_on_plan_visibility_change,
     } }, context: MyContext): Promise<User> => {
-      if (isAuthorized(context?.token)) {
-        const user = await User.findById('updateUserNotifiactions resolver', context, context.token.id);
-        // Only continue if the user is active and not locked
-        if (!user || !user.active || user.locked) {
-          throw ForbiddenError();
-        }
+      const reference = 'updateUserNotifications resolver';
+      try {
+        if (isAuthorized(context?.token)) {
+          const user = await User.findById(reference, context, context.token.id);
+          // Only continue if the user is active and not locked
+          if (!user || !user.active || user.locked) {
+            throw ForbiddenError();
+          }
 
-        user.notify_on_comment_added = notify_on_comment_added || true;
-        user.notify_on_template_shared = notify_on_template_shared || true;
-        user.notify_on_feedback_complete = notify_on_feedback_complete || true;
-        user.notify_on_plan_shared = notify_on_plan_shared || true;
-        user.notify_on_plan_visibility_change = notify_on_plan_visibility_change || true;
-        const updated = await new User(user).update(context);
-        if (!updated) {
-          throw InternalServerError('Unable to save the notification settings at this time');
+          user.notify_on_comment_added = notify_on_comment_added || true;
+          user.notify_on_template_shared = notify_on_template_shared || true;
+          user.notify_on_feedback_complete = notify_on_feedback_complete || true;
+          user.notify_on_plan_shared = notify_on_plan_shared || true;
+          user.notify_on_plan_visibility_change = notify_on_plan_visibility_change || true;
+          const updated = await new User(user).update(context);
+          if (!updated || updated.hasErrors()) {
+            user.addError('general', 'Unable to save the notification settings at this time');
+          }
+          return user.hasErrors() ? user : updated;
         }
-        return updated;
+        // Unauthenticated
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthenticated
-      throw AuthenticationError();
     },
+
     // Anonymize the current user's account (essentially deletes their account without orphaning things)
     removeUser: async (_, __, context: MyContext): Promise<User> => {
-      if (isAuthorized(context?.token)) {
-        const user = await User.findById('removeUser resolver', context, context.token.id);
-        // Only continue if the user is active and not locked
-        if (!user || !user.active || user.locked) {
-          throw ForbiddenError();
+      const reference = 'removeUser resolver';
+      try {
+        if (isAuthorized(context?.token)) {
+          const user = await User.findById(reference, context, context.token.id);
+          // Only continue if the user is active and not locked
+          if (!user || !user.active || user.locked) {
+            throw ForbiddenError();
+          }
+          const updated = await anonymizeUser(context, user);
+          if (!updated || updated.hasErrors()) {
+            user.addError('general', 'Unable to remove your account at this time');
+          }
+          return user.hasErrors() ? user : updated;
         }
-        if (await anonymizeUser(context, user)) {
-          return user;
-        }
-        throw InternalServerError('Unable to remove your account at this time');
+        // Unauthenticated
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthenticated
-      throw AuthenticationError();
     },
 
     // Set the user's ORCID
     setUserOrcid: async (_, { orcid }, context: MyContext): Promise<User> => {
-      if (isAuthorized(context?.token)) {
-        const user = await User.findById('setUserOrcid resolver', context, context.token.id);
-        // Only continue if the user is active and not locked
-        if (!user || !user.active || user.locked) {
-          throw ForbiddenError();
-        }
+      const reference = 'setUserOrcid resolver';
+      try {
+        if (isAuthorized(context?.token)) {
+          const user = await User.findById(reference, context, context.token.id);
+          // Only continue if the user is active and not locked
+          if (!user || !user.active || user.locked) {
+            throw ForbiddenError();
+          }
 
-        user.orcid = orcid;
-        const updated = await new User(user).update(context);
-        if (!updated) {
-          throw InternalServerError('Unable to save the ORCID at this time');
+          user.orcid = orcid;
+          const updated = await new User(user).update(context);
+          if (!updated || updated.hasErrors()) {
+            user.addError('general', 'Unable to save the ORCID at this time');
+          }
+          return user.hasErrors() ? user : updated;
         }
-        return updated;
+        // Unauthenticated
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthenticated
-      throw AuthenticationError();
     },
+
     // Add an email address for the current user
     addUserEmail: async (_, { email, isPrimary }, context: MyContext): Promise<UserEmail> => {
-      if (isAuthorized(context?.token)) {
-        const user = await User.findById('addUserEmail resolver', context, context.token.id);
-        // Only continue if the user is active and not locked
-        if (!user || !user.active || user.locked) {
-          throw ForbiddenError();
+      const reference = 'addUserEmail resolver';
+      try {
+        if (isAuthorized(context?.token)) {
+          const user = await User.findById(reference, context, context.token.id);
+          // Only continue if the user is active and not locked
+          if (!user || !user.active || user.locked) {
+            throw ForbiddenError();
+          }
+          const userEmail = new UserEmail({ userId: context.token.id, email: email, isPrimary: isPrimary || false });
+          const created = await userEmail.create(context);
+          if (!created || created.hasErrors()) {
+            userEmail.addError('general', 'Unable to add the email at this time');
+          }
+          return userEmail.hasErrors() ? userEmail : created;
         }
-        const userEmail = new UserEmail({
-          userId: context.token.id,
-          email: email,
-          isPrimary: isPrimary || false,
-        });
-        const created = userEmail.create(context);
-        if (!created) {
-          throw InternalServerError('Could not add the email at this time');
-        }
-        return created;
+        // Unauthenticated
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthenticated
-      throw AuthenticationError();
     },
+
     // Remove an email address from the current user
     removeUserEmail: async (_, { email }, context: MyContext): Promise<UserEmail> => {
       const ref = 'removeUserEmail resolver';
-      if (isAuthorized(context?.token)) {
-        const user = await User.findById(ref, context, context.token.id);
-        // Only continue if the user is active and not locked
-        if (!user || !user.active || user.locked) {
-          throw ForbiddenError();
-        }
+      try {
+        if (isAuthorized(context?.token)) {
+          const user = await User.findById(ref, context, context.token.id);
+          // Only continue if the user is active and not locked
+          if (!user || !user.active || user.locked) {
+            throw ForbiddenError();
+          }
 
-        const userEmail = await UserEmail.findByUserIdAndEmail(ref, context, context.token.id, email);
-        if (!userEmail) {
-          throw NotFoundError();
-        }
+          const userEmail = await UserEmail.findByUserIdAndEmail(ref, context, context.token.id, email);
+          if (!userEmail) {
+            throw NotFoundError();
+          }
 
-        const deleted = await new UserEmail(userEmail).delete(context);
-        if (deleted) {
-          return deleted; //Return the deleted email with any errors from calling delete function
+          const deleted = await new UserEmail(userEmail).delete(context);
+          if (!deleted || deleted.hasErrors()) {
+            userEmail.addError('general', 'Unable to remove the email at this time');
+          }
+          return userEmail.hasErrors() ? userEmail : deleted;
         }
-        throw InternalServerError('Unable to remove the email at this time');
+        // Unauthenticated
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${ref}`);
+        throw InternalServerError();
       }
-      // Unauthenticated
-      throw AuthenticationError();
     },
+
     // Designate the email as the current user's primary email address
     setPrimaryUserEmail: async (_, { email }, context: MyContext): Promise<UserEmail[]> => {
       const ref = 'setPrimaryUserEmail resolver';
-      if (isAuthorized(context?.token)) {
-        const user = await User.findById(ref, context, context.token.id);
-        // Only continue if the user is active and not locked
-        if (!user || !user.active || user.locked) {
-          throw ForbiddenError();
-        }
-
-        const userEmails = await UserEmail.findByUserId(ref, context, context.token.id);
-        const existing = userEmails.find((entry) => { return entry.email === email });
-        const originalState = { ...existing };
-        const oldPrimary = userEmails.find((entry) => { return Boolean(entry.isPrimary) === true });
-
-        if (!existing) {
-          throw NotFoundError();
-        }
-
-        existing.isPrimary = true;
-        const updated = await new UserEmail(existing).update(context);
-        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          // Update old primary record to isPrimary = false, if the new one was updated successfullly
-          if (oldPrimary) {
-            oldPrimary.isPrimary = false;
-            await new UserEmail(oldPrimary).update(context);
+      try {
+        if (isAuthorized(context?.token)) {
+          const user = await User.findById(ref, context, context.token.id);
+          // Only continue if the user is active and not locked
+          if (!user || !user.active || user.locked) {
+            throw ForbiddenError();
           }
-          user.email = email;
-          if (await User.update(context, new User(user).tableName, user, ref, ['password'])) {
-            return await UserEmail.findByUserId(ref, context, user.id);
+
+          const userEmails = await UserEmail.findByUserId(ref, context, context.token.id);
+          const existing = userEmails.find((entry) => { return entry.email === email });
+          const originalState = { ...existing };
+          const oldPrimary = userEmails.find((entry) => { return Boolean(entry.isPrimary) === true });
+
+          if (!existing) {
+            throw NotFoundError();
           }
-        } else {
-          // On error, revert to the original state
-          const mergedData = { ...existing, ...originalState, errors: updated.errors };
-          const originalWithErrors = new UserEmail(mergedData);
 
-          // Set errors explicitly to avoid being overwritten by the UserEmail instance initialization
-          originalWithErrors.errors = updated.errors || [];
+          existing.isPrimary = true;
+          const updated = await new UserEmail(existing).update(context);
+          if (updated && !updated.hasErrors()) {
+            // Update old primary record to isPrimary = false, if the new one was updated successfullly
+            if (oldPrimary) {
+              oldPrimary.isPrimary = false;
+              await new UserEmail(oldPrimary).update(context);
+            }
+            user.email = email;
+            if (await User.update(context, new User(user).tableName, user, ref, ['password'])) {
+              return await UserEmail.findByUserId(ref, context, user.id);
+            }
+          } else {
+            // On error, revert to the original state
+            const mergedData = { ...existing, ...originalState, errors: updated.errors };
+            const originalWithErrors = new UserEmail(mergedData);
 
-          return [originalWithErrors];
+            // Set errors explicitly to avoid being overwritten by the UserEmail instance initialization
+            originalWithErrors.errors = updated.errors || {};
+
+            return [originalWithErrors];
+          }
+
+          throw InternalServerError('Unable to remove the email at this time');
         }
-
-        throw InternalServerError('Unable to remove the email at this time');
+        // Unauthenticated
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${ref}`);
+        throw InternalServerError();
       }
-      // Unauthenticated
-      throw AuthenticationError();
     },
 
     // Change the current user's password
     updatePassword: async (_, { oldPassword, newPassword }, context: MyContext): Promise<User> => {
-      if (isAuthorized(context?.token)) {
-        const user = await User.findById('updatePassword resolver', context, context.token.id);
-        // Only continue if the user is active and not locked
-        if (!user || !user.active || user.locked) {
-          throw ForbiddenError();
-        }
+      const reference = 'updatePassword resolver';
+      try {
+        if (isAuthorized(context?.token)) {
+          const user = await User.findById(reference, context, context.token.id);
+          // Only continue if the user is active and not locked
+          if (!user || !user.active || user.locked) {
+            throw ForbiddenError();
+          }
 
-        const updated = await new User(user).updatePassword(context, oldPassword, newPassword);
-        if (updated) {
-          return updated;
+          const updated = await new User(user).updatePassword(context, oldPassword, newPassword);
+          if (!updated || updated.hasErrors()) {
+            user.addError('general', 'Unable to update the password at this time');
+          }
+          return user.hasErrors() ? user : User.findById(reference, context, context.token.id);
         }
+        // Unauthenticated
+        throw AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthenticated
-      throw AuthenticationError();
     },
 
     // Deactivate the specified user Account (SuperAdmin and Admin only)
     deactivateUser: async (_, { userId }, context: MyContext): Promise<User> => {
-      const ref = 'deactivateUser resolver';
-      if (isAdmin(context.token)) {
-        const result = await User.findById(ref, context, userId);
-        // For some reason these are being returned a Objects and not User!
-        const user = new User(result);
-        // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
-        if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
-          user.active = false;
-          const updated = await User.update(context, new User(user).tableName, user, ref, ['password']);
+      const reference = 'deactivateUser resolver';
+      try {
+        if (isAdmin(context.token)) {
+          const result = await User.findById(reference, context, userId);
 
-          if (!updated) {
-            throw InternalServerError('Unable to deactivate the user at this time');
+          if (!result) {
+            throw NotFoundError();
           }
-          // Return the result, because updated will not return a User since they are now inactive
-          return await User.findById(ref, context, userId);
+
+          // For some reason these are being returned a Objects and not User!
+          const user = new User(result);
+          // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
+          if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
+            user.active = false;
+            const updated = await User.update(context, new User(user).tableName, user, reference, ['password']);
+
+            if (!updated || updated.hasErrors()) {
+              user.addError('general', 'Unable to deactivate the user at this time');
+            }
+            // Return the result, because updated will not return a User since they are now inactive
+            return user.hasErrors() ? user : await User.findById(reference, context, userId);
+          }
         }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
+
     // Reactivate the specified user Account (SuperAdmin and Admin only)
     activateUser: async (_, { userId }, context: MyContext): Promise<User> => {
-      const ref = 'activateUser resolver';
-      if (isAdmin(context.token)) {
-        const result = await User.findById(ref, context, userId);
-        // For some reason these are being returned a Objects and not User!
-        const user = new User(result);
-        // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
-        if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
-          user.active = true;
-          const updated = await User.update(context, user.tableName, user, ref, ['password']);
+      const reference = 'activateUser resolver';
+      try {
+        if (isAdmin(context.token)) {
+          const result = await User.findById(reference, context, userId);
 
-          if (!updated) {
-            throw InternalServerError('Unable to activate the user at this time');
+          if (!result) {
+            throw NotFoundError();
           }
-          return await User.findById(ref, context, userId);
+
+          // For some reason these are being returned a Objects and not User!
+          const user = new User(result);
+          // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
+          if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
+            user.active = true;
+            const updated = await User.update(context, user.tableName, user, reference, ['password']);
+
+            if (!updated || updated.hasErrors()) {
+              user.addError('general', 'Unable to activate the user at this time');
+            }
+            return user.hasErrors() ? user : await User.findById(reference, context, userId);
+          }
         }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
+
     // Merge the 2 user accounts (SuperAdmin and Admin only)
     mergeUsers: async (_, { userIdToBeMerged, userIdToKeep }, context: MyContext): Promise<User> => {
-      if (isAdmin(context.token)) {
-        const userToMerge = await User.findById('mergeUsers resolver', context, userIdToBeMerged);
-        const userToKeep = await User.findById('mergeUsers resolver', context, userIdToKeep);
-        // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
-        const affil = context.token.affiliationId;
-        if (
-          (affil === userToMerge.affiliationId && affil === userToKeep.affiliationId) ||
-          isSuperAdmin(context.token)
-        ) {
-          const merged = await mergeUsers(context, userToMerge, userToKeep);
-          if (!merged) {
-            throw InternalServerError('Unable to merge the users at this time');
+      const reference = 'mergeUsers resolver';
+      try {
+        if (isAdmin(context.token)) {
+          const userToMerge = await User.findById(reference, context, userIdToBeMerged);
+          const userToKeep = await User.findById(reference, context, userIdToKeep);
+
+          if (!userToMerge || !userToKeep) {
+            throw NotFoundError();
           }
-          return merged;
+
+          // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
+          const affil = context.token.affiliationId;
+          if (
+            (affil === userToMerge.affiliationId && affil === userToKeep.affiliationId) ||
+            isSuperAdmin(context.token)
+          ) {
+            const merged = await mergeUsers(context, userToMerge, userToKeep);
+            if (!merged || merged.hasErrors()) {
+              userToKeep.addError('general', 'Unable to merge the users at this time');
+            }
+
+            return userToKeep.hasErrors() ? userToKeep : merged;
+          }
         }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 

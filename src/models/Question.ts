@@ -20,7 +20,7 @@ export class Question extends MySqlModel {
   private tableName = 'questions';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
     this.sectionId = options.sectionId;
@@ -30,10 +30,10 @@ export class Question extends MySqlModel {
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
     this.sampleText = options.sampleText;
-    this.useSampleTextAsDefault = options.useSampleTextAsDefault || false;
-    this.required = options.required || false;
+    this.useSampleTextAsDefault = options.useSampleTextAsDefault ?? false;
+    this.required = options.required ?? false;
     this.displayOrder = options.displayOrder;
-    this.isDirty = options.isDirty || false;
+    this.isDirty = options.isDirty ?? false;
     this.questionOptions = options.questionOptions;
   }
 
@@ -41,20 +41,16 @@ export class Question extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.templateId) {
-      this.errors.push('Template ID can\'t be blank');
-    }
-    if (!this.sectionId) {
-      this.errors.push('Section ID can\'t be blank');
-    }
-    if (!this.questionText) {
-      this.errors.push('Question text can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.templateId) this.addError('templateId', 'Template can\'t be blank');
+    if (!this.sectionId) this.addError('sectionId', 'Section can\'t be blank');
+    if (!this.questionText) this.addError('questionText', 'Question text can\'t be blank');
+    if (!this.displayOrder) this.addError('displayOrder', 'Order number can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.questionText = this.questionText?.trim();
     this.requirementText = this.requirementText?.trim();
@@ -69,7 +65,7 @@ export class Question extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
 
-      this.cleanup();
+      this.prepForSave();
 
       // Save the record and then fetch it
       const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionOptions']);
@@ -78,7 +74,7 @@ export class Question extends MySqlModel {
 
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new Question(this);
   }
 
   //Update an existing Section
@@ -87,15 +83,15 @@ export class Question extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await Question.update(context, this.tableName, this, 'Question.update', ['questionOptions'], noTouch);
         return await Question.findById('Question.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Question has never been saved');
+      this.addError('general', 'Question has never been saved');
     }
-    return this;
+    return new Question(this);
   }
 
   //Delete Question based on the Question object's id and return
@@ -119,13 +115,13 @@ export class Question extends MySqlModel {
   static async findById(reference: string, context: MyContext, questionId: number): Promise<Question> {
     const sql = 'SELECT * FROM questions WHERE id = ?';
     const result = await Question.query(context, sql, [questionId?.toString()], reference);
-    return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    return Array.isArray(result) && result.length > 0 ? new Question(result[0]) : null;
   }
 
   // Fetch all of the Questions for the specified Section
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Question[]> {
     const sql = 'SELECT * FROM questions WHERE sectionId = ?';
     const results = await Question.query(context, sql, [sectionId?.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new Question(entry)) : [];
   }
 }

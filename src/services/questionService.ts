@@ -57,7 +57,7 @@ export const generateQuestionVersion = async (
   try {
     const saved = await versionedQuestion.create(context);
 
-    if (saved && (!saved.errors || (Array.isArray(saved.errors) && saved.errors.length === 0))) {
+    if (saved && !saved.hasErrors()) {
       // Version any QuestionConditions as well
       const questionConditions = await QuestionCondition.findByQuestionId('generateQuestionVersion', context, saved.questionId);
       let allConditionsWereVersioned = true;
@@ -76,30 +76,27 @@ export const generateQuestionVersion = async (
         }
       }
 
-
       // Only proceed if all the conditions were able to version properly
       if (allConditionsWereVersioned) {
         // Reset the dirty flag
         question.isDirty = false;
         const updated = await question.update(context, true);
 
-        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          return true;
-        } else {
-          // There were errors on the object so report them
-          const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${updated.errors}`;
-          formatLogMessage(context).error(null, msg);
-          throw new Error(msg);
-        }
+        if (updated && !updated.hasErrors()) return true;
+
+        // There were errors on the object so report them
+        const msg = `Unable to set isDirty flag on question: ${question.id}`;
+        formatLogMessage(context).error(updated.errors, msg);
+        throw new Error(msg);
       }
     } else {
       // There were errors on the object so report them
-      const msg = `Unable to generateQuestionVersion for versionedQuestion errs: ${saved.errors}`;
-      formatLogMessage(context).error(null, msg);
+      const msg = `Unable to create new version for question: ${question.id}`;
+      formatLogMessage(context).error(saved.errors, msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(context).error(err, `Unable to generateQuestionVersion for question: ${question.id}`);
+    formatLogMessage(context).error(err, `Unable to generate a new version for question: ${question.id}`);
     throw err
   }
 
@@ -160,14 +157,14 @@ export const generateQuestionConditionVersion = async (
   });
 
   const created = await versionedQuestionCondition.create(context);
-  if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
+  if (created && !created.hasErrors()) {
     return true;
-  } else {
-    // There were errors on the object so report them
-    const msg = `Unable to generateQuestionConditionVersion for questionCondition errs: ${created.errors}`
-    formatLogMessage(context).error(null, `${msg}, errs: ${created.errors}`);
-    throw new Error(msg);
   }
+
+  // There were errors on the object so report them
+  const msg = `Unable to generate a new version for questionCondition: ${questionCondition.id}`;
+  formatLogMessage(context).error(created.errors, msg);
+  throw new Error(msg);
 }
 
 
@@ -185,4 +182,3 @@ export const getQuestionOptionsToRemove = async (questionOptions: QuestionOption
 
   return Array.isArray(optionsToRemove) ? optionsToRemove : [];
 }
-

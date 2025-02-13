@@ -42,22 +42,22 @@ describe('ResearchDomain', () => {
   it('should return false when calling isValid if the name field is missing', async () => {
     domain.name = null;
     expect(await domain.isValid()).toBe(false);
-    expect(domain.errors.length).toBe(1);
-    expect(domain.errors[0]).toEqual('Name can\'t be blank');
+    expect(Object.keys(domain.errors).length).toBe(1);
+    expect(domain.errors['name']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the uri field is missing', async () => {
     domain.uri = null;
     expect(await domain.isValid()).toBe(false);
-    expect(domain.errors.length).toBe(1);
-    expect(domain.errors[0]).toEqual('Invalid URI format');
+    expect(Object.keys(domain.errors).length).toBe(1);
+    expect(domain.errors['uri']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the uri field is not a URI', async () => {
     domain.uri = casual.uuid;
     expect(await domain.isValid()).toBe(false);
-    expect(domain.errors.length).toBe(1);
-    expect(domain.errors[0]).toEqual('Invalid URI format');
+    expect(Object.keys(domain.errors).length).toBe(1);
+    expect(domain.errors['uri']).toBeTruthy();
   });
 
   it('should return false when specifying a parent research domain that is the same id', async () => {
@@ -65,16 +65,16 @@ describe('ResearchDomain', () => {
     domain.id = id;
     domain.parentResearchDomain = { id };
     expect(await domain.isValid()).toBe(false);
-    expect(domain.errors.length).toBe(1);
-    expect(domain.errors[0]).toEqual('Parent research domain must be a different domain');
+    expect(Object.keys(domain.errors).length).toBe(1);
+    expect(domain.errors['parentResearchDomain']).toBeTruthy();
   });
 
   it('should return false when specifying a parent research domain that has a null id', async () => {
     domain.id = casual.integer(1, 9999);
     domain.parentResearchDomain = { name: casual.sentence };
     expect(await domain.isValid()).toBe(false);
-    expect(domain.errors.length).toBe(1);
-    expect(domain.errors[0]).toEqual('Parent research domain must be saved first');
+    expect(Object.keys(domain.errors).length).toBe(1);
+    expect(domain.errors['parentResearchDomain']).toBeTruthy();
   });
 });
 
@@ -252,7 +252,8 @@ describe('update', () => {
     (domain.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await domain.update(context)).toBe(domain);
+    const result = await domain.update(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -263,8 +264,8 @@ describe('update', () => {
 
     domain.id = null;
     const result = await domain.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('ResearchDomain has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated ResearchDomain', async () => {
@@ -281,8 +282,8 @@ describe('update', () => {
     const result = await domain.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(domain);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ResearchDomain);
   });
 });
 
@@ -313,14 +314,15 @@ describe('create', () => {
     (domain.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await domain.create(context)).toBe(domain);
+    const result = await domain.create(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the ResearchDomain with errors if it is invalid', async () => {
     domain.name = undefined;
     const response = await domain.create(context);
-    expect(response.errors[0]).toBe('Name can\'t be blank');
+    expect(response.errors['name']).toBe('Name can\'t be blank');
   });
 
   it('returns the ResearchDomain with an error if the object already exists', async () => {
@@ -330,8 +332,8 @@ describe('create', () => {
 
     const result = await domain.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('ResearchDomain already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added ResearchDomain', async () => {
@@ -352,8 +354,8 @@ describe('create', () => {
     expect(mockFindByName).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(domain);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ResearchDomain);
   });
 });
 
@@ -394,8 +396,9 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(domain);
 
     const result = await domain.delete(context);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(domain);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result.errors).toEqual({});
+    expect(result).toBeInstanceOf(ResearchDomain);
   });
 });
 

@@ -30,7 +30,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ProjectErrors
 
     "The name/title of the research project"
     title: String!
@@ -51,6 +51,21 @@ export const typeDefs = gql`
     funders: [ProjectFunder!]
     "The outputs that will be/were created as a reult of the research project"
     outputs: [ProjectOutput!]
+  }
+
+  "A collection of errors related to the Project"
+  type ProjectErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    title: String
+    abstractText: String
+    startDate: String
+    endDate: String
+    researchDomainId: String
+    contributorIds: String
+    funderIds: String
+    outputIds: String
   }
 
   input UpdateProjectInput {

@@ -19,13 +19,23 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: OutputTypeErrors
 
     "The name of the output type"
     name: String!
     "The taxonomy URL of the output type"
     uri: String!
     "A description of the type of output to be collected/generated during the project"
+    description: String
+  }
+
+  "A collection of errors related to the OutputType"
+  type OutputTypeErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    uri: String
+    name: String
     description: String
   }
 `;

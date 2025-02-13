@@ -50,36 +50,36 @@ describe('QuestionCondition', () => {
   it('isValid returns false if the versioneQuestionId is null', async () => {
     versionedQuestionCondition.versionedQuestionId = null;
     expect(await versionedQuestionCondition.isValid()).toBe(false);
-    expect(versionedQuestionCondition.errors.length).toBe(1);
-    expect(versionedQuestionCondition.errors[0].includes('Versioned Question')).toBe(true);
+    expect(Object.keys(versionedQuestionCondition.errors).length).toBe(1);
+    expect(versionedQuestionCondition.errors['versionedQuestionId'].includes('Versioned Question')).toBe(true);
   });
 
   it('isValid returns false if the questionConditionId is null', async () => {
     versionedQuestionCondition.questionConditionId = null;
     expect(await versionedQuestionCondition.isValid()).toBe(false);
-    expect(versionedQuestionCondition.errors.length).toBe(1);
-    expect(versionedQuestionCondition.errors[0].includes('Question Condition')).toBe(true);
+    expect(Object.keys(versionedQuestionCondition.errors).length).toBe(1);
+    expect(versionedQuestionCondition.errors['questionConditionId'].includes('Question Condition')).toBe(true);
   });
 
   it('isValid returns false if the action is null', async () => {
     versionedQuestionCondition.action = null;
     expect(await versionedQuestionCondition.isValid()).toBe(false);
-    expect(versionedQuestionCondition.errors.length).toBe(1);
-    expect(versionedQuestionCondition.errors[0].includes('Action')).toBe(true);
+    expect(Object.keys(versionedQuestionCondition.errors).length).toBe(1);
+    expect(versionedQuestionCondition.errors['action'].includes('Action')).toBe(true);
   });
 
   it('isValid returns false if the conditionType is null', async () => {
     versionedQuestionCondition.conditionType = null;
     expect(await versionedQuestionCondition.isValid()).toBe(false);
-    expect(versionedQuestionCondition.errors.length).toBe(1);
-    expect(versionedQuestionCondition.errors[0].includes('Condition Type')).toBe(true);
+    expect(Object.keys(versionedQuestionCondition.errors).length).toBe(1);
+    expect(versionedQuestionCondition.errors['conditionType'].includes('Condition Type')).toBe(true);
   });
 
   it('isValid returns false if the target is null', async () => {
     versionedQuestionCondition.target = null;
     expect(await versionedQuestionCondition.isValid()).toBe(false);
-    expect(versionedQuestionCondition.errors.length).toBe(1);
-    expect(versionedQuestionCondition.errors[0].includes('Target text')).toBe(true);
+    expect(Object.keys(versionedQuestionCondition.errors).length).toBe(1);
+    expect(versionedQuestionCondition.errors['target'].includes('Target')).toBe(true);
   });
 });
 
@@ -154,7 +154,9 @@ describe('create', () => {
     (versionedQuestionCondition.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await versionedQuestionCondition.create(context)).toBe(versionedQuestionCondition);
+    const result = await versionedQuestionCondition.create(context);
+    expect(result).toBeInstanceOf(VersionedQuestionCondition);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -171,8 +173,8 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(versionedQuestionCondition);
+    expect(result).toBeInstanceOf(VersionedQuestionCondition);
+    expect(Object.keys(result.errors).length).toBe(0);
   });
 });
 
@@ -213,6 +215,6 @@ describe('findByVersionedQuestionId', () => {
     const expectedSql = 'SELECT * FROM versionedQuestionConditions WHERE versionedQuestionId = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
-    expect(result).toEqual([versionedQuestionCondition]);
+    expect(result[0]).toBeInstanceOf(VersionedQuestionCondition);
   });
 });

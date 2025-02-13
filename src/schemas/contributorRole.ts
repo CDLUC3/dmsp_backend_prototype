@@ -12,25 +12,11 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Add a new contributor role (URL and label must be unique!)"
-    addContributorRole(url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRoleMutationResponse
+    addContributorRole(url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRole
     "Update the contributor role"
-    updateContributorRole(id: ID!, url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRoleMutationResponse
+    updateContributorRole(id: Int!, url: URL!, label: String!, displayOrder: Int!, description: String): ContributorRole
     "Delete the contributor role"
-    removeContributorRole(id: ID!): ContributorRoleMutationResponse
-  }
-
-  type ContributorRoleMutationResponse {
-    "Similar to HTTP status code, represents the status of the mutation"
-    code: Int!
-    "Indicates whether the mutation was successful"
-    success: Boolean!
-    "Human-readable message for the UI"
-    message: String!
-    """
-    The contributor role that was impacted by the mutation.
-    The new one if we were adding, the one that was updated when updating, or the one deletd when removing
-    """
-    contributorRole: ContributorRole
+    removeContributorRole(id: Int!): ContributorRole
   }
 
   type ContributorRole {
@@ -45,7 +31,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ContributorRoleErrors
 
     "The order in which to display these items when displayed in the UI"
     displayOrder: Int!
@@ -54,6 +40,17 @@ export const typeDefs = gql`
     "The taxonomy URL for the contributor role"
     uri: String!
     "A longer description of the contributor role useful for tooltips"
+    description: String
+  }
+
+  "A collection of errors related to the ContributorRole"
+  type ContributorRoleErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    uri: String
+    label: String
+    displayOrder: String
     description: String
   }
 `;

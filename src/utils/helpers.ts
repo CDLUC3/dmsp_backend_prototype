@@ -44,7 +44,7 @@ export function stripIdentifierBaseURL(str: string): string {
 }
 
 // Date validation
-export async function validateDate(date: string): Promise<boolean> {
+export function validateDate(date: string): boolean {
   return date !== null && !isNaN(new Date(date).getTime());
 }
 

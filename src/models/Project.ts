@@ -13,7 +13,7 @@ export class Project extends MySqlModel {
   private tableName = 'projects';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.title = options.title;
@@ -21,39 +21,35 @@ export class Project extends MySqlModel {
     this.startDate = options.startDate;
     this.endDate = options.endDate;
     this.researchDomainId = options.researchDomainId;
-    this.isTestProject = options.isTestProject || false;
+    this.isTestProject = options.isTestProject ?? false;
   }
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.title) {
-      this.errors.push('Title can\'t be blank');
-    }
+    if (!this.title) this.addError('title', 'Title can\'t be blank');
 
     if (this.startDate) {
-      const startIsValid = await validateDate(this.startDate);
-      if (!startIsValid){
-        this.errors.push('Start date must be a valid date');
-      }
+      const startIsValid = validateDate(this.startDate);
+      if (!startIsValid) this.addError('startDate', 'Start date must be a valid date');
     }
     if (this.endDate) {
-      const endIsValid = await validateDate(this.endDate);
-      if (!endIsValid){
-        this.errors.push('End date must be a valid date');
+      const endIsValid = validateDate(this.endDate);
+      if (!endIsValid) {
+        this.addError('endDate', 'End date must be a valid date');
       } else {
         // Make sure start date comes before the end date
         if (this.startDate && this.endDate && this.endDate <= this.startDate) {
-          this.errors.push('End date must come after the start date');
+          this.addError('endDate', 'End date must come after the start date');
         }
       }
     }
-    return this.errors.length <= 0;
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.title = this.title?.trim();
     this.abstractText = this.abstractText?.trim();
@@ -74,9 +70,9 @@ export class Project extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('A Project with this title already exists');
+        this.addError('general', 'Project already exists');
       } else {
-        this.cleanup();
+        this.prepForSave();
 
         // Save the record and then fetch it
         const newId = await Project.insert(context, this.tableName, this, reference);
@@ -85,7 +81,7 @@ export class Project extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new Project(this);
   }
 
   //Update an existing Project
@@ -94,15 +90,15 @@ export class Project extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await Project.update(context, this.tableName, this, 'Project.update', [], noTouch);
         return await Project.findById('Project.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Project has never been saved');
+      this.addError('general', 'Project has never been saved');
     }
-    return this;
+    return new Project(this);
   }
 
   //Delete the Project

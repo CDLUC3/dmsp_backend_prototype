@@ -58,36 +58,36 @@ describe('VersionedTemplate', () => {
   it('isValid returns false if the templateId is null', async () => {
     versioned.templateId = null;
     expect(await versioned.isValid()).toBe(false);
-    expect(versioned.errors.length).toBe(1);
-    expect(versioned.errors[0].includes('Template')).toBe(true);
+    expect(Object.keys(versioned.errors).length).toBe(1);
+    expect(versioned.errors['templateId'].includes('Template')).toBe(true);
   });
 
   it('isValid returns false if the versionedById is null', async () => {
     versioned.versionedById = null;
     expect(await versioned.isValid()).toBe(false);
-    expect(versioned.errors.length).toBe(1);
-    expect(versioned.errors[0].includes('Versioned by')).toBe(true);
+    expect(Object.keys(versioned.errors).length).toBe(1);
+    expect(versioned.errors['versionedById'].includes('Versioned by')).toBe(true);
   });
 
   it('isValid returns false if the version is blank', async () => {
     versioned.version = '';
     expect(await versioned.isValid()).toBe(false);
-    expect(versioned.errors.length).toBe(1);
-    expect(versioned.errors[0].includes('Version')).toBe(true);
+    expect(Object.keys(versioned.errors).length).toBe(1);
+    expect(versioned.errors['version'].includes('Version')).toBe(true);
   });
 
   it('isValid returns false if the name is blank', async () => {
     versioned.name = '';
     expect(await versioned.isValid()).toBe(false);
-    expect(versioned.errors.length).toBe(1);
-    expect(versioned.errors[0].includes('Name')).toBe(true);
+    expect(Object.keys(versioned.errors).length).toBe(1);
+    expect(versioned.errors['name'].includes('Name')).toBe(true);
   });
 
   it('isValid returns false if the ownerId is null', async () => {
     versioned.ownerId = null;
     expect(await versioned.isValid()).toBe(false);
-    expect(versioned.errors.length).toBe(1);
-    expect(versioned.errors[0].includes('Owner')).toBe(true);
+    expect(Object.keys(versioned.errors).length).toBe(1);
+    expect(versioned.errors['ownerId'].includes('Owner')).toBe(true);
   });
 });
 
@@ -260,7 +260,8 @@ describe('create', () => {
     (versionedTemplate.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await versionedTemplate.create(context)).toBe(versionedTemplate);
+    const result = await versionedTemplate.create(context);
+    expect(result).toBeInstanceOf(VersionedTemplate);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -277,8 +278,8 @@ describe('create', () => {
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(versionedTemplate);
+    expect(result).toBeInstanceOf(VersionedTemplate);
+    expect(Object.keys(result.errors).length).toBe(0);
   });
 });
 
@@ -303,7 +304,8 @@ describe('update', () => {
     (versionedTemplate.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await versionedTemplate.update(context)).toBe(versionedTemplate);
+    const result = await versionedTemplate.update(context);
+    expect(result).toBeInstanceOf(VersionedTemplate);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -314,8 +316,8 @@ describe('update', () => {
 
     versionedTemplate.id = null;
     const result = await versionedTemplate.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('VersionedTemplate has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated VersionedTemplate', async () => {
@@ -328,7 +330,7 @@ describe('update', () => {
     const result = await versionedTemplate.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(versionedTemplate);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(VersionedTemplate);
   });
 });

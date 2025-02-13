@@ -42,7 +42,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: RepositoryErrors
 
     "The name of the repository"
     name: String!
@@ -58,6 +58,20 @@ export const typeDefs = gql`
     keywords: [String!]
     "The Categories/Types of the repository"
     repositoryTypes: [RepositoryType!]
+  }
+
+  "A collection of errors related to the Repository"
+  type RepositoryErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    name: String
+    uri: String
+    description: String
+    website: String
+    researchDomainIds: String
+    keywords: String
+    repositoryTypes: String
   }
 
   input RepositorySearchInput {

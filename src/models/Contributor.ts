@@ -16,7 +16,7 @@ export class ProjectContributor extends MySqlModel {
   private tableName = 'projectContributors';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.projectId = options.projectId;
@@ -29,7 +29,7 @@ export class ProjectContributor extends MySqlModel {
   }
 
   // Ensure data integrity
-  cleanup() {
+  prepForSave() {
     this.email = this.email?.trim()?.replace('%40', '@');
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
@@ -45,23 +45,23 @@ export class ProjectContributor extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.projectId) {
-      this.errors.push('Project can\'t be blank');
-    }
+    if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
+
     if (!this.surName && !this.email && !this.orcid) {
-      this.errors.push('You must specify at least one name, ORCID or email');
+      this.addError('general', 'You must specify at least one name, ORCID or email');
     }
     if (this.orcid && this.orcid.trim().length > 0){
       try {
         validateOrcid(this.orcid);
       } catch(err) {
-        this.errors.push('Invalid ORCID format');
+        this.addError('orcid', err.message);
       }
     }
     if (this.email && this.email.trim().length > 0 && !validateEmail(this.email)) {
-      this.errors.push('Invalid email format');
+      this.addError('email', 'Invalid email format');
     }
-    return this.errors.length <= 0;
+
+    return Object.keys(this.errors).length === 0;
   }
 
   //Create a new ProjectContributor
@@ -91,9 +91,9 @@ export class ProjectContributor extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Project already has an entry for this contributor');
+        this.addError('general', 'Project already has an entry for this contributor');
       } else {
-        this.cleanup();
+        this.prepForSave();
 
         // Save the record and then fetch it
         const newId = await ProjectContributor.insert(
@@ -108,7 +108,7 @@ export class ProjectContributor extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new ProjectContributor(this);
   }
 
   //Update an existing Contributor
@@ -117,7 +117,7 @@ export class ProjectContributor extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await ProjectContributor.update(
           context,
@@ -130,9 +130,9 @@ export class ProjectContributor extends MySqlModel {
         return await ProjectContributor.findById('ProjectContributor.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('ProjectContributor has never been saved');
+      this.addError('general', 'ProjectContributor has never been saved');
     }
-    return this;
+    return new ProjectContributor(this);
   }
 
   //Delete ProjectContributor

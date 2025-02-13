@@ -42,13 +42,13 @@ describe('Template', () => {
     expect(template.modified).toBeTruthy();
     expect(template.latestPublishVersion).toBeFalsy();
     expect(template.isDirty).toBeTruthy();
-    expect(template.errors).toEqual([]);
+    expect(template.errors).toEqual({});
     expect(template.languageId).toEqual(defaultLanguageId);
   });
 
-  it('should cleanup the data', () => {
+  it('should prepForSave the data', () => {
     template.languageId = 'test';
-    template.cleanup();
+    template.prepForSave();
     expect(template.languageId).toEqual(defaultLanguageId);
   });
 
@@ -59,22 +59,22 @@ describe('Template', () => {
   it('isValid returns false if the ownerId is null', async () => {
     template.ownerId = null;
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Owner')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['ownerId'].includes('Owner')).toBe(true);
   });
 
   it('isValid returns false if the name is null', async () => {
     template.name = null;
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Name')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['name'].includes('Name')).toBe(true);
   });
 
   it('isValid returns false if the name is blank', async () => {
     template.name = '';
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Name')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['name'].includes('Name')).toBe(true);
   });
 });
 
@@ -233,7 +233,8 @@ describe('create', () => {
     (template.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await template.create(context)).toBe(template);
+    const result = await template.create(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -249,8 +250,8 @@ describe('create', () => {
     const result = await template.create(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Template with this name already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added Template', async () => {
@@ -272,8 +273,8 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(template);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Template);
   });
 });
 
@@ -298,7 +299,8 @@ describe('update', () => {
     (template.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await template.update(context)).toBe(template);
+    const result = await template.update(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -309,8 +311,8 @@ describe('update', () => {
 
     template.id = null;
     const result = await template.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Template has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated Template', async () => {
@@ -327,8 +329,8 @@ describe('update', () => {
     const result = await template.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(template);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Template);
   });
 });
 
@@ -344,24 +346,29 @@ describe('delete', () => {
     });
   })
 
-  it('returns false if the Template has no id', async () => {
+  it('returns null if the Template has no id', async () => {
     template.id = null;
-    expect(await template.delete(context)).toBe(false);
+    expect(await template.delete(context)).toBe(null);
   });
 
-  it('returns false if it was not able to delete the record', async () => {
+  it('returns null if it was not able to delete the record', async () => {
     const deleteQuery = jest.fn();
     (Template.delete as jest.Mock) = deleteQuery;
 
     deleteQuery.mockResolvedValueOnce(null);
-    expect(await template.delete(context)).toBe(false);
+    expect(await template.delete(context)).toBe(null);
   });
 
-  it('returns true if it was able to delete the record', async () => {
+  it('returns the Template if it was able to delete the record', async () => {
     const deleteQuery = jest.fn();
     (Template.delete as jest.Mock) = deleteQuery;
-
     deleteQuery.mockResolvedValueOnce(template);
-    expect(await template.delete(context)).toBe(true);
+    const findById = jest.fn();
+    (Template.findById as jest.Mock) = findById;
+    findById.mockResolvedValueOnce(template);
+
+    const result = await template.delete(context);
+    expect(result).toBeInstanceOf(Template);
+    expect(result.errors).toEqual({});
   });
 });

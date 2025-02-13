@@ -9,10 +9,20 @@ export class AffiliationEmailDomain extends MySqlModel {
   private tableName = 'affiliationEmailDomains';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.affiliationId = options.affiliationId
     this.domain = options.domain;
+  }
+
+  // Validation to be used prior to saving the record
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!this.affiliationId) this.addError('affiliationId', 'Affiliation can\'t be blank');
+    if (!this.domain) this.addError('domain', 'Domain can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Save the current record
@@ -24,17 +34,18 @@ export class AffiliationEmailDomain extends MySqlModel {
       this.domain,
     );
 
-    // Then make sure it doesn't already exist
-    if (currentDomain) {
-      const assoc = currentDomain.affiliationId == this.affiliationId ? 'this Affiliation' : 'another Affiliation';
-      this.errors.push(`That email domain is already associated with ${assoc}`);
-    } else {
-    // Save the record and then fetch it
-      const newId = await AffiliationEmailDomain.insert(context, this.tableName, this, 'AffiliationEmailDomain.create');
-      return await AffiliationEmailDomain.findById('AffiliationEmailDomain.create', context, newId as number);
+    if (await this.isValid()) {
+      // Then make sure it doesn't already exist
+      if (currentDomain) {
+        this.addError('general', 'The AffiliationEmailDomain already exists');
+      } else {
+      // Save the record and then fetch it
+        const newId = await AffiliationEmailDomain.insert(context, this.tableName, this, 'AffiliationEmailDomain.create');
+        return await AffiliationEmailDomain.findById('AffiliationEmailDomain.create', context, newId as number);
+      }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new AffiliationEmailDomain(this);
   }
 
   // Archive this record
@@ -42,7 +53,7 @@ export class AffiliationEmailDomain extends MySqlModel {
     if (this.id) {
       const result = await AffiliationEmailDomain.delete(context, this.tableName, this.id, 'AffiliationEmailDomain.delete');
       if (result) {
-        return this;
+        return new AffiliationEmailDomain(this);
       }
     }
     return null;
@@ -52,20 +63,20 @@ export class AffiliationEmailDomain extends MySqlModel {
   static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationEmailDomain> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE id = ?`;
     const results = await AffiliationEmailDomain.query(context, sql, [id?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new AffiliationEmailDomain(results[0]) : null;
   }
 
   // Search by the domain
   static async findByDomain(reference: string, context: MyContext, domain: string): Promise<AffiliationEmailDomain> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE domain LIKE ?`;
     const results = await AffiliationEmailDomain.query(context, sql, [domain], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new AffiliationEmailDomain(results[0]) : null;
   }
 
   // Return all of the AffiliationEmailDomains for the Affiliation
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<AffiliationEmailDomain[]> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE affiliationId = ?`;
     const results = await AffiliationEmailDomain.query(context, sql, [affiliationId], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new AffiliationEmailDomain(entry)) : [];
   }
 }

@@ -49,22 +49,22 @@ describe('ProjectFunder', () => {
   it('should return false when calling isValid if the projectId field is missing', async () => {
     projectFunder.projectId = null;
     expect(await projectFunder.isValid()).toBe(false);
-    expect(projectFunder.errors.length).toBe(1);
-    expect(projectFunder.errors[0]).toEqual('Project can\'t be blank');
+    expect(Object.keys(projectFunder.errors).length).toBe(1);
+    expect(projectFunder.errors['projectId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the projectId field is missing', async () => {
     projectFunder.affiliationId = null;
     expect(await projectFunder.isValid()).toBe(false);
-    expect(projectFunder.errors.length).toBe(1);
-    expect(projectFunder.errors[0]).toEqual('Affiliation can\'t be blank');
+    expect(Object.keys(projectFunder.errors).length).toBe(1);
+    expect(projectFunder.errors['affiliationId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the projectId field is missing', async () => {
     projectFunder.status = null;
     expect(await projectFunder.isValid()).toBe(false);
-    expect(projectFunder.errors.length).toBe(1);
-    expect(projectFunder.errors[0]).toEqual('Funding status can\'t be blank');
+    expect(Object.keys(projectFunder.errors).length).toBe(1);
+    expect(projectFunder.errors['status']).toBeTruthy();
   });
 });
 
@@ -191,7 +191,8 @@ describe('update', () => {
     (projectFunder.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectFunder.update(context)).toBe(projectFunder);
+    const result = await projectFunder.update(context);
+    expect(result).toBeInstanceOf(ProjectFunder);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -202,8 +203,8 @@ describe('update', () => {
 
     projectFunder.id = null;
     const result = await projectFunder.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('ProjectFunder has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated ProjectFunder', async () => {
@@ -220,8 +221,8 @@ describe('update', () => {
     const result = await projectFunder.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectFunder);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectFunder);
   });
 });
 
@@ -253,14 +254,15 @@ describe('create', () => {
     (projectFunder.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectFunder.create(context)).toBe(projectFunder);
+    const result = await projectFunder.create(context);
+    expect(result).toBeInstanceOf(ProjectFunder);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the ProjectFunder with errors if it is invalid', async () => {
     projectFunder.projectId = undefined;
     const response = await projectFunder.create(context);
-    expect(response.errors[0]).toBe('Project can\'t be blank');
+    expect(response.errors['projectId']).toBe('Project can\'t be blank');
   });
 
   it('returns the ProjectFunder with an error if the question already exists', async () => {
@@ -270,8 +272,8 @@ describe('create', () => {
 
     const result = await projectFunder.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Project already has an entry for this funder');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added ProjectFunder', async () => {
@@ -287,8 +289,8 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectFunder);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectFunder);
   });
 });
 
@@ -330,7 +332,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(projectFunder);
 
     const result = await projectFunder.delete(context);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectFunder);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectFunder);
   });
 });

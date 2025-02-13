@@ -1,8 +1,8 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { ResearchDomain } from "../types";
 import { randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
+import { ResearchDomain } from "./ResearchDomain";
 
 export const DEFAULT_DMPTOOL_REPOSITORY_URL = 'https://dmptool.org/repositories/';;
 
@@ -24,36 +24,31 @@ export class Repository extends MySqlModel {
   private tableName = 'repositories';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.name = options.name;
     this.uri = options.uri;
     this.description = options.description;
     this.website = options.website;
-    this.researchDomains = options.researchDomains || [];
-    this.repositoryTypes = options.repositoryTypes || [];
-    this.keywords = options.keywords || [];
+    this.researchDomains = options.researchDomains ?? [];
+    this.repositoryTypes = options.repositoryTypes ?? [];
+    this.keywords = options.keywords ?? [];
   }
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    if (!validateURL(this.uri)) {
-      this.errors.push('Invalid URI format');
-    }
-    if (this.website && !validateURL(this.website)) {
-      this.errors.push('Invalid website format');
-    }
-    return this.errors.length <= 0;
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!validateURL(this.uri)) this.addError('uri', 'Invalid URL');
+    if (this.website && !validateURL(this.website)) this.addError('website', 'Invalid website format');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     if (!Array.isArray(this.researchDomains)) {
       this.researchDomains = []
     }
@@ -100,7 +95,7 @@ export class Repository extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Repository already exists');
+        this.addError('general', 'Repository already exists');
       } else {
         // Save the record and then fetch it
         const newId = await Repository.insert(context, this.tableName, this, reference, ['researchDomains']);
@@ -109,7 +104,7 @@ export class Repository extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new Repository(this);
   }
 
   //Update an existing Repository
@@ -122,9 +117,9 @@ export class Repository extends MySqlModel {
         return await Repository.findById('Repository.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Repository has never been saved');
+      this.addError('general', 'Repository has never been saved');
     }
-    return this;
+    return new Repository(this);
   }
 
   //Delete the Repository

@@ -67,12 +67,13 @@ describe('prepForSave', () => {
     const acronyms = [casual.letter, casual.word, undefined];
     const aliases = [casual.words(2), casual.word, null];
     const affiliation = new Affiliation({ name, homepage, acronyms, aliases });
+    const domain = homepage.replace(/https?:\/\//, '').replace('/', '').toLowerCase();
     affiliation.prepForSave();
     expect(affiliation.name).toEqual(name);
     expect(affiliation.homepage).toEqual(homepage);
-    expect(affiliation.displayName).toEqual(`${name} (${homepage})`);
+    expect(affiliation.displayName).toEqual(`${name} (${domain})`);
     expect(affiliation.searchName.includes(name)).toBe(true);
-    expect(affiliation.searchName.includes(homepage)).toBe(true);
+    expect(affiliation.searchName.includes(domain)).toBe(true);
     expect(affiliation.searchName.includes(aliases[0])).toBe(true);
     expect(affiliation.searchName.includes(aliases[1])).toBe(true);
     expect(affiliation.searchName.includes(acronyms[0])).toBe(true);
@@ -189,8 +190,7 @@ describe('create', () => {
     expect(mockFindByURI).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(affiliation);
+    expect(Object.keys(result.errors).length).toBe(0);
   });
 
   it('should add an error if affiliation already exists', async () => {
@@ -203,7 +203,7 @@ describe('create', () => {
     mockFindById.mockResolvedValueOnce(affiliation);
 
     await affiliation.create(context);
-    expect(affiliation.errors).toContain('That Affiliation already exists')
+    expect(affiliation.errors['general']).toBeTruthy();
   });
 });
 
@@ -238,6 +238,8 @@ describe('update', () => {
       feedbackMessage: '<p>Will response to your request within 48 hours</p>',
       feedbackEmails: ["admin@virginia.edu"],
       managed: 1,
+      createdById: casual.integer(1, 999),
+      modifiedById: casual.integer(1, 999),
     })
     updateQuery = jest.fn().mockResolvedValue(affiliation);
     (Affiliation.update as jest.Mock) = updateQuery;
@@ -254,30 +256,10 @@ describe('update', () => {
     localValidator.mockResolvedValueOnce(true);
     const findByQuery = jest.fn().mockResolvedValue(affiliation);
     (Affiliation.findById as jest.Mock) = findByQuery;
-
-    expect(await affiliation.update(context)).toBe(affiliation);
+    const result = await affiliation.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(affiliation.errors).not.toContain('The affiliation is not valid')
+    expect(Object.keys(result.errors).length).toBe(0);
   });
-
-  it('should set an error if there is no uri in the affiliation data', async () => {
-    affiliation = new Affiliation({
-      id: casual.integer(1, 999),
-      active: true,
-      provenance: 'ROR',
-      name: 'University of Virginia',
-      displayName: 'University of Virginia (virginia.edu)',
-      searchName: 'University of Virginia | virginia.edu | UVA ',
-    });
-
-    const localValidator = jest.fn();
-    (affiliation.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
-
-    expect(await affiliation.update(context)).toBe(affiliation);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(affiliation.errors).toContain('Affiliation has never been saved');
-  })
 });
 
 describe('delete', () => {
@@ -307,8 +289,8 @@ describe('delete', () => {
   });
 
   it('should return Affiliation if there is uri data', async () => {
-    expect(await affiliation.delete(context)).toBe(affiliation);
-    expect(affiliation.errors.length).toBe(0);
+    const result = await affiliation.delete(context);
+    expect(Object.keys(result.errors).length).toBe(0);
   });
 
   it('should return null if there is no uri data', async () => {

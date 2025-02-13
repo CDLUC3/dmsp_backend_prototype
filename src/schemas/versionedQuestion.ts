@@ -19,7 +19,7 @@ type VersionedQuestion {
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: VersionedQuestionErrors
 
     "The unique id of the VersionedTemplate that the VersionedQuestion belongs to"
     versionedTemplateId: Int!
@@ -46,5 +46,20 @@ type VersionedQuestion {
     versionedQuestionConditions: [VersionedQuestionCondition!]
 }
 
+"A collection of errors related to the VersionedQuestion"
+type VersionedQuestionErrors {
+    "General error messages such as the object already exists"
+    general: String
 
+    versionedTemplateId: String
+    versionedSectionId: String
+    questionId: String
+    displayOrder: String
+    questionTypeId: String
+    questionText: String
+    requirementText: String
+    guidanceText: String
+    sampleText: String
+    versionedQuestionConditionIds: String
+  }
 `

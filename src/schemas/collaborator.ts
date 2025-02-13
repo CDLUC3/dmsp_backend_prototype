@@ -16,14 +16,14 @@ export const typeDefs = gql`
     "Add a collaborator to a Template"
     addTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
     "Remove a TemplateCollaborator from a Template"
-    removeTemplateCollaborator(templateId: Int!, email: String!): Boolean
+    removeTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
 
     "Add a collaborator to a Plan"
     addPlanCollaborator(planId: Int!, email: String!): PlanCollaborator
     "Chnage a collaborator's accessLevel on a Plan"
     updatePlanCollaborator(planCollaboratorId: Int!, accessLevel: PlanCollaboratorAccessLevel!): PlanCollaborator
     "Remove a PlanCollaborator from a Plan"
-    removePlanCollaborator(planCollaboratorId: Int!): Boolean
+    removePlanCollaborator(planCollaboratorId: Int!): PlanCollaborator
   }
 
   enum PlanCollaboratorAccessLevel {
@@ -48,7 +48,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: TemplateCollaboratorErrors
 
     "The template the collaborator may edit"
     template: Template
@@ -58,6 +58,17 @@ export const typeDefs = gql`
     user: User
     "The user who invited the collaborator"
     invitedBy: User
+  }
+
+  "A collection of errors related to the TemplateCollaborator"
+  type TemplateCollaboratorErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    templateId: String
+    email: String
+    userId: String
+    invitedById: String
   }
 
   "A user that that belongs to a different affiliation that can edit the Plan"
@@ -85,6 +96,18 @@ export const typeDefs = gql`
     invitedBy: User
     "The user's access level"
     accessLevel: PlanCollaboratorAccessLevel
+  }
+
+  "A collection of errors related to the PlanCollaborator"
+  type PlanCollaboratorErrors {
+    "General error messages such as affiliation already exists"
+    general: String
+
+    planId: String
+    email: String
+    userId: String
+    invitedById: String
+    accessLevel: String
   }
 
   "The result of the findCollaborator query"

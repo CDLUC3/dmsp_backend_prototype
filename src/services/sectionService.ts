@@ -1,8 +1,6 @@
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { Template } from "../models/Template";
-import { SectionTag } from "../models/SectionTag";
-import { Tag } from "../models/Tag";
 import { hasPermissionOnTemplate } from "./templateService";
 import { VersionedSection } from "../models/VersionedSection";
 import { NotFoundError } from "../utils/graphQLErrors";
@@ -44,7 +42,7 @@ export const generateSectionVersion = async (
     const created = await versionedSection.create(context);
 
     // If the creation was successful
-    if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
+    if (created && !created.hasErrors()) {
       // Create a version for all the associated questions
       const questions = await Question.findBySectionId('generateSectionVersion', context, section.id);
       let allQuestionsWereVersioned = true;
@@ -65,21 +63,19 @@ export const generateSectionVersion = async (
         section.isDirty = false;
         const updated = await section.update(context, true);
 
-        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          return true;
-        } else {
-          const msg = `Unable to generateSectionVersion for section: ${section.id}, errs: ${updated.errors}`;
-          formatLogMessage(context).error(null, msg);
-          throw new Error(msg);
-        }
+        if (updated && !updated.hasErrors()) return true;
+
+        const msg = `Unable to set the isDirty flag for section: ${section.id}`;
+        formatLogMessage(context).error(updated.errors, msg);
+        throw new Error(msg);
       }
     } else {
-      const msg = `Unable to generateSectionVersion for versionedSection errs: ${created.errors}`;
-      formatLogMessage(context).error(null, msg);
+      const msg = `Unable to create a new version for section: ${section.id}`;
+      formatLogMessage(context).error(created.errors, msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(context).error(err, `Unable to generateSectionVersion for section: ${section.id}`);
+    formatLogMessage(context).error(err, `Unable to generate a new version for section: ${section.id}`);
     throw err;
   }
 
@@ -118,32 +114,5 @@ export const hasPermissionOnSection = async (context: MyContext, templateId: num
   }
 
   // Offload permission checks to the Template
-  return hasPermissionOnTemplate(context, template);
-}
-
-export const getTagsToAdd = async (tags: Tag[], context: MyContext, sectionId: number): Promise<Tag[]> => {
-
-  //Get all the existing tags associated with this section in SectionTags
-  const existingTags = await SectionTag.getSectionTagsBySectionId('updateSection resolver', context, sectionId);
-
-  // Create a Set of existing tag ids
-  const existingTagIds = new Set(existingTags.map(sectionTag => sectionTag.tagId));
-
-  // Filter out the tags that already exist in the sectiontable.
-  const tagsToAdd = tags.filter(tag => !existingTagIds.has(tag.id));
-
-  return Array.isArray(tagsToAdd) ? tagsToAdd : [];
-}
-
-export const getTagsToRemove = async (tags: Tag[], context: MyContext, sectionId: number): Promise<SectionTag[]> => {
-  //Get all the existing tags associated with this section in SectionTags
-  const existingTags = await SectionTag.getSectionTagsBySectionId('sectionService-updateSection', context, sectionId);
-
-  // Create a Set of tag ids
-  const tagIds = new Set(tags.map(tag => tag.id));
-
-  // Get tags that exist in db table, but are not included in updated tags
-  const tagsToRemove = existingTags.filter(existing => !tagIds.has(existing.tagId))
-
-  return Array.isArray(tagsToRemove) ? tagsToRemove : [];
+  return await hasPermissionOnTemplate(context, template);
 }
