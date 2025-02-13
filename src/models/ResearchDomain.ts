@@ -14,7 +14,7 @@ export class ResearchDomain extends MySqlModel {
   private tableName = 'researchDomains';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.name = options.name;
@@ -27,25 +27,22 @@ export class ResearchDomain extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    if (!validateURL(this.uri)) {
-      this.errors.push('Invalid URI format');
-    }
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!validateURL(this.uri)) this.addError('uri', 'Invalid URL');
+
     if (this.parentResearchDomain) {
       if (!this.parentResearchDomain.id) {
-        this.errors.push('Parent research domain must be saved first');
+        this.addError('parentResearchDomain', 'Parent research domain must be saved first');
       }
       if (this.id && this.id === this.parentResearchDomain.id) {
-        this.errors.push('Parent research domain must be a different domain');
+        this.addError('parentResearchDomain', 'Parent research domain must be a different domain');
       }
     }
-    return this.errors.length <= 0;
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.name = this.name?.trim();
     this.uri = this.uri?.trim();
@@ -69,7 +66,7 @@ export class ResearchDomain extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('ResearchDomain already exists');
+        this.addError('general', 'ResearchDomain already exists');
       } else {
         // Save the record and then fetch it
         const newId = await ResearchDomain.insert(context, this.tableName, this, reference);
@@ -78,7 +75,7 @@ export class ResearchDomain extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new ResearchDomain(this);
   }
 
   //Update an existing ResearchDomain
@@ -91,9 +88,9 @@ export class ResearchDomain extends MySqlModel {
         return await ResearchDomain.findById('ResearchDomain.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('ResearchDomain has never been saved');
+      this.addError('general', 'ResearchDomain has never been saved');
     }
-    return this;
+    return new ResearchDomain(this);
   }
 
   //Delete the ResearchDomain
@@ -211,7 +208,7 @@ export class ResearchDomain extends MySqlModel {
     const whereClause = 'WHERE jt.metadataStandardId = ?';
     const vals = [metadataStandardId?.toString()];
     const results = await ResearchDomain.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new ResearchDomain(entry)) : [];
   }
 
   // Fetch all of the ResearchDomains associated with a Repository
@@ -225,7 +222,7 @@ export class ResearchDomain extends MySqlModel {
     const whereClause = 'WHERE jt.repositoryId = ?';
     const vals = [repositoryId?.toString()];
     const results = await ResearchDomain.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new ResearchDomain(entry)) : [];
   }
 
   // Fetch a ResearchDomain by it's id

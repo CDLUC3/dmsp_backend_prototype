@@ -9,43 +9,58 @@ import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
+import { GraphQLError } from 'graphql';
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the contributors for the specified project
     projectContributors: async (_, { projectId }, context: MyContext): Promise<ProjectContributor[]> => {
       const reference = 'projectContributors resolver';
-      if (isAuthorized(context.token)) {
-        const project = await Project.findById(reference, context, projectId);
+      try {
+        if (isAuthorized(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
 
-        if (project && hasPermissionOnProject(context, project)) {
-          return await ProjectContributor.findByProjectId(reference, context, projectId);
+          if (project && hasPermissionOnProject(context, project)) {
+            return await ProjectContributor.findByProjectId(reference, context, projectId);
+          }
         }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // return a specific contributor
     projectContributor: async (_, { projectContributorId }, context: MyContext): Promise<ProjectContributor> => {
       const reference = 'projectContributor resolver';
-      if (isAuthorized(context.token)) {
-        const contributor = await ProjectContributor.findById(reference, context, projectContributorId);
-        const project = await Project.findById(reference, context, contributor.projectId);
+      try {
+        if (isAuthorized(context.token)) {
+          const contributor = await ProjectContributor.findById(reference, context, projectContributorId);
+          const project = await Project.findById(reference, context, contributor.projectId);
 
-        if (project && hasPermissionOnProject(context, project)) {
-          return contributor;
+          if (project && hasPermissionOnProject(context, project)) {
+            return contributor;
+          }
         }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 
   Mutation: {
     // add a new ProjectContributor
     addProjectContributor: async (_, { input }, context: MyContext) => {
-      if (isAuthorized(context.token)) {
-        const reference = 'addProjectContributor resolver';
-        try {
+      const reference = 'addProjectContributor resolver';
+      try {
+        if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
           if (!project || !hasPermissionOnProject(context, project)) {
             throw ForbiddenError();
@@ -54,32 +69,50 @@ export const resolvers: Resolvers = {
           const newContributor = new ProjectContributor(input);
           const created = await newContributor.create(context, project.id);
 
+          if (!created?.id) {
+            // A null was returned so add a generic error and return it
+            if (!newContributor.errors['general']) {
+              newContributor.addError('general', 'Unable to create Contributor');
+            }
+            return newContributor;
+          }
+
           // If any ContributorRole were specified and there were no errors creating the record
           if (Array.isArray(input.contributorRoleIds)) {
-            if (created && Array.isArray(created.errors) && created.errors.length === 0){
+            if (created && !created.hasErrors()) {
+              const addErrors = [];
               // Add any ContributorRole associations
               for (const id of input.contributorRoleIds) {
                 const role = await ContributorRole.findById(reference, context, id);
                 if (role) {
-                  await role.addToProjectContributor(context, created.id);
+                  const wasAdded = await role.addToProjectContributor(context, created.id);
+                  if (!wasAdded) {
+                    addErrors.push(role.label);
+                  }
                 }
+              }
+              // If any failed to be added, then add an error to the ProjectContributor
+              if (addErrors.length > 0) {
+                created.addError('contributorRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
               }
             }
           }
           return created
-        } catch(err) {
-          formatLogMessage(context).error(err, `Failure in ${reference}`);
-          throw InternalServerError();
         }
-      } else {
         throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
 
+    // update an existing ProjectContributor
     updateProjectContributor: async (_, { input }, context) => {
-      if (isAuthorized(context.token)) {
-        const reference = 'updateProjectContributor resolver';
-        try {
+      const reference = 'updateProjectContributor resolver';
+      try {
+        if (isAuthorized(context.token)) {
           const contributor = await ProjectContributor.findById(reference, context, input.projectContributorId);
           if (!contributor) {
             throw NotFoundError();
@@ -96,13 +129,10 @@ export const resolvers: Resolvers = {
           toUpdate.id = contributor?.id;
           const updated = await toUpdate.update(context);
 
-          if (updated && Array.isArray(updated.errors) && updated.errors.length === 0){
+          if (updated && !updated.hasErrors()) {
+            const associationErrors = [];
             // Fetch all of the current Roles associated with this Contirbutor
-            const roles = await ContributorRole.findByProjectContributorId(
-              reference,
-              context,
-              contributor.id
-            );
+            const roles = await ContributorRole.findByProjectContributorId(reference, context, contributor.id);
             const currentRoleids = roles ? roles.map((d) => d.id) : [];
 
             // Use the helper function to determine which Roles to keep
@@ -111,39 +141,61 @@ export const resolvers: Resolvers = {
               input.contributorRoleIds
             );
 
+            const removeErrors = [];
             // Delete any Role associations that were removed
             for (const id of idsToBeRemoved) {
               const role = await ContributorRole.findById(reference, context, id);
               if (role) {
-                role.removeFromProjectContributor(context, updated.id)
+                const wasRemoved = role.removeFromProjectContributor(context, updated.id);
+                if (!wasRemoved) {
+                  removeErrors.push(role.label);
+                }
               }
             }
+            // If any failed to be removed, then add an error to the ProjectContributor
+            if (removeErrors.length > 0) {
+              associationErrors.push(`unable to remove roles: ${removeErrors.join(', ')}`);
+            }
+
+            const addErrors = [];
             // Add any new Role associations
             for (const id of idsToBeSaved) {
               const role = await ContributorRole.findById(reference, context, id);
               if (role) {
-                role.addToProjectContributor(context, updated.id)
+                const wasAdded = role.addToProjectContributor(context, updated.id);
+                if (!wasAdded) {
+                  addErrors.push(role.label);
+                }
               }
             }
+            // If any failed to be added, then add an error to the ProjectContributor
+            if (addErrors.length > 0) {
+              associationErrors.push(`unable to assign roles: ${addErrors.join(', ')}`);
+            }
 
+            if (associationErrors.length > 0) {
+              updated.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
+            }
             // Reload since the roles may have changed
-            return await ProjectContributor.findById(reference, context, contributor.id);
+            return updated.hasErrors() ? updated : await ProjectContributor.findById(reference, context, contributor.id);
           }
           // Otherwise there were errors so return the object with errors
           return updated;
-        } catch(err) {
-          formatLogMessage(context).error(err, `Failure in ${reference}`);
-          throw InternalServerError();
         }
-      } else {
         throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
 
+    // delete an existing ProjectContributor
     removeProjectContributor: async (_, { projectContributorId }, context) => {
-      if (isAuthorized(context.token)) {
-        const reference = 'removeProjectContributor resolver';
-        try {
+      const reference = 'removeProjectContributor resolver';
+      try {
+        if (isAuthorized(context.token)) {
           const contributor = await ProjectContributor.findById(reference, context, projectContributorId);
           if (!contributor) {
             throw NotFoundError();
@@ -155,24 +207,15 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          const deleted = await contributor.delete(context);
-
-          if (deleted && Array.isArray(contributor.contributorRoles)) {
-            // Now remove any contributorRole associations
-            for (const contributorRole of contributor.contributorRoles) {
-              const role = await ContributorRole.findById(reference, context, contributorRole.id);
-              if (role) {
-                await role.removeFromProjectContributor(context, deleted.id);
-              }
-            }
-          }
-          return deleted
-        } catch(err) {
-          formatLogMessage(context).error(err, `Failure in ${reference}`);
-          throw InternalServerError();
+          // Any related contributorRoles will be automatically deleted within the DB
+          return await contributor.delete(context);
         }
-      } else {
         throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
   },

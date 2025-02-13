@@ -33,7 +33,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: PlanFeedbackErrors
 
     "The plan the user wants feedback on"
     plan: Plan!
@@ -64,13 +64,35 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: PlanFeedbackCommentErrors
 
     "The answer the comment is related to"
     answer: Answer
     "The round of plan feedback the comment belongs to"
     PlanFeedback: PlanFeedback
     "The comment"
+    comment: String
+  }
+
+  "A collection of errors related to the PlanFeedback"
+  type PlanFeedbackErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    planId: String
+    requestedById: String
+    completedById: String
+    adminSummary: String
+    feedbackComments: String
+  }
+
+  "A collection of errors related to the PlanFeedbackComment"
+  type PlanFeedbackCommentErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    answer: String
+    planFeedback: String
     comment: String
   }
 `;

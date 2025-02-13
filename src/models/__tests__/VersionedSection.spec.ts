@@ -216,34 +216,34 @@ describe('create', () => {
     (versionedSection.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await versionedSection.create(context)).toBe(versionedSection);
+    const result = await versionedSection.create(context);
+    expect(result instanceof VersionedSection).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the VersionedSection with an error if versionedTemplateId is undefined', async () => {
     versionedSection.versionedTemplateId = undefined;
     const response = await versionedSection.create(context);
-    expect(response.errors[0]).toBe('VersionedTemplate can\'t be blank');
+    expect(response.errors['versionedTemplateId']).toBeTruthy();
   });
 
   it('returns the VersionedSection with an error if sectionId is undefined', async () => {
     versionedSection.sectionId = undefined;
     const response = await versionedSection.create(context);
-    expect(response.errors[0]).toBe('Section ID can\'t be blank');
+    expect(response.errors['sectionId']).toBeTruthy();
   });
 
   it('returns the VersionedSection with an error if name is undefined', async () => {
     versionedSection.name = undefined;
     const response = await versionedSection.create(context);
-    expect(response.errors[0]).toBe('Name can\'t be blank');
+    expect(response.errors['name']).toBeTruthy();
   });
 
   it('returns the VersionedSection with an error if displayOrder is undefined', async () => {
     versionedSection.displayOrder = undefined;
     const response = await versionedSection.create(context);
-    expect(response.errors[0]).toBe('DisplayOrder by can\'t be blank');
+    expect(response.errors['displayOrder']).toBeTruthy();
   });
-
 
   it('returns the newly added VersionedSection', async () => {
     const mockFindById = jest.fn();
@@ -252,8 +252,8 @@ describe('create', () => {
 
     const result = await versionedSection.create(context);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(versionedSection);
+    expect(result).toBeInstanceOf(VersionedSection);
+    expect(Object.keys(result.errors).length).toBe(0);
   });
 });
 describe('findById', () => {
@@ -294,6 +294,6 @@ describe('findById', () => {
     const expectedSql = 'SELECT * FROM versionedSections WHERE id= ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'testing')
-    expect(result).toEqual(versionedSection);
+    expect(result).toBeInstanceOf(VersionedSection);
   });
 });

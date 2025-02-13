@@ -13,30 +13,27 @@ export class License extends MySqlModel {
   private tableName = 'licenses';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
     this.name = options.name;
     this.uri = options.uri;
     this.description = options.description;
-    this.recommended = options.recommended || false;
+    this.recommended = options.recommended ?? false;
   }
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    if (!validateURL(this.uri)) {
-      this.errors.push('Invalid URI format');
-    }
-    return this.errors.length <= 0;
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!validateURL(this.uri)) this.addError('uri', 'Invalid URL');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.name = this.name?.trim();
     this.uri = this.uri?.trim();
@@ -60,7 +57,7 @@ export class License extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('License already exists');
+        this.addError('general', 'License already exists');
       } else {
         // Save the record and then fetch it
         const newId = await License.insert(context, this.tableName, this, reference);
@@ -69,7 +66,7 @@ export class License extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new License(this);
   }
 
   //Update an existing License
@@ -82,9 +79,9 @@ export class License extends MySqlModel {
         return await License.findById('License.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('License has never been saved');
+      this.addError('general', 'License has never been saved');
     }
-    return this;
+    return new License(this);
   }
 
   //Delete the License

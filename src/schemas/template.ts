@@ -14,7 +14,7 @@ export const typeDefs = gql`
     "Update a Template"
     updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!, bestPractice: Boolean): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
-    archiveTemplate(templateId: Int!): Boolean
+    archiveTemplate(templateId: Int!): Template
 
     "Publish the template or save as a draft"
     createTemplateVersion(templateId: Int!, comment: String, versionType: TemplateVersionType, visibility: TemplateVisibility!): Template
@@ -41,7 +41,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: TemplateErrors
 
     "The template that this one was derived from"
     sourceTemplateId: Int
@@ -70,5 +70,21 @@ export const typeDefs = gql`
     collaborators: [TemplateCollaborator!]
     "Admin users associated with the template's owner"
     admins: [User!]
+  }
+
+  "A collection of errors related to the Template"
+  type TemplateErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    sourceTemplateId: String
+    name: String
+    description: String
+    ownerId: String
+    visibility: String
+    latestPublishVersion: String
+    sectionIds: String
+    languageId: String
+    collaboratorIds: String
   }
 `;

@@ -52,7 +52,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ProjectOutputErrors
 
     "The project associated with the output"
     project: Project
@@ -77,6 +77,22 @@ export const typeDefs = gql`
     repositories: [Repository!]
     "The metadata standards that will be used to describe the output"
     metadataStandards: [MetadataStandard!]
+  }
+
+  "A collection of errors related to the ProjectOutput"
+  type ProjectOutputErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    projectId: String
+    outputTypeId: String
+    title: String
+    description: String
+    initialAccessLevel: String
+    initialLicenseId: String
+    anticipatedReleaseDate: String
+    repositoryIds: String
+    metadataStandardIds: String
   }
 
   input AddProjectOutputInput {

@@ -71,8 +71,8 @@ describe('MySqlModel abstract class', () => {
 
     model.modified = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
-    expect(model.errors.length).toBe(1);
-    expect(model.errors[0].includes('Modified date')).toBe(true);
+    expect(Object.keys(model.errors).length).toBe(1);
+    expect(model.errors['modified'].includes('Modified date')).toBe(true);
   });
 
   it('isValid should return false when the created date is not a Date', async () => {
@@ -82,8 +82,8 @@ describe('MySqlModel abstract class', () => {
 
     model.created = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
-    expect(model.errors.length).toBe(1);
-    expect(model.errors[0].includes('Created date')).toBe(true);
+    expect(Object.keys(model.errors).length).toBe(1);
+    expect(model.errors['created'].includes('Created date')).toBe(true);
   });
 
   it('isValid should return false when the createdById is null', async () => {
@@ -93,8 +93,8 @@ describe('MySqlModel abstract class', () => {
 
     model.createdById = null;
     expect(await model.isValid()).toBe(false);
-    expect(model.errors.length).toBe(1);
-    expect(model.errors[0].includes('Created by')).toBe(true);
+    expect(Object.keys(model.errors).length).toBe(1);
+    expect(model.errors['createdById'].includes('Created by')).toBe(true);
   });
 
   it('isValid should return false when the modifiedById is null', async () => {
@@ -104,8 +104,8 @@ describe('MySqlModel abstract class', () => {
 
     model.modifiedById = null;
     expect(await model.isValid()).toBe(false);
-    expect(model.errors.length).toBe(1);
-    expect(model.errors[0].includes('Modified by')).toBe(true);
+    expect(Object.keys(model.errors).length).toBe(1);
+    expect(model.errors['modifiedById'].includes('Modified by')).toBe(true);
   });
 
   it('isValid should return true when the id is null', async () => {

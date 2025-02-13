@@ -67,8 +67,10 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: PlanErrors
 
+    "The project the plan is associated with"
+    project: Project!
     "The template the plan is based on"
     versionedTemplate: VersionedTemplate!
     "The name/title of the plan (typically copied over from the project)"
@@ -93,5 +95,23 @@ export const typeDefs = gql`
     answers: [Answer!]
     "Rounds of administrator feedback provided for the Plan"
     feedback: [PlanFeedback!]
+  }
+
+  "A collection of errors related to the Plan"
+  type PlanErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    projectId: String
+    versionedTemplateId: String
+    visibility: String
+    dmpId: String
+    lastUpdatedById: String
+    status: String
+    contributorIds: String
+    collaboratorIds: String
+    funderIds: String
+    answerIds: String
+    feedbackIds: String
   }
 `;

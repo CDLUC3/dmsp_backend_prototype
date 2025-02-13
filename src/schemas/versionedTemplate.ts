@@ -31,7 +31,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: VersionedTemplateErrors
 
     "The template that this published version stems from"
     template: Template
@@ -59,5 +59,23 @@ export const typeDefs = gql`
 
     "The VersionedSections that go with the VersionedTemplate"
     versionedSections: [VersionedSection!]
+  }
+
+  "A collection of errors related to the VersionedTemplate"
+  type VersionedTemplateErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    templateId: String
+    version: String
+    versionedById: String
+    versionType: String
+    comment: String
+
+    name: String
+    description: String
+    ownerId: String
+    visibility: String
+    versionedSectionIds: String
   }
 `;

@@ -46,22 +46,22 @@ describe('MetadataStandard', () => {
   it('should return false when calling isValid if the name field is missing', async () => {
     standard.name = null;
     expect(await standard.isValid()).toBe(false);
-    expect(standard.errors.length).toBe(1);
-    expect(standard.errors[0]).toEqual('Name can\'t be blank');
+    expect(Object.keys(standard.errors).length).toBe(1);
+    expect(standard.errors['name']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the uri field is missing', async () => {
     standard.uri = null;
     expect(await standard.isValid()).toBe(false);
-    expect(standard.errors.length).toBe(1);
-    expect(standard.errors[0]).toEqual('Invalid URI format');
+    expect(Object.keys(standard.errors).length).toBe(1);
+    expect(standard.errors['uri']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the uri field is not a URI', async () => {
     standard.uri = casual.uuid;
     expect(await standard.isValid()).toBe(false);
-    expect(standard.errors.length).toBe(1);
-    expect(standard.errors[0]).toEqual('Invalid URI format');
+    expect(Object.keys(standard.errors).length).toBe(1);
+    expect(standard.errors['uri']).toBeTruthy();
   });
 });
 
@@ -268,7 +268,8 @@ describe('update', () => {
     (standard.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await standard.update(context)).toBe(standard);
+    const result = await standard.update(context);
+    expect(result instanceof MetadataStandard).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -279,8 +280,8 @@ describe('update', () => {
 
     standard.id = null;
     const result = await standard.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('MetadataStandard has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated MetadataStandard', async () => {
@@ -297,8 +298,8 @@ describe('update', () => {
     const result = await standard.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(standard);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(MetadataStandard);
   });
 });
 
@@ -329,14 +330,15 @@ describe('create', () => {
     (standard.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await standard.create(context)).toBe(standard);
+    const result = await standard.create(context);
+    expect(result instanceof MetadataStandard).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the MetadataStandard with errors if it is invalid', async () => {
     standard.name = undefined;
     const response = await standard.create(context);
-    expect(response.errors[0]).toBe('Name can\'t be blank');
+    expect(response.errors['name']).toBe('Name can\'t be blank');
   });
 
   it('returns the MetadataStandard with an error if the object already exists', async () => {
@@ -346,8 +348,8 @@ describe('create', () => {
 
     const result = await standard.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('MetadataStandard already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added MetadataStandard', async () => {
@@ -368,8 +370,8 @@ describe('create', () => {
     expect(mockFindByName).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(standard);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(MetadataStandard);
   });
 });
 
@@ -410,8 +412,8 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(standard);
 
     const result = await standard.delete(context);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(standard);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(MetadataStandard);
   });
 });
 

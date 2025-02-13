@@ -137,7 +137,8 @@ describe('update', () => {
     (question.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await question.update(context)).toBe(question);
+    const result = await question.update(context);
+    expect(result instanceof Question).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -148,8 +149,8 @@ describe('update', () => {
 
     question.id = null;
     const result = await question.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Question has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated Template', async () => {
@@ -166,8 +167,8 @@ describe('update', () => {
     const result = await question.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(question);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Question);
   });
 });
 
@@ -201,26 +202,27 @@ describe('create', () => {
     (question.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await question.create(context)).toBe(question);
+    const result = await question.create(context);
+    expect(result instanceof Question).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the Question with an error if templateId is undefined', async () => {
     question.templateId = undefined;
     const response = await question.create(context);
-    expect(response.errors[0]).toBe('Template ID can\'t be blank');
+    expect(response.errors['templateId']).toBe('Template can\'t be blank');
   });
 
   it('returns the Question with an error if sectionId is undefined', async () => {
     question.sectionId = undefined;
     const response = await question.create(context);
-    expect(response.errors[0]).toBe('Section ID can\'t be blank');
+    expect(response.errors['sectionId']).toBe('Section can\'t be blank');
   });
 
   it('returns the Question with an error if questionText is undefined', async () => {
     question.questionText = undefined;
     const response = await question.create(context);
-    expect(response.errors[0]).toBe('Question text can\'t be blank');
+    expect(response.errors['questionText']).toBe('Question text can\'t be blank');
   });
 
   it('returns the newly added Question', async () => {
@@ -231,8 +233,8 @@ describe('create', () => {
     const result = await question.create(context);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(question);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Question);
   });
 });
 
@@ -272,7 +274,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(question);
 
     const result = await question.delete(context);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(question);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Question);
   });
 });

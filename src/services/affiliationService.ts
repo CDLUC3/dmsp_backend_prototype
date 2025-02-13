@@ -19,6 +19,8 @@ export const processOtherAffiliationName = async (
       newAffiliation.createdById = userId;
       newAffiliation.modifiedById = userId;
     }
-    return await newAffiliation.create(context);
+    const result = await newAffiliation.create(context);
+    // Reinit the Affiliation to ensure it has access to functions like hasErrors()
+    return new Affiliation(result);
   }
 }

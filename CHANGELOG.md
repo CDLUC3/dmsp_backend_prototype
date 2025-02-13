@@ -1,6 +1,8 @@
 ### Added
 - Added `Plan` model
 - Added `projectPlans` join table which acts as a bridge between the `projects` table in the MySQL database and the `plans` stored in the DMPHub DynamoDB table
+- Added model mocks for Affiliation and Collaborator
+- Added resolver integration tests for affilian and collaborator resolvers
 - Added `useSampleTextAsDefault` column to questions table and add `admins` to Template schema and chained it in the resolver
 - Added `requestId` to the Apollo context
 - Added `questionOptions` schema, resolver and `QuestionOption` model, which will be used for `option` question types
@@ -47,6 +49,8 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated models and resolvers to handle errors in a consistent way
+- Refactored the way Sections handle the association with Tag to follow pattern used elsewhere
 - Updated `formatLogMessage` to accept the Apollo context instead of the logger so that it can being to record the `requestId`, `jti` and `userId` (when available)
 - Updated `questionTypes` table to remove 'Rich Text Editor' and to add `usageDescription`. Also, updated Question model's `create` method to allow for entries with duplicate `questionText`
 - Updated User update method to prevent password manipulation

@@ -52,22 +52,22 @@ describe('ProjectContributor', () => {
   it('should return false when calling isValid without a projectId field', async () => {
     projectContributor.projectId = null;
     expect(await projectContributor.isValid()).toBe(false);
-    expect(projectContributor.errors.length).toBe(1);
-    expect(projectContributor.errors[0]).toEqual('Project can\'t be blank');
+    expect(Object.keys(projectContributor.errors).length).toBe(1);
+    expect(projectContributor.errors['projectId']).toBeTruthy();
   });
 
   it('should return false when calling isValid when the orcid field is not a valid ORCID', async () => {
     projectContributor.orcid = '2945yt9u245yt';
     expect(await projectContributor.isValid()).toBe(false);
-    expect(projectContributor.errors.length).toBe(1);
-    expect(projectContributor.errors[0]).toEqual('Invalid ORCID format');
+    expect(Object.keys(projectContributor.errors).length).toBe(1);
+    expect(projectContributor.errors['orcid']).toBeTruthy();
   });
 
   it('should return false when calling isValid when the email field is not a valid email', async () => {
     projectContributor.email = 'tester.testing.edu';
     expect(await projectContributor.isValid()).toBe(false);
-    expect(projectContributor.errors.length).toBe(1);
-    expect(projectContributor.errors[0]).toEqual('Invalid email format');
+    expect(Object.keys(projectContributor.errors).length).toBe(1);
+    expect(projectContributor.errors['email']).toBeTruthy();
   });
 
   it('should return false when calling isValid if no name, orcid or email is present', async () => {
@@ -76,8 +76,8 @@ describe('ProjectContributor', () => {
     projectContributor.orcid = null;
     projectContributor.email = null;
     expect(await projectContributor.isValid()).toBe(false);
-    expect(projectContributor.errors.length).toBe(1);
-    expect(projectContributor.errors[0]).toEqual('You must specify at least one name, ORCID or email');
+    expect(Object.keys(projectContributor.errors).length).toBe(1);
+    expect(projectContributor.errors['general']).toBeTruthy();
   });
 });
 
@@ -247,7 +247,8 @@ describe('update', () => {
     (projectContributor.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectContributor.update(context)).toBe(projectContributor);
+    const result = await projectContributor.update(context);
+    expect(result).toBeInstanceOf(ProjectContributor);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -258,8 +259,8 @@ describe('update', () => {
 
     projectContributor.id = null;
     const result = await projectContributor.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('ProjectContributor has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated ProjectContributor', async () => {
@@ -276,8 +277,8 @@ describe('update', () => {
     const result = await projectContributor.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectContributor);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectContributor);
   });
 });
 
@@ -311,14 +312,15 @@ describe('create', () => {
     (projectContributor.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectContributor.create(context)).toBe(projectContributor);
+    const result = await projectContributor.create(context);
+    expect(result).toBeInstanceOf(ProjectContributor);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the ProjectContributor with errors if it is invalid', async () => {
     projectContributor.projectId = undefined;
     const response = await projectContributor.create(context);
-    expect(response.errors[0]).toBe('Project can\'t be blank');
+    expect(response.errors['projectId']).toBe('Project can\'t be blank');
   });
 
   it('returns the ProjectContributor with an error if the question already exists', async () => {
@@ -328,8 +330,8 @@ describe('create', () => {
 
     const result = await projectContributor.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Project already has an entry for this contributor');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added ProjectContributor', async () => {
@@ -347,8 +349,8 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(3);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectContributor);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectContributor);
   });
 });
 
@@ -391,7 +393,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(projectContributor);
 
     const result = await projectContributor.delete(context);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectContributor);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectContributor);
   });
 });

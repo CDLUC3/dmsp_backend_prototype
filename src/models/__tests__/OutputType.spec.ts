@@ -9,12 +9,12 @@ describe('OutputType', () => {
     const uri = casual.url;
     const createdById = casual.integer(1, 999);
 
-    const role = new OutputType({ name, uri, createdById });
+    const outputType = new OutputType({ name, uri, createdById });
 
-    expect(role.name).toEqual(name);
-    expect(role.uri).toEqual(uri);
-    expect(role.description).toBeFalsy();
-    expect(role.createdById).toEqual(createdById);
+    expect(outputType.name).toEqual(name);
+    expect(outputType.uri).toEqual(uri);
+    expect(outputType.description).toBeFalsy();
+    expect(outputType.createdById).toEqual(createdById);
   });
 
   it('isValid returns true when the name and url are present', async () => {
@@ -22,28 +22,28 @@ describe('OutputType', () => {
     const uri = casual.url;
     const createdById = casual.integer(1, 999);
 
-    const role = new OutputType({ name, uri, createdById });
-    expect(await role.isValid()).toBe(true);
+    const outputType = new OutputType({ name, uri, createdById });
+    expect(await outputType.isValid()).toBe(true);
   });
 
   it('isValid returns false when the label is NOT present', async () => {
     const uri = casual.url;
     const createdById = casual.integer(1, 999);
 
-    const role = new OutputType({ uri, createdById });
-    expect(await role.isValid()).toBe(false);
-    expect(role.errors.length).toBe(1);
-    expect(role.errors[0].includes('Name')).toBe(true);
+    const outputType = new OutputType({ uri, createdById });
+    expect(await outputType.isValid()).toBe(false);
+    expect(Object.keys(outputType.errors).length).toBe(1);
+    expect(outputType.errors['name']).toBeTruthy();
   });
 
   it('isValid returns false when the uri is NOT present', async () => {
     const name = casual.words(3);
     const createdById = casual.integer(1, 999);
 
-    const role = new OutputType({ name, createdById });
-    expect(await role.isValid()).toBe(false);
-    expect(role.errors.length).toBe(1);
-    expect(role.errors[0].includes('URL')).toBe(true);
+    const outputType = new OutputType({ name, createdById });
+    expect(await outputType.isValid()).toBe(false);
+    expect(Object.keys(outputType.errors).length).toBe(1);
+    expect(outputType.errors['uri']).toBeTruthy();
   });
 });
 

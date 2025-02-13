@@ -4,55 +4,89 @@ import { Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_METADATA_STANDARD_URL, MetadataStandard } from "../models/MetadataStandard";
 import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
-import { ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
+import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
+import { GraphQLError } from 'graphql';
 
 export const resolvers: Resolvers = {
   Query: {
     // searches the metadata standards table or returns all standards if no critieria is specified
     metadataStandards: async (_, { term, researchDomainId }, context: MyContext): Promise<MetadataStandard[]> => {
-      return await MetadataStandard.search('metadataStandards resolver', context, term, researchDomainId);
+      const reference = 'metadataStandards resolver';
+      try {
+        return await MetadataStandard.search(reference, context, term, researchDomainId);
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
 
+    // return a single metadata standard
     metadataStandard: async (_, { uri }, context: MyContext): Promise<MetadataStandard> => {
-      return await MetadataStandard.findByURI('metadataStandard resolver', context, uri);
+      const reference = 'metadataStandard resolver';
+      try {
+        return await MetadataStandard.findByURI(reference, context, uri);
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
   },
 
   Mutation: {
     // add a new Metadata Standard
     addMetadataStandard: async (_, { input }, context: MyContext) => {
-      if (isAuthorized(context.token)) {
-        try {
+      const reference = 'addMetadataStandard resolver';
+      try {
+        if (isAuthorized(context.token)) {
           const newStandard = new MetadataStandard(input);
           const created = await newStandard.create(context);
 
+          if (!created?.id) {
+            // A null was returned so add a generic error and return it
+            if (!newStandard.errors['general']) {
+              newStandard.addError('general', 'Unable to create Metadata Standard');
+            }
+            return newStandard;
+          }
+
           // If any ResearchDomains were specified and there were no errors creating the record
           if (Array.isArray(input.researchDomainIds)) {
-            if (created && Array.isArray(created.errors) && created.errors.length === 0){
+            if (created && !created.hasErrors()) {
+              const addErrors = [];
               // Add any researchDomains associations
               for (const id of input.researchDomainIds) {
-                const domain = await ResearchDomain.findById('addMetadataStandard resolver', context, id);
+                const domain = await ResearchDomain.findById(reference, context, id);
                 if (domain) {
-                  await domain.addToMetadataStandard(context, created.id);
+                  const wasAdded = await domain.addToMetadataStandard(context, created.id);
+                  if (!wasAdded) {
+                    addErrors.push(domain.name);
+                  }
                 }
+              }
+              // If there were errors adding the research domains add an error to the MetadataStandard
+              if (addErrors.length > 0) {
+                created.addError('researchDomains', `Created but unable to assign domains: ${addErrors.join(', ')}`);
               }
             }
           }
-          return created
-        } catch(err) {
-          formatLogMessage(context).error(err, 'Failure in addMetadataStandard resolver');
-          throw InternalServerError();
+          return created.hasErrors() ? created : await MetadataStandard.findById(reference, context, created.id);
         }
-      } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
+
+    // update an existing Metadata Standard
     updateMetadataStandard: async (_, { input }, context) => {
       const reference = 'updateMetadataStandard resolver';
-      // If the user is a an admin and its a DMPTool added standard (no updates to standards managed elsewhere!)
-      if (isAdmin(context.token) && input.uri.startsWith(DEFAULT_DMPTOOL_METADATA_STANDARD_URL)) {
-        try {
+      try {
+        // If the user is a an admin and its a DMPTool added standard (no updates to standards managed elsewhere!)
+        if (isAdmin(context.token) && input.uri.startsWith(DEFAULT_DMPTOOL_METADATA_STANDARD_URL)) {
           const standard = await MetadataStandard.findByURI(reference, context, input.uri);
           if (!standard) {
             throw NotFoundError();
@@ -61,13 +95,9 @@ export const resolvers: Resolvers = {
           const toUpdate = new MetadataStandard(input);
           const updated = await toUpdate.update(context);
 
-          if (updated && Array.isArray(updated.errors) && updated.errors.length === 0){
+          if (updated && !updated.hasErrors()){
             // Fetch all of the current ResearchDomains associated with this MetadataStandard
-            const researchDomains = await ResearchDomain.findByMetadataStandardId(
-              reference,
-              context,
-              standard.id
-            );
+            const researchDomains = await ResearchDomain.findByMetadataStandardId(reference, context, standard.id);
             const currentDomainIds = researchDomains ? researchDomains.map((d) => d.id) : [];
 
             // Use the helper function to determine which ResearchDomains to keep
@@ -76,39 +106,65 @@ export const resolvers: Resolvers = {
               input.researchDomainIds
             );
 
+            const associationErrors = [];
+            const removeErrors = [];
             // Delete any ResearchDomain associations that were removed
             for (const id of idsToBeRemoved) {
               const dom = await ResearchDomain.findById(reference, context, id);
               if (dom) {
-                dom.removeFromMetadataStandard(context, updated.id)
+                const wasRemoved = dom.removeFromMetadataStandard(context, updated.id);
+                if (!wasRemoved) {
+                  removeErrors.push(dom.name);
+                }
               }
             }
+            // If there were errors removing the research domains add an error to the MetadataStandard
+            if (removeErrors.length > 0) {
+              associationErrors.push(`Unable to remove domains: ${removeErrors.join(', ')}`);
+            }
+
+            const addErrors = [];
             // Add any new ResearchDomain associations
             for (const id of idsToBeSaved) {
               const dom = await ResearchDomain.findById(reference, context, id);
               if (dom) {
-                dom.addToMetadataStandard(context, updated.id)
+                const wasAdded = dom.addToMetadataStandard(context, updated.id);
+                if (!wasAdded) {
+                  addErrors.push(dom.name);
+                }
               }
+            }
+            // If there were errors adding the research domains add an error to the MetadataStandard
+            if (addErrors.length > 0) {
+              associationErrors.push(`Unable to assign domains: ${addErrors.join(', ')}`);
+            }
+
+            // If any errors were encountered adding/removing associations
+            if (associationErrors.length > 0) {
+              updated.addError('researchDomains', `Updated but ${associationErrors.join('; ')}`);
             }
 
             // Reload since the research domains may have changed
-            return await MetadataStandard.findById(reference, context, standard.id);
+            return updated.hasErrors() ? updated : await MetadataStandard.findById(reference, context, standard.id);
           }
           // Otherwise there were errors so return the object with errors
           return updated;
-        } catch(err) {
-          formatLogMessage(context).error(err, `Failure in ${reference}`);
-          throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
 
+    // delete a Metadata Standard
     removeMetadataStandard: async (_, { uri }, context) => {
-      // If the user is a an admin and its a DMPTool added standard (no removals of standards managed elsewhere!)
-      if (isAdmin(context.token) && uri.startsWith(DEFAULT_DMPTOOL_METADATA_STANDARD_URL)) {
-        try {
+      const reference = 'removeMetadataStandard resolver';
+      try {
+        // If the user is a an admin and its a DMPTool added standard (no removals of standards managed elsewhere!)
+        if (isAdmin(context.token) && uri.startsWith(DEFAULT_DMPTOOL_METADATA_STANDARD_URL)) {
           const standard = await MetadataStandard.findByURI('removeMetadataStandard resolver', context, uri);
           if (!standard) {
             throw NotFoundError();
@@ -120,18 +176,21 @@ export const resolvers: Resolvers = {
 
           // No need to remove the related research domain associations the DB will cascade the deletion
           return deleted
-        } catch(err) {
-          formatLogMessage(context).error(err, 'Failure in removeMetadataStandard resolver');
-          throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
+
+    // merge two metadata standards
     mergeMetadataStandards: async (_, { metadataStandardToKeepId, metadataStandardToRemoveId }, context) => {
-      if (isSuperAdmin(context.token)) {
-        const reference = 'mergeMetadataStandards resolver';
-        try {
+      const reference = 'mergeMetadataStandards resolver';
+      try {
+        if (isSuperAdmin(context.token)) {
           const toKeep = await MetadataStandard.findById(reference, context, metadataStandardToKeepId);
           const toRemove = await MetadataStandard.findById(reference, context, metadataStandardToRemoveId);
 
@@ -166,12 +225,13 @@ export const resolvers: Resolvers = {
           // Delete the one we want to remove
           await toRemove.delete(context);
           return toKeep;
-        } catch(err) {
-          formatLogMessage(context).error(err, 'Failure in removeMetadataStandard resolver');
-          throw InternalServerError();
         }
-      } else {
-        throw ForbiddenError();
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
     },
   },

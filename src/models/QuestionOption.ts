@@ -10,7 +10,7 @@ export class QuestionOption extends MySqlModel {
   private tableName = 'questionOptions';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.questionId = options.questionId;
     this.text = options.text;
@@ -22,22 +22,15 @@ export class QuestionOption extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.questionId) {
-      this.errors.push('Question ID can\'t be blank');
-    }
+    if (!this.questionId) this.addError('questionId', 'Question can\'t be blank');
+    if (!this.text) this.addError('text', 'Text can\'t be blank');
+    if (!this.orderNumber) this.addError('orderNumber', 'Order number can\'t be blank');
 
-    if (!this.text) {
-      this.errors.push('Text can\'t be blank');
-    }
-
-    if (!this.orderNumber) {
-      this.errors.push('Order number can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    return Object.keys(this.errors).length === 0;
   }
 
   // Ensure data integrity
-  cleanup(): void {
+  prepForSave(): void {
     // Remove leading/trailing blank spaces
     this.text = this.text?.trim();
   }
@@ -46,7 +39,7 @@ export class QuestionOption extends MySqlModel {
   async create(context: MyContext): Promise<QuestionOption> {
     // First make sure the record is valid
     if (await this.isValid()) {
-      this.cleanup();
+      this.prepForSave();
 
       // Save the record and then fetch it
       const newId = await QuestionOption.insert(context, this.tableName, this, 'QuestionOption.create');
@@ -54,7 +47,7 @@ export class QuestionOption extends MySqlModel {
       return response;
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new QuestionOption(this);
   }
 
   //Update an existing QuestionOption
@@ -63,15 +56,15 @@ export class QuestionOption extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        this.cleanup();
+        this.prepForSave();
 
         await QuestionOption.update(context, this.tableName, this, 'QuestionOption.update', [], noTouch);
         return await QuestionOption.findByQuestionOptionId('QuestionOption.update', context, id);
       }
       // This question option has never been saved before so we cannot update it!
-      this.errors.push('QuestionOption has never been saved');
+      this.addError('general', 'QuestionOption has never been saved');
     }
-    return this;
+    return new QuestionOption(this);
   }
 
   //Delete QuestionOption based on the QuestionOption's id and return
@@ -95,13 +88,13 @@ export class QuestionOption extends MySqlModel {
   static async findByQuestionOptionId(reference: string, context: MyContext, questionOptionId: number): Promise<QuestionOption> {
     const sql = 'SELECT * FROM questionOptions WHERE id = ?';
     const result = await QuestionOption.query(context, sql, [questionOptionId.toString()], reference);
-    return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    return Array.isArray(result) && result.length > 0 ? new QuestionOption(result[0]) : null;
   }
 
   // Fetch all of the QuestionOptions for the specified questionId
   static async findByQuestionId(reference: string, context: MyContext, questionId: number): Promise<QuestionOption[]> {
     const sql = 'SELECT * FROM questionOptions WHERE questionId = ?';
     const results = await QuestionOption.query(context, sql, [questionId.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new QuestionOption(entry)) : [];
   }
 }

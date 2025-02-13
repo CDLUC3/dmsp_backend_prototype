@@ -42,18 +42,20 @@ const mockedUser: UserModel.User = {
   failed_sign_in_attemps: 0,
   created: new Date().toISOString(),
   tableName: 'testUsers',
-  errors: [],
+  errors: {},
 
   getName: jest.fn(),
   recordLogIn: jest.fn(),
   isValid: jest.fn(),
   validatePassword: jest.fn(),
   hashPassword: jest.fn(),
-  cleanup: jest.fn(),
+  prepForSave: jest.fn(),
   login: jest.fn(),
   register: jest.fn(),
   update: jest.fn(),
   updatePassword: jest.fn(),
+  addError: jest.fn(),
+  hasErrors: jest.fn(),
 };
 
 jest.mock('../../models/User');

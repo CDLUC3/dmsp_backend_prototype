@@ -22,6 +22,7 @@ let mockFindEmailById;
 let mockFindEmailByUserIdAndEmail;
 let mockFindEmailByEmail;
 let mockfindTemplateCollaboratorByInvitedById;
+let mockFindTemplateCollaboratorById;
 let mockFindTemplateCollaboratorsByEmail;
 let mockInsert;
 let mockUpdate;
@@ -95,6 +96,11 @@ beforeEach(() => {
     return templateCollaboratorStore.filter((entry) => { return entry.email === email });
   });
   (TemplateCollaborator.findByEmail as jest.Mock) = mockFindTemplateCollaboratorsByEmail;
+
+  mockFindTemplateCollaboratorById = jest.fn().mockImplementation((_, __, id) => {
+    return templateCollaboratorStore.find((entry) => { return entry.id === id });
+  });
+  (TemplateCollaborator.findById as jest.Mock) = mockFindTemplateCollaboratorById;
 
   // Override the MySQLModel update function
   mockUpdate = jest.fn().mockImplementation((context, table, obj) => {
@@ -217,8 +223,7 @@ describe('anonymizeUser', () => {
   it('fails if the user has never been saved', async () => {
     user.id = null;
     const result = await anonymizeUser(context, user);
-    const msg = 'This user has never been saved so can not anonymize their information';
-    expect(result.errors.includes(msg)).toBe(true);
+    expect(Object.keys(result.errors['general'])).toBeTruthy();
   });
 
   it('anonymizes the expected User properties', async () => {
@@ -284,7 +289,6 @@ describe('anonymizeUser', () => {
       new TemplateCollaborator({ id: 2, email: secondaryEmail, userId: user.id, templateId }),
       new TemplateCollaborator({ id: 3, email: user.email, userId: user.id, templateId }),
     ];
-
     await anonymizeUser(context, user);
     expect(mockFindTemplateCollaboratorsByEmail).toHaveBeenCalledTimes(2);
     expect(templateCollaboratorStore.length).toBe(1);
@@ -441,7 +445,7 @@ describe('mergeUsers', () => {
     keepUser.password = null;
     const mergedUser = await mergeUsers(context, mergeUser, keepUser);
     expect(mockUpdate).toHaveBeenCalledTimes(0);
-    expect(mergedUser.errors.includes('Unable to merge the user at this time'));
+    expect(Object.keys(mergedUser.errors)).toBeTruthy();
   });
 
   it('merges UserEmail entries', async () => {

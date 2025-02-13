@@ -16,6 +16,8 @@
     - [Running the App](#running-the-app)
     - [Building for Production](#building-for-production)
     - [Managing the database](#managing-the-database)
+- [Querying the Apollo Server](#querying-apollo-server)
+    - [Errors](#errors)
 - [Development](#development)
     - [Data Model](#data-model)
     - [Adding or updating GraphQL functionality](#adding-or-updating-graphql-functionality)
@@ -234,6 +236,87 @@ NEVER EVER do this in production! You will lose ALL data.
 - Drop the tables: `./data-migrations/nuke-db.sh`
 - Rebuild the tables and seed them: `./data-migrations/process.sh`
 
+## Querying Apollo Server
+
+You can interact with the Apollo server from your external system by submitting requests to any of the server's GraphQL queries or mutations.
+
+Please review the latest [GraphQL Schema files](https://github.com/CDLUC3/dmsp_backend_prototype/tree/main/src/schemas) for a list of the the up-to-date data types, queries and mutations available.
+
+Here is an example call to fetch the list of collaborators for a DMP template:
+```ts
+import fetch from 'node-fetch';
+
+// Replace with your actual GraphQL endpoint
+const GRAPHQL_ENDPOINT = 'http://localhost:4000/graphql';
+// Replace with the actual access token
+const ACCESS_TOKEN = 'your_access_token_here';
+
+const query = `
+  query TemplateCollaborators($templateId: Int!) {
+    templateCollaborators(templateId: $templateId) {
+      id
+      email
+      invitedById
+      userId
+      templateId
+    }
+  }
+`;
+
+const variables = {
+  templateId: 123, // Replace with the actual template ID
+};
+
+async function fetchTemplateCollaborators() {
+  try {
+    const response = await fetch(GRAPHQL_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.errors) {
+      console.error('GraphQL errors:', result.errors);
+    } else {
+      console.log('Template Collaborators:', result.data.templateCollaborators);
+    }
+  } catch (error) {
+    console.error('Error fetching template collaborators:', error);
+  }
+}
+
+fetchTemplateCollaborators();
+```
+
+### Errors
+
+The system provides 2 levels of errors.
+
+1. **GraphQL errors**: The equate to HTTP status codes and are not typically resolvable by an end user.
+  1. **400: Bad Request/User Input** There was an error with the structure of your request. These errors are fairly descriptive. Make sure you review the GraphQL schema to make sure you're refering to the correct fields.
+  2. **401: Unauthorized** The user's access token is missing or is no longer valid
+  3. **403: Forbidden** The user does not have permission to perform the requested action
+  4. **404: Not Found** The requested mutation was for a record that does not exist
+  5. **500: Internal Server** An internal error occurred within this application.
+2. **Object level errors**: These errors provide information that the user can use to address the issue(s)
+  1. **Object.errors.general** Errors that are not specific to a field (e.g. "Failed to send email", "Unable to delete", etc.)
+  2. **Object.errors.field** An error that applies to a specific property of the object (e.g. "Name can't be blank", "Invalid URL", etc.)
+
+### If your system is written in JS or TS
+
+We recommend making use of the [official Apollo Client](https://www.apollographql.com/docs/react) to handle communications with this Apollo server implementation.
+
+You can also run `npm run generate` on this repository to generate the `src/types.ts` file and import the types into your application.
+
+
 ## Development
 
 The local development environment is encapsulated within a docker container. To build and run the development Docker containers:
@@ -257,8 +340,8 @@ The DynamoDB Table (aka the DMPHub) stores the metadata for a DMP in the [DMP Me
 The MySQL database stores everything else (Templates, Guidance, Plan Feedback, Users, Affiliations, etc.). It also maintains a projectDOIs table that links Projects to the Plan DOIs to facilitate access to the DMPs stored in the DynamoDB table.
 
 The links for the data model images won't work until we have them in the `main` branch, so adding placeholders for now. Once merged we can come back and update these to display the images
-- Placeholder for Data Model image for Templates/Guidance
-- Placeholder for Data Model image for Projects/Plans
+- ![Templates and Guidance](https://github.com/CDLUC3/dmsp_backend_prototype/blob/9ef9b8ae5e4f380663da90a71ad40ccb35b66310/docs/data-model-templates.png)
+- ![Projects and Plans](https://github.com/CDLUC3/dmsp_backend_prototype/blob/9ef9b8ae5e4f380663da90a71ad40ccb35b66310/docs/data-model-projects.png)
 
 
 ### Adding or updating GraphQL functionality
@@ -391,13 +474,11 @@ TODO: update with documentation on how to provide translation support for DB bas
 
 ### Tests
 
-You MUST add unit tests if you added or modified a Model! To do so, find the corresponding file (or add a new one) in the `src/models/__tests_/` directory. We appreciate unit tests everywhere else too!
+You should try to add unit tests any time you add or modify a file! To do so, find the corresponding file (or add a new one) in the `src/models/__tests_/` directory. We appreciate unit tests everywhere else too!
 
-Resolver tests are not yet particularly useful. We will be updating this to add these integration tests in the near future.
+Resolver tests make use of mocks to simulate interaction with datasources. These mocks can be found in `src/models/__mocks__`. By using these mocks we are able to perform end-to-end integration testing.
 
 To run the unit tests `npm run test`
-
-To run the functional tests `npm run mocha`
 
 ## Environment variables
 

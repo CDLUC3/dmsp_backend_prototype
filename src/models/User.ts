@@ -48,7 +48,7 @@ export class User extends MySqlModel {
 
   // Initialize a new User
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.email = options.email;
     this.password = options.password;
@@ -59,23 +59,23 @@ export class User extends MySqlModel {
     this.ssoId = options.ssoId;
     this.affiliationId = options.affiliationId;
     this.acceptedTerms = options.acceptedTerms;
-    this.languageId = options.languageId || defaultLanguageId;
-    this.failed_sign_in_attemps = options.failed_sign_in_attemps || 0;
-    this.locked = options.locked || false;
-    this.active = options.active || true;
-    this.notify_on_comment_added = options.notify_on_comment_added || true;
-    this.notify_on_template_shared = options.notify_on_template_shared || true;
-    this.notify_on_feedback_complete = options.notify_on_feedback_complete || true;
-    this.notify_on_plan_shared = options.notify_on_plan_shared || true;
-    this.notify_on_plan_visibility_change = options.notify_on_plan_visibility_change || true;
+    this.languageId = options.languageId ?? defaultLanguageId;
+    this.failed_sign_in_attemps = options.failed_sign_in_attemps ?? 0;
+    this.locked = options.locked ?? false;
+    this.active = options.active ?? true;
+    this.notify_on_comment_added = options.notify_on_comment_added ?? true;
+    this.notify_on_template_shared = options.notify_on_template_shared ?? true;
+    this.notify_on_feedback_complete = options.notify_on_feedback_complete ?? true;
+    this.notify_on_plan_shared = options.notify_on_plan_shared ?? true;
+    this.notify_on_plan_visibility_change = options.notify_on_plan_visibility_change ?? true;
 
-    this.cleanup();
+    this.prepForSave();
   }
 
   // Ensure data integrity
-  cleanup() {
+  prepForSave() {
     this.email = this.email?.trim()?.replace('%40', '@');
-    this.role = this.role || UserRole.RESEARCHER;
+    this.role = this.role ?? UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
     // Set the languageId to the default if it is not a supported language
@@ -88,18 +88,11 @@ export class User extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    {
-      if (!validateEmail(this.email)) {
-        this.errors.push('Invalid email address');
-      }
-      if (!this.password) {
-        this.errors.push('Password is required');
-      }
-      if (!this.role) {
-        this.errors.push('Role can\'t be blank');
-      }
-    }
-    return this.errors.length <= 0;
+    if (!validateEmail(this.email)) this.addError('email', 'Invalid email address');
+    if (!this.password) this.addError('password', 'Password is required');
+    if (!this.role) this.addError('role', 'Role can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Validate the password format
@@ -119,7 +112,7 @@ export class User extends MySqlModel {
     ) {
       return true;
     }
-    this.errors.push(`Invalid password format.
+    this.addError('password', `Invalid password format.
         Passwords must be greater than 8 characters, and contain at least
         one number,
         one upper case letter,
@@ -176,12 +169,13 @@ export class User extends MySqlModel {
   static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
     const sql = 'SELECT * FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
-    return results[0];
+    return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
     const sql = 'SELECT * FROM users WHERE affiliationId = ? ORDER BY created DESC';
-    return await User.query(context, sql, [affiliationId], reference);
+    const results = await User.query(context, sql, [affiliationId], reference);
+    return Array.isArray(results) ? results.map((item) => new User(item)) : [];
   }
 
   // Update the last_login fields
@@ -201,7 +195,7 @@ export class User extends MySqlModel {
 
   // Login making sure that the passwords match
   async login(context: MyContext): Promise<User> {
-    this.cleanup();
+    this.prepForSave();
 
     if (!validateEmail(this.email) || !this.validatePassword()) {
       return null;
@@ -228,13 +222,13 @@ export class User extends MySqlModel {
 
   // Register the User if the data is valid
   async register(context: MyContext): Promise<User> {
-    this.cleanup();
+    this.prepForSave();
     await this.isValid();
 
     // Make sure the account does not already exist
     const existing = await User.findByEmail('User.register', context, this.email);
     if (existing) {
-      this.errors.push('Account already exists');
+      this.addError('general', 'Account already exists');
     }
 
     // Validate the password
@@ -242,10 +236,10 @@ export class User extends MySqlModel {
 
     // Ensure that the user has accepted the terms and conditions
     if (this.acceptedTerms !== true) {
-      this.errors.push('You must accept the terms and conditions');
+      this.addError('acceptedTerms', 'You must accept the terms and conditions');
     }
 
-    if (this.errors.length === 0) {
+    if (Object.keys(this.errors).length === 0) {
       const passwordHash = await this.hashPassword(this.password);
       this.password = passwordHash
 
@@ -259,7 +253,7 @@ export class User extends MySqlModel {
         const result = await User.query(context, sql, vals, 'User.register');
 
         if (!Array.isArray(result) || !result[0].insertId) {
-          this.errors.push('Unable to register your account.');
+          this.addError('general', 'Unable to register your account');
           return this;
         }
         formatLogMessage(context).debug(
@@ -319,9 +313,9 @@ export class User extends MySqlModel {
         return await User.findById('User.update', context, this.id);
       }
       // This user has never been saved before so we cannot update it!
-      this.errors.push('User has never been saved');
+      this.addError('general', 'User has never been saved');
     }
-    return this;
+    return new User(this);
   }
 
   // Function to update the user's password
@@ -344,7 +338,7 @@ export class User extends MySqlModel {
         }
       }
       // The new password was invalid, so return the object with errors
-      return this;
+      return new User(this);
     }
     return null;
   }

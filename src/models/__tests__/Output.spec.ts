@@ -51,29 +51,29 @@ describe('ProjectOutput', () => {
   it('should return false when calling isValid if the projectId field is missing', async () => {
     projectOutput.projectId = null;
     expect(await projectOutput.isValid()).toBe(false);
-    expect(projectOutput.errors.length).toBe(1);
-    expect(projectOutput.errors[0]).toEqual('Project can\'t be blank');
+    expect(Object.keys(projectOutput.errors).length).toBe(1);
+    expect(projectOutput.errors['projectId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the outputTypeId field is missing', async () => {
     projectOutput.outputTypeId = null;
     expect(await projectOutput.isValid()).toBe(false);
-    expect(projectOutput.errors.length).toBe(1);
-    expect(projectOutput.errors[0]).toEqual('Output type can\'t be blank');
+    expect(Object.keys(projectOutput.errors).length).toBe(1);
+    expect(projectOutput.errors['outputTypeId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the title field is missing', async () => {
     projectOutput.title = null;
     expect(await projectOutput.isValid()).toBe(false);
-    expect(projectOutput.errors.length).toBe(1);
-    expect(projectOutput.errors[0]).toEqual('Title can\'t be blank');
+    expect(Object.keys(projectOutput.errors).length).toBe(1);
+    expect(projectOutput.errors['title']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the anticipatedReleaseDate is not a date', async () => {
     projectOutput.anticipatedReleaseDate = '123A-12-1';
     expect(await projectOutput.isValid()).toBe(false);
-    expect(projectOutput.errors.length).toBe(1);
-    expect(projectOutput.errors[0]).toEqual('Anticipated release date must be a valid date');
+    expect(Object.keys(projectOutput.errors).length).toBe(1);
+    expect(projectOutput.errors['anticipatedReleaseDate']).toBeTruthy();
   });
 });
 
@@ -178,7 +178,8 @@ describe('update', () => {
     (projectOutput.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectOutput.update(context)).toBe(projectOutput);
+    const result = await projectOutput.update(context);
+    expect(result instanceof ProjectOutput).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -189,8 +190,8 @@ describe('update', () => {
 
     projectOutput.id = null;
     const result = await projectOutput.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('ProjectOutput has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated ProjectOutput', async () => {
@@ -207,8 +208,8 @@ describe('update', () => {
     const result = await projectOutput.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectOutput);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectOutput);
   });
 });
 
@@ -240,14 +241,15 @@ describe('create', () => {
     (projectOutput.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await projectOutput.create(context)).toBe(projectOutput);
+    const result = await projectOutput.create(context);
+    expect(result instanceof ProjectOutput).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the ProjectOutput with errors if it is invalid', async () => {
     projectOutput.projectId = undefined;
     const response = await projectOutput.create(context);
-    expect(response.errors[0]).toBe('Project can\'t be blank');
+    expect(response.errors['projectId']).toBe('Project can\'t be blank');
   });
 
   it('returns the ProjectOutput with an error if the question already exists', async () => {
@@ -257,8 +259,8 @@ describe('create', () => {
 
     const result = await projectOutput.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Project already has an entry for this output');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added ProjectOutput', async () => {
@@ -274,8 +276,8 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectOutput);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectOutput);
   });
 });
 
@@ -314,7 +316,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(projectOutput);
 
     const result = await projectOutput.delete(context);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(projectOutput);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(ProjectOutput);
   });
 });

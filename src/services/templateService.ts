@@ -12,7 +12,7 @@ import { formatLogMessage } from "../logger";
 // Determine whether the specified user has permission to access the Template
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
   // If the current user belongs to the same affiliation OR the user is a super admin
-  if (context.token?.affiliationId === template.ownerId || await isSuperAdmin(context.token)) {
+  if (context.token?.affiliationId === template?.ownerId || await isSuperAdmin(context.token)) {
     return true;
   }
 
@@ -20,14 +20,14 @@ export const hasPermissionOnTemplate = async (context: MyContext, template: Temp
   const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
     'template resolver.hasPermission',
     context,
-    template.id,
+    template?.id,
     context.token?.email,
   )
   if (collaborator) {
     return true;
   }
 
-  const payload = { templateId: template.id, userId: context.token.id };
+  const payload = { templateId: template?.id, userId: context.token?.id };
   formatLogMessage(context).error(payload, 'AUTH failure: hasPermissionOnTemplate')
   return false;
 }
@@ -84,7 +84,7 @@ export const generateTemplateVersion = async (
   const created = await versionedTemplate.create(context);
 
   // If the version was successfully created and there are no errors
-  if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
+  if (created && !created.hasErrors()) {
     const sections = await Section.findByTemplateId('generateTemplateVersion', context, template.id);
 
     try {
@@ -110,21 +110,19 @@ export const generateTemplateVersion = async (
 
         // Pass the noTouch flag to avoid default behavior of setting isDirty, modified, etc.
         const updated = await template.update(context, true);
-        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          return created;
-        } else {
-          const msg = `Unable to generateTemplateVersion for template: ${template.id}, errs: ${updated.errors}`;
-          formatLogMessage(context).error(null, msg);
-          throw new Error(msg);
-        }
+        if (updated && !updated.hasErrors()) return created;
+
+        const msg = `Unable to update template: ${template.id}`;
+        formatLogMessage(context).error(updated.errors, msg);
+        throw new Error(msg);
       }
     } catch (err) {
-      formatLogMessage(context).error(err, `Unable to generateTemplateVersion for id: ${template.id}`);
+      formatLogMessage(context).error(err, `Unable to create a new version for template: ${template.id}`);
       throw new Error(err.message);
     }
   } else {
-    const msg = `Unable to generateTemplateVersion for versionedTemplate errs: ${created.errors}`;
-    formatLogMessage(context).error(null, msg);
+    const msg = `Unable to generate a new version of template ${template.id}`;
+    formatLogMessage(context).error(created.errors, msg);
     throw new Error(msg);
   }
   // Something went wrong, so return a null instead

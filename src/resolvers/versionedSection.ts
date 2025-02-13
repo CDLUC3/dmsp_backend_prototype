@@ -4,36 +4,46 @@ import { VersionedSection } from "../models/VersionedSection";
 import { Section } from "../models/Section";
 import { Tag } from "../models/Tag";
 import { VersionedTemplate } from "../models/VersionedTemplate";
-import { ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
+import { ForbiddenError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
 import { hasPermissionOnSection } from "../services/sectionService";
 import { VersionedQuestion } from "../models/VersionedQuestion";
+import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
     // Get all of the versionedSection records for the given sectionId
     sectionVersions: async (_, { sectionId }, context: MyContext): Promise<VersionedSection[]> => {
+      const reference = 'sectionVersions resolver';
+      try {
+        // Find versionedSections with matching sectionId
+        const versionedSections = await VersionedSection.findBySectionId(reference, context, sectionId);
 
-      // Find versionedSections with matching sectionId
-      const versionedSections = await VersionedSection.findBySectionId('versionedSection resolver', context, sectionId);
-
-      // Check if the array has data and access the first versioned section
-      if (versionedSections.length > 0) {
+        // Check if the array has data and access the first versioned section
         const templateId = versionedSections[0].versionedTemplateId;
         if (await hasPermissionOnSection(context, templateId)) {
           return versionedSections;
         }
-        throw ForbiddenError();
-      }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
 
-      throw NotFoundError();
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
     // Get all of the published versionedSections with the given name
     publishedSections: async (_, { term }, context: MyContext): Promise<VersionedSection[]> => {
+      const reference = 'publishedSections resolver';
+      try {
+        // Find published versionedSections with similar names
+        return await VersionedSection.findByName(reference, context, term);
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
 
-      // Find published versionedSections with similar names
-      const temp = await VersionedSection.findByName('publishedSections resolver', context, term);
-      return temp;
-
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     }
   },
 
@@ -48,7 +58,7 @@ export const resolvers: Resolvers = {
     },
     // Chained resolver to fetch the Tags belonging to VersionedSection
     tags: async (parent: VersionedSection, _, context: MyContext): Promise<Tag[]> => {
-      return await Tag.getTagsBySectionId('updateSection resolver', context, parent.sectionId);
+      return await Tag.findBySectionId('updateSection resolver', context, parent.sectionId);
     },
     // Chained resolver to return the VersionedQuestions associated with this VersionedSection
     versionedQuestions: async (parent: VersionedSection, _, context: MyContext): Promise<VersionedQuestion[]> => {

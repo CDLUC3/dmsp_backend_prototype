@@ -14,7 +14,7 @@ export class MySqlModel {
     public createdById?: number,
     public modified?: string,
     public modifiedById?: number,
-    public errors: string[] = [],
+    public errors: Record<string, string> = {},
   ) {
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {
@@ -23,26 +23,38 @@ export class MySqlModel {
     if (!this.modified) {
       this.modified = this.id ? getCurrentDate() : this.created;
     }
+    // Only initialize the errors object if it is not already set
+    if (!this.errors) {
+      this.errors = {};
+    }
   };
+
+  // Check to see if the object has errors
+  hasErrors(): boolean {
+    return this.errors
+      && Array.isArray(Object.keys(this.errors))
+      && Object.keys(this.errors).length > 0;
+  }
+
+  // Add an error to the errors array
+  addError(property: string, error: string): void {
+    this.errors[property] = error;
+  }
 
   // Indicates whether or not the standard fields on the record are valid
   //   - created and modified should be dates
   //   - createdById and modifiedById should be numbers
   //   - id should be a number or null if its a new record
   async isValid(): Promise<boolean> {
-    if (!await validateDate(this.created)) {
-      this.errors.push('Created date can\'t be blank');
-    }
-    if (!await validateDate(this.modified)) {
-      this.errors.push('Modified date can\'t be blank');
-    }
-    if (this.createdById === null) {
-      this.errors.push('Created by can\'t be blank');
-    }
-    if (this.modifiedById === null) {
-      this.errors.push('Modified by can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!validateDate(this.created)) this.addError('created', 'Created date can\'t be blank');
+
+    if (!validateDate(this.modified)) this.addError('modified', 'Modified date can\'t be blank');
+
+    if (this.createdById === null) this.addError('createdById', 'Created by can\'t be blank');
+
+    if (this.modifiedById === null) this.addError('modifiedById', 'Modified by can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Check whether or not the value is a Date
@@ -173,10 +185,10 @@ export class MySqlModel {
   ): Promise<number> {
     // If the createdById and modifiedById have not alredy been set, use the value in the token or the userId
     if (!obj.createdById) {
-      obj.createdById = apolloContext?.token?.id || obj.userId;
+      obj.createdById = apolloContext?.token?.id ?? obj.userId;
     }
     if (!obj.modifiedById) {
-      obj.modifiedById = apolloContext?.token?.id || obj.userId;
+      obj.modifiedById = apolloContext?.token?.id ?? obj.userId;
     }
 
     // Update the created/modified dates
