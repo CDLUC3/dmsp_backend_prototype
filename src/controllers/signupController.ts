@@ -9,7 +9,7 @@ import { processOtherAffiliationName } from '../services/affiliationService';
 
 export const signupController = async (req: Request, res: Response) => {
   const cache = Cache.getInstance();
-  const context = buildContext(logger, cache);
+  const context = await buildContext(logger, cache);
 
   const props = req.body;
 

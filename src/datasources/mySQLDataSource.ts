@@ -1,5 +1,7 @@
+import * as crypto from 'crypto';
 import * as mysql from 'mysql2/promise';
-import { mysqlConfig } from "../config/mysqlConfig";
+import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
+import { mysqlGeneralConfig, mysqlPoolConfig } from "../config/mysqlConfig";
 import { logger, formatLogMessage } from '../logger';
 import { MyContext } from '../context';
 
@@ -15,6 +17,7 @@ export interface PoolConfig {
 // Singleton MySQL Connection Pool
 export class MySQLDataSource {
   private static instance: MySQLDataSource;
+  private cache: KeyValueCache;
 
   public pool: mysql.Pool;
 
@@ -23,7 +26,7 @@ export class MySQLDataSource {
   private initializePool(): void {
     if (!this.pool) {
       this.pool = mysql.createPool({
-        ...mysqlConfig,
+        ...mysqlPoolConfig,
         waitForConnections: true,
         queueLimit: 0,
         multipleStatements: false,
@@ -32,47 +35,46 @@ export class MySQLDataSource {
   }
 
   // Create a new connection pool
-  private constructor() {
-    const connectionLimit = Number.parseInt(process.env.MYSQL_CONNECTION_LIMIT) || 10;
-    const queueLimit = Number.parseInt(process.env.MYSQL_QUEUE_LIMIT) || 100;
-    const connectTimeout = Number.parseInt(process.env.MYSQL_CONNECT_TIMEOUT) || 60000;
+  private constructor(options: { cache: KeyValueCache }) {
+    this.cache = options.cache;
 
     logger.info('Establishing MySQL connection pool ...');
 
     try {
       this.pool = mysql.createPool({
-        ...mysqlConfig,
-        connectionLimit, // Maximum 10 concurrent connections
+        ...mysqlPoolConfig,
         waitForConnections: true,  // Queue if no connections are available
-        queueLimit, // Maximum 100 queued requests
-        connectTimeout, // Wait for 60 seconds before timing out
+        queueLimit: mysqlGeneralConfig.queueLimit,
+        connectTimeout: mysqlGeneralConfig.connectTimeout,
         multipleStatements: false, // Disallow multiple statements for security
       });
 
-      // Register SIGTERM handler for graceful shutdown of the MYSQL connection pool
-      process.on('SIGTERM', () => {
-        this.releaseConnection();
-
-        this.close()
-          .then(() => {
-            logger.debug('MySQL connection pool closed');
-            process.exit(0);
-          })
-          .catch((err) => {
-            logger.error({ err, message: 'Error while closing MySQL connection pool' });
-            process.exit(1);
-          });
-      });
     } catch (err) {
       logger.error('Unable to establish the MySQL connection pool.');
       throw(err);
     }
+
+    // Register SIGTERM handler for graceful shutdown of the MYSQL connection pool
+    process.on('SIGTERM', () => {
+      this.releaseConnection();
+
+      // Close the MySQL connection pool
+      this.close()
+        .then(() => {
+          logger.debug('MySQL connection pool closed');
+          process.exit(0);
+        })
+        .catch((err) => {
+          logger.error({ err, message: 'Error while closing MySQL connection pool' });
+          process.exit(1);
+        });
+    });
   }
 
   // Retrieve the instance of this class
-  public static getInstance(): MySQLDataSource {
+  public static getInstance(options: { cache: KeyValueCache }): MySQLDataSource {
     if (!MySQLDataSource.instance) {
-      MySQLDataSource.instance = new MySQLDataSource();
+      MySQLDataSource.instance = new MySQLDataSource(options);
     }
     return MySQLDataSource.instance;
   }
@@ -117,6 +119,8 @@ export class MySQLDataSource {
 
   // Release the MySQL connection pool
   public async close(): Promise<void> {
-    await this.pool.end();
+    if (this.pool) {
+      await this.pool.end();
+    }
   }
 }

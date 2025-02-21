@@ -36,6 +36,8 @@ export function capitalizeFirstLetter(str: string): string {
 
 // Remove know Protocol and Domain portions of identifiers from the string
 export function stripIdentifierBaseURL(str: string): string {
+  if (!str) return '';
+
   return str.replace(generalConfig.dmpIdBaseURL, '')
             .replace(generalConfig.orcidBaseURL, '')
             .replace(generalConfig.rorBaseURL, '')

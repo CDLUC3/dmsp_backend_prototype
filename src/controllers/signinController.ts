@@ -9,17 +9,13 @@ import { buildContext } from '../context';
 export const signinController = async (req: Request, res: Response) => {
   const userIn = new User(req.body);
   const cache = Cache.getInstance();
-  const context = buildContext(logger, cache);
+  const context = await buildContext(logger, cache);
 
   try {
     const user = await userIn.login(context) || null;
 
     if (user) {
       const { accessToken, refreshToken } = await generateAuthTokens(context, user);
-
-console.log('User:', user);
-console.log('Access Token:');
-console.log(accessToken);
 
       // Record the login and generate the tokens
       if (accessToken && refreshToken) {

@@ -29,7 +29,7 @@ export const typeDefs = gql`
   }
 
   "A Template used to create DMPs"
-  type Template {
+  type Template @cacheControl(inheritMaxAge: true) {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"

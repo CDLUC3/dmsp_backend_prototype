@@ -3,12 +3,13 @@ import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 import { Affiliation } from '../models/Affiliation';
 import { Project } from '../models/Project';
-import { ProjectFunder } from "../models/Funder";
+import { PlanFunder, ProjectFunder } from "../models/Funder";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
+import { Plan } from '../models/Plan';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -42,6 +43,25 @@ export const resolvers: Resolvers = {
 
           if (project && hasPermissionOnProject(context, project)) {
             return projectFunder;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    planFunders: async (_, { planId }, context: MyContext): Promise<PlanFunder[]> => {
+      const reference = 'planFunders resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findById(reference, context, planId);
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (plan && hasPermissionOnProject(context, project)) {
+            return await PlanFunder.findByPlanId(reference, context, plan.id);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();

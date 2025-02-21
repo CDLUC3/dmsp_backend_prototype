@@ -12,10 +12,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildContext(logger, mockToken());
 });
 
 afterEach(() => {
@@ -114,13 +114,13 @@ describe('TemplateCollaborator', () => {
     let context;
     let templateCollaborator;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (TemplateCollaborator.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildContext(logger, mockToken());
 
       templateCollaborator = new TemplateCollaborator({
         id: casual.integer(1, 9),

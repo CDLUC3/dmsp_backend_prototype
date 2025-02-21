@@ -38,5 +38,5 @@ export const generalConfig = {
   jwtRefreshTTL: Number.parseInt(process.env.JWT_REFRESH_TTL) || 86400000, // Default is 24 hours (in milliseconds)
 
   csrfLength: Number.parseInt(process.env.CSRF_LENGTH) || 32,
-  csrfTTL: Number.parseInt(process.env.CSRF_TTL) || 3600 // Default is 1 hour
+  csrfTTL: Number.parseInt(process.env.CSRF_TTL) || 3600, // Default is 1 hour
 }

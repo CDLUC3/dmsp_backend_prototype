@@ -79,6 +79,21 @@ export const typeDefs = gql`
     metadataStandards: [MetadataStandard!]
   }
 
+  type PlanOutput {
+    "The unique identifer for the Object"
+    id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: String
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: String
+    "Errors associated with the Object"
+    errors: PlanOutputErrors
+  }
+
   "A collection of errors related to the ProjectOutput"
   type ProjectOutputErrors {
     "General error messages such as the object already exists"
@@ -93,6 +108,12 @@ export const typeDefs = gql`
     anticipatedReleaseDate: String
     repositoryIds: String
     metadataStandardIds: String
+  }
+
+  "A collection of errors related to the PlanOutput"
+  type PlanOutputErrors {
+    "General error messages such as the object already exists"
+    general: String
   }
 
   input AddProjectOutputInput {

@@ -67,10 +67,10 @@ describe('addToProjectContributor', () => {
   let context;
   let mockRole;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockRole = new ContributorRole({
       id: casual.integer(1, 99),
@@ -109,10 +109,10 @@ describe('removeFromProjectContributor', () => {
   let context;
   let mockRole;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockRole = new ContributorRole({
       id: casual.integer(1, 99),
@@ -151,13 +151,13 @@ describe('queries', () => {
   let context;
   let mockRole;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockQuery = jest.fn();
     (ContributorRole.insert as jest.Mock) = mockQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockRole = {
       id: casual.integer(1, 99),

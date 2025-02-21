@@ -3,6 +3,7 @@ import { validateOrcid } from "../resolvers/scalars/orcid";
 import { capitalizeFirstLetter, stripIdentifierBaseURL, validateEmail } from "../utils/helpers";
 import { ContributorRole } from "./ContributorRole";
 import { MySqlModel } from "./MySqlModel";
+import { DMPContributor } from "./DMP";
 
 export class ProjectContributor extends MySqlModel {
   public projectId: number;
@@ -213,4 +214,88 @@ export class ProjectContributor extends MySqlModel {
     const results = await ProjectContributor.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
   }
+
+  // Fetch a contributor by it's project and name or ORCID or email
+  static async findByProjectAndNameOrORCIDOrEmail(
+    reference: string,
+    context: MyContext,
+    projectId: number,
+    givenName: string,
+    surName: string,
+    orcid: string,
+    email: string
+  ): Promise<ProjectContributor> {
+    let sql = 'SELECT * FROM projectContributors';
+    sql += ' WHERE projectId = ? AND (LOWER(givenName) = ? AND LOWER(surName) = ?) OR (orcid = ?) OR (email = ?)';
+    sql += ' ORDER BY orcid DESC, email DESC, surName, givenName';
+    const vals = [projectId?.toString(), givenName?.trim()?.toLowerCase(), surName?.trim()?.toLowerCase(), orcid, email];
+    const results = await ProjectContributor.query(context, sql, vals, reference);
+    // We've sorted by ORCID and the email descending so grab the first match
+    return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
+  }
 };
+
+export class PlanContributor extends MySqlModel {
+  public planId: number;
+  public projectContributorId: number;
+  public isPrimaryContact: boolean;
+  public contributorRoleIds: number[];
+
+  private static tableName = 'planContributors';
+
+  constructor(options) {
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
+
+    this.planId = options.planId;
+    this.projectContributorId = options.projectContributorId;
+    this.isPrimaryContact = options.isPrimaryContact || false;
+    this.contributorRoleIds = options.contributorRoleIds;
+  }
+
+  // Validation to be used prior to saving the record
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!this.planId) this.addError('planId', 'Plan can\'t be blank');
+    if (!this.projectContributorId) this.addError('projectContributorId', 'Project contributor can\'t be blank');
+
+    if (this.contributorRoleIds.length === 0) {
+      this.addError('general', 'You must specify at least one role');
+    }
+
+    return Object.keys(this.errors).length === 0;
+  }
+
+  // Ensure data integrity
+  prepForSave() {
+    // Ensure that contributorRoles is always an array
+    if (!Array.isArray(this.contributorRoleIds)) {
+      this.contributorRoleIds = []
+    }
+  }
+
+  // Find the project contributor by its id
+  static async findById(reference: string, context: MyContext, id: number): Promise<PlanContributor> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`;
+    const results = await PlanContributor.query(context, sql, [id?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new PlanContributor(results[0]) : null;
+  }
+
+  // Fetch a contributor by it's projectContributor id
+  static async findByProjectContributorId(
+    reference: string,
+    context: MyContext,
+    planContributorId: number
+  ): Promise<PlanContributor> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE projectContributorId = ?`;
+    const results = await PlanContributor.query(context, sql, [planContributorId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new PlanContributor(results[0]) : null;
+  }
+
+  // Fetch all of the contributors for a plan
+  static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanContributor[]> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? ORDER BY isPrimaryContact DESC`;
+    const results = await PlanContributor.query(context, sql, [planId?.toString()], reference);
+    return Array.isArray(results) ? results.map((item) => new PlanContributor(item)) : [];
+  }
+}

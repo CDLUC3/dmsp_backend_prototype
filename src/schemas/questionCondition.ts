@@ -42,7 +42,7 @@ export const typeDefs = gql`
   if [Question content] [condition] [conditionMatch] then [action] on [target] so
   for example if 'Yes' EQUAL 'Yes' then 'SHOW_Question' 123
   """
-  type QuestionCondition {
+  type QuestionCondition @cacheControl(inheritMaxAge: true) {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"

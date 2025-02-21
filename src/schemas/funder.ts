@@ -8,8 +8,8 @@ export const typeDefs = gql`
     "Get a specific ProjectFunder"
     projectFunder(projectFunderId: Int!): ProjectFunder
 
-    "Get all of the Users that are Funders for the specific Plan"
-    planFunders(planId: Int!): [ProjectFunder]
+    "Get all of the Funders for the specific Plan"
+    planFunders(planId: Int!): [PlanFunder]
   }
 
   extend type Mutation {
@@ -65,6 +65,27 @@ export const typeDefs = gql`
     funderOpportunityNumber: String
   }
 
+  "A funder associated with a plan"
+  type PlanFunder {
+    "The unique identifer for the Object"
+    id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: String
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: String
+    "Errors associated with the Object"
+    errors: PlanFunderErrors
+
+    "The project that is seeking (or has aquired) funding"
+    project: Project
+    "The project funder"
+    projectFunder: ProjectFunder
+  }
+
   input AddProjectFunderInput {
     "The project"
     projectId: Int!
@@ -104,5 +125,14 @@ export const typeDefs = gql`
     funderProjectNumber: String
     grantId: String
     funderOpportunityNumber: String
+  }
+
+  "A collection of errors related to the PlanFunder"
+  type PlanFunderErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    projectId: String
+    projectFunderId: String
   }
 `;

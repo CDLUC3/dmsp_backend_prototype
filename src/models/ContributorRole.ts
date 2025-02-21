@@ -3,6 +3,7 @@ import { formatLogMessage } from "../logger";
 import { validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
+export const DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL = 'https://dmptool.org/contributor_roles/';;
 export class ContributorRole extends MySqlModel {
   public displayOrder: number;
   public uri: string;
@@ -28,6 +29,10 @@ export class ContributorRole extends MySqlModel {
     if (!this.label) this.addError('label', 'Label can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
+  }
+
+  static defaultRole(): string {
+    return `${DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL}/other`;
   }
 
   // Add an association for a ContributorRole with a ProjectContributor
@@ -88,7 +93,7 @@ export class ContributorRole extends MySqlModel {
     context: MyContext,
     contributorRoleByURL: string
   ): Promise<ContributorRole> {
-    const sql = 'SELECT * FROM contributorRoles WHERE url = ?';
+    const sql = 'SELECT * FROM contributorRoles WHERE uri = ?';
     const results = await ContributorRole.query(context, sql, [contributorRoleByURL], reference);
     return Array.isArray(results) && results.length > 0 ? new ContributorRole(results[0]) : null;
   }

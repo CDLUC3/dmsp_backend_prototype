@@ -38,6 +38,8 @@ export const resolvers: Resolvers = {
           const created = await condition.create(context);
 
           if (created?.id) {
+            const keys = await context.cacheEvictor.deleteByPrefixes('QuestionConditions')
+
             return created;
           }
 

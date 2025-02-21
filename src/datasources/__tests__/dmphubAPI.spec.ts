@@ -1,11 +1,12 @@
 import nock from 'nock';
-import { DMPHubAPI, Authorizer } from '../dmphubAPI';
+import { DMPHubAPI, Authorizer } from '../DMPHubAPI';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { JWTAccessToken } from '../../services/tokenService';
-import { Affiliation, AffiliationSearch } from "../../models/Affiliation";
-import { buildContext } from '../../__mocks__/context';
+import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
+import { DMP } from '../../models/DMP';
+import { DMPHubConfig } from '../../config/dmpHubConfig';
 
 jest.mock('../../context.ts');
 
@@ -29,16 +30,10 @@ describe('Authorizer', () => {
 
   beforeEach(() => {
     mockPost.mockClear();
-
-    // Mock environment variables
-    process.env.DMPHUB_AUTH_URL = 'https://dmphub.example.com';
-    process.env.DMPHUB_API_CLIENT_ID = 'test_client_id';
-    process.env.DMPHUB_API_CLIENT_SECRET = 'test_client_secret';
-
     authorizer = Authorizer.instance;
 
     // Set up nock to intercept the OAuth2 token request
-    nock(process.env.DMPHUB_AUTH_URL)
+    nock(DMPHubConfig.dmpHubAuthURL)
       .post('/oauth2/token')
       .reply(200, { access_token: 'test_token' });
   });
@@ -77,23 +72,21 @@ describe('Authorizer', () => {
 
     authorizer.willSendRequest('/oauth2/token', request);
 
-    expect(request.headers['authorization']).toBe('Basic dGVzdF9jbGllbnRfaWQ6dGVzdF9jbGllbnRfc2VjcmV0');
+    const creds = Buffer.from(`${DMPHubConfig.dmpHubClientId}:${DMPHubConfig.dmpHubClientSecret}`).toString('base64');
+    expect(request.headers['authorization']).toBe(`Basic ${creds}`);
     expect(request.headers['content-type']).toBe('application/x-www-form-urlencoded');
     expect(request.body).toContain('grant_type=client_credentials');
   });
 });
 
 describe('DMPToolAPI', () => {
-  let dmptoolAPI: DMPHubAPI;
+  let dmphubAPI: DMPHubAPI;
 
   beforeEach(() => {
     mockGet.mockClear();
 
-    // Mock environment variable
-    process.env.DMPHUB_API_BASE_URL = 'https://dmphub.example.com';
-
     // Initialize DMPToolAPI
-    dmptoolAPI = new DMPHubAPI({
+    dmphubAPI = new DMPHubAPI({
       cache: {} as KeyValueCache,
       token: {} as JWTAccessToken,
     });
@@ -109,62 +102,61 @@ describe('DMPToolAPI', () => {
       jest.spyOn(Authorizer.instance, 'authenticate').mockResolvedValue(undefined);
       Authorizer.instance.oauth2Token = 'new_test_token';
 
-      dmptoolAPI.willSendRequest('/affiliations', request);
+      dmphubAPI.willSendRequest('/affiliations', request);
 
       expect(Authorizer.instance.authenticate).toHaveBeenCalled();
       expect(request.headers['authorization']).toBe('Bearer new_test_token');
     });
   });
 
-  describe('getAffiliation', () => {
-    it('should call get with the correct affiliationId and log the message', async () => {
-      const context = buildContext(logger);
-      const mockResponse = { id: '123', name: 'Test Affiliation' };
+  describe('getDMP', async () => {
+    it('should call get with the correct dmpId and the latest version by default', async () => {
+      const context = await buildContext(logger, mockToken(), new MockCache());
+      const dmpId = '11.22222/3C4D5E6G';
+      const mockResponse = {
+        status: 200,
+        items: [{ dmp: { dmp_id: `https://doi.org/${dmpId}`, title: 'Test DMP' } }]
+      };
       mockGet.mockResolvedValue(mockResponse);
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const result = await dmptoolAPI.getAffiliation(context, 'https://example.com/affiliation/123');
+      const result = await dmphubAPI.getDMP(context, dmpId);
 
-      expect(mockGet).toHaveBeenCalledWith('affiliations/example.com/affiliation/123');
-      expect(result).toBeInstanceOf(Affiliation);
+      expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=LATEST`);
+      expect(result).toBeInstanceOf(DMP);
       expect(formatLogMessage(context).info).toHaveBeenCalledWith(
-        'Calling DMPHub: https://dmphub.example.com/affiliations/example.com/affiliation/123'
+        `getDMP Calling DMPHub: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
+      );
+    });
+
+    it('should call get with the correct dmpId and the specified version', async () => {
+      const context = await buildContext(logger, mockToken(), new MockCache());
+      const dmpId = '11.22222/3C4D5E6G';
+      const mockResponse = {
+        status: 200,
+        items: [{ dmp: { dmp_id: `https://doi.org/${dmpId}`, title: 'Test DMP' } }]
+      };
+      mockGet.mockResolvedValue(mockResponse);
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
+
+      const result = await dmphubAPI.getDMP(context, dmpId, '1234', 'getDMP');
+
+      expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=1234`);
+      expect(result).toBeInstanceOf(DMP);
+      expect(formatLogMessage(context).info).toHaveBeenCalledWith(
+        `getDMP Calling DMPHub: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
       );
     });
 
     it('should throw and error when get fails', async () => {
-      const context = buildContext(logger);
+      const context = await buildContext(logger);
+      const dmpId = '11.22222/3C4D5E6G';
       const mockError = new Error('API error');
       //mockGet.mockRejectedValue(mockError);
       mockGet.mockImplementation(() => { throw mockError });
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      await expect(dmptoolAPI.getAffiliation(context, 'https://example.com/affiliation/123')).rejects.toThrow('API error');
-    });
-  });
-
-  describe('getAffiliations', () => {
-    it('should call get with the correct query string and return affiliations', async () => {
-      const context = buildContext(logger);
-      const mockResponse = [{ id: '1', name: 'Affiliation1' }, { id: '2', name: 'Affiliation2' }];
-      mockGet.mockResolvedValue(mockResponse);
-      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
-
-      const result = await dmptoolAPI.getAffiliations(context, { name: 'University', funderOnly: true });
-
-      expect(mockGet).toHaveBeenCalledWith('affiliations?search=University&funderOnly=true');
-      expect(result.length).toBe(2);
-      expect(result[0]).toBeInstanceOf(AffiliationSearch);
-    });
-
-    it('should throw an error when get fails', async () => {
-      const context = buildContext(logger);
-      const mockError = new Error('API error');
-      // mockGet.mockRejectedValue(mockError);
-      mockGet.mockImplementation(() => { throw mockError });
-      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
-
-      await expect(dmptoolAPI.getAffiliations(context, { name: 'University' })).rejects.toThrow('API error');
+      await expect(dmphubAPI.getDMP(context, `http://localhost:3000/dmphub/dmps/${dmpId}`)).rejects.toThrow('API error');
     });
   });
 });

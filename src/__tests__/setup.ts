@@ -19,15 +19,40 @@ jest.mock('../config/awsConfig', () => ({
 jest.mock('../config/cacheConfig', () => ({
   cacheConfig: {
     host: 'localhost',
-    port: '6379'
+    port: '6379',
+    connectTimeout: 10000,
+    autoFailoverEnabled: 'false',
+    cacheNamespace: 'test-srvr',
   },
-  cacheTLS: 'redis://localhost:123'
 }));
 
 jest.mock('../config/emailConfig', () => ({
   emailConfig: {
     helpDeskAddress: 'help@example.com',
     doNotReplyAddress: 'do-not-reply@example.com'
+  }
+}));
+
+jest.mock('../config/dmpHubConfig', () => ({
+  DMPHubConfig: {
+    dmpHubAuthURL: 'http://auth.dmphub.example.com',
+    dmpHubURL: 'http://api.dmphub.example.com',
+    dmpHubClientId: '1234567890',
+    dmpHubClientSecret: '0987654321',
+    dmpHubCacheTTL: 3000,
+  }
+}));
+
+jest.mock('../config/mysqlConfig', () => ({
+  mysqlPoolConfig: {
+    host: 'localhost',
+    port: 3306,
+    database: 'testdb',
+    user: 'root',
+    password: 'testpassword',
+  },
+  mysqlGeneralConfig: {
+    queryCacheEnabled: false,
   }
 }));
 

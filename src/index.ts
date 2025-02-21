@@ -63,7 +63,7 @@ const startServer = async () => {
 // Handle graceful shutdown
 const shutdown = async () => {
   console.log('Shutting down server...');
-  const pool = MySQLDataSource.getInstance();
+  const pool = MySQLDataSource.getInstance({ cache: null });
   await pool.close();
   process.exit(0);
 };

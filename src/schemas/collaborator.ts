@@ -6,7 +6,7 @@ export const typeDefs = gql`
     templateCollaborators(templateId: Int!): [TemplateCollaborator]
 
     "Get all of the Users that are collaborators for the Plan"
-    planCollaborators(planId: Int!): [PlanCollaborator]
+    planCollaborators(planId: Int!): [ProjectCollaborator]
 
     "Search for a User to add as a collaborator"
     findCollaborator(term: String): [CollaboratorSearchResult]
@@ -19,14 +19,14 @@ export const typeDefs = gql`
     removeTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
 
     "Add a collaborator to a Plan"
-    addPlanCollaborator(planId: Int!, email: String!): PlanCollaborator
+    addProjectCollaborator(planId: Int!, email: String!): ProjectCollaborator
     "Chnage a collaborator's accessLevel on a Plan"
-    updatePlanCollaborator(planCollaboratorId: Int!, accessLevel: PlanCollaboratorAccessLevel!): PlanCollaborator
-    "Remove a PlanCollaborator from a Plan"
-    removePlanCollaborator(planCollaboratorId: Int!): PlanCollaborator
+    updateProjectCollaborator(projectCollaboratorId: Int!, accessLevel: ProjectCollaboratorAccessLevel!): ProjectCollaborator
+    "Remove a ProjectCollaborator from a Plan"
+    removeProjectCollaborator(projectCollaboratorId: Int!): ProjectCollaborator
   }
 
-  enum PlanCollaboratorAccessLevel {
+  enum ProjectCollaboratorAccessLevel {
     "The user is ONLY able to comment on the Plan's answers"
     COMMENTER
     "The user is able to comment and edit the Plan's answers, add/edit/delete contributors and research outputs"
@@ -72,7 +72,7 @@ export const typeDefs = gql`
   }
 
   "A user that that belongs to a different affiliation that can edit the Plan"
-  type PlanCollaborator {
+  type ProjectCollaborator {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"
@@ -88,6 +88,8 @@ export const typeDefs = gql`
 
     "The plan the collaborator may edit"
     plan: Plan
+    "The ProjectContributor id"
+    projectContributorId: Int
     "The collaborator's email"
     email: String!
     "The collaborator (if they have an account)"
@@ -95,11 +97,11 @@ export const typeDefs = gql`
     "The user who invited the collaborator"
     invitedBy: User
     "The user's access level"
-    accessLevel: PlanCollaboratorAccessLevel
+    accessLevel: ProjectCollaboratorAccessLevel
   }
 
-  "A collection of errors related to the PlanCollaborator"
-  type PlanCollaboratorErrors {
+  "A collection of errors related to the ProjectCollaborator"
+  type ProjectCollaboratorErrors {
     "General error messages such as affiliation already exists"
     general: String
 

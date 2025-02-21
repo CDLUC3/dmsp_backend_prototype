@@ -92,10 +92,10 @@ describe('findById', () => {
   let context;
   let affiliation;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 9),
@@ -139,10 +139,10 @@ describe('create', () => {
   let insertQuery;
   let affiliation;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     insertQuery = jest.fn();
     (Affiliation.insert as jest.Mock) = insertQuery;
@@ -212,10 +212,10 @@ describe('update', () => {
   let updateQuery;
   let affiliation;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 999),
@@ -267,10 +267,10 @@ describe('delete', () => {
   let deleteQuery;
   let affiliation;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 99),
@@ -312,10 +312,10 @@ describe('findByURI', () => {
   let context;
   let affiliation;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 9),
@@ -360,10 +360,10 @@ describe('findByName', () => {
   let context;
   let affiliation;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 9),
@@ -429,13 +429,13 @@ describe('search', () => {
   let context;
   let affiliationSearch;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Affiliation.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     affiliationSearch = new AffiliationSearch({
       id: casual.integer(1, 9),

@@ -1,11 +1,10 @@
 import { buildContext } from '../context';
-import { DMPHubAPI } from '../datasources/dmphubAPI';
+import { DMPHubAPI } from '../datasources/DMPHubAPI';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { MockCache } from '../__mocks__/context';
 
 // Mock dependencies
-jest.mock('../datasources/dmphubAPI');
-jest.mock('../datasources/dmptoolAPI');
+jest.mock('../datasources/DMPHubAPI');
 jest.mock('../datasources/mySQLDataSource');
 jest.mock('../logger');
 
@@ -40,8 +39,8 @@ describe('buildContext', () => {
     jest.clearAllMocks();
   });
 
-  it('should return a valid context with provided cache and token', () => {
-    const context = buildContext(loggerMock, cacheMock, tokenMock);
+  it('should return a valid context with provided cache and token', async () => {
+    const context = await buildContext(loggerMock, cacheMock, tokenMock);
 
     expect(context.cache).toEqual(cacheMock);
     expect(context.requestId).toBeTruthy();
@@ -55,8 +54,8 @@ describe('buildContext', () => {
     expect(MySQLDataSource.getInstance).toHaveBeenCalled();
   });
 
-  it('should return a valid context with default cache when cache is null', () => {
-    const context = buildContext(loggerMock, null, tokenMock); // Passing null for cache
+  it('should return a valid context with default cache when cache is null', async () => {
+    const context = await buildContext(loggerMock, null, tokenMock); // Passing null for cache
 
     expect(context.cache).toBeTruthy();
     expect(context.requestId).toBeTruthy();
@@ -69,8 +68,8 @@ describe('buildContext', () => {
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: { skipCache: true }, token: tokenMock });
   });
 
-  it('should return a valid context with null token when token is null', () => {
-    const context = buildContext(loggerMock, cacheMock, null); // Passing null for token
+  it('should return a valid context with null token when token is null', async () => {
+    const context = await buildContext(loggerMock, cacheMock, null); // Passing null for token
 
     expect(context.cache).toEqual(cacheMock);
     expect(context.requestId).toBeTruthy();
@@ -83,13 +82,13 @@ describe('buildContext', () => {
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: cacheMock, token: null });
   });
 
-  it('should log and return null when an error occurs', () => {
+  it('should log and return null when an error occurs', async () => {
     // Simulate an error when creating the DMPHubAPI instance
     (DMPHubAPI as jest.Mock).mockImplementationOnce(() => {
       throw new Error('API initialization error');
     });
 
-    const context = buildContext(loggerMock, cacheMock, tokenMock);
+    const context = await buildContext(loggerMock, cacheMock, tokenMock);
 
     expect(context).toBeNull();
 
@@ -100,7 +99,7 @@ describe('buildContext', () => {
     );
   });
 
-  it('should log to console when logger is null and an error occurs', () => {
+  it('should log to console when logger is null and an error occurs', async () => {
     console.log = jest.fn(); // Mock console.log
 
     // Simulate an error when creating the DMPHubAPI instance
@@ -108,7 +107,7 @@ describe('buildContext', () => {
       throw new Error('API initialization error');
     });
 
-    const context = buildContext(null, cacheMock, tokenMock); // Passing null for logger
+    const context = await buildContext(null, cacheMock, tokenMock); // Passing null for logger
 
     expect(context).toBeNull();
 
