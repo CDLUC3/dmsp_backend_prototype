@@ -10,7 +10,7 @@ import { sendEmailConfirmationNotification } from "../../services/emailService";
 let context;
 let mockUser;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
   mockUser = new User({
@@ -22,7 +22,7 @@ beforeEach(() => {
     acceptedTerms: true,
   });
 
-  context = buildContext(logger, mockToken(mockUser));
+  context = await buildContext(logger, mockToken(mockUser));
 });
 
 afterEach(() => {
@@ -206,8 +206,8 @@ describe('confirmEmail', () => {
   let mockUpdateTemplateCollaborator;
   let mockDelete;
 
-  beforeEach(() => {
-    context = buildContext(logger);
+  beforeEach(async () => {
+    context = await buildContext(logger);
 
     mockUserEmail = new UserEmail({ id: casual.integer(1, 99), email: mockUser.email, userId: mockUser.id });
 

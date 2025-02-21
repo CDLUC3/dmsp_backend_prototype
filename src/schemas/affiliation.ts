@@ -9,7 +9,7 @@ export const typeDefs = gql`
     "Retrieve a specific Affiliation by its URI"
     affiliationByURI(uri: String!): Affiliation
     "Perform a search for Affiliations matching the specified name"
-    affiliations(name: String!, funderOnly: Boolean): [AffiliationSearch]
+    affiliations(name: String!, funderOnly: Boolean): [AffiliationSearch] @cacheControl(maxAge: 600)
   }
 
   extend type Mutation {

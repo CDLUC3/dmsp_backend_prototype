@@ -30,7 +30,7 @@ let mockDelete;
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
   affiliationId = casual.url;
@@ -45,7 +45,7 @@ beforeEach(() => {
     role: UserRole.ADMIN,
   });
 
-  context = buildContext(logger, mockToken(adminUser));
+  context = await buildContext(logger, mockToken(adminUser));
 
   const mockSendEmail = jest.fn().mockReturnValue(true);
   (sendEmailConfirmationNotification as jest.Mock) = mockSendEmail;

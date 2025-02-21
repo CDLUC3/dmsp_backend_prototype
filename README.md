@@ -27,6 +27,7 @@
     - [Models](#models)
     - [Mocks](#mocks)
     - [Internationalization / Language support](#languages)
+    - [Inspecting the Cache](#inspecting-the-cache)
     - [Tests](#tests)
 - [Environment variables](#environment-variables)
 - [Routes](#routes)
@@ -471,6 +472,15 @@ Note that mocks will refresh each time the server is restarted!
 The languages supported by the system can be found in the `src/models/language.ts` file.
 
 TODO: update with documentation on how to provide translation support for DB based text
+
+### Inspecting the Cache
+
+You can inspect the contents of the cache when running in the local dev environment by running `redis-cli` commands within the docker container.
+
+- CSRF tokens: `redis-cli -h redis --raw KEYS "*:{csrf}:*"`
+- Refresh tokens: `redis-cli -h redis --raw KEYS "*:{dmspr}:*"`
+- Apollo cache items: `redis-cli -h redis --raw KEYS "*:fqc:*"`
+
 
 ### Tests
 

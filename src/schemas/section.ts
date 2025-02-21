@@ -18,7 +18,7 @@ export const typeDefs = gql`
   }
 
   "A Section that contains a list of questions in a template"
-  type Section {
+  type Section @cacheControl(inheritMaxAge: true) {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"

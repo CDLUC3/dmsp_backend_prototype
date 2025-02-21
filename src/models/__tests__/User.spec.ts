@@ -94,7 +94,7 @@ describe('prepForSave standardizes the format of properties', () => {
 });
 
 describe('validate a new User', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     mockUser = new User({
@@ -108,9 +108,9 @@ describe('validate a new User', () => {
       acceptedTerms: true,
     });
 
-    mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
+    mockContext = await buildContext as jest.MockedFunction<typeof buildContext>;
 
-    const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
+    const mockSqlDataSource = (await buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
   })
 
@@ -227,10 +227,10 @@ describe('Password validation', () => {
 describe('authCheck', () => {
   let bcryptCompare;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    mockContext = buildContext(logger, null, null);
+    mockContext = await buildContext(logger, null, null);
     const mockSqlDataSource = mockContext.dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
   });
@@ -296,10 +296,10 @@ describe('recordLogIn', () => {
 
   let user;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     user = new User({
       id: casual.integer(1, 9),
@@ -334,16 +334,16 @@ describe('login()', () => {
   let mockAuthCheck;
   let mockUpdate;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockAuthCheck = jest.fn();
     (User.authCheck as jest.Mock) = mockAuthCheck;
 
-    mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
-    const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
+    mockContext = await buildContext as jest.MockedFunction<typeof buildContext>;
+    const mockSqlDataSource = (await buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
 
     mockUpdate = jest.fn().mockResolvedValue(true);
@@ -396,12 +396,12 @@ describe('register()', () => {
   const bcryptPassword = jest.fn().mockReturnValue('test.user@example.com');
   (bcrypt.hash as jest.Mock) = bcryptPassword;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
-    const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
+    const mockSqlDataSource = (await buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
   });
 
@@ -514,8 +514,8 @@ describe('update', () => {
   let updateQuery;
   let user;
 
-  beforeEach(() => {
-    context = buildContext(logger, mockToken());
+  beforeEach(async () => {
+    context = await buildContext(logger, mockToken());
 
     updateQuery = jest.fn();
     (User.update as jest.Mock) = updateQuery;
@@ -595,10 +595,10 @@ describe('updatePassword', () => {
   let mockValidator;
   let mockAuthCheck;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     oldPassword = 'Test0ldP@ssw1';
     oldPassword = 'TestN3wP@ssw2';

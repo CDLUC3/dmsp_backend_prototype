@@ -9,10 +9,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildContext(logger, mockToken());
 });
 
 afterEach(() => {
@@ -90,13 +90,13 @@ describe('findBy Queries', () => {
   let context;
   let versionedQuestionCondition;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedQuestionCondition.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     versionedQuestionCondition = new VersionedQuestionCondition({
       id: casual.integer(1, 9),
@@ -185,13 +185,13 @@ describe('findByVersionedQuestionId', () => {
   let context;
   let versionedQuestionCondition;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedQuestionCondition.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     versionedQuestionCondition = new VersionedQuestionCondition({
       versionedQuestionId: casual.integer(1, 999),

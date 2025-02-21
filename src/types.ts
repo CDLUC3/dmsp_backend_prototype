@@ -459,6 +459,10 @@ export type AnswerCommentErrors = {
   general?: Maybe<Scalars['String']['output']>;
 };
 
+export type CacheControlScope =
+  | 'PRIVATE'
+  | 'PUBLIC';
+
 /** The result of the findCollaborator query */
 export type CollaboratorSearchResult = {
   __typename?: 'CollaboratorSearchResult';
@@ -1810,6 +1814,10 @@ export type Query = {
   questions?: Maybe<Array<Maybe<Question>>>;
   /** Return the recommended Licenses */
   recommendedLicenses?: Maybe<Array<Maybe<License>>>;
+  /** Fetch a specific related work */
+  relatedWork?: Maybe<RelatedWork>;
+  /** Search for a related work */
+  relatedWorks?: Maybe<Array<Maybe<RelatedWork>>>;
   /** Search for a repository */
   repositories?: Maybe<Array<Maybe<Repository>>>;
   /** Fetch a specific repository */
@@ -2034,6 +2042,16 @@ export type QueryQuestionsArgs = {
 
 export type QueryRecommendedLicensesArgs = {
   recommended: Scalars['Boolean']['input'];
+};
+
+
+export type QueryRelatedWorkArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type QueryRelatedWorksArgs = {
+  projectId?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -2287,6 +2305,114 @@ export type QuestionTypeErrors = {
   name?: Maybe<Scalars['String']['output']>;
   usageDescription?: Maybe<Scalars['String']['output']>;
 };
+
+/** A metadata standard used when describing a research output */
+export type RelatedWork = {
+  __typename?: 'RelatedWork';
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** The related work's relationship to the research project (e.g. references, isReferencedBy, etc.) */
+  descriptor?: Maybe<RelatedWorkDescriptor>;
+  /** Errors associated with the Object */
+  errors?: Maybe<RelatedWorkErrors>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The unique identifier for the work (e.g. DOI, URL, etc. */
+  identifier?: Maybe<Scalars['String']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The type of the related work (e.g. dataset, software, etc.) */
+  workType?: Maybe<RelatedWorkType>;
+};
+
+/** Relationship types between a plan and a related work (derived from the DataCite metadata schema */
+export type RelatedWorkDescriptor =
+  | 'CITES'
+  | 'COLLECTS'
+  | 'COMPILES'
+  | 'CONTINUES'
+  | 'DESCRIBES'
+  | 'DOCUMENTS'
+  | 'HAS_METADATA'
+  | 'HAS_PART'
+  | 'HAS_TRANSLATION'
+  | 'HAS_VERSION'
+  | 'IS_CITED_BY'
+  | 'IS_COLLECTED_BY'
+  | 'IS_COMPILED_BY'
+  | 'IS_CONTINUED_BY'
+  | 'IS_DERIVED_FROM'
+  | 'IS_DESCRIBED_BY'
+  | 'IS_DOCUMENTED_BY'
+  | 'IS_IDENTICAL_TO'
+  | 'IS_METADATA_FOR'
+  | 'IS_NEW_VERSION_OF'
+  | 'IS_OBSOLETED_BY'
+  | 'IS_ORIGINAL_FORM_OF'
+  | 'IS_PART_OF'
+  | 'IS_PREVIOUS_VERSION_OF'
+  | 'IS_PUBLISHED_IN'
+  | 'IS_REFERENCED_BY'
+  | 'IS_REQUIRED_BY'
+  | 'IS_REVIEWED_BY'
+  | 'IS_SOURCE_OF'
+  | 'IS_SUPPLEMENTED_BY'
+  | 'IS_SUPPLEMENT_TO'
+  | 'IS_TRANSLATION_OF'
+  | 'IS_VARIANT_FORM_OF'
+  | 'IS_VERSION_OF'
+  | 'OBSOLETES'
+  | 'REFERENCES'
+  | 'REQUIRES'
+  | 'REVIEWS';
+
+/** A collection of errors related to the MetadataStandard */
+export type RelatedWorkErrors = {
+  __typename?: 'RelatedWorkErrors';
+  descriptor?: Maybe<Scalars['String']['output']>;
+  /** General error messages such as the object already exists */
+  general?: Maybe<Scalars['String']['output']>;
+  identifier?: Maybe<Scalars['String']['output']>;
+  workType?: Maybe<Scalars['String']['output']>;
+};
+
+/** The type of work that is related to the plan (derived from the DataCite metadata schema) */
+export type RelatedWorkType =
+  | 'AUDIOVISUAL'
+  | 'BOOK'
+  | 'BOOK_CHAPTER'
+  | 'COLLECTION'
+  | 'COMPUTATIONAL_NOTEBOOK'
+  | 'CONFERENCE_PAPER'
+  | 'CONFERENCE_PROCEEDING'
+  | 'DATASET'
+  | 'DATA_PAPER'
+  | 'DISSERTATION'
+  | 'EVENT'
+  | 'IMAGE'
+  | 'INSTRUMENT'
+  | 'INTERACTIVE_RESOURCE'
+  | 'JOURNAL'
+  | 'JOURNAL_ARTICLE'
+  | 'MODEL'
+  | 'OTHER'
+  | 'OUTPUT_MANAGEMENT_PLAN'
+  | 'PEER_REVIEW'
+  | 'PHYSICAL_OBJECT'
+  | 'PREPRINT'
+  | 'PROJECT'
+  | 'REPORT'
+  | 'SERVICE'
+  | 'SOFTWARE'
+  | 'SOUND'
+  | 'STANDARD'
+  | 'STUDY_REGISTRATION'
+  | 'TEXT'
+  | 'WORKFLOW';
 
 /** A repository where research outputs are preserved */
 export type Repository = {
@@ -3233,6 +3359,7 @@ export type ResolversTypes = {
   AnswerComment: ResolverTypeWrapper<AnswerComment>;
   AnswerCommentErrors: ResolverTypeWrapper<AnswerCommentErrors>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  CacheControlScope: CacheControlScope;
   CollaboratorSearchResult: ResolverTypeWrapper<CollaboratorSearchResult>;
   ContributorRole: ResolverTypeWrapper<ContributorRole>;
   ContributorRoleErrors: ResolverTypeWrapper<ContributorRoleErrors>;
@@ -3285,6 +3412,10 @@ export type ResolversTypes = {
   QuestionOptionInput: QuestionOptionInput;
   QuestionType: ResolverTypeWrapper<QuestionType>;
   QuestionTypeErrors: ResolverTypeWrapper<QuestionTypeErrors>;
+  RelatedWork: ResolverTypeWrapper<RelatedWork>;
+  RelatedWorkDescriptor: RelatedWorkDescriptor;
+  RelatedWorkErrors: ResolverTypeWrapper<RelatedWorkErrors>;
+  RelatedWorkType: RelatedWorkType;
   Repository: ResolverTypeWrapper<Repository>;
   RepositoryErrors: ResolverTypeWrapper<RepositoryErrors>;
   RepositorySearchInput: RepositorySearchInput;
@@ -3402,6 +3533,8 @@ export type ResolversParentTypes = {
   QuestionOptionInput: QuestionOptionInput;
   QuestionType: QuestionType;
   QuestionTypeErrors: QuestionTypeErrors;
+  RelatedWork: RelatedWork;
+  RelatedWorkErrors: RelatedWorkErrors;
   Repository: Repository;
   RepositoryErrors: RepositoryErrors;
   RepositorySearchInput: RepositorySearchInput;
@@ -3444,6 +3577,14 @@ export type ResolversParentTypes = {
   updateUserNotificationsInput: UpdateUserNotificationsInput;
   updateUserProfileInput: UpdateUserProfileInput;
 };
+
+export type CacheControlDirectiveArgs = {
+  inheritMaxAge?: Maybe<Scalars['Boolean']['input']>;
+  maxAge?: Maybe<Scalars['Int']['input']>;
+  scope?: Maybe<CacheControlScope>;
+};
+
+export type CacheControlDirectiveResolver<Result, Parent, ContextType = MyContext, Args = CacheControlDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type AffiliationResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Affiliation'] = ResolversParentTypes['Affiliation']> = {
   acronyms?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
@@ -4077,6 +4218,8 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   questionTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionType']>>>, ParentType, ContextType>;
   questions?: Resolver<Maybe<Array<Maybe<ResolversTypes['Question']>>>, ParentType, ContextType, RequireFields<QueryQuestionsArgs, 'sectionId'>>;
   recommendedLicenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, RequireFields<QueryRecommendedLicensesArgs, 'recommended'>>;
+  relatedWork?: Resolver<Maybe<ResolversTypes['RelatedWork']>, ParentType, ContextType, RequireFields<QueryRelatedWorkArgs, 'id'>>;
+  relatedWorks?: Resolver<Maybe<Array<Maybe<ResolversTypes['RelatedWork']>>>, ParentType, ContextType, Partial<QueryRelatedWorksArgs>>;
   repositories?: Resolver<Maybe<Array<Maybe<ResolversTypes['Repository']>>>, ParentType, ContextType, RequireFields<QueryRepositoriesArgs, 'input'>>;
   repository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<QueryRepositoryArgs, 'uri'>>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;
@@ -4196,6 +4339,27 @@ export type QuestionTypeErrorsResolvers<ContextType = MyContext, ParentType exte
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   usageDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type RelatedWorkResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['RelatedWork'] = ResolversParentTypes['RelatedWork']> = {
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  descriptor?: Resolver<Maybe<ResolversTypes['RelatedWorkDescriptor']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<ResolversTypes['RelatedWorkErrors']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  identifier?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  workType?: Resolver<Maybe<ResolversTypes['RelatedWorkType']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type RelatedWorkErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['RelatedWorkErrors'] = ResolversParentTypes['RelatedWorkErrors']> = {
+  descriptor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  identifier?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  workType?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4625,6 +4789,8 @@ export type Resolvers<ContextType = MyContext> = {
   QuestionOptionErrors?: QuestionOptionErrorsResolvers<ContextType>;
   QuestionType?: QuestionTypeResolvers<ContextType>;
   QuestionTypeErrors?: QuestionTypeErrorsResolvers<ContextType>;
+  RelatedWork?: RelatedWorkResolvers<ContextType>;
+  RelatedWorkErrors?: RelatedWorkErrorsResolvers<ContextType>;
   Repository?: RepositoryResolvers<ContextType>;
   RepositoryErrors?: RepositoryErrorsResolvers<ContextType>;
   ResearchDomain?: ResearchDomainResolvers<ContextType>;
@@ -4653,3 +4819,6 @@ export type Resolvers<ContextType = MyContext> = {
   VersionedTemplateErrors?: VersionedTemplateErrorsResolvers<ContextType>;
 };
 
+export type DirectiveResolvers<ContextType = MyContext> = {
+  cacheControl?: CacheControlDirectiveResolver<any, any, ContextType>;
+};

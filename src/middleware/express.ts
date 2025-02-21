@@ -6,7 +6,7 @@ import { Request } from 'express-jwt';
 import { formatLogMessage } from '../logger';
 
 export async function attachApolloServer(apolloServer: ApolloServer, cache, logger) {
-  const context = buildContext(logger, cache);
+  const context = await buildContext(logger, cache);
   formatLogMessage(context).info(null, 'Attaching Apollo server');
 
   // expressMiddleware accepts the same arguments:
@@ -14,7 +14,7 @@ export async function attachApolloServer(apolloServer: ApolloServer, cache, logg
   return expressMiddleware(apolloServer, {
     context: async ({ req }: { req: Request }) => {
       // Extract the token from the incoming request so we can pass it on to the resolvers
-      return buildContext(logger, cache, req.auth as JWTAccessToken);
+      return await buildContext(logger, cache, req.auth as JWTAccessToken);
     },
   });
 }

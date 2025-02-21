@@ -51,13 +51,13 @@ describe('findBySectionName', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -97,13 +97,13 @@ describe('findByTemplateId', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -143,13 +143,13 @@ describe('findById', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     section = new Section({
       id: casual.integer(1, 9),

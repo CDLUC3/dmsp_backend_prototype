@@ -53,13 +53,13 @@ describe('queries', () => {
   let context;
   let mockType;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockQuery = jest.fn();
     (OutputType.insert as jest.Mock) = mockQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockType = {
       id: casual.integer(1, 99),

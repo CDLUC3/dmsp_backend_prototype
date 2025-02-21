@@ -7,10 +7,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildContext(logger, mockToken());
 });
 
 afterEach(() => {
@@ -68,11 +68,11 @@ describe('findBy Queries', () => {
   let context;
   let license;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (License.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     license = new License({
       id: casual.integer(1,9999),

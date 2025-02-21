@@ -55,11 +55,11 @@ function updateStore(store: any[], tableName: string, obj: MySqlModel) {
 }
 
 describe('Integration test: Template Versioning', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     // Mock the Apollo context
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     // Fetch an item from the templateStore
     mockFindTemplateById = jest.fn().mockImplementation(async (_, __, id) => {

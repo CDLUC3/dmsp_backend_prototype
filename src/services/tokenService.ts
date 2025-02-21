@@ -169,7 +169,10 @@ const verifyRefreshToken = async (context: MyContext, refreshToken: string): Pro
       // Make sure the token hasn't been tampered with
       const storedHash = await context.cache.adapter.get(`{dmspr}:${token.jti}`);
       const calculatedHash = hashToken(refreshToken);
-      return timingSafeEqual(Buffer.from(storedHash), Buffer.from(calculatedHash)) ? token : null;
+      // If there was a storedHash
+      if (storedHash && Buffer) {
+        return timingSafeEqual(Buffer.from(storedHash), Buffer.from(calculatedHash)) ? token : null;
+      }
     }
     return null;
   } catch(err) {

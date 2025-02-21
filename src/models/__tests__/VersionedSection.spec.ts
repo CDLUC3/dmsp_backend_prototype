@@ -7,10 +7,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildContext(logger, mockToken());
 });
 
 describe('VersionedSection', () => {
@@ -43,13 +43,13 @@ describe('findBySectionId', () => {
   let context;
   let versionedSection;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     versionedSection = new VersionedSection({
       name: casual.sentence,
@@ -90,13 +90,13 @@ describe('findByName', () => {
   let context;
   let versionedSection;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     versionedSection = new VersionedSection({
       name: casual.sentence,
@@ -140,13 +140,13 @@ describe('findByTemplateId', () => {
   let context;
   let versionedSection;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     versionedSection = new VersionedSection({
       name: casual.sentence,
@@ -263,13 +263,13 @@ describe('findById', () => {
   let context;
   let versionedSection;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     versionedSection = new VersionedSection({
       name: casual.sentence,

@@ -21,10 +21,10 @@ describe('signoutController', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let context: MyContext;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken(), null);
+    context = await buildContext(logger, mockToken(), null);
 
     mockRequest = {
       auth: { jti: casual.integer(1, 99999).toString() },

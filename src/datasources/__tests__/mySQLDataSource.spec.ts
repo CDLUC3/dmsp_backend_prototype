@@ -46,8 +46,8 @@ describe('MySQLDataSource', () => {
       await MySQLDataSource.removeInstance();
     });
 
-    it('should log an error and throw if pool creation fails', () => {
-      const context = buildContext(logger);
+    it('should log an error and throw if pool creation fails', async () => {
+      const context = await buildContext(logger);
       (mysql.createPool as jest.Mock).mockImplementationOnce(() => {
         throw new Error('Failed to create pool');
       });
@@ -82,9 +82,9 @@ describe('MySQLDataSource', () => {
     });
   });
 
-  describe('query', () => {
+  describe('query', async () => {
     it('should execute a SQL query and return rows', async () => {
-      const context = buildContext(logger);
+      const context = await buildContext(logger);
       const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = [' 1 ']; // Simulate a value that needs trimming
@@ -97,7 +97,7 @@ describe('MySQLDataSource', () => {
     });
 
     it('should log an error and throw if query execution fails', async () => {
-      const context = buildContext(logger);
+      const context = await buildContext(logger);
       const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = ['1'];

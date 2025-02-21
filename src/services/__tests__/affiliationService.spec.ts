@@ -16,10 +16,10 @@ let mockFindById;
 let mockFindByName;
 let mockInsert;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildContext(logger, mockToken());
 
   affiliationStore = [];
 

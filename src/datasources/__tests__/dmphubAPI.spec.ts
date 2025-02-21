@@ -96,7 +96,7 @@ describe('DMPHubAPI', () => {
 
   describe('getDMSP', () => {
     it('should log and call RESTDataSource.get with the correct DMSP ID', async () => {
-      const context = buildContext(logger);
+      const context = await buildContext(logger);
       const mockResponse = {
         status: 200,
         items: [{ dmp: { id: '123' } }],
@@ -125,7 +125,7 @@ describe('DMPHubAPI', () => {
     });
 
     it('should handle errors gracefully and log them', async () => {
-      const context = buildContext(logger);
+      const context = await buildContext(logger);
       const mockError = new Error('API error');
       mockGet.mockRejectedValue(mockError);
 

@@ -7,10 +7,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildContext(logger, mockToken());
 });
 
 afterEach(() => {
@@ -85,11 +85,11 @@ describe('findBy Queries', () => {
   let context;
   let domain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (ResearchDomain.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     domain = new ResearchDomain({
       name: casual.company_name,
@@ -406,10 +406,10 @@ describe('addToRepository', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -448,10 +448,10 @@ describe('addToMetadataStandard', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -490,10 +490,10 @@ describe('removeFromRepository', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -530,10 +530,10 @@ describe('removeFromMetadataStandard', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),

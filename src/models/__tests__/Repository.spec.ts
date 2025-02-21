@@ -8,10 +8,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildContext(logger, mockToken());
 });
 
 afterEach(() => {
@@ -84,13 +84,13 @@ describe('findBy Queries', () => {
   let context;
   let repo;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Repository.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     repo = new Repository({
       id: casual.integer(1, 9999),
@@ -466,10 +466,10 @@ describe('addToProjectOutput', () => {
   let context;
   let mockRepository;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockRepository = new Repository({
       id: casual.integer(1, 99),
@@ -508,10 +508,10 @@ describe('removeFromProjectOutput', () => {
   let context;
   let mockRepository;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     mockRepository = new Repository({
       id: casual.integer(1, 99),

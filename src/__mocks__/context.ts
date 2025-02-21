@@ -119,9 +119,14 @@ export const mockDataSources = {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-export function buildContext(logger: Logger, token: JWTAccessToken = null, cache: any = null): MyContext {
+export async function buildContext(
+  logger: Logger,
+  token: JWTAccessToken = null,
+  cache: any = null
+): Promise<MyContext> {
   return {
     cache: cache,
+    cacheEvictor: null,
     token: token,
     logger: logger,
     requestId: casual.rgb_hex,

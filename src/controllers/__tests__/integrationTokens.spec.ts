@@ -113,10 +113,10 @@ beforeAll(async () => {
   app.use('/', router);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks();
 
-  context = buildContext(logger, mockToken(), mockCache);
+  context = await buildContext(logger, mockToken(), mockCache);
 
   mockedUserData = {
     email: casual.email,
@@ -174,7 +174,7 @@ describe('Sign up', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -255,7 +255,7 @@ describe('Sign in', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -327,7 +327,7 @@ describe('Sign out', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -475,7 +475,7 @@ describe('token refresh', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -647,7 +647,7 @@ describe('protected endpoint access', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];

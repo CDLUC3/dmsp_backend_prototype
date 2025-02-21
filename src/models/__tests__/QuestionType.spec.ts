@@ -30,13 +30,13 @@ describe('default', () => {
   let context;
   let questionType;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (QuestionType.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     questionType = new QuestionType({
       id: casual.integer(1, 9),

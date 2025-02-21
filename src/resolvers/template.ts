@@ -15,14 +15,19 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { cacheControlFromInfo } from '@apollo/cache-control-types';
 
 export const resolvers: Resolvers = {
   Query: {
     // Get the Templates that belong to the current user's affiliation (user must be an Admin)
-    myTemplates: async (_, __, context: MyContext): Promise<Template[]> => {
+    myTemplates: async (_, __, context: MyContext, info): Promise<Template[]>  => {
       const reference = 'myTemplates resolver';
       try {
         if (isAdmin(context.token)) {
+          // Access ApolloServerPluginCacheControl's extension of the GraphQLResolveInfo object
+          const cacheControl = cacheControlFromInfo(info)
+          cacheControl.setCacheHint({ maxAge: 60, scope: 'PRIVATE' });
+
           return await Template.findByAffiliationId(reference, context, context.token.affiliationId);
         }
         // Unauthorized!

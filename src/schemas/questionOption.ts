@@ -18,7 +18,7 @@ extend type Mutation {
   }
 
 "QuestionOption always belongs to a Question"
-type QuestionOption {
+type QuestionOption @cacheControl(inheritMaxAge: true) {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"

@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Returns the currently logged in user's information"
-    me: User
+    me: User @cacheControl(maxAge: 6000, scope: PUBLIC)
     "Returns all of the users associated with the current user's affiliation (Admin only)"
     users: [User]
     "Returns the specified user (Admin only)"
@@ -52,7 +52,7 @@ export const typeDefs = gql`
   }
 
   "A user of the DMPTool"
-  type User {
+  type User @cacheControl(maxAge: 60, scope: PUBLIC) {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"

@@ -177,11 +177,11 @@ describe('generateCSRFToken', () => {
 });
 
 describe('generateAuthTokens', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
   });
 
   it('should generate access and refresh tokens', async () => {
@@ -286,11 +286,11 @@ describe('isRevokedCallback', () => {
 describe('refreshAccessToken', () => {
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
   });
 
   it('should refresh the access token if refresh token is valid', async () => {
@@ -364,11 +364,11 @@ describe('refreshAccessToken', () => {
 });
 
 describe('revokeRefreshToken', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
   });
 
   it('should delete the token from the cache', async () => {
@@ -393,11 +393,11 @@ describe('revokeRefreshToken', () => {
 });
 
 describe('revokeAccessToken', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildContext(logger, mockToken(), mockCache);
   });
 
   it('should add the token to the cache black list', async () => {

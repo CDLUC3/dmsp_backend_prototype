@@ -248,7 +248,7 @@ export class User extends MySqlModel {
                       (email, password, role, givenName, surName, affiliationId, acceptedTerms) \
                      VALUES(?, ?, ?, ?, ?, ?, ?)`;
         const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
-        const context = buildContext(logger);
+        const context = await buildContext(logger);
         formatLogMessage(context)?.debug({ email: this.email }, 'User.register');
         const result = await User.query(context, sql, vals, 'User.register');
 

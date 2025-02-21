@@ -19,9 +19,11 @@ jest.mock('../config/awsConfig', () => ({
 jest.mock('../config/cacheConfig', () => ({
   cacheConfig: {
     host: 'localhost',
-    port: '6379'
+    port: '6379',
+    connectTimeout: 30000,
+    autoFailoverEnabled: 'false',
+    cacheNamespace: 'apollo-srvr',
   },
-  cacheTLS: 'redis://localhost:123'
 }));
 
 jest.mock('../config/emailConfig', () => ({

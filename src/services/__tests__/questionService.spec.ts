@@ -21,10 +21,10 @@ jest.mock('../../context.ts');
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildContext(logger, mockToken());
 });
 
 afterEach(() => {

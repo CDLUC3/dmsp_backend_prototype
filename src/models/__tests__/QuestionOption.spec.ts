@@ -38,13 +38,13 @@ describe('findBy Queries', () => {
   let context;
   let questionOption;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (QuestionOption.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildContext(logger, mockToken());
 
     questionOption = new QuestionOption({
       id: 10,

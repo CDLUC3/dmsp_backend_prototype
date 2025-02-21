@@ -9,7 +9,6 @@ import { healthcheck } from './controllers/healthcheck';
 import { attachApolloServer } from './middleware/express';
 import router from './router';
 import { MySQLDataSource } from './datasources/mySQLDataSource';
-import { Cache } from './datasources/cache';
 import { verifyCriticalEnvVariable } from './utils/helpers';
 import corsConfig from './config/corsConfig';
 import { authMiddleware } from './middleware/auth';
@@ -26,7 +25,6 @@ const app = express();
 const httpServer = http.createServer(app);
 
 const apolloServer = new ApolloServer({
-  cache: Cache.getInstance().adapter,
   ...serverConfig(logger, httpServer)
 });
 
