@@ -17,7 +17,6 @@ CREATE TABLE `questions` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (templateId) REFERENCES templates(id) ON DELETE CASCADE,
   FOREIGN KEY (sectionId) REFERENCES sections(id) ON DELETE CASCADE,
-  FOREIGN KEY (questionTypeId) REFERENCES questionTypes(id),
   FOREIGN KEY (createdById) REFERENCES users(id),
   FOREIGN KEY (modifiedById) REFERENCES users(id),
   INDEX questions_section_idx (`sectionId`, `displayOrder`),

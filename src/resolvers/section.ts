@@ -76,7 +76,7 @@ export const resolvers: Resolvers = {
           if (copyFromVersionedSectionId) {
             const original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
 
-            if (!original)  {
+            if (!original) {
               throw NotFoundError('Unable to copy the specified section');
             }
 
@@ -111,6 +111,13 @@ export const resolvers: Resolvers = {
             if (addTagErrors.length > 0) {
               newSection.addError('tags', `Section created but we were unable to assign tags: ${addTagErrors.join(', ')}`);
             }
+          }
+
+          // Update the associated template to set isDirty=1
+          const template = await Template.findById('Section resolver - addSection', context, templateId);
+          if (template) {
+            template.isDirty = true;
+            await template.update(context);
           }
 
           // Return newly created section with tags
@@ -220,6 +227,13 @@ export const resolvers: Resolvers = {
             updatedSection.addError('tags', `Saved but we were unable to assign tags: ${addTagErrors.join(', ')}`);
           }
 
+          // Update the associated template to set isDirty=1
+          const template = await Template.findById('Section resolver - updateSection', context, sectionData.templateId);
+          if (template) {
+            template.isDirty = true;
+            await template.update(context);
+          }
+
           // Return newly updated section with tags
           return updatedSection.hasErrors() ? updatedSection : await Section.findById(reference, context, updatedSection.id);
         }
@@ -253,6 +267,14 @@ export const resolvers: Resolvers = {
           if (!deleted || deleted.hasErrors()) {
             section.addError('general', 'Unable to delete the section');
           }
+
+          // Update the associated template to set isDirty=1
+          const template = await Template.findById('Section resolver - removeSection', context, sectionData.templateId);
+          if (template) {
+            template.isDirty = true;
+            await template.update(context);
+          }
+
           return section.hasErrors() ? section : deleted;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
