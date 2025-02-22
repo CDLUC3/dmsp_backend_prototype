@@ -18,7 +18,7 @@ extend type Mutation {
   }
 
 "Question always belongs to a Section, which always belongs to a Template"
-type Question @cacheControl(inheritMaxAge: true) {
+type Question {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"

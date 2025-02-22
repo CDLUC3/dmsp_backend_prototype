@@ -7,7 +7,7 @@ import { buildContext } from '../context';
 
 export const signoutController = async (req: Request, res: Response) => {
   const cache = Cache.getInstance();
-  const context = await buildContext(logger, cache);
+  const context = buildContext(logger, cache);
 
   try {
     // For some reason req.auth is `undefined` here even though authMiddleware is called.

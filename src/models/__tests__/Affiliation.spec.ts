@@ -92,10 +92,10 @@ describe('findById', () => {
   let context;
   let affiliation;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 9),
@@ -142,7 +142,7 @@ describe('create', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     insertQuery = jest.fn();
     (Affiliation.insert as jest.Mock) = insertQuery;
@@ -215,7 +215,7 @@ describe('update', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 999),
@@ -270,7 +270,7 @@ describe('delete', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 99),
@@ -315,7 +315,7 @@ describe('findByURI', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 9),
@@ -363,7 +363,7 @@ describe('findByName', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     affiliation = new Affiliation({
       id: casual.integer(1, 9),
@@ -435,7 +435,7 @@ describe('search', () => {
     localQuery = jest.fn();
     (Affiliation.query as jest.Mock) = localQuery;
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     affiliationSearch = new AffiliationSearch({
       id: casual.integer(1, 9),

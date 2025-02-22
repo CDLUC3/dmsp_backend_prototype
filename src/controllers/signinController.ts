@@ -9,7 +9,7 @@ import { buildContext } from '../context';
 export const signinController = async (req: Request, res: Response) => {
   const userIn = new User(req.body);
   const cache = Cache.getInstance();
-  const context = await buildContext(logger, cache);
+  const context = buildContext(logger, cache);
 
   try {
     const user = await userIn.login(context) || null;

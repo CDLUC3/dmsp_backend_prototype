@@ -1,5 +1,5 @@
 import nock from 'nock';
-import { DMPHubAPI, Authorizer } from '../DMPHubAPI';
+import { DMPHubAPI, Authorizer } from '../dmphubAPI';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
@@ -109,9 +109,9 @@ describe('DMPToolAPI', () => {
     });
   });
 
-  describe('getDMP', async () => {
+  describe('getDMP', () => {
     it('should call get with the correct dmpId and the latest version by default', async () => {
-      const context = await buildContext(logger, mockToken(), new MockCache());
+      const context = buildContext(logger, mockToken(), new MockCache());
       const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
@@ -130,7 +130,7 @@ describe('DMPToolAPI', () => {
     });
 
     it('should call get with the correct dmpId and the specified version', async () => {
-      const context = await buildContext(logger, mockToken(), new MockCache());
+      const context = buildContext(logger, mockToken(), new MockCache());
       const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
@@ -149,7 +149,7 @@ describe('DMPToolAPI', () => {
     });
 
     it('should throw and error when get fails', async () => {
-      const context = await buildContext(logger);
+      const context = buildContext(logger);
       const dmpId = '11.22222/3C4D5E6G';
       const mockError = new Error('API error');
       //mockGet.mockRejectedValue(mockError);

@@ -20,10 +20,10 @@ describe('refreshTokenController', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let context
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
-    context = await buildContext(logger, mockToken(), null);
+    context = buildContext(logger, mockToken(), null);
 
     mockRequest = {
       auth: { jti: casual.integer(1, 99999).toString(), id: casual.integer(1, 999) },

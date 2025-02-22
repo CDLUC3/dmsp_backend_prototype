@@ -18,6 +18,7 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken, MockCache } from "../../__mocks__/context";
 
 jest.mock('../../datasources/cache');
+jest.mock('../../datasources/dmphubAPI');
 
 let context;
 
@@ -113,10 +114,10 @@ beforeAll(async () => {
   app.use('/', router);
 });
 
-beforeEach(async () => {
+beforeEach(() => {
   jest.clearAllMocks();
 
-  context = await buildContext(logger, mockToken(), mockCache);
+  context = buildContext(logger, mockToken(), mockCache);
 
   mockedUserData = {
     email: casual.email,
@@ -174,7 +175,7 @@ describe('Sign up', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = await buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -229,12 +230,9 @@ describe('Sign up', () => {
     expect(resp.body).toEqual({ success: false, message: Object.values(registeredUser.errors).join(' | ') });
   });
 
-  it.only('POST /apollo-signup should NOT generate access token and refresh token cookies on failure', async () => {
+  it('POST /apollo-signup should NOT generate access token and refresh token cookies on failure', async () => {
     // Simulate a fatal register failure
     (mockedUser.register as jest.Mock).mockResolvedValueOnce(null);
-
-console.log('here')
-console.log(context.dataSources.dmphubAPIDataSource)
 
     const resp = await request(app)
       .post('/apollo-signup')
@@ -258,7 +256,7 @@ describe('Sign in', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = await buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -330,7 +328,7 @@ describe('Sign out', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = await buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -452,7 +450,7 @@ describe('Sign out', () => {
 
     // Get the JTI from the token so we can add it to the blacklist
     const jwt = verifyAccessToken(context, accessToken);
-    await context.cache.adapter.set(`{dmspbl}:${jwt.jti}`, 'testing revocation', {});
+    context.cache.adapter.set(`{dmspbl}:${jwt.jti}`, 'testing revocation', {});
 
     // Try a signout
     const signoutResp = await request(app)
@@ -478,7 +476,7 @@ describe('token refresh', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = await buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -650,7 +648,7 @@ describe('protected endpoint access', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = await buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -757,7 +755,7 @@ describe('protected endpoint access', () => {
 
     // Get the JTI from the token so we can add it to the blacklist
     const jwt = verifyAccessToken(context, accessToken);
-    await context.cache.adapter.set(`{dmspbl}:${jwt.jti}`, 'testing revocation', {});
+    context.cache.adapter.set(`{dmspbl}:${jwt.jti}`, 'testing revocation', {});
 
     const protectedResp = await request(app)
       .post('/test-protected')

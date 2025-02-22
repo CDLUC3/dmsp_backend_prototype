@@ -67,10 +67,10 @@ describe('addToProjectContributor', () => {
   let context;
   let mockRole;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     mockRole = new ContributorRole({
       id: casual.integer(1, 99),
@@ -109,10 +109,10 @@ describe('removeFromProjectContributor', () => {
   let context;
   let mockRole;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     mockRole = new ContributorRole({
       id: casual.integer(1, 99),
@@ -151,13 +151,13 @@ describe('queries', () => {
   let context;
   let mockRole;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
 
     mockQuery = jest.fn();
     (ContributorRole.insert as jest.Mock) = mockQuery;
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     mockRole = {
       id: casual.integer(1, 99),
@@ -192,7 +192,7 @@ describe('queries', () => {
     const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce([mockRole]);
     await ContributorRole.findByURL('Testing', context, contributorRoleUrl);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'SELECT * FROM contributorRoles WHERE url = ?';
+    const expectedSql = 'SELECT * FROM contributorRoles WHERE uri = ?';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [contributorRoleUrl], 'Testing')
   });
 

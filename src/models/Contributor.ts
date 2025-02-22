@@ -3,7 +3,6 @@ import { validateOrcid } from "../resolvers/scalars/orcid";
 import { capitalizeFirstLetter, stripIdentifierBaseURL, validateEmail } from "../utils/helpers";
 import { ContributorRole } from "./ContributorRole";
 import { MySqlModel } from "./MySqlModel";
-import { DMPContributor } from "./DMP";
 
 export class ProjectContributor extends MySqlModel {
   public projectId: number;

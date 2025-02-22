@@ -3,7 +3,6 @@ import { MyContext } from '../context';
 import { validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
-import { mysqlGeneralConfig } from "../config/mysqlConfig";
 
 type MixedArray<T> = T[];
 

@@ -4,7 +4,6 @@ import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
 import { MyContext } from '../../context';
 import { mysqlGeneralConfig } from '../../config/mysqlConfig';
-import { mock } from '../../mocks/affiliation';
 
 jest.mock('mysql2/promise');
 jest.mock('../../context');
@@ -27,12 +26,12 @@ describe('MySQLDataSource', () => {
   let mockPool: mysql.Pool;
   let mockConnection: mysql.PoolConnection;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
     mysqlGeneralConfig.queryCacheEnabled = false;
 
-    context = await buildContext(logger, mockToken(), MockCache.getInstance());
+    context = buildContext(logger, mockToken(), MockCache.getInstance());
 
     // Mock cache methods
     context.cache.adapter.get = jest.fn().mockResolvedValue(null);
@@ -60,8 +59,8 @@ describe('MySQLDataSource', () => {
 
   describe('getInstance', () => {
     it('should create a singleton instance', async () => {
-      const instance1 = MySQLDataSource.getInstance({ cache: context.cache.adapter });
-      const instance2 = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance1 = MySQLDataSource.getInstance();
+      const instance2 = MySQLDataSource.getInstance();
 
       expect(instance1).toBe(instance2);
       expect(mysql.createPool).toHaveBeenCalledTimes(1);
@@ -69,12 +68,12 @@ describe('MySQLDataSource', () => {
     });
 
     it('should log an error and throw if pool creation fails', async () => {
-      const context = await buildContext(logger, mockToken(), MockCache.getInstance());
+      const context = buildContext(logger, mockToken(), MockCache.getInstance());
       (mysql.createPool as jest.Mock).mockImplementationOnce(() => {
         throw new Error('Failed to create pool');
       });
 
-      expect(() => MySQLDataSource.getInstance({ cache: context.cache.adapter })).toThrow('Failed to create pool');
+      expect(() => MySQLDataSource.getInstance()).toThrow('Failed to create pool');
       expect(formatLogMessage(context).error).toHaveBeenCalledWith(
         'Unable to establish the MySQL connection pool.'
       );
@@ -83,7 +82,7 @@ describe('MySQLDataSource', () => {
 
   describe('getConnection', () => {
     it('should retrieve a connection from the pool', async () => {
-      const instance = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance = MySQLDataSource.getInstance();
       const connection = await instance.getConnection();
 
       expect(connection).toBe(mockConnection);
@@ -94,7 +93,7 @@ describe('MySQLDataSource', () => {
 
   describe('releaseConnection', () => {
     it('should release the connection', async () => {
-      const instance = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance = MySQLDataSource.getInstance();
       await instance.getConnection();
       await instance.releaseConnection();
 
@@ -107,7 +106,7 @@ describe('MySQLDataSource', () => {
   describe('query', () => {
     it('should execute a SQL query and return rows', async () => {
       mysqlGeneralConfig.queryCacheEnabled = false;
-      const instance = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = [' 1 ']; // Simulate a value that needs trimming
 
@@ -120,7 +119,7 @@ describe('MySQLDataSource', () => {
 
     it('should log an error and throw if query execution fails', async () => {
       mysqlGeneralConfig.queryCacheEnabled = false;
-      const instance = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = ['1'];
 
@@ -134,7 +133,7 @@ describe('MySQLDataSource', () => {
 
   describe('close', () => {
     it('should close the MySQL connection pool', async () => {
-      const instance = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance = MySQLDataSource.getInstance();
 
       await instance.close();
 
@@ -145,20 +144,20 @@ describe('MySQLDataSource', () => {
 
   describe('removeInstance', () => {
     it('should remove and close the singleton instance', async () => {
-      const instance = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance = MySQLDataSource.getInstance();
       const closeSpy = jest.spyOn(instance, 'close');
 
       await MySQLDataSource.removeInstance();
 
       expect(closeSpy).toHaveBeenCalled();
-      expect(MySQLDataSource.getInstance({ cache: context.cache.adapter })).not.toBe(instance);
+      expect(MySQLDataSource.getInstance()).not.toBe(instance);
       await MySQLDataSource.removeInstance();
     });
   });
 
   describe.only('SIGTERM handler', () => {
     it('should gracefully close the connection pool on SIGTERM', async () => {
-      const instance = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance = MySQLDataSource.getInstance();
       const closeSpy = jest.spyOn(instance, 'close').mockResolvedValue();
       const releaseSpy = jest.spyOn(instance, 'releaseConnection').mockResolvedValue();
 
@@ -176,7 +175,7 @@ describe('MySQLDataSource', () => {
     });
 
     it('should handle errors when closing the pool on SIGTERM', async () => {
-      const instance = MySQLDataSource.getInstance({ cache: context.cache.adapter });
+      const instance = MySQLDataSource.getInstance();
       const closeSpy = jest.spyOn(instance, 'close').mockRejectedValue(new Error('Close failed'));
       const releaseSpy = jest.spyOn(instance, 'releaseConnection').mockResolvedValue();
 

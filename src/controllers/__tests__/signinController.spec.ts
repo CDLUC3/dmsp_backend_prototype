@@ -68,10 +68,10 @@ describe('signinController', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let context;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
-    context = await buildContext(logger, mockToken(), null);
+    context = buildContext(logger, mockToken(), null);
 
     mockRequest = {
       body: {

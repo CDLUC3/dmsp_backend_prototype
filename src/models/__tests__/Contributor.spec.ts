@@ -9,10 +9,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(async () => {
+beforeEach(() => {
   jest.resetAllMocks();
 
-  context = await buildContext(logger, mockToken());
+  context = buildContext(logger, mockToken());
 });
 
 afterEach(() => {
@@ -88,11 +88,11 @@ describe('findBy Queries', () => {
   let context;
   let projectContributor;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     localQuery = jest.fn();
     (ProjectContributor.query as jest.Mock) = localQuery;
 
-    context = await buildContext(logger, mockToken());
+    context = buildContext(logger, mockToken());
 
     projectContributor = new ProjectContributor({
       projectId: casual.integer(1, 999),

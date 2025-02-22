@@ -10,7 +10,7 @@ export const refreshTokenController = async (req: Request, res: Response) => {
 
   if (refreshToken) {
     const cache = Cache.getInstance();
-    const context = await buildContext(logger, cache);
+    const context = buildContext(logger, cache);
 
     try {
       const newAccessToken = await refreshAccessToken(context, refreshToken);

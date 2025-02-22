@@ -1,6 +1,4 @@
-import * as crypto from 'crypto';
 import * as mysql from 'mysql2/promise';
-import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { mysqlGeneralConfig, mysqlPoolConfig } from "../config/mysqlConfig";
 import { logger, formatLogMessage } from '../logger';
 import { MyContext } from '../context';
@@ -17,7 +15,6 @@ export interface PoolConfig {
 // Singleton MySQL Connection Pool
 export class MySQLDataSource {
   private static instance: MySQLDataSource;
-  private cache: KeyValueCache;
 
   public pool: mysql.Pool;
 
@@ -35,9 +32,7 @@ export class MySQLDataSource {
   }
 
   // Create a new connection pool
-  private constructor(options: { cache: KeyValueCache }) {
-    this.cache = options.cache;
-
+  private constructor() {
     logger.info('Establishing MySQL connection pool ...');
 
     try {
@@ -72,9 +67,9 @@ export class MySQLDataSource {
   }
 
   // Retrieve the instance of this class
-  public static getInstance(options: { cache: KeyValueCache }): MySQLDataSource {
+  public static getInstance(): MySQLDataSource {
     if (!MySQLDataSource.instance) {
-      MySQLDataSource.instance = new MySQLDataSource(options);
+      MySQLDataSource.instance = new MySQLDataSource();
     }
     return MySQLDataSource.instance;
   }

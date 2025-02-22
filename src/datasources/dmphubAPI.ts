@@ -41,9 +41,6 @@ export class Authorizer extends RESTDataSource {
 
   // Call the authenticate method and set this class' expiry timestamp
   async authenticate() {
-
-console.log(this.post)
-
     const response = await this.post(`/oauth2/token`);
 
     logger.info(`Authenticating with DMPHub`);

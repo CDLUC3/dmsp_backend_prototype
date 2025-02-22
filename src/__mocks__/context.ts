@@ -1,14 +1,11 @@
 import { Logger } from "pino";
 import { JWTAccessToken } from "../services/tokenService";
 import { MyContext } from "../context";
-import { Authorizer, DMPHubAPI } from "../datasources/DMPHubAPI";
+import { Authorizer, DMPHubAPI } from "../datasources/dmphubAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";
 import { User, UserRole } from "../models/User";
 import casual from "casual";
 import { defaultLanguageId } from "../models/Language";
-
-// jest.mock('../datasources/DMPHubAPI');
-// jest.mock('../datasources/mySQLDataSource');
 
 jest.mock('../datasources/mySQLDataSource', () => {
   return {
@@ -82,18 +79,7 @@ export class MockCache {
   }
 }
 
-const mockedMysqlInstance = MySQLDataSource.getInstance({ cache: MockCache.getInstance().adapter});
-
-/*export class MockDMPHubAPI extends DMPHubAPI {
-  // Mocking the public methods
-  getDMP = jest.fn();
-  handleResponse = jest.fn();
-  willSendRequest = jest.fn();
-  baseURL = '';
-
-  // Mocking the private properties
-  removeProtocol = jest.fn();
-}*/
+const mockedMysqlInstance = MySQLDataSource.getInstance();
 
 // Generate a mock user
 export const mockUser = (
@@ -127,15 +113,10 @@ export const mockDataSources = {
   sqlDataSource: mockedMysqlInstance,
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-export async function buildContext(
-  logger: Logger,
-  token: JWTAccessToken = null,
-  cache: any = null
-): Promise<MyContext> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buildContext(logger: Logger, token: JWTAccessToken = null, cache: any = null): MyContext {
   return {
     cache: cache,
-    cacheEvictor: null,
     token: token,
     logger: logger,
     requestId: casual.rgb_hex,

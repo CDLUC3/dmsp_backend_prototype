@@ -1,7 +1,5 @@
 import { MyContext } from "../context";
-import { Affiliation, DEFAULT_ROR_AFFILIATION_URL } from "./Affiliation";
 import { MySqlModel } from "./MySqlModel";
-import { DMPFunding, DMPFundingStatus } from "./DMP";
 
 export enum ProjectFunderStatus {
   PLANNED = 'PLANNED', // The project has not yet applied for the grant

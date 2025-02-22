@@ -1,5 +1,5 @@
 import { buildContext } from '../context';
-import { DMPHubAPI } from '../datasources/DMPHubAPI';
+import { DMPHubAPI } from '../datasources/dmphubAPI';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { MockCache } from '../__mocks__/context';
 
@@ -40,7 +40,7 @@ describe('buildContext', () => {
   });
 
   it('should return a valid context with provided cache and token', async () => {
-    const context = await buildContext(loggerMock, cacheMock, tokenMock);
+    const context = buildContext(loggerMock, cacheMock, tokenMock);
 
     expect(context.cache).toEqual(cacheMock);
     expect(context.requestId).toBeTruthy();
@@ -55,7 +55,7 @@ describe('buildContext', () => {
   });
 
   it('should return a valid context with default cache when cache is null', async () => {
-    const context = await buildContext(loggerMock, null, tokenMock); // Passing null for cache
+    const context = buildContext(loggerMock, null, tokenMock); // Passing null for cache
 
     expect(context.cache).toBeTruthy();
     expect(context.requestId).toBeTruthy();
@@ -69,7 +69,7 @@ describe('buildContext', () => {
   });
 
   it('should return a valid context with null token when token is null', async () => {
-    const context = await buildContext(loggerMock, cacheMock, null); // Passing null for token
+    const context = buildContext(loggerMock, cacheMock, null); // Passing null for token
 
     expect(context.cache).toEqual(cacheMock);
     expect(context.requestId).toBeTruthy();
@@ -88,7 +88,7 @@ describe('buildContext', () => {
       throw new Error('API initialization error');
     });
 
-    const context = await buildContext(loggerMock, cacheMock, tokenMock);
+    const context = buildContext(loggerMock, cacheMock, tokenMock);
 
     expect(context).toBeNull();
 
@@ -107,7 +107,7 @@ describe('buildContext', () => {
       throw new Error('API initialization error');
     });
 
-    const context = await buildContext(null, cacheMock, tokenMock); // Passing null for logger
+    const context = buildContext(null, cacheMock, tokenMock); // Passing null for logger
 
     expect(context).toBeNull();
 

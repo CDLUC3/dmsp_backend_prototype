@@ -1,16 +1,14 @@
 import { Logger } from 'pino';
-import { DMPHubAPI } from './datasources/DMPHubAPI'
+import { DMPHubAPI } from './datasources/dmphubAPI'
 import { MySQLDataSource } from './datasources/mySQLDataSource';
 import { JWTAccessToken } from './services/tokenService';
 import { randomHex } from './utils/helpers';
-import { Cache, CacheEvictor } from './datasources/cache';
+import { Cache } from './datasources/cache';
 
 // The Apollo Server Context object passed in to the Resolver on each request
 export interface MyContext {
   // The cache
   cache: Cache;
-  // The cacheEvictor is used to remove items from the cache
-  cacheEvictor: CacheEvictor;
   // The caller's JSON Web Token
   token: JWTAccessToken;
   // An instance of he Logger
@@ -27,12 +25,7 @@ export interface MyContext {
 // This function should only be used when the caller is running a query from outside the
 // Apollo Server GraphQL context. e.g. when calling signup or register
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function buildContext(
-  logger: Logger,
-  cache: any = null,
-  token: JWTAccessToken = null
-): Promise<MyContext> {
-
+export function buildContext(logger: Logger, cache: any = null, token: JWTAccessToken = null): MyContext {
   if (!cache) {
     // If calling from outside the Apollo server context setup an HttpCache.
     cache = { skipCache: true };
@@ -41,13 +34,12 @@ export async function buildContext(
   try {
     return {
       cache,
-      cacheEvictor: cache !== null ? await new CacheEvictor().init() : null,
       token,
       logger,
       requestId: randomHex(32),
       dataSources: {
         dmphubAPIDataSource: new DMPHubAPI({ cache, token }),
-        sqlDataSource: MySQLDataSource.getInstance({ cache }),
+        sqlDataSource: MySQLDataSource.getInstance(),
       }
     }
   } catch(err) {

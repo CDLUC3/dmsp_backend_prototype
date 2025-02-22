@@ -459,10 +459,6 @@ export type AnswerCommentErrors = {
   general?: Maybe<Scalars['String']['output']>;
 };
 
-export type CacheControlScope =
-  | 'PRIVATE'
-  | 'PUBLIC';
-
 /** The result of the findCollaborator query */
 export type CollaboratorSearchResult = {
   __typename?: 'CollaboratorSearchResult';
@@ -3499,7 +3495,6 @@ export type ResolversTypes = {
   AnswerComment: ResolverTypeWrapper<AnswerComment>;
   AnswerCommentErrors: ResolverTypeWrapper<AnswerCommentErrors>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  CacheControlScope: CacheControlScope;
   CollaboratorSearchResult: ResolverTypeWrapper<CollaboratorSearchResult>;
   ContributorRole: ResolverTypeWrapper<ContributorRole>;
   ContributorRoleErrors: ResolverTypeWrapper<ContributorRoleErrors>;
@@ -3733,14 +3728,6 @@ export type ResolversParentTypes = {
   updateUserNotificationsInput: UpdateUserNotificationsInput;
   updateUserProfileInput: UpdateUserProfileInput;
 };
-
-export type CacheControlDirectiveArgs = {
-  inheritMaxAge?: Maybe<Scalars['Boolean']['input']>;
-  maxAge?: Maybe<Scalars['Int']['input']>;
-  scope?: Maybe<CacheControlScope>;
-};
-
-export type CacheControlDirectiveResolver<Result, Parent, ContextType = MyContext, Args = CacheControlDirectiveArgs> = DirectiveResolverFn<Result, Parent, ContextType, Args>;
 
 export type AffiliationResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Affiliation'] = ResolversParentTypes['Affiliation']> = {
   acronyms?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
@@ -5042,6 +5029,3 @@ export type Resolvers<ContextType = MyContext> = {
   VersionedTemplateErrors?: VersionedTemplateErrorsResolvers<ContextType>;
 };
 
-export type DirectiveResolvers<ContextType = MyContext> = {
-  cacheControl?: CacheControlDirectiveResolver<any, any, ContextType>;
-};

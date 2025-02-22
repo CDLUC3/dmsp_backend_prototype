@@ -69,10 +69,10 @@ describe('signupController', () => {
   let mockCache: jest.Mocked<Cache>;
   let mockUser;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
-    context = await buildContext(logger, mockToken(), null);
+    context = buildContext(logger, mockToken(), null);
 
     mockRequest = {
       body: {
