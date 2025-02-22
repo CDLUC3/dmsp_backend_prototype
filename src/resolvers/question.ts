@@ -2,8 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
-import { Template } from "../models/Template";
-import { getQuestionOptionsToRemove } from "../services/questionService";
+import { getQuestionOptionsToRemove, markTemplateAsDirty } from "../services/questionService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 import { formatLogMessage } from "../logger";
@@ -109,11 +108,7 @@ export const resolvers: Resolvers = {
             }
 
             // Update the associated template to set isDirty=1
-            const template = await Template.findById('Question resolver - addQuestion', context, templateId);
-            if (template) {
-              template.isDirty = true;
-              await template.update(context);
-            }
+            await markTemplateAsDirty('Question resolver - addQuestion', context, templateId);
 
             // Return newly created question
             return await Question.findById(reference, context, questionId);
@@ -268,12 +263,7 @@ export const resolvers: Resolvers = {
           }
 
           // Update the associated template to set isDirty=1
-          const template = await Template.findById('Question resolver - updateQuestion', context, questionData.templateId);
-          if (template) {
-            template.isDirty = true;
-            await template.update(context);
-          }
-
+          await markTemplateAsDirty('Question resolver - updateQuestion', context, questionData.templateId);
 
           // Refetch the question or the updated question with errors
           return updatedQuestion.hasErrors() ? updatedQuestion : await Question.findById(reference, context, questionId);
@@ -305,11 +295,7 @@ export const resolvers: Resolvers = {
           const question = new Question({ ...questionData, id: questionId });
 
           // Update the associated template to set isDirty=1
-          const template = await Template.findById('Question resolver - removeQuestion', context, questionData.templateId);
-          if (template) {
-            template.isDirty = true;
-            await template.update(context);
-          }
+          await markTemplateAsDirty('Question resolver - removeQuestion', context, questionData.templateId);
 
           // The delete will also delete all associated questionOptions
           return await question.delete(context);

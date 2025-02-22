@@ -4,7 +4,7 @@ import { Section } from "../models/Section";
 import { VersionedSection } from "../models/VersionedSection";
 import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
-import { cloneSection, hasPermissionOnSection } from "../services/sectionService";
+import { cloneSection, hasPermissionOnSection, markTemplateAsDirty } from "../services/sectionService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
@@ -114,11 +114,7 @@ export const resolvers: Resolvers = {
           }
 
           // Update the associated template to set isDirty=1
-          const template = await Template.findById('Section resolver - addSection', context, templateId);
-          if (template) {
-            template.isDirty = true;
-            await template.update(context);
-          }
+          await markTemplateAsDirty('Section resolver - addSection', context, templateId);
 
           // Return newly created section with tags
           return newSection.hasErrors() ? newSection : await Section.findById(reference, context, newSection.id);
@@ -228,11 +224,7 @@ export const resolvers: Resolvers = {
           }
 
           // Update the associated template to set isDirty=1
-          const template = await Template.findById('Section resolver - updateSection', context, sectionData.templateId);
-          if (template) {
-            template.isDirty = true;
-            await template.update(context);
-          }
+          await markTemplateAsDirty('Section resolver - updateSection', context, sectionData.templateId);
 
           // Return newly updated section with tags
           return updatedSection.hasErrors() ? updatedSection : await Section.findById(reference, context, updatedSection.id);
@@ -269,11 +261,7 @@ export const resolvers: Resolvers = {
           }
 
           // Update the associated template to set isDirty=1
-          const template = await Template.findById('Section resolver - removeSection', context, sectionData.templateId);
-          if (template) {
-            template.isDirty = true;
-            await template.update(context);
-          }
+          await markTemplateAsDirty('Section resolver - removeSection', context, sectionData.templateId);
 
           return section.hasErrors() ? section : deleted;
         }
