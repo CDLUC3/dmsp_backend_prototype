@@ -106,7 +106,8 @@ export const generateTemplateVersion = async (
         // Update the template's version and reset the dirty flag
         template.latestPublishVersion = newVersion;
         template.latestPublishDate = created.created;
-        template.isDirty = false;
+        // Only set isDirty to true if it's published. Otherwise, publishing is prevented when we save any drafts.
+        versionType === TemplateVersionType.PUBLISHED ? template.isDirty = false : template.isDirty = true;
 
         // Pass the noTouch flag to avoid default behavior of setting isDirty, modified, etc.
         const updated = await template.update(context, true);
