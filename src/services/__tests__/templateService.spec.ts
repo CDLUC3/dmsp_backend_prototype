@@ -369,7 +369,7 @@ describe('template versioning', () => {
     expect(updated.modifiedById).toEqual(tmplt.modifiedById);
     expect(updated.modified).toEqual(tmplt.modified);
     expect(updated.latestPublishVersion).toEqual(newVersion.version);
-    expect(updated.isDirty).toEqual(true);
+    expect(updated.isDirty).toEqual(false);
   });
 
   it('versions the Template when there are prior versions', async () => {
