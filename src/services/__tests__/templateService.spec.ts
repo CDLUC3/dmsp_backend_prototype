@@ -327,8 +327,7 @@ describe('template versioning', () => {
     const tmplt = new Template(templateStore[0]);
     const comment = casual.sentences(3);
     const visibility = TemplateVisibility.PRIVATE;
-    const versionType = getRandomEnumValue(TemplateVersionType);
-
+    const versionType = TemplateVersionType.PUBLISHED;
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
     (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindVersionedTemplatebyId;
     (Template.update as jest.Mock) = mockUpdate;
@@ -391,7 +390,7 @@ describe('template versioning', () => {
     });
     versionedTemplateStore.push(oldVersion);
     const comment = casual.sentences(3);
-    const versionType = getRandomEnumValue(TemplateVersionType);
+    const versionType = TemplateVersionType.DRAFT;
     const visibility = TemplateVisibility.PUBLIC;
 
     (VersionedTemplate.insert as jest.Mock) = mockInsert;

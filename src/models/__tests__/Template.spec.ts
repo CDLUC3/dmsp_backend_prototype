@@ -372,3 +372,40 @@ describe('delete', () => {
     expect(result.errors).toEqual({});
   });
 });
+
+describe('markTemplateAsDirty', () => {
+  let template;
+  let context;
+
+  beforeEach(() => {
+    context = buildContext(logger, mockToken());
+
+    template = new Template({
+      id: casual.integer(1, 99),
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
+      name: casual.sentence,
+      isDirty: false,
+    });
+
+    jest.spyOn(Template, 'findById').mockResolvedValue(template);
+    jest.spyOn(template, 'update').mockResolvedValue(template);
+  });
+
+  it('should mark the template as dirty if it exists', async () => {
+    await Template.markTemplateAsDirty('Test', context, template.id);
+
+    expect(Template.findById).toHaveBeenCalledWith('Test', context, template.id);
+    expect(template.isDirty).toBe(true);
+    expect(template.update).toHaveBeenCalledWith(context);
+  });
+
+  it('should not call update if the template does not exist', async () => {
+    jest.spyOn(Template, 'findById').mockResolvedValue(null);
+
+    await Template.markTemplateAsDirty('Test', context, template.id);
+
+    expect(Template.findById).toHaveBeenCalledWith('Test', context, template.id);
+    expect(template.update).not.toHaveBeenCalled();
+  });
+});

@@ -47,7 +47,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
-- Updated `question` and `section` resolvers to update `isDirty` in associated `template` when mutations were made. That way a user can `Save Draft` in the `Edit Template` page. Also, removed the FOREIGN KEY constraint for `questionTypeId` which was preventing updates to `questions`.
+- Updated `question` and `section` resolvers to update `isDirty` in associated `template` when mutations were made. That way a user can `Save Draft` in the `Edit Template` page.
 - Updated models and resolvers to handle errors in a consistent way
 - Refactored the way Sections handle the association with Tag to follow pattern used elsewhere
 - Updated `formatLogMessage` to accept the Apollo context instead of the logger so that it can being to record the `requestId`, `jti` and `userId` (when available)

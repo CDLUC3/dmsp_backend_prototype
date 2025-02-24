@@ -6,7 +6,6 @@ import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
 import { cloneSection, hasPermissionOnSection } from "../services/sectionService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
-import { markTemplateAsDirty } from "../utils/templateUtils";
 import { Question } from "../models/Question";
 import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
@@ -115,7 +114,7 @@ export const resolvers: Resolvers = {
           }
 
           // Update the associated template to set isDirty=1
-          await markTemplateAsDirty('Section resolver - addSection', context, templateId);
+          await Template.markTemplateAsDirty('Section resolver - addSection', context, templateId);
 
           // Return newly created section with tags
           return newSection.hasErrors() ? newSection : await Section.findById(reference, context, newSection.id);
@@ -225,7 +224,7 @@ export const resolvers: Resolvers = {
           }
 
           // Update the associated template to set isDirty=1
-          await markTemplateAsDirty('Section resolver - updateSection', context, sectionData.templateId);
+          await Template.markTemplateAsDirty('Section resolver - updateSection', context, sectionData.templateId);
 
           // Return newly updated section with tags
           return updatedSection.hasErrors() ? updatedSection : await Section.findById(reference, context, updatedSection.id);
@@ -262,7 +261,7 @@ export const resolvers: Resolvers = {
           }
 
           // Update the associated template to set isDirty=1
-          await markTemplateAsDirty('Section resolver - removeSection', context, sectionData.templateId);
+          await Template.markTemplateAsDirty('Section resolver - removeSection', context, sectionData.templateId);
 
           return section.hasErrors() ? section : deleted;
         }
