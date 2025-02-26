@@ -9,6 +9,7 @@ export class ResearchDomain extends MySqlModel {
   public name: string;
   public uri: string;
   public description?: string;
+  public parentResearchDomainId?: number;
   public parentResearchDomain: ResearchDomain;
 
   private tableName = 'researchDomains';
@@ -20,6 +21,7 @@ export class ResearchDomain extends MySqlModel {
     this.name = options.name;
     this.uri = options.uri;
     this.description = options.description;
+    this.parentResearchDomainId = options.parentResearchDomainId;
     this.parentResearchDomain = options.parentResearchDomain;
   }
 
@@ -226,7 +228,7 @@ export class ResearchDomain extends MySqlModel {
   }
 
   // Fetch a ResearchDomain by it's id
-  static async findById(reference: string, context: MyContext, researchDomainId: number): Promise<ResearchDomain> {
+  static async findById(reference: string, context: MyContext, researchDomainId: number): Promise<ResearchDomain | null> {
     const sql = `SELECT * FROM researchDomains WHERE id = ?`;
     const results = await ResearchDomain.query(context, sql, [researchDomainId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;
@@ -245,3 +247,4 @@ export class ResearchDomain extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;
   }
 };
+

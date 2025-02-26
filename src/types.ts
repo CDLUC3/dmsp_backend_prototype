@@ -2373,6 +2373,8 @@ export type ResearchDomain = {
   name: Scalars['String']['output'];
   /** The parent research domain (if applicable). If this is blank then it is a top level domain. */
   parentResearchDomain?: Maybe<ResearchDomain>;
+  /** The ID of the parent research domain (if applicable) */
+  parentResearchDomainId?: Maybe<Scalars['Int']['output']>;
   /** The taxonomy URL of the research domain */
   uri: Scalars['String']['output'];
 };
@@ -4239,6 +4241,7 @@ export type ResearchDomainResolvers<ContextType = MyContext, ParentType extends 
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   parentResearchDomain?: Resolver<Maybe<ResolversTypes['ResearchDomain']>, ParentType, ContextType>;
+  parentResearchDomainId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   uri?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
