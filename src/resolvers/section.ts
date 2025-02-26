@@ -76,7 +76,7 @@ export const resolvers: Resolvers = {
           if (copyFromVersionedSectionId) {
             const original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
 
-            if (!original)  {
+            if (!original) {
               throw NotFoundError('Unable to copy the specified section');
             }
 
@@ -112,6 +112,9 @@ export const resolvers: Resolvers = {
               newSection.addError('tags', `Section created but we were unable to assign tags: ${addTagErrors.join(', ')}`);
             }
           }
+
+          // Update the associated template to set isDirty=1
+          await Template.markTemplateAsDirty('Section resolver - addSection', context, templateId);
 
           // Return newly created section with tags
           return newSection.hasErrors() ? newSection : await Section.findById(reference, context, newSection.id);
@@ -220,6 +223,9 @@ export const resolvers: Resolvers = {
             updatedSection.addError('tags', `Saved but we were unable to assign tags: ${addTagErrors.join(', ')}`);
           }
 
+          // Update the associated template to set isDirty=1
+          await Template.markTemplateAsDirty('Section resolver - updateSection', context, sectionData.templateId);
+
           // Return newly updated section with tags
           return updatedSection.hasErrors() ? updatedSection : await Section.findById(reference, context, updatedSection.id);
         }
@@ -253,6 +259,10 @@ export const resolvers: Resolvers = {
           if (!deleted || deleted.hasErrors()) {
             section.addError('general', 'Unable to delete the section');
           }
+
+          // Update the associated template to set isDirty=1
+          await Template.markTemplateAsDirty('Section resolver - removeSection', context, sectionData.templateId);
+
           return section.hasErrors() ? section : deleted;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();

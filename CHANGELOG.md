@@ -51,6 +51,7 @@
 
 ### Updated
 - Updated the `datasources/DMPHubAPI.ts` with a `getDMP` method and a `cacheDMP` method so we can stash responses in the cache for faster retrieval
+- Updated `question` and `section` resolvers to update `isDirty` in associated `template` when mutations were made. That way a user can `Save Draft` in the `Edit Template` page.
 - Updated models and resolvers to handle errors in a consistent way
 - Refactored the way Sections handle the association with Tag to follow pattern used elsewhere
 - Updated `formatLogMessage` to accept the Apollo context instead of the logger so that it can being to record the `requestId`, `jti` and `userId` (when available)

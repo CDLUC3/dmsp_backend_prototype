@@ -2,6 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
+import { Template } from "../models/Template";
 import { getQuestionOptionsToRemove } from "../services/questionService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
@@ -106,6 +107,9 @@ export const resolvers: Resolvers = {
                 })
               );
             }
+
+            // Update the associated template to set isDirty=1
+            await Template.markTemplateAsDirty('Question resolver - addQuestion', context, templateId);
 
             // Return newly created question
             return await Question.findById(reference, context, questionId);
@@ -259,6 +263,9 @@ export const resolvers: Resolvers = {
             }
           }
 
+          // Update the associated template to set isDirty=1
+          await Template.markTemplateAsDirty('Question resolver - updateQuestion', context, questionData.templateId);
+
           // Refetch the question or the updated question with errors
           return updatedQuestion.hasErrors() ? updatedQuestion : await Question.findById(reference, context, questionId);
         }
@@ -287,8 +294,13 @@ export const resolvers: Resolvers = {
         if (isAdmin(context.token) && await hasPermissionOnSection(context, questionData.templateId)) {
           //Need to create a new instance of Question so that it recognizes the 'delete' function of that instance
           const question = new Question({ ...questionData, id: questionId });
+
+          // Update the associated template to set isDirty=1
+          await Template.markTemplateAsDirty('Question resolver - removeQuestion', context, questionData.templateId);
+
           // The delete will also delete all associated questionOptions
           return await question.delete(context);
+
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

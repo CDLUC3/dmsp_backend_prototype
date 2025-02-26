@@ -157,4 +157,17 @@ export class Template extends MySqlModel {
     const results = await Template.query(context, sql, [affiliationId], reference);
     return Array.isArray(results) ? results.map((item) => new Template(item)) : [];
   }
+
+  // Template needs to be updated to isDirty=true if changes were made to its sections or questions
+  static async markTemplateAsDirty(
+    reference: string,
+    context: MyContext,
+    templateId: number
+  ): Promise<void> {
+    const template = await Template.findById(reference, context, templateId);
+    if (template) {
+      template.isDirty = true;
+      await template.update(context);
+    }
+  };
 }
