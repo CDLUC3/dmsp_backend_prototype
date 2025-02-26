@@ -3,15 +3,6 @@ import { mysqlGeneralConfig, mysqlPoolConfig } from "../config/mysqlConfig";
 import { logger, formatLogMessage } from '../logger';
 import { MyContext } from '../context';
 
-export interface PoolConfig {
-  connectionLimit: number;
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-}
-
 // Singleton MySQL Connection Pool
 export class MySQLDataSource {
   private static instance: MySQLDataSource;

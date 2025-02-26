@@ -84,7 +84,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ProjectCollaboratorErrors
 
     "The plan the collaborator may edit"
     plan: Plan

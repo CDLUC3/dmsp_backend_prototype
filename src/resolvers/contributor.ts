@@ -18,10 +18,18 @@ export const resolvers: Resolvers = {
     projectContributors: async (_, { projectId }, context: MyContext): Promise<ProjectContributor[]> => {
       const reference = 'projectContributors resolver';
       try {
+
+console.log('auth check');
+
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
 
+console.log(project);
+
           if (project && hasPermissionOnProject(context, project)) {
+
+console.log('has permission');
+
             return await ProjectContributor.findByProjectId(reference, context, projectId);
           }
         }

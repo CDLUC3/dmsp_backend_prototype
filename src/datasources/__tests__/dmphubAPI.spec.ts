@@ -124,8 +124,8 @@ describe('DMPToolAPI', () => {
 
       expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=LATEST`);
       expect(result).toBeInstanceOf(DMP);
-      expect(formatLogMessage(context).info).toHaveBeenCalledWith(
-        `getDMP Calling DMPHub: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
+      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
+        `dmphubAPI.getDMP Calling DMPHub: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
       );
     });
 
@@ -143,7 +143,7 @@ describe('DMPToolAPI', () => {
 
       expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=1234`);
       expect(result).toBeInstanceOf(DMP);
-      expect(formatLogMessage(context).info).toHaveBeenCalledWith(
+      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
         `getDMP Calling DMPHub: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
       );
     });

@@ -247,7 +247,7 @@ export class PlanContributor extends MySqlModel {
 
     this.planId = options.planId;
     this.projectContributorId = options.projectContributorId;
-    this.isPrimaryContact = options.isPrimaryContact || false;
+    this.isPrimaryContact = options.isPrimaryContact ?? false;
     this.contributorRoleIds = options.contributorRoleIds;
   }
 
@@ -259,7 +259,7 @@ export class PlanContributor extends MySqlModel {
     if (!this.projectContributorId) this.addError('projectContributorId', 'Project contributor can\'t be blank');
 
     if (this.contributorRoleIds.length === 0) {
-      this.addError('general', 'You must specify at least one role');
+      this.addError('contributorRoleIds', 'You must specify at least one role');
     }
 
     return Object.keys(this.errors).length === 0;

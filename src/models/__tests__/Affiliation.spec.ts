@@ -139,7 +139,7 @@ describe('create', () => {
   let insertQuery;
   let affiliation;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
     context = buildContext(logger, mockToken());
@@ -212,7 +212,7 @@ describe('update', () => {
   let updateQuery;
   let affiliation;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
     context = buildContext(logger, mockToken());
@@ -267,7 +267,7 @@ describe('delete', () => {
   let deleteQuery;
   let affiliation;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
     context = buildContext(logger, mockToken());
@@ -312,7 +312,7 @@ describe('findByURI', () => {
   let context;
   let affiliation;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
 
     context = buildContext(logger, mockToken());
@@ -360,7 +360,7 @@ describe('findByName', () => {
   let context;
   let affiliation;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks();
 
     context = buildContext(logger, mockToken());
@@ -429,7 +429,7 @@ describe('search', () => {
   let context;
   let affiliationSearch;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();

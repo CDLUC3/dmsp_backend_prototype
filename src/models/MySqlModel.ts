@@ -153,7 +153,6 @@ export class MySqlModel {
       try {
         formatLogMessage(apolloContext).debug(logMessage);
         const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
-
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
         const msg = `${reference}, ERROR: ${err.message}`;

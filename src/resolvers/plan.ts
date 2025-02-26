@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
-import { Plan } from "../models/Plan";
+import { Plan, PlanSearchResult } from "../models/Plan";
 import { formatLogMessage } from "../logger";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
@@ -14,7 +14,7 @@ import { VersionedTemplate } from "../models/VersionedTemplate";
 export const resolvers: Resolvers = {
   Query: {
     // return all of the projects that the current user owns or is a collaborator on
-    plans: async (_, { projectId }, context: MyContext): Promise<Plan[]> => {
+    plans: async (_, { projectId }, context: MyContext): Promise<PlanSearchResult[]> => {
       const reference = 'plans resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -24,11 +24,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
           if (!await hasPermissionOnProject(context, project)) {
-            const result = await Plan.findByProjectId(reference, context, projectId);
-            if (!result) {
-              throw NotFoundError(`No plans found for project with ID ${projectId}`);
-            }
-            return result;
+            return await PlanSearchResult.findByProjectId(reference, context, projectId);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();

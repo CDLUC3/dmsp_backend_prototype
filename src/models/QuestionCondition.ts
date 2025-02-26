@@ -49,8 +49,10 @@ export class QuestionCondition extends MySqlModel {
     if (await this.isValid()) {
       // Save the record and then fetch it
       const newId = await QuestionCondition.insert(context, this.tableName, this, 'QuestionCondition.create');
-      const response = await QuestionCondition.findById('QuestionCondition.create', context, newId);
-      return response;
+      const created = await QuestionCondition.findById('QuestionCondition.create', context, newId);
+      if (created) {
+        return new QuestionCondition(created);
+      }
     }
 
     // Otherwise return as-is with all the errors
@@ -64,7 +66,10 @@ export class QuestionCondition extends MySqlModel {
     if (await this.isValid()) {
       if (id) {
         await QuestionCondition.update(context, this.tableName, this, 'QuestionCondition.update');
-        return await QuestionCondition.findById('QuestionCondition.update', context, id);
+        const updated = await QuestionCondition.findById('QuestionCondition.update', context, id);
+        if (updated) {
+          return new QuestionCondition(updated);
+        }
       }
       // This QuestionCondition has never been saved before so we cannot update it!
       this.addError('general', 'QuestionCondition has never been saved');
@@ -77,11 +82,11 @@ export class QuestionCondition extends MySqlModel {
     if (this.id) {
       /*First get the QuestionCondition to be deleted so we can return this info to the user
       since calling 'delete' doesn't return anything*/
-      const deletedSection = await QuestionCondition.findById('QuestionCondition.delete', context, this.id);
+      const deleted = await QuestionCondition.findById('QuestionCondition.delete', context, this.id);
 
       const successfullyDeleted = await QuestionCondition.delete(context, this.tableName, this.id, 'QuestionCondition.delete');
       if (successfullyDeleted) {
-        return deletedSection;
+        return new QuestionCondition(deleted);
       } else {
         return null
       }

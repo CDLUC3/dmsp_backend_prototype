@@ -81,7 +81,7 @@ export const typeDefs = gql`
     "Whether or not the contributor the primary contact for the Plan"
     primaryContact: Boolean
     "The roles associated with the contributor"
-    roles: [ContributorRole!]
+    contributorRoles: [ContributorRole!]
   }
 
   "A collection of errors related to the ProjectContributor"
@@ -109,7 +109,7 @@ export const typeDefs = gql`
     "The isPrimaryContact flag"
     primaryContact: String
     "The roles associated with the contributor"
-    roles: String
+    contributorRoleIds: String
   }
 
   input AddProjectContributorInput {

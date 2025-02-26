@@ -2,6 +2,9 @@ import { buildContext } from '../context';
 import { DMPHubAPI } from '../datasources/dmphubAPI';
 import { MySQLDataSource } from '../datasources/mySQLDataSource';
 import { MockCache } from '../__mocks__/context';
+// For some reason esLint is reporting this isn't used, but it used below
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { randomHex } from '../utils/helpers';
 
 // Mock dependencies
 jest.mock('../datasources/DMPHubAPI');
@@ -63,6 +66,7 @@ describe('buildContext', () => {
     expect(context.logger).toEqual(loggerMock);
     expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
     expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
+    expect(context.cache).toEqual({ skipCache: true });
 
     // Ensure cache is defaulted to { skipCache: true }
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: { skipCache: true }, token: tokenMock });
@@ -84,9 +88,10 @@ describe('buildContext', () => {
 
   it('should log and return null when an error occurs', async () => {
     // Simulate an error when creating the DMPHubAPI instance
-    (DMPHubAPI as jest.Mock).mockImplementationOnce(() => {
-      throw new Error('API initialization error');
+    const mockRandomHex = jest.fn().mockImplementationOnce(() => {
+      throw new Error('testing error');
     });
+    (randomHex as jest.Mock) = mockRandomHex;
 
     const context = buildContext(loggerMock, cacheMock, tokenMock);
 
@@ -95,7 +100,7 @@ describe('buildContext', () => {
     // Ensure the error is logged with the expected message
     expect(loggerMock.error).toHaveBeenCalledWith(
       { err: expect.any(Error), logger: loggerMock, cache: cacheMock, token: tokenMock },
-      'Unable to buildContext - API initialization error'
+      'Unable to buildContext - testing error'
     );
   });
 

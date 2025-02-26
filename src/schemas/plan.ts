@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get all plans for the research project"
-    plans(projectId: Int!): [Plan]
+    plans(projectId: Int!): [PlanSearchResult!]
 
     "Get a specific plan"
     plan(planId: Int!): Plan
@@ -69,66 +69,21 @@ export const typeDefs = gql`
   "The visibility/privacy setting for the plan"
   enum PlanVisibility {
     "Visible to anyone"
-    public
+    PUBLIC
     "Visible only to people at the user's (or editor's) affiliation"
-    organizational
+    ORGANISATIONAL
     "Visible only to people who have been invited to collaborate (or provide feedback)"
-    private
+    PRIVATE
   }
 
   "The status/state of the plan"
   enum PlanStatus {
     "The Plan is still being written and reviewed"
-    draft
+    DRAFT
     "The Plan is ready for submission or download"
-    complete
+    COMPLETE
     "The Plan's DMP ID (DOI) has been registered"
-    published
-  }
-
-  "The status of funding for a plan"
-  enum PlanFundingStatus {
-    "Intending to apply for funding"
-    planned
-    "Applied for funding"
-    applied
-    "Funding has been awarded"
-    granted
-    "Funding has been rejected"
-    rejected
-  }
-
-  enum PlanYesNoUnknown {
-    "Yes"
-    yes
-    "No"
-    no
-    "Unknown"
-    unknown
-  }
-
-  "Access levels for an output of the plan"
-  enum PlanOutputAccessLevel {
-    "The output is open to anyone"
-    open
-    "The output can be made available but must be requested"
-    shared
-    "The output is not available to anyone"
-    closed
-  }
-
-  "A place where data is collected or processed"
-  enum PlanResearchFacilityType {
-    "A research field station"
-    field_station
-    "A research laboratory"
-    laboratory
-    "A research observatory"
-    observatory
-    "A data center"
-    data_center
-    "Catch all for other types of research facilities"
-    other
+    PUBLISHED
   }
 
   "A Data Managament Plan (DMP)"

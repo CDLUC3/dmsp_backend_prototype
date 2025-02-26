@@ -2,8 +2,19 @@
 // Represents an entry from the projectPlans table
 
 import { MyContext } from "../context";
-import { DMPStatus, DMPVisibility } from "./DMP";
 import { MySqlModel } from "./MySqlModel";
+
+export enum PlanStatus {
+  DRAFT = 'DRAFT',
+  COMPLETE = 'COMPLETE',
+  PUBLISHED = 'PUBLISHED',
+}
+
+export enum PlanVisibility {
+  ORGANIATIONAL = 'ORGANISATIONAL',
+  PUBLIC = 'PUBLIC',
+  PRIVATE = 'PRIVATE',
+}
 
 // A high level overview of a plan
 export class PlanSearchResult {
@@ -14,8 +25,8 @@ export class PlanSearchResult {
   public modified: string;
   public versionedTemplateId: number;
   public title: string;
-  public status: DMPStatus;
-  public visibility: DMPVisibility;
+  public status: PlanStatus;
+  public visibility: PlanVisibility;
   public dmpId: string;
   public registeredBy: string;
   public registered: string;
@@ -31,8 +42,8 @@ export class PlanSearchResult {
     this.modified = options.modified;
     this.versionedTemplateId = options.versionedTemplateId;
     this.title = options.title;
-    this.status = options.status ?? DMPStatus.DRAFT;
-    this.visibility = options.visibility ?? DMPVisibility.PRIVATE;
+    this.status = options.status ?? PlanStatus.DRAFT;
+    this.visibility = options.visibility ?? PlanVisibility.PRIVATE;
     this.dmpId = options.dmpId;
     this.registeredBy = options.registeredBy;
     this.registered = options.registered;
@@ -43,32 +54,31 @@ export class PlanSearchResult {
 
   // Find all of the high level details about the plans for a project
   static async findByProjectId(reference: string, context: MyContext, projectId: number): Promise<PlanSearchResult[]> {
-    const sql = 'SELECT plans.id id, ' +
-                'CONCAT(users.givenName, CONCAT(\' \', users.surName)) createdBy, plans.created created ' +
-                'CONCAT(users2.givenName, CONCAT(\' \', users2.surName)) modifiedBy, plans.modified modified ' +
-                'versionedTemplates.id versionedTemplateId, versionedTemplates.name title ' +
-                'plans.status status, plans.visibility visibility, plans.dmpId dmpId ' +
-                'CONCAT(users3.givenName, CONCAT(\' \', users3.surName)) registeredBy, plans.registered registered ' +
-                'plans.featured featured ' +
-                'GROUP_CONCAT(DISTINCT CONCAT(contributors.givenName, CONCAT(\' \', contributors.surName, CONCAT(\' (\', CONCAT(roles.label, \')\'))))) contributors ' +
+    const sql = 'SELECT p.id, ' +
+                'CONCAT(cu.givenName, CONCAT(\' \', cu.surName)) createdBy, p.created, ' +
+                'CONCAT(cm.givenName, CONCAT(\' \', cm.surName)) modifiedBy, p.modified, ' +
+                'p.versionedTemplateId, vt.name title, p.status, p.visibility, p.dmpId, ' +
+                'CONCAT(cr.givenName, CONCAT(\' \', cr.surName)) registeredBy, p.registered, p.featured, ' +
+                'GROUP_CONCAT(DISTINCT CONCAT(prc.givenName, CONCAT(\' \', prc.surName, ' +
+                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) contributors, ' +
                 'GROUP_CONCAT(DISTINCT funders.name) funder ' +
-              'FROM plans ' +
-                'LEFT JOIN users ON users.id = plans.createdById ' +
-                'LEFT JOIN users users2 ON users2.id = plans.modifiedById ' +
-                'LEFT JOIN users users3 ON users3.id = plans.registeredById ' +
-                'LEFT JOIN versionedTemplates ON versionedTemplates.id = plans.versionedTemplateId ' +
-                'LEFT JOIN planContributors ON planContributors.planId = plans.id ' +
-                  'LEFT JOIN projectContributors contributors ON contributors.id = planContributors.projectContributorId ' +
-                  'LEFT JOIN planContributorRoles ON planContributors.id = planContributorRoles.planContributorId ' +
-                    'LEFT JOIN contributorRoles roles ON planContributorRoles.contributorRoleId = roles.id ' +
-                'LEFT JOIN planFunders ON planFunders.planId = plans.id ' +
+              'FROM plans p ' +
+                'LEFT JOIN users cu ON cu.id = p.createdById ' +
+                'LEFT JOIN users cm ON cm.id = p.modifiedById ' +
+                'LEFT JOIN users cr ON cr.id = p.registeredById ' +
+                'LEFT JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId ' +
+                'LEFT JOIN planContributors plc ON plc.planId = p.id ' +
+                  'LEFT JOIN projectContributors prc ON prc.id = plc.projectContributorId ' +
+                  'LEFT JOIN planContributorRoles plcr ON plc.id = plcr.planContributorId ' +
+                    'LEFT JOIN contributorRoles r ON plcr.contributorRoleId = r.id ' +
+                'LEFT JOIN planFunders ON planFunders.planId = p.id ' +
                   'LEFT JOIN projectFunders ON projectFunders.id = planFunders.projectFunderId ' +
                     'LEFT JOIN affiliations funders ON projectFunders.affiliationId = funders.uri ' +
-              'WHERE projectId = ? ' +
-              'GROUP BY plans.id, users.givenName, users.surName, users2.givenName, users2.surName, ' +
-                'versionedTemplates.id, versionedTemplates.name, plans.status, plans.visibility, ' +
-                'plans.dmpId, users3.givenName, users3.surName, plans.registered, plans.featured ' +
-              'ORDER BY plans.created DESC;';
+              'WHERE p.projectId = ? ' +
+              'GROUP BY p.id, cu.givenName, cu.surName, cm.givenName, cm.surName, ' +
+                'vt.id, vt.name, p.status, p.visibility, ' +
+                'p.dmpId, cr.givenName, cr.surName, p.registered, p.featured ' +
+              'ORDER BY p.created DESC;';
     const results = await Plan.query(context, sql, [projectId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new PlanSearchResult(entry)) : [];
   }
@@ -79,8 +89,8 @@ export class Plan extends MySqlModel {
   public projectId: number;
   public versionedTemplateId: number;
   public dmpId: string;
-  public status: DMPStatus;
-  public visibility: DMPVisibility;
+  public status: PlanStatus;
+  public visibility: PlanVisibility;
   public registeredById: number;
   public registered: string;
   public languageId: string;
@@ -96,8 +106,8 @@ export class Plan extends MySqlModel {
     this.versionedTemplateId = options.versionedTemplateId;
 
     this.dmpId = options.dmpId;
-    this.status = options.status ?? DMPStatus.DRAFT;
-    this.visibility = options.visibility ?? DMPVisibility.PRIVATE;
+    this.status = options.status ?? PlanStatus.DRAFT;
+    this.visibility = options.visibility ?? PlanVisibility.PRIVATE;
     this.languageId = options.languageId ?? 'en-US';
     this.featured = options.featured ?? false;
     this.registeredById = options.registeredById;
@@ -111,7 +121,8 @@ export class Plan extends MySqlModel {
 
     if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
     if (!this.versionedTemplateId) this.addError('versionedTemplateId', 'Versioned template can\'t be blank');
-    if (!this.dmpId) this.addError('dmpId', 'DMP ID can\'t be blank');
+    if (!this.dmpId && this.registered) this.addError('dmpId', 'A published plan must have a DMP ID');
+    if (!this.registered && this.dmpId) this.addError('registered', 'A published plan must have a registration date');
 
     return Object.keys(this.errors).length === 0;
   }

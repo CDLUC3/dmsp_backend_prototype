@@ -45,6 +45,25 @@ export function stripIdentifierBaseURL(str: string): string {
             .trim();
 }
 
+// Verify that a string is a valid identifier
+export function isNullOrUndefined(value: unknown): boolean {
+  return value === null || value === undefined;
+}
+
+// Verify that a string is a valid identifier
+export function valueIsEmpty(value: string | number | boolean): boolean {
+  // Check if the value is null or undefined
+  if (isNullOrUndefined(value)) {
+    return true;
+  }
+  // Check if the value is a string
+  if (typeof value === 'string') {
+    return value.trim() === '';
+  }
+
+  return false;
+}
+
 // Date validation
 export function validateDate(date: string): boolean {
   return date !== null && !isNaN(new Date(date).getTime());

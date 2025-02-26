@@ -146,7 +146,7 @@ export class PlanFunder extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
-    this.planId = options.projectId;
+    this.planId = options.planId;
     this.projectFunderId = options.projectFunderId;
   }
 
