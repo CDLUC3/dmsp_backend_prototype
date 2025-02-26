@@ -11,5 +11,4 @@ export const cacheConfig = {
   port: Number.parseInt(process.env.CACHE_PORT),
   connectTimeout: Number.parseInt(process.env.CACHE_CONNECT_TIMEOUT) ?? 30000, // 30 seconds
   autoFailoverEnabled: process.env.CACHE_AUTOFAILOVER_ENABLED ?? 'false',
-  cacheNamespace: process.env.CACHE_NAMESPACE || 'apollo-srvr',
 };

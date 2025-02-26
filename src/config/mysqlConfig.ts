@@ -13,8 +13,6 @@ if (process.env.NODE_ENV === 'production') {
 export const mysqlGeneralConfig = {
   queueLimit: Number(process.env.MYSQL_QUEUE_LIMIT) || 100,
   connectTimeout: Number(process.env.MYSQL_CONNECT_TIMEOUT) || 60000,
-  queryCacheTTL: Number(process.env.MYSQL_QUERY_CACHE_TTL) || 3.6e+6, // 1 hour
-  queryCacheEnabled: process.env.MYSQL_QUERY_CACHE_ENABLED === 'true',
 }
 
 export const mysqlPoolConfig: PoolConfig = {

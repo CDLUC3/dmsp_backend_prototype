@@ -3,23 +3,9 @@ import * as mysql from 'mysql2/promise';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
 import { MyContext } from '../../context';
-import { mysqlGeneralConfig } from '../../config/mysqlConfig';
 
 jest.mock('mysql2/promise');
 jest.mock('../../context');
-
-jest.mock('../../config/mysqlConfig', () => ({
-  mysqlPoolConfig: {
-    host: 'localhost',
-    port: 3306,
-    database: 'testdb',
-    user: 'root',
-    password: 'testpassword',
-  },
-  mysqlGeneralConfig: {
-    queryCacheEnabled: false,
-  }
-}));
 
 describe('MySQLDataSource', () => {
   let context: MyContext
@@ -29,14 +15,7 @@ describe('MySQLDataSource', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    mysqlGeneralConfig.queryCacheEnabled = false;
-
     context = buildContext(logger, mockToken(), MockCache.getInstance());
-
-    // Mock cache methods
-    context.cache.adapter.get = jest.fn().mockResolvedValue(null);
-    context.cache.adapter.set = jest.fn().mockResolvedValue(undefined);
-    context.cache.adapter.delete = jest.fn().mockResolvedValue(undefined);
 
     // Mock MySQL pool and connection
     mockConnection = {
@@ -68,7 +47,7 @@ describe('MySQLDataSource', () => {
     });
 
     it('should log an error and throw if pool creation fails', async () => {
-      const context = buildContext(logger, mockToken(), MockCache.getInstance());
+      const context = buildContext(logger, mockToken());
       (mysql.createPool as jest.Mock).mockImplementationOnce(() => {
         throw new Error('Failed to create pool');
       });
@@ -105,7 +84,6 @@ describe('MySQLDataSource', () => {
 
   describe('query', () => {
     it('should execute a SQL query and return rows', async () => {
-      mysqlGeneralConfig.queryCacheEnabled = false;
       const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = [' 1 ']; // Simulate a value that needs trimming
@@ -118,7 +96,6 @@ describe('MySQLDataSource', () => {
     });
 
     it('should log an error and throw if query execution fails', async () => {
-      mysqlGeneralConfig.queryCacheEnabled = false;
       const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = ['1'];

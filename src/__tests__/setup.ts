@@ -22,7 +22,6 @@ jest.mock('../config/cacheConfig', () => ({
     port: '6379',
     connectTimeout: 10000,
     autoFailoverEnabled: 'false',
-    cacheNamespace: 'test-srvr',
   },
 }));
 
@@ -52,7 +51,8 @@ jest.mock('../config/mysqlConfig', () => ({
     password: 'testpassword',
   },
   mysqlGeneralConfig: {
-    queryCacheEnabled: false,
+    queueLimit: 100,
+    connectTimeout: 60000,
   }
 }));
 
