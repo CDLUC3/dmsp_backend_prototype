@@ -40,7 +40,7 @@ export class Affiliation extends MySqlModel {
   public aliases: string[];
   public types: AffiliationType[];
 
-  // Properties specific to the DMPTool. These can be modified regardless of the record's provenance
+
   public managed: boolean;
   public logoURI: string;
   public logoName: string;
@@ -51,6 +51,12 @@ export class Affiliation extends MySqlModel {
   public feedbackMessage: string;
   public feedbackEmails: string[];
 
+  // (FUNDER ONLY) API information to search for Projects/Awards
+  public apiTarget: string;
+  public apiAuthTarget: string;
+  public apiAuthClientId: string;
+  public apiAuthClientSecret: string;
+
   public uneditableProperties: string[];
 
   private tableName = 'affiliations';
@@ -59,6 +65,7 @@ export class Affiliation extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
+    // These fields can only be modified if the record is managed by the DMPTool
     this.uri = options.uri;
     this.active = options.active ?? true;
     this.provenance = options.provenance ?? AffiliationProvenance.DMPTOOL;
@@ -71,6 +78,8 @@ export class Affiliation extends MySqlModel {
     this.acronyms = options.acronyms ?? [];
     this.aliases = options.aliases ?? [];
     this.types = options.types ?? [AffiliationType.OTHER];
+
+    // Properties specific to the DMPTool. These can be modified regardless of the record's provenance
     this.managed = options.managed;
     this.logoURI = options.logoURI;
     this.logoName = options.logoName;
@@ -80,6 +89,14 @@ export class Affiliation extends MySqlModel {
     this.feedbackEnabled = options.feedbackEnabled;
     this.feedbackMessage = options.feedbackMessage;
     this.feedbackEmails = options.feedbackEmails;
+
+    // (FUNDER ONLY) API information to search for Projects/Awards
+    if (this.funder) {
+      this.apiTarget = `${options.apiTarget}`;
+      this.apiAuthTarget = options.apiAuthTarget;
+      this.apiAuthClientId = options.apiAuthClientId;
+      this.apiAuthClientSecret = options.apiAuthClientSecret;
+    }
 
     this.uneditableProperties = ['uri', 'provenance', 'searchName'];
 

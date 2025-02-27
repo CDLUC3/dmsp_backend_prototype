@@ -118,6 +118,14 @@ export const typeDefs = gql`
     feedbackEmails: [String!]
     "The properties of this object that are NOT editable. Determined by the record's provenance"
     uneditableProperties: [String!]!
+    "(Funder only) The API URL used to search for projects/awards"
+    apiTarget: String
+    "(Funder only) The Authorization endpoint used to retrieve an access token for the API"
+    apiAuthTarget: String
+    "(Funder only) The Client ID used to retrieve an access token for the API"
+    apiAuthClientId: String
+    "(Funder only) The Client Secret used to retrieve an access token for the API"
+    apiAuthClientSecret: String
   }
 
   "A collection of errors related to the Affiliation"
@@ -143,6 +151,10 @@ export const typeDefs = gql`
     feedbackMessage: String
     feedbackEmails: String
     subHeaderLinks: String
+    apiTarget: String
+    apiAuthTarget: String
+    apiAuthClientId: String
+    apiAuthClientSecret: String
   }
 
   "Input for a hyperlink displayed in the sub-header of the UI for the afiliation's users"
