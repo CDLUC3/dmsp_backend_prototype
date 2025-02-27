@@ -17,10 +17,6 @@ export const signinController = async (req: Request, res: Response) => {
     if (user) {
       const { accessToken, refreshToken } = await generateAuthTokens(context, user);
 
-console.log('User:', user);
-console.log('Access Token:');
-console.log(accessToken);
-
       // Record the login and generate the tokens
       if (accessToken && refreshToken) {
         // Set the tokens as HTTP only cookies

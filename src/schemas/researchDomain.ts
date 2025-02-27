@@ -31,6 +31,8 @@ export const typeDefs = gql`
     description: String
     "The parent research domain (if applicable). If this is blank then it is a top level domain."
     parentResearchDomain: ResearchDomain
+    "The ID of the parent research domain (if applicable)"
+    parentResearchDomainId: Int
     "The child research domains (if applicable)"
     childResearchDomains: [ResearchDomain!]
   }
@@ -47,3 +49,4 @@ export const typeDefs = gql`
     childResearchDomainIds: String
   }
 `;
+
