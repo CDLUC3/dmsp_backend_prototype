@@ -1,4 +1,5 @@
 ### Added
+- Added the `apiTarget` to the `affiliations` table
 - Added `Plan`, `PlanFunder`, `PlanContributor`, `ProjectCollaborator`, `DMP` and `RelatedIdentifier` models
 - Added data-migration script to add additional columns to the `plans` table
 - Added data-migration to add `isPrimaryContact` flag to the `planContributors` table
@@ -58,6 +59,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated the `Affiliation` schema and model to include the new `apiTarget` property.
 - Renamed old `planCollaborators` table to `projectCollaborators`
 - Renamed old `PlanCollaborator` resolved functions so that they point to `ProjectCollaborator` since we decided to capture that at the project level
 - Updated `ProjectService` permission check so that it looks at the ProjectCollaborators as well

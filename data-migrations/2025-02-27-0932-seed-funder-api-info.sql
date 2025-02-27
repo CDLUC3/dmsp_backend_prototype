@@ -1,6 +1,6 @@
 # Add the API info for all NSF/NASA affiliations
 UPDATE affiliations SET apiTarget = '/awards/nsf'
-  WHERE ror_id IN ('https://ror.org/0171mag52', 'https://ror.org/027k65916', 'https://ror.org/027ka1x80',
+  WHERE uri IN ('https://ror.org/0171mag52', 'https://ror.org/027k65916', 'https://ror.org/027ka1x80',
     'https://ror.org/0540g1c48', 'https://ror.org/02acart68', 'https://ror.org/059fqnc42',
     'https://ror.org/01cyfxe35', 'https://ror.org/04xx4z452', 'https://ror.org/0399mhs52',
     'https://ror.org/02epydz83', 'https://ror.org/03j9e2j92', 'https://ror.org/02s42x260',
@@ -36,7 +36,7 @@ UPDATE affiliations SET apiTarget = '/awards/nsf'
 
 # Add the API info for all NIH affiliations
 UPDATE affiliations SET apiTarget = '/awards/nih'
-  WHERE ror_id IN ('https://ror.org/01cwqze88', 'https://ror.org/04mhx6838', 'https://ror.org/012pb6c26',
+  WHERE uri IN ('https://ror.org/01cwqze88', 'https://ror.org/04mhx6838', 'https://ror.org/012pb6c26',
     'https://ror.org/03wkg3b53', 'https://ror.org/0060t0j89', 'https://ror.org/00372qc85',
     'https://ror.org/00190t495', 'https://ror.org/00j4k1h63', 'https://ror.org/01y3zfr79',
     'https://ror.org/04q48ey07', 'https://ror.org/0493hgw16', 'https://ror.org/04vfsmv21',
@@ -51,24 +51,24 @@ UPDATE affiliations SET apiTarget = '/awards/nih'
     'https://ror.org/01jdyfj45', 'https://ror.org/04g4sf283');
 
 # Add the API info for all affiliations who appear in the Crossref grants API
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/501100011730' WHERE ror_id = 'https://ror.org/00x0z1472';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/501100002241' WHERE ror_id = 'https://ror.org/00097mb19';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/501100001821' WHERE ror_id = 'https://ror.org/01f9mc681';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/501100000223' WHERE ror_id = 'https://ror.org/000hkd473';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100010586' WHERE ror_id = 'https://ror.org/04a2qqf85';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100008984' WHERE ror_id = 'https://ror.org/0252rqe04';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100008539' WHERE ror_id = 'https://ror.org/00qfsn733';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100006309' WHERE ror_id = 'https://ror.org/04sedwh45';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100005536' WHERE ror_id = 'https://ror.org/02r8tn769';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100005202' WHERE ror_id = 'https://ror.org/01frxsf98';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100005190' WHERE ror_id = 'https://ror.org/025ck6r46';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100001771' WHERE ror_id = 'https://ror.org/02gegq725';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100001545' WHERE ror_id = 'https://ror.org/01hx92781';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000980' WHERE ror_id = 'https://ror.org/04zk9fe75';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000971' WHERE ror_id = 'https://ror.org/00mwp5989';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000968' WHERE ror_id = 'https://ror.org/013kjyp64';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000936' WHERE ror_id = 'https://ror.org/006wxqw41';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000913' WHERE ror_id = 'https://ror.org/03dy4aq19';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000893' WHERE ror_id = 'https://ror.org/01cmst727';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000048' WHERE ror_id = 'https://ror.org/02e463172';
-UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000015' WHERE ror_id = 'https://ror.org/01bj3aw27';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/501100011730' WHERE uri = 'https://ror.org/00x0z1472';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/501100002241' WHERE uri = 'https://ror.org/00097mb19';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/501100001821' WHERE uri = 'https://ror.org/01f9mc681';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/501100000223' WHERE uri = 'https://ror.org/000hkd473';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100010586' WHERE uri = 'https://ror.org/04a2qqf85';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100008984' WHERE uri = 'https://ror.org/0252rqe04';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100008539' WHERE uri = 'https://ror.org/00qfsn733';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100006309' WHERE uri = 'https://ror.org/04sedwh45';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100005536' WHERE uri = 'https://ror.org/02r8tn769';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100005202' WHERE uri = 'https://ror.org/01frxsf98';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100005190' WHERE uri = 'https://ror.org/025ck6r46';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100001771' WHERE uri = 'https://ror.org/02gegq725';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100001545' WHERE uri = 'https://ror.org/01hx92781';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000980' WHERE uri = 'https://ror.org/04zk9fe75';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000971' WHERE uri = 'https://ror.org/00mwp5989';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000968' WHERE uri = 'https://ror.org/013kjyp64';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000936' WHERE uri = 'https://ror.org/006wxqw41';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000913' WHERE uri = 'https://ror.org/03dy4aq19';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000893' WHERE uri = 'https://ror.org/01cmst727';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000048' WHERE uri = 'https://ror.org/02e463172';
+UPDATE affiliations SET apiTarget = '/awards/crossref/10.13039/100000015' WHERE uri = 'https://ror.org/01bj3aw27';

@@ -11,6 +11,7 @@ import { Affiliation, AffiliationProvenance, AffiliationSearch, AffiliationType,
 import { UserRole } from "../../models/User";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { clearAffiliationStore, initAffiliationStore, mockAffiliationSearch, mockDeleteAffiliation, mockFindAffiliationById, mockFindAffiliationByName, mockFindAffiliationByURI, mockInsertAffiliation, mockUpdateAffiliation } from "../../models/__mocks__/Affiliation";
+import { DMPHubConfig } from "../../config/dmpHubConfig";
 
 jest.mock('../../context.ts');
 jest.mock('../../datasources/cache');
@@ -123,6 +124,7 @@ describe('affiliationById query', () => {
           feedbackEnabled
           feedbackMessage
           feedbackEmails
+          apiTarget
         }
       }
     `;
@@ -134,8 +136,32 @@ describe('affiliationById query', () => {
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
-    // Verify the entire object is returned since we're not returning everything
-    expect(resp.body.singleResult.data.affiliationById).toEqual(affiliationStore[1]);
+    // verify all the properties are returned
+    expect(resp.body.singleResult.data?.affiliationById?.id).toEqual(affiliationStore[1].id);
+    expect(resp.body.singleResult.data?.affiliationById?.name).toEqual(affiliationStore[1].name);
+    expect(resp.body.singleResult.data?.affiliationById?.uri).toEqual(affiliationStore[1].uri);
+    expect(resp.body.singleResult.data?.affiliationById?.funder).toEqual(affiliationStore[1].funder);
+    expect(resp.body.singleResult.data?.affiliationById?.types).toEqual(affiliationStore[1].types);
+    expect(resp.body.singleResult.data?.affiliationById?.displayName).toEqual(affiliationStore[1].displayName);
+    expect(resp.body.singleResult.data?.affiliationById?.searchName).toEqual(affiliationStore[1].searchName);
+    expect(resp.body.singleResult.data?.affiliationById?.provenance).toEqual(affiliationStore[1].provenance);
+    expect(resp.body.singleResult.data?.affiliationById?.homepage).toEqual(affiliationStore[1].homepage);
+    expect(resp.body.singleResult.data?.affiliationById?.acronyms).toEqual(affiliationStore[1].acronyms);
+    expect(resp.body.singleResult.data?.affiliationById?.aliases).toEqual(affiliationStore[1].aliases);
+    expect(resp.body.singleResult.data?.affiliationById?.fundrefId).toEqual(affiliationStore[1].fundrefId);
+    expect(resp.body.singleResult.data?.affiliationById?.active).toEqual(affiliationStore[1].active);
+
+    expect(resp.body.singleResult.data?.affiliationById?.managed).toEqual(affiliationStore[1].managed);
+    expect(resp.body.singleResult.data?.affiliationById?.logoURI).toEqual(affiliationStore[1].logoURI);
+    expect(resp.body.singleResult.data?.affiliationById?.logoName).toEqual(affiliationStore[1].logoName);
+    expect(resp.body.singleResult.data?.affiliationById?.contactEmail).toEqual(affiliationStore[1].contactEmail);
+    expect(resp.body.singleResult.data?.affiliationById?.contactName).toEqual(affiliationStore[1].contactName);
+    expect(resp.body.singleResult.data?.affiliationById?.ssoEntityId).toEqual(affiliationStore[1].ssoEntityId);
+    expect(resp.body.singleResult.data?.affiliationById?.feedbackEnabled).toEqual(affiliationStore[1].feedbackEnabled);
+    expect(resp.body.singleResult.data?.affiliationById?.feedbackMessage).toEqual(affiliationStore[1].feedbackMessage);
+    expect(resp.body.singleResult.data?.affiliationById?.feedbackEmails).toEqual(affiliationStore[1].feedbackEmails);
+    const expectedTarget = `${DMPHubConfig.dmpHubURL}${affiliationStore[1].apiTarget}`;
+    expect(resp.body.singleResult.data?.affiliationById?.apiTarget).toEqual(expectedTarget);
   });
 
   it('returns null when no matching record is found', async () => {
@@ -171,6 +197,7 @@ describe('affiliations query', () => {
           displayName
           funder
           types
+          apiTarget
         }
       }
     `;
@@ -189,6 +216,8 @@ describe('affiliations query', () => {
     expect(resp.body.singleResult.data?.affiliations[0]?.uri).toEqual(affiliationStore[0].uri);
     expect(resp.body.singleResult.data?.affiliations[0]?.funder).toEqual(affiliationStore[0].funder);
     expect(resp.body.singleResult.data?.affiliations[0]?.types).toEqual(affiliationStore[0].types);
+    const expectedTarget = `${DMPHubConfig.dmpHubURL}${affiliationStore[0].apiTarget}`;
+    expect(resp.body.singleResult.data?.affiliations[0]?.apiTarget).toEqual(expectedTarget);
   });
 
   it('returns an empty array when no matches are found', async () => {

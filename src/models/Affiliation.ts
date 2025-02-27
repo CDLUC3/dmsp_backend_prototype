@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { randomHex, validateURL } from "../utils/helpers";
+import { randomHex, validateURL, valueIsEmpty } from "../utils/helpers";
+import { DMPHubConfig } from "../config/dmpHubConfig";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
@@ -24,6 +25,25 @@ export enum AffiliationType {
   OTHER = 'OTHER',
 }
 
+// Prepare the API target URL for the Affiliation
+// We are currently proxying calls to external funder APIs through the DMPHub API
+// This may change in the future
+const prepareAPITarget = (target: string): string => {
+  // If the target is a URL then return it as-is
+  if (target && target.startsWith('http')) {
+    return target;
+  } else if (target && target.startsWith('/')) {
+    // If the target is a relative URL then prepend the DMPHub URL
+    return `${DMPHubConfig.dmpHubURL}${target}`;
+  } else if (target) {
+    // If the target is a relative URL then prepend the DMPHub URL
+    return `${DMPHubConfig.dmpHubURL}/${target}`;
+  } else {
+    // Otherwise return null
+    return null;
+  }
+}
+
 // Represents an Institution, Organization or Company
 export class Affiliation extends MySqlModel {
   // These fields can only be modified if the record is managed by the DMPTool
@@ -40,7 +60,6 @@ export class Affiliation extends MySqlModel {
   public aliases: string[];
   public types: AffiliationType[];
 
-
   public managed: boolean;
   public logoURI: string;
   public logoName: string;
@@ -50,12 +69,7 @@ export class Affiliation extends MySqlModel {
   public feedbackEnabled: boolean;
   public feedbackMessage: string;
   public feedbackEmails: string[];
-
-  // (FUNDER ONLY) API information to search for Projects/Awards
   public apiTarget: string;
-  public apiAuthTarget: string;
-  public apiAuthClientId: string;
-  public apiAuthClientSecret: string;
 
   public uneditableProperties: string[];
 
@@ -90,13 +104,8 @@ export class Affiliation extends MySqlModel {
     this.feedbackMessage = options.feedbackMessage;
     this.feedbackEmails = options.feedbackEmails;
 
-    // (FUNDER ONLY) API information to search for Projects/Awards
-    if (this.funder) {
-      this.apiTarget = `${options.apiTarget}`;
-      this.apiAuthTarget = options.apiAuthTarget;
-      this.apiAuthClientId = options.apiAuthClientId;
-      this.apiAuthClientSecret = options.apiAuthClientSecret;
-    }
+    // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
+    this.apiTarget = prepareAPITarget(options.apiTarget);
 
     this.uneditableProperties = ['uri', 'provenance', 'searchName'];
 
@@ -117,6 +126,10 @@ export class Affiliation extends MySqlModel {
     if (!this.displayName) this.addError('displayName', 'Display name can\'t be blank');
     if (!this.searchName) this.addError('searchName', 'Search name can\'t be blank');
     if (!this.provenance) this.addError('provenance', 'Provenance can\'t be blank');
+
+    if (!valueIsEmpty(this.apiTarget) && !validateURL(this.apiTarget)) {
+      this.addError('apiTarget', 'Invalid URL');
+    }
 
     return Object.keys(this.errors).length === 0;
   }
@@ -308,7 +321,8 @@ export class AffiliationSearch {
   public uri!: string;
   public displayName!: string;
   public funder!: boolean;
-  public types!: AffiliationType[];
+  public types: AffiliationType[];
+  public apiTarget!: string;
 
   // Initialize a new AffiliationSearch result
   constructor(options) {
@@ -317,6 +331,26 @@ export class AffiliationSearch {
     this.displayName = options.displayName;
     this.funder = options.funder ?? false;
     this.types = options.types ?? [AffiliationType.OTHER];
+
+    // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
+    this.apiTarget = prepareAPITarget(options.apiTarget);
+  }
+
+  // Some of the properties are stored as JSON strings in the DB so we need to parse them
+  // after fetching them
+  static processResult(affiliation: AffiliationSearch): AffiliationSearch {
+    // Only include types that are in the enum
+    if (affiliation?.types && typeof affiliation.types === 'string') {
+      const types = JSON.parse(affiliation.types);
+      affiliation.types = [];
+
+      for (const typ of types) {
+        if (AffiliationType[typ.toLocaleUpperCase()] !== undefined) {
+          affiliation.types.push(AffiliationType[typ.toLocaleUpperCase()]);
+        }
+      }
+    }
+    return affiliation;
   }
 
   // Search for Affiliations that match the term and the funder flag
@@ -334,7 +368,7 @@ export class AffiliationSearch {
 
     const results = await Affiliation.query(context, sql, vals, 'AffiliationSearch.search');
     if (Array.isArray(results) && results.length > 0) {
-      return results.map((entry) => { return new AffiliationSearch(entry) });
+      return results.map((entry) => { return AffiliationSearch.processResult(entry) });
     }
 
     return [];
