@@ -69,7 +69,7 @@ export const resolvers: Resolvers = {
               newProject.addError('general', 'Unable to create Project');
             }
             return newProject;
-          } catch(err) {
+          } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
             throw InternalServerError();
           }
@@ -101,7 +101,7 @@ export const resolvers: Resolvers = {
             const toUpdate = new Project(input);
             const updated = await toUpdate.update(context);
             return updated;
-          } catch(err) {
+          } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
             throw InternalServerError();
           }
@@ -135,7 +135,7 @@ export const resolvers: Resolvers = {
             //       been published
             const deleted = await project.delete(context);
             return deleted
-          } catch(err) {
+          } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
             throw InternalServerError();
           }
@@ -151,12 +151,15 @@ export const resolvers: Resolvers = {
   },
 
   Project: {
-    researchDomain: async (parent: Project, _, context: MyContext): Promise<ResearchDomain> => {
-      return await ResearchDomain.findById(
-        'Chained Project.researchDomain',
-        context,
-        parent.researchDomainId
-      );
+    researchDomain: async (parent: Project, _, context: MyContext): Promise<ResearchDomain | null> => {
+      if (parent.researchDomainId) {
+        return await ResearchDomain.findById(
+          'Chained Project.researchDomain',
+          context,
+          parent.researchDomainId
+        );
+      }
+      return null;
     },
     contributors: async (parent: Project, _, context: MyContext): Promise<ProjectContributor[]> => {
       return await ProjectContributor.findByProjectId(
@@ -188,3 +191,4 @@ export const resolvers: Resolvers = {
     },
   },
 };
+

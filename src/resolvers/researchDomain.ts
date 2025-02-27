@@ -40,4 +40,13 @@ export const resolvers: Resolvers = {
       }
     },
   },
+  ResearchDomain: {
+    parentResearchDomain: async (parent: ResearchDomain, _, context: MyContext): Promise<ResearchDomain | null> => {
+      if (parent.parentResearchDomainId) {
+        return await ResearchDomain.findById('ResearchDomain.parentResearchDomain', context, parent.parentResearchDomainId);
+      }
+      return null;
+    },
+  },
 };
+
