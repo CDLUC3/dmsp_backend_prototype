@@ -51,6 +51,8 @@ export const typeDefs = gql`
     funders: [ProjectFunder!]
     "The outputs that will be/were created as a reult of the research project"
     outputs: [ProjectOutput!]
+    "The plans that are associated with the research project"
+    plans: [PlanSearchResult!]
   }
 
   "A collection of errors related to the Project"

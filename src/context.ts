@@ -1,6 +1,5 @@
 import { Logger } from 'pino';
-import { DMPHubAPI } from './datasources/dmphubAPI';
-import { DMPToolAPI } from './datasources/dmptoolAPI';
+import { DMPHubAPI } from './datasources/dmphubAPI'
 import { MySQLDataSource } from './datasources/mySQLDataSource';
 import { JWTAccessToken } from './services/tokenService';
 import { randomHex } from './utils/helpers';
@@ -19,7 +18,6 @@ export interface MyContext {
   // Instances of the data sources the system uses to access information
   dataSources: {
     dmphubAPIDataSource: DMPHubAPI;
-    dmptoolAPIDataSource: DMPToolAPI;
     sqlDataSource: MySQLDataSource;
   };
 }
@@ -41,7 +39,6 @@ export function buildContext(logger: Logger, cache: any = null, token: JWTAccess
       requestId: randomHex(32),
       dataSources: {
         dmphubAPIDataSource: new DMPHubAPI({ cache, token }),
-        dmptoolAPIDataSource: new DMPToolAPI({ cache, token }),
         sqlDataSource: MySQLDataSource.getInstance(),
       }
     }

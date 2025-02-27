@@ -4,12 +4,13 @@ import { Resolvers } from "../types";
 import { Affiliation } from '../models/Affiliation';
 import { ContributorRole } from '../models/ContributorRole';
 import { Project } from '../models/Project';
-import { ProjectContributor } from "../models/Contributor";
+import { PlanContributor, ProjectContributor } from "../models/Contributor";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
+import { Plan } from '../models/Plan';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -43,6 +44,25 @@ export const resolvers: Resolvers = {
 
           if (project && hasPermissionOnProject(context, project)) {
             return contributor;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    planContributors: async (_, { planId }, context: MyContext): Promise<PlanContributor[]> => {
+      const reference = 'planContributors resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findById(reference, context, planId);
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (plan && hasPermissionOnProject(context, project)) {
+            return await PlanContributor.findByPlanId(reference, context, plan.id);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -222,17 +242,48 @@ export const resolvers: Resolvers = {
 
   ProjectContributor: {
     project: async (parent: ProjectContributor, _, context: MyContext): Promise<Project> => {
-      return await Project.findById('Chained ProjectContributor.project', context, parent.projectId);
+      if (parent?.projectId) {
+        return await Project.findById('Chained ProjectContributor.project', context, parent.projectId);
+      }
+      return null;
     },
     affiliation: async (parent: ProjectContributor, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findByURI('Chained ProjectContributor.affiliation', context, parent.affiliationId);
+      if (parent?.affiliationId) {
+        return await Affiliation.findByURI('Chained ProjectContributor.affiliation', context, parent.affiliationId);
+      }
+      return null;
     },
     contributorRoles: async (parent: ProjectContributor, _, context: MyContext): Promise<ContributorRole[]> => {
-      return await ContributorRole.findByProjectContributorId(
-        'Chained ProjectContributor.contributorRoles',
-        context,
-        parent.id
-      );
+      if (parent?.id) {
+        return await ContributorRole.findByProjectContributorId(
+          'Chained ProjectContributor.contributorRoles',
+          context,
+          parent.id
+        );
+      }
+      return null;
     }
+  },
+
+  PlanContributor: {
+    projectContributor: async (parent: PlanContributor, _, context: MyContext): Promise<ProjectContributor> => {
+      if (parent?.projectContributorId) {
+        return await ProjectContributor.findById(
+          'Chained PlanContributor.projectContributor',
+          context, parent.projectContributorId
+        );
+      }
+      return null;
+    },
+    contributorRoles: async (parent: ProjectContributor, _, context: MyContext): Promise<ContributorRole[]> => {
+      if (parent?.id) {
+        return await ContributorRole.findByPlanContributorId(
+          'Chained ProjectContributor.contributorRoles',
+          context,
+          parent.id
+        );
+      }
+      return null;
+    },
   },
 };

@@ -15,7 +15,6 @@ export class Project extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
-    this.id = options.id;
     this.title = options.title;
     this.abstractText = options.abstractText;
     this.startDate = options.startDate;

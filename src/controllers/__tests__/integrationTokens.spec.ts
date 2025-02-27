@@ -18,6 +18,7 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken, MockCache } from "../../__mocks__/context";
 
 jest.mock('../../datasources/cache');
+jest.mock('../../datasources/dmphubAPI');
 
 let context;
 
@@ -141,7 +142,7 @@ describe('CSRF', () => {
     const hashedToken = createHash('sha256')
       .update(`${resp.headers['x-csrf-token']}${generalConfig.hashTokenSecret}`)
       .digest('hex');
-    expect(context.cache.adapter.get(`{csrf}:${resp.headers['x-csrf-token']}`)).toEqual(hashedToken);
+    expect(await context.cache.adapter.get(`{csrf}:${resp.headers['x-csrf-token']}`)).toEqual(hashedToken);
   });
 
   it('POST /test-protected should fail if the CSRF token is missing', async () => {
@@ -522,7 +523,7 @@ describe('token refresh', () => {
     const hashedToken = createHash('sha256')
       .update(`${refreshToken}${generalConfig.hashTokenSecret}`)
       .digest('hex');
-    expect(context.cache.adapter.get(`{dmspr}:${jwt.jti}`)).toEqual(hashedToken);
+    expect(await context.cache.adapter.get(`{dmspr}:${jwt.jti}`)).toEqual(hashedToken);
 
     (UserModel.User.findById as jest.Mock).mockImplementation(() => { throw new Error('testing') });
 
@@ -608,7 +609,7 @@ describe('token refresh', () => {
     const hashedToken = createHash('sha256')
       .update(`${refreshToken}${generalConfig.hashTokenSecret}`)
       .digest('hex');
-    expect(context.cache.adapter.get(`{dmspr}:${jwt.jti}`)).toEqual(hashedToken);
+    expect(await context.cache.adapter.get(`{dmspr}:${jwt.jti}`)).toEqual(hashedToken);
 
     (UserModel.User.findById as jest.Mock).mockResolvedValueOnce(registeredUser);
 

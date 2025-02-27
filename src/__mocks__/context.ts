@@ -1,16 +1,11 @@
 import { Logger } from "pino";
 import { JWTAccessToken } from "../services/tokenService";
 import { MyContext } from "../context";
-import { DMPHubAPI } from "../datasources/dmphubAPI";
-import { DMPToolAPI } from "../datasources/dmptoolAPI";
+import { Authorizer, DMPHubAPI } from "../datasources/dmphubAPI";
 import { MySQLDataSource } from "../datasources/mySQLDataSource";
 import { User, UserRole } from "../models/User";
 import casual from "casual";
 import { defaultLanguageId } from "../models/Language";
-
-jest.mock('../datasources/dmphubAPI');
-jest.mock('../datasources/dmptoolAPI');
-jest.mock('../datasources/mySQLDataSource');
 
 jest.mock('../datasources/mySQLDataSource', () => {
   return {
@@ -20,6 +15,28 @@ jest.mock('../datasources/mySQLDataSource', () => {
         query: jest.fn(),
       }),
     },
+  };
+});
+
+jest.mock('../datasources/DMPHubAPI', () => {
+  return {
+    __esModule: true,
+    Authorizer: jest.fn().mockImplementation(() => ({
+      authenticate: jest.fn(),
+      hasExpired: jest.fn(),
+    })),
+    DMPHubAPI: jest.fn().mockImplementation(() => ({
+      getDMP: jest.fn(),
+      handleResponse: jest.fn(),
+      willSendRequest: jest.fn(),
+      baseURL: '',
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      patch: jest.fn(),
+      delete: jest.fn(),
+      authorizer: new Authorizer(),
+    })),
   };
 });
 
@@ -34,8 +51,6 @@ jest.spyOn(MySQLDataSource, 'getInstance').mockImplementation(function () {
   return this;
 });
 
-const mockedMysqlInstance = MySQLDataSource.getInstance();
-
 // Mock Cache for testing, just has a local storage hash
 let mockCacheStore = {};
 // eslint-disable-next-line  @typescript-eslint/no-extraneous-class
@@ -43,13 +58,13 @@ export class MockCache {
   public static getInstance() {
     return {
       adapter: {
-        set(key: string, val: string): void {
+        async set(key: string, val: string): Promise<void> {
           mockCacheStore[key] = val;
         },
-        get(key: string): string {
+        async get(key: string): Promise<string> {
           return mockCacheStore[key];
         },
-        delete(key: string): void {
+        async delete(key: string): Promise<void> {
           // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           delete mockCacheStore[key];
         },
@@ -63,27 +78,8 @@ export class MockCache {
     }
   }
 }
-export class MockDMPHubAPI extends DMPHubAPI {
-  getData = jest.fn();
-  getDMSPs = jest.fn();
-  handleResponse = jest.fn();
-  getDMSP = jest.fn();
-  baseURL = '';
 
-  // Mocking the private properties
-  dmspIdWithoutProtocol = jest.fn();
-}
-
-export class MockDMPToolAPI extends DMPToolAPI {
-  getAffiliation = jest.fn();
-  getAffiliations = jest.fn();
-  handleResponse = jest.fn();
-  willSendRequest = jest.fn();
-  baseURL = '';
-
-  // Mocking the private properties
-  removeProtocol = jest.fn();
-}
+const mockedMysqlInstance = MySQLDataSource.getInstance();
 
 // Generate a mock user
 export const mockUser = (
@@ -113,12 +109,11 @@ export const mockToken = (user = mockUser()): JWTAccessToken => {
 }
 
 export const mockDataSources = {
-  dmphubAPIDataSource: new MockDMPHubAPI({ cache: null, token: null}),
-  dmptoolAPIDataSource: null,
+  dmphubAPIDataSource: new DMPHubAPI({ cache: null, token: null}),
   sqlDataSource: mockedMysqlInstance,
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildContext(logger: Logger, token: JWTAccessToken = null, cache: any = null): MyContext {
   return {
     cache: cache,

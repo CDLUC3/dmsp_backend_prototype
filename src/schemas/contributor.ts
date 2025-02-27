@@ -59,7 +59,7 @@ export const typeDefs = gql`
     contributorRoles: [ContributorRole!]
   }
 
-  "A person involved with the research project who will appear in the Plan's citation and landing page"
+  "A contributor associated with a plan"
   type PlanContributor {
     "The unique identifer for the Object"
     id: Int
@@ -74,11 +74,13 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: PlanContributorErrors
 
-    "The Plan"
+    "The plan that the contributor is associated with"
     plan: Plan
-    "The contributor's affiliation"
-    ProjectContributor: ProjectContributor
-    "The roles the contributor has for this specific plan (can differ from the project)"
+    "The project contributor"
+    projectContributor: ProjectContributor
+    "Whether or not the contributor the primary contact for the Plan"
+    isPrimaryContact: Boolean
+    "The roles associated with the contributor"
     contributorRoles: [ContributorRole!]
   }
 
@@ -98,11 +100,15 @@ export const typeDefs = gql`
 
   "A collection of errors related to the PlanContributor"
   type PlanContributorErrors {
-    "General error messages such as the object already exists"
+    "General error messages such as affiliation already exists"
     general: String
-
-    plan: String
-    projectContributor: String
+    "The project that the contributor is associated with"
+    projectId: String
+    "The project contributor"
+    projectContributorId: String
+    "The isPrimaryContact flag"
+    primaryContact: String
+    "The roles associated with the contributor"
     contributorRoleIds: String
   }
 

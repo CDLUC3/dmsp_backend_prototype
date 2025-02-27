@@ -87,6 +87,13 @@ export class VersionedTemplate extends MySqlModel {
     return new VersionedTemplate(this);
   }
 
+  // Fetch the Versioned template by its id
+  static async findById(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedTemplate> {
+    const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+    const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : null;
+  }
+
   // Return all of the versions for the specified Template
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<VersionedTemplate[]> {
     const sql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';

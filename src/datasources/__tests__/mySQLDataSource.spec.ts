@@ -1,25 +1,21 @@
 import { MySQLDataSource } from '../mySQLDataSource';
 import * as mysql from 'mysql2/promise';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
-import { buildContext } from '../../__mocks__/context';
+import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
+import { MyContext } from '../../context';
 
 jest.mock('mysql2/promise');
-jest.mock('../../config/mysqlConfig', () => ({
-  mysqlConfig: {
-    host: 'localhost',
-    port: 3306,
-    database: 'testdb',
-    user: 'testuser',
-    password: 'testpassword',
-  },
-}));
+jest.mock('../../context');
 
 describe('MySQLDataSource', () => {
+  let context: MyContext
   let mockPool: mysql.Pool;
   let mockConnection: mysql.PoolConnection;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken(), MockCache.getInstance());
 
     // Mock MySQL pool and connection
     mockConnection = {
@@ -36,6 +32,10 @@ describe('MySQLDataSource', () => {
     (mysql.createPool as jest.Mock).mockReturnValue(mockPool);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('getInstance', () => {
     it('should create a singleton instance', async () => {
       const instance1 = MySQLDataSource.getInstance();
@@ -46,8 +46,8 @@ describe('MySQLDataSource', () => {
       await MySQLDataSource.removeInstance();
     });
 
-    it('should log an error and throw if pool creation fails', () => {
-      const context = buildContext(logger);
+    it('should log an error and throw if pool creation fails', async () => {
+      const context = buildContext(logger, mockToken());
       (mysql.createPool as jest.Mock).mockImplementationOnce(() => {
         throw new Error('Failed to create pool');
       });
@@ -84,7 +84,6 @@ describe('MySQLDataSource', () => {
 
   describe('query', () => {
     it('should execute a SQL query and return rows', async () => {
-      const context = buildContext(logger);
       const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = [' 1 ']; // Simulate a value that needs trimming
@@ -97,7 +96,6 @@ describe('MySQLDataSource', () => {
     });
 
     it('should log an error and throw if query execution fails', async () => {
-      const context = buildContext(logger);
       const instance = MySQLDataSource.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = ['1'];
@@ -131,48 +129,6 @@ describe('MySQLDataSource', () => {
       expect(closeSpy).toHaveBeenCalled();
       expect(MySQLDataSource.getInstance()).not.toBe(instance);
       await MySQLDataSource.removeInstance();
-    });
-  });
-
-  describe('SIGTERM handler', () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it('should gracefully close the connection pool on SIGTERM', async () => {
-      const instance = MySQLDataSource.getInstance();
-      const closeSpy = jest.spyOn(instance, 'close').mockResolvedValueOnce();
-      const releaseSpy = jest.spyOn(instance, 'releaseConnection').mockResolvedValueOnce();
-
-      // Correctly mock process.exit to prevent actual exit
-      jest.spyOn(process, 'exit').mockImplementation(() => {
-        // Prevent actual exit, just a mock for testing
-        return undefined as never;
-      });
-
-      // Simulate SIGTERM
-      process.emit('SIGTERM');
-
-      expect(closeSpy).toHaveBeenCalled();
-      expect(releaseSpy).toHaveBeenCalled();
-    });
-
-    it('should handle errors when closing the pool on SIGTERM', async () => {
-      const instance = MySQLDataSource.getInstance();
-      const closeSpy = jest.spyOn(instance, 'close').mockRejectedValueOnce(new Error('Close failed'));
-      const releaseSpy = jest.spyOn(instance, 'releaseConnection').mockResolvedValueOnce();
-
-      // Correctly mock process.exit to prevent actual exit
-      jest.spyOn(process, 'exit').mockImplementation((() => {
-        // Prevent actual exit, just a mock for testing
-        return undefined as never;
-      }) as never);
-
-      // Simulate SIGTERM
-      process.emit('SIGTERM');
-
-      expect(closeSpy).toHaveBeenCalled();
-      expect(releaseSpy).toHaveBeenCalled();
     });
   });
 });

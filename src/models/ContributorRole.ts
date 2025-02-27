@@ -3,6 +3,7 @@ import { formatLogMessage } from "../logger";
 import { validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
+export const DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL = 'https://dmptool.org/contributor_roles/';
 export class ContributorRole extends MySqlModel {
   public displayOrder: number;
   public uri: string;
@@ -30,6 +31,10 @@ export class ContributorRole extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
 
+  static defaultRole(): string {
+    return `${DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL}/other`;
+  }
+
   // Add an association for a ContributorRole with a ProjectContributor
   async addToProjectContributor(context: MyContext, projectContributorId: number): Promise<boolean> {
     const reference = 'ContributorRole.addToProjectContributor';
@@ -48,6 +53,24 @@ export class ContributorRole extends MySqlModel {
     return true;
   }
 
+  // Add an association for a ContributorRole with a PlanContributor
+  async addToPlanContributor(context: MyContext, planContributorId: number): Promise<boolean> {
+    const reference = 'ContributorRole.addToPlanContributor';
+    let sql = 'INSERT INTO planContributorRoles (contributorRoleId, planContributorId, createdById, ';
+    sql += 'modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), planContributorId?.toString(), userId, userId];
+    const results = await ContributorRole.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { researchDomainId: this.id, planContributorId };
+      const msg = 'Unable to add the contributor role to the plan contributor';
+      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
   // Remove an association of a ContributorRole from a ProjectContributor
   async removeFromProjectContributor(context: MyContext, projectContributorId: number): Promise<boolean> {
     const reference = 'ContributorRole.removeFromProjectContributor';
@@ -58,6 +81,22 @@ export class ContributorRole extends MySqlModel {
     if (!results) {
       const payload = { contributorRoleId: this.id, projectContributorId };
       const msg = 'Unable to remove the contributor role from the project contributor';
+      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
+  // Remove an association of a ContributorRole from a PlanContributor
+  async removeFromPlanContributor(context: MyContext, planContributorId: number): Promise<boolean> {
+    const reference = 'ContributorRole.removeFromPlanContributor';
+    const sql = 'DELETE FROM planContributorRoles WHERE contributorRoleId = ? AND planContributorId = ?';
+    const vals = [this.id?.toString(), planContributorId?.toString()];
+    const results = await ContributorRole.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { contributorRoleId: this.id, planContributorId };
+      const msg = 'Unable to remove the contributor role from the plan contributor';
       formatLogMessage(context).error(payload, `${reference} - ${msg}`);
       return false;
     }
@@ -88,7 +127,7 @@ export class ContributorRole extends MySqlModel {
     context: MyContext,
     contributorRoleByURL: string
   ): Promise<ContributorRole> {
-    const sql = 'SELECT * FROM contributorRoles WHERE url = ?';
+    const sql = 'SELECT * FROM contributorRoles WHERE uri = ?';
     const results = await ContributorRole.query(context, sql, [contributorRoleByURL], reference);
     return Array.isArray(results) && results.length > 0 ? new ContributorRole(results[0]) : null;
   }
@@ -102,6 +141,19 @@ export class ContributorRole extends MySqlModel {
     const sql = 'SELECT cr.* FROM projectContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
     const whereClause = 'WHERE pcr.projectContributorId = ?';
     const vals = [projectContributorId?.toString()];
+    const results = await ContributorRole.query(context, `${sql} ${whereClause}`, vals, reference);
+    return Array.isArray(results) ? results.map((entry) => new ContributorRole(entry)) : [];
+  }
+
+  // Fetch all of the ContributorRoles associated with a ProjectContributor
+  static async findByPlanContributorId(
+    reference: string,
+    context: MyContext,
+    planContributorId: number
+  ): Promise<ContributorRole[]> {
+    const sql = 'SELECT cr.* FROM planContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
+    const whereClause = 'WHERE pcr.planContributorId = ?';
+    const vals = [planContributorId?.toString()];
     const results = await ContributorRole.query(context, `${sql} ${whereClause}`, vals, reference);
     return Array.isArray(results) ? results.map((entry) => new ContributorRole(entry)) : [];
   }
