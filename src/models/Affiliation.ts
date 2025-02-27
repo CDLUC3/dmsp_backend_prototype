@@ -284,7 +284,7 @@ export class Affiliation extends MySqlModel {
         }
       }
     }
-    return affiliation;
+    return new Affiliation(affiliation);
   }
 
   // Return the specified Affiliation  based on the DB id
@@ -350,7 +350,7 @@ export class AffiliationSearch {
         }
       }
     }
-    return affiliation;
+    return new AffiliationSearch(affiliation);
   }
 
   // Search for Affiliations that match the term and the funder flag
