@@ -105,6 +105,48 @@ describe('addToProjectContributor', () => {
   });
 });
 
+describe('addToPlanContributor', () => {
+  let context;
+  let mockRole;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockRole = new ContributorRole({
+      id: casual.integer(1, 99),
+      label: casual.word,
+      uri: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the ContributorRole to the specified PlanContributor', async () => {
+    const planContributorId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(mockRole);
+    const result = await mockRole.addToPlanContributor(context, planContributorId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    let expectedSql = 'INSERT INTO planContributorRoles (contributorRoleId, planContributorId, ';
+    expectedSql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockRole.id.toString(), planContributorId.toString(), userId, userId]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ContributorRole.addToPlanContributor')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the role cannot be associated with the PlanContributor', async () => {
+    const planContributorId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(null);
+    const result = await mockRole.addToPlanContributor(context, planContributorId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
 describe('removeFromProjectContributor', () => {
   let context;
   let mockRole;
@@ -140,6 +182,46 @@ describe('removeFromProjectContributor', () => {
     const projectContributorId = casual.integer(1, 999);
     const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(null);
     const result = await mockRole.removeFromProjectContributor(context, projectContributorId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('removeFromPlanContributor', () => {
+  let context;
+  let mockRole;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    mockRole = new ContributorRole({
+      id: casual.integer(1, 99),
+      label: casual.word,
+      uri: casual.url
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('removes the ContributorRole association from the specified PlanContributor', async () => {
+    const planContributorId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(mockRole);
+    const result = await mockRole.removeFromPlanContributor(context, planContributorId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'DELETE FROM planContributorRoles WHERE contributorRoleId = ? AND planContributorId = ?';
+    const vals = [mockRole.id.toString(), planContributorId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ContributorRole.removeFromPlanContributor')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the role cannot be associated with the PlanContributor', async () => {
+    const planContributorId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce(null);
+    const result = await mockRole.removeFromPlanContributor(context, planContributorId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(result).toBe(false);
   });
@@ -192,7 +274,7 @@ describe('queries', () => {
     const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce([mockRole]);
     await ContributorRole.findByURL('Testing', context, contributorRoleUrl);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'SELECT * FROM contributorRoles WHERE url = ?';
+    const expectedSql = 'SELECT * FROM contributorRoles WHERE uri = ?';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [contributorRoleUrl], 'Testing')
   });
 
@@ -202,6 +284,16 @@ describe('queries', () => {
     await ContributorRole.findByProjectContributorId('testing', context, contributorId);
     let sql = 'SELECT cr.* FROM projectContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
     sql = `${sql} WHERE pcr.projectContributorId = ?`;
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(querySpy).toHaveBeenCalledWith(context, sql, [contributorId.toString()], 'testing');
+  });
+
+  it('findByPlanContributorId should call query with correct params and return an array', async () => {
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce([mockRole]);
+    const contributorId = casual.integer(1, 999);
+    await ContributorRole.findByPlanContributorId('testing', context, contributorId);
+    let sql = 'SELECT cr.* FROM planContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
+    sql = `${sql} WHERE pcr.planContributorId = ?`;
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(querySpy).toHaveBeenCalledWith(context, sql, [contributorId.toString()], 'testing');
   });

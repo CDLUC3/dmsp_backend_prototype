@@ -1,5 +1,6 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
+import { ProjectCollaborator } from "../models/Collaborator";
 import { Project } from "../models/Project";
 import { User } from "../models/User";
 import { isAdmin, isSuperAdmin } from "./authService";
@@ -26,7 +27,12 @@ export const hasPermissionOnProject = async (context: MyContext, project: Projec
         return true;
       }
     }
-    // TODO: Add additional logic if necessary to give users other than the owner access
+
+    // Otherwise check to see if the user is a collaborator on the project
+    const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+    if (Array.isArray(collaborators) && collaborators.length > 0) {
+      return collaborators.some((collaborator) => collaborator.userId === context.token.id);
+    }
   }
 
   const payload = { projectId: project.id, userId: context.token.id };

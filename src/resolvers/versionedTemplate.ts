@@ -74,7 +74,7 @@ export const resolvers: Resolvers = {
 
     // Chained resolver to return the Affiliation that owns the Template
     owner: async (parent: VersionedTemplate, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findById('Chained VersionedTemplate.owner', context, parent.ownerId);
+      return await Affiliation.findByURI('Chained VersionedTemplate.owner', context, parent.ownerId);
     },
 
     // Chained resolver to return the User who created the version

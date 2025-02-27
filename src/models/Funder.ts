@@ -135,3 +135,55 @@ export class ProjectFunder extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ProjectFunder(results[0]) : null;
   }
 };
+
+// A funder for the plan
+export class PlanFunder extends MySqlModel {
+  public planId: number;
+  public projectFunderId: number;
+
+  private static tableName = 'planFunders';
+
+  constructor(options) {
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
+
+    this.planId = options.planId;
+    this.projectFunderId = options.projectFunderId;
+  }
+
+  // Validation to be used prior to saving the record
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!this.planId) this.addError('planId', 'Plan can\'t be blank');
+    if (!this.projectFunderId) this.addError('projectFunderId', 'ProjectFunder can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
+  }
+
+  // Find the project funder by its id
+  static async findById(reference: string, context: MyContext, projectFunderId: number): Promise<PlanFunder> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`;
+    const results = await PlanFunder.query(context, sql, [projectFunderId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new PlanFunder(results[0]) : null;
+  }
+
+  // Find the project funder by the projectFunderId
+  static async findByProjectFunderId(
+    reference: string,
+    context: MyContext,
+    planId: number,
+    projectFunderId: number
+  ): Promise<PlanFunder> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? AND projectFunderId = ?`;
+    const vals = [planId?.toString(), projectFunderId?.toString()];
+    const results = await PlanFunder.query(context, sql, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? new PlanFunder(results[0]) : null;
+  }
+
+  // Find all of the funder for the plan
+  static async findByPlanId(reference: string, context: MyContext, projectId: number): Promise<PlanFunder[]> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE planId = ?`;
+    const results = await PlanFunder.query(context, sql, [projectId?.toString()], reference);
+    return Array.isArray(results) ? results.map((item) => new PlanFunder(item)) : [];
+  }
+}

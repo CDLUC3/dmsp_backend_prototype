@@ -1,7 +1,8 @@
 import { MyContext } from '../context';
-import { sendTemplateCollaborationEmail } from '../services/emailService';
+import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../services/emailService';
 import { validateEmail } from '../utils/helpers';
 import { MySqlModel } from './MySqlModel';
+import { Project } from './Project';
 import { Template } from './Template';
 import { User } from './User';
 
@@ -194,5 +195,169 @@ export class TemplateCollaborator extends Collaborator {
     const vals = [templateId?.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
+  }
+}
+
+
+// An individual that has permission to work on a Project and it's plans
+export class ProjectCollaborator extends Collaborator {
+  public projectId: number;
+
+  private tableName = 'projectCollaborators';
+
+  constructor(options) {
+    super(options);
+
+    this.projectId = options.projectId ?? null;
+  }
+
+  // Verify that the projectId is present
+  async isValid(): Promise<boolean> {
+    super.isValid()
+
+    if (this.projectId === null) this.addError('projectId', 'Project Id can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
+  }
+
+  // Save the current record
+  async create(context: MyContext): Promise<ProjectCollaborator> {
+    const reference = 'ProjectCollaborator.create';
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      const currentCollaborator = await ProjectCollaborator.findByProjectIdAndEmail(
+        reference,
+        context,
+        this.projectId,
+        this.email,
+      );
+
+      if (currentCollaborator) {
+        currentCollaborator.addError('general', 'Collaborator has already been added');
+        return currentCollaborator
+      } else {
+        // See if the user already has an account, if so grab their id
+        const user = await User.findByEmail(reference, context, this.email);
+        this.userId = user?.id;
+
+        // Set the inviter's Id to the current user
+        this.invitedById = context.token?.id;
+
+        // Save the record and then fetch it
+        const newId = await ProjectCollaborator.insert(context, this.tableName, this, reference);
+        if (newId) {
+          const inviter = await User.findById(reference, context, this.invitedById);
+          const project = await Project.findById(reference, context, this.projectId);
+
+          // Send out the invitation notification (no async here, can happen in the background)
+          await sendProjectCollaborationEmail(context, project.title, inviter.getName(), this.email, this.userId)
+
+          return await ProjectCollaborator.findById(reference, context, newId);
+        }
+      }
+    }
+
+    // Otherwise return as-is with all the errors
+    return new ProjectCollaborator(this);
+  }
+
+  // Update the record
+  async update(context: MyContext): Promise<ProjectCollaborator> {
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      if (this.id) {
+        // Verify that the project we want to attach the collaborator to exists!
+        const projectExists = await Project.exists(
+          context,
+          'projects',
+          this.projectId,
+          'ProjectCollaborator.update'
+        );
+
+        if (!projectExists) {
+          this.addError('general', 'Project does not exist');
+        } else {
+          const result = await ProjectCollaborator.update(context, this.tableName, this, 'ProjectCollaborator.update');
+          if (!result) {
+            this.addError('general', 'Unable to update the collaborator');
+          }
+          if (!this.hasErrors()) {
+            return await ProjectCollaborator.findById('ProjectCollaborator.update', context, this.id);
+          }
+        }
+      } else {
+        this.addError('general', 'ProjectCollaborator has never been saved');
+      }
+    }
+    return new ProjectCollaborator(this);
+  }
+
+  // Remove this record
+  async delete(context: MyContext): Promise<ProjectCollaborator> {
+    const existing = await ProjectCollaborator.findById('ProjectCollaborator.delete', context, this.id);
+    if (existing) {
+      const result = await ProjectCollaborator.delete(context, this.tableName, this.id, 'ProjectCollaborator.delete');
+      if (!result) {
+        existing.addError('general', 'Unable to delete the collaborator');
+      }
+      return new ProjectCollaborator(existing);
+    }
+    return null;
+  }
+
+  // Get all of the collaborators for the specified Project
+  static async findByProjectId(
+    reference: string,
+    context: MyContext,
+    projectId: number
+  ): Promise<ProjectCollaborator[]> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE projectId = ? ORDER BY email ASC';
+    const results = await ProjectCollaborator.query(context, sql, [projectId?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
+  }
+
+  // Get the specified ProjectCollaborator
+  static async findById(
+    reference: string,
+    context: MyContext,
+    id: number,
+  ): Promise<ProjectCollaborator> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE id = ?';
+    const results = await ProjectCollaborator.query(context, sql, [id?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;
+  }
+
+  static async findByInvitedById(
+    reference: string,
+    context: MyContext,
+    invitedById: number,
+  ): Promise<ProjectCollaborator[]> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE invitedById = ?';
+    const results = await ProjectCollaborator.query(context, sql, [invitedById?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
+  }
+
+  // Get all of the ProjectCollaborator records for the specified email
+  static async findByEmail(
+    reference: string,
+    context: MyContext,
+    email: string,
+  ): Promise<ProjectCollaborator[]> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE email = ?';
+    const results = await ProjectCollaborator.query(context, sql, [email], reference);
+    return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
+  }
+
+  // Get the specified ProjectCollaborator
+  static async findByProjectIdAndEmail(
+    reference: string,
+    context: MyContext,
+    projectId: number,
+    email: string,
+  ): Promise<ProjectCollaborator> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE projectId = ? AND email = ?';
+    const vals = [projectId?.toString(), email];
+    const results = await ProjectCollaborator.query(context, sql, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;
   }
 }

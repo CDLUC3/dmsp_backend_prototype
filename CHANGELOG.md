@@ -1,4 +1,15 @@
 ### Added
+- Added `Plan`, `PlanFunder`, `PlanContributor`, `ProjectCollaborator`, `DMP` and `RelatedIdentifier` models
+- Added data-migration script to add additional columns to the `plans` table
+- Added data-migration to add `isPrimaryContact` flag to the `planContributors` table
+- Added new seed data-migration for `plans`, `planContributors`, `planFunders`
+- Added "mocks" for use in tests for `Affiliation`, `Collaborator` (Template/Project), `Contributor` (Project/Plan), `ContributorRole`, `Funder` (Project/Plan), `Plan`
+- Added a `findById` function to the `VersionedTemplate` model
+- Added a default ORCID base URL and regex to `User` model
+- Added `getMockDOI` and `getMockDMPId` helper functions for tests
+- Added an `IsNullOrUndefined` and `valueIsEmpty` (null, undefined or an empty string) helper functions
+- Added `config/dmpHubConfig.ts` for DMPHub specific configuration
+- Added `projectPlans` join table which acts as a bridge between the `projects` table in the MySQL database and the `plans` stored in the DMPHub DynamoDB table
 - Added model mocks for Affiliation and Collaborator
 - Added resolver integration tests for affilian and collaborator resolvers
 - Added `useSampleTextAsDefault` column to questions table and add `admins` to Template schema and chained it in the resolver
@@ -47,6 +58,21 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Renamed old `planCollaborators` table to `projectCollaborators`
+- Renamed old `PlanCollaborator` resolved functions so that they point to `ProjectCollaborator` since we decided to capture that at the project level
+- Updated `ProjectService` permission check so that it looks at the ProjectCollaborators as well
+- Updated `QuestionCondition` model to return the object with functions
+- Updated `ContributorRole` model so that it has functions to associate them with `PlanContributor` records.
+- Moved config for `dmpHubAPI` from the datasource into a `config/dmphubConfig.ts` file
+- Removed old unused `Affiliation` methods from `dmpHubAPI` and added `getDMP` and `validate` (for use in the near future when syncing changes within our system and the DMPHub)
+- Updated structure of `cacheConfig.ts` to match other configs
+- Moved config for `MysSQLDataSource` from the datasource into its config file
+- Moved `SigTerm` handler tests for `MySQLDataSource` into a separate test file. They were failing for some reason when run together
+- Refactored `context.ts` and tests to use new `dmpHubAPI` datasource
+- Refactored old "mocks" to extract duplicative code into the `MySQLMock.ts`
+- Update existing resolver tests to use new mocks
+- Made sure all config entries were covered in the `__tests__/setup.ts`
+- Updated the `emailService` to support `projectCollaborators` instead of `planCollaborators`
 - Updated `question` and `section` resolvers to update `isDirty` in associated `template` when mutations were made. That way a user can `Save Draft` in the `Edit Template` page.
 - Updated models and resolvers to handle errors in a consistent way
 - Refactored the way Sections handle the association with Tag to follow pattern used elsewhere
@@ -72,6 +98,11 @@
 - updated all of the cache key structures to wrap them in `{}` due to the way Redis handles keys in cluster mode
 - updated emailService to use nodemailer and to support emailConfirmation templateCollaboration and planCollaboration email messages
 - added bestPractice flag to the Section
+
+### Removed
+- Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
+- Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
+- Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test

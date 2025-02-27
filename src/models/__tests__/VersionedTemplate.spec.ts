@@ -121,15 +121,26 @@ describe('findBy queries', () => {
     VersionedTemplate.query = originalQuery;
   });
 
-  it('findByTemplateId returns the VersionedTemplates for the Template', async () => {
+  it('findById returns the VersionedTemplate', async () => {
     localQuery.mockResolvedValueOnce([versionedTemplate]);
-
-    const templateId = versionedTemplate.templateId;
-    const result = await VersionedTemplate.findByTemplateId('Test', context, templateId);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
+    const id = versionedTemplate.id;
+    const result = await VersionedTemplate.findById('Test', context, id);
+    const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Test')
-    expect(result).toEqual([versionedTemplate]);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+    expect(result).toEqual(versionedTemplate);
+    expect(result).toBeInstanceOf(VersionedTemplate);
+    expect(Object.keys(result.errors).length).toBe(0);
+  });
+
+  it('findById returns null if there is no VersionedTemplate', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const id = versionedTemplate.id;
+    const result = await VersionedTemplate.findById('Test', context, id);
+    const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+    expect(result).toEqual(null);
   });
 
   it('findByAffiliationId returns the VersionedTemplates', async () => {
@@ -142,6 +153,26 @@ describe('findBy queries', () => {
     expect(result).toEqual([versionedTemplate]);
   });
 
+  it('findByAffiliationId returns an empty array if there are no VersionedTemplates', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const affiliationId = '1234'
+    const result = await VersionedTemplate.findByAffiliationId('Test', context, affiliationId);
+    const expectedSql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
+    expect(result).toEqual([]);
+  });
+
+  it('findByTemplateId returns the VersionedTemplates for the Template', async () => {
+    localQuery.mockResolvedValueOnce([versionedTemplate]);
+
+    const templateId = versionedTemplate.templateId;
+    const result = await VersionedTemplate.findByTemplateId('Test', context, templateId);
+    const expectedSql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Test')
+    expect(result).toEqual([versionedTemplate]);
+  });
 
   it('findByTemplateId returns an empty array if there are no VersionedTemplates', async () => {
     localQuery.mockResolvedValueOnce([]);

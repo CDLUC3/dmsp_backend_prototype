@@ -8,6 +8,9 @@ import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
 
+export const DEFAULT_ORCID_URL = 'https://orcid.org/';
+export const ORCID_REGEX = /^(https?:\/\/)?(www\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
+
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
   ADMIN = 'ADMIN',

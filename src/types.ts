@@ -1,5 +1,4 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { DmspModel } from './models/Dmsp';
 import { MyContext } from './context';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -618,12 +617,12 @@ export type Mutation = {
   addPlan?: Maybe<Plan>;
   /** Answer a question */
   addPlanAnswer?: Maybe<Answer>;
-  /** Add a collaborator to a Plan */
-  addPlanCollaborator?: Maybe<PlanCollaborator>;
   /** Add a Contributor to a Plan */
   addPlanContributor?: Maybe<PlanContributor>;
   /** Create a project */
   addProject?: Maybe<Project>;
+  /** Add a collaborator to a Plan */
+  addProjectCollaborator?: Maybe<ProjectCollaborator>;
   /** Add a contributor to a research project */
   addProjectContributor?: Maybe<ProjectContributor>;
   /** Add a Funder to a research project */
@@ -648,6 +647,8 @@ export type Mutation = {
   addTemplateCollaborator?: Maybe<TemplateCollaborator>;
   /** Add an email address for the current user */
   addUserEmail?: Maybe<UserEmail>;
+  /** Archive a plan */
+  archivePlan?: Maybe<Plan>;
   /** Download the plan */
   archiveProject?: Maybe<Project>;
   /** Archive a Template (unpublishes any associated PublishedTemplate */
@@ -658,8 +659,6 @@ export type Mutation = {
   createTemplateVersion?: Maybe<Template>;
   /** Deactivate the specified user Account (Admin only) */
   deactivateUser?: Maybe<User>;
-  /** Download the plan */
-  downloadPlan?: Maybe<Scalars['String']['output']>;
   /** Change the plan's status to COMPLETE (cannot be done once the plan is PUBLISHED) */
   markPlanComplete?: Maybe<Plan>;
   /** Change the plan's status to DRAFT (cannot be done once the plan is PUBLISHED) */
@@ -684,10 +683,10 @@ export type Mutation = {
   removeLicense?: Maybe<License>;
   /** Delete a MetadataStandard */
   removeMetadataStandard?: Maybe<MetadataStandard>;
-  /** Remove a PlanCollaborator from a Plan */
-  removePlanCollaborator?: Maybe<PlanCollaborator>;
   /** Remove a PlanContributor from a Plan */
   removePlanContributor?: Maybe<PlanContributor>;
+  /** Remove a ProjectCollaborator from a Plan */
+  removeProjectCollaborator?: Maybe<ProjectCollaborator>;
   /** Remove a research project contributor */
   removeProjectContributor?: Maybe<ProjectContributor>;
   /** Remove a research project Funder */
@@ -738,12 +737,12 @@ export type Mutation = {
   updatePassword?: Maybe<User>;
   /** Edit an answer */
   updatePlanAnswer?: Maybe<Answer>;
-  /** Chnage a collaborator's accessLevel on a Plan */
-  updatePlanCollaborator?: Maybe<PlanCollaborator>;
   /** Chnage a Contributor's accessLevel on a Plan */
   updatePlanContributor?: Maybe<PlanContributor>;
   /** Edit a project */
   updateProject?: Maybe<Project>;
+  /** Chnage a collaborator's accessLevel on a Plan */
+  updateProjectCollaborator?: Maybe<ProjectCollaborator>;
   /** Update a contributor on the research project */
   updateProjectContributor?: Maybe<ProjectContributor>;
   /** Update a Funder on the research project */
@@ -825,12 +824,6 @@ export type MutationAddPlanAnswerArgs = {
 };
 
 
-export type MutationAddPlanCollaboratorArgs = {
-  email: Scalars['String']['input'];
-  planId: Scalars['Int']['input'];
-};
-
-
 export type MutationAddPlanContributorArgs = {
   planId: Scalars['Int']['input'];
   projectContributorId: Scalars['Int']['input'];
@@ -841,6 +834,12 @@ export type MutationAddPlanContributorArgs = {
 export type MutationAddProjectArgs = {
   isTestProject?: InputMaybe<Scalars['Boolean']['input']>;
   title: Scalars['String']['input'];
+};
+
+
+export type MutationAddProjectCollaboratorArgs = {
+  email: Scalars['String']['input'];
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -908,6 +907,11 @@ export type MutationAddUserEmailArgs = {
 };
 
 
+export type MutationArchivePlanArgs = {
+  dmp_id: Scalars['String']['input'];
+};
+
+
 export type MutationArchiveProjectArgs = {
   projectId: Scalars['Int']['input'];
 };
@@ -937,19 +941,13 @@ export type MutationDeactivateUserArgs = {
 };
 
 
-export type MutationDownloadPlanArgs = {
-  format: PlanDownloadFormat;
-  planId: Scalars['Int']['input'];
-};
-
-
 export type MutationMarkPlanCompleteArgs = {
-  planId: Scalars['Int']['input'];
+  dmp_id: Scalars['String']['input'];
 };
 
 
 export type MutationMarkPlanDraftArgs = {
-  planId: Scalars['Int']['input'];
+  dmp_id: Scalars['String']['input'];
 };
 
 
@@ -978,7 +976,7 @@ export type MutationMergeUsersArgs = {
 
 
 export type MutationPublishPlanArgs = {
-  planId: Scalars['Int']['input'];
+  dmp_id: Scalars['String']['input'];
   visibility?: InputMaybe<PlanVisibility>;
 };
 
@@ -1008,13 +1006,13 @@ export type MutationRemoveMetadataStandardArgs = {
 };
 
 
-export type MutationRemovePlanCollaboratorArgs = {
-  planCollaboratorId: Scalars['Int']['input'];
+export type MutationRemovePlanContributorArgs = {
+  planContributorId: Scalars['Int']['input'];
 };
 
 
-export type MutationRemovePlanContributorArgs = {
-  planContributorId: Scalars['Int']['input'];
+export type MutationRemoveProjectCollaboratorArgs = {
+  projectCollaboratorId: Scalars['Int']['input'];
 };
 
 
@@ -1152,12 +1150,6 @@ export type MutationUpdatePlanAnswerArgs = {
 };
 
 
-export type MutationUpdatePlanCollaboratorArgs = {
-  accessLevel: PlanCollaboratorAccessLevel;
-  planCollaboratorId: Scalars['Int']['input'];
-};
-
-
 export type MutationUpdatePlanContributorArgs = {
   planContributorId: Scalars['Int']['input'];
   roles?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -1166,6 +1158,12 @@ export type MutationUpdatePlanContributorArgs = {
 
 export type MutationUpdateProjectArgs = {
   input?: InputMaybe<UpdateProjectInput>;
+};
+
+
+export type MutationUpdateProjectCollaboratorArgs = {
+  accessLevel: ProjectCollaboratorAccessLevel;
+  projectCollaboratorId: Scalars['Int']['input'];
 };
 
 
@@ -1276,11 +1274,7 @@ export type OutputTypeErrors = {
 /** A Data Managament Plan (DMP) */
 export type Plan = {
   __typename?: 'Plan';
-  /** The plan's answers to the template questions */
-  answers?: Maybe<Array<Answer>>;
-  /** People who are collaborating on the the DMP content */
-  collaborators?: Maybe<Array<PlanCollaborator>>;
-  /** People who are contributing to the research project (not just the DMP) */
+  /** The contributors for the plan */
   contributors?: Maybe<Array<PlanContributor>>;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
@@ -1290,83 +1284,42 @@ export type Plan = {
   dmpId?: Maybe<Scalars['String']['output']>;
   /** Errors associated with the Object */
   errors?: Maybe<PlanErrors>;
-  /** Rounds of administrator feedback provided for the Plan */
-  feedback?: Maybe<Array<PlanFeedback>>;
-  /** The funder who is supporting the work defined by the DMP */
-  funders?: Maybe<Array<ProjectFunder>>;
+  /** Whether or not the plan is featured on the public plans page */
+  featured?: Maybe<Scalars['Boolean']['output']>;
+  /** The funders for the plan */
+  funders?: Maybe<Array<PlanFunder>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
-  /** The last person to have changed any part of the DMP (add collaborators, answer questions, etc.) */
-  lastUpdatedBy?: Maybe<Scalars['String']['output']>;
-  /** The last time any part of the DMP was updated (add collaborators, answer questions, etc.) */
-  lastUpdatedOn?: Maybe<Scalars['String']['output']>;
+  /** The language of the plan */
+  languageId?: Maybe<Scalars['String']['output']>;
+  /** The last time the plan was synced with the DMPHub */
+  lastSynced?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** Anticipated research outputs */
+  outputs?: Maybe<Array<PlanOutput>>;
   /** The project the plan is associated with */
-  project: Project;
-  /** The status of the plan */
+  project?: Maybe<Project>;
+  /** The timestamp for when the Plan was registered */
+  registered?: Maybe<Scalars['String']['output']>;
+  /** The individual who registered the plan */
+  registeredById?: Maybe<Scalars['Int']['output']>;
+  /** The status/state of the plan */
   status?: Maybe<PlanStatus>;
   /** The template the plan is based on */
-  versionedTemplate: VersionedTemplate;
-  /** The name/title of the plan (typically copied over from the project) */
+  versionedTemplate?: Maybe<VersionedTemplate>;
+  /** Prior versions of the plan */
+  versions?: Maybe<Array<PlanVersion>>;
+  /** The visibility/privacy setting for the plan */
   visibility?: Maybe<PlanVisibility>;
 };
 
-/** A user that that belongs to a different affiliation that can edit the Plan */
-export type PlanCollaborator = {
-  __typename?: 'PlanCollaborator';
-  /** The user's access level */
-  accessLevel?: Maybe<PlanCollaboratorAccessLevel>;
-  /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['String']['output']>;
-  /** The user who created the Object */
-  createdById?: Maybe<Scalars['Int']['output']>;
-  /** The collaborator's email */
-  email: Scalars['String']['output'];
-  /** Errors associated with the Object */
-  errors?: Maybe<Array<Scalars['String']['output']>>;
-  /** The unique identifer for the Object */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** The user who invited the collaborator */
-  invitedBy?: Maybe<User>;
-  /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['String']['output']>;
-  /** The user who last modified the Object */
-  modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** The plan the collaborator may edit */
-  plan?: Maybe<Plan>;
-  /** The collaborator (if they have an account) */
-  user?: Maybe<User>;
-};
-
-export type PlanCollaboratorAccessLevel =
-  /** The user is able to perform all actions on a Plan (typically restricted to the owner/creator) */
-  | 'ADMIN'
-  /** The user is ONLY able to comment on the Plan's answers */
-  | 'COMMENTER'
-  /** The user is able to comment and edit the Plan's answers, add/edit/delete contributors and research outputs */
-  | 'EDITOR';
-
-/** A collection of errors related to the PlanCollaborator */
-export type PlanCollaboratorErrors = {
-  __typename?: 'PlanCollaboratorErrors';
-  accessLevel?: Maybe<Scalars['String']['output']>;
-  email?: Maybe<Scalars['String']['output']>;
-  /** General error messages such as affiliation already exists */
-  general?: Maybe<Scalars['String']['output']>;
-  invitedById?: Maybe<Scalars['String']['output']>;
-  planId?: Maybe<Scalars['String']['output']>;
-  userId?: Maybe<Scalars['String']['output']>;
-};
-
-/** A person involved with the research project who will appear in the Plan's citation and landing page */
+/** A contributor associated with a plan */
 export type PlanContributor = {
   __typename?: 'PlanContributor';
-  /** The contributor's affiliation */
-  ProjectContributor?: Maybe<ProjectContributor>;
-  /** The roles the contributor has for this specific plan (can differ from the project) */
+  /** The roles associated with the contributor */
   contributorRoles?: Maybe<Array<ContributorRole>>;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
@@ -1376,22 +1329,31 @@ export type PlanContributor = {
   errors?: Maybe<PlanContributorErrors>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not the contributor the primary contact for the Plan */
+  isPrimaryContact?: Maybe<Scalars['Boolean']['output']>;
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** The Plan */
+  /** The plan that the contributor is associated with */
   plan?: Maybe<Plan>;
+  /** The project contributor */
+  projectContributor?: Maybe<ProjectContributor>;
 };
 
 /** A collection of errors related to the PlanContributor */
 export type PlanContributorErrors = {
   __typename?: 'PlanContributorErrors';
+  /** The roles associated with the contributor */
   contributorRoleIds?: Maybe<Scalars['String']['output']>;
-  /** General error messages such as the object already exists */
+  /** General error messages such as affiliation already exists */
   general?: Maybe<Scalars['String']['output']>;
-  plan?: Maybe<Scalars['String']['output']>;
-  projectContributor?: Maybe<Scalars['String']['output']>;
+  /** The isPrimaryContact flag */
+  primaryContact?: Maybe<Scalars['String']['output']>;
+  /** The project contributor */
+  projectContributorId?: Maybe<Scalars['String']['output']>;
+  /** The project that the contributor is associated with */
+  projectId?: Maybe<Scalars['String']['output']>;
 };
 
 export type PlanDownloadFormat =
@@ -1402,19 +1364,17 @@ export type PlanDownloadFormat =
   | 'PDF'
   | 'TEXT';
 
-/** A collection of errors related to the Plan */
+/** The error messages for the plan */
 export type PlanErrors = {
   __typename?: 'PlanErrors';
-  answerIds?: Maybe<Scalars['String']['output']>;
-  collaboratorIds?: Maybe<Scalars['String']['output']>;
-  contributorIds?: Maybe<Scalars['String']['output']>;
-  dmpId?: Maybe<Scalars['String']['output']>;
-  feedbackIds?: Maybe<Scalars['String']['output']>;
-  funderIds?: Maybe<Scalars['String']['output']>;
-  /** General error messages such as the object already exists */
+  dmp_id?: Maybe<Scalars['String']['output']>;
+  featured?: Maybe<Scalars['String']['output']>;
   general?: Maybe<Scalars['String']['output']>;
-  lastUpdatedById?: Maybe<Scalars['String']['output']>;
+  languageId?: Maybe<Scalars['String']['output']>;
+  lastSynced?: Maybe<Scalars['String']['output']>;
   projectId?: Maybe<Scalars['String']['output']>;
+  registered?: Maybe<Scalars['String']['output']>;
+  registeredById?: Maybe<Scalars['String']['output']>;
   status?: Maybe<Scalars['String']['output']>;
   versionedTemplateId?: Maybe<Scalars['String']['output']>;
   visibility?: Maybe<Scalars['String']['output']>;
@@ -1495,6 +1455,92 @@ export type PlanFeedbackErrors = {
   requestedById?: Maybe<Scalars['String']['output']>;
 };
 
+/** A funder associated with a plan */
+export type PlanFunder = {
+  __typename?: 'PlanFunder';
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** Errors associated with the Object */
+  errors?: Maybe<PlanFunderErrors>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The project that is seeking (or has aquired) funding */
+  project?: Maybe<Project>;
+  /** The project funder */
+  projectFunder?: Maybe<ProjectFunder>;
+};
+
+/** A collection of errors related to the PlanFunder */
+export type PlanFunderErrors = {
+  __typename?: 'PlanFunderErrors';
+  /** General error messages such as the object already exists */
+  general?: Maybe<Scalars['String']['output']>;
+  projectFunderId?: Maybe<Scalars['String']['output']>;
+  projectId?: Maybe<Scalars['String']['output']>;
+};
+
+export type PlanOutput = {
+  __typename?: 'PlanOutput';
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** Errors associated with the Object */
+  errors?: Maybe<PlanOutputErrors>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+};
+
+/** A collection of errors related to the PlanOutput */
+export type PlanOutputErrors = {
+  __typename?: 'PlanOutputErrors';
+  /** General error messages such as the object already exists */
+  general?: Maybe<Scalars['String']['output']>;
+};
+
+export type PlanSearchResult = {
+  __typename?: 'PlanSearchResult';
+  /** The names of the contributors */
+  contributors: Scalars['String']['output'];
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdBy?: Maybe<Scalars['String']['output']>;
+  /** The DMP ID/DOI for the plan */
+  dmpId?: Maybe<Scalars['String']['output']>;
+  /** The name of the funder */
+  funder?: Maybe<Scalars['String']['output']>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedBy?: Maybe<Scalars['String']['output']>;
+  /** The timestamp for when the Plan was registered/published */
+  registered?: Maybe<Scalars['String']['output']>;
+  /** The person who published/registered the plan */
+  registeredBy?: Maybe<Scalars['String']['output']>;
+  /** The current status of the plan */
+  status?: Maybe<PlanStatus>;
+  /** The title of the plan */
+  title?: Maybe<Scalars['String']['output']>;
+  /** The template the plan is based on */
+  versionedTemplateId: Scalars['Int']['output'];
+  /** The visibility/permission setting */
+  visibility?: Maybe<PlanVisibility>;
+};
+
+/** The status/state of the plan */
 export type PlanStatus =
   /** The Plan is ready for submission or download */
   | 'COMPLETE'
@@ -1503,6 +1549,16 @@ export type PlanStatus =
   /** The Plan's DMP ID (DOI) has been registered */
   | 'PUBLISHED';
 
+/** A version of the plan */
+export type PlanVersion = {
+  __typename?: 'PlanVersion';
+  /** The timestamp of the version, equates to the plan's modified date */
+  timestamp?: Maybe<Scalars['String']['output']>;
+  /** The DMPHub URL for the version */
+  url?: Maybe<Scalars['String']['output']>;
+};
+
+/** The visibility/privacy setting for the plan */
 export type PlanVisibility =
   /** Visible only to people at the user's (or editor's) affiliation */
   | 'ORGANIZATIONAL'
@@ -1537,12 +1593,63 @@ export type Project = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The outputs that will be/were created as a reult of the research project */
   outputs?: Maybe<Array<ProjectOutput>>;
+  /** The plans that are associated with the research project */
+  plans?: Maybe<Array<PlanSearchResult>>;
   /** The type of research being done */
   researchDomain?: Maybe<ResearchDomain>;
   /** The estimated date the research project will begin (use YYYY-MM-DD format) */
   startDate?: Maybe<Scalars['String']['output']>;
   /** The name/title of the research project */
   title: Scalars['String']['output'];
+};
+
+/** A user that that belongs to a different affiliation that can edit the Plan */
+export type ProjectCollaborator = {
+  __typename?: 'ProjectCollaborator';
+  /** The user's access level */
+  accessLevel?: Maybe<ProjectCollaboratorAccessLevel>;
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** The collaborator's email */
+  email: Scalars['String']['output'];
+  /** Errors associated with the Object */
+  errors?: Maybe<ProjectCollaboratorErrors>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The user who invited the collaborator */
+  invitedBy?: Maybe<User>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The plan the collaborator may edit */
+  plan?: Maybe<Plan>;
+  /** The ProjectContributor id */
+  projectContributorId?: Maybe<Scalars['Int']['output']>;
+  /** The collaborator (if they have an account) */
+  user?: Maybe<User>;
+};
+
+export type ProjectCollaboratorAccessLevel =
+  /** The user is able to perform all actions on a Plan (typically restricted to the owner/creator) */
+  | 'ADMIN'
+  /** The user is ONLY able to comment on the Plan's answers */
+  | 'COMMENTER'
+  /** The user is able to comment and edit the Plan's answers, add/edit/delete contributors and research outputs */
+  | 'EDITOR';
+
+/** A collection of errors related to the ProjectCollaborator */
+export type ProjectCollaboratorErrors = {
+  __typename?: 'ProjectCollaboratorErrors';
+  accessLevel?: Maybe<Scalars['String']['output']>;
+  email?: Maybe<Scalars['String']['output']>;
+  /** General error messages such as affiliation already exists */
+  general?: Maybe<Scalars['String']['output']>;
+  invitedById?: Maybe<Scalars['String']['output']>;
+  planId?: Maybe<Scalars['String']['output']>;
+  userId?: Maybe<Scalars['String']['output']>;
 };
 
 /** A person involved with a research project */
@@ -1722,8 +1829,6 @@ export type Query = {
   affiliationTypes?: Maybe<Array<Scalars['String']['output']>>;
   /** Perform a search for Affiliations matching the specified name */
   affiliations?: Maybe<Array<Maybe<AffiliationSearch>>>;
-  /** Archive a plan */
-  archivePlan?: Maybe<Plan>;
   /** Get all of the research domains related to the specified top level domain (more nuanced ones) */
   childResearchDomains?: Maybe<Array<Maybe<ResearchDomain>>>;
   /** Get the contributor role by it's id */
@@ -1757,15 +1862,15 @@ export type Query = {
   /** Get a specific plan */
   plan?: Maybe<Plan>;
   /** Get all of the Users that are collaborators for the Plan */
-  planCollaborators?: Maybe<Array<Maybe<PlanCollaborator>>>;
+  planCollaborators?: Maybe<Array<Maybe<ProjectCollaborator>>>;
   /** Get all of the Users that are contributors for the specific Plan */
   planContributors?: Maybe<Array<Maybe<PlanContributor>>>;
   /** Get all rounds of admin feedback for the plan */
   planFeedback?: Maybe<Array<Maybe<PlanFeedback>>>;
   /** Get all of the comments associated with the round of admin feedback */
   planFeedbackComments?: Maybe<Array<Maybe<PlanFeedbackComment>>>;
-  /** Get all of the Users that are Funders for the specific Plan */
-  planFunders?: Maybe<Array<Maybe<ProjectFunder>>>;
+  /** Get all of the Funders for the specific Plan */
+  planFunders?: Maybe<Array<Maybe<PlanFunder>>>;
   /** The subset of project outputs associated with the sepcified Plan */
   planOutputs?: Maybe<Array<Maybe<ProjectOutput>>>;
   /** Get all of the comments associated with the round of admin feedback */
@@ -1773,7 +1878,7 @@ export type Query = {
   /** Get all rounds of admin feedback for the plan */
   planSectionAnswers?: Maybe<Array<Maybe<Answer>>>;
   /** Get all plans for the research project */
-  plans?: Maybe<Array<Maybe<Plan>>>;
+  plans?: Maybe<Array<PlanSearchResult>>;
   /** Get a specific project */
   project?: Maybe<Project>;
   /** Get a specific contributor on the research project */
@@ -1810,6 +1915,10 @@ export type Query = {
   questions?: Maybe<Array<Maybe<Question>>>;
   /** Return the recommended Licenses */
   recommendedLicenses?: Maybe<Array<Maybe<License>>>;
+  /** Fetch a specific related work */
+  relatedWork?: Maybe<RelatedWork>;
+  /** Search for a related work */
+  relatedWorks?: Maybe<Array<Maybe<RelatedWork>>>;
   /** Search for a repository */
   repositories?: Maybe<Array<Maybe<Repository>>>;
   /** Fetch a specific repository */
@@ -1851,11 +1960,6 @@ export type QueryAffiliationByUriArgs = {
 export type QueryAffiliationsArgs = {
   funderOnly?: InputMaybe<Scalars['Boolean']['input']>;
   name: Scalars['String']['input'];
-};
-
-
-export type QueryArchivePlanArgs = {
-  planId: Scalars['Int']['input'];
 };
 
 
@@ -2034,6 +2138,16 @@ export type QueryQuestionsArgs = {
 
 export type QueryRecommendedLicensesArgs = {
   recommended: Scalars['Boolean']['input'];
+};
+
+
+export type QueryRelatedWorkArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type QueryRelatedWorksArgs = {
+  projectId?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -2287,6 +2401,114 @@ export type QuestionTypeErrors = {
   name?: Maybe<Scalars['String']['output']>;
   usageDescription?: Maybe<Scalars['String']['output']>;
 };
+
+/** A metadata standard used when describing a research output */
+export type RelatedWork = {
+  __typename?: 'RelatedWork';
+  /** The timestamp when the Object was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The user who created the Object */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** The related work's relationship to the research project (e.g. references, isReferencedBy, etc.) */
+  descriptor?: Maybe<RelatedWorkDescriptor>;
+  /** Errors associated with the Object */
+  errors?: Maybe<RelatedWorkErrors>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The unique identifier for the work (e.g. DOI, URL, etc. */
+  identifier?: Maybe<Scalars['String']['output']>;
+  /** The timestamp when the Object was last modifed */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The user who last modified the Object */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The type of the related work (e.g. dataset, software, etc.) */
+  workType?: Maybe<RelatedWorkType>;
+};
+
+/** Relationship types between a plan and a related work (derived from the DataCite metadata schema */
+export type RelatedWorkDescriptor =
+  | 'CITES'
+  | 'COLLECTS'
+  | 'COMPILES'
+  | 'CONTINUES'
+  | 'DESCRIBES'
+  | 'DOCUMENTS'
+  | 'HAS_METADATA'
+  | 'HAS_PART'
+  | 'HAS_TRANSLATION'
+  | 'HAS_VERSION'
+  | 'IS_CITED_BY'
+  | 'IS_COLLECTED_BY'
+  | 'IS_COMPILED_BY'
+  | 'IS_CONTINUED_BY'
+  | 'IS_DERIVED_FROM'
+  | 'IS_DESCRIBED_BY'
+  | 'IS_DOCUMENTED_BY'
+  | 'IS_IDENTICAL_TO'
+  | 'IS_METADATA_FOR'
+  | 'IS_NEW_VERSION_OF'
+  | 'IS_OBSOLETED_BY'
+  | 'IS_ORIGINAL_FORM_OF'
+  | 'IS_PART_OF'
+  | 'IS_PREVIOUS_VERSION_OF'
+  | 'IS_PUBLISHED_IN'
+  | 'IS_REFERENCED_BY'
+  | 'IS_REQUIRED_BY'
+  | 'IS_REVIEWED_BY'
+  | 'IS_SOURCE_OF'
+  | 'IS_SUPPLEMENTED_BY'
+  | 'IS_SUPPLEMENT_TO'
+  | 'IS_TRANSLATION_OF'
+  | 'IS_VARIANT_FORM_OF'
+  | 'IS_VERSION_OF'
+  | 'OBSOLETES'
+  | 'REFERENCES'
+  | 'REQUIRES'
+  | 'REVIEWS';
+
+/** A collection of errors related to the MetadataStandard */
+export type RelatedWorkErrors = {
+  __typename?: 'RelatedWorkErrors';
+  descriptor?: Maybe<Scalars['String']['output']>;
+  /** General error messages such as the object already exists */
+  general?: Maybe<Scalars['String']['output']>;
+  identifier?: Maybe<Scalars['String']['output']>;
+  workType?: Maybe<Scalars['String']['output']>;
+};
+
+/** The type of work that is related to the plan (derived from the DataCite metadata schema) */
+export type RelatedWorkType =
+  | 'AUDIOVISUAL'
+  | 'BOOK'
+  | 'BOOK_CHAPTER'
+  | 'COLLECTION'
+  | 'COMPUTATIONAL_NOTEBOOK'
+  | 'CONFERENCE_PAPER'
+  | 'CONFERENCE_PROCEEDING'
+  | 'DATASET'
+  | 'DATA_PAPER'
+  | 'DISSERTATION'
+  | 'EVENT'
+  | 'IMAGE'
+  | 'INSTRUMENT'
+  | 'INTERACTIVE_RESOURCE'
+  | 'JOURNAL'
+  | 'JOURNAL_ARTICLE'
+  | 'MODEL'
+  | 'OTHER'
+  | 'OUTPUT_MANAGEMENT_PLAN'
+  | 'PEER_REVIEW'
+  | 'PHYSICAL_OBJECT'
+  | 'PREPRINT'
+  | 'PROJECT'
+  | 'REPORT'
+  | 'SERVICE'
+  | 'SOFTWARE'
+  | 'SOUND'
+  | 'STANDARD'
+  | 'STUDY_REGISTRATION'
+  | 'TEXT'
+  | 'WORKFLOW';
 
 /** A repository where research outputs are preserved */
 export type Repository = {
@@ -3253,9 +3475,6 @@ export type ResolversTypes = {
   OutputType: ResolverTypeWrapper<OutputType>;
   OutputTypeErrors: ResolverTypeWrapper<OutputTypeErrors>;
   Plan: ResolverTypeWrapper<Plan>;
-  PlanCollaborator: ResolverTypeWrapper<PlanCollaborator>;
-  PlanCollaboratorAccessLevel: PlanCollaboratorAccessLevel;
-  PlanCollaboratorErrors: ResolverTypeWrapper<PlanCollaboratorErrors>;
   PlanContributor: ResolverTypeWrapper<PlanContributor>;
   PlanContributorErrors: ResolverTypeWrapper<PlanContributorErrors>;
   PlanDownloadFormat: PlanDownloadFormat;
@@ -3264,9 +3483,18 @@ export type ResolversTypes = {
   PlanFeedbackComment: ResolverTypeWrapper<PlanFeedbackComment>;
   PlanFeedbackCommentErrors: ResolverTypeWrapper<PlanFeedbackCommentErrors>;
   PlanFeedbackErrors: ResolverTypeWrapper<PlanFeedbackErrors>;
+  PlanFunder: ResolverTypeWrapper<PlanFunder>;
+  PlanFunderErrors: ResolverTypeWrapper<PlanFunderErrors>;
+  PlanOutput: ResolverTypeWrapper<PlanOutput>;
+  PlanOutputErrors: ResolverTypeWrapper<PlanOutputErrors>;
+  PlanSearchResult: ResolverTypeWrapper<PlanSearchResult>;
   PlanStatus: PlanStatus;
+  PlanVersion: ResolverTypeWrapper<PlanVersion>;
   PlanVisibility: PlanVisibility;
   Project: ResolverTypeWrapper<Project>;
+  ProjectCollaborator: ResolverTypeWrapper<ProjectCollaborator>;
+  ProjectCollaboratorAccessLevel: ProjectCollaboratorAccessLevel;
+  ProjectCollaboratorErrors: ResolverTypeWrapper<ProjectCollaboratorErrors>;
   ProjectContributor: ResolverTypeWrapper<ProjectContributor>;
   ProjectContributorErrors: ResolverTypeWrapper<ProjectContributorErrors>;
   ProjectErrors: ResolverTypeWrapper<ProjectErrors>;
@@ -3287,6 +3515,10 @@ export type ResolversTypes = {
   QuestionOptionInput: QuestionOptionInput;
   QuestionType: ResolverTypeWrapper<QuestionType>;
   QuestionTypeErrors: ResolverTypeWrapper<QuestionTypeErrors>;
+  RelatedWork: ResolverTypeWrapper<RelatedWork>;
+  RelatedWorkDescriptor: RelatedWorkDescriptor;
+  RelatedWorkErrors: ResolverTypeWrapper<RelatedWorkErrors>;
+  RelatedWorkType: RelatedWorkType;
   Repository: ResolverTypeWrapper<Repository>;
   RepositoryErrors: ResolverTypeWrapper<RepositoryErrors>;
   RepositorySearchInput: RepositorySearchInput;
@@ -3377,8 +3609,6 @@ export type ResolversParentTypes = {
   OutputType: OutputType;
   OutputTypeErrors: OutputTypeErrors;
   Plan: Plan;
-  PlanCollaborator: PlanCollaborator;
-  PlanCollaboratorErrors: PlanCollaboratorErrors;
   PlanContributor: PlanContributor;
   PlanContributorErrors: PlanContributorErrors;
   PlanErrors: PlanErrors;
@@ -3386,7 +3616,15 @@ export type ResolversParentTypes = {
   PlanFeedbackComment: PlanFeedbackComment;
   PlanFeedbackCommentErrors: PlanFeedbackCommentErrors;
   PlanFeedbackErrors: PlanFeedbackErrors;
+  PlanFunder: PlanFunder;
+  PlanFunderErrors: PlanFunderErrors;
+  PlanOutput: PlanOutput;
+  PlanOutputErrors: PlanOutputErrors;
+  PlanSearchResult: PlanSearchResult;
+  PlanVersion: PlanVersion;
   Project: Project;
+  ProjectCollaborator: ProjectCollaborator;
+  ProjectCollaboratorErrors: ProjectCollaboratorErrors;
   ProjectContributor: ProjectContributor;
   ProjectContributorErrors: ProjectContributorErrors;
   ProjectErrors: ProjectErrors;
@@ -3404,6 +3642,8 @@ export type ResolversParentTypes = {
   QuestionOptionInput: QuestionOptionInput;
   QuestionType: QuestionType;
   QuestionTypeErrors: QuestionTypeErrors;
+  RelatedWork: RelatedWork;
+  RelatedWorkErrors: RelatedWorkErrors;
   Repository: Repository;
   RepositoryErrors: RepositoryErrors;
   RepositorySearchInput: RepositorySearchInput;
@@ -3671,9 +3911,9 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationAddMetadataStandardArgs, 'input'>>;
   addPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationAddPlanArgs, 'projectId' | 'versionedTemplateId'>>;
   addPlanAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationAddPlanAnswerArgs, 'planId' | 'versionedQuestionId' | 'versionedSectionId'>>;
-  addPlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationAddPlanCollaboratorArgs, 'email' | 'planId'>>;
   addPlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationAddPlanContributorArgs, 'planId' | 'projectContributorId'>>;
   addProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<MutationAddProjectArgs, 'title'>>;
+  addProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationAddProjectCollaboratorArgs, 'email' | 'planId'>>;
   addProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationAddProjectContributorArgs, 'input'>>;
   addProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationAddProjectFunderArgs, 'input'>>;
   addProjectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationAddProjectOutputArgs, 'input'>>;
@@ -3686,26 +3926,26 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationAddTemplateArgs, 'name'>>;
   addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['TemplateCollaborator']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   addUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationAddUserEmailArgs, 'email' | 'isPrimary'>>;
+  archivePlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationArchivePlanArgs, 'dmp_id'>>;
   archiveProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<MutationArchiveProjectArgs, 'projectId'>>;
   archiveTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
   completeFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationCompleteFeedbackArgs, 'planFeedbackId'>>;
   createTemplateVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateTemplateVersionArgs, 'templateId' | 'visibility'>>;
   deactivateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationDeactivateUserArgs, 'userId'>>;
-  downloadPlan?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, RequireFields<MutationDownloadPlanArgs, 'format' | 'planId'>>;
-  markPlanComplete?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanCompleteArgs, 'planId'>>;
-  markPlanDraft?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanDraftArgs, 'planId'>>;
+  markPlanComplete?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanCompleteArgs, 'dmp_id'>>;
+  markPlanDraft?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanDraftArgs, 'dmp_id'>>;
   mergeLicenses?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationMergeLicensesArgs, 'licenseToKeepId' | 'licenseToRemoveId'>>;
   mergeMetadataStandards?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationMergeMetadataStandardsArgs, 'metadataStandardToKeepId' | 'metadataStandardToRemoveId'>>;
   mergeRepositories?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<MutationMergeRepositoriesArgs, 'repositoryToKeepId' | 'repositoryToRemoveId'>>;
   mergeUsers?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationMergeUsersArgs, 'userIdToBeMerged' | 'userIdToKeep'>>;
-  publishPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationPublishPlanArgs, 'planId'>>;
+  publishPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationPublishPlanArgs, 'dmp_id'>>;
   removeAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationRemoveAffiliationArgs, 'affiliationId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   removeFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationRemoveFeedbackCommentArgs, 'PlanFeedbackCommentId'>>;
   removeLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationRemoveLicenseArgs, 'uri'>>;
   removeMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationRemoveMetadataStandardArgs, 'uri'>>;
-  removePlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationRemovePlanCollaboratorArgs, 'planCollaboratorId'>>;
   removePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationRemovePlanContributorArgs, 'planContributorId'>>;
+  removeProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationRemoveProjectCollaboratorArgs, 'projectCollaboratorId'>>;
   removeProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationRemoveProjectContributorArgs, 'projectContributorId'>>;
   removeProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationRemoveProjectFunderArgs, 'projectFunderId'>>;
   removeProjectFunderFromPlan?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationRemoveProjectFunderFromPlanArgs, 'planId' | 'projectFunderId'>>;
@@ -3731,9 +3971,9 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
   updatePlanAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationUpdatePlanAnswerArgs, 'answerId'>>;
-  updatePlanCollaborator?: Resolver<Maybe<ResolversTypes['PlanCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdatePlanCollaboratorArgs, 'accessLevel' | 'planCollaboratorId'>>;
   updatePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationUpdatePlanContributorArgs, 'planContributorId'>>;
   updateProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationUpdateProjectArgs>>;
+  updateProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdateProjectCollaboratorArgs, 'accessLevel' | 'projectCollaboratorId'>>;
   updateProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationUpdateProjectContributorArgs, 'input'>>;
   updateProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationUpdateProjectFunderArgs, 'input'>>;
   updateProjectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationUpdateProjectOutputArgs, 'input'>>;
@@ -3775,83 +4015,61 @@ export type OutputTypeErrorsResolvers<ContextType = MyContext, ParentType extend
 };
 
 export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Plan'] = ResolversParentTypes['Plan']> = {
-  answers?: Resolver<Maybe<Array<ResolversTypes['Answer']>>, ParentType, ContextType>;
-  collaborators?: Resolver<Maybe<Array<ResolversTypes['PlanCollaborator']>>, ParentType, ContextType>;
   contributors?: Resolver<Maybe<Array<ResolversTypes['PlanContributor']>>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   dmpId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['PlanErrors']>, ParentType, ContextType>;
-  feedback?: Resolver<Maybe<Array<ResolversTypes['PlanFeedback']>>, ParentType, ContextType>;
-  funders?: Resolver<Maybe<Array<ResolversTypes['ProjectFunder']>>, ParentType, ContextType>;
+  featured?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  funders?: Resolver<Maybe<Array<ResolversTypes['PlanFunder']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  lastUpdatedBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  lastUpdatedOn?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  languageId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  lastSynced?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  project?: Resolver<ResolversTypes['Project'], ParentType, ContextType>;
+  outputs?: Resolver<Maybe<Array<ResolversTypes['PlanOutput']>>, ParentType, ContextType>;
+  project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
+  registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  registeredById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
-  versionedTemplate?: Resolver<ResolversTypes['VersionedTemplate'], ParentType, ContextType>;
+  versionedTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType>;
+  versions?: Resolver<Maybe<Array<ResolversTypes['PlanVersion']>>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['PlanVisibility']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type PlanCollaboratorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanCollaborator'] = ResolversParentTypes['PlanCollaborator']> = {
-  accessLevel?: Resolver<Maybe<ResolversTypes['PlanCollaboratorAccessLevel']>, ParentType, ContextType>;
-  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  errors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  invitedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType>;
-  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type PlanCollaboratorErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanCollaboratorErrors'] = ResolversParentTypes['PlanCollaboratorErrors']> = {
-  accessLevel?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  invitedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  planId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  userId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type PlanContributorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanContributor'] = ResolversParentTypes['PlanContributor']> = {
-  ProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType>;
   contributorRoles?: Resolver<Maybe<Array<ResolversTypes['ContributorRole']>>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['PlanContributorErrors']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  isPrimaryContact?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType>;
+  projectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type PlanContributorErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanContributorErrors'] = ResolversParentTypes['PlanContributorErrors']> = {
   contributorRoleIds?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  plan?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  projectContributor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  primaryContact?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  projectContributorId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  projectId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type PlanErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanErrors'] = ResolversParentTypes['PlanErrors']> = {
-  answerIds?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  collaboratorIds?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  contributorIds?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  dmpId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  feedbackIds?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  funderIds?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  dmp_id?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  featured?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  lastUpdatedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  languageId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  lastSynced?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   projectId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  registeredById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   versionedTemplateId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -3906,6 +4124,64 @@ export type PlanFeedbackErrorsResolvers<ContextType = MyContext, ParentType exte
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type PlanFunderResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanFunder'] = ResolversParentTypes['PlanFunder']> = {
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<ResolversTypes['PlanFunderErrors']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
+  projectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PlanFunderErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanFunderErrors'] = ResolversParentTypes['PlanFunderErrors']> = {
+  general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  projectFunderId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  projectId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PlanOutputResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanOutput'] = ResolversParentTypes['PlanOutput']> = {
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<ResolversTypes['PlanOutputErrors']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PlanOutputErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanOutputErrors'] = ResolversParentTypes['PlanOutputErrors']> = {
+  general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PlanSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanSearchResult'] = ResolversParentTypes['PlanSearchResult']> = {
+  contributors?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  dmpId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  funder?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  registeredBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  versionedTemplateId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  visibility?: Resolver<Maybe<ResolversTypes['PlanVisibility']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PlanVersionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanVersion'] = ResolversParentTypes['PlanVersion']> = {
+  timestamp?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  url?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type ProjectResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Project'] = ResolversParentTypes['Project']> = {
   abstractText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   contributors?: Resolver<Maybe<Array<ResolversTypes['ProjectContributor']>>, ParentType, ContextType>;
@@ -3919,9 +4195,36 @@ export type ProjectResolvers<ContextType = MyContext, ParentType extends Resolve
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   outputs?: Resolver<Maybe<Array<ResolversTypes['ProjectOutput']>>, ParentType, ContextType>;
+  plans?: Resolver<Maybe<Array<ResolversTypes['PlanSearchResult']>>, ParentType, ContextType>;
   researchDomain?: Resolver<Maybe<ResolversTypes['ResearchDomain']>, ParentType, ContextType>;
   startDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ProjectCollaboratorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ProjectCollaborator'] = ResolversParentTypes['ProjectCollaborator']> = {
+  accessLevel?: Resolver<Maybe<ResolversTypes['ProjectCollaboratorAccessLevel']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  email?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  errors?: Resolver<Maybe<ResolversTypes['ProjectCollaboratorErrors']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  invitedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType>;
+  projectContributorId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ProjectCollaboratorErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ProjectCollaboratorErrors'] = ResolversParentTypes['ProjectCollaboratorErrors']> = {
+  accessLevel?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  invitedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  planId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  userId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4035,7 +4338,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliationByURI?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByUriArgs, 'uri'>>;
   affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
-  archivePlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryArchivePlanArgs, 'planId'>>;
   childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;
   contributorRoleById?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByIdArgs, 'contributorRoleId'>>;
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
@@ -4052,15 +4354,15 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   myVersionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
   outputTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['OutputType']>>>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
-  planCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanCollaborator']>>>, ParentType, ContextType, RequireFields<QueryPlanCollaboratorsArgs, 'planId'>>;
+  planCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectCollaborator']>>>, ParentType, ContextType, RequireFields<QueryPlanCollaboratorsArgs, 'planId'>>;
   planContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanContributor']>>>, ParentType, ContextType, RequireFields<QueryPlanContributorsArgs, 'planId'>>;
   planFeedback?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedback']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackArgs, 'planId'>>;
   planFeedbackComments?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedbackComment']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackCommentsArgs, 'planFeedbackId'>>;
-  planFunders?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectFunder']>>>, ParentType, ContextType, RequireFields<QueryPlanFundersArgs, 'planId'>>;
+  planFunders?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFunder']>>>, ParentType, ContextType, RequireFields<QueryPlanFundersArgs, 'planId'>>;
   planOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryPlanOutputsArgs, 'planId'>>;
   planQuestionAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryPlanQuestionAnswerArgs, 'answerId' | 'questionId'>>;
   planSectionAnswers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryPlanSectionAnswersArgs, 'planId' | 'sectionId'>>;
-  plans?: Resolver<Maybe<Array<Maybe<ResolversTypes['Plan']>>>, ParentType, ContextType, RequireFields<QueryPlansArgs, 'projectId'>>;
+  plans?: Resolver<Maybe<Array<ResolversTypes['PlanSearchResult']>>, ParentType, ContextType, RequireFields<QueryPlansArgs, 'projectId'>>;
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<QueryProjectArgs, 'projectId'>>;
   projectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<QueryProjectContributorArgs, 'projectContributorId'>>;
   projectContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectContributor']>>>, ParentType, ContextType, RequireFields<QueryProjectContributorsArgs, 'projectId'>>;
@@ -4079,6 +4381,8 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   questionTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionType']>>>, ParentType, ContextType>;
   questions?: Resolver<Maybe<Array<Maybe<ResolversTypes['Question']>>>, ParentType, ContextType, RequireFields<QueryQuestionsArgs, 'sectionId'>>;
   recommendedLicenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, RequireFields<QueryRecommendedLicensesArgs, 'recommended'>>;
+  relatedWork?: Resolver<Maybe<ResolversTypes['RelatedWork']>, ParentType, ContextType, RequireFields<QueryRelatedWorkArgs, 'id'>>;
+  relatedWorks?: Resolver<Maybe<Array<Maybe<ResolversTypes['RelatedWork']>>>, ParentType, ContextType, Partial<QueryRelatedWorksArgs>>;
   repositories?: Resolver<Maybe<Array<Maybe<ResolversTypes['Repository']>>>, ParentType, ContextType, RequireFields<QueryRepositoriesArgs, 'input'>>;
   repository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<QueryRepositoryArgs, 'uri'>>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;
@@ -4198,6 +4502,27 @@ export type QuestionTypeErrorsResolvers<ContextType = MyContext, ParentType exte
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   usageDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type RelatedWorkResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['RelatedWork'] = ResolversParentTypes['RelatedWork']> = {
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  descriptor?: Resolver<Maybe<ResolversTypes['RelatedWorkDescriptor']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<ResolversTypes['RelatedWorkErrors']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  identifier?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  workType?: Resolver<Maybe<ResolversTypes['RelatedWorkType']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type RelatedWorkErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['RelatedWorkErrors'] = ResolversParentTypes['RelatedWorkErrors']> = {
+  descriptor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  identifier?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  workType?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4602,8 +4927,6 @@ export type Resolvers<ContextType = MyContext> = {
   OutputType?: OutputTypeResolvers<ContextType>;
   OutputTypeErrors?: OutputTypeErrorsResolvers<ContextType>;
   Plan?: PlanResolvers<ContextType>;
-  PlanCollaborator?: PlanCollaboratorResolvers<ContextType>;
-  PlanCollaboratorErrors?: PlanCollaboratorErrorsResolvers<ContextType>;
   PlanContributor?: PlanContributorResolvers<ContextType>;
   PlanContributorErrors?: PlanContributorErrorsResolvers<ContextType>;
   PlanErrors?: PlanErrorsResolvers<ContextType>;
@@ -4611,7 +4934,15 @@ export type Resolvers<ContextType = MyContext> = {
   PlanFeedbackComment?: PlanFeedbackCommentResolvers<ContextType>;
   PlanFeedbackCommentErrors?: PlanFeedbackCommentErrorsResolvers<ContextType>;
   PlanFeedbackErrors?: PlanFeedbackErrorsResolvers<ContextType>;
+  PlanFunder?: PlanFunderResolvers<ContextType>;
+  PlanFunderErrors?: PlanFunderErrorsResolvers<ContextType>;
+  PlanOutput?: PlanOutputResolvers<ContextType>;
+  PlanOutputErrors?: PlanOutputErrorsResolvers<ContextType>;
+  PlanSearchResult?: PlanSearchResultResolvers<ContextType>;
+  PlanVersion?: PlanVersionResolvers<ContextType>;
   Project?: ProjectResolvers<ContextType>;
+  ProjectCollaborator?: ProjectCollaboratorResolvers<ContextType>;
+  ProjectCollaboratorErrors?: ProjectCollaboratorErrorsResolvers<ContextType>;
   ProjectContributor?: ProjectContributorResolvers<ContextType>;
   ProjectContributorErrors?: ProjectContributorErrorsResolvers<ContextType>;
   ProjectErrors?: ProjectErrorsResolvers<ContextType>;
@@ -4628,6 +4959,8 @@ export type Resolvers<ContextType = MyContext> = {
   QuestionOptionErrors?: QuestionOptionErrorsResolvers<ContextType>;
   QuestionType?: QuestionTypeResolvers<ContextType>;
   QuestionTypeErrors?: QuestionTypeErrorsResolvers<ContextType>;
+  RelatedWork?: RelatedWorkResolvers<ContextType>;
+  RelatedWorkErrors?: RelatedWorkErrorsResolvers<ContextType>;
   Repository?: RepositoryResolvers<ContextType>;
   RepositoryErrors?: RepositoryErrorsResolvers<ContextType>;
   ResearchDomain?: ResearchDomainResolvers<ContextType>;

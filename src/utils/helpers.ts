@@ -36,11 +36,32 @@ export function capitalizeFirstLetter(str: string): string {
 
 // Remove know Protocol and Domain portions of identifiers from the string
 export function stripIdentifierBaseURL(str: string): string {
+  if (!str) return '';
+
   return str.replace(generalConfig.dmpIdBaseURL, '')
             .replace(generalConfig.orcidBaseURL, '')
             .replace(generalConfig.rorBaseURL, '')
             .replace(/^\//, '')
             .trim();
+}
+
+// Verify that a string is a valid identifier
+export function isNullOrUndefined(value: unknown): boolean {
+  return value === null || value === undefined;
+}
+
+// Verify that a string is a valid identifier
+export function valueIsEmpty(value: string | number | boolean): boolean {
+  // Check if the value is null or undefined
+  if (isNullOrUndefined(value)) {
+    return true;
+  }
+  // Check if the value is a string
+  if (typeof value === 'string') {
+    return value.trim() === '';
+  }
+
+  return false;
 }
 
 // Date validation

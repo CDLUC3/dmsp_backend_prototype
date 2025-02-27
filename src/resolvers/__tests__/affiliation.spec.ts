@@ -8,25 +8,16 @@ import { logger } from "../../__mocks__/logger";
 import { JWTAccessToken } from "../../services/tokenService";
 
 import { Affiliation, AffiliationProvenance, AffiliationSearch, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL, DEFAULT_ROR_AFFILIATION_URL } from "../../models/Affiliation";
-import {
-  resetAffiliationStore,
-  seedAffiliationStore,
-  mockFindById,
-  mockFindByURI,
-  mockFindByName,
-  mockSearch,
-  mockInsert,
-  mockUpdate,
-  mockDelete,
-  affiliationStore,
-} from "../../models/__mocks__/Affiliation";
 import { UserRole } from "../../models/User";
 import { getRandomEnumValue } from "../../__tests__/helpers";
+import { clearAffiliationStore, initAffiliationStore, mockAffiliationSearch, mockDeleteAffiliation, mockFindAffiliationById, mockFindAffiliationByName, mockFindAffiliationByURI, mockInsertAffiliation, mockUpdateAffiliation } from "../../models/__mocks__/Affiliation";
 
 jest.mock('../../context.ts');
 jest.mock('../../datasources/cache');
 
 let testServer: ApolloServer;
+let affiliationStore: Affiliation[];
+let superAdminToken: JWTAccessToken;
 let query: string;
 
 // Proxy call to the Apollo server test server
@@ -55,25 +46,28 @@ beforeEach(() => {
   });
 
   // Add initial data to the mock database
-  seedAffiliationStore(3);
+  affiliationStore = initAffiliationStore(3);
 
   // Use the mocks to replace the actual queries
-  jest.spyOn(AffiliationSearch, 'search').mockImplementation(mockSearch);
-  jest.spyOn(Affiliation, 'findById').mockImplementation(mockFindById);
-  jest.spyOn(Affiliation, 'findByURI').mockImplementation(mockFindByURI);
-  jest.spyOn(Affiliation, 'findByName').mockImplementation(mockFindByName);
+  jest.spyOn(AffiliationSearch, 'search').mockImplementation(mockAffiliationSearch);
+  jest.spyOn(Affiliation, 'findById').mockImplementation(mockFindAffiliationById);
+  jest.spyOn(Affiliation, 'findByURI').mockImplementation(mockFindAffiliationByURI);
+  jest.spyOn(Affiliation, 'findByName').mockImplementation(mockFindAffiliationByName);
 
   // Use the mocks to replace the actual mutations
-  jest.spyOn(Affiliation, 'insert').mockImplementation(mockInsert);
-  jest.spyOn(Affiliation, 'update').mockImplementation(mockUpdate);
-  jest.spyOn(Affiliation, 'delete').mockImplementation(mockDelete);
+  jest.spyOn(Affiliation, 'insert').mockImplementation(mockInsertAffiliation);
+  jest.spyOn(Affiliation, 'update').mockImplementation(mockUpdateAffiliation);
+  jest.spyOn(Affiliation, 'delete').mockImplementation(mockDeleteAffiliation);
+
+  superAdminToken = mockToken();
+  superAdminToken.role = UserRole.SUPERADMIN;
 });
 
 afterEach(() => {
   jest.clearAllMocks();
 
   // Reset the mock database
-  resetAffiliationStore();
+  clearAffiliationStore();
 });
 
 describe('affiliationTypes query', () => {

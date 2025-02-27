@@ -1,7 +1,7 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { ProjectContributor } from "../Contributor";
+import { PlanContributor, ProjectContributor } from "../Contributor";
 import { getMockORCID } from "../../__tests__/helpers";
 import { ContributorRole } from "../ContributorRole";
 
@@ -220,6 +220,33 @@ describe('findBy Queries', () => {
     const result = await ProjectContributor.findByProjectAndName('testing', context, projectId, givenName, surName);
     expect(result).toEqual(null);
   });
+
+  it('findByProjectAndNameOrORCIDOrEmail should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([projectContributor]);
+    const projectId = casual.integer(1, 999);
+    const givenName = casual.first_name;
+    const surName = casual.last_name;
+    const orcid = casual.card_number();
+    const email = casual.email;
+    const result = await ProjectContributor.findByProjectAndNameOrORCIDOrEmail('testing', context, projectId, givenName, surName, orcid, email);
+    const expectedSql = 'SELECT * FROM projectContributors WHERE projectId = ? AND (LOWER(givenName) = ? AND LOWER(surName) = ?) OR (orcid = ?) ' +
+                        'OR (email = ?) ORDER BY orcid DESC, email DESC, surName, givenName';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    const vals = [projectId.toString(), givenName.toLowerCase(), surName.toLowerCase(), orcid, email];
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
+    expect(result).toEqual(projectContributor);
+  });
+
+  it('findByProjectAndNameOrORCIDOrEmail should return empty array if it finds no default', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const projectId = casual.integer(1, 999);
+    const givenName = casual.first_name;
+    const surName = casual.last_name;
+    const orcid = casual.card_number();
+    const email = casual.email;
+    const result = await ProjectContributor.findByProjectAndNameOrORCIDOrEmail('testing', context, projectId, givenName, surName, orcid, email);
+    expect(result).toEqual(null);
+  });
 });
 
 describe('update', () => {
@@ -395,5 +422,136 @@ describe('delete', () => {
     const result = await projectContributor.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(ProjectContributor);
+  });
+});
+
+describe('PlanContributor', () => {
+  let planContributor;
+
+  const contributorData = {
+    planId: casual.integer(1, 9),
+    projectContributorId: casual.url,
+    contributorRoleIds: [casual.integer(1, 99)],
+  }
+  beforeEach(() => {
+    planContributor = new PlanContributor(contributorData);
+  });
+
+  it('should initialize options as expected', () => {
+    expect(planContributor.planId).toEqual(contributorData.planId);
+    expect(planContributor.projectContributorId).toEqual(contributorData.projectContributorId);
+    expect(planContributor.contributorRoleIds).toEqual(contributorData.contributorRoleIds);
+  });
+
+  it('should return true when calling isValid with a name field', async () => {
+    expect(await planContributor.isValid()).toBe(true);
+  });
+
+  it('should return false when calling isValid without a planId field', async () => {
+    planContributor.planId = null;
+    expect(await planContributor.isValid()).toBe(false);
+    expect(Object.keys(planContributor.errors).length).toBe(1);
+    expect(planContributor.errors['planId']).toBeTruthy();
+  });
+
+  it('should return false when calling isValid without a projectContributorId field', async () => {
+    planContributor.projectContributorId = null;
+    expect(await planContributor.isValid()).toBe(false);
+    expect(Object.keys(planContributor.errors).length).toBe(1);
+    expect(planContributor.errors['projectContributorId']).toBeTruthy();
+  });
+
+  it('should return false when calling isValid if there are no contributorRoleIds', async () => {
+    planContributor.contributorRoleIds = [];
+    expect(await planContributor.isValid()).toBe(false);
+    expect(Object.keys(planContributor.errors).length).toBe(1);
+    expect(planContributor.errors['contributorRoleIds']).toBeTruthy();
+  });
+
+  it('prepForSave should default the appropriate properties', async () => {
+    planContributor.contributorRoleIds = null;
+    planContributor.prepForSave()
+    expect(planContributor.contributorRoleIds).toEqual([]);
+  });
+});
+
+describe('findByPlanId', () => {
+  const originalQuery = PlanContributor.query;
+
+  let localQuery;
+  let context;
+  let planContributor;
+
+  beforeEach(() => {
+    localQuery = jest.fn();
+    (PlanContributor.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    planContributor = new PlanContributor({
+      planId: casual.integer(1, 999),
+      affiliationId: casual.url,
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      orcid: getMockORCID(),
+      email: casual.email,
+      contributorRoles: [new ContributorRole({ id: casual.integer(1, 99) })]
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    PlanContributor.query = originalQuery;
+  });
+
+  it('findById should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([planContributor]);
+    const planContributorId = casual.integer(1, 999);
+    const result = await PlanContributor.findById('testing', context, planContributorId);
+    const expectedSql = 'SELECT * FROM planContributors WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planContributorId.toString()], 'testing')
+    expect(result).toEqual(planContributor);
+  });
+
+  it('findById should return null if it finds no default', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const planContributorId = casual.integer(1, 999);
+    const result = await PlanContributor.findById('testing', context, planContributorId);
+    expect(result).toEqual(null);
+  });
+
+  it('findById should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([planContributor]);
+    const planId = casual.integer(1, 999);
+    const result = await PlanContributor.findByPlanId('testing', context, planId);
+    const expectedSql = 'SELECT * FROM planContributors WHERE planId = ? ORDER BY isPrimaryContact DESC';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planId.toString()], 'testing')
+    expect(result).toEqual([planContributor]);
+  });
+
+  it('findById should return empty array if it finds no default', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const planId = casual.integer(1, 999);
+    const result = await PlanContributor.findByPlanId('testing', context, planId);
+    expect(result).toEqual([]);
+  });
+
+  it('findByProjectContributorId should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([planContributor]);
+    const projectContributorId = casual.integer(1, 999);
+    const result = await PlanContributor.findByProjectContributorId('testing', context, projectContributorId);
+    const expectedSql = 'SELECT * FROM planContributors WHERE projectContributorId = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectContributorId.toString()], 'testing')
+    expect(result).toEqual(planContributor);
+  });
+
+  it('findByProjectContributorId should return empty array if it finds no default', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const projectContributorId = casual.integer(1, 999);
+    const result = await PlanContributor.findByProjectContributorId('testing', context, projectContributorId);
+    expect(result).toEqual(null);
   });
 });
