@@ -11,7 +11,7 @@ export enum PlanStatus {
 }
 
 export enum PlanVisibility {
-  ORGANIATIONAL = 'ORGANISATIONAL',
+  ORGANIATIONAL = 'ORGANIZATIONAL',
   PUBLIC = 'PUBLIC',
   PRIVATE = 'PRIVATE',
 }
@@ -32,7 +32,7 @@ export class PlanSearchResult {
   public registered: string;
   public featured: boolean;
   public funder: string;
-  public contributors: string[];
+  public contributors: string;
 
   constructor(options) {
     this.id = options.id;
@@ -49,7 +49,7 @@ export class PlanSearchResult {
     this.registered = options.registered;
     this.featured = options.featured ?? false;
     this.funder = options.funder;
-    this.contributors = options.contributors ?? [];
+    this.contributors = options.contributors;
   }
 
   // Find all of the high level details about the plans for a project

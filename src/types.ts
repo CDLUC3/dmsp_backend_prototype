@@ -1,5 +1,4 @@
 import { GraphQLResolveInfo, GraphQLScalarType, GraphQLScalarTypeConfig } from 'graphql';
-import { DmspModel } from './models/Dmsp';
 import { MyContext } from './context';
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -1330,14 +1329,14 @@ export type PlanContributor = {
   errors?: Maybe<PlanContributorErrors>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not the contributor the primary contact for the Plan */
+  isPrimaryContact?: Maybe<Scalars['Boolean']['output']>;
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The plan that the contributor is associated with */
   plan?: Maybe<Plan>;
-  /** Whether or not the contributor the primary contact for the Plan */
-  primaryContact?: Maybe<Scalars['Boolean']['output']>;
   /** The project contributor */
   projectContributor?: Maybe<ProjectContributor>;
 };
@@ -1512,7 +1511,7 @@ export type PlanOutputErrors = {
 export type PlanSearchResult = {
   __typename?: 'PlanSearchResult';
   /** The names of the contributors */
-  contributors?: Maybe<Array<Scalars['String']['output']>>;
+  contributors: Scalars['String']['output'];
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
@@ -1562,7 +1561,7 @@ export type PlanVersion = {
 /** The visibility/privacy setting for the plan */
 export type PlanVisibility =
   /** Visible only to people at the user's (or editor's) affiliation */
-  | 'ORGANISATIONAL'
+  | 'ORGANIZATIONAL'
   /** Visible only to people who have been invited to collaborate (or provide feedback) */
   | 'PRIVATE'
   /** Visible to anyone */
@@ -4045,10 +4044,10 @@ export type PlanContributorResolvers<ContextType = MyContext, ParentType extends
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['PlanContributorErrors']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  isPrimaryContact?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType>;
-  primaryContact?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   projectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -4160,7 +4159,7 @@ export type PlanOutputErrorsResolvers<ContextType = MyContext, ParentType extend
 };
 
 export type PlanSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanSearchResult'] = ResolversParentTypes['PlanSearchResult']> = {
-  contributors?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  contributors?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   dmpId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;

@@ -30,6 +30,7 @@ describe('PlanSearchResult', () => {
     registeredBy: casual.full_name,
     registered: casual.date('YYYY-MM-DD'),
     funder: casual.company_name,
+    contributors: [casual.full_name, casual.full_name],
     createdBy: casual.full_name,
     created: casual.date('YYYY-MM-DD'),
     modifiedBy: casual.full_name,
@@ -52,7 +53,7 @@ describe('PlanSearchResult', () => {
     expect(searchResult.modifiedBy).toEqual(searchResultData.modifiedBy);
     expect(searchResult.modified).toEqual(searchResultData.modified);
     expect(searchResult.featured).toBe(false);
-    expect(searchResult.contributors).toEqual([]);
+    expect(searchResult.contributors).toEqual(searchResultData.contributors);
     expect(searchResult.status).toEqual(PlanStatus.DRAFT);
     expect(searchResult.visibility).toEqual(PlanVisibility.PRIVATE);
   });
