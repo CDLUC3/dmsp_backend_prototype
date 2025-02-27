@@ -1511,7 +1511,7 @@ export type PlanOutputErrors = {
 export type PlanSearchResult = {
   __typename?: 'PlanSearchResult';
   /** The names of the contributors */
-  contributors: Scalars['String']['output'];
+  contributors?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
@@ -1530,14 +1530,31 @@ export type PlanSearchResult = {
   registered?: Maybe<Scalars['String']['output']>;
   /** The person who published/registered the plan */
   registeredBy?: Maybe<Scalars['String']['output']>;
+  /** The section search results */
+  sections?: Maybe<Array<PlanSectionProgress>>;
   /** The current status of the plan */
   status?: Maybe<PlanStatus>;
+  /** The name of the template the plan is based on */
+  templateTtitle?: Maybe<Scalars['String']['output']>;
   /** The title of the plan */
   title?: Maybe<Scalars['String']['output']>;
-  /** The template the plan is based on */
-  versionedTemplateId: Scalars['Int']['output'];
   /** The visibility/permission setting */
   visibility?: Maybe<PlanVisibility>;
+};
+
+/** The progress the user has made within a section of the plan */
+export type PlanSectionProgress = {
+  __typename?: 'PlanSectionProgress';
+  /** The number of questions the user has answered */
+  answeredQuestions: Scalars['Int']['output'];
+  /** The display order of the section */
+  displayOrder: Scalars['Int']['output'];
+  /** The id of the Section */
+  sectionId: Scalars['Int']['output'];
+  /** The title of the section */
+  sectionTitle: Scalars['String']['output'];
+  /** The number of questions in the section */
+  totalQuestions: Scalars['Int']['output'];
 };
 
 /** The status/state of the plan */
@@ -3488,6 +3505,7 @@ export type ResolversTypes = {
   PlanOutput: ResolverTypeWrapper<PlanOutput>;
   PlanOutputErrors: ResolverTypeWrapper<PlanOutputErrors>;
   PlanSearchResult: ResolverTypeWrapper<PlanSearchResult>;
+  PlanSectionProgress: ResolverTypeWrapper<PlanSectionProgress>;
   PlanStatus: PlanStatus;
   PlanVersion: ResolverTypeWrapper<PlanVersion>;
   PlanVisibility: PlanVisibility;
@@ -3621,6 +3639,7 @@ export type ResolversParentTypes = {
   PlanOutput: PlanOutput;
   PlanOutputErrors: PlanOutputErrors;
   PlanSearchResult: PlanSearchResult;
+  PlanSectionProgress: PlanSectionProgress;
   PlanVersion: PlanVersion;
   Project: Project;
   ProjectCollaborator: ProjectCollaborator;
@@ -4159,7 +4178,7 @@ export type PlanOutputErrorsResolvers<ContextType = MyContext, ParentType extend
 };
 
 export type PlanSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanSearchResult'] = ResolversParentTypes['PlanSearchResult']> = {
-  contributors?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  contributors?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   dmpId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4169,10 +4188,20 @@ export type PlanSearchResultResolvers<ContextType = MyContext, ParentType extend
   modifiedBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
+  templateTtitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  versionedTemplateId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['PlanVisibility']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PlanSectionProgressResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanSectionProgress'] = ResolversParentTypes['PlanSectionProgress']> = {
+  answeredQuestions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  sectionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  sectionTitle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  totalQuestions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4939,6 +4968,7 @@ export type Resolvers<ContextType = MyContext> = {
   PlanOutput?: PlanOutputResolvers<ContextType>;
   PlanOutputErrors?: PlanOutputErrorsResolvers<ContextType>;
   PlanSearchResult?: PlanSearchResultResolvers<ContextType>;
+  PlanSectionProgress?: PlanSectionProgressResolvers<ContextType>;
   PlanVersion?: PlanVersionResolvers<ContextType>;
   Project?: ProjectResolvers<ContextType>;
   ProjectCollaborator?: ProjectCollaboratorResolvers<ContextType>;

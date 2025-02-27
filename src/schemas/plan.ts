@@ -36,9 +36,6 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
 
-    "The template the plan is based on"
-    versionedTemplateId: Int!
-
     "The title of the plan"
     title: String
     "The current status of the plan"
@@ -54,7 +51,25 @@ export const typeDefs = gql`
     "The name of the funder"
     funder: String
     "The names of the contributors"
-    contributors: String!
+    contributors: String
+    "The name of the template the plan is based on"
+    templateTtitle: String
+    "The section search results"
+    sections: [PlanSectionProgress!]
+  }
+
+  "The progress the user has made within a section of the plan"
+  type PlanSectionProgress {
+    "The id of the Section"
+    sectionId: Int!
+    "The title of the section"
+    sectionTitle: String!
+    "The display order of the section"
+    displayOrder: Int!
+    "The number of questions in the section"
+    totalQuestions: Int!
+    "The number of questions the user has answered"
+    answeredQuestions: Int!
   }
 
   enum PlanDownloadFormat {

@@ -2,7 +2,7 @@ import casual from "casual";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
 import { getRandomEnumValue } from "../../__tests__/helpers";
-import { Plan, PlanSearchResult, PlanStatus, PlanVisibility } from "../Plan";
+import { Plan, PlanSearchResult, PlanSectionProgress, PlanStatus, PlanVisibility } from "../Plan";
 import { defaultLanguageId } from "../Language";
 
 jest.mock('../../context.ts');
@@ -42,7 +42,6 @@ describe('PlanSearchResult', () => {
 
   it('should initialize options as expected', () => {
     expect(searchResult.id).toEqual(searchResultData.id);
-    expect(searchResult.versionedTemplateId).toEqual(searchResultData.versionedTemplateId);
     expect(searchResult.title).toEqual(searchResultData.title);
     expect(searchResult.dmpId).toEqual(searchResultData.dmpId);
     expect(searchResult.registered).toEqual(searchResultData.registered);
@@ -71,7 +70,6 @@ describe('PlanSearchResult.findByProjectId', () => {
 
     planSearchResult = new PlanSearchResult({
       id: casual.integer(1, 99),
-      versionedTemplateId: casual.integer(1, 99),
       title: casual.sentence,
       dmpId: casual.uuid,
       registeredBy: casual.full_name,
@@ -130,6 +128,80 @@ describe('PlanSearchResult.findByProjectId', () => {
     localQuery.mockResolvedValueOnce([]);
     const projectId = casual.integer(1, 999);
     const result = await PlanSearchResult.findByProjectId('testing', context, projectId);
+    expect(result).toEqual([]);
+  });
+});
+
+describe('PlanSectionProgress', () => {
+  let progress;
+
+  const progressData = {
+    sectionId: casual.integer(1, 99),
+    sectionTitle: casual.sentence,
+    displayOrder: casual.integer(1, 9),
+    totalQuestions: casual.integer(1, 9),
+    answeredQuestions: casual.integer(1, 9),
+  }
+  beforeEach(() => {
+    progress = new PlanSectionProgress(progressData);
+  });
+
+  it('should initialize options as expected', () => {
+    expect(progress.sectionId).toEqual(progressData.sectionId);
+    expect(progress.sectionTitle).toEqual(progressData.sectionTitle);
+    expect(progress.displayOrder).toEqual(progressData.displayOrder);
+    expect(progress.totalQuestions).toEqual(progressData.totalQuestions);
+    expect(progress.answeredQuestions).toEqual(progressData.answeredQuestions);
+  });
+});
+
+describe('PlanSectionProgress.findByPlanId', () => {
+  const originalQuery = Plan.query;
+
+  let localQuery;
+  let progress;
+
+  beforeEach(() => {
+    localQuery = jest.fn();
+    (Plan.query as jest.Mock) = localQuery;
+
+    progress = new PlanSectionProgress({
+      sectionId: casual.integer(1, 99),
+      sectionTitle: casual.sentence,
+      displayOrder: casual.integer(1, 9),
+      totalQuestions: casual.integer(1, 9),
+      answeredQuestions: casual.integer(1, 9),
+    });
+  });
+
+  afterEach(() => {
+    Plan.query = originalQuery;
+  });
+
+  it('should call the correct SQL query', async () => {
+    localQuery.mockResolvedValueOnce([progress]);
+    const planId = casual.integer(1, 99);
+    const sql = 'SELECT vs.id sectionId, vs.displayOrder, vs.name sectionTitle, ' +
+                  'COUNT(DISTINCT vq.id) totalQuestions, ' +
+                  'COUNT(DISTINCT CASE WHEN a.answerText IS NOT NULL THEN vs.id END) answeredQuestions ' +
+                'FROM plans p ' +
+                  'INNER JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id ' +
+                  'INNER JOIN versionedSections vs ON vt.id = vs.versionedTemplateId ' +
+                  'LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId ' +
+                  'LEFT JOIN answers a ON p.id = a.planId AND vs.id = a.versionedSectionId ' +
+                'WHERE p.id = ? ' +
+                'GROUP BY vs.id, vs.displayOrder, vs.name ' +
+                'ORDER BY vs.displayOrder;';
+    const result = await PlanSectionProgress.findByPlanId('testing', context, planId);
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, sql, [planId.toString()], 'testing')
+    expect(result).toEqual([progress]);
+  });
+
+  it('should return an empty array if no results are found', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const projectId = casual.integer(1, 999);
+    const result = await PlanSectionProgress.findByPlanId('testing', context, projectId);
     expect(result).toEqual([]);
   });
 });
