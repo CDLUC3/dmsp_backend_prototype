@@ -242,17 +242,48 @@ export const resolvers: Resolvers = {
 
   ProjectContributor: {
     project: async (parent: ProjectContributor, _, context: MyContext): Promise<Project> => {
-      return await Project.findById('Chained ProjectContributor.project', context, parent.projectId);
+      if (parent?.projectId) {
+        return await Project.findById('Chained ProjectContributor.project', context, parent.projectId);
+      }
+      return null;
     },
     affiliation: async (parent: ProjectContributor, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findByURI('Chained ProjectContributor.affiliation', context, parent.affiliationId);
+      if (parent?.affiliationId) {
+        return await Affiliation.findByURI('Chained ProjectContributor.affiliation', context, parent.affiliationId);
+      }
+      return null;
     },
     contributorRoles: async (parent: ProjectContributor, _, context: MyContext): Promise<ContributorRole[]> => {
-      return await ContributorRole.findByProjectContributorId(
-        'Chained ProjectContributor.contributorRoles',
-        context,
-        parent.id
-      );
+      if (parent?.id) {
+        return await ContributorRole.findByProjectContributorId(
+          'Chained ProjectContributor.contributorRoles',
+          context,
+          parent.id
+        );
+      }
+      return null;
     }
+  },
+
+  PlanContributor: {
+    projectContributor: async (parent: PlanContributor, _, context: MyContext): Promise<ProjectContributor> => {
+      if (parent?.projectContributorId) {
+        return await ProjectContributor.findById(
+          'Chained PlanContributor.projectContributor',
+          context, parent.projectContributorId
+        );
+      }
+      return null;
+    },
+    contributorRoles: async (parent: ProjectContributor, _, context: MyContext): Promise<ContributorRole[]> => {
+      if (parent?.id) {
+        return await ContributorRole.findByPlanContributorId(
+          'Chained ProjectContributor.contributorRoles',
+          context,
+          parent.id
+        );
+      }
+      return null;
+    },
   },
 };

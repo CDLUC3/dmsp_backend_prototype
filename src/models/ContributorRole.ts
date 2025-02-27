@@ -3,7 +3,7 @@ import { formatLogMessage } from "../logger";
 import { validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
-export const DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL = 'https://dmptool.org/contributor_roles/';;
+export const DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL = 'https://dmptool.org/contributor_roles/';
 export class ContributorRole extends MySqlModel {
   public displayOrder: number;
   public uri: string;
@@ -141,6 +141,19 @@ export class ContributorRole extends MySqlModel {
     const sql = 'SELECT cr.* FROM projectContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
     const whereClause = 'WHERE pcr.projectContributorId = ?';
     const vals = [projectContributorId?.toString()];
+    const results = await ContributorRole.query(context, `${sql} ${whereClause}`, vals, reference);
+    return Array.isArray(results) ? results.map((entry) => new ContributorRole(entry)) : [];
+  }
+
+  // Fetch all of the ContributorRoles associated with a ProjectContributor
+  static async findByPlanContributorId(
+    reference: string,
+    context: MyContext,
+    planContributorId: number
+  ): Promise<ContributorRole[]> {
+    const sql = 'SELECT cr.* FROM planContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
+    const whereClause = 'WHERE pcr.planContributorId = ?';
+    const vals = [planContributorId?.toString()];
     const results = await ContributorRole.query(context, `${sql} ${whereClause}`, vals, reference);
     return Array.isArray(results) ? results.map((entry) => new ContributorRole(entry)) : [];
   }

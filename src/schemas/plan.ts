@@ -54,7 +54,7 @@ export const typeDefs = gql`
     "The name of the funder"
     funder: String
     "The names of the contributors"
-    contributors: [String!]
+    contributors: String!
   }
 
   enum PlanDownloadFormat {
@@ -71,7 +71,7 @@ export const typeDefs = gql`
     "Visible to anyone"
     PUBLIC
     "Visible only to people at the user's (or editor's) affiliation"
-    ORGANISATIONAL
+    ORGANIZATIONAL
     "Visible only to people who have been invited to collaborate (or provide feedback)"
     PRIVATE
   }

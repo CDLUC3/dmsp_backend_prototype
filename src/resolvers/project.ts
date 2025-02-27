@@ -10,6 +10,7 @@ import { hasPermissionOnProject } from '../services/projectService';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { ProjectOutput } from '../models/Output';
 import { GraphQLError } from 'graphql';
+import { PlanSearchResult } from '../models/Plan';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -174,6 +175,13 @@ export const resolvers: Resolvers = {
     outputs: async (parent: Project, _, context: MyContext): Promise<ProjectOutput[]> => {
       return await ProjectOutput.findByProjectId(
         'Chained Project.outputs',
+        context,
+        parent.id
+      );
+    },
+    plans: async (parent: Project, _, context: MyContext): Promise<PlanSearchResult[]> => {
+      return await PlanSearchResult.findByProjectId(
+        'Chained Project.plans',
         context,
         parent.id
       );

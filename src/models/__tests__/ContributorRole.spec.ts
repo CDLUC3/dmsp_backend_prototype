@@ -287,4 +287,14 @@ describe('queries', () => {
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(querySpy).toHaveBeenCalledWith(context, sql, [contributorId.toString()], 'testing');
   });
+
+  it('findByPlanContributorId should call query with correct params and return an array', async () => {
+    const querySpy = jest.spyOn(ContributorRole, 'query').mockResolvedValueOnce([mockRole]);
+    const contributorId = casual.integer(1, 999);
+    await ContributorRole.findByPlanContributorId('testing', context, contributorId);
+    let sql = 'SELECT cr.* FROM planContributorRoles pcr INNER JOIN contributorRoles cr ON pcr.contributorRoleId = cr.id';
+    sql = `${sql} WHERE pcr.planContributorId = ?`;
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(querySpy).toHaveBeenCalledWith(context, sql, [contributorId.toString()], 'testing');
+  });
 });

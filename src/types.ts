@@ -1594,6 +1594,8 @@ export type Project = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The outputs that will be/were created as a reult of the research project */
   outputs?: Maybe<Array<ProjectOutput>>;
+  /** The plans that are associated with the research project */
+  plans?: Maybe<Array<PlanSearchResult>>;
   /** The type of research being done */
   researchDomain?: Maybe<ResearchDomain>;
   /** The estimated date the research project will begin (use YYYY-MM-DD format) */
@@ -4192,6 +4194,7 @@ export type ProjectResolvers<ContextType = MyContext, ParentType extends Resolve
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   outputs?: Resolver<Maybe<Array<ResolversTypes['ProjectOutput']>>, ParentType, ContextType>;
+  plans?: Resolver<Maybe<Array<ResolversTypes['PlanSearchResult']>>, ParentType, ContextType>;
   researchDomain?: Resolver<Maybe<ResolversTypes['ResearchDomain']>, ParentType, ContextType>;
   startDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

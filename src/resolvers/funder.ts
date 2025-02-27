@@ -168,10 +168,25 @@ export const resolvers: Resolvers = {
 
   ProjectFunder: {
     project: async (parent: ProjectFunder, _, context: MyContext): Promise<Project> => {
-      return await Project.findById('Chained ProjectFunder.project', context, parent.projectId);
+      if (parent?.projectId) {
+        return await Project.findById('Chained ProjectFunder.project', context, parent.projectId);
+      }
+      return null;
     },
     affiliation: async (parent: ProjectFunder, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findByURI('Chained ProjectFunder.affiliation', context, parent.affiliationId);
+      if (parent?.affiliationId) {
+        return await Affiliation.findByURI('Chained ProjectFunder.affiliation', context, parent.affiliationId);
+      }
+      return null;
     },
   },
+
+  PlanFunder: {
+    projectFunder: async (parent: PlanFunder, _, context: MyContext): Promise<ProjectFunder> => {
+      if (parent?.projectFunderId) {
+        return await ProjectFunder.findById('Chained PlanFunder.projectFunder', context, parent.projectFunderId);
+      }
+      return null;
+    }
+  }
 };

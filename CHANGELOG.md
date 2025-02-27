@@ -58,6 +58,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Renamed old `planCollaborators` table to `projectCollaborators`
 - Renamed old `PlanCollaborator` resolved functions so that they point to `ProjectCollaborator` since we decided to capture that at the project level
 - Updated `ProjectService` permission check so that it looks at the ProjectCollaborators as well
 - Updated `QuestionCondition` model to return the object with functions

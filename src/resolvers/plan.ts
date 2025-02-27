@@ -23,7 +23,7 @@ export const resolvers: Resolvers = {
           if (!project) {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
-          if (!await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project)) {
             return await PlanSearchResult.findByProjectId(reference, context, projectId);
           }
         }
@@ -46,7 +46,7 @@ export const resolvers: Resolvers = {
         }
 
         const project = await Project.findById(reference, context, plan.projectId);
-        if (!project && hasPermissionOnProject(context, project)) {
+        if (project && hasPermissionOnProject(context, project)) {
           return plan;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();

@@ -79,7 +79,7 @@ export const typeDefs = gql`
     "The project contributor"
     projectContributor: ProjectContributor
     "Whether or not the contributor the primary contact for the Plan"
-    primaryContact: Boolean
+    isPrimaryContact: Boolean
     "The roles associated with the contributor"
     contributorRoles: [ContributorRole!]
   }
