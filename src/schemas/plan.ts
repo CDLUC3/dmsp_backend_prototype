@@ -53,7 +53,7 @@ export const typeDefs = gql`
     "The names of the contributors"
     contributors: String
     "The name of the template the plan is based on"
-    templateTtitle: String
+    templateTitle: String
     "The section search results"
     sections: [PlanSectionProgress!]
   }

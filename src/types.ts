@@ -1535,7 +1535,7 @@ export type PlanSearchResult = {
   /** The current status of the plan */
   status?: Maybe<PlanStatus>;
   /** The name of the template the plan is based on */
-  templateTtitle?: Maybe<Scalars['String']['output']>;
+  templateTitle?: Maybe<Scalars['String']['output']>;
   /** The title of the plan */
   title?: Maybe<Scalars['String']['output']>;
   /** The visibility/permission setting */
@@ -4190,7 +4190,7 @@ export type PlanSearchResultResolvers<ContextType = MyContext, ParentType extend
   registeredBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
-  templateTtitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  templateTitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['PlanVisibility']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
