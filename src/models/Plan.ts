@@ -23,7 +23,6 @@ export class PlanSearchResult {
   public created: string;
   public modifiedBy: string;
   public modified: string;
-  public versionedTemplateId: number;
   public title: string;
   public status: PlanStatus;
   public visibility: PlanVisibility;
@@ -33,6 +32,7 @@ export class PlanSearchResult {
   public featured: boolean;
   public funder: string;
   public contributors: string;
+  public templateTitle: string;
 
   constructor(options) {
     this.id = options.id;
@@ -40,7 +40,6 @@ export class PlanSearchResult {
     this.created = options.created;
     this.modifiedBy = options.modifiedBy;
     this.modified = options.modified;
-    this.versionedTemplateId = options.versionedTemplateId;
     this.title = options.title;
     this.status = options.status ?? PlanStatus.DRAFT;
     this.visibility = options.visibility ?? PlanVisibility.PRIVATE;
@@ -50,6 +49,7 @@ export class PlanSearchResult {
     this.featured = options.featured ?? false;
     this.funder = options.funder;
     this.contributors = options.contributors;
+    this.templateTitle = options.title;
   }
 
   // Find all of the high level details about the plans for a project
@@ -83,6 +83,41 @@ export class PlanSearchResult {
     return Array.isArray(results) ? results.map((entry) => new PlanSearchResult(entry)) : [];
   }
 }
+
+// Represents a high level snapshot of the progress that has been made on a section of the plan
+export class PlanSectionProgress {
+  public sectionId: number;
+  public sectionTitle: string;
+  public displayOrder: number;
+  public totalQuestions: number;
+  public answeredQuestions: number;
+
+  constructor(options) {
+    this.sectionId = options.sectionId;
+    this.sectionTitle = options.sectionTitle;
+    this.displayOrder = options.displayOrder;
+    this.totalQuestions = options.totalQuestions;
+    this.answeredQuestions = options.answeredQuestions;
+  }
+
+  // Return the progress information for a section on the plan
+  static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanSectionProgress[]> {
+    const sql = 'SELECT vs.id sectionId, vs.displayOrder, vs.name sectionTitle, ' +
+                  'COUNT(DISTINCT vq.id) totalQuestions, ' +
+                  'COUNT(DISTINCT CASE WHEN a.answerText IS NOT NULL THEN vs.id END) answeredQuestions ' +
+                'FROM plans p ' +
+                  'INNER JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id ' +
+                  'INNER JOIN versionedSections vs ON vt.id = vs.versionedTemplateId ' +
+                  'LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId ' +
+                  'LEFT JOIN answers a ON p.id = a.planId AND vs.id = a.versionedSectionId ' +
+                'WHERE p.id = ? ' +
+                'GROUP BY vs.id, vs.displayOrder, vs.name ' +
+                'ORDER BY vs.displayOrder;';
+    const results = await Plan.query(context, sql, [planId?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new PlanSectionProgress(entry)) : [];
+  }
+}
+
 
 // A DMP/Plan
 export class Plan extends MySqlModel {

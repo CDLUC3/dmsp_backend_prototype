@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
-import { Plan, PlanSearchResult } from "../models/Plan";
+import { Plan, PlanSearchResult, PlanSectionProgress } from "../models/Plan";
 import { formatLogMessage } from "../logger";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
@@ -85,6 +85,15 @@ export const resolvers: Resolvers = {
     funders: async (parent: Plan, _, context: MyContext): Promise<PlanFunder[]> => {
       if (parent?.id) {
         return await PlanFunder.findByPlanId('plan funders resolver', context, parent.id);
+      }
+      return [];
+    }
+  },
+
+  PlanSearchResult: {
+    sections: async (parent: PlanSearchResult, _, context: MyContext): Promise<PlanSectionProgress[]> => {
+      if (parent?.id) {
+        return await PlanSectionProgress.findByPlanId('plan sections resolver', context, parent.id);
       }
       return [];
     }
