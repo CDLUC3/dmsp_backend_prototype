@@ -5,6 +5,7 @@ import { DEFAULT_ROR_AFFILIATION_URL } from "./Affiliation";
 import { formatLogMessage } from "../logger";
 import { validateDate, validateURL, valueIsEmpty } from "../utils/helpers";
 import { defaultLanguageId } from "./Language";
+import { Plan } from "./Plan";
 
 export const DOI_REGEX = /(https?:\/)?(doi.org\/)?(doi:)?10.\d{4,9}\/[-._;()/:A-Z0-9]+/i;
 
@@ -175,10 +176,10 @@ export class DMP {
     };
   }
 
-  async create(context: MyContext, projectId: number, versionedTemplateId: number): Promise<DMP | null> {
-    formatLogMessage(context).info({ projectId, versionedTemplateId }, 'Creating DMP', { dmpId: this.dmp_id.identifier });
-    // Create the plan in the local MySQL database
+  async create(context: MyContext, plan: Plan): Promise<DMP | null> {
+    formatLogMessage(context).debug({ plan }, 'Creating DMP');
 
+    const dmp = DMP.fromPlan(plan);
     // Create the DMP in the DMPHub (exclude dmpMetadata)
 
     // Update the DMP ID value on the DMP record (make sure EZID code has been update to NOT register yet!)

@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
-import { Plan, PlanSearchResult, PlanSectionProgress } from "../models/Plan";
+import { Plan, PlanSearchResult, PlanSectionProgress, PlanStatus, PlanVisibility } from "../models/Plan";
 import { formatLogMessage } from "../logger";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
@@ -48,6 +48,176 @@ export const resolvers: Resolvers = {
         const project = await Project.findById(reference, context, plan.projectId);
         if (project && hasPermissionOnProject(context, project)) {
           return plan;
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+  },
+
+  Mutation: {
+    // Create a new plan
+    addPlan: async (_, { projectId, versionedTemplateId }, context: MyContext): Promise<Plan> => {
+      const reference = 'add plan resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
+
+          if (!project) {
+            throw NotFoundError(`Project with ID ${projectId} not found`);
+          }
+
+          if (await hasPermissionOnProject(context, project)) {
+            const plan = new Plan({ projectId, versionedTemplateId });
+            const newPlan = await plan.create(context);
+            if (newPlan) {
+              return new Plan(newPlan);
+            }
+
+            return null;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Delete a plan
+    archivePlan: async (_, { dmpId }, context: MyContext): Promise<Plan> => {
+      const reference = 'archive plan resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findByDMPId(reference, context, dmpId);
+          if (!plan) {
+            throw NotFoundError(`Plan with DMP ID ${dmpId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
+            const deletedPlan = await plan.delete(context);
+            return new Plan(deletedPlan);
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Upload a PDF version of a plan
+    uploadPlan: async (_, { projectId, fileName, fileContent }, context: MyContext): Promise<Plan> => {
+      const reference = 'upload plan resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${projectId} not found`);
+          }
+          if (await hasPermissionOnProject(context, project)) {
+            const plan = new Plan({ projectId, fileName, fileContent });
+
+            // TODO: Figure out what would be passed in from the client and how we'd get the actual
+            //       file content and push it into an S3 bucket
+            plan.addError('general', 'Uploads have not yet been implemented');
+            return plan;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Publish/register the plan with the DOI registrar (e.g. EZID/DataCite)
+    publishPlan: async (_, { dmpId, visibility }, context: MyContext): Promise<Plan> => {
+      const reference = 'publish plan resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findByDMPId(reference, context, dmpId);
+          if (!plan) {
+            throw NotFoundError(`Plan with DMP ID ${dmpId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
+            plan.visibility = visibility as PlanVisibility;
+
+            // TODO: Call the publish method on the plan which should update the visibility
+            //       and register the DMP with EZID. When the call to EZID is successful, the
+            //       status, registered and registeredById should be updated.
+            plan.addError('general', 'Publishing has not yet been implemented');
+            return plan;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Mark the plan as complete
+    markPlanAsComplete: async (_, { dmpId }, context: MyContext): Promise<Plan> => {
+      const reference = 'mark plan complete resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findByDMPId(reference, context, dmpId);
+          if (!plan) {
+            throw NotFoundError(`Plan with DMP ID ${dmpId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
+            if (plan.registered) {
+              plan.addError('general', 'Plan is already published');
+            } else {
+              plan.status = PlanStatus.COMPLETE;
+              await plan.update(context);
+            }
+            return plan;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Mark the plan as a draft
+    markPlanAsDraft: async (_, { dmpId }, context: MyContext): Promise<Plan> => {
+      const reference = 'mark plan draft resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findByDMPId(reference, context, dmpId);
+          if (!plan) {
+            throw NotFoundError(`Plan with DMP ID ${dmpId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
+            if (plan.registered) {
+              plan.addError('general', 'Plan is already published');
+            } else {
+              plan.status = PlanStatus.DRAFT;
+              await plan.update(context);
+            }
+            return plan;
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

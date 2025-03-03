@@ -15,13 +15,13 @@ export const typeDefs = gql`
     "Upload a plan"
     uploadPlan(projectId: Int!, fileName: String, fileContent: String): Plan
     "Publish a plan (changes status to PUBLISHED)"
-    publishPlan(dmp_id: String!, visibility: PlanVisibility): Plan
+    publishPlan(dmpId: String!, visibility: PlanVisibility): Plan
     "Change the plan's status to COMPLETE (cannot be done once the plan is PUBLISHED)"
-    markPlanComplete(dmp_id: String!): Plan
+    markPlanAsComplete(dmpId: String!): Plan
     "Change the plan's status to DRAFT (cannot be done once the plan is PUBLISHED)"
-    markPlanDraft(dmp_id: String!): Plan
+    markPlanAsDraft(dmpId: String!): Plan
     "Archive a plan"
-    archivePlan(dmp_id: String!): Plan
+    archivePlan(dmpId: String!): Plan
   }
 
   type PlanSearchResult {
@@ -83,12 +83,12 @@ export const typeDefs = gql`
 
   "The visibility/privacy setting for the plan"
   enum PlanVisibility {
-    "Visible to anyone"
-    PUBLIC
     "Visible only to people at the user's (or editor's) affiliation"
     ORGANIZATIONAL
     "Visible only to people who have been invited to collaborate (or provide feedback)"
     PRIVATE
+    "Visible to anyone"
+    PUBLIC
   }
 
   "The status/state of the plan"
