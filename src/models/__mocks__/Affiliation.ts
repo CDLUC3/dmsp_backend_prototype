@@ -68,6 +68,7 @@ export const generateNewAffiliation = (options) => {
     feedbackEnabled: options.feedbackEnabled ?? casual.boolean,
     feedbackMessage: options.feedbackMessage ?? casual.sentence,
     feedbackEmails: options.feedbackEmails ?? [casual.email, casual.email],
+    apiTarget: options.apiTarget ?? `/${casual.word}/${casual.word}`,
   }
 }
 
