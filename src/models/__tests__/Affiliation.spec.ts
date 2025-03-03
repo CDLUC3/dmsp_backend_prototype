@@ -2,6 +2,7 @@ import casual from "casual";
 import { Affiliation, AffiliationSearch } from "../Affiliation";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
+import { DMPHubConfig } from "../../config/dmpHubConfig";
 
 let context;
 jest.mock('../../context.ts');
@@ -28,6 +29,7 @@ describe('Affiliation', () => {
     feedbackMessage: '<p>Will response to your request within 48 hours</p>',
     feedbackEmails: ["admin@virginia.edu"],
     managed: 1,
+    apiTarget: '/api/test',
   }
   beforeEach(() => {
     affiliation = new Affiliation(affiliationData);
@@ -53,6 +55,7 @@ describe('Affiliation', () => {
     expect(affiliation.feedbackMessage).toEqual(affiliationData.feedbackMessage);
     expect(affiliation.feedbackEmails).toEqual(affiliationData.feedbackEmails);
     expect(affiliation.managed).toEqual(affiliationData.managed);
+    expect(affiliation.apiTarget).toEqual(`${DMPHubConfig.dmpHubURL}${affiliationData.apiTarget}`);
   });
 
   it('should add additional properties to uneditableProperties if provenance is ROR', async () => {
@@ -408,6 +411,7 @@ describe('AffiliationSearch', () => {
     displayName: 'University of Virginia (virginia.edu)',
     funder: 1,
     types: ["Education"],
+    apiTarget: `${DMPHubConfig.dmpHubURL}/api/test`,
   });
   beforeEach(() => {
     affiliationSearch = new AffiliationSearch(affiliationSearchData);
@@ -419,6 +423,7 @@ describe('AffiliationSearch', () => {
     expect(affiliationSearch.displayName).toEqual(affiliationSearchData.displayName);
     expect(affiliationSearch.funder).toEqual(affiliationSearchData.funder);
     expect(affiliationSearch.types).toEqual(affiliationSearchData.types);
+    expect(affiliationSearch.apiTarget).toEqual(affiliationSearchData.apiTarget);
   });
 });
 
@@ -442,6 +447,7 @@ describe('search', () => {
       createdById: casual.integer(1, 999),
       name: casual.sentence,
       ownerId: casual.url,
+      apiTarget: casual.url,
     })
   });
 
@@ -451,6 +457,15 @@ describe('search', () => {
   });
 
   it('should call query with correct params and return the affiliation', async () => {
+    localQuery.mockResolvedValueOnce([affiliationSearch]);
+    const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
+    const expectedSql = 'SELECT * FROM affiliations WHERE active = 1 AND LOWER(searchName) LIKE ? AND funder = 1';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%test%'], 'AffiliationSearch.search')
+    expect(result).toEqual([affiliationSearch]);
+  });
+
+  it('should set the hasAPI boolean to false if the Affiliation has no apiTarget', async () => {
     localQuery.mockResolvedValueOnce([affiliationSearch]);
     const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
     const expectedSql = 'SELECT * FROM affiliations WHERE active = 1 AND LOWER(searchName) LIKE ? AND funder = 1';

@@ -200,6 +200,8 @@ export type Affiliation = {
   active: Scalars['Boolean']['output'];
   /** Alias names for the affiliation */
   aliases?: Maybe<Array<Scalars['String']['output']>>;
+  /** The API URL that can be used to search for project/award information */
+  apiTarget?: Maybe<Scalars['String']['output']>;
   /** The primary contact email */
   contactEmail?: Maybe<Scalars['String']['output']>;
   /** The primary contact name */
@@ -381,6 +383,8 @@ export type AffiliationProvenance =
 /** Search result - An abbreviated version of an Affiliation */
 export type AffiliationSearch = {
   __typename?: 'AffiliationSearch';
+  /** Has an API that be used to search for project/award information */
+  apiTarget?: Maybe<Scalars['String']['output']>;
   /** The official display name */
   displayName: Scalars['String']['output'];
   /** Whether or not this affiliation is a funder */
@@ -3710,6 +3714,7 @@ export type AffiliationResolvers<ContextType = MyContext, ParentType extends Res
   acronyms?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   active?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   aliases?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  apiTarget?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   contactEmail?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   contactName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -3781,6 +3786,7 @@ export type AffiliationLinkResolvers<ContextType = MyContext, ParentType extends
 };
 
 export type AffiliationSearchResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['AffiliationSearch'] = ResolversParentTypes['AffiliationSearch']> = {
+  apiTarget?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   funder?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;

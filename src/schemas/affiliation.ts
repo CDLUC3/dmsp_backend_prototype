@@ -32,7 +32,9 @@ export const typeDefs = gql`
     "Whether or not this affiliation is a funder"
     funder: Boolean!
     "The categories the Affiliation belongs to"
-    types: [AffiliationType!]!
+    types: [AffiliationType!]
+    "Has an API that be used to search for project/award information"
+    apiTarget: String
   }
 
   "The provenance of an Affiliation record"
@@ -118,6 +120,8 @@ export const typeDefs = gql`
     feedbackEmails: [String!]
     "The properties of this object that are NOT editable. Determined by the record's provenance"
     uneditableProperties: [String!]!
+    "The API URL that can be used to search for project/award information"
+    apiTarget: String
   }
 
   "A collection of errors related to the Affiliation"
