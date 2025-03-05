@@ -154,6 +154,20 @@ export type AddQuestionOptionInput = {
   text: Scalars['String']['input'];
 };
 
+export type AddRelatedWorkInput = {
+  __typename?: 'AddRelatedWorkInput';
+  /** The citation for the related work */
+  citation?: Maybe<Scalars['String']['output']>;
+  /** The unique identifier for the work (e.g. DOI, URL, etc. */
+  identifier: Scalars['String']['output'];
+  /** The project that the related work is associated with */
+  projectId: Scalars['Int']['output'];
+  /** The related work's relationship to the research project (e.g. references, isReferencedBy, etc.) */
+  relationDescriptor: RelatedWorkDescriptor;
+  /** The type of the related work (e.g. dataset, software, etc.) */
+  workType: RelatedWorkType;
+};
+
 export type AddRepositoryInput = {
   /** A description of the repository */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -625,6 +639,8 @@ export type Mutation = {
   addPlan?: Maybe<Plan>;
   /** Add a Contributor to a Plan */
   addPlanContributor?: Maybe<PlanContributor>;
+  /** Add a Funder to a Plan */
+  addPlanFunder?: Maybe<PlanFunder>;
   /** Create a project */
   addProject?: Maybe<Project>;
   /** Add a collaborator to a Plan */
@@ -641,6 +657,8 @@ export type Mutation = {
   addQuestionCondition: QuestionCondition;
   /** Create a new QuestionOption */
   addQuestionOption: QuestionOption;
+  /** Add a related work to a research project */
+  addRelatedWork?: Maybe<RelatedWork>;
   /** Add a new Repository */
   addRepository?: Maybe<Repository>;
   /** Create a new Section. Leave the 'copyFromVersionedSectionId' blank to create a new section from scratch */
@@ -691,14 +709,14 @@ export type Mutation = {
   removeMetadataStandard?: Maybe<MetadataStandard>;
   /** Remove a PlanContributor from a Plan */
   removePlanContributor?: Maybe<PlanContributor>;
+  /** Remove a PlanFunder from a Plan */
+  removePlanFunder?: Maybe<PlanFunder>;
   /** Remove a ProjectCollaborator from a Plan */
   removeProjectCollaborator?: Maybe<ProjectCollaborator>;
   /** Remove a research project contributor */
   removeProjectContributor?: Maybe<ProjectContributor>;
   /** Remove a research project Funder */
   removeProjectFunder?: Maybe<ProjectFunder>;
-  /** Remove a PlanFunder from a Plan */
-  removeProjectFunderFromPlan?: Maybe<ProjectFunder>;
   /** Remove a research project output */
   removeProjectOutput?: Maybe<ProjectOutput>;
   /** Remove an Output from a Plan */
@@ -709,6 +727,8 @@ export type Mutation = {
   removeQuestionCondition?: Maybe<QuestionCondition>;
   /** Delete a QuestionOption */
   removeQuestionOption?: Maybe<QuestionOption>;
+  /** Remove a related work from a research project */
+  removeRelatedWork?: Maybe<RelatedWork>;
   /** Delete a Repository */
   removeRepository?: Maybe<Repository>;
   /** Delete a section */
@@ -723,8 +743,6 @@ export type Mutation = {
   removeUserEmail?: Maybe<UserEmail>;
   /** Request a round of admin feedback */
   requestFeedback?: Maybe<PlanFeedback>;
-  /** Add a Funder to a Plan */
-  selectProjectFunderForPlan?: Maybe<ProjectFunder>;
   /** Add an Output to a Plan */
   selectProjectOutputForPlan?: Maybe<ProjectOutput>;
   /** Designate the email as the current user's primary email address */
@@ -761,6 +779,8 @@ export type Mutation = {
   updateQuestionCondition?: Maybe<QuestionCondition>;
   /** Update a QuestionOption */
   updateQuestionOption: QuestionOption;
+  /** Update a related work on the research project */
+  updateRelatedWork?: Maybe<RelatedWork>;
   /** Update a Repository record */
   updateRepository?: Maybe<Repository>;
   /** Update a Section */
@@ -833,7 +853,13 @@ export type MutationAddPlanArgs = {
 export type MutationAddPlanContributorArgs = {
   planId: Scalars['Int']['input'];
   projectContributorId: Scalars['Int']['input'];
-  roles?: InputMaybe<Array<Scalars['String']['input']>>;
+  roleIds?: InputMaybe<Array<Scalars['Int']['input']>>;
+};
+
+
+export type MutationAddPlanFunderArgs = {
+  planId: Scalars['Int']['input'];
+  projectFunderId: Scalars['Int']['input'];
 };
 
 
@@ -876,6 +902,11 @@ export type MutationAddQuestionConditionArgs = {
 
 export type MutationAddQuestionOptionArgs = {
   input: AddQuestionOptionInput;
+};
+
+
+export type MutationAddRelatedWorkArgs = {
+  input: AddRelatedWorkInput;
 };
 
 
@@ -1017,6 +1048,11 @@ export type MutationRemovePlanContributorArgs = {
 };
 
 
+export type MutationRemovePlanFunderArgs = {
+  planFunderId: Scalars['Int']['input'];
+};
+
+
 export type MutationRemoveProjectCollaboratorArgs = {
   projectCollaboratorId: Scalars['Int']['input'];
 };
@@ -1028,12 +1064,6 @@ export type MutationRemoveProjectContributorArgs = {
 
 
 export type MutationRemoveProjectFunderArgs = {
-  projectFunderId: Scalars['Int']['input'];
-};
-
-
-export type MutationRemoveProjectFunderFromPlanArgs = {
-  planId: Scalars['Int']['input'];
   projectFunderId: Scalars['Int']['input'];
 };
 
@@ -1060,6 +1090,11 @@ export type MutationRemoveQuestionConditionArgs = {
 
 
 export type MutationRemoveQuestionOptionArgs = {
+  id: Scalars['Int']['input'];
+};
+
+
+export type MutationRemoveRelatedWorkArgs = {
   id: Scalars['Int']['input'];
 };
 
@@ -1092,12 +1127,6 @@ export type MutationRemoveUserEmailArgs = {
 
 export type MutationRequestFeedbackArgs = {
   planId: Scalars['Int']['input'];
-};
-
-
-export type MutationSelectProjectFunderForPlanArgs = {
-  planId: Scalars['Int']['input'];
-  projectFunderId: Scalars['Int']['input'];
 };
 
 
@@ -1158,7 +1187,7 @@ export type MutationUpdatePasswordArgs = {
 
 export type MutationUpdatePlanContributorArgs = {
   planContributorId: Scalars['Int']['input'];
-  roles?: InputMaybe<Array<Scalars['String']['input']>>;
+  roleIds?: InputMaybe<Array<Scalars['Int']['input']>>;
 };
 
 
@@ -1200,6 +1229,11 @@ export type MutationUpdateQuestionConditionArgs = {
 
 export type MutationUpdateQuestionOptionArgs = {
   input: UpdateQuestionOptionInput;
+};
+
+
+export type MutationUpdateRelatedWorkArgs = {
+  input: UpdateRelatedWorkInput;
 };
 
 
@@ -1659,12 +1693,12 @@ export type ProjectCollaborator = {
 };
 
 export type ProjectCollaboratorAccessLevel =
-  /** The user is able to perform all actions on a Plan (typically restricted to the owner/creator) */
-  | 'ADMIN'
   /** The user is ONLY able to comment on the Plan's answers */
-  | 'COMMENTER'
-  /** The user is able to comment and edit the Plan's answers, add/edit/delete contributors and research outputs */
-  | 'EDITOR';
+  | 'COMMENT'
+  /** The user is able to perform most actions on a Project/Plan except (publish, mark as complete and change access) */
+  | 'EDIT'
+  /** The user is able to perform all actions on a Plan (typically restricted to the owner/creator) */
+  | 'OWN';
 
 /** A collection of errors related to the ProjectCollaborator */
 export type ProjectCollaboratorErrors = {
@@ -2432,12 +2466,12 @@ export type QuestionTypeErrors = {
 /** A metadata standard used when describing a research output */
 export type RelatedWork = {
   __typename?: 'RelatedWork';
+  /** The citation for the related work */
+  citation?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
-  /** The related work's relationship to the research project (e.g. references, isReferencedBy, etc.) */
-  descriptor?: Maybe<RelatedWorkDescriptor>;
   /** Errors associated with the Object */
   errors?: Maybe<RelatedWorkErrors>;
   /** The unique identifer for the Object */
@@ -2448,6 +2482,10 @@ export type RelatedWork = {
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The projectId that the related work is associated with */
+  projectId?: Maybe<Scalars['Int']['output']>;
+  /** The related work's relationship to the research project (e.g. references, isReferencedBy, etc.) */
+  relationDescriptor?: Maybe<RelatedWorkDescriptor>;
   /** The type of the related work (e.g. dataset, software, etc.) */
   workType?: Maybe<RelatedWorkType>;
 };
@@ -2496,10 +2534,11 @@ export type RelatedWorkDescriptor =
 /** A collection of errors related to the MetadataStandard */
 export type RelatedWorkErrors = {
   __typename?: 'RelatedWorkErrors';
-  descriptor?: Maybe<Scalars['String']['output']>;
   /** General error messages such as the object already exists */
   general?: Maybe<Scalars['String']['output']>;
   identifier?: Maybe<Scalars['String']['output']>;
+  projectId?: Maybe<Scalars['String']['output']>;
+  relationDescriptor?: Maybe<Scalars['String']['output']>;
   workType?: Maybe<Scalars['String']['output']>;
 };
 
@@ -2953,6 +2992,20 @@ export type UpdateQuestionOptionInput = {
   questionId?: InputMaybe<Scalars['Int']['input']>;
   /** The option text */
   text: Scalars['String']['input'];
+};
+
+export type UpdateRelatedWorkInput = {
+  __typename?: 'UpdateRelatedWorkInput';
+  /** The citation for the related work */
+  citation?: Maybe<Scalars['String']['output']>;
+  /** The unique identifier for the work (e.g. DOI, URL, etc. */
+  identifier?: Maybe<Scalars['String']['output']>;
+  /** The related work */
+  relatedWorkId: Scalars['Int']['output'];
+  /** The related work's relationship to the research project (e.g. references, isReferencedBy, etc.) */
+  relationDescriptor?: Maybe<RelatedWorkDescriptor>;
+  /** The type of the related work (e.g. dataset, software, etc.) */
+  workType?: Maybe<RelatedWorkType>;
 };
 
 export type UpdateRepositoryInput = {
@@ -3468,6 +3521,7 @@ export type ResolversTypes = {
   AddQuestionConditionInput: AddQuestionConditionInput;
   AddQuestionInput: AddQuestionInput;
   AddQuestionOptionInput: AddQuestionOptionInput;
+  AddRelatedWorkInput: ResolverTypeWrapper<AddRelatedWorkInput>;
   AddRepositoryInput: AddRepositoryInput;
   AddSectionInput: AddSectionInput;
   Affiliation: ResolverTypeWrapper<Affiliation>;
@@ -3574,6 +3628,7 @@ export type ResolversTypes = {
   UpdateQuestionConditionInput: UpdateQuestionConditionInput;
   UpdateQuestionInput: UpdateQuestionInput;
   UpdateQuestionOptionInput: UpdateQuestionOptionInput;
+  UpdateRelatedWorkInput: ResolverTypeWrapper<UpdateRelatedWorkInput>;
   UpdateRepositoryInput: UpdateRepositoryInput;
   UpdateSectionInput: UpdateSectionInput;
   User: ResolverTypeWrapper<User>;
@@ -3606,6 +3661,7 @@ export type ResolversParentTypes = {
   AddQuestionConditionInput: AddQuestionConditionInput;
   AddQuestionInput: AddQuestionInput;
   AddQuestionOptionInput: AddQuestionOptionInput;
+  AddRelatedWorkInput: AddRelatedWorkInput;
   AddRepositoryInput: AddRepositoryInput;
   AddSectionInput: AddSectionInput;
   Affiliation: Affiliation;
@@ -3696,6 +3752,7 @@ export type ResolversParentTypes = {
   UpdateQuestionConditionInput: UpdateQuestionConditionInput;
   UpdateQuestionInput: UpdateQuestionInput;
   UpdateQuestionOptionInput: UpdateQuestionOptionInput;
+  UpdateRelatedWorkInput: UpdateRelatedWorkInput;
   UpdateRepositoryInput: UpdateRepositoryInput;
   UpdateSectionInput: UpdateSectionInput;
   User: User;
@@ -3714,6 +3771,15 @@ export type ResolversParentTypes = {
   updateProjectFunderInput: UpdateProjectFunderInput;
   updateUserNotificationsInput: UpdateUserNotificationsInput;
   updateUserProfileInput: UpdateUserProfileInput;
+};
+
+export type AddRelatedWorkInputResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['AddRelatedWorkInput'] = ResolversParentTypes['AddRelatedWorkInput']> = {
+  citation?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  identifier?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  projectId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  relationDescriptor?: Resolver<ResolversTypes['RelatedWorkDescriptor'], ParentType, ContextType>;
+  workType?: Resolver<ResolversTypes['RelatedWorkType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type AffiliationResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Affiliation'] = ResolversParentTypes['Affiliation']> = {
@@ -3944,6 +4010,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationAddMetadataStandardArgs, 'input'>>;
   addPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationAddPlanArgs, 'projectId' | 'versionedTemplateId'>>;
   addPlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationAddPlanContributorArgs, 'planId' | 'projectContributorId'>>;
+  addPlanFunder?: Resolver<Maybe<ResolversTypes['PlanFunder']>, ParentType, ContextType, RequireFields<MutationAddPlanFunderArgs, 'planId' | 'projectFunderId'>>;
   addProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<MutationAddProjectArgs, 'title'>>;
   addProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationAddProjectCollaboratorArgs, 'email' | 'planId'>>;
   addProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationAddProjectContributorArgs, 'input'>>;
@@ -3952,6 +4019,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationAddQuestionArgs, 'input'>>;
   addQuestionCondition?: Resolver<ResolversTypes['QuestionCondition'], ParentType, ContextType, RequireFields<MutationAddQuestionConditionArgs, 'input'>>;
   addQuestionOption?: Resolver<ResolversTypes['QuestionOption'], ParentType, ContextType, RequireFields<MutationAddQuestionOptionArgs, 'input'>>;
+  addRelatedWork?: Resolver<Maybe<ResolversTypes['RelatedWork']>, ParentType, ContextType, RequireFields<MutationAddRelatedWorkArgs, 'input'>>;
   addRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, Partial<MutationAddRepositoryArgs>>;
   addSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationAddSectionArgs, 'input'>>;
   addTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationAddTagArgs, 'name'>>;
@@ -3977,15 +4045,16 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationRemoveLicenseArgs, 'uri'>>;
   removeMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationRemoveMetadataStandardArgs, 'uri'>>;
   removePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationRemovePlanContributorArgs, 'planContributorId'>>;
+  removePlanFunder?: Resolver<Maybe<ResolversTypes['PlanFunder']>, ParentType, ContextType, RequireFields<MutationRemovePlanFunderArgs, 'planFunderId'>>;
   removeProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationRemoveProjectCollaboratorArgs, 'projectCollaboratorId'>>;
   removeProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationRemoveProjectContributorArgs, 'projectContributorId'>>;
   removeProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationRemoveProjectFunderArgs, 'projectFunderId'>>;
-  removeProjectFunderFromPlan?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationRemoveProjectFunderFromPlanArgs, 'planId' | 'projectFunderId'>>;
   removeProjectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationRemoveProjectOutputArgs, 'projectOutputId'>>;
   removeProjectOutputFromPlan?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationRemoveProjectOutputFromPlanArgs, 'planId' | 'projectOutputId'>>;
   removeQuestion?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionArgs, 'questionId'>>;
   removeQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionConditionArgs, 'questionConditionId'>>;
   removeQuestionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<MutationRemoveQuestionOptionArgs, 'id'>>;
+  removeRelatedWork?: Resolver<Maybe<ResolversTypes['RelatedWork']>, ParentType, ContextType, RequireFields<MutationRemoveRelatedWorkArgs, 'id'>>;
   removeRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<MutationRemoveRepositoryArgs, 'repositoryId'>>;
   removeSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationRemoveSectionArgs, 'sectionId'>>;
   removeTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationRemoveTagArgs, 'tagId'>>;
@@ -3993,7 +4062,6 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   removeUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationRemoveUserEmailArgs, 'email'>>;
   requestFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationRequestFeedbackArgs, 'planId'>>;
-  selectProjectFunderForPlan?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationSelectProjectFunderForPlanArgs, 'planId' | 'projectFunderId'>>;
   selectProjectOutputForPlan?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationSelectProjectOutputForPlanArgs, 'planId' | 'projectOutputId'>>;
   setPrimaryUserEmail?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType, RequireFields<MutationSetPrimaryUserEmailArgs, 'email'>>;
   setUserOrcid?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationSetUserOrcidArgs, 'orcid'>>;
@@ -4012,6 +4080,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationUpdateQuestionArgs, 'input'>>;
   updateQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionConditionArgs, 'input'>>;
   updateQuestionOption?: Resolver<ResolversTypes['QuestionOption'], ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionArgs, 'input'>>;
+  updateRelatedWork?: Resolver<Maybe<ResolversTypes['RelatedWork']>, ParentType, ContextType, RequireFields<MutationUpdateRelatedWorkArgs, 'input'>>;
   updateRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, Partial<MutationUpdateRepositoryArgs>>;
   updateSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationUpdateSectionArgs, 'input'>>;
   updateTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationUpdateTagArgs, 'name' | 'tagId'>>;
@@ -4549,22 +4618,25 @@ export type QuestionTypeErrorsResolvers<ContextType = MyContext, ParentType exte
 };
 
 export type RelatedWorkResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['RelatedWork'] = ResolversParentTypes['RelatedWork']> = {
+  citation?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  descriptor?: Resolver<Maybe<ResolversTypes['RelatedWorkDescriptor']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['RelatedWorkErrors']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   identifier?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  projectId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  relationDescriptor?: Resolver<Maybe<ResolversTypes['RelatedWorkDescriptor']>, ParentType, ContextType>;
   workType?: Resolver<Maybe<ResolversTypes['RelatedWorkType']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type RelatedWorkErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['RelatedWorkErrors'] = ResolversParentTypes['RelatedWorkErrors']> = {
-  descriptor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   identifier?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  projectId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  relationDescriptor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   workType?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -4743,6 +4815,15 @@ export type TemplateErrorsResolvers<ContextType = MyContext, ParentType extends 
 export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['URL'], any> {
   name: 'URL';
 }
+
+export type UpdateRelatedWorkInputResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['UpdateRelatedWorkInput'] = ResolversParentTypes['UpdateRelatedWorkInput']> = {
+  citation?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  identifier?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  relatedWorkId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  relationDescriptor?: Resolver<Maybe<ResolversTypes['RelatedWorkDescriptor']>, ParentType, ContextType>;
+  workType?: Resolver<Maybe<ResolversTypes['RelatedWorkType']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
 
 export type UserResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
   acceptedTerms?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
@@ -4946,6 +5027,7 @@ export type VersionedTemplateErrorsResolvers<ContextType = MyContext, ParentType
 };
 
 export type Resolvers<ContextType = MyContext> = {
+  AddRelatedWorkInput?: AddRelatedWorkInputResolvers<ContextType>;
   Affiliation?: AffiliationResolvers<ContextType>;
   AffiliationEmailDomain?: AffiliationEmailDomainResolvers<ContextType>;
   AffiliationErrors?: AffiliationErrorsResolvers<ContextType>;
@@ -5019,6 +5101,7 @@ export type Resolvers<ContextType = MyContext> = {
   TemplateCollaboratorErrors?: TemplateCollaboratorErrorsResolvers<ContextType>;
   TemplateErrors?: TemplateErrorsResolvers<ContextType>;
   URL?: GraphQLScalarType;
+  UpdateRelatedWorkInput?: UpdateRelatedWorkInputResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   UserEmail?: UserEmailResolvers<ContextType>;
   UserEmailErrors?: UserEmailErrorsResolvers<ContextType>;

@@ -164,6 +164,57 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    // add a new plan funder
+    addPlanFunder: async (_, { planId, projectFunderId }, context: MyContext): Promise<PlanFunder> => {
+      const reference = 'addPlanFunder resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findById(reference, context, planId);
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (!plan || !project || !hasPermissionOnProject(context, project)) {
+            throw ForbiddenError();
+          }
+
+          const newFunder = new PlanFunder({ planId, projectFunderId });
+          return await newFunder.create(context);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // remove a plan funder
+    removePlanFunder: async (_, { planFunderId }, context: MyContext): Promise<PlanFunder> => {
+      const reference = 'removePlanFunder resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const funder = await PlanFunder.findById(reference, context, planFunderId);
+          if (!funder) {
+            throw NotFoundError();
+          }
+
+          const plan = await Plan.findById(reference, context, funder.planId);
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (!plan || !project || !hasPermissionOnProject(context, project)) {
+            throw ForbiddenError();
+          }
+
+          return await funder.delete(context);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
   },
 
   ProjectFunder: {

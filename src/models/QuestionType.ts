@@ -7,7 +7,7 @@ export class QuestionType extends MySqlModel {
   public isDefault: boolean;
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.name = options.name;
     this.usageDescription = options.usageDescription;

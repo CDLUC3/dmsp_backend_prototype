@@ -160,6 +160,66 @@ export class PlanFunder extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
 
+  //Create a new PlanFunder
+  async create(context: MyContext): Promise<PlanFunder> {
+    const reference = 'PlanFunder.create';
+
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      const current = await PlanFunder.findByProjectFunderId(
+        reference,
+        context,
+        this.planId,
+        this.projectFunderId,
+      );
+
+      // Then make sure it doesn't already exist
+      if (current) {
+        this.addError('general', 'Plan already has an entry for this funder');
+      } else {
+        // Save the record and then fetch it
+        const newId = await PlanFunder.insert(context, PlanFunder.tableName, this, reference);
+        const response = await PlanFunder.findById(reference, context, newId);
+        return response;
+      }
+    }
+    // Otherwise return as-is with all the errors
+    return new PlanFunder(this);
+  }
+
+  //Update an existing PlanFunder
+  async update(context: MyContext, noTouch = false): Promise<PlanFunder> {
+    if (await this.isValid()) {
+      if (this.id) {
+        await PlanFunder.update(context, PlanFunder.tableName, this, 'PlanFunder.update', [], noTouch);
+        return await PlanFunder.findById('PlanFunder.update', context, this.id);
+      }
+      // This template has never been saved before so we cannot update it!
+      this.addError('general', 'PlanFunder has never been saved');
+    }
+    return new PlanFunder(this);
+  }
+
+  //Delete the PlanFunder
+  async delete(context: MyContext): Promise<PlanFunder> {
+    if (this.id) {
+      const deleted = await PlanFunder.findById('PlanFunder.delete', context, this.id);
+
+      const successfullyDeleted = await PlanFunder.delete(
+        context,
+        PlanFunder.tableName,
+        this.id,
+        'PlanFunder.delete'
+      );
+      if (successfullyDeleted) {
+        return deleted;
+      } else {
+        return null
+      }
+    }
+    return null;
+  }
+
   // Find the project funder by its id
   static async findById(reference: string, context: MyContext, projectFunderId: number): Promise<PlanFunder> {
     const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`;
