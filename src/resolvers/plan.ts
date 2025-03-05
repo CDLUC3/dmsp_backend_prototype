@@ -77,11 +77,11 @@ export const resolvers: Resolvers = {
           if (await hasPermissionOnProject(context, project)) {
             const plan = new Plan({ projectId, versionedTemplateId });
             // Send the plan to the DMPHub so that it stores it and assigns a DMP ID
-            const dmp = await syncWithDMPHub(context, plan, reference);
-            formatLogMessage(context).debug({ dmp }, `DMP from the DMPHub API: for plan: ${plan.id}`);
+            // const dmp = await syncWithDMPHub(context, plan, reference);
+            // formatLogMessage(context).debug({ dmp }, `DMP from the DMPHub API: for plan: ${plan.id}`);
 
             // Record the DMP ID that was assigned by the DMPHub
-            plan.dmpId = dmp?.dmp_id?.identifier;
+            // plan.dmpId = dmp?.dmp_id?.identifier;
             const newPlan = await plan.create(context);
             if (newPlan) {
               return new Plan(newPlan);
