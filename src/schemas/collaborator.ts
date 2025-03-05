@@ -28,11 +28,11 @@ export const typeDefs = gql`
 
   enum ProjectCollaboratorAccessLevel {
     "The user is ONLY able to comment on the Plan's answers"
-    COMMENTER
-    "The user is able to comment and edit the Plan's answers, add/edit/delete contributors and research outputs"
-    EDITOR
+    COMMENT
+    "The user is able to perform most actions on a Project/Plan except (publish, mark as complete and change access)"
+    EDIT
     "The user is able to perform all actions on a Plan (typically restricted to the owner/creator)"
-    ADMIN
+    OWN
   }
 
   "A user that that belongs to a different affiliation that can edit the Template"

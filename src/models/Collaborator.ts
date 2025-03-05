@@ -1,6 +1,6 @@
 import { MyContext } from '../context';
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../services/emailService';
-import { validateEmail } from '../utils/helpers';
+import { isNullOrUndefined, validateEmail, valueIsEmpty } from '../utils/helpers';
 import { MySqlModel } from './MySqlModel';
 import { Project } from './Project';
 import { Template } from './Template';
@@ -198,10 +198,20 @@ export class TemplateCollaborator extends Collaborator {
   }
 }
 
+// The type of access the collaborator can have on a Project
+export enum ProjectCollaboratorAccessLevel {
+  // Can do everything on a Project or Plan
+  OWN = 'OWN',
+  // Can edit a Project's and Plan's info (except publish, mark as complete, and change access levels)
+  EDIT = 'EDIT',
+  // Can comment on a Plan's answers
+  COMMENT = 'COMMENT',
+}
 
 // An individual that has permission to work on a Project and it's plans
 export class ProjectCollaborator extends Collaborator {
   public projectId: number;
+  public accessLevel: string;
 
   private tableName = 'projectCollaborators';
 
@@ -209,13 +219,15 @@ export class ProjectCollaborator extends Collaborator {
     super(options);
 
     this.projectId = options.projectId ?? null;
+    this.accessLevel = options.accessLevel ?? ProjectCollaboratorAccessLevel.COMMENT;
   }
 
   // Verify that the projectId is present
   async isValid(): Promise<boolean> {
     super.isValid()
 
-    if (this.projectId === null) this.addError('projectId', 'Project Id can\'t be blank');
+    if (isNullOrUndefined(this.projectId)) this.addError('projectId', 'Project Id can\'t be blank');
+    if (valueIsEmpty(this.accessLevel)) this.addError('accessLevel', 'Access Level can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
   }
