@@ -5,7 +5,6 @@ import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { JWTAccessToken } from '../../services/tokenService';
 import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
-import { DMP } from '../../models/DMP';
 import { DMPHubConfig } from '../../config/dmpHubConfig';
 
 jest.mock('../../context.ts');
@@ -120,12 +119,11 @@ describe('DMPToolAPI', () => {
       mockGet.mockResolvedValue(mockResponse);
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const result = await dmphubAPI.getDMP(context, dmpId);
+      await dmphubAPI.getDMP(context, dmpId);
 
       expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=LATEST`);
-      expect(result).toBeInstanceOf(DMP);
       expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.getDMP Calling DMPHub: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
+        `dmphubAPI.getDMP Calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
       );
     });
 
@@ -139,12 +137,11 @@ describe('DMPToolAPI', () => {
       mockGet.mockResolvedValue(mockResponse);
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const result = await dmphubAPI.getDMP(context, dmpId, '1234', 'getDMP');
+      await dmphubAPI.getDMP(context, dmpId, '1234', 'getDMP');
 
       expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=1234`);
-      expect(result).toBeInstanceOf(DMP);
       expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `getDMP Calling DMPHub: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
+        `getDMP Calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
       );
     });
 

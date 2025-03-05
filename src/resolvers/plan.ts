@@ -10,6 +10,9 @@ import { PlanContributor } from "../models/Contributor";
 import { PlanFunder } from "../models/Funder";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
+import { createPlanVersion, syncWithDMPHub } from "../services/planService";
+import { getCurrentDate } from "../utils/helpers";
+import { Answer } from "../models/Answer";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -73,6 +76,12 @@ export const resolvers: Resolvers = {
 
           if (await hasPermissionOnProject(context, project)) {
             const plan = new Plan({ projectId, versionedTemplateId });
+            // Send the plan to the DMPHub so that it stores it and assigns a DMP ID
+            const dmp = await syncWithDMPHub(context, plan, reference);
+            formatLogMessage(context).debug({ dmp }, `DMP from the DMPHub API: for plan: ${plan.id}`);
+
+            // Record the DMP ID that was assigned by the DMPHub
+            plan.dmpId = dmp?.dmp_id?.identifier;
             const newPlan = await plan.create(context);
             if (newPlan) {
               return new Plan(newPlan);
@@ -101,8 +110,22 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
-            const deletedPlan = await plan.delete(context);
-            return new Plan(deletedPlan);
+            // First create a version snapshot (before making changes)
+            const newVersion = createPlanVersion(context, plan, reference);
+            if (newVersion) {
+              plan.status = PlanStatus.ARCHIVED;
+              const deletedPlan = await plan.delete(context);
+
+              if (deletedPlan) {
+                // asyncronously tombstone the DMP in the DMPHub (after making changes)
+                syncWithDMPHub(context, plan, reference);
+
+                return deletedPlan;
+              }
+            }
+
+            plan.addError('general', 'Unable to archive plan. Failed to create a version snapshot');
+            return plan;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -152,12 +175,31 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
-            plan.visibility = visibility as PlanVisibility;
+            if (project.isTestProject) {
+              plan.addError('general', 'Test projects cannot be published');
+            } else if (plan.registered) {
+              plan.addError('general', 'Plan is already published');
+            }
 
-            // TODO: Call the publish method on the plan which should update the visibility
-            //       and register the DMP with EZID. When the call to EZID is successful, the
-            //       status, registered and registeredById should be updated.
-            plan.addError('general', 'Publishing has not yet been implemented');
+            if (!plan.hasErrors()) {
+              // First create a version snapshot (before making changes)
+              const newVersion = createPlanVersion(context, plan, reference);
+              if (newVersion) {
+                plan.status = PlanStatus.PUBLISHED;
+                plan.registered = new Date().toISOString();
+                plan.registeredById = context.token.id;
+                plan.visibility = visibility as PlanVisibility;
+
+                const publishedPlan = await plan.update(context);
+                if (publishedPlan) {
+                  // asyncronously tombstone the DMP in the DMPHub (after making changes)
+                  syncWithDMPHub(context, plan, reference);
+
+                  return publishedPlan;
+                }
+              }
+            }
+
             return plan;
           }
         }
@@ -184,8 +226,20 @@ export const resolvers: Resolvers = {
             if (plan.registered) {
               plan.addError('general', 'Plan is already published');
             } else {
-              plan.status = PlanStatus.COMPLETE;
-              await plan.update(context);
+              // First create a version snapshot (before making changes)
+              const newVersion = createPlanVersion(context, plan, reference);
+              if (newVersion) {
+                plan.status = PlanStatus.COMPLETE;
+                plan.lastSynced = getCurrentDate();
+
+                const updatedPlan = await plan.update(context);
+                if (updatedPlan) {
+                  // asyncronously tombstone the DMP in the DMPHub (after making changes)
+                  syncWithDMPHub(context, plan, reference);
+
+                  return updatedPlan;
+                }
+              }
             }
             return plan;
           }
@@ -213,8 +267,20 @@ export const resolvers: Resolvers = {
             if (plan.registered) {
               plan.addError('general', 'Plan is already published');
             } else {
-              plan.status = PlanStatus.DRAFT;
-              await plan.update(context);
+              // First create a version snapshot (before making changes)
+              const newVersion = createPlanVersion(context, plan, reference);
+              if (newVersion) {
+                plan.status = PlanStatus.DRAFT;
+                plan.lastSynced = getCurrentDate();
+
+                const updatedPlan = await plan.update(context);
+                if (updatedPlan) {
+                  // asyncronously tombstone the DMP in the DMPHub (after making changes)
+                  syncWithDMPHub(context, plan, reference);
+
+                  return updatedPlan;
+                }
+              }
             }
             return plan;
           }
@@ -257,7 +323,13 @@ export const resolvers: Resolvers = {
         return await PlanFunder.findByPlanId('plan funders resolver', context, parent.id);
       }
       return [];
-    }
+    },
+    answers: async (parent: Plan, _, context: MyContext): Promise<Answer[]> => {
+      if (parent?.id) {
+        return await Answer.findByPlanId('plan answers resolver', context, parent.id);
+      }
+      return [];
+    },
   },
 
   PlanSearchResult: {

@@ -112,10 +112,6 @@ export function incrementVersionNumber(version: string): string {
 
 // Get current date and put it into format that is acceptable to mariaDB
 export function getCurrentDate(): string {
-  // const now = new Date().toISOString();
-  // const currentDate = now.slice(0, 19).replace('T', ' ');
-  // return currentDate;
-
   return formatISO9075(new Date());
 }
 

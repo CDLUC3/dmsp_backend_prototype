@@ -85,6 +85,13 @@ export class User extends MySqlModel {
     if (!supportedLanguages.map((l) => l.id).includes(this.languageId)){
       this.languageId = defaultLanguageId;
     }
+    // if the ORCID doesn't match the expected format, null it out
+    if (!this.orcid?.match(ORCID_REGEX)) {
+      this.orcid = null;
+    } else {
+      // Format the ORCID with the full URL
+      this.orcid = this.orcid.replace(ORCID_REGEX, DEFAULT_ORCID_URL + '$4');
+    }
   }
 
   // Verify that the email does not already exist and that the required fields have values
@@ -94,6 +101,7 @@ export class User extends MySqlModel {
     if (!validateEmail(this.email)) this.addError('email', 'Invalid email address');
     if (!this.password) this.addError('password', 'Password is required');
     if (!this.role) this.addError('role', 'Role can\'t be blank');
+    if (this.orcid && !this.orcid.match(ORCID_REGEX)) this.addError('orcid', 'Invalid ORCID');
 
     return Object.keys(this.errors).length === 0;
   }

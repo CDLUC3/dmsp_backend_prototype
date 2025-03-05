@@ -234,6 +234,7 @@ export class ProjectContributor extends MySqlModel {
   }
 };
 
+// Represents a contributor to a DMP
 export class PlanContributor extends MySqlModel {
   public planId: number;
   public projectContributorId: number;

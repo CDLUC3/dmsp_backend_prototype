@@ -3,17 +3,17 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get all rounds of admin feedback for the plan"
-    planSectionAnswers(planId: Int!, sectionId: Int!): [Answer]
+    answers(projectId: Int!, planId: Int!, versionedSectionId: Int!): [Answer]
 
     "Get all of the comments associated with the round of admin feedback"
-    planQuestionAnswer(questionId: Int!, answerId: Int!): Answer
+    answer(projectId: Int!, answerId: Int!): Answer
   }
 
   extend type Mutation {
     "Answer a question"
-    addPlanAnswer(planId: Int!, versionedSectionId: Int!, versionedQuestionId: Int!, answerText: String): Answer
+    addAnswer(planId: Int!, versionedSectionId: Int!, versionedQuestionId: Int!, answerText: String): Answer
     "Edit an answer"
-    updatePlanAnswer(answerId: Int!, answerText: String): Answer
+    updateAnswer(answerId: Int!, answerText: String): Answer
   }
 
   "An answer to a question on a Data Managament Plan (DMP)"
@@ -29,16 +29,19 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: AffiliationErrors
 
     "The question in the template the answer is for"
-    versionedSection: VersionedSection!
+    versionedSection: VersionedSection
     "The question in the template the answer is for"
-    versionedQuestion: VersionedQuestion!
+    versionedQuestion: VersionedQuestion
     "The DMP that the answer belongs to"
-    plan: Plan!
+    plan: Plan
     "The answer to the question"
     answerText: String
+
+    "The comments associated with the answer"
+    comments: [AnswerComment!]
   }
 
   "A collection of errors related to the Answer"
@@ -53,8 +56,8 @@ export const typeDefs = gql`
   }
 
   type AnswerComment {
-     "The unique identifer for the Object"
-     id: Int
+    "The unique identifer for the Object"
+    id: Int
     "The user who created the Object"
     createdById: Int
     "The timestamp when the Object was created"
@@ -64,10 +67,10 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: AnswerCommentErrors
 
     "The answer the comment is associated with"
-    answer: Answer!
+    answerId: Int!
     "The comment"
     commentText: String!
   }

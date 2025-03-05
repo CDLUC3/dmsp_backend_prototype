@@ -93,6 +93,8 @@ export const typeDefs = gql`
 
   "The status/state of the plan"
   enum PlanStatus {
+    "The Plan has been archived"
+    ARCHIVED
     "The Plan is still being written and reviewed"
     DRAFT
     "The Plan is ready for submission or download"
@@ -146,6 +148,8 @@ export const typeDefs = gql`
 
     "Prior versions of the plan"
     versions: [PlanVersion!]
+
+    answers: [Answer!]
   }
 
   "The error messages for the plan"

@@ -5,6 +5,7 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 
 export enum PlanStatus {
+  ARCHIVED = 'ARCHIVED',
   DRAFT = 'DRAFT',
   COMPLETE = 'COMPLETE',
   PUBLISHED = 'PUBLISHED',
@@ -118,8 +119,7 @@ export class PlanSectionProgress {
   }
 }
 
-
-// A DMP/Plan
+// A Data management plan
 export class Plan extends MySqlModel {
   public projectId: number;
   public versionedTemplateId: number;
@@ -162,9 +162,9 @@ export class Plan extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
 
-  //Create a new Project
+  //Create a new Plan
   async create(context: MyContext): Promise<Plan> {
-    const reference = 'Project.create';
+    const reference = 'Plan.create';
 
     // First make sure the record is valid
     if (await this.isValid()) {
@@ -177,9 +177,9 @@ export class Plan extends MySqlModel {
     return new Plan(this);
   }
 
-  //Update an existing Project
+  //Update an existing Plan
   async update(context: MyContext, noTouch = false): Promise<Plan> {
-    const reference = 'Project.update';
+    const reference = 'Plan.update';
 
     if (this.id) {
       if (await this.isValid()) {
@@ -192,9 +192,9 @@ export class Plan extends MySqlModel {
     return new Plan(this);
   }
 
-  //Delete the Project
+  //Delete the Plan
   async delete(context: MyContext): Promise<Plan> {
-    const reference = 'Project.delete';
+    const reference = 'Plan.delete';
     if (this.id) {
       const deleted = await Plan.findById(reference, context, this.id);
 
