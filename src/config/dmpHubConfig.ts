@@ -9,7 +9,7 @@ export const DMPHubConfig = {
   dmpHubAuthURL: process.env.DMPHUB_AUTH_URL,
   dmpHubURL: process.env.DMPHUB_API_BASE_URL,
 
-  dmpHubProvenance: process.env.DMPHUB_PROVENANCE_IDENITFIER ?? 'my_application',
+  dmpHubProvenance: process.env.DMPHUB_PROVENANCE_IDENTIFIER ?? 'my_application',
   dmpHubClientId: process.env.DMPHUB_API_CLIENT_ID,
   dmpHubClientSecret: process.env.DMPHUB_API_CLIENT_SECRET,
 
