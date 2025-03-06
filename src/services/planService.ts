@@ -1,8 +1,9 @@
 import { MyContext } from "../context";
 import { PlanVersion } from "../models/PlanVersion";
 import { Plan, PlanStatus } from "../models/Plan";
-import { DMPCommonStandard, planToDMPCommonStandard } from "./commonStandardService";
+import { planToDMPCommonStandard } from "./commonStandardService";
 import { formatLogMessage } from "../logger";
+import { DMPCommonStandard } from "../datasources/dmphubAPI";
 
 // Version the plan in the local DB
 export const createPlanVersion = async (

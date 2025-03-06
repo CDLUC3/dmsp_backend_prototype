@@ -1,10 +1,29 @@
 import { DMPHubConfig } from "../config/dmpHubConfig";
+import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
-import { DEFAULT_ROR_AFFILIATION_URL } from "../models/Affiliation";
+import {
+  DMPCommonStandard,
+  DMPCommonStandardContributor,
+  DMPCommonStandardFunding,
+  DMPCommonStandardNarrative,
+  DMPCommonStandardRelatedIdentifier,
+  DMPFundingStatus,
+  DMPIdentifierType,
+  DMPPrivacy,
+  DMPRelatedIdentifierDescriptor,
+  DMPRelatedIdentifierWorkType,
+  DMPStatus,
+  DMPYesNoUnknown,
+  DOI_REGEX
+} from "../datasources/dmphubAPI";
+import { ROR_REGEX } from "../models/Affiliation";
+import { ContributorRole } from "../models/ContributorRole";
 import { ProjectFunderStatus } from "../models/Funder";
 import { defaultLanguageId } from "../models/Language";
-import { Plan, PlanStatus, PlanVisibility } from "../models/Plan"
-import { getCurrentDate } from "../utils/helpers";
+import { Plan, PlanVisibility } from "../models/Plan"
+import { RelatedWork } from "../models/RelatedWork";
+import { ORCID_REGEX, User } from "../models/User";
+import { valueIsEmpty } from "../utils/helpers";
 
 // Represents the the RDA Common Metadata standard version of a plan/DMP. When communicating with external
 // systems we need to convert project/plan data into this format. This is the format that the DMPHub
@@ -27,96 +46,224 @@ export async function planToDMPCommonStandard(
   reference: string,
   plan: Plan
 ): Promise<DMPCommonStandard | null> {
+  // Get all of the Template and Project data needed to build the DMP Common Standard
   const project = await loadProjectAndTemplateInfo(context, reference, plan.id);
-  const fundings = await loadFunderInfo(context, reference, plan.id);
-  const contributors = await loadContributorInfo(context, reference, plan.id);
-  const narrative = await loadNarrativeTemplateInfo(context, reference, plan.id);
-
-  const contact = contributors.find((c) => c.isPrimaryContact);
-
-  // If we don't have the bare minimum amount of data to make the DMP valid
-  if (!contact || !project) {
+  if (!project || !project.title) {
     return null;
   }
 
-  let status: DMPStatus;
-  switch (plan.status) {
-    case PlanStatus.ARCHIVED:
-      status = DMPStatus.ARCHIVED;
-      break;
-    case PlanStatus.COMPLETE:
-      status = DMPStatus.COMPLETE;
-      break;
-    case PlanStatus.PUBLISHED:
-      status = DMPStatus.PUBLISHED;
-      break;
-    default:
-      status = DMPStatus.DRAFT;
-      break;
+  // Get all of the contributors and the primary contact
+  const contributors = await loadContributorInfo(context, reference, plan.id);
+  // Extract the primary contact from the contributors
+  let contact = contributors.find((c) => c.isPrimaryContact);
+  // If no primary contact is available, use the plan owner
+  contact = contact ? contact : await loadContactFromPlanOwner(context, reference, plan.createdById);
+  if (!contact) {
+    return null;
   }
 
-  return {
-    dmphub_provenance_id: DMPHubConfig.dmpHubProvenance,
-    created: plan.created,
-    modified: plan.modified,
-    registered: plan.registered,
-    title: `DMP for: ${project[0].name ?? project[0].title}`,
-    description: project[0].abstractText,
-    language: plan.languageId?.length > 3 ? convertFiveCharToThreeChar(this.languageId) : this.languageId,
-    ethical_issues_exist: DMPYesNoUnknown.UNKNOWN,
-    dmproadmap_featured: plan.featured,
-    dmproadmap_privacy: plan.visibility === PlanVisibility.PUBLIC ? DMPPrivacy.PUBLIC : DMPPrivacy.PRIVATE,
-    dmproadmap_status: status,
-
-    dmp_id: {
-      identifier: plan.dmpId,
-      type: 'doi',
-    },
-
-    contact: {
-      name: [contact?.givenName, contact?.surName].filter((n) => n).join(' ').trim(),
-      mbox: contact?.email,
-      dmproadmap_affiliation: {
-        name: contact?.name,
-        affiliation_id: {
-          identifier: contact?.uri,
-          type: contact?.uri.startsWith(DEFAULT_ROR_AFFILIATION_URL) ? 'ror' : 'url',
-        },
-      },
-      contact_id: {
-        identifier: contact?.orcid ?? contact?.email,
-        type: contact?.orcid ? 'orcid' : 'other',
-      },
-    },
-
-    contributor: contributors.map((contributor) => contributorToDMPCommonStandard(contributor)),
-
-    // TODO: Add in dataset once we've got that built out
-    dataset: [{
+  // TODO: update this to get the research outputs once they have been built out
+  const datasets = [];
+  // If no research outputs were found, create a default one because the Common Standard requires at least 1
+  if (!Array.isArray(datasets) || datasets.length === 0) {
+    datasets.push({
       type: 'dataset',
-      title: 'Initial Dataset',
-      issued: getCurrentDate(),
+      title: 'Project Dataset',
       personal_data: DMPYesNoUnknown.UNKNOWN,
       sensitive_data: DMPYesNoUnknown.UNKNOWN,
       dataset_id: {
         identifier: `${plan.dmpId}/dataset`,
-        type: 'doi',
+        type: DMPIdentifierType.OTHER,
       },
-    }],
+    });
+  }
 
+  // Get all of the funders and narrative info
+  const fundings = await loadFunderInfo(context, reference, plan.id);
+  const narrative = await loadNarrativeTemplateInfo(context, reference, plan.id);
+  const works = await RelatedWork.findByProjectId(reference, context, plan.projectId);
+  const defaultRole = await ContributorRole.defaultRole();
+
+  // Build the DMP with all the required properties (and any that we have defaults for)
+  const commonStandard: DMPCommonStandard = {
+    // The person responsible for answering questions about the DMP
+    contact: {
+      contact_id: {
+        identifier: contact?.orcid ?? contact?.email,
+        type: determineIdentifierType(contact?.orcid),
+      },
+      dmproadmap_affiliation: {
+        affiliation_id: {
+          identifier: contact?.uri,
+          type: determineIdentifierType(contact?.uri),
+        },
+        name: contact?.name,
+      },
+      mbox: contact?.email,
+      name: [contact?.givenName, contact?.surName].filter((n) => n).join(' ').trim(),
+    },
+
+    created: plan.created,
+    dataset: datasets,
+
+    // Use the plan's DMP ID or the URL to the plan as the identifier if it is a new DMP
+    dmp_id: {
+      identifier: plan.dmpId ?? `https://${generalConfig.domain}/plan/${plan.id}`,
+      type: plan.dmpId ? DMPIdentifierType.DOI : DMPIdentifierType.URL,
+    },
+
+    dmphub_provenance_id: DMPHubConfig.dmpHubProvenance,
+    dmproadmap_featured: plan.featured,
+    dmproadmap_privacy: plan.visibility === PlanVisibility.PUBLIC ? DMPPrivacy.PUBLIC : DMPPrivacy.PRIVATE,
+    dmproadmap_status: DMPStatus[plan.status],
+
+    ethical_issues_exist: DMPYesNoUnknown.UNKNOWN,
+    language: plan.languageId?.length > 3 ? convertFiveCharToThreeChar(plan.languageId) : plan.languageId,
+    modified: plan.modified,
+
+    // Include the required part of the project
     project: [{
-      title: project[0].title,
-      description: project[0].abstractText,
-      start: project[0].startDate,
-      end: project[0].endDate,
-
-      funding: fundings.map((funder) => funderToDMPCommonStandard(funder)),
+      title: project?.title,
     }],
 
-    // TODO: Add in dmproadmap_related_identifiers once we have that part built out
+    title: `DMP for: ${project?.name ?? project?.title}`,
+  }
 
-    dmproadmap_narrative: planNarrativeToDMPCommonStandard(narrative),
+  // Only add these properties if they have values we don't want 'undefined' or 'null' in the JSON
+  if (plan.registered) commonStandard.registered = plan.registered;
+  if (project?.abstractText) commonStandard.project[0].description = project?.abstractText;
+  if (project?.startDate) commonStandard.project[0].start = project.startDate;
+  if (project?.endDate) commonStandard.project[0].end = project.endDate;
+
+  // Add the contributors if there are any
+  if (Array.isArray(contributors) && contributors.length > 0) {
+    commonStandard.contributor = contributors.map((contributor) => {
+      const contrib = {
+        name: [contributor.givenName, contributor.surName].filter((n) => n).join(' ').trim(),
+        role: contributor.roles ? JSON.parse(contributor.roles) : [defaultRole.uri],
+      } as DMPCommonStandardContributor;
+
+      // Only add the rest if they have values
+      if (!valueIsEmpty(contributor.orcid)) {
+        contrib.contributor_id = {
+          identifier: contributor.orcid ?? contributor.email,
+          type: determineIdentifierType(contributor.orcid),
+        };
+      }
+
+      if (!valueIsEmpty(contributor.email)) contrib.mbox = contributor.email;
+      if (!valueIsEmpty(contributor.name)) contrib.dmproadmap_affiliation = { name: contributor.name };
+
+      if (!valueIsEmpty(contributor.name) && !valueIsEmpty(contributor.uri)) {
+        contrib.dmproadmap_affiliation.affiliation_id = {
+          identifier: contributor.uri,
+          type: determineIdentifierType(contributor.uri),
+        };
+      }
+
+      return contrib;
+    });
+  }
+
+  // Add the funding information if there is any
+  if (Array.isArray(fundings) && fundings.length > 0) {
+    commonStandard.project[0].funding = fundings.map((funder) => {
+      const funding = {
+        funding_status: planFunderStatusToDMPFundingStatus(funder.status),
+        name: funder.name,
+      } as DMPCommonStandardFunding;
+
+      if (!valueIsEmpty(funder.funderProjectNumber)) funding.dmproadmap_project_number = funder.funderProjectNumber;
+      if (!valueIsEmpty(funder.funderOpportunityNumber)) funding.dmproadmap_opportunity_number = funder.funderOpportunityNumber;
+      if (!valueIsEmpty(funder.uri)) {
+        funding.funder_id = {
+          identifier: funder.uri,
+          type: determineIdentifierType(funder.uri),
+        };
+      }
+      if (!valueIsEmpty(funder.grantId)) {
+        funding.grant_id = {
+          identifier: funder.grantId,
+          type: determineIdentifierType(funder.grantId),
+        };
+      }
+
+      return funding;
+    });
+  }
+
+  // Add the related works if there are any
+  if (Array.isArray(works) && works.length > 0) {
+    commonStandard.dmproadmap_related_identifiers = works.map((work) => {
+      const identifier = {
+        descriptor: DMPRelatedIdentifierDescriptor[work.relationDescriptor],
+        identifier: work.identifier,
+        type: determineIdentifierType(work.identifier),
+        work_type: DMPRelatedIdentifierWorkType[work.workType],
+      } as DMPCommonStandardRelatedIdentifier;
+
+      if(!valueIsEmpty(work.citation)) identifier.citation = work.citation;
+
+      return identifier;
+    });
+  }
+
+  // Add the narrative elements if they exist
+  if (narrative) {
+    commonStandard.dmproadmap_narrative = planNarrativeToDMPCommonStandard(narrative);
+  }
+
+  return commonStandard;
+}
+
+// Converts the narrative from the Plan format to the DMP Common Standard format
+const planNarrativeToDMPCommonStandard = (narrative): DMPCommonStandardNarrative => {
+  return {
+    template_id: narrative.templateId,
+    template_title: narrative.templateTitle,
+    template_version: narrative.templateVersion,
+
+    sections: narrative.sections.map((section) => ({
+      section_id: section.sectionId,
+      section_title: section.sectionTitle,
+      section_description: section.sectionDescription,
+      section_order: section.sectionOrder,
+
+      questions: section.questions.map((question) => ({
+        question_id: question.questionId,
+        question_text: question.questionText,
+        question_order: question.questionOrder,
+
+        question_type: {
+          id: question.questionTypeId,
+          name: question.questionTypeName,
+        },
+
+        answer_id: question.answerId,
+        answer_text: question.answerText,
+      })),
+    })),
   };
+}
+
+// Helper functions to translate data from one format to another
+// -----------------------------------------------------------------------------------------------
+// Determine what identifier type to use based on the URI
+export function determineIdentifierType(uri: string): DMPIdentifierType {
+  if (valueIsEmpty(uri)) {
+    return DMPIdentifierType.OTHER;
+  }
+  if (uri.match(ORCID_REGEX)) {
+    return DMPIdentifierType.ORCID;
+  } else if (uri.match(DOI_REGEX)) {
+    return DMPIdentifierType.DOI;
+  } else if (uri.match(ROR_REGEX)) {
+    return DMPIdentifierType.ROR;
+  } else if (uri.startsWith('http')) {
+    return DMPIdentifierType.URL;
+  } else {
+    return DMPIdentifierType.OTHER;
+  }
 }
 
 // Helper function to convert a 3 character language code to a 5 character code
@@ -139,9 +286,81 @@ export function convertThreeCharToFiveChar(language: string): string {
   }
 }
 
+// Helper function to convert a ProjectFunderStatus to a DMPFundingStatus
+function planFunderStatusToDMPFundingStatus(status: string): DMPFundingStatus {
+  switch (status) {
+    case ProjectFunderStatus.DENIED:
+      return DMPFundingStatus.REJECTED;
+    case ProjectFunderStatus.GRANTED:
+      return DMPFundingStatus.GRANTED;
+    default:
+      return DMPFundingStatus.PLANNED;
+  }
+}
+
+// Interfaces to describe the type of results we are pulling from the DB
+// -----------------------------------------------------------------------------------------------
+interface LoadProjectResult {
+  title: string;
+  abstractText: string;
+  startDate: string;
+  endDate: string;
+  name: string;
+}
+
+interface LoadFunderResult {
+  uri: string;
+  name: string;
+  status: ProjectFunderStatus;
+  grantId: string;
+  funderProjectNumber: string;
+  funderOpportunityNumber: string;
+}
+
+interface LoadContributorResult {
+  uri: string;
+  name: string;
+  email: string;
+  givenName: string;
+  surName: string;
+  orcid: string;
+  isPrimaryContact: boolean;
+  roles: string;
+}
+
+interface LoadNarrativeResult {
+  templateId: number;
+  templateTitle: string;
+  templateVersion: string;
+  sections: LoadNarrativeSectionResult[];
+}
+
+interface LoadNarrativeSectionResult {
+  sectionId: number;
+  sectionTitle: string;
+  sectionDescription: string;
+  sectionOrder: number;
+  questions: LoadNarrativeQuestionResult[];
+}
+
+interface LoadNarrativeQuestionResult {
+  questionId: number;
+  questionText: string;
+  questionOrder: number;
+  questionTypeId: number;
+  questionTypeName: string;
+  answerId: number;
+  answerText: string;
+}
+
+// Functions to fetch all of the data necessary to build the DMP
+// -----------------------------------------------------------------------------------------------
 // Fetch the project and template info needed to construct the DMP Common Standard
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const loadProjectAndTemplateInfo = async (context: MyContext, reference: string, planId: number): Promise<any> => {
+const loadProjectAndTemplateInfo = async (
+  context: MyContext,
+  reference: string,
+  planId: number
+): Promise<LoadProjectResult> => {
   const sql = 'SELECT pr.title, pr.abstractText, pr.startDate, pr.EndDate, t.name ' +
                       'FROM plans p ' +
                         'INNER JOIN projects pr ON p.projectId = pr.id ' +
@@ -152,8 +371,11 @@ const loadProjectAndTemplateInfo = async (context: MyContext, reference: string,
 }
 
 // Fetch the funder info needed to construct the DMP Common Standard
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const loadFunderInfo = async (context: MyContext, reference: string, planId: number): Promise<any[]> => {
+const loadFunderInfo = async (
+  context: MyContext,
+  reference: string,
+  planId: number
+): Promise<LoadFunderResult[]> => {
   const sql = 'SELECT a.uri, a.name, prf.status, prf.grantId, prf.funderProjectNumber, prf.funderOpportunityNumber ' +
                     'FROM planFunders pf ' +
                       'LEFT JOIN projectFunders prf ON pf.projectFunderId = prf.id' +
@@ -163,8 +385,11 @@ const loadFunderInfo = async (context: MyContext, reference: string, planId: num
 }
 
 // Fetch the contributor info needed to construct the DMP Common Standard
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const loadContributorInfo = async (context: MyContext, reference: string, planId: number): Promise<any[]> => {
+const loadContributorInfo = async (
+  context: MyContext,
+  reference: string,
+  planId: number
+): Promise<LoadContributorResult[]> => {
   const sql = 'SELECT a.uri, a.name, pctr.email, pctr.givenName, pctr.surName, pctr.orcid, ' +
                         'pc.isPrimaryContact, GROUP_CONCAT(r.uri) as roles ' +
                       'FROM planContributors pc ' +
@@ -178,9 +403,28 @@ const loadContributorInfo = async (context: MyContext, reference: string, planId
   return Array.isArray(contributors) ? contributors : [];
 }
 
-// Fetch the narrative info needed to construct the DMP Common Standard
+// Fetch the plan owner information need to construct the Contact if the primary contact is not available
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const loadNarrativeTemplateInfo = async (context: MyContext, reference: string, planId: number): Promise<any> => {
+export async function loadContactFromPlanOwner(
+  context: MyContext,
+  reference: string,
+  ownerId: number
+): Promise<LoadContributorResult> {
+  const sql = 'SELECT u.givenName, u.surName, u.email, u.orcid, a.uri, a.name ' +
+                      'FROM users u ' +
+                        'LEFT JOIN affiliations a ON u.affiliationId = a.id ' +
+                      'WHERE u.id = ?';
+  const results = await User.query(context, sql, [ownerId.toString()], reference);
+  return Array.isArray(results) && results.length > 0 ? results[0] : null;
+}
+
+// Fetch the narrative info needed to construct the DMP Common Standard
+const loadNarrativeTemplateInfo = async (
+  context: MyContext,
+  reference: string,
+  planId: number
+): Promise<LoadNarrativeResult> => {
+  // Fetch the template, sections, questions and answers all at once
   const sql = 'SELECT t.id templateId, t.name templateTitle, t.version templateVersion, ' +
                         's.id sectionId, s.name sectionTitle, s.introduction sectionDescription, s.displayOrder sectionOrder, ' +
                         'q.id questionId, q.questionText questionText, q.displayOrder questionOrder, ' +
@@ -196,6 +440,11 @@ const loadNarrativeTemplateInfo = async (context: MyContext, reference: string, 
                         'ORDER BY s.displayOrder, q.displayOrder;';
   const results = await Plan.query(context, sql, [planId.toString()], reference);
 
+  if (!Array.isArray(results) || results.length === 0) {
+    return null;
+  }
+
+  // The template info is the same on every record so just use the first one
   const narrative = {
     templateId: results[0].templateId,
     templateTitle: results[0].templateTitle,
@@ -203,10 +452,11 @@ const loadNarrativeTemplateInfo = async (context: MyContext, reference: string, 
     sections: [],
   };
 
-  // Extract all of the section and question info
+  // Loop through all of the records and extract the section and question info
   narrative.sections = results.reduce((acc, row) => {
-    const section = acc.find((s) => s.sectionId === row.sectionId);
+    let section = acc.find((s) => s.sectionId === row.sectionId);
     if (!section) {
+      // Its a new section so add it to the list
       acc.push({
         sectionId: row.sectionId,
         sectionTitle: row.sectionTitle,
@@ -214,9 +464,12 @@ const loadNarrativeTemplateInfo = async (context: MyContext, reference: string, 
         sectionOrder: row.sectionOrder,
         questions: [],
       });
+      section = acc[acc.length - 1];
     }
+
     const question = section.questions.find((q) => q.questionId === row.questionId);
     if (!question) {
+      // Its a new question and answer so add it to the list
       section.questions.push({
         questionId: row.questionId,
         questionText: row.questionText,
@@ -237,449 +490,4 @@ const loadNarrativeTemplateInfo = async (context: MyContext, reference: string, 
   narrative.sections.sort((a, b) => a.sectionOrder - b.sectionOrder);
 
   return narrative;
-}
-
-const contributorToDMPCommonStandard = (contributor): DMPCommonStandardContributor => {
-  return {
-    name: [contributor.givenName, contributor.surName].filter((n) => n).join(' ').trim(),
-    mbox: contributor.email,
-    dmproadmap_affiliation: {
-      name: contributor.name,
-      affiliation_id: {
-        identifier: contributor.uri,
-        type: contributor.uri.startsWith(DEFAULT_ROR_AFFILIATION_URL) ? 'ror' : 'url',
-      },
-    },
-    role: contributor.roles.split(','),
-    contributor_id: {
-      identifier: contributor.orcid ?? contributor.email,
-      type: contributor.orcid ? 'orcid' : 'other',
-    },
-  };
-}
-
-const funderToDMPCommonStandard = (funding): DMPCommonStandardFunding => {
-  let status: DMPFundingStatus;
-  switch (funding.status) {
-    case ProjectFunderStatus.DENIED:
-      status = DMPFundingStatus.REJECTED;
-      break;
-    case ProjectFunderStatus.GRANTED:
-      status = DMPFundingStatus.GRANTED;
-      break;
-    default:
-      status = DMPFundingStatus.PLANNED;
-      break;
-  }
-
-  return {
-    name: funding.name,
-    funder_id: {
-      identifier: funding.uri,
-      type: funding.uri.startsWith(DEFAULT_ROR_AFFILIATION_URL) ? 'ror' : 'url',
-    },
-    funding_status: status,
-    grant_id: {
-      identifier: funding.grantId,
-      type: funding.grantId.startsWith('http') ? 'url' : 'other'
-    },
-    dmproadmap_project_number: funding.funderProjectNumber,
-    dmproadmap_opportunity_number: funding.funderOpportunityNumber,
-  };
-}
-
-// Converts the narrative from the Plan format to the DMP Common Standard format
-const planNarrativeToDMPCommonStandard = (narrative): DMPCommonStandardNarrative => {
-  return {
-    template_id: narrative.templateId,
-    template_title: narrative.templateTitle,
-    template_version: narrative.templateVersion,
-
-    sections: narrative.sections.map((section) => ({
-      section_id: section.id,
-      section_title: section.title,
-      section_description: section.description,
-      section_order: section.displayOrder,
-
-      questions: section.questions.map((question) => ({
-        question_id: question.id,
-        question_text: question.questionText,
-        question_order: question.displayOrder,
-
-        question_type: {
-          id: question.questionTypeId,
-          name: question.questionTypeName,
-        },
-
-        answer_id: question.answer?.id,
-        answer_text: question.answer?.answerText,
-      })),
-    })),
-  };
-}
-
-export interface DMPCommonStandard {
-  dmphub_provenance_id: string;
-  dmproadmap_featured: boolean;
-  dmproadmap_privacy: DMPPrivacy;
-  dmproadmap_status: DMPStatus;
-  dmproadmap_narrative: DMPCommonStandardNarrative;
-
-  created: string;
-  modified: string;
-  registered?: string;
-
-  title: string;
-  description?: string;
-  language: string;
-  ethical_issues_exist: string;
-  ethical_issues_description?: string;
-  ethical_issues_report?: string;
-
-  dmp_id: {
-    identifier: string;
-    type: 'doi' | 'other';
-  };
-
-  contact: DMPCommonStandardContact
-
-  contributor?: DMPCommonStandardContributor[];
-
-  // TODO: If we decide to support this (perhaps in the same way we offer research output definitions)
-  //       we should create a model and add this to it
-  cost?: DMPCommonStandardCost[],
-
-  // TODO: Define the DMPCommonStandardOutput on the Output model
-  dataset: DMPCommonStandardDataset[],
-
-  project: DMPCommonStandardProject[],
-
-  // TODO: Define the the RelatedWork model and move this to it
-  dmproadmap_related_identifiers?: DMPCommonStandardRelatedIdentifier[],
-
-  // TODO: Determine how we want to do this in the future. Right now we record if the template owner is a facility
-  dmproadmap_research_facilities?: DMPCommonStandardResearchFacility[],
-
-  // TODO: Define the the Version model and move this to it
-  dmphub_versions?: DMPCommonStandardVersion[],
-}
-
-// Representation of the primary contact in the DMP Common Standard format
-interface DMPCommonStandardContact {
-  name: string;
-  mbox: string;
-  dmproadmap_affiliation: {
-    name: string;
-    affiliation_id: {
-      identifier: string;
-      type: 'ror' | 'url';
-    };
-  };
-  contact_id: {
-    identifier: string;
-    type: 'orcid' | 'other';
-  };
-}
-
-// Representation of a Contributor in the DMP Common Standard format
-interface DMPCommonStandardContributor {
-  name: string;
-  mbox?: string;
-  dmproadmap_affiliation?: {
-    name: string;
-    affiliation_id: {
-      identifier: string;
-      type: 'ror' | 'url';
-    }
-  }
-  contributor_id?: {
-    identifier: string;
-    type: 'orcid' | 'other';
-  }
-  role: string[];
-}
-
-// Represents a budgetary cost in the DMP Common Standard format
-interface DMPCommonStandardCost {
-  title: string;
-  currency_code?: string;
-  description?: string;
-  value?: number
-}
-
-// Represents a research output in the DMP Common Standard format
-interface DMPCommonStandardDataset {
-  type: string;
-  title?: string;
-  description?: string;
-  issued: string;
-  personal_data: DMPYesNoUnknown;
-  sensitive_data: DMPYesNoUnknown;
-  preservation_statement?: string;
-  data_quality_assurance?: string[];
-  keyword?: string[];
-
-  dataset_id: {
-    identifier: string;
-    type: 'doi' | 'url' | 'other';
-  };
-
-  metadata?: DMPCommonStandardMetadataStandard[];
-  security_and_privacy?: DMPCommonStandardSecurityAndPrivacyStatement[];
-  technical_resource?: DMPCommonStandardTechnicalResource[];
-  distribution?: DMPCommonStandardDistribution[];
-}
-
-// Represents a distribution to a repository of the research output in the DMP Common Standard format
-interface DMPCommonStandardDistribution {
-  title: string;
-  description?: string;
-  available_until?: string;
-  byte_size?: number;
-  data_access: DMPOutputAccessLevel;
-  host: DMPCommonStandardHost;
-  license?: DMPCommonStandardLicense[];
-}
-
-// Represnts a repository the research output will be stored in
-interface DMPCommonStandardHost {
-  title: string;
-  description?: string;
-  url: string;
-  dmproadmap_host_id?: {
-    identifier: string;
-    type: 'doi' | 'url' | 'other';
-  }
-}
-
-// Representation of a PLanFunder in the DMP Common Standard format
-interface DMPCommonStandardFunding {
-  name: string;
-  funder_id?: {
-    identifier: string;
-    type: 'ror' | 'url';
-  }
-  funding_status: DMPFundingStatus;
-  grant_id?: {
-    identifier: string;
-    type: 'url' | 'other';
-  };
-  dmproadmap_project_number?: string;
-  dmproadmap_opportunity_number?: string;
-}
-
-// Represents a license agreement in the DMP Common Standard format
-interface DMPCommonStandardLicense {
-  license_ref: string;
-  start_date: string;
-}
-
-// Represents a metadata standard that will be used to describe the research output
-interface DMPCommonStandardMetadataStandard {
-  description?: string;
-  language: string;
-  metadata_standard_id: {
-    identifier: string;
-    type: 'url' | 'doi' | 'other';
-  };
-}
-
-// Represents the narrative elements of a Plan in the DMP Common Standard format
-interface DMPCommonStandardNarrative {
-  template_id: number;
-  template_title: string;
-  template_version: string;
-
-  sections: DMPCommonStandardNarrativeSection[];
-}
-
-// Represents a question in the narrative in the DMP Common Standard format
-interface DMPCommonStandardNarrativeQuestion {
-  question_id: number;
-  question_text: string;
-  question_order?: number;
-
-  question_type: {
-    id: number;
-    name: string;
-  }
-
-  answer_id?: number;
-  answer_text?: string;
-}
-
-// Represents a section of the narrative in the DMP Common Standard format
-interface DMPCommonStandardNarrativeSection {
-  section_id: number;
-  section_title: string;
-  section_description?: string;
-  section_order?: number;
-
-  questions: DMPCommonStandardNarrativeQuestion[];
-}
-
-// Representation of a Project in the DMP Common Standard format
-interface DMPCommonStandardProject {
-  title: string;
-  description?: string;
-  start?: string;
-  end?: string;
-
-  funding?: DMPCommonStandardFunding[];
-}
-
-// Represents a related work in the DMP Common Standard format
-interface DMPCommonStandardRelatedIdentifier {
-  work_type: DMPRelatedIdentifierWorkType;
-  descriptor: DMPRelatedIdentifierDescriptor;
-  identifier: string;
-  type: 'doi' | 'url' | 'other';
-  citation?: string;
-}
-
-// Representation of a research facility in the DMP Common Standard format
-interface DMPCommonStandardResearchFacility {
-  name: string;
-  type: DMPResearchFacilityType;
-  dmproadmap_research_facility_id?: {
-    identifier: string;
-    type: 'ror' | 'url';
-  };
-}
-
-// Representation of a security an privacy statement in the DMP Common Standard format
-interface DMPCommonStandardSecurityAndPrivacyStatement {
-  title: string;
-  description?: string;
-}
-
-// Representation of a technical resource in the DMP Common Standard format
-interface DMPCommonStandardTechnicalResource {
-  name: string;
-  description?: string;
-  technical_resource_id?: {
-    identifier: string;
-    type: 'doi' | 'url' | 'other';
-  }
-}
-
-// Representation of a link to a historical version of the DMP
-interface DMPCommonStandardVersion {
-  timestamp: string;
-  url: string;
-}
-
-enum DMPYesNoUnknown {
-  YES = 'yes',
-  NO = 'no',
-  UNKNOWN = 'unknown',
-}
-
-enum DMPStatus {
-  ARCHIVED = 'archived',
-  DRAFT = 'draft',
-  COMPLETE = 'complete',
-  PUBLISHED = 'published',
-}
-
-enum DMPPrivacy {
-  PUBLIC = 'public',
-  PRIVATE = 'private',
-}
-
-enum DMPFundingStatus {
-  PLANNED = 'planned',
-  APPLIED = 'applied',
-  GRANTED = 'granted',
-  REJECTED = 'rejected',
-}
-
-enum DMPOutputAccessLevel {
-  OPEN = 'open',
-  SHARED = 'shared',
-  CLOSED = 'closed',
-}
-
-enum DMPRelatedIdentifierDescriptor {
-  IS_CITED_BY = "is_cited_by",
-  CITES = "cites",
-  IS_SUPPLEMENT_TO = "is_supplement_to",
-  IS_SUPPLEMENTED_BY = "is_supplemented_by",
-  IS_CONTINUED_BY = "is_continued_by",
-  CONTINUES = "continues",
-  IS_DESCRIBED_BY = "is_described_by",
-  DESCRIBES = "describes",
-  HAS_METADATA = "has_metadata",
-  IS_METADATA_FOR = "is_metadata_for",
-  HAS_VERSION = "has_version",
-  IS_VERSION_OF = "is_version_of",
-  IS_NEW_VERSION_OF = "is_new_version_of",
-  IS_PREVIOUS_VERSION_OF = "is_previous_version_of",
-  IS_PART_OF = "is_part_of",
-  HAS_PART = "has_part",
-  IS_PUBLISHED_IN = "is_published_in",
-  IS_REFERENCED_BY = "is_referenced_by",
-  REFERENCES = "references",
-  IS_DOCUMENTED_BY = "is_documented_by",
-  DOCUMENTS = "documents",
-  IS_COMPILED_BY = "is_compiled_by",
-  COMPILES = "compiles",
-  IS_VARIANT_FORM_OF = "is_variant_form_of",
-  IS_ORIGINAL_FORM_OF = "is_original_form_of",
-  IS_IDENTICAL_TO = "is_identical_to",
-  IS_REVIEWED_BY = "is_reviewed_by",
-  REVIEWS = "reviews",
-  IS_DERIVED_FROM = "is_derived_from",
-  IS_SOURCE_OF = "is_source_of",
-  IS_REQUIRED_BY = "is_required_by",
-  REQUIRES = "requires",
-  OBSOLETES = "obsoletes",
-  IS_OBSOLETED_BY = "is_obsoleted_by",
-  IS_COLLECTED_BY = "is_collected_by",
-  COLLECTS = "collects",
-  IS_TRANSLATION_OF = "is_translation_of",
-  HAS_TRANSLATION = "has_translation"
-}
-
-// Derived from the Datacite schema
-enum DMPRelatedIdentifierWorkType {
-  AUDIOVISUAL = "audiovisual",
-  BOOK = "book",
-  BOOK_CHAPTER = "book_chapter",
-  COLLECTION = "collection",
-  COMPUTATIONAL_NOTEBOOK = "computational_notebook",
-  CONFERENCE_PAPER = "conference_paper",
-  CONFERENCE_PROCEEDING = "conference_proceeding",
-  DATA_PAPER = "data_paper",
-  DATASET = "dataset",
-  DISSERTATION = "dissertation",
-  EVENT = "event",
-  IMAGE = "image",
-  INSTRUMENT = "instrument",
-  INTERACTIVE_RESOURCE = "interactive_resource",
-  JOURNAL = "journal",
-  JOURNAL_ARTICLE = "journal_article",
-  MODEL = "model",
-  OUTPUT_MANAGEMENT_PLAN = "output_management_plan",
-  PEER_REVIEW = "peer_review",
-  PHYSICAL_OBJECT = "physical_object",
-  PREPRINT = "preprint",
-  PROJECT = "project",
-  REPORT = "report",
-  SERVICE = "service",
-  SOFTWARE = "software",
-  SOUND = "sound",
-  STANDARD = "standard",
-  STUDY_REGISTRATION = "study_registration",
-  TEXT = "text",
-  WORKFLOW = "workflow",
-  OTHER = "other"
-}
-
-export enum DMPResearchFacilityType {
-  DATA_CENTER = 'data_center',
-  FIELD_STATION = 'field_station',
-  LABORATORY = 'laboratory',
-  OBSERVATORY = 'observatory',
-  OTHER = 'other',
 }

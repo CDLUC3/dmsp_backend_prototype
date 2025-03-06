@@ -133,6 +133,24 @@ describe('prepForSave properly handles ORCIDs', () => {
   });
 });
 
+describe('formatORCID', () => {
+  // Test the ORCID formatting
+  it('should return null for an invalid ORCID', () => {
+    expect(User.formatORCID('25t24g45g45g546gt')).toBeNull();
+    expect(User.formatORCID('0000-0000-0000')).toBeNull();
+    expect(User.formatORCID(`${DEFAULT_ORCID_URL}/0000-0000-000`)).toBeNull();
+  });
+
+  it('should return the ORCID with the default URL', () => {
+    expect(User.formatORCID('0000-0000-0000-000X')).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+
+  it('should return the ORCID as is if it already a valid ORCID with the base URL', () => {
+    expect(User.formatORCID(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`)).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+    expect(User.formatORCID('https://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
+  });
+});
+
 describe('validate a new User', () => {
   beforeEach(() => {
     jest.resetAllMocks();

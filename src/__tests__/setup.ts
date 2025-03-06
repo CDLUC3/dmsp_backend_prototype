@@ -39,6 +39,7 @@ jest.mock('../config/dmpHubConfig', () => ({
     dmpHubClientId: '1234567890',
     dmpHubClientSecret: '0987654321',
     dmpHubCacheTTL: 3000,
+    dmpHubProvenance: 'testing',
   }
 }));
 

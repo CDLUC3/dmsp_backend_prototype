@@ -1,4 +1,7 @@
 ### Added
+- Added the `relatedWorks` data migration
+- Added model and resolvers for `RelatedWork`
+- Added model and resolvers mutations for `PlanContributor` and `PlanFunder`
 - Added the `Answer`, `AnswerComment` model and supporting resolvers
 - Added the `PlanVersion` table and model
 - Added a `commonStandardService` and a `planService`

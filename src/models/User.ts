@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { capitalizeFirstLetter, getCurrentDate, validateEmail } from '../utils/helpers';
+import { capitalizeFirstLetter, getCurrentDate, validateEmail, valueIsEmpty } from '../utils/helpers';
 import { buildContext } from '../context';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
@@ -9,7 +9,7 @@ import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
 
 export const DEFAULT_ORCID_URL = 'https://orcid.org/';
-export const ORCID_REGEX = /^(https?:\/\/)?(www\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
+export const ORCID_REGEX = /^(https?:\/\/)?(www\.)?(sandbox\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -75,6 +75,20 @@ export class User extends MySqlModel {
     this.prepForSave();
   }
 
+  // Ensure that the ORCID is in the correct format (https://orcid.org/0000-0000-0000-0000)
+  static formatORCID(orcidIn: string): string {
+    // If it is blank or already in the correct format, return it
+    if (!valueIsEmpty(orcidIn) && (orcidIn.match(ORCID_REGEX) && orcidIn.startsWith('http'))) return orcidIn;
+
+    // If it matches the ORCID format but didn't start with http then its just the id
+    if (!valueIsEmpty(orcidIn) && orcidIn.match(ORCID_REGEX)) {
+      return `${DEFAULT_ORCID_URL}${orcidIn.split('/').pop()}`;
+    }
+
+    // Otherwise it's not an ORCID
+    return null;
+  }
+
   // Ensure data integrity
   prepForSave() {
     this.email = this.email?.trim()?.replace('%40', '@');
@@ -85,13 +99,7 @@ export class User extends MySqlModel {
     if (!supportedLanguages.map((l) => l.id).includes(this.languageId)){
       this.languageId = defaultLanguageId;
     }
-    // if the ORCID doesn't match the expected format, null it out
-    if (!this.orcid?.match(ORCID_REGEX)) {
-      this.orcid = null;
-    } else {
-      // Format the ORCID with the full URL
-      this.orcid = this.orcid.replace(ORCID_REGEX, DEFAULT_ORCID_URL + '$4');
-    }
+    this.orcid = this.orcid? User.formatORCID(this.orcid) : null;
   }
 
   // Verify that the email does not already exist and that the required fields have values
