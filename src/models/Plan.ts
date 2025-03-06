@@ -156,8 +156,12 @@ export class Plan extends MySqlModel {
 
     if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
     if (!this.versionedTemplateId) this.addError('versionedTemplateId', 'Versioned template can\'t be blank');
-    if (!this.dmpId && this.registered) this.addError('dmpId', 'A published plan must have a DMP ID');
-    if (!this.registered && this.dmpId) this.addError('registered', 'A published plan must have a registration date');
+    if (!this.dmpId && this.status === PlanStatus.PUBLISHED) {
+      this.addError('dmpId', 'A published plan must have a DMP ID');
+    }
+    if (!this.registered && this.status === PlanStatus.PUBLISHED) {
+      this.addError('registered', 'A published plan must have a registration date');
+    }
 
     return Object.keys(this.errors).length === 0;
   }

@@ -98,6 +98,8 @@ export const resolvers: Resolvers = {
               throw ForbiddenError();
             }
 
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+
             const toUpdate = new Project(input);
             const updated = await toUpdate.update(context);
             return updated;
@@ -131,6 +133,7 @@ export const resolvers: Resolvers = {
               throw ForbiddenError();
             }
 
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
             // TODO: We need to do a check to see if it has been used and whether any of the related DMPs have
             //       been published
             const deleted = await project.delete(context);
@@ -191,4 +194,3 @@ export const resolvers: Resolvers = {
     },
   },
 };
-

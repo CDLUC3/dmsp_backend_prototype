@@ -284,6 +284,9 @@ export const resolvers: Resolvers = {
                 }
               }
             }
+
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub
+
             return created;
           }
         }
@@ -358,6 +361,9 @@ export const resolvers: Resolvers = {
             if (associationErrors.length > 0) {
               contributor.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
             }
+
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub
+
             // Reload since the roles have changed
             return await PlanContributor.findById(reference, context, contributor.id);
           }
@@ -391,6 +397,8 @@ export const resolvers: Resolvers = {
           if (!hasPermissionOnProject(context, project)) {
             throw ForbiddenError();
           }
+
+          // TODO: We need to generate the plan version snapshot and sync with DMPHub
 
           // Any related contributorRoles will be automatically deleted within the DB
           return await contributor.delete(context);

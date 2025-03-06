@@ -176,6 +176,8 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
+          // TODO: We need to generate the plan version snapshot and sync with DMPHub
+
           const newFunder = new PlanFunder({ planId, projectFunderId });
           return await newFunder.create(context);
         }
@@ -197,6 +199,8 @@ export const resolvers: Resolvers = {
           if (!funder) {
             throw NotFoundError();
           }
+
+          // TODO: We need to generate the plan version snapshot and sync with DMPHub
 
           const plan = await Plan.findById(reference, context, funder.planId);
           const project = await Project.findById(reference, context, plan.projectId);

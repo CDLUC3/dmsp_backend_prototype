@@ -253,17 +253,17 @@ describe('Plan', () => {
     expect(plan.errors['versionedTemplateId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the dmpId field is missing and registered is true', async () => {
+  it('should return false when calling isValid if the dmpId field is missing and the status is PUBLISHED', async () => {
     plan.dmpId = null;
-    plan.registered = '2023-10-01';
+    plan.status = PlanStatus.PUBLISHED;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['dmpId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the registered field is missing and dmpId is true', async () => {
+  it('should return false when calling isValid if the registered field is missing and status is PUBLISHED', async () => {
     plan.registered = null;
-    plan.dmpId = '12345';
+    plan.status = PlanStatus.PUBLISHED;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['registered']).toBeTruthy();

@@ -16,21 +16,15 @@ import { logger } from '../../__mocks__/logger';
 import { RelatedWork } from '../../models/RelatedWork';
 import { ContributorRole } from '../../models/ContributorRole';
 import { User } from '../../models/User';
+import { Project } from '../../models/Project';
+import { VersionedTemplate } from '../../models/VersionedTemplate';
 
 let context: MyContext;
 let plan: Plan;
+let project: Project;
+let template: VersionedTemplate;
 
 // Mock query results
-const mockProjectTemplateResult = [
-  {
-    title: 'Project title',
-    abstractText: 'Project description',
-    startDate: '2023-01-01',
-    endDate: '2023-12-31',
-    name: 'Template name',
-  }
-];
-
 const mockFunderResult = [
   {
     name: 'Funder name',
@@ -155,9 +149,25 @@ beforeEach(() => {
 
   context = buildContext(logger, mockToken());
 
+  template = new VersionedTemplate({
+    id: 1,
+    name: 'Template name',
+    description: 'Template description',
+    version: '1.0',
+  });
+
+  project = new Project({
+    id: 1,
+    title: 'Project title',
+    abstractText: 'Project description',
+    startDate: '2023-01-01',
+    endDate: '2023-12-31',
+  });
+
   plan = new Plan({
     id: 1,
-    projectId: 1,
+    projectId: project.id,
+    versionedTemplateId: template.id,
     created: '2023-01-01',
     createdById: 1,
     modified: '2023-01-02',
@@ -242,7 +252,8 @@ describe('commonStandardService', () => {
     });
 
     // Return the Template and Project information 1st
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockProjectTemplateResult);
+    jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
+    jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
     // Return the Contributor information 3rd
     jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
@@ -256,7 +267,7 @@ describe('commonStandardService', () => {
 
     const result = await planToDMPCommonStandard(context, 'reference', plan);
 
-    expect(result.dmp_id).toEqual({ identifier: 'https://localhost:3000/plan/1', type: 'url' });
+    expect(result.dmp_id).toEqual({ identifier: 'https://localhost:3000/project/1/new', type: 'url' });
   });
 
   it('planToDMPCommonStandard - handles plan with no primary contact', async () => {
@@ -273,7 +284,8 @@ describe('commonStandardService', () => {
     });
 
     // Return the Template and Project information 1st
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockProjectTemplateResult);
+    jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
+    jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
     // Return the Contributor information 3rd
     jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
@@ -307,10 +319,11 @@ describe('commonStandardService', () => {
 
   it('planToDMPCommonStandard - minimal DMP', async () => {
     // Return the Template and Project information 1st
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([{
-      title: 'Project title',
-      name: 'Template name'
-    }]);
+    jest.spyOn(Project, 'findById').mockResolvedValueOnce(new Project({
+      id: 1,
+      title: 'Project title'
+    }));
+    jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
     // Return the Contributor information 3rd
     jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
@@ -377,7 +390,8 @@ describe('commonStandardService', () => {
 
   it('planToDMPCommonStandard - complete DMP', async () => {
     // Return the Template and Project information 1st
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockProjectTemplateResult);
+    jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
+    jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
     // Return the Contributor information 3rd
     jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockContributorResult);
     // Return the Funder information 2nd

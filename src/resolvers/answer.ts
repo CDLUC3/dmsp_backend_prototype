@@ -76,6 +76,9 @@ export const resolvers: Resolvers = {
             // First create a version snapshot (before making changes)
             const newVersion = createPlanVersion(context, plan, reference);
             if (newVersion) {
+
+              // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+
               const newAnswer = await answer.create(context);
               if (newAnswer) {
                 // asyncronously send the plan to the DMPHub so that it stores it and assigns a DMP ID
@@ -119,6 +122,9 @@ export const resolvers: Resolvers = {
             const newVersion = createPlanVersion(context, plan, reference);
             if (newVersion) {
               answer.answerText = answerText;
+
+              // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+
               const updatedAnswer = await answer.update(context);
 
               if (updatedAnswer) {

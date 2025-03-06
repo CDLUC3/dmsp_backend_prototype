@@ -58,6 +58,9 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, input.projectId);
           if (project && hasPermissionOnProject(context, project)) {
             const relatedWork = new RelatedWork(input);
+
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+
             return await relatedWork.create(context);
           }
         }
@@ -83,6 +86,9 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, relatedWork.projectId);
           if (project && hasPermissionOnProject(context, project)) {
             const toUpdate = new RelatedWork({ ...relatedWork, ...input });
+
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+
             return await toUpdate.update(context);
           }
         }
@@ -107,6 +113,9 @@ export const resolvers: Resolvers = {
 
           const project = await Project.findById(reference, context, relatedWork.projectId);
           if (project && hasPermissionOnProject(context, project)) {
+
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+
             return await relatedWork.delete(context);
           }
         }

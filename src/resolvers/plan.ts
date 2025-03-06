@@ -10,8 +10,8 @@ import { PlanContributor } from "../models/Contributor";
 import { PlanFunder } from "../models/Funder";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
-import { createPlanVersion, syncWithDMPHub } from "../services/planService";
-import { getCurrentDate } from "../utils/helpers";
+import { createPlanVersion } from "../services/planService";
+import { getCurrentDate, randomHex } from "../utils/helpers";
 import { Answer } from "../models/Answer";
 
 export const resolvers: Resolvers = {
@@ -76,12 +76,16 @@ export const resolvers: Resolvers = {
 
           if (await hasPermissionOnProject(context, project)) {
             const plan = new Plan({ projectId, versionedTemplateId });
+            // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
+            //
             // Send the plan to the DMPHub so that it stores it and assigns a DMP ID
-            const dmp = await syncWithDMPHub(context, plan, reference);
-            formatLogMessage(context).debug({ dmp }, `DMP from the DMPHub API: for plan: ${plan.id}`);
+            // const dmp = await syncWithDMPHub(context, plan, reference);
+            // formatLogMessage(context).debug({ dmp }, `DMP from the DMPHub API: for plan: ${plan.id}`);
 
             // Record the DMP ID that was assigned by the DMPHub
-            plan.dmpId = dmp?.dmp_id?.identifier;
+            // plan.dmpId = dmp?.dmp_id?.identifier;
+            plan.dmpId = randomHex(16);
+
             const newPlan = await plan.create(context);
             if (newPlan) {
               return new Plan(newPlan);
@@ -117,8 +121,10 @@ export const resolvers: Resolvers = {
               const deletedPlan = await plan.delete(context);
 
               if (deletedPlan) {
+                // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
+                //
                 // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                syncWithDMPHub(context, plan, reference);
+                // syncWithDMPHub(context, plan, reference);
 
                 return deletedPlan;
               }
@@ -192,8 +198,10 @@ export const resolvers: Resolvers = {
 
                 const publishedPlan = await plan.update(context);
                 if (publishedPlan) {
+                  // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
+                  //
                   // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                  syncWithDMPHub(context, plan, reference);
+                  // syncWithDMPHub(context, plan, reference);
 
                   return publishedPlan;
                 }
@@ -234,8 +242,10 @@ export const resolvers: Resolvers = {
 
                 const updatedPlan = await plan.update(context);
                 if (updatedPlan) {
+                  // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
+                  //
                   // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                  syncWithDMPHub(context, plan, reference);
+                  // syncWithDMPHub(context, plan, reference);
 
                   return updatedPlan;
                 }
@@ -275,8 +285,10 @@ export const resolvers: Resolvers = {
 
                 const updatedPlan = await plan.update(context);
                 if (updatedPlan) {
+                  // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
+                  //
                   // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                  syncWithDMPHub(context, plan, reference);
+                  // syncWithDMPHub(context, plan, reference);
 
                   return updatedPlan;
                 }

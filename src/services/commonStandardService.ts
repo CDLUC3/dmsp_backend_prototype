@@ -21,8 +21,10 @@ import { ContributorRole } from "../models/ContributorRole";
 import { ProjectFunderStatus } from "../models/Funder";
 import { defaultLanguageId } from "../models/Language";
 import { Plan, PlanVisibility } from "../models/Plan"
+import { Project } from "../models/Project";
 import { RelatedWork } from "../models/RelatedWork";
 import { ORCID_REGEX, User } from "../models/User";
+import { VersionedTemplate } from "../models/VersionedTemplate";
 import { valueIsEmpty } from "../utils/helpers";
 
 // Represents the the RDA Common Metadata standard version of a plan/DMP. When communicating with external
@@ -47,17 +49,18 @@ export async function planToDMPCommonStandard(
   plan: Plan
 ): Promise<DMPCommonStandard | null> {
   // Get all of the Template and Project data needed to build the DMP Common Standard
-  const project = await loadProjectAndTemplateInfo(context, reference, plan.id);
+  const project = await loadProjectAndTemplateInfo(context, reference, plan.projectId, plan.versionedTemplateId);
   if (!project || !project.title) {
     return null;
   }
 
   // Get all of the contributors and the primary contact
-  const contributors = await loadContributorInfo(context, reference, plan.id);
+  const contributors = plan.id ? await loadContributorInfo(context, reference, plan.id) : [];
   // Extract the primary contact from the contributors
   let contact = contributors.find((c) => c.isPrimaryContact);
   // If no primary contact is available, use the plan owner
-  contact = contact ? contact : await loadContactFromPlanOwner(context, reference, plan.createdById);
+  const ownerId = plan.createdById ? plan.createdById : context.token?.id;
+  contact = contact ? contact : await loadContactFromPlanOwner(context, reference, ownerId);
   if (!contact) {
     return null;
   }
@@ -79,10 +82,10 @@ export async function planToDMPCommonStandard(
   }
 
   // Get all of the funders and narrative info
-  const fundings = await loadFunderInfo(context, reference, plan.id);
-  const narrative = await loadNarrativeTemplateInfo(context, reference, plan.id);
+  const fundings = plan.id ? await loadFunderInfo(context, reference, plan.id) : [];
+  const narrative = plan.id ? await loadNarrativeTemplateInfo(context, reference, plan.id) : [];
   const works = await RelatedWork.findByProjectId(reference, context, plan.projectId);
-  const defaultRole = await ContributorRole.defaultRole();
+  const defaultRole = await ContributorRole.defaultRole(context, reference);
 
   // Build the DMP with all the required properties (and any that we have defaults for)
   const commonStandard: DMPCommonStandard = {
@@ -108,7 +111,7 @@ export async function planToDMPCommonStandard(
 
     // Use the plan's DMP ID or the URL to the plan as the identifier if it is a new DMP
     dmp_id: {
-      identifier: plan.dmpId ?? `https://${generalConfig.domain}/plan/${plan.id}`,
+      identifier: plan.dmpId ?? `https://${generalConfig.domain}/project/${plan.projectId}/new`,
       type: plan.dmpId ? DMPIdentifierType.DOI : DMPIdentifierType.URL,
     },
 
@@ -223,13 +226,13 @@ const planNarrativeToDMPCommonStandard = (narrative): DMPCommonStandardNarrative
     template_title: narrative.templateTitle,
     template_version: narrative.templateVersion,
 
-    sections: narrative.sections.map((section) => ({
+    sections: Array.isArray(narrative.sections) ? narrative.sections.map((section) => ({
       section_id: section.sectionId,
       section_title: section.sectionTitle,
       section_description: section.sectionDescription,
       section_order: section.sectionOrder,
 
-      questions: section.questions.map((question) => ({
+      questions: Array.isArray(section.questions) ? section.questions.map((question) => ({
         question_id: question.questionId,
         question_text: question.questionText,
         question_order: question.questionOrder,
@@ -241,8 +244,8 @@ const planNarrativeToDMPCommonStandard = (narrative): DMPCommonStandardNarrative
 
         answer_id: question.answerId,
         answer_text: question.answerText,
-      })),
-    })),
+      })) : [],
+    })) : [],
   };
 }
 
@@ -359,15 +362,18 @@ interface LoadNarrativeQuestionResult {
 const loadProjectAndTemplateInfo = async (
   context: MyContext,
   reference: string,
-  planId: number
+  projectId: number,
+  versionedTemplateId: number
 ): Promise<LoadProjectResult> => {
-  const sql = 'SELECT pr.title, pr.abstractText, pr.startDate, pr.EndDate, t.name ' +
-                      'FROM plans p ' +
-                        'INNER JOIN projects pr ON p.projectId = pr.id ' +
-                        'INNER JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id ' +
-                      'WHERE p.id = ?';
-  const results = await Plan.query(context, sql, [planId.toString()], reference);
-  return Array.isArray(results) && results.length > 0 ? results[0] : null;
+  const project = await Project.findById(reference, context, projectId);
+  const template = await VersionedTemplate.findById(reference, context, versionedTemplateId);
+  return {
+    title: project.title,
+    abstractText: project.abstractText,
+    startDate: project.startDate,
+    endDate: project.endDate,
+    name: template.name,
+  }
 }
 
 // Fetch the funder info needed to construct the DMP Common Standard

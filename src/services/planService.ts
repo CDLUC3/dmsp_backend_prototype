@@ -29,6 +29,8 @@ export const syncWithDMPHub = async (
   // Convert the plan to the DMP Common Standard
   const commonStandard = await planToDMPCommonStandard(context, reference, plan);
 
+  // TODO: Determine the grace period before syncing. We don't want to sync ever time a tiny change is made
+
   const dmphubAPI = context.dataSources.dmphubAPIDataSource;
   let dmp;
 
