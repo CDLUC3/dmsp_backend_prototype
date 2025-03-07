@@ -23,7 +23,7 @@ CREATE TABLE `planContributors` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `planId` INT NOT NULL,
   `projectContributorId` INT NOT NULL,
-  `roles` JSON NOT NULL DEFAULT '[]',
+  `roles` JSON NOT NULL,
   `createdById` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
