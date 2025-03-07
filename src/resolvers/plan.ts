@@ -342,6 +342,12 @@ export const resolvers: Resolvers = {
       }
       return [];
     },
+    sections: async (parent: Plan, _, context: MyContext): Promise<PlanSectionProgress[]> => {
+      if (parent?.id) {
+        return await PlanSectionProgress.findByPlanId('plan sections resolver', context, parent.id);
+      }
+      return [];
+    }
   },
 
   PlanSearchResult: {
@@ -351,5 +357,5 @@ export const resolvers: Resolvers = {
       }
       return [];
     }
-  }
+  },
 }
