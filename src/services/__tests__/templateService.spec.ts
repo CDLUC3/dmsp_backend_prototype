@@ -131,7 +131,7 @@ describe('cloneTemplate', () => {
     expect(copy.ownerId).toEqual(newOwnerId);
     expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
     expect(copy.latestPublishVersion).toBeFalsy();
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.description).toEqual(description);
     expect(copy.created).toBeTruthy();
     expect(copy.createdById).toEqual(clonedById)
@@ -160,7 +160,7 @@ describe('cloneTemplate', () => {
     expect(copy.ownerId).toEqual(newOwnerId);
     expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
     expect(copy.latestPublishVersion).toBeFalsy();
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.createdById).toEqual(clonedById);
     expect(copy.description).toEqual(description);
     expect(copy.created).toBeTruthy();
@@ -293,14 +293,14 @@ describe('template versioning', () => {
   it('does not version if the TemplateVersion could not be created', async () => {
     const tmplt = templateStore[0];
     const versioned = new VersionedTemplate({ templateId: tmplt.id });
-    versioned.errors = ['Test failure'];
+    versioned.errors = { general: 'Test failure' };
 
     (context.dataSources.sqlDataSource.query as jest.Mock).mockResolvedValueOnce(null);
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
     const mockFindByFailure = jest.fn().mockImplementation(() => { return versioned; });
     (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindByFailure;
 
-    const err = `Unable to generateTemplateVersion for versionedTemplate errs: Test failure`;
+    const err = `Unable to generate a new version of template ${tmplt.id}`;
     expect(async () => {
       await generateTemplateVersion(context, tmplt, [], context.token.id)
     }).rejects.toThrow(Error(err));
@@ -309,7 +309,7 @@ describe('template versioning', () => {
   it('does not version if the Template could not be updated', async () => {
     const tmplt = templateStore[0];
     const updated = new Template({ id: tmplt.id });
-    updated.errors = ['Test failure'];
+    updated.errors = { general: 'Test failure' };
 
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
     (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindVersionedTemplatebyId;
@@ -317,7 +317,7 @@ describe('template versioning', () => {
     (Template.update as jest.Mock) = mockUpdate;
     (Template.findById as jest.Mock) = mockUpdateFailure;
 
-    const err = `Unable to generateTemplateVersion for template: ${tmplt.id}, errs: Test failure`;
+    const err = `Unable to update template: ${tmplt.id}`;
     expect(async () => {
       await generateTemplateVersion(context, tmplt, [], context.token.id)
     }).rejects.toThrow(Error(err));
@@ -327,8 +327,7 @@ describe('template versioning', () => {
     const tmplt = new Template(templateStore[0]);
     const comment = casual.sentences(3);
     const visibility = TemplateVisibility.PRIVATE;
-    const versionType = getRandomEnumValue(TemplateVersionType);
-
+    const versionType = TemplateVersionType.PUBLISHED;
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
     (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindVersionedTemplatebyId;
     (Template.update as jest.Mock) = mockUpdate;
@@ -391,7 +390,7 @@ describe('template versioning', () => {
     });
     versionedTemplateStore.push(oldVersion);
     const comment = casual.sentences(3);
-    const versionType = getRandomEnumValue(TemplateVersionType);
+    const versionType = TemplateVersionType.DRAFT;
     const visibility = TemplateVisibility.PUBLIC;
 
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
@@ -434,6 +433,6 @@ describe('template versioning', () => {
     expect(updated.modifiedById).toEqual(tmplt.modifiedById);
     expect(updated.modified).toEqual(tmplt.modified);
     expect(updated.latestPublishVersion).toEqual(newVersion.version);
-    expect(updated.isDirty).toEqual(false);
+    expect(updated.isDirty).toEqual(true);
   });
 });

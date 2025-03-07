@@ -1,17 +1,19 @@
 import casual from 'casual';
-import { DMSP_BASE_URL, validateDmspId } from './resolvers/scalars/dmspId';
+import { validateDmspId } from './resolvers/scalars/dmspId';
 import { validateOrcid } from './resolvers/scalars/orcid';
-import { ROR_DOMAIN, validateRor } from './resolvers/scalars/ror';
+import { validateRor } from './resolvers/scalars/ror';
+import { generalConfig } from './config/generalConfig';
 
 // Mock resolvers for our custom Scalars
 function mockOrcid() {
   return validateOrcid(casual.card_number().toString().match(/[0-9]{4}/g).join('-'));
 }
 function mockRor() {
-  return validateRor(`${ROR_DOMAIN}${casual.rgb_hex.replace('#', '')}`);
+  return validateRor(`${generalConfig.rorBaseURL}${casual.rgb_hex.replace('#', '')}`);
 }
 function mockDmspId() {
-  return validateDmspId(`${DMSP_BASE_URL}${casual.rgb_hex.replace('#', '').toUpperCase()}`);
+  const dmpBase = `${generalConfig.dmpIdBaseURL}${generalConfig.dmpIdShoulder}`;
+  return validateDmspId(`${dmpBase}${casual.rgb_hex.replace('#', '').toUpperCase()}`);
 }
 
 const scalarMocks = {

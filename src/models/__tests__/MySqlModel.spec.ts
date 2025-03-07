@@ -71,8 +71,8 @@ describe('MySqlModel abstract class', () => {
 
     model.modified = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
-    expect(model.errors.length).toBe(1);
-    expect(model.errors[0].includes('Modified date')).toBe(true);
+    expect(Object.keys(model.errors).length).toBe(1);
+    expect(model.errors['modified'].includes('Modified date')).toBe(true);
   });
 
   it('isValid should return false when the created date is not a Date', async () => {
@@ -82,8 +82,8 @@ describe('MySqlModel abstract class', () => {
 
     model.created = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
-    expect(model.errors.length).toBe(1);
-    expect(model.errors[0].includes('Created date')).toBe(true);
+    expect(Object.keys(model.errors).length).toBe(1);
+    expect(model.errors['created'].includes('Created date')).toBe(true);
   });
 
   it('isValid should return false when the createdById is null', async () => {
@@ -93,8 +93,8 @@ describe('MySqlModel abstract class', () => {
 
     model.createdById = null;
     expect(await model.isValid()).toBe(false);
-    expect(model.errors.length).toBe(1);
-    expect(model.errors[0].includes('Created by')).toBe(true);
+    expect(Object.keys(model.errors).length).toBe(1);
+    expect(model.errors['createdById'].includes('Created by')).toBe(true);
   });
 
   it('isValid should return false when the modifiedById is null', async () => {
@@ -104,8 +104,8 @@ describe('MySqlModel abstract class', () => {
 
     model.modifiedById = null;
     expect(await model.isValid()).toBe(false);
-    expect(model.errors.length).toBe(1);
-    expect(model.errors[0].includes('Modified by')).toBe(true);
+    expect(Object.keys(model.errors).length).toBe(1);
+    expect(model.errors['modifiedById'].includes('Modified by')).toBe(true);
   });
 
   it('isValid should return true when the id is null', async () => {
@@ -190,16 +190,12 @@ describe('propertyInfo', () => {
 
 describe('query function', () => {
   let mockQuery;
-  let mockDebug;
-  let mockError;
   let context;
 
   beforeEach(() => {
     jest.resetAllMocks();
 
     context = buildContext(logger, mockToken());
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
 
     mockQuery = jest.fn();
     const dataSource = context.dataSources.sqlDataSource;
@@ -214,8 +210,8 @@ describe('query function', () => {
     mockQuery.mockResolvedValueOnce(['test']);
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql, ['1'], 'Testing');
-    expect(mockDebug).toHaveBeenCalledTimes(1);
-    expect(mockDebug).toHaveBeenCalledWith(`Testing, sql: ${sql}, vals: 1`);
+    expect(context.logger.debug).toHaveBeenCalledTimes(1);
+    expect(context.logger.debug).toHaveBeenCalledWith(`Testing, sql: ${sql}, vals: 1`);
     expect(result).toEqual(['test']);
   });
 
@@ -223,21 +219,22 @@ describe('query function', () => {
     mockQuery.mockResolvedValueOnce([]);
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql,);
-    expect(mockDebug).toHaveBeenCalledTimes(1);
-    expect(mockDebug).toHaveBeenCalledWith(`undefined caller, sql: ${sql}, vals: `);
+    expect(context.logger.debug).toHaveBeenCalledTimes(1);
+    expect(context.logger.debug).toHaveBeenCalledWith(`undefined caller, sql: ${sql}, vals: `);
     expect(result).toEqual([]);
   });
 
   it('query returns an empty array if an error occurs and logs the error', async () => {
-    mockQuery.mockImplementation(() => {
-      throw new Error('Testing error handler');
-    });
+    const mockError = new Error('Testing error handler');
+    mockQuery.mockImplementation(() => { throw mockError });
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql, ['123'], 'testing failure');
-    expect(mockDebug).toHaveBeenCalledTimes(1);
-    expect(mockError).toHaveBeenCalledTimes(1);
-    expect(mockDebug).toHaveBeenCalledWith(`testing failure, sql: ${sql}, vals: 123`);
-    expect(mockError).toHaveBeenCalledWith(`testing failure, ERROR: Testing error handler`);
+    expect(context.logger.debug).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
+    expect(context.logger.debug).toHaveBeenCalledWith(`testing failure, sql: ${sql}, vals: 123`);
+    expect(context.logger.error).toHaveBeenCalledWith(
+      mockError, "testing failure, ERROR: Testing error handler"
+    );
     expect(result).toEqual([]);
   });
 
@@ -248,8 +245,8 @@ describe('query function', () => {
     const sql = 'SELECT * FROM tests WHERE field = ?';
     context.dataSources = null;
     const result = await MySqlModel.query(context, sql, ['123'], 'testing failure');
-    expect(mockError).toHaveBeenCalledTimes(1);
-    expect(mockError).toHaveBeenCalledWith(`testing failure, ERROR: apolloContext and sqlStatement are required.`);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledWith(`testing failure, ERROR: apolloContext and sqlStatement are required.`);
     expect(result).toEqual([]);
   });
 });
@@ -432,5 +429,32 @@ describe('delete function', () => {
     const result = await MySqlModel.delete(context, table, deleteId, 'Testing');
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual(true);
+  });
+});
+
+describe('reconcileAssociationIds', () => {
+  it('Works when both arrays are empty', () => {
+    const expected = { idsToBeRemoved: [], idsToBeSaved: [] };
+    expect(MySqlModel.reconcileAssociationIds([], [])).toEqual(expected);
+  });
+
+  it('Works when the arrays are the same', () => {
+    const expected = { idsToBeRemoved: [], idsToBeSaved: [] };
+    expect(MySqlModel.reconcileAssociationIds([1, 2, 3], [1, 2, 3])).toEqual(expected);
+  });
+
+  it('Works when we need to remove all ids', () => {
+    const expected = { idsToBeRemoved: [1, 2, 3], idsToBeSaved: [] };
+    expect(MySqlModel.reconcileAssociationIds([1, 2, 3], [])).toEqual(expected);
+  });
+
+  it('Works when we need to add all ids', () => {
+    const expected = { idsToBeRemoved: [], idsToBeSaved: [1, 2, 3] };
+    expect(MySqlModel.reconcileAssociationIds([], [1, 2, 3])).toEqual(expected);
+  });
+
+  it('Works when we need to remove some ids and add others', () => {
+    const expected = { idsToBeRemoved: [4, 8], idsToBeSaved: [1, 5, 7] };
+    expect(MySqlModel.reconcileAssociationIds([2, 4, 6, 8], [1, 2, 5, 6, 7])).toEqual(expected);
   });
 });

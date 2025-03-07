@@ -29,7 +29,7 @@ export class VersionedTemplate extends MySqlModel {
   private tableName = 'versionedTemplates';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
     this.version = options.version;
@@ -39,35 +39,26 @@ export class VersionedTemplate extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
 
-    this.versionType = options.versionType || TemplateVersionType.DRAFT;
-    this.comment = options.comment || '';
-    this.active = options.active || false;
+    this.versionType = options.versionType ?? TemplateVersionType.DRAFT;
+    this.comment = options.comment ?? '';
+    this.active = options.active ?? false;
 
-    this.visibility = options.visibility || TemplateVisibility.PRIVATE;
-    this.bestPractice = options.bestPractice || false;
-    this.languageId = options.languageId || defaultLanguageId;
+    this.visibility = options.visibility ?? TemplateVisibility.PRIVATE;
+    this.bestPractice = options.bestPractice ?? false;
+    this.languageId = options.languageId ?? defaultLanguageId;
   }
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.templateId) {
-      this.errors.push('Template can\'t be blank');
-    }
-    if (!this.ownerId) {
-      this.errors.push('Owner can\'t be blank');
-    }
-    if (!this.versionedById) {
-      this.errors.push('Versioned by can\'t be blank');
-    }
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    if (!this.version) {
-      this.errors.push('Version can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.templateId) this.addError('templateId', 'Template can\'t be blank');
+    if (!this.ownerId) this.addError('ownerId', 'Owner can\'t be blank');
+    if (!this.versionedById) this.addError('versionedById', 'Versioned by can\'t be blank');
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!this.version) this.addError('version', 'Version can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Save the current record
@@ -79,7 +70,7 @@ export class VersionedTemplate extends MySqlModel {
       return await VersionedTemplate.findVersionedTemplateById('VersionedTemplate.create', context, newId);
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new VersionedTemplate(this);
   }
 
   // Save the changes made to the VersionedTemplate
@@ -91,15 +82,23 @@ export class VersionedTemplate extends MySqlModel {
         return result as VersionedTemplate;
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('VersionedTemplate has never been saved');
+      this.addError('general', 'VersionedTemplate has never been saved');
     }
-    return this;
+    return new VersionedTemplate(this);
+  }
+
+  // Fetch the Versioned template by its id
+  static async findById(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedTemplate> {
+    const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+    const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : null;
   }
 
   // Return all of the versions for the specified Template
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<VersionedTemplate[]> {
     const sql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
-    return await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
+    const results = await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new VersionedTemplate(entry)) : [];
   }
 
   // Search all of the Published versions for the specified term
@@ -107,8 +106,12 @@ export class VersionedTemplate extends MySqlModel {
     const sql = `SELECT * FROM versionedTemplates \
                  WHERE name LIKE ? AND active = 1 AND versionType = ? \
                  ORDER BY name ASC`;
-    const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
-    return await VersionedTemplate.query(context, sql, vals, reference);
+    const searchTerm = (term ?? '');
+    const vals = [`%${searchTerm}%`, TemplateVersionType.PUBLISHED];
+
+    const results = await VersionedTemplate.query(context, sql, vals, reference);
+    // These are just search results so no need to instantiate the objects
+    return Array.isArray(results) ? results : [];
   }
 
   // Return the specified version
@@ -118,7 +121,15 @@ export class VersionedTemplate extends MySqlModel {
     versionedTemplateId: number
   ): Promise<VersionedTemplate> {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
-    const results = await VersionedTemplate.query(context, sql, [versionedTemplateId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : null;
+  }
+
+  // Find all of the templates associated with the context's User's affiliation
+  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<VersionedTemplate[]> {
+    const sql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
+    const results = await VersionedTemplate.query(context, sql, [affiliationId], reference);
+    // No need to instantiate the objects here
+    return Array.isArray(results) ? results : [];
   }
 }

@@ -1,5 +1,4 @@
 import { MyContext } from "../context";
-import { TemplateCollaborator } from "./Collaborator";
 import { defaultLanguageId, supportedLanguages } from "./Language";
 import { MySqlModel } from "./MySqlModel";
 
@@ -24,38 +23,38 @@ export class Template extends MySqlModel {
   private tableName = 'templates';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.name = options.name;
     this.ownerId = options.ownerId;
     this.description = options.description;
     this.sourceTemplateId = options.sourceTemplateId
-    this.visibility = options.visibility || TemplateVisibility.PRIVATE;
-    this.latestPublishVersion = options.latestPublishVersion || '';
-    this.latestPublishDate = options.latestPublishDate || null;
-    this.isDirty = options.isDirty || true;
-    this.bestPractice = options.bestPractice || false;
-    this.languageId = options.languageId || defaultLanguageId;
+    this.visibility = options.visibility ?? TemplateVisibility.PRIVATE;
+    this.latestPublishVersion = options.latestPublishVersion ?? '';
+    this.latestPublishDate = options.latestPublishDate ?? null;
+    this.isDirty = options.isDirty ?? true;
+    this.bestPractice = options.bestPractice ?? false;
+    this.languageId = options.languageId ?? defaultLanguageId;
   }
 
   // Ensure data integrity
-  cleanup() {
+  prepForSave() {
     if (!supportedLanguages.map((l) => l.id).includes(this.languageId)) {
       this.languageId = defaultLanguageId;
     }
+    // Remove leading/trailing blank spaces
+    this.name = this.name?.trim();
+    this.description = this.description?.trim();
   }
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (this.ownerId === null) {
-      this.errors.push('Owner can\'t be blank');
-    }
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (this.ownerId === null) this.addError('ownerId', 'Owner can\'t be blank');
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Save the current record
@@ -70,16 +69,16 @@ export class Template extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Template with this name already exists');
+        this.addError('general', 'Template with this name already exists');
       } else {
-        this.cleanup();
+        this.prepForSave();
         // Save the record and then fetch it
         const newId = await Template.insert(context, this.tableName, this, 'Template.create');
         return await Template.findById('Template.create', context, newId);
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new Template(this);
   }
 
   // Save the changes made to the template
@@ -110,28 +109,29 @@ export class Template extends MySqlModel {
         return await Template.findById('Template.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Template has never been saved');
+      this.addError('general', 'Template has never been saved');
     }
-    return this;
+    return new Template(this);
   }
 
   // Archive this record
-  async delete(context: MyContext): Promise<boolean> {
+  async delete(context: MyContext): Promise<Template> {
     if (this.id) {
+      const original = await Template.findById('Template.delete', context, this.id);
       // Associated TemplateCollaborators and VersionedTemplates will be deletd automatically by MySQL
       const result = await Template.delete(context, this.tableName, this.id, 'Template.delete');
       if (result) {
-        return true;
+        return original;
       }
     }
-    return false;
+    return null;
   }
 
   // Return the specified Template
   static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE id = ?';
-    const results = await Template.query(context, sql, [templateId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    const results = await Template.query(context, sql, [templateId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new Template(results[0]) : null;
   }
 
   // Look for the template by it's name and owner
@@ -141,22 +141,33 @@ export class Template extends MySqlModel {
     name: string
   ): Promise<Template> {
     const sql = 'SELECT * FROM templates WHERE LOWER(name) = ? AND ownerId = ?';
-    const vals = [name.toLowerCase(), context.token?.affiliationId];
+    const searchTerm = (name ?? '');
+    const vals = [searchTerm?.toLowerCase()?.trim(), context.token?.affiliationId];
     const results = await Template.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new Template(results[0]) : null;
   }
 
-  // Find all of the templates associated with the context's User's affiliation
-  static async findByUser(reference: string, context: MyContext): Promise<Template[]> {
+  // Find all of the templates associated with the Affiliation
+  static async findByAffiliationId(
+    reference: string,
+    context: MyContext,
+    affiliationId: string
+  ): Promise<Template[]> {
     const sql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
-    const templates = await Template.query(context, sql, [context.token?.affiliationId], reference);
-
-    // Also look for any templates that the current user has been invited to collaborate on
-    const sharedTemplates = await TemplateCollaborator.findByEmail(
-      'Template.findByUser',
-      context,
-      context.token?.email
-    );
-    return [...templates, ...sharedTemplates];
+    const results = await Template.query(context, sql, [affiliationId], reference);
+    return Array.isArray(results) ? results.map((item) => new Template(item)) : [];
   }
+
+  // Template needs to be updated to isDirty=true if changes were made to its sections or questions
+  static async markTemplateAsDirty(
+    reference: string,
+    context: MyContext,
+    templateId: number
+  ): Promise<void> {
+    const template = await Template.findById(reference, context, templateId);
+    if (template) {
+      template.isDirty = true;
+      await template.update(context);
+    }
+  };
 }

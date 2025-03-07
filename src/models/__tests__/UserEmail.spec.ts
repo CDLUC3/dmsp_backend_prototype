@@ -87,15 +87,15 @@ describe('validate a new UserEmail', () => {
   it('should return false when the email is missing', async () => {
     mockUserEmail.email = null;
     expect(await mockUserEmail.isValid()).toBe(false);
-    expect(mockUserEmail.errors.length).toBe(1);
-    expect(mockUserEmail.errors[0].includes('Enter valid email')).toBe(true);
+    expect(Object.keys(mockUserEmail.errors).length).toBe(1);
+    expect(mockUserEmail.errors['email']).toEqual('Invalid email address');
   });
 
   it('should return false when the userId is missing', async () => {
     mockUserEmail.userId = null;
     expect(await mockUserEmail.isValid()).toBe(false);
-    expect(mockUserEmail.errors.length).toBe(1);
-    expect(mockUserEmail.errors[0].includes('User can\'t be blank')).toBe(true);
+    expect(Object.keys(mockUserEmail.errors).length).toBe(1);
+    expect(mockUserEmail.errors['userId']).toEqual('User can\'t be blank');
   });
 });
 
@@ -202,9 +202,13 @@ describe('confirmEmail', () => {
   let mockFindUserEmailByEmail;
   let mockUpdate;
   let mockFindTemplateCollaboratorByEmail;
+  let mockFindTemplateCollaboratorById;
+  let mockUpdateTemplateCollaborator;
   let mockDelete;
 
   beforeEach(() => {
+    context = buildContext(logger);
+
     mockUserEmail = new UserEmail({ id: casual.integer(1, 99), email: mockUser.email, userId: mockUser.id });
 
     mockOtherEmails = [
@@ -229,6 +233,12 @@ describe('confirmEmail', () => {
     mockFindTemplateCollaboratorByEmail = jest.fn();
     (TemplateCollaborator.findByEmail as jest.Mock) = mockFindTemplateCollaboratorByEmail;
 
+    mockFindTemplateCollaboratorById = jest.fn();
+    (TemplateCollaborator.findById as jest.Mock) = mockFindTemplateCollaboratorById;
+
+    mockUpdateTemplateCollaborator = jest.fn();
+    (TemplateCollaborator.update as jest.Mock) = mockUpdateTemplateCollaborator;
+
     mockUpdate = jest.fn();
     (UserEmail.update as jest.Mock) = mockUpdate;
     (TemplateCollaborator.update as jest.Mock) = mockUpdate;
@@ -249,7 +259,7 @@ describe('confirmEmail', () => {
     mockFindUserEmailByEmail.mockResolvedValue(mockOtherEmails);
     const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
     expect(result).toEqual(mockUserEmail);
-    expect(result.errors.includes('Email has already been confirmed')).toBe(true);
+    expect(result.errors['email']).toEqual('Email has already been confirmed by another account');
   });
 
   it('returns the confirmed UserEmail if successful', async () => {
@@ -262,7 +272,7 @@ describe('confirmEmail', () => {
 
     const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
     expect(result).toEqual(confirmedEmail);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
   });
 
@@ -273,10 +283,12 @@ describe('confirmEmail', () => {
     confirmedEmail.isConfirmed = true;
     mockFindUserEmailById.mockResolvedValue(confirmedEmail);
     mockFindTemplateCollaboratorByEmail.mockResolvedValue(mockTemplateCollaborators);
+    mockFindTemplateCollaboratorById.mockResolvedValue(mockTemplateCollaborators[0]);
+    mockUpdateTemplateCollaborator.mockResolvedValue(mockTemplateCollaborators[0]);
 
     const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
     expect(result).toEqual(confirmedEmail);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(mockUpdate).toHaveBeenCalledTimes(3);
   });
 
@@ -290,7 +302,7 @@ describe('confirmEmail', () => {
 
     const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
     expect(result).toEqual(confirmedEmail);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockDelete).toHaveBeenCalledTimes(2);
   });
@@ -305,6 +317,8 @@ describe('create', () => {
   let mockInsert;
 
   beforeEach(() => {
+    jest.resetAllMocks();
+
     mockUserEmail = new UserEmail({
       email: casual.email,
       userId: casual.integer(1, 999),
@@ -331,7 +345,8 @@ describe('create', () => {
   it('returns the UserEmail with errors if it is not valid', async () => {
     mockValid.mockResolvedValueOnce(false);
 
-    expect(await mockUserEmail.create(context)).toBe(mockUserEmail);
+    const result = await mockUserEmail.create(context);
+    expect(result.errors).toEqual({});
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockInsert).not.toHaveBeenCalled();
   });
@@ -344,8 +359,8 @@ describe('create', () => {
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockFindByEmail).toHaveBeenCalledTimes(1);
     expect(mockInsert).not.toHaveBeenCalled();
-    expect(result.errors.length > 0).toBe(true);
-    expect(result.errors[0]).toEqual('Email is already associated with this account');
+    expect(Object.keys(result.errors).length > 0).toBe(true);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the UserEmail with an error if the record belongs to another user', async () => {
@@ -362,8 +377,8 @@ describe('create', () => {
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockFindByEmail).toHaveBeenCalledTimes(1);
     expect(mockInsert).not.toHaveBeenCalled();
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Email has already been confirmed by another account');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added UserEmail', async () => {
@@ -375,7 +390,8 @@ describe('create', () => {
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockFindByEmail).toHaveBeenCalledTimes(1);
     expect(mockInsert).toHaveBeenCalled();
-    expect(result.errors.length).toBe(0);
+    expect(result).toBeInstanceOf(UserEmail);
+    expect(Object.keys(result.errors).length).toBe(0);
   });
 });
 
@@ -408,7 +424,7 @@ describe('update', () => {
   it('returns an error if the UserEmail has never been created', async () => {
     mockUserEmail.id = null;
     const result = await mockUserEmail.update(context);
-    expect(result.errors.includes('Email has not been created yet')).toBe(true);
+    expect(result.errors['general']).toBeTruthy();
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
@@ -428,7 +444,7 @@ describe('update', () => {
     const result = await mockUserEmail.update(context);
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(result.errors.includes('Email has not yet been confirmed')).toBe(true);
+    expect(result.errors['general']).toBeTruthy();
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
@@ -439,7 +455,8 @@ describe('update', () => {
     const result = await mockUserEmail.update(context);
     expect(mockValid).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(2);
-    expect(result.errors.length).toBe(0);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(UserEmail);
     expect(mockUpdate).toHaveBeenCalled();
   });
 });
@@ -466,10 +483,10 @@ describe('delete', () => {
     (UserEmail.delete as jest.Mock) = mockDelete;
   });
 
-  it('returns the UserEmail with errors if it has not been saved', async () => {
+  it('returns the UserEmail with errors if it has not been deleted', async () => {
     mockUserEmail.id = null;
     const result = await mockUserEmail.delete(context);
-    expect(result.errors.includes('Email has not been created yet')).toBe(true);
+    expect(result.errors['general']).toBeTruthy();
     expect(mockDelete).not.toHaveBeenCalled();
   });
 

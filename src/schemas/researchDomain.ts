@@ -2,8 +2,10 @@ import gql from 'graphql-tag';
 
 export const typeDefs = gql`
   extend type Query {
-    "Get all the QuestionTypes"
-    researchDomains: [ResearchDomain]
+    "Get all of the top level research domains (the most generic ones)"
+    topLevelResearchDomains: [ResearchDomain]
+    "Get all of the research domains related to the specified top level domain (more nuanced ones)"
+    childResearchDomains(parentResearchDomainId: Int!): [ResearchDomain]
   }
 
   "An aread of research (e.g. Electrical Engineering, Cellular biology, etc.)"
@@ -19,13 +21,32 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ResearchDomainErrors
 
     "The name of the domain"
     name: String!
-    "The URL of the research domain"
+    "The taxonomy URL of the research domain"
     uri: String!
     "A description of the type of research covered by the domain"
     description: String
+    "The parent research domain (if applicable). If this is blank then it is a top level domain."
+    parentResearchDomain: ResearchDomain
+    "The ID of the parent research domain (if applicable)"
+    parentResearchDomainId: Int
+    "The child research domains (if applicable)"
+    childResearchDomains: [ResearchDomain!]
+  }
+
+  "A collection of errors related to the ResearchDomain"
+  type ResearchDomainErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    name: String
+    uri: String
+    description: String
+    parentResearchDomainId: String
+    childResearchDomainIds: String
   }
 `;
+

@@ -39,7 +39,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: VersionedQuestionConditionErrors
 
     "The versionedQuestion id that the QuestionCondition belongs to"
     versionedQuestionId: Int!
@@ -53,5 +53,18 @@ export const typeDefs = gql`
     conditionMatch: String
     "The target of the action (e.g., an email address for SEND_EMAIL and a Question id otherwise)"
     target: String!
+  }
+
+  "A collection of errors related to the VersionedQuestionCondition"
+  type VersionedQuestionConditionErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    versionedQuestionId: String
+    questionConditionId: String
+    action: String
+    conditionType: String
+    conditionMatch: String
+    target: String
   }
 `;

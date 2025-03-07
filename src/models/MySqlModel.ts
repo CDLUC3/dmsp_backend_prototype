@@ -14,7 +14,7 @@ export class MySqlModel {
     public createdById?: number,
     public modified?: string,
     public modifiedById?: number,
-    public errors: string[] = [],
+    public errors: Record<string, string> = {},
   ) {
     // If no modifier was designated and this is a new record then use the creator's id
     if (!this.id && !this.modifiedById) {
@@ -23,26 +23,38 @@ export class MySqlModel {
     if (!this.modified) {
       this.modified = this.id ? getCurrentDate() : this.created;
     }
+    // Only initialize the errors object if it is not already set
+    if (!this.errors) {
+      this.errors = {};
+    }
   };
+
+  // Check to see if the object has errors
+  hasErrors(): boolean {
+    return this.errors
+      && Array.isArray(Object.keys(this.errors))
+      && Object.keys(this.errors).length > 0;
+  }
+
+  // Add an error to the errors array
+  addError(property: string, error: string): void {
+    this.errors[property] = error;
+  }
 
   // Indicates whether or not the standard fields on the record are valid
   //   - created and modified should be dates
   //   - createdById and modifiedById should be numbers
   //   - id should be a number or null if its a new record
   async isValid(): Promise<boolean> {
-    if (!await validateDate(this.created)) {
-      this.errors.push('Created date can\'t be blank');
-    }
-    if (!await validateDate(this.modified)) {
-      this.errors.push('Modified date can\'t be blank');
-    }
-    if (this.createdById === null) {
-      this.errors.push('Created by can\'t be blank');
-    }
-    if (this.modifiedById === null) {
-      this.errors.push('Modified by can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!validateDate(this.created)) this.addError('created', 'Created date can\'t be blank');
+
+    if (!validateDate(this.modified)) this.addError('modified', 'Modified date can\'t be blank');
+
+    if (this.createdById === null) this.addError('createdById', 'Created by can\'t be blank');
+
+    if (this.modifiedById === null) this.addError('modifiedById', 'Modified by can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Check whether or not the value is a Date
@@ -139,18 +151,18 @@ export class MySqlModel {
       const vals = values.map((entry) => this.prepareValue(entry, typeof (entry)));
 
       try {
-        formatLogMessage(logger).debug(logMessage);
-        const resp = await dataSources.sqlDataSource.query(sql, vals);
+        formatLogMessage(apolloContext).debug(logMessage);
+        const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
         const msg = `${reference}, ERROR: ${err.message}`;
-        formatLogMessage(logger).error(msg);
+        formatLogMessage(apolloContext).error(err, msg);
         return [];
       }
     }
     const errMsg = `${reference}, ERROR: apolloContext and sqlStatement are required.`;
     if (logger) {
-      formatLogMessage(logger).error(errMsg);
+      formatLogMessage(apolloContext).error(errMsg);
     } else {
       // In the event that there was no logger!
       console.log(errMsg);
@@ -167,15 +179,21 @@ export class MySqlModel {
   static async insert(
     apolloContext: MyContext,
     table: string,
-    obj: MySqlModel,
+    obj: MySqlModel & { userId?: number },
     reference = 'undefined caller',
     skipKeys?: string[]
   ): Promise<number> {
-    // Update the creator/modifier info
+    // If the createdById and modifiedById have not alredy been set, use the value in the token or the userId
+    if (!obj.createdById) {
+      obj.createdById = apolloContext?.token?.id ?? obj.userId;
+    }
+    if (!obj.modifiedById) {
+      obj.modifiedById = apolloContext?.token?.id ?? obj.userId;
+    }
+
+    // Update the created/modified dates
     const currentDate = getCurrentDate();
-    obj.createdById = apolloContext.token.id;
     obj.created = currentDate;
-    obj.modifiedById = apolloContext.token.id;
     obj.modified = currentDate;
 
     // Fetch all of the data from the object
@@ -206,7 +224,10 @@ export class MySqlModel {
   ): Promise<MySqlModel> {
     // Update the modifier info
     if (noTouch !== true) {
-      obj.modifiedById = apolloContext.token.id;
+      // Only update the modifiedById if we have a token otherwise leave it as is
+      if (apolloContext?.token?.id) {
+        obj.modifiedById = apolloContext?.token?.id;
+      }
       const currentDate = getCurrentDate();
       obj.modified = currentDate;
     }
@@ -247,5 +268,24 @@ export class MySqlModel {
     const sql = `DELETE FROM ${table} WHERE id = ?`;
     const result = await this.query(apolloContext, sql, [id.toString()], reference);
     return Array.isArray(result) && result[0].affectedRows ? true : false;
+  }
+
+  // A helper function that can be used when updating an Object that has a many to many relationship.
+  // You pass in an array of the current ids for the relationship and another containing the desired
+  // ids for the relationship.
+  //     - idsOnCurrentRecord:  The foreign key ids that are in the DB now
+  //     - idsOnNewRecord:      The foreign key ids we want
+  // Return a list of the ids to delete, idsToBeRemoved,  and a list of ids to add idsToBeSaved
+  static reconcileAssociationIds(
+    idsOnCurrentRecord: number[],
+    idsOnNewRecord: number[]
+  ): { idsToBeRemoved: number[], idsToBeSaved: number[] } {
+    const current = new Set<number>(idsOnCurrentRecord);
+    const wanted = new Set<number>(idsOnNewRecord);
+
+    return {
+      idsToBeRemoved: idsOnCurrentRecord.filter((id) => !wanted.has(id)),
+      idsToBeSaved: idsOnNewRecord.filter((id) => !current.has(id))
+    }
   }
 }

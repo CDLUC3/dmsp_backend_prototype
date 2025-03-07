@@ -18,7 +18,7 @@ export class Section extends MySqlModel {
   private tableName = 'sections';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
     this.sourceSectionId = options.sourceSectionId;
@@ -27,21 +27,29 @@ export class Section extends MySqlModel {
     this.requirements = options.requirements;
     this.guidance = options.guidance;
     this.displayOrder = options.displayOrder;
-    this.bestPractice = options.bestPractice || false;
+    this.bestPractice = options.bestPractice ?? false;
     this.tags = options.tags;
-    this.isDirty = options.isDirty || true;
+    this.isDirty = options.isDirty ?? true;
   }
 
   //Check that the Section data contains the required name field
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.name) {
-      this.errors.push('Name can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!this.displayOrder) this.addError('displayOrder', 'Order number can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
+  // Ensure data integrity
+  prepForSave(): void {
+    // Remove leading/trailing blank spaces
+    this.name = this.name?.trim();
+    this.introduction = this.introduction?.trim();
+    this.requirements = this.requirements?.trim();
+    this.guidance = this.guidance?.trim();
+  }
 
   //Create a new Section
   async create(context: MyContext, templateId: number): Promise<Section> {
@@ -57,8 +65,10 @@ export class Section extends MySqlModel {
 
       // Then make sure it doesn't already exist
       if (current) {
-        this.errors.push('Section with this name already exists');
+        this.addError('general', 'Section with this name already exists');
       } else {
+        this.prepForSave();
+
         // Save the record and then fetch it
         const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
         const response = await Section.findById('Section.create', context, newId);
@@ -66,7 +76,7 @@ export class Section extends MySqlModel {
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new Section(this);
   }
 
   //Update an existing Section
@@ -75,13 +85,15 @@ export class Section extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
+        this.prepForSave();
+
         await Section.update(context, this.tableName, this, 'Section.update', ['tags'], noTouch);
         return await Section.findById('Section.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.errors.push('Section has never been saved');
+      this.addError('general', 'Section has never been saved');
     }
-    return this;
+    return new Section(this);
   }
 
   //Delete Section based on the Section object's id and return
@@ -109,22 +121,23 @@ export class Section extends MySqlModel {
     templateId: number
   ): Promise<Section> {
     const sql = 'SELECT * FROM sections WHERE LOWER(name) = ? AND templateId = ?';
-    const vals = [name.toLowerCase(), templateId.toString()];
+    const searchTerm = (name ?? '');
+    const vals = [searchTerm?.toLowerCase()?.trim(), templateId?.toString()];
     const results = await Section.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new Section(results[0]) : null;
   }
 
 
   // Find all Sections associated with the specified templateId
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
     const sql = 'SELECT * FROM sections WHERE templateId = ?';
-    const results = await Section.query(context, sql, [templateId.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    const results = await Section.query(context, sql, [templateId?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new Section(entry)) : [];
   }
 
   static async findById(reference: string, context: MyContext, sectionId: number): Promise<Section> {
     const sql = 'SELECT * FROM sections where id = ?';
-    const result = await Section.query(context, sql, [sectionId.toString()], reference);
-    return Array.isArray(result) && result.length > 0 ? result[0] : null;
+    const result = await Section.query(context, sql, [sectionId?.toString()], reference);
+    return Array.isArray(result) && result.length > 0 ? new Section(result[0]) : null;
   }
 }

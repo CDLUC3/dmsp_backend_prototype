@@ -47,7 +47,7 @@ export const generateRandomPassword = () => {
 export const anonymizeUser = async (context: MyContext, user: User): Promise<User> => {
   const ref = 'UserService.anonymize';
   if (!user.id) {
-    user.errors.push('This user has never been saved so can not anonymize their information');
+    user.addError('general', 'This user has never been saved so can not anonymize their information');
     return user;
   }
 
@@ -58,7 +58,7 @@ export const anonymizeUser = async (context: MyContext, user: User): Promise<Use
   user.password = await user.hashPassword(generateRandomPassword()),
   user.givenName = 'Deleted';
   user.surName = 'Account';
-  user.affiliationId = generalConfig.defaultAffiliatioURI;
+  user.affiliationId = null;
   user.orcid = null;
   user.ssoId = null;
   user.role = UserRole.RESEARCHER;
@@ -78,7 +78,7 @@ export const anonymizeUser = async (context: MyContext, user: User): Promise<Use
 
   // If the anonymized record couldn't be saved add an error
   if (!anonymized) {
-    userBefore.errors.push('Unable to anonymize your account at this time');
+    userBefore.addError('general', 'Unable to anonymize your account at this time');
   } else {
     // Remove all UserEmail entries
     const userEmails = await UserEmail.findByUserId(ref, context, user.id);
@@ -111,7 +111,7 @@ export const mergeUsers = async (
   const toBeKept = new User(userToKeep);
 
   // Only replace these properties if the one we are keeping does not have them defined
-  const propsToMergeIfEmpty = ['givenName', 'surName', 'affiliationId', 'orcid', 'ssoId', 'languageId'];
+  const propsToMergeIfEmpty = ['givenName', 'surName', 'affiliationId', 'orcid', 'ssoId', 'languageId', 'active'];
   for (const prop of propsToMergeIfEmpty) {
     if (toBeMerged[prop] && toBeMerged[prop] !== '' && !toBeKept[prop] || toBeKept[prop] === '') {
       toBeKept[prop] = toBeMerged[prop];
@@ -125,7 +125,7 @@ export const mergeUsers = async (
 
   const merged = await toBeKept.update(context);
   if (merged && Array.isArray(merged.errors) && merged.errors.length > 0) {
-    original.errors.push('Unable to merge the user at this time');
+    original.addError('general', 'Unable to merge the user at this time');
     return original;
 
   } else {
@@ -171,7 +171,7 @@ export const mergeUsers = async (
     // TODO: Once we've solved the above issue with createdById we can delete
     //       for now just anonymize
     if (!await anonymizeUser(context, toBeMerged)) {
-      toBeKept.errors.push('Unable to anonymize the user being merged at this time');
+      toBeKept.addError('general', 'Unable to anonymize the user being merged at this time');
     }
     return toBeKept;
   }

@@ -5,29 +5,64 @@ import { MyContext } from "../context";
 import { Template } from "../models/Template";
 import { Affiliation } from "../models/Affiliation";
 import { VersionedSection } from "../models/VersionedSection";
-import { AuthenticationError, ForbiddenError } from "../utils/graphQLErrors";
+import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { isAdmin } from "../services/authService";
+import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
     // Get all of the PublishedTemplates for the specified Template (a.k. the Template history)
     //    - called from the Template history page
     templateVersions: async (_, { templateId }, context: MyContext): Promise<VersionedTemplate[]> => {
-      if (isAdmin(context.token)) {
-        return await VersionedTemplate.findByTemplateId('templateVersions resolver', context, templateId);
+      const reference = 'templateVersions resolver';
+      try {
+        if (isAdmin(context.token)) {
+          return await VersionedTemplate.findByTemplateId(reference, context, templateId);
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
 
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
     publishedTemplates: async (_, { term }, context: MyContext): Promise<VersionedTemplate[]> => {
-      if (isAdmin(context.token)) {
-        return await VersionedTemplate.search('publishedTemplates resolver', context, term);
+      const reference = 'publishedTemplates resolver';
+      try {
+        if (isAdmin(context.token)) {
+          return await VersionedTemplate.search(reference, context, term);
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
+    },
+
+    // Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin)
+    myVersionedTemplates: async (_, __, context: MyContext): Promise<VersionedTemplate[]> => {
+      const reference = 'myVersionedTemplates resolver';
+      try {
+        if (isAdmin(context.token)) {
+          return await VersionedTemplate.findByAffiliationId(reference, context, context.token?.affiliationId);
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
     },
   },
 
@@ -39,7 +74,7 @@ export const resolvers: Resolvers = {
 
     // Chained resolver to return the Affiliation that owns the Template
     owner: async (parent: VersionedTemplate, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findById('Chained VersionedTemplate.owner', context, parent.ownerId);
+      return await Affiliation.findByURI('Chained VersionedTemplate.owner', context, parent.ownerId);
     },
 
     // Chained resolver to return the User who created the version

@@ -15,8 +15,6 @@ extend type Mutation {
     updateQuestion(input: UpdateQuestionInput!): Question!
     "Delete a Question"
     removeQuestion(questionId: Int!): Question
-    "Separate Question update specifically for options"
-    updateQuestionOptions(questionId: Int!, required:Boolean = false ): Question
   }
 
 "Question always belongs to a Section, which always belongs to a Template"
@@ -32,7 +30,7 @@ type Question {
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: QuestionErrors
 
     "The unique id of the Template that the question belongs to"
     templateId: Int!
@@ -54,12 +52,34 @@ type Question {
     guidanceText: String
     "Sample text to possibly provide a starting point or example to answer question"
     sampleText: String
+    "Boolean indicating whether we should use content from sampleText as the default answer"
+    useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
 
     "The conditional logic triggered by this question"
     questionConditions: [QuestionCondition!]
+    "The question options associated with this question"
+    questionOptions: [QuestionOption!]
 }
+
+"A collection of errors related to the Question"
+type QuestionErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    templateId: String
+    sectionId: String
+    sourceQestionId: String
+    displayOrder: String
+    questionTypeId: String
+    questionText: String
+    requirementText: String
+    guidanceText: String
+    sampleText: String
+    questionConditionIds: String
+    questionOptionIds: String
+  }
 
 input AddQuestionInput {
     "The unique id of the Template that the question belongs to"
@@ -80,13 +100,19 @@ input AddQuestionInput {
     guidanceText: String
     "Sample text to possibly provide a starting point or example to answer question"
     sampleText: String
+    "Boolean indicating whether we should use content from sampleText as the default answer"
+    useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
+    "Add options for a question type, like radio buttons"
+    questionOptions: [QuestionOptionInput]
 }
 
 input UpdateQuestionInput {
     "The unique identifier for the Question"
     questionId: Int!
+    "The type of question, such as text field, select box, radio buttons, etc"
+    questionTypeId: Int
     "The display order of the Question"
     displayOrder: Int
     "This will be used as a sort of title for the Question"
@@ -97,7 +123,11 @@ input UpdateQuestionInput {
     guidanceText: String
     "Sample text to possibly provide a starting point or example to answer question"
     sampleText: String
+    "Boolean indicating whether we should use content from sampleText as the default answer"
+    useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
+    "Update options for a question type like radio buttons"
+    questionOptions: [UpdateQuestionOptionInput]
 }
 `

@@ -8,12 +8,18 @@ import { typeDefs as contributorTypeDefs } from './schemas/contributor';
 import { typeDefs as contributorRoleTypeDefs } from './schemas/contributorRole';
 import { typeDefs as feedbackTypeDefs } from './schemas/feedback';
 import { typeDefs as languageTypeDefs } from './schemas/language';
+import { typeDefs as licenseTypeDefs } from './schemas/license'
+import { typeDefs as metadataStandardTypeDefs } from './schemas/metadataStandard';
+import { typeDefs as outputTypeDefs } from './schemas/outputType';
 import { typeDefs as planTypeDefs } from './schemas/plan';
 import { typeDefs as projectTypeDefs } from './schemas/project';
-import { typeDefs as projectFunderTypeDefs } from './schemas/projectFunder';
+import { typeDefs as funderTypeDefs } from './schemas/funder';
+import { typeDefs as projectOutputTypeDefs } from './schemas/output';
 import { typeDefs as questionTypeDefs } from './schemas/question';
 import { typeDefs as questionConditionTypeDefs } from './schemas/questionCondition';
+import { typeDefs as questionOptionTypeDefs } from './schemas/questionOption';
 import { typeDefs as questionTypeTypeDefs } from './schemas/questionType';
+import { typeDefs as repositoryTypeDefs } from './schemas/repository';
 import { typeDefs as researchDomainTypeDefs } from './schemas/researchDomain';
 import { typeDefs as sectionTypeDefs } from './schemas/section';
 import { typeDefs as tagTypeDefs } from './schemas/tag';
@@ -26,22 +32,26 @@ import { typeDefs as versionedTemplateTypeDefs } from './schemas/versionedTempla
 
 export const typeDefs = mergeTypeDefs([
   baseTypeDefs,
+
   affiliationTypeDefs,
   answerTypeDefs,
   collaboratorTypeDefs,
-  feedbackTypeDefs,
-  languageTypeDefs,
-  planTypeDefs,
-  projectTypeDefs,
-  projectFunderTypeDefs,
-  sectionTypeDefs,
-  tagTypeDefs,
-  versionedSectionTypeDefs,
   contributorRoleTypeDefs,
   contributorTypeDefs,
+  feedbackTypeDefs,
+  funderTypeDefs,
+  languageTypeDefs,
+  licenseTypeDefs,
+  metadataStandardTypeDefs,
+  outputTypeDefs,
+  planTypeDefs,
+  projectTypeDefs,
+  projectOutputTypeDefs,
   questionTypeDefs,
   questionConditionTypeDefs,
+  questionOptionTypeDefs,
   questionTypeTypeDefs,
+  repositoryTypeDefs,
   researchDomainTypeDefs,
   sectionTypeDefs,
   tagTypeDefs,

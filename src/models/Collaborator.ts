@@ -1,7 +1,8 @@
 import { MyContext } from '../context';
-import { sendTemplateCollaborationEmail } from '../services/emailService';
-import { validateEmail } from '../utils/helpers';
+import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../services/emailService';
+import { isNullOrUndefined, validateEmail, valueIsEmpty } from '../utils/helpers';
 import { MySqlModel } from './MySqlModel';
+import { Project } from './Project';
 import { Template } from './Template';
 import { User } from './User';
 
@@ -13,11 +14,11 @@ export class Collaborator extends MySqlModel {
   public userId: number;
 
   constructor(options){
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.email = options.email;
     this.invitedById = options.invitedById;
-    this.userId = options.userId || null;
+    this.userId = options.userId ?? null;
   }
 
   // Validation to be used prior to saving the record
@@ -25,12 +26,12 @@ export class Collaborator extends MySqlModel {
     await super.isValid();
 
     if (!validateEmail(this.email)) {
-      this.errors.push('Email can\'t be blank');
+      this.addError('email', 'Email can\'t be blank');
     }
     if (!this.invitedById) {
-      this.errors.push('Invited by can\'t be blank');
+      this.addError('invitedById', 'Invited by can\'t be blank');
     }
-    return this.errors.length <= 0;
+    return Object.keys(this.errors).length === 0;
   }
 }
 
@@ -43,18 +44,16 @@ export class TemplateCollaborator extends Collaborator {
   constructor(options) {
     super(options);
 
-    this.templateId = options.templateId || null;
-    this.errors = [];
+    this.templateId = options.templateId ?? null;
   }
 
   // Verify that the templateId is present
   async isValid(): Promise<boolean> {
     super.isValid()
 
-    if (this.templateId === null) {
-      this.errors.push('Template can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (this.templateId === null) this.addError('templateId', 'Template Id can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Save the current record
@@ -70,47 +69,32 @@ export class TemplateCollaborator extends Collaborator {
       );
 
       if (currentCollaborator) {
-        this.errors.push('Collaborator has already been added');
+        currentCollaborator.addError('general', 'Collaborator has already been added');
+        return currentCollaborator
       } else {
-        // Verify that the template we want to attach the collaborator to exists!
-        const templateExists = await Template.exists(
-          context,
-          'templates',
-          this.templateId,
-          reference
-        );
+        // See if the user already has an account, if so grab their id
+        const user = await User.findByEmail(reference, context, this.email);
+        this.userId = user?.id;
 
-        if (!templateExists) {
-          this.errors.push('Template does not exist');
-        } else {
-          // See if the user already has an account, if so grab their id
-          const user = await User.findByEmail(reference, context, this.email);
-          this.userId = user?.id;
+        // Set the inviter's Id to the current user
+        this.invitedById = context.token?.id;
 
-          // Set the inviter's Id to the current user
-          this.invitedById = context.token?.id;
+        // Save the record and then fetch it
+        const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
+        if (newId) {
+          const inviter = await User.findById(reference, context, this.invitedById);
+          const template = await Template.findById(reference, context, this.templateId);
 
-          // Save the record and then fetch it
-          const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
-          if (newId) {
-            const inviter = await User.findById(reference, context, this.invitedById);
-            const template = await Template.findById(reference, context, this.templateId);
-            // Send out the invitation notification (no async here, can happen in the background)
-            await sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId);
+          // Send out the invitation notification (no async here, can happen in the background)
+          await sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId)
 
-            return await TemplateCollaborator.findByTemplateIdAndEmail(
-              reference,
-              context,
-              this.templateId,
-              this.email,
-            );
-          }
-          return null;
+          return await TemplateCollaborator.findById(reference, context, newId);
         }
       }
     }
+
     // Otherwise return as-is with all the errors
-    return this;
+    return new TemplateCollaborator(this);
   }
 
   // Update the record
@@ -127,27 +111,34 @@ export class TemplateCollaborator extends Collaborator {
         );
 
         if (!templateExists) {
-          this.errors.push('Template does not exist');
+          this.addError('general', 'Template does not exist');
         } else {
           const result = await TemplateCollaborator.update(context, this.tableName, this, 'TemplateCollaborator.update');
-          return result as TemplateCollaborator;
+          if (!result) {
+            this.addError('general', 'Unable to update the collaborator');
+          }
+          if (!this.hasErrors()) {
+            return await TemplateCollaborator.findById('TemplateCollaborator.update', context, this.id);
+          }
         }
       } else {
-        this.errors.push('Collaborator has never been saved before');
+        this.addError('general', 'TemplateCollaborator has never been saved');
       }
     }
-    return this;
+    return new TemplateCollaborator(this);
   }
 
   // Remove this record
-  async delete(context: MyContext): Promise<boolean> {
-    if (this.id) {
+  async delete(context: MyContext): Promise<TemplateCollaborator> {
+    const existing = await TemplateCollaborator.findById('TemplateCollaborator.delete', context, this.id);
+    if (existing) {
       const result = await TemplateCollaborator.delete(context, this.tableName, this.id, 'TemplateCollaborator.delete');
-      if (result) {
-        return true;
+      if (!result) {
+        existing.addError('general', 'Unable to delete the collaborator');
       }
+      return new TemplateCollaborator(existing);
     }
-    return false;
+    return null;
   }
 
   // Get all of the collaborators for the specified Template
@@ -157,7 +148,8 @@ export class TemplateCollaborator extends Collaborator {
     templateId: number
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
-    return await TemplateCollaborator.query(context, sql, [templateId.toString()], reference);
+    const results = await TemplateCollaborator.query(context, sql, [templateId?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
 
   // Get the specified TemplateCollaborator
@@ -167,8 +159,8 @@ export class TemplateCollaborator extends Collaborator {
     id: number,
   ): Promise<TemplateCollaborator> {
     const sql = 'SELECT * FROM templateCollaborators WHERE id = ?';
-    const results = await TemplateCollaborator.query(context, sql, [id.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    const results = await TemplateCollaborator.query(context, sql, [id?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
   }
 
   static async findByInvitedById(
@@ -177,7 +169,8 @@ export class TemplateCollaborator extends Collaborator {
     invitedById: number,
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE invitedById = ?';
-    return await TemplateCollaborator.query(context, sql, [invitedById.toString()], reference);
+    const results = await TemplateCollaborator.query(context, sql, [invitedById?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
 
   // Get all of the TemplateCollaborator records for the specified email
@@ -187,7 +180,8 @@ export class TemplateCollaborator extends Collaborator {
     email: string,
   ): Promise<TemplateCollaborator[]> {
     const sql = 'SELECT * FROM templateCollaborators WHERE email = ?';
-    return await TemplateCollaborator.query(context, sql, [email], reference);
+    const results = await TemplateCollaborator.query(context, sql, [email], reference);
+    return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
 
   // Get the specified TemplateCollaborator
@@ -198,8 +192,184 @@ export class TemplateCollaborator extends Collaborator {
     email: string,
   ): Promise<TemplateCollaborator> {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
-    const vals = [templateId.toString(), email];
+    const vals = [templateId?.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
+  }
+}
+
+// The type of access the collaborator can have on a Project
+export enum ProjectCollaboratorAccessLevel {
+  // Can do everything on a Project or Plan
+  OWN = 'OWN',
+  // Can edit a Project's and Plan's info (except publish, mark as complete, and change access levels)
+  EDIT = 'EDIT',
+  // Can comment on a Plan's answers
+  COMMENT = 'COMMENT',
+}
+
+// An individual that has permission to work on a Project and it's plans
+export class ProjectCollaborator extends Collaborator {
+  public projectId: number;
+  public accessLevel: string;
+
+  private tableName = 'projectCollaborators';
+
+  constructor(options) {
+    super(options);
+
+    this.projectId = options.projectId ?? null;
+    this.accessLevel = options.accessLevel ?? ProjectCollaboratorAccessLevel.COMMENT;
+  }
+
+  // Verify that the projectId is present
+  async isValid(): Promise<boolean> {
+    super.isValid()
+
+    if (isNullOrUndefined(this.projectId)) this.addError('projectId', 'Project Id can\'t be blank');
+    if (valueIsEmpty(this.accessLevel)) this.addError('accessLevel', 'Access Level can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
+  }
+
+  // Save the current record
+  async create(context: MyContext): Promise<ProjectCollaborator> {
+    const reference = 'ProjectCollaborator.create';
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      const currentCollaborator = await ProjectCollaborator.findByProjectIdAndEmail(
+        reference,
+        context,
+        this.projectId,
+        this.email,
+      );
+
+      if (currentCollaborator) {
+        currentCollaborator.addError('general', 'Collaborator has already been added');
+        return currentCollaborator
+      } else {
+        // See if the user already has an account, if so grab their id
+        const user = await User.findByEmail(reference, context, this.email);
+        this.userId = user?.id;
+
+        // Set the inviter's Id to the current user
+        this.invitedById = context.token?.id;
+
+        // Save the record and then fetch it
+        const newId = await ProjectCollaborator.insert(context, this.tableName, this, reference);
+        if (newId) {
+          const inviter = await User.findById(reference, context, this.invitedById);
+          const project = await Project.findById(reference, context, this.projectId);
+
+          // Send out the invitation notification (no async here, can happen in the background)
+          await sendProjectCollaborationEmail(context, project.title, inviter.getName(), this.email, this.userId)
+
+          return await ProjectCollaborator.findById(reference, context, newId);
+        }
+      }
+    }
+
+    // Otherwise return as-is with all the errors
+    return new ProjectCollaborator(this);
+  }
+
+  // Update the record
+  async update(context: MyContext): Promise<ProjectCollaborator> {
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      if (this.id) {
+        // Verify that the project we want to attach the collaborator to exists!
+        const projectExists = await Project.exists(
+          context,
+          'projects',
+          this.projectId,
+          'ProjectCollaborator.update'
+        );
+
+        if (!projectExists) {
+          this.addError('general', 'Project does not exist');
+        } else {
+          const result = await ProjectCollaborator.update(context, this.tableName, this, 'ProjectCollaborator.update');
+          if (!result) {
+            this.addError('general', 'Unable to update the collaborator');
+          }
+          if (!this.hasErrors()) {
+            return await ProjectCollaborator.findById('ProjectCollaborator.update', context, this.id);
+          }
+        }
+      } else {
+        this.addError('general', 'ProjectCollaborator has never been saved');
+      }
+    }
+    return new ProjectCollaborator(this);
+  }
+
+  // Remove this record
+  async delete(context: MyContext): Promise<ProjectCollaborator> {
+    const existing = await ProjectCollaborator.findById('ProjectCollaborator.delete', context, this.id);
+    if (existing) {
+      const result = await ProjectCollaborator.delete(context, this.tableName, this.id, 'ProjectCollaborator.delete');
+      if (!result) {
+        existing.addError('general', 'Unable to delete the collaborator');
+      }
+      return new ProjectCollaborator(existing);
+    }
+    return null;
+  }
+
+  // Get all of the collaborators for the specified Project
+  static async findByProjectId(
+    reference: string,
+    context: MyContext,
+    projectId: number
+  ): Promise<ProjectCollaborator[]> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE projectId = ? ORDER BY email ASC';
+    const results = await ProjectCollaborator.query(context, sql, [projectId?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
+  }
+
+  // Get the specified ProjectCollaborator
+  static async findById(
+    reference: string,
+    context: MyContext,
+    id: number,
+  ): Promise<ProjectCollaborator> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE id = ?';
+    const results = await ProjectCollaborator.query(context, sql, [id?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;
+  }
+
+  static async findByInvitedById(
+    reference: string,
+    context: MyContext,
+    invitedById: number,
+  ): Promise<ProjectCollaborator[]> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE invitedById = ?';
+    const results = await ProjectCollaborator.query(context, sql, [invitedById?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
+  }
+
+  // Get all of the ProjectCollaborator records for the specified email
+  static async findByEmail(
+    reference: string,
+    context: MyContext,
+    email: string,
+  ): Promise<ProjectCollaborator[]> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE email = ?';
+    const results = await ProjectCollaborator.query(context, sql, [email], reference);
+    return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
+  }
+
+  // Get the specified ProjectCollaborator
+  static async findByProjectIdAndEmail(
+    reference: string,
+    context: MyContext,
+    projectId: number,
+    email: string,
+  ): Promise<ProjectCollaborator> {
+    const sql = 'SELECT * FROM projectCollaborators WHERE projectId = ? AND email = ?';
+    const vals = [projectId?.toString(), email];
+    const results = await ProjectCollaborator.query(context, sql, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;
   }
 }

@@ -1,7 +1,7 @@
 import * as mysql from 'mysql2/promise';
-import { mysqlConfig } from "../config/mysqlConfig";
+import { mysqlGeneralConfig, mysqlPoolConfig } from "../config/mysqlConfig";
 import { logger, formatLogMessage } from '../logger';
-
+import { MyContext } from '../context';
 export interface PoolConfig {
   connectionLimit: number;
   host: string;
@@ -22,7 +22,7 @@ export class MySQLDataSource {
   private initializePool(): void {
     if (!this.pool) {
       this.pool = mysql.createPool({
-        ...mysqlConfig,
+        ...mysqlPoolConfig,
         waitForConnections: true,
         queueLimit: 0,
         multipleStatements: false,
@@ -32,40 +32,37 @@ export class MySQLDataSource {
 
   // Create a new connection pool
   private constructor() {
-    const connectionLimit = Number.parseInt(process.env.MYSQL_CONNECTION_LIMIT) || 10;
-    const queueLimit = Number.parseInt(process.env.MYSQL_QUEUE_LIMIT) || 100;
-    const connectTimeout = Number.parseInt(process.env.MYSQL_CONNECT_TIMEOUT) || 60000;
-
-    formatLogMessage(logger).info('Establishing MySQL connection pool ...');
+    logger.info('Establishing MySQL connection pool ...');
 
     try {
       this.pool = mysql.createPool({
-        ...mysqlConfig,
-        connectionLimit, // Maximum 10 concurrent connections
+        ...mysqlPoolConfig,
         waitForConnections: true,  // Queue if no connections are available
-        queueLimit, // Maximum 100 queued requests
-        connectTimeout, // Wait for 60 seconds before timing out
+        queueLimit: mysqlGeneralConfig.queueLimit,
+        connectTimeout: mysqlGeneralConfig.connectTimeout,
         multipleStatements: false, // Disallow multiple statements for security
       });
 
-      // Register SIGTERM handler for graceful shutdown of the MYSQL connection pool
-      process.on('SIGTERM', () => {
-        this.releaseConnection();
-
-        this.close()
-          .then(() => {
-            formatLogMessage(logger).debug('MySQL connection pool closed');
-            process.exit(0);
-          })
-          .catch((err) => {
-            formatLogMessage(logger).error({ err, message: 'Error while closing MySQL connection pool' });
-            process.exit(1);
-          });
-      });
     } catch (err) {
-      formatLogMessage(logger).error('Unable to establish the MySQL connection pool.');
+      logger.error('Unable to establish the MySQL connection pool.');
       throw(err);
     }
+
+    // Register SIGTERM handler for graceful shutdown of the MYSQL connection pool
+    process.on('SIGTERM', () => {
+      this.releaseConnection();
+
+      // Close the MySQL connection pool
+      this.close()
+        .then(() => {
+          logger.debug('MySQL connection pool closed');
+          process.exit(0);
+        })
+        .catch((err) => {
+          logger.error({ err, message: 'Error while closing MySQL connection pool' });
+          process.exit(1);
+        });
+    });
   }
 
   // Retrieve the instance of this class
@@ -103,24 +100,21 @@ export class MySQLDataSource {
 
   // Execute a SQL query
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async query(sql: string, values?: string[]): Promise<any> {
+  public async query(context: MyContext, sql: string, values?: string[]): Promise<any> {
     try {
       const vals = values.map((val) => (typeof val === 'string') ? val.trim() : val);
       const [rows] = await this.pool.execute(sql, vals);
       return rows;
     } catch (err) {
-      formatLogMessage(logger, {
-        err,
-        sql,
-        values,
-        message: 'Unable to process SQL query!'
-      }).error('Unable to process SQL query!');
+      formatLogMessage(context).error({ err, sql, values }, 'Unable to process SQL query!');
       throw new Error('Database query failed');
     }
   }
 
   // Release the MySQL connection pool
   public async close(): Promise<void> {
-    await this.pool.end();
+    if (this.pool) {
+      await this.pool.end();
+    }
   }
 }

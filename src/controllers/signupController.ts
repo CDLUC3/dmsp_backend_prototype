@@ -13,12 +13,6 @@ export const signupController = async (req: Request, res: Response) => {
 
   const props = req.body;
 
-  // Either use the affiliationId provided or create one
-  if (!props?.affiliationId && props?.otherAffiliationName) {
-    const affiliation = await processOtherAffiliationName(context, props.otherAffiliationName);
-    props.affiliationId = affiliation.uri;
-  }
-
   let user: User = new User({
     email: props?.email,
     password: props?.password,
@@ -32,12 +26,26 @@ export const signupController = async (req: Request, res: Response) => {
     user = await user.register(context) || null;
 
     if (user) {
-      if (user.errors?.length >= 1) {
-        res.status(400).json({ success: false, message: user.errors?.join(' | ') });
+      if (user.hasErrors()) {
+        res.status(400).json({ success: false, message: Object.values(user.errors).join(' | ') });
       } else {
-        // Generate the tokens
-        const { accessToken, refreshToken } = await generateAuthTokens(cache, user);
+        // If the affiliationId was not provided then create a new Affiliation using the otherAffiliationName
+        if (!props?.affiliationId && props?.otherAffiliationName) {
+          const affiliation = await processOtherAffiliationName(context, props.otherAffiliationName, user.id);
 
+          if (!affiliation) {
+             res.status(500).json({success: false, message: 'Unable to create the new user affiliation at this time' });
+          } else {
+            // Need to reload here because the object returned by `register` does not have functions!
+            const registeredUser = await User.findById('signupController', context, user.id);
+            // Update the user's affiliationId with the new id
+            registeredUser.affiliationId = affiliation.uri;
+            await registeredUser.update(context);
+          }
+        }
+
+        // Generate the tokens
+        const { accessToken, refreshToken } = await generateAuthTokens(context, user);
         if (accessToken && refreshToken) {
           // Set the tokens as HTTP only cookies
           setTokenCookie(res, 'dmspt', accessToken, generalConfig.jwtTTL);
@@ -52,7 +60,7 @@ export const signupController = async (req: Request, res: Response) => {
       res.status(500).json({ success: false, message: 'Unable to register the account.' });
     }
   } catch (err) {
-    formatLogMessage(logger, { msg: `Signup error. userId: ${user.id}, error: ${err?.message}` });
+    formatLogMessage(context)?.error({ err, user }, 'Signup error');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

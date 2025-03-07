@@ -5,22 +5,25 @@ export const typeDefs = gql`
     "Get all of the Users that a Funders to the research project"
     projectFunders(projectId: Int!): [ProjectFunder]
 
-    "Get all of the Users that are Funders for the specific Plan"
-    planFunders(planId: Int!): [ProjectFunder]
+    "Get a specific ProjectFunder"
+    projectFunder(projectFunderId: Int!): ProjectFunder
+
+    "Get all of the Funders for the specific Plan"
+    planFunders(planId: Int!): [PlanFunder]
   }
 
   extend type Mutation {
     "Add a Funder to a research project"
     addProjectFunder(input: AddProjectFunderInput!): ProjectFunder
     "Update a Funder on the research project"
-    editProjectFunder(input: EditProjectFunderInput!): ProjectFunder
+    updateProjectFunder(input: updateProjectFunderInput!): ProjectFunder
     "Remove a research project Funder"
-    removeProjectFunder(projectFunderId: Int!): Boolean
+    removeProjectFunder(projectFunderId: Int!): ProjectFunder
 
     "Add a Funder to a Plan"
-    selectProjectFunderForPlan(planId: Int!, projectFunderId: Int!): ProjectFunder
+    addPlanFunder(planId: Int!, projectFunderId: Int!): PlanFunder
     "Remove a PlanFunder from a Plan"
-    removeProjectFunderFromPlan(planId: Int!, projectFunderId: Int!): Boolean
+    removePlanFunder(planFunderId: Int!): PlanFunder
   }
 
   "The status of the funding"
@@ -46,12 +49,12 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ProjectFunderErrors
 
     "The project that is seeking (or has aquired) funding"
-    project: Project!
+    project: Project
     "The funder"
-    funder: Affiliation!
+    affiliation: Affiliation
     "The status of the funding resquest"
     status: ProjectFunderStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
@@ -60,13 +63,34 @@ export const typeDefs = gql`
     grantId: String
     "The funder's unique id/url for the call for submissions to apply for a grant"
     funderOpportunityNumber: String
+  }
+
+  "A funder associated with a plan"
+  type PlanFunder {
+    "The unique identifer for the Object"
+    id: Int
+    "The user who created the Object"
+    createdById: Int
+    "The timestamp when the Object was created"
+    created: String
+    "The user who last modified the Object"
+    modifiedById: Int
+    "The timestamp when the Object was last modifed"
+    modified: String
+    "Errors associated with the Object"
+    errors: PlanFunderErrors
+
+    "The project that is seeking (or has aquired) funding"
+    project: Project
+    "The project funder"
+    projectFunder: ProjectFunder
   }
 
   input AddProjectFunderInput {
     "The project"
     projectId: Int!
     "The funder URI"
-    funder: String!
+    affiliationId: String!
     "The status of the funding resquest"
     status: ProjectFunderStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
@@ -77,7 +101,7 @@ export const typeDefs = gql`
     funderOpportunityNumber: String
   }
 
-  input EditProjectFunderInput {
+  input updateProjectFunderInput {
     "The project funder"
     projectFunderId: Int!
     "The status of the funding resquest"
@@ -88,5 +112,27 @@ export const typeDefs = gql`
     grantId: String
     "The funder's unique id/url for the call for submissions to apply for a grant"
     funderOpportunityNumber: String
+  }
+
+  "A collection of errors related to the ProjectFunder"
+  type ProjectFunderErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    projectId: String
+    affiliationId: String
+    status: String
+    funderProjectNumber: String
+    grantId: String
+    funderOpportunityNumber: String
+  }
+
+  "A collection of errors related to the PlanFunder"
+  type PlanFunderErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    projectId: String
+    projectFunderId: String
   }
 `;

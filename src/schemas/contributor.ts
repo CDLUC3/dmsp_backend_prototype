@@ -5,6 +5,9 @@ export const typeDefs = gql`
     "Get all of the Users that a contributors to the research project"
     projectContributors(projectId: Int!): [ProjectContributor]
 
+    "Get a specific contributor on the research project"
+    projectContributor(projectContributorId: Int!): ProjectContributor
+
     "Get all of the Users that are contributors for the specific Plan"
     planContributors(planId: Int!): [PlanContributor]
   }
@@ -13,16 +16,16 @@ export const typeDefs = gql`
     "Add a contributor to a research project"
     addProjectContributor(input: AddProjectContributorInput!): ProjectContributor
     "Update a contributor on the research project"
-    editProjectContributor(input: EditProjectContributorInput!): ProjectContributor
+    updateProjectContributor(input: updateProjectContributorInput!): ProjectContributor
     "Remove a research project contributor"
-    removeProjectContributor(projectContributorId: Int!): Boolean
+    removeProjectContributor(projectContributorId: Int!): ProjectContributor
 
     "Add a Contributor to a Plan"
-    addPlanContributor(planId: Int!, projectContributorId: Int!, roles: [String!]): PlanContributor
+    addPlanContributor(planId: Int!, projectContributorId: Int!, roleIds: [Int!]): PlanContributor
     "Chnage a Contributor's accessLevel on a Plan"
-    updatePlanContributor(planContributorId: Int!, roles: [String!]): PlanContributor
+    updatePlanContributor(planContributorId: Int!, roleIds: [Int!]): PlanContributor
     "Remove a PlanContributor from a Plan"
-    removePlanContributor(planContributorId: Int!): Boolean
+    removePlanContributor(planContributorId: Int!): PlanContributor
   }
 
   "A person involved with a research project"
@@ -38,25 +41,25 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ProjectContributorErrors
 
     "The research project"
-    project: Project!
+    project: Project
     "The contributor's affiliation"
     affiliation: Affiliation
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"
-    surname: String
+    surName: String
     "The contributor's ORCID"
     orcid: String
     "The contributor's email address"
     email: String
     "The roles the contributor has on the research project"
-    roles: [ContributorRole!]
+    contributorRoles: [ContributorRole!]
   }
 
-  "A person involved with the research project who will appear in the Plan's citation and landing page"
+  "A contributor associated with a plan"
   type PlanContributor {
     "The unique identifer for the Object"
     id: Int
@@ -69,14 +72,44 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: PlanContributorErrors
 
-    "The Plan"
-    plan: Plan!
-    "The contributor's affiliation"
-    ProjectContributor: ProjectContributor
-    "The roles the contributor has for this specific plan (can differ from the project)"
-    roles: [ContributorRole!]
+    "The plan that the contributor is associated with"
+    plan: Plan
+    "The project contributor"
+    projectContributor: ProjectContributor
+    "Whether or not the contributor the primary contact for the Plan"
+    isPrimaryContact: Boolean
+    "The roles associated with the contributor"
+    contributorRoles: [ContributorRole!]
+  }
+
+  "A collection of errors related to the ProjectContributor"
+  type ProjectContributorErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    projectId: String
+    affiliationId: String
+    givenName: String
+    surName: String
+    orcid: String
+    email: String
+    contributorRoleIds: String
+  }
+
+  "A collection of errors related to the PlanContributor"
+  type PlanContributorErrors {
+    "General error messages such as affiliation already exists"
+    general: String
+    "The project that the contributor is associated with"
+    projectId: String
+    "The project contributor"
+    projectContributorId: String
+    "The isPrimaryContact flag"
+    primaryContact: String
+    "The roles associated with the contributor"
+    contributorRoleIds: String
   }
 
   input AddProjectContributorInput {
@@ -87,16 +120,16 @@ export const typeDefs = gql`
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"
-    surname: String
+    surName: String
     "The contributor's ORCID"
     orcid: String
     "The contributor's email address"
     email: String
     "The roles the contributor has on the research project"
-    roles: [String!]
+    contributorRoleIds: [Int!]
   }
 
-  input EditProjectContributorInput {
+  input updateProjectContributorInput {
     "The project contributor"
     projectContributorId: Int!
     "The contributor's affiliation URI"
@@ -104,12 +137,12 @@ export const typeDefs = gql`
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"
-    surname: String
+    surName: String
     "The contributor's ORCID"
     orcid: String
     "The contributor's email address"
     email: String
     "The roles the contributor has on the research project"
-    roles: [String!]
+    contributorRoleIds: [Int!]
   }
 `;

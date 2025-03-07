@@ -69,6 +69,23 @@ describe('Not Found error', () => {
   });
 });
 
+describe('Not Acceptable error', () => {
+  test('returns a GraphQLError with the default error message', () => {
+    const err = NotFoundError();
+    expect(err).toBeInstanceOf(GraphQLError);
+    expect(err.message).toEqual(DEFAULT_NOT_FOUND_MESSAGE);
+    expect(err.extensions?.code).toEqual(NOT_FOUND_ERROR_CODE);
+  });
+
+  test('it uses the error message provided', () => {
+    const errMsg = casual.sentence;
+    const err = NotFoundError(errMsg);
+    expect(err).toBeInstanceOf(GraphQLError);
+    expect(err.message).toEqual(errMsg);
+    expect(err.extensions?.code).toEqual(NOT_FOUND_ERROR_CODE);
+  });
+});
+
 describe('Bad Request error', () => {
   test('returns a GraphQLError with the default error message', () => {
     const err = BadRequestError();

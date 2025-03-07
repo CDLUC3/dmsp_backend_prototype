@@ -1,171 +1,294 @@
-import { DMPHubAPI } from '../dmphubAPI';
+import nock from 'nock';
+import {
+  DMPHubAPI,
+  Authorizer,
+  DMPIdentifierType,
+  DMPPrivacy,
+  DMPStatus,
+  DMPYesNoUnknown
+} from '../dmphubAPI';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { JWTAccessToken } from '../../services/tokenService';
-import { DmspModel as Dmsp } from '../../models/Dmsp';
+import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
+import { DMPHubConfig } from '../../config/dmpHubConfig';
 import casual from 'casual';
-import { ContributorRole } from '../../models/ContributorRole';
+import { getRandomEnumValue } from '../../__tests__/helpers';
+
+jest.mock('../../context.ts');
 
 let mockError;
+let dmp;
 
 beforeEach(() => {
   jest.clearAllMocks();
 
   mockError = jest.fn();
   (logger.error as jest.Mock) = mockError;
+
+  dmp = {
+    dmphub_provenance_id: casual.word,
+    dmproadmap_featured: casual.boolean,
+    dmproadmap_privacy: getRandomEnumValue(DMPPrivacy),
+    dmproadmap_status: getRandomEnumValue(DMPStatus),
+    created: casual.date('YYYY-MM-DD'),
+    modified: casual.date('YYYY-MM-DD'),
+    title: casual.title,
+    language: 'eng',
+    ethical_issues_exist: getRandomEnumValue(DMPYesNoUnknown),
+    dmp_id: { identifier: casual.url, type: getRandomEnumValue(DMPIdentifierType) },
+    contact: {
+      mbox: casual.email,
+      name: casual.name,
+      contact_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.uuid },
+      dmproadmap_affiliation: {
+        name: casual.company_name,
+        affiliation_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.url },
+      }
+    },
+    dataset: [{
+      type: casual.word,
+      title: casual.title,
+      dataset_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.url },
+      sensitive_data: getRandomEnumValue(DMPYesNoUnknown),
+      personal_data: getRandomEnumValue(DMPYesNoUnknown),
+    }],
+    project: [{ title: casual.title }],
+  }
 });
 
-// Mock RESTDataSource.get method
+// Mock RESTDataSource methods
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockGet = jest.spyOn(RESTDataSource.prototype as any, 'get');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockPost = jest.spyOn(RESTDataSource.prototype as any, 'post');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockPut = jest.spyOn(RESTDataSource.prototype as any, 'put');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockDelete = jest.spyOn(RESTDataSource.prototype as any, 'delete');
 
-describe('DMPHubAPI', () => {
+describe('Authorizer', () => {
+  let authorizer: Authorizer;
+
+  beforeEach(() => {
+    mockPost.mockClear();
+    authorizer = Authorizer.instance;
+
+    // Set up nock to intercept the OAuth2 token request
+    nock(DMPHubConfig.dmpHubAuthURL)
+      .post('/oauth2/token')
+      .reply(200, { access_token: 'test_token' });
+  });
+
+  afterEach(() => {
+    // Clean up all mocks after each test
+    nock.cleanAll();
+  });
+
+  it('should create a singleton instance', () => {
+    const instance1 = Authorizer.instance;
+    const instance2 = Authorizer.instance;
+    expect(instance1).toBe(instance2); // Both should be the same instance
+  });
+
+  it('should encode credentials and call authenticate method', async () => {
+    const mockResponse = { access_token: 'test_token' };
+    mockPost.mockResolvedValue(mockResponse);
+    await authorizer.authenticate();
+
+    expect(mockPost).toHaveBeenCalledWith(`/oauth2/token`);
+    expect(authorizer.oauth2Token).toBe('test_token');
+    expect(logger.info).toHaveBeenCalledWith('Authenticating with DMPHub');
+  });
+
+  it('should check token expiration', () => {
+    const expiredDate = new Date(Date.now() - 600 * 1000); // Set expired date
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (authorizer as any).expiry = expiredDate;
+    expect(authorizer.hasExpired()).toBe(true);
+  });
+
+  it('should correctly set request headers in willSendRequest', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const request: any = { headers: {}, body: '' };
+
+    authorizer.willSendRequest('/oauth2/token', request);
+
+    const creds = Buffer.from(`${DMPHubConfig.dmpHubClientId}:${DMPHubConfig.dmpHubClientSecret}`).toString('base64');
+    expect(request.headers['authorization']).toBe(`Basic ${creds}`);
+    expect(request.headers['content-type']).toBe('application/x-www-form-urlencoded');
+    expect(request.body).toContain('grant_type=client_credentials');
+  });
+});
+
+describe('DMPToolAPI', () => {
   let dmphubAPI: DMPHubAPI;
 
   beforeEach(() => {
     mockGet.mockClear();
 
-    // Mock environment variable
-    process.env.DMPHUB_API_BASE_URL = 'https://dmphub.example.com';
-
-    // Initialize the class
+    // Initialize DMPToolAPI
     dmphubAPI = new DMPHubAPI({
       cache: {} as KeyValueCache,
       token: {} as JWTAccessToken,
     });
   });
 
-  describe('dmspIdWithoutProtocol', () => {
-    it('should remove protocol and keep the rest of the DMSP ID', () => {
-      const dmspId = 'https://example.com/dmsp';
-      const result = dmphubAPI.dmspIdWithoutProtocol(dmspId);
-      expect(result).toBe('example.com/dmsp');
-    });
+  describe('willSendRequest', () => {
+    it('should re-authenticate if token has expired and set headers', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const request: any = { headers: {} };
 
-    it('should handle encoded slashes and preserve them', () => {
-      const dmspId = 'https://example.com%2Fdmsp';
-      const result = dmphubAPI.dmspIdWithoutProtocol(dmspId);
-      expect(result).toBe('example.com/dmsp');
-    });
-  });
+      // Mock token expiration and authentication
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(true);
+      jest.spyOn(Authorizer.instance, 'authenticate').mockResolvedValue(undefined);
+      Authorizer.instance.oauth2Token = 'new_test_token';
 
-  describe('getDMSPs', () => {
-    it('should call RESTDataSource.get with the correct endpoint', async () => {
-      const mockDMSPs: Dmsp[] = [{
-        title: casual.sentence,
-        isFeatured: 'no',
-        description: casual.sentences(5),
-        primaryContact: {
-          name: casual.name,
-          mbox: casual.email,
-          affiliation: {
-            name: casual.company_name,
-            ror: casual.url,
-            affiliation_id: casual.url,
-          },
-          orcid: casual.url,
-        },
-        contributors: [{
-          name: casual.name,
-          mbox: casual.email,
-          role: [new ContributorRole({})],
-          orcid: casual.url,
-          affiliation: {
-            name: casual.company_name,
-            ror: casual.url,
-            affiliation_id: casual.url,
-          }
-        }],
-        hasEthicalConcerns: 'yes',
-        ethicalConcernsDescription: casual.sentences(3),
-        ethicalConcernsReportURL: casual.url,
-        visibility: 'PUBLIC',
-        language: 'eng',
-        created: new Date().toISOString(),
-        modified: new Date().toISOString(),
-      }];
-      mockGet.mockResolvedValue(mockDMSPs);
+      dmphubAPI.willSendRequest('/affiliations', request);
 
-      const result = await dmphubAPI.getDMSPs();
-      expect(mockGet).toHaveBeenCalledWith('dmps');
-      expect(result).toEqual(mockDMSPs);
+      expect(Authorizer.instance.authenticate).toHaveBeenCalled();
+      expect(request.headers['authorization']).toBe('Bearer new_test_token');
     });
   });
 
-  describe('getDMSP', () => {
-    it('should log and call RESTDataSource.get with the correct DMSP ID', async () => {
+  describe('getDMP', () => {
+    it('should call get with the correct dmpId and the latest version by default', async () => {
+      const context = buildContext(logger, mockToken(), new MockCache());
+      const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
-        items: [{ dmp: { id: '123' } }],
+        items: [{ dmp: { dmp_id: `https://doi.org/${dmpId}`, title: 'Test DMP' } }]
       };
       mockGet.mockResolvedValue(mockResponse);
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const dmspID = 'https://example.com/dmsp/123';
-      const result = await dmphubAPI.getDMSP(dmspID);
+      await dmphubAPI.getDMP(context, dmpId);
 
-      // Ensure the log message is correct
-      expect(formatLogMessage(logger).info).toHaveBeenCalledWith(
-        `Calling DMPHub: https://dmphub.example.com/dmps/${dmspID}`
+      expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=LATEST`);
+      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
+        `dmphubAPI.getDMP Calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
       );
-
-      // Ensure the RESTDataSource.get is called with the correct ID
-      expect(mockGet).toHaveBeenCalledWith('dmps/example.com/dmsp/123');
-
-      // Ensure the handleResponse logic is called and processes the mock response
-      expect(result).toEqual({
-        code: 200,
-        success: true,
-        message: 'Ok',
-        dmsp: { id: '123' },
-      });
     });
 
-    it('should handle errors gracefully and log them', async () => {
-      const mockError = new Error('API error');
-      mockGet.mockRejectedValue(mockError);
+    it('should call get with the correct dmpId and the specified version', async () => {
+      const context = buildContext(logger, mockToken(), new MockCache());
+      const dmpId = '11.22222/3C4D5E6G';
+      const mockResponse = {
+        status: 200,
+        items: [{ dmp: { dmp_id: `https://doi.org/${dmpId}`, title: 'Test DMP' } }]
+      };
+      mockGet.mockResolvedValue(mockResponse);
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      const dmspID = 'https://example.com/dmsp/123';
+      await dmphubAPI.getDMP(context, dmpId, '1234', 'getDMP');
 
-      await expect(dmphubAPI.getDMSP(dmspID)).rejects.toThrow('API error');
-
-      // Ensure the error was logged
-      expect(formatLogMessage(logger, { err: mockError }).error).toHaveBeenCalledWith(
-        'Error calling DMPHub API getDMSP.'
+      expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=1234`);
+      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
+        `getDMP Calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
       );
+    });
+
+    it('should throw and error when get fails', async () => {
+      const context = buildContext(logger);
+      const dmpId = '11.22222/3C4D5E6G';
+      const mockError = new Error('API error');
+      //mockGet.mockRejectedValue(mockError);
+      mockGet.mockImplementation(() => { throw mockError });
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
+
+      await expect(dmphubAPI.getDMP(context, `http://localhost:3000/dmphub/dmps/${dmpId}`)).rejects.toThrow('API error');
     });
   });
 
-  describe('handleResponse', () => {
-    it('should return a success response when status is 200', () => {
-      const response = {
+  describe('createDMP', () => {
+    it('should create the DMP', async () => {
+      const context = buildContext(logger, mockToken(), new MockCache());
+      const dmpId = '11.22222/3C4D5E6G';
+      const mockResponse = {
         status: 200,
-        items: [{ dmp: { id: '123' } }],
+        items: [{
+          dmp: {
+            ...dmp,
+            dmp_id: { type: 'doi', identifier: dmpId }
+          }
+        }]
       };
-      const result = dmphubAPI.handleResponse(response);
+      mockPost.mockResolvedValue(mockResponse);
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
+      await dmphubAPI.createDMP(context, dmp);
 
-      expect(result).toEqual({
-        code: 200,
-        success: true,
-        message: 'Ok',
-        dmsp: { id: '123' },
-      });
+      expect(mockPost).toHaveBeenCalledWith(`dmps`, { body: JSON.stringify({ dmp }) });
+      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
+        `dmphubAPI.createDMP Calling DMPHub Create: ${DMPHubConfig.dmpHubURL}/dmps`
+      );
     });
 
-    it('should return an error response when status is not 200', () => {
-      const response = {
-        status: 400,
-        errors: ['Bad request'],
-        items: [],
-      };
-      const result = dmphubAPI.handleResponse(response);
+    it('should throw and error when get fails', async () => {
+      const context = buildContext(logger);
+      const mockError = new Error('API error');
+      mockPost.mockImplementation(() => { throw mockError });
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
-      expect(result).toEqual({
-        code: 400,
-        success: false,
-        message: 'Bad request',
-        dmsp: undefined,
-      });
+      await expect(dmphubAPI.createDMP(context, dmp)).rejects.toThrow('API error');
+    });
+  });
+
+  describe('updateDMP', () => {
+    it('should update the DMP', async () => {
+      const context = buildContext(logger, mockToken(), new MockCache());
+      const mockResponse = {
+        status: 200,
+        items: [{ dmp }]
+      };
+      const dmpId = '11.22222/3C4D5E6G';
+      dmp.dmp_id = { type: 'doi', identifier: dmpId };
+      mockPut.mockResolvedValue(mockResponse);
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
+      await dmphubAPI.updateDMP(context, dmp);
+
+      expect(mockPut).toHaveBeenCalledWith(`dmps/${dmpId}`, { body: JSON.stringify({ dmp }) });
+      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
+        `dmphubAPI.updateDMP Calling DMPHub Update: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
+      );
+    });
+
+    it('should throw and error when get fails', async () => {
+      const context = buildContext(logger);
+      const mockError = new Error('API error');
+      mockPut.mockImplementation(() => { throw mockError });
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
+
+      await expect(dmphubAPI.updateDMP(context, dmp)).rejects.toThrow('API error');
+    });
+  });
+
+  describe('tombstoneDMP', () => {
+    it('should tombstone the DMP', async () => {
+      const context = buildContext(logger, mockToken(), new MockCache());
+      const mockResponse = {
+        status: 200,
+        items: [{ dmp }]
+      };
+      const dmpId = '11.22222/3C4D5E6G';
+      dmp.dmp_id = { type: 'doi', identifier: dmpId };
+      mockDelete.mockResolvedValue(mockResponse);
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
+      await dmphubAPI.tombstoneDMP(context, dmp);
+
+      expect(mockDelete).toHaveBeenCalledWith(`dmps/${dmpId}`);
+      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
+        `dmphubAPI.tombstoneDMP Calling DMPHub Tombstone: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
+      );
+    });
+
+    it('should throw and error when get fails', async () => {
+      const context = buildContext(logger);
+      const mockError = new Error('API error');
+      mockDelete.mockImplementation(() => { throw mockError });
+      jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
+
+      await expect(dmphubAPI.tombstoneDMP(context, dmp)).rejects.toThrow('API error');
     });
   });
 });

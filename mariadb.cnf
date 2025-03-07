@@ -1,0 +1,3 @@
+[mysqld]
+innodb=ON
+default_storage_engine=InnoDB

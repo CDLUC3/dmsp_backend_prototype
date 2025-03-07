@@ -141,7 +141,7 @@ describe('cloneQuestion', () => {
     expect(copy.sampleText).toEqual(sampleText);
     expect(copy.requirementText).toEqual(requirementText);
     expect(copy.guidanceText).toEqual(guidanceText);
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.displayOrder).toEqual(displayOrder);
     expect(copy.required).toEqual(false);
     expect(copy.isDirty).toEqual(true);
@@ -176,7 +176,7 @@ describe('cloneQuestion', () => {
     expect(copy.sampleText).toEqual(published.sampleText);
     expect(copy.requirementText).toEqual(published.requirementText);
     expect(copy.guidanceText).toEqual(published.guidanceText);
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.createdById).toEqual(clonedById);
     expect(copy.displayOrder).toEqual(published.displayOrder);
     expect(copy.required).toEqual(false);
@@ -243,7 +243,7 @@ describe('generateQuestionVersion', () => {
       obj.modifed = tstamp;
       obj.modifiedById = userId;
 
-      switch(table) {
+      switch (table) {
         case 'questions': {
           questionStore.push(obj);
           break;
@@ -266,7 +266,7 @@ describe('generateQuestionVersion', () => {
         obj.modifiedById = userId;
       }
 
-      switch(table) {
+      switch (table) {
         case 'questions': {
           const existing = questionStore.find((entry) => { return entry.id === obj.id });
           if (!existing) {
@@ -299,14 +299,14 @@ describe('generateQuestionVersion', () => {
   it('does not version if the VersionedQuestion could not be created', async () => {
     const question = questionStore[0];
     const versioned = new VersionedQuestion({ questionId: question.id });
-    versioned.errors = ['Test failure'];
+    versioned.errors = { general: 'Test failure' };
 
     (context.dataSources.sqlDataSource.query as jest.Mock).mockResolvedValueOnce(null);
     (VersionedQuestion.insert as jest.Mock) = mockInsert;
     const mockFindByFailure = jest.fn().mockImplementation(() => { return versioned; });
     (VersionedQuestion.findById as jest.Mock) = mockFindByFailure;
 
-    const err = `Unable to generateQuestionVersion for versionedQuestion errs: Test failure`;
+    const err = `Unable to create new version for question: ${question.id}`;
     expect(async () => {
       await generateQuestionVersion(context, question, casual.integer(1, 999), casual.integer(1, 999));
     }).rejects.toThrow(Error(err));
@@ -315,7 +315,7 @@ describe('generateQuestionVersion', () => {
   it('does not version if the Question could not be updated', async () => {
     const question = questionStore[0];
     const updated = new Question({ id: question.id });
-    updated.errors = ['Test failure'];
+    updated.errors = { general: 'Test failure' };
 
     (VersionedQuestion.insert as jest.Mock) = mockInsert;
     (VersionedQuestion.findById as jest.Mock) = mockFindVersionedQuestionById;
@@ -323,7 +323,7 @@ describe('generateQuestionVersion', () => {
     (Question.update as jest.Mock) = mockUpdate;
     (Question.findById as jest.Mock) = mockUpdateFailure;
 
-    const err = `Unable to generateQuestionVersion for question: ${question.id}, errs: Test failure`;
+    const err = `Unable to set isDirty flag on question: ${question.id}`;
     expect(async () => {
       await generateQuestionVersion(context, question, casual.integer(1, 999), casual.integer(1, 999))
     }).rejects.toThrow(Error(err));
@@ -419,7 +419,7 @@ describe('generateQuestionConditionVersion', () => {
       obj.modifed = tstamp;
       obj.modifiedById = userId;
 
-      switch(table) {
+      switch (table) {
         case 'questionConditions': {
           questionConditionStore.push(obj);
           break;
@@ -442,7 +442,7 @@ describe('generateQuestionConditionVersion', () => {
         obj.modifiedById = userId;
       }
 
-      switch(table) {
+      switch (table) {
         case 'questionConditions': {
           const existing = questionConditionStore.find((entry) => { return entry.id === obj.id });
           if (!existing) {
@@ -475,14 +475,14 @@ describe('generateQuestionConditionVersion', () => {
   it('does not version if the VersionedQuestionCondition could not be created', async () => {
     const questionCondition = questionConditionStore[0];
     const versioned = new VersionedQuestionCondition({ questionId: questionCondition.id });
-    versioned.errors = ['Test failure'];
+    versioned.errors = { general: 'Test failure' };
 
     (context.dataSources.sqlDataSource.query as jest.Mock).mockResolvedValueOnce(null);
     (VersionedQuestionCondition.insert as jest.Mock) = mockInsert;
     const mockFindByFailure = jest.fn().mockImplementation(() => { return versioned; });
     (VersionedQuestionCondition.findById as jest.Mock) = mockFindByFailure;
 
-    const err = `Unable to generateQuestionConditionVersion for questionCondition errs: Test failure`;
+    const err = `Unable to generate a new version for questionCondition: ${questionCondition.id}`;
     expect(async () => {
       await generateQuestionConditionVersion(context, questionCondition, casual.integer(1, 999));
     }).rejects.toThrow(Error(err));

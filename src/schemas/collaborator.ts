@@ -6,7 +6,7 @@ export const typeDefs = gql`
     templateCollaborators(templateId: Int!): [TemplateCollaborator]
 
     "Get all of the Users that are collaborators for the Plan"
-    planCollaborators(planId: Int!): [PlanCollaborator]
+    planCollaborators(planId: Int!): [ProjectCollaborator]
 
     "Search for a User to add as a collaborator"
     findCollaborator(term: String): [CollaboratorSearchResult]
@@ -16,23 +16,23 @@ export const typeDefs = gql`
     "Add a collaborator to a Template"
     addTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
     "Remove a TemplateCollaborator from a Template"
-    removeTemplateCollaborator(templateId: Int!, email: String!): Boolean
+    removeTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
 
     "Add a collaborator to a Plan"
-    addPlanCollaborator(planId: Int!, email: String!): PlanCollaborator
+    addProjectCollaborator(planId: Int!, email: String!): ProjectCollaborator
     "Chnage a collaborator's accessLevel on a Plan"
-    updatePlanCollaborator(planCollaboratorId: Int!, accessLevel: PlanCollaboratorAccessLevel!): PlanCollaborator
-    "Remove a PlanCollaborator from a Plan"
-    removePlanCollaborator(planCollaboratorId: Int!): Boolean
+    updateProjectCollaborator(projectCollaboratorId: Int!, accessLevel: ProjectCollaboratorAccessLevel!): ProjectCollaborator
+    "Remove a ProjectCollaborator from a Plan"
+    removeProjectCollaborator(projectCollaboratorId: Int!): ProjectCollaborator
   }
 
-  enum PlanCollaboratorAccessLevel {
+  enum ProjectCollaboratorAccessLevel {
     "The user is ONLY able to comment on the Plan's answers"
-    COMMENTER
-    "The user is able to comment and edit the Plan's answers, add/edit/delete contributors and research outputs"
-    EDITOR
+    COMMENT
+    "The user is able to perform most actions on a Project/Plan except (publish, mark as complete and change access)"
+    EDIT
     "The user is able to perform all actions on a Plan (typically restricted to the owner/creator)"
-    ADMIN
+    OWN
   }
 
   "A user that that belongs to a different affiliation that can edit the Template"
@@ -48,7 +48,7 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: TemplateCollaboratorErrors
 
     "The template the collaborator may edit"
     template: Template
@@ -60,8 +60,19 @@ export const typeDefs = gql`
     invitedBy: User
   }
 
+  "A collection of errors related to the TemplateCollaborator"
+  type TemplateCollaboratorErrors {
+    "General error messages such as the object already exists"
+    general: String
+
+    templateId: String
+    email: String
+    userId: String
+    invitedById: String
+  }
+
   "A user that that belongs to a different affiliation that can edit the Plan"
-  type PlanCollaborator {
+  type ProjectCollaborator {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"
@@ -73,10 +84,12 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: [String!]
+    errors: ProjectCollaboratorErrors
 
     "The plan the collaborator may edit"
     plan: Plan
+    "The ProjectContributor id"
+    projectContributorId: Int
     "The collaborator's email"
     email: String!
     "The collaborator (if they have an account)"
@@ -84,7 +97,19 @@ export const typeDefs = gql`
     "The user who invited the collaborator"
     invitedBy: User
     "The user's access level"
-    accessLevel: PlanCollaboratorAccessLevel
+    accessLevel: ProjectCollaboratorAccessLevel
+  }
+
+  "A collection of errors related to the ProjectCollaborator"
+  type ProjectCollaboratorErrors {
+    "General error messages such as affiliation already exists"
+    general: String
+
+    planId: String
+    email: String
+    userId: String
+    invitedById: String
+    accessLevel: String
   }
 
   "The result of the findCollaborator query"

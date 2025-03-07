@@ -2,8 +2,8 @@ import Keyv from "keyv";
 import KeyvRedis from "@keyv/redis";
 import Redis from "ioredis";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
-import { autoFailoverEnabled, cacheConfig, connectTimeout } from "../config/cacheConfig";
-import { logger, formatLogMessage } from '../logger';
+import { cacheConfig } from "../config/cacheConfig";
+import { logger } from '../logger';
 
 // Note that Redis cache clusters require you to wrap keys in `{}` to ensure that they are stored
 // near one another and are able to be set and fetched.
@@ -16,15 +16,15 @@ export class Cache {
     let cache;
 
     // Setup the Redis Cluster
-    formatLogMessage(logger).info(cacheConfig, 'Attempting to connect to Redis');
+    logger.info(cacheConfig, 'Attempting to connect to Redis');
 
     if (['development', 'test'].includes(process.env.NODE_ENV)) {
       // We are running locally, so use we are dealing with a single Redis node
-      cache = new Redis({ ...cacheConfig, connectTimeout });
+      cache = new Redis({ ...cacheConfig });
 
     } else {
       // We are running in the AW environment with an Elasticache
-      if (autoFailoverEnabled === 'true') {
+      if (cacheConfig.autoFailoverEnabled === 'true') {
         // ElastiCache instances with Auto-failover enabled, reconnectOnError does not execute.
         // Instead of returning a Redis error, AWS closes all connections to the master endpoint
         // until the new primary node is ready. ioredis reconnects via retryStrategy instead of
@@ -54,15 +54,15 @@ export class Cache {
     const keyV = new Keyv(new KeyvRedis(cache)) as any;
 
     keyV.on('connect', () => {
-      formatLogMessage(logger).info(null, `Redis connection established`);
+      logger.info(null, `Redis connection established`);
     });
 
     keyV.on('error', (err) => {
-      formatLogMessage(logger).error(err, `Redis connection error - ${err.message}`);
+      logger.error(err, `Redis connection error - ${err.message}`);
     });
 
     keyV.on('close', () => {
-      formatLogMessage(logger).info( null, `Redis connection closed`);
+      logger.info( null, `Redis connection closed`);
     });
 
     // Set the Adapter which will be used to interact with the cache

@@ -42,13 +42,13 @@ describe('Template', () => {
     expect(template.modified).toBeTruthy();
     expect(template.latestPublishVersion).toBeFalsy();
     expect(template.isDirty).toBeTruthy();
-    expect(template.errors).toEqual([]);
+    expect(template.errors).toEqual({});
     expect(template.languageId).toEqual(defaultLanguageId);
   });
 
-  it('should cleanup the data', () => {
+  it('should prepForSave the data', () => {
     template.languageId = 'test';
-    template.cleanup();
+    template.prepForSave();
     expect(template.languageId).toEqual(defaultLanguageId);
   });
 
@@ -59,22 +59,22 @@ describe('Template', () => {
   it('isValid returns false if the ownerId is null', async () => {
     template.ownerId = null;
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Owner')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['ownerId'].includes('Owner')).toBe(true);
   });
 
   it('isValid returns false if the name is null', async () => {
     template.name = null;
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Name')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['name'].includes('Name')).toBe(true);
   });
 
   it('isValid returns false if the name is blank', async () => {
     template.name = '';
     expect(await template.isValid()).toBe(false);
-    expect(template.errors.length).toBe(1);
-    expect(template.errors[0].includes('Name')).toBe(true);
+    expect(Object.keys(template.errors).length).toBe(1);
+    expect(template.errors['name'].includes('Name')).toBe(true);
   });
 });
 
@@ -152,7 +152,7 @@ describe('findBy queries', () => {
     expect(result).toEqual(null);
   });
 
-  it('findByUser returns the Templates owned by the current user\'s Affiliation', async () => {
+  it('findByAffiliationId returns the Templates owned by the current user\'s Affiliation', async () => {
     localQuery.mockResolvedValueOnce([template]);
 
     const mockFindByEmail = jest.fn();
@@ -160,14 +160,14 @@ describe('findBy queries', () => {
     mockFindByEmail.mockResolvedValueOnce([]);
 
     const affiliationId = context.token.affiliationId;
-    const result = await Template.findByUser('Test', context);
+    const result = await Template.findByAffiliationId('Test', context, context.token.affiliationId);
     const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
     expect(result).toEqual([template]);
   });
 
-  it('findByUser returns the Templates shared with the current user', async () => {
+  it('findByAffiliationId returns the Templates shared with the current user', async () => {
     localQuery.mockResolvedValueOnce([template]);
 
     const sharedTemplate = new Template({
@@ -181,14 +181,14 @@ describe('findBy queries', () => {
     mockFindByEmail.mockResolvedValueOnce([sharedTemplate]);
 
     const affiliationId = context.token.affiliationId;
-    const result = await Template.findByUser('Test', context);
+    const result = await Template.findByAffiliationId('Test', context, context.token.affiliationId);
     const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
-    expect(result).toEqual([template, sharedTemplate]);
+    expect(result).toEqual([template]);
   });
 
-  it('findByUser returns null if there are no Templates for the current user', async () => {
+  it('findByAffiliationId returns null if there are no Templates for the current user', async () => {
     localQuery.mockResolvedValueOnce([]);
 
     const mockFindByEmail = jest.fn();
@@ -196,7 +196,7 @@ describe('findBy queries', () => {
     mockFindByEmail.mockResolvedValueOnce([]);
 
     const affiliationId = context.token.affiliationId;
-    const result = await Template.findByUser('Test', context);
+    const result = await Template.findByAffiliationId('Test', context, context.token.affiliationId);
     const expectedSql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
@@ -233,7 +233,8 @@ describe('create', () => {
     (template.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await template.create(context)).toBe(template);
+    const result = await template.create(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -249,8 +250,8 @@ describe('create', () => {
     const result = await template.create(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Template with this name already exists');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the newly added Template', async () => {
@@ -272,8 +273,8 @@ describe('create', () => {
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(template);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Template);
   });
 });
 
@@ -298,7 +299,8 @@ describe('update', () => {
     (template.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await template.update(context)).toBe(template);
+    const result = await template.update(context);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -309,8 +311,8 @@ describe('update', () => {
 
     template.id = null;
     const result = await template.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Template has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated Template', async () => {
@@ -327,8 +329,8 @@ describe('update', () => {
     const result = await template.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(template);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Template);
   });
 });
 
@@ -344,24 +346,66 @@ describe('delete', () => {
     });
   })
 
-  it('returns false if the Template has no id', async () => {
+  it('returns null if the Template has no id', async () => {
     template.id = null;
-    expect(await template.delete(context)).toBe(false);
+    expect(await template.delete(context)).toBe(null);
   });
 
-  it('returns false if it was not able to delete the record', async () => {
+  it('returns null if it was not able to delete the record', async () => {
     const deleteQuery = jest.fn();
     (Template.delete as jest.Mock) = deleteQuery;
 
     deleteQuery.mockResolvedValueOnce(null);
-    expect(await template.delete(context)).toBe(false);
+    expect(await template.delete(context)).toBe(null);
   });
 
-  it('returns true if it was able to delete the record', async () => {
+  it('returns the Template if it was able to delete the record', async () => {
     const deleteQuery = jest.fn();
     (Template.delete as jest.Mock) = deleteQuery;
-
     deleteQuery.mockResolvedValueOnce(template);
-    expect(await template.delete(context)).toBe(true);
+    const findById = jest.fn();
+    (Template.findById as jest.Mock) = findById;
+    findById.mockResolvedValueOnce(template);
+
+    const result = await template.delete(context);
+    expect(result).toBeInstanceOf(Template);
+    expect(result.errors).toEqual({});
+  });
+});
+
+describe('markTemplateAsDirty', () => {
+  let template;
+  let context;
+
+  beforeEach(() => {
+    context = buildContext(logger, mockToken());
+
+    template = new Template({
+      id: casual.integer(1, 99),
+      createdById: casual.integer(1, 999),
+      ownerId: casual.url,
+      name: casual.sentence,
+      isDirty: false,
+    });
+
+    jest.spyOn(Template, 'findById').mockResolvedValue(template);
+    jest.spyOn(template, 'update').mockResolvedValue(template);
+  });
+
+  it('should mark the template as dirty if it exists', async () => {
+    await Template.markTemplateAsDirty('Test', context, template.id);
+
+    expect(Template.findById).toHaveBeenCalledWith('Test', context, template.id);
+    expect(template.isDirty).toBe(true);
+    expect(template.update).toHaveBeenCalledWith(context);
+  });
+
+  it('should not call update if the template does not exist', async () => {
+    jest.spyOn(Template, 'findById').mockResolvedValue(null);
+
+    await Template.markTemplateAsDirty('Test', context, template.id);
+
+    expect(Template.findById).toHaveBeenCalledWith('Test', context, template.id);
+    expect(template.update).not.toHaveBeenCalled();
   });
 });

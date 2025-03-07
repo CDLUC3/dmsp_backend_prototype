@@ -19,9 +19,10 @@ jest.mock('../config/awsConfig', () => ({
 jest.mock('../config/cacheConfig', () => ({
   cacheConfig: {
     host: 'localhost',
-    port: '6379'
+    port: '6379',
+    connectTimeout: 10000,
+    autoFailoverEnabled: 'false',
   },
-  cacheTLS: 'redis://localhost:123'
 }));
 
 jest.mock('../config/emailConfig', () => ({
@@ -31,12 +32,44 @@ jest.mock('../config/emailConfig', () => ({
   }
 }));
 
+jest.mock('../config/dmpHubConfig', () => ({
+  DMPHubConfig: {
+    dmpHubAuthURL: 'http://auth.dmphub.example.com',
+    dmpHubURL: 'http://api.dmphub.example.com',
+    dmpHubClientId: '1234567890',
+    dmpHubClientSecret: '0987654321',
+    dmpHubCacheTTL: 3000,
+    dmpHubProvenance: 'testing',
+  }
+}));
+
+jest.mock('../config/mysqlConfig', () => ({
+  mysqlPoolConfig: {
+    host: 'localhost',
+    port: 3306,
+    database: 'testdb',
+    user: 'root',
+    password: 'testpassword',
+  },
+  mysqlGeneralConfig: {
+    queueLimit: 100,
+    connectTimeout: 60000,
+  }
+}));
+
 jest.mock('../config/generalConfig', () => ({
   generalConfig: {
     env: 'test',
     domain: 'localhost:3000',
     applicationName: 'My test app',
     defaultAffiliatioURI: 'https://ror.org/1234abcd',
+
+    dmpIdBaseURL: 'http://dmsp.com/',
+    dmpIdShoulder: '11.22222/C3',
+
+    orcidBaseURL: 'http://orcid.example.com/',
+    rorBaseURL: 'http://ror.example.com/',
+
     jwtSecret: 'testJwtSecret',
     jwtTTL: 30,
     jwtRefreshSecret: 'testJwtRefreshSecret',

@@ -1,17 +1,14 @@
 import 'jest-expect-message';
-import { LogInType, User, UserRole } from '../User';
+import { DEFAULT_ORCID_URL, LogInType, User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { logger } from '../../__mocks__/logger';
-import { buildContext } from '../../context';
 import { defaultLanguageId, supportedLanguages } from '../Language';
-import { mockToken } from '../../__mocks__/context';
+import { mockToken, buildContext } from '../../__mocks__/context';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 
 jest.mock('../../context.ts');
 
-let mockDebug;
-let mockError;
 let mockQuery;
 let mockUser;
 let mockContext;
@@ -28,7 +25,7 @@ describe('constructor', () => {
       role: UserRole.ADMIN,
       givenName: casual.first_name,
       surName: casual.last_name,
-      orcid: '0000-0000-0000-000X',
+      orcid: `${DEFAULT_ORCID_URL}0000-0000-0000-000X`,
       ssoId: casual.uuid,
       languageId: lang.id,
     }
@@ -79,20 +76,78 @@ describe('constructor', () => {
   });
 });
 
-describe('cleanup standardizes the format of properties', () => {
+describe('prepForSave standardizes the format of properties', () => {
   it('should properly format the properties', () => {
     const user = new User({
       email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
+      orcid: `${DEFAULT_ORCID_URL}0000-0000-0000-000X`,
     });
-    user.cleanup();
+    user.prepForSave();
     expect(user.email).toEqual('TESTer@exaMPle.cOm');
     expect(user.givenName).toEqual('Test');
     expect(user.surName).toEqual('User');
     expect(user.role).toEqual(UserRole.RESEARCHER);
     expect(user.languageId).toEqual(defaultLanguageId);
+    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+});
+
+describe('prepForSave properly handles ORCIDs', () => {
+  it('should null out invalid ORCIDs', () => {
+    const user = new User({
+      email: 'TESTer%40exaMPle.cOm',
+      givenName: ' Test ',
+      surName: '  user  ',
+      languageId: 'test',
+      orcid: '25t24g45g45g546gt',
+    });
+    user.prepForSave();
+    expect(user.orcid).toBeNull();
+  });
+
+  it('should handle the ORCID URL with no protocol', () => {
+    const user = new User({
+      email: 'TESTer%40exaMPle.cOm',
+      givenName: ' Test ',
+      surName: '  user  ',
+      languageId: 'test',
+      orcid: `${DEFAULT_ORCID_URL.replace(/https?:\/\//, '')}0000-0000-0000-000X`,
+    });
+    user.prepForSave();
+    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+
+  it('should handle the ORCID ID without base URL', () => {
+    const user = new User({
+      email: 'TESTer%40exaMPle.cOm',
+      givenName: ' Test ',
+      surName: '  user  ',
+      languageId: 'test',
+      orcid: `0000-0000-0000-000X`,
+    });
+    user.prepForSave();
+    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+});
+
+describe('formatORCID', () => {
+  // Test the ORCID formatting
+  it('should return null for an invalid ORCID', () => {
+    expect(User.formatORCID('25t24g45g45g546gt')).toBeNull();
+    expect(User.formatORCID('0000-0000-0000')).toBeNull();
+    expect(User.formatORCID(`${DEFAULT_ORCID_URL}/0000-0000-000`)).toBeNull();
+  });
+
+  it('should return the ORCID with the default URL', () => {
+    expect(User.formatORCID('0000-0000-0000-000X')).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+
+  it('should return the ORCID as is if it already a valid ORCID with the base URL', () => {
+    expect(User.formatORCID(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`)).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+    expect(User.formatORCID('https://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
   });
 });
 
@@ -110,9 +165,6 @@ describe('validate a new User', () => {
       createdById: casual.integer(1, 999),
       acceptedTerms: true,
     });
-
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
 
     mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
 
@@ -132,47 +184,32 @@ describe('validate a new User', () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.password = null;
     expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Password is required')).toBe(true);
-  });
-
-  it('should return false when we have an existing user', async () => {
-    mockQuery.mockResolvedValueOnce([{ id: 0, email: mockUser.email }]);
-    expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Email address already in use')).toBe(true);
+    expect(Object.keys(mockUser.errors).length).toBe(1);
+    expect(mockUser.errors['password']).toBeTruthy();
   });
 
   it('should return false when we have a new user without a valid email format', async () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.email = 'abcde';
     expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Invalid email address')).toBe(true);
-  });
-
-  it('should return false when we have a new user without an Affiliation', async () => {
-    mockQuery.mockResolvedValueOnce(null);
-    mockUser.affiliationId = null;
-    expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Affiliation')).toBe(true);
+    expect(Object.keys(mockUser.errors).length).toBe(1);
+    expect(mockUser.errors['email']).toBeTruthy();
   });
 
   it('should return false when we have a new user without an createdById', async () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.createdById = null;
     expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Created by')).toBe(true);
+    expect(Object.keys(mockUser.errors).length).toBe(1);
+    expect(mockUser.errors['createdById']).toBeTruthy();
   });
 
   it('should return false when we have a new user without a role', async () => {
     mockQuery.mockResolvedValueOnce(null);
     mockUser.role = null;
     expect(await mockUser.isValid()).toBe(false);
-    expect(mockUser.errors.length).toBe(1);
-    expect(mockUser.errors[0].includes('Role')).toBe(true);
+    expect(Object.keys(mockUser.errors).length).toBe(1);
+    expect(mockUser.errors['role']).toBeTruthy();
   });
 });
 
@@ -196,44 +233,44 @@ describe('Password validation', () => {
   it('should fail for a new user with a password that is too short', async () => {
     const user = new User({ email: 'test.user@example.com', password: 'abcde' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 uppercase letter', async () => {
     const user = new User({ password: 'abcd3fgh1jk' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
 
   it('should return error if password is missing', async () => {
     const user = new User({ email: 'test.user@example.com', password: null });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Password is required'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 lowercase letter', async () => {
     const user = new User({ email: 'test.user@example.com', password: 'ABCD3FGH1JKL' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 number letter', async () => {
     const user = new User({ email: 'test.user@example.com', password: 'Abcd$Fgh#jkL' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 special character', async () => {
     const user = new User({ email: 'test.user@example.com', password: 'Abcd3Fgh1jkL' });
     expect(user.validatePassword()).toBe(false);
-    expect(user.errors.length === 1);
-    expect(user.errors[0].includes('Invalid password'));
+    expect(Object.keys(user.errors).length === 1);
+    expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if it contains special characters that are not allowed', () => {
@@ -251,8 +288,6 @@ describe('authCheck', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-
     mockContext = buildContext(logger, null, null);
     const mockSqlDataSource = mockContext.dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -267,7 +302,7 @@ describe('authCheck', () => {
     const password = 'Abcd3Fgh1jkL$';
     mockQuery.mockResolvedValueOnce([])
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
-    expect(mockDebug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
   });
 
   it('it returns null if the password does not match', async () => {
@@ -279,7 +314,7 @@ describe('authCheck', () => {
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
-    expect(mockDebug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
   });
 
   it('it returns the user\'s id if the password matched', async () => {
@@ -292,7 +327,7 @@ describe('authCheck', () => {
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toEqual(12345);
-    expect(mockDebug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -365,9 +400,6 @@ describe('login()', () => {
     mockAuthCheck = jest.fn();
     (User.authCheck as jest.Mock) = mockAuthCheck;
 
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-
     mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -391,8 +423,8 @@ describe('login()', () => {
     const response = await user.login(context);
     expect(response).not.toBeNull();
     expect(mockUpdate).toHaveBeenCalledTimes(1);
-    expect(mockDebug).toHaveBeenCalledTimes(2);
-    expect(mockError).toHaveBeenCalledTimes(0);
+    expect(context.logger.debug).toHaveBeenCalledTimes(2);
+    expect(context.logger.error).toHaveBeenCalledTimes(0);
   });
 
   it('should return an error when authCheck does not return a userId', async () => {
@@ -409,7 +441,7 @@ describe('login()', () => {
     const user = new User({ email: 'test.user@example.com', password: 'AbcdefgH1!' });
     const response = await user.login(context);
     expect(response).toBeNull();
-    expect(mockError).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -426,11 +458,6 @@ describe('register()', () => {
     jest.resetAllMocks();
 
     context = buildContext(logger, mockToken());
-
-    mockDebug = logger.debug as jest.MockedFunction<typeof logger.debug>;
-    mockError = logger.error as jest.MockedFunction<typeof logger.error>;
-
-    mockContext = buildContext as jest.MockedFunction<typeof buildContext>;
 
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -472,9 +499,10 @@ describe('register()', () => {
       surName: 'simple',
       affiliationId: casual.url,
     });
+    mockQuery.mockResolvedValueOnce(user);
     const response = await user.register(context);
     expect(response).toBe(user);
-    expect(response.errors).toEqual(['You must accept the terms and conditions']);
+    expect(response.errors['acceptedTerms']).toBeTruthy();
   });
 
   it('should return user object if there was an error creating user', async () => {
@@ -495,10 +523,9 @@ describe('register()', () => {
       acceptedTerms: true
     });
 
-
     const response = await user.register(context);
-    expect(response).toBe(user);
-    expect(response.errors.length > 0).toBe(true);
+    expect(response).toBeInstanceOf(User);
+    expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
   it('should return the user with errors if there are errors validating the user', async () => {
@@ -520,7 +547,7 @@ describe('register()', () => {
 
     const response = await user.register(context);
     expect(response).toBeInstanceOf(User);
-    expect((response as User).errors.length > 0).toBe(true);
+    expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
   it('should return the user with errors if the terms were not accepted', async () => {
@@ -536,7 +563,7 @@ describe('register()', () => {
 
     const response = await user.register(context);
     expect(response).toBeInstanceOf(User);
-    expect((response as User).errors.length > 0).toBe(true);
+    expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 });
 
@@ -565,7 +592,9 @@ describe('update', () => {
     (user.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await user.update(context)).toBe(user);
+    const result = await user.update(context);
+    expect(result).toBeInstanceOf(User);
+    expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -576,8 +605,8 @@ describe('update', () => {
 
     user.id = null;
     const result = await user.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('User has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated User', async () => {
@@ -592,8 +621,8 @@ describe('update', () => {
     const result = await user.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(user);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(User);
   });
 
   it('prevents the password from being updated', async () => {
@@ -609,8 +638,8 @@ describe('update', () => {
     const result = await user.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(user);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(User);
   });
 });
 
@@ -669,7 +698,8 @@ describe('updatePassword', () => {
     mockAuthCheck.mockResolvedValueOnce(true);
     mockValidator.mockReturnValueOnce(false);
 
-    expect(await user.updatePassword(context, oldPassword, newPassword)).toBe(user);
+    const result = await user.updatePassword(context, oldPassword, newPassword);
+    expect(result).toBeInstanceOf(User);
     expect(mockAuthCheck).toHaveBeenCalledTimes(1);
     expect(mockValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).not.toHaveBeenCalled();

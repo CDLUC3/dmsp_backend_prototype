@@ -7,11 +7,11 @@ export class QuestionType extends MySqlModel {
   public isDefault: boolean;
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.name = options.name;
     this.usageDescription = options.usageDescription;
-    this.isDefault = options.isDefault || false;
+    this.isDefault = options.isDefault ?? false;
   }
 
   // Find all QuestionTypes

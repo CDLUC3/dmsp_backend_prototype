@@ -1,4 +1,30 @@
 ### Added
+- Added the `relatedWorks` data migration
+- Added model and resolvers for `RelatedWork`
+- Added model and resolvers mutations for `PlanContributor` and `PlanFunder`
+- Added the `Answer`, `AnswerComment` model and supporting resolvers
+- Added the `PlanVersion` table and model
+- Added a `commonStandardService` and a `planService`
+- Added the `apiTarget` to the `affiliations` table
+- Added `Plan`, `PlanFunder`, `PlanContributor`, `ProjectCollaborator`, `DMP` and `RelatedIdentifier` models
+- Added data-migration script to add additional columns to the `plans` table
+- Added data-migration to add `isPrimaryContact` flag to the `planContributors` table
+- Added new seed data-migration for `plans`, `planContributors`, `planFunders`
+- Added "mocks" for use in tests for `Affiliation`, `Collaborator` (Template/Project), `Contributor` (Project/Plan), `ContributorRole`, `Funder` (Project/Plan), `Plan`
+- Added a `findById` function to the `VersionedTemplate` model
+- Added a default ORCID base URL and regex to `User` model
+- Added `getMockDOI` and `getMockDMPId` helper functions for tests
+- Added an `IsNullOrUndefined` and `valueIsEmpty` (null, undefined or an empty string) helper functions
+- Added `config/dmpHubConfig.ts` for DMPHub specific configuration
+- Added `projectPlans` join table which acts as a bridge between the `projects` table in the MySQL database and the `plans` stored in the DMPHub DynamoDB table
+- Added model mocks for Affiliation and Collaborator
+- Added resolver integration tests for affilian and collaborator resolvers
+- Added `useSampleTextAsDefault` column to questions table and add `admins` to Template schema and chained it in the resolver
+- Added `requestId` to the Apollo context
+- Added `questionOptions` schema, resolver and `QuestionOption` model, which will be used for `option` question types
+- Added a new query to get all versionedTemplates, called `myVersionedTemplates`, under user's affiliation, and added a new method in the model called `findByAffiliationId`
+- Updated `templates` resolver to handle updates to `sections` and `questions` when copying a `template`
+- Added "remove" method to SectionTag model. Updated "updateSection" method in Section resolvers to remove sectionTags when user is updating their Section. Added "getTagsToRemove" method to the Section resolver. Added associated unit tests.
 - Added "lastPublishedDate" field to templates table, and changed "currentVersion" field to "lastPublishedVersion"
 - Added support for creating "other" affiliations
 - Added update and updatePassword to User
@@ -35,8 +61,33 @@
 - Data migrations for affiliations table
 - Added Project, ProjectContributor, ProjectFunder schemas and supporting tables
 - Added Plan, PlanContributor, PlanCollaborator, PlanFunder, PlanFeedback, PlanFeedbackComment, Answer and AnswerComment schemas and supporting tables
+- Added models and resolvers for MetadataStandard, Repository, ResearchDomain, and License
+- Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated the `dmpHubAPI` datasource to support CRUD operations
+- Updated the `Plan` resolver and model to support mutations
+- Updated the `Affiliation` schema and model to include the new `apiTarget` property.
+- Renamed old `planCollaborators` table to `projectCollaborators`
+- Renamed old `PlanCollaborator` resolved functions so that they point to `ProjectCollaborator` since we decided to capture that at the project level
+- Updated `ProjectService` permission check so that it looks at the ProjectCollaborators as well
+- Updated `QuestionCondition` model to return the object with functions
+- Updated `ContributorRole` model so that it has functions to associate them with `PlanContributor` records.
+- Moved config for `dmpHubAPI` from the datasource into a `config/dmphubConfig.ts` file
+- Removed old unused `Affiliation` methods from `dmpHubAPI` and added `getDMP` and `validate` (for use in the near future when syncing changes within our system and the DMPHub)
+- Updated structure of `cacheConfig.ts` to match other configs
+- Moved config for `MysSQLDataSource` from the datasource into its config file
+- Moved `SigTerm` handler tests for `MySQLDataSource` into a separate test file. They were failing for some reason when run together
+- Refactored `context.ts` and tests to use new `dmpHubAPI` datasource
+- Refactored old "mocks" to extract duplicative code into the `MySQLMock.ts`
+- Update existing resolver tests to use new mocks
+- Made sure all config entries were covered in the `__tests__/setup.ts`
+- Updated the `emailService` to support `projectCollaborators` instead of `planCollaborators`
+- Updated `question` and `section` resolvers to update `isDirty` in associated `template` when mutations were made. That way a user can `Save Draft` in the `Edit Template` page.
+- Updated models and resolvers to handle errors in a consistent way
+- Refactored the way Sections handle the association with Tag to follow pattern used elsewhere
+- Updated `formatLogMessage` to accept the Apollo context instead of the logger so that it can being to record the `requestId`, `jti` and `userId` (when available)
+- Updated `questionTypes` table to remove 'Rich Text Editor' and to add `usageDescription`. Also, updated Question model's `create` method to allow for entries with duplicate `questionText`
 - Updated User update method to prevent password manipulation
 - Updated User registration so that the terms and conditions must have been accepted
 - Updated User schema, model and data migrations with new properties
@@ -57,6 +108,11 @@
 - updated all of the cache key structures to wrap them in `{}` due to the way Redis handles keys in cluster mode
 - updated emailService to use nodemailer and to support emailConfirmation templateCollaboration and planCollaboration email messages
 - added bestPractice flag to the Section
+
+### Removed
+- Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
+- Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
+- Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test

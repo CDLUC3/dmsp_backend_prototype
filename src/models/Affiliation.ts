@@ -1,9 +1,11 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { randomHex } from "../utils/helpers";
+import { randomHex, validateURL, valueIsEmpty } from "../utils/helpers";
+import { DMPHubConfig } from "../config/dmpHubConfig";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
+export const ROR_REGEX = /^https?:\/\/ror\.org\/[0-9a-zA-Z]+$/;
 
 // The provenance of an Affiliation record
 // Users can only update certain properties for records managed by other systems.
@@ -24,22 +26,41 @@ export enum AffiliationType {
   OTHER = 'OTHER',
 }
 
+// Prepare the API target URL for the Affiliation
+// We are currently proxying calls to external funder APIs through the DMPHub API
+// This may change in the future
+const prepareAPITarget = (target: string): string => {
+  // If the target is a URL then return it as-is
+  if (target && target.startsWith('http')) {
+    return target;
+  } else if (target && target.startsWith('/')) {
+    // If the target is a relative URL then prepend the DMPHub URL
+    return `${DMPHubConfig.dmpHubURL}${target}`;
+  } else if (target) {
+    // If the target is a relative URL then prepend the DMPHub URL
+    return `${DMPHubConfig.dmpHubURL}/${target}`;
+  } else {
+    // Otherwise return null
+    return null;
+  }
+}
+
 // Represents an Institution, Organization or Company
 export class Affiliation extends MySqlModel {
-  public uri!: string;
-  public active!: boolean;
-  public provenance!: AffiliationProvenance;
+  // These fields can only be modified if the record is managed by the DMPTool
+  public uri: string;
+  public active: boolean;
+  public provenance: AffiliationProvenance;
   public name!: string;
-  public displayName!: string;
-  public searchName!: string;
-  public funder!: boolean;
+  public displayName: string;
+  public searchName: string;
+  public funder: boolean;
   public fundrefId: string;
   public homepage: string;
   public acronyms: string[];
   public aliases: string[];
   public types: AffiliationType[];
 
-  // Properties specific to the DMPTool. These can be modified regardless of the record's provenance
   public managed: boolean;
   public logoURI: string;
   public logoName: string;
@@ -49,6 +70,7 @@ export class Affiliation extends MySqlModel {
   public feedbackEnabled: boolean;
   public feedbackMessage: string;
   public feedbackEmails: string[];
+  public apiTarget: string;
 
   public uneditableProperties: string[];
 
@@ -58,18 +80,21 @@ export class Affiliation extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
 
+    // These fields can only be modified if the record is managed by the DMPTool
     this.uri = options.uri;
-    this.active = options.active || true;
-    this.provenance = options.provenance || AffiliationProvenance.DMPTOOL;
+    this.active = options.active ?? true;
+    this.provenance = options.provenance ?? AffiliationProvenance.DMPTOOL;
     this.name = options.name;
     this.displayName = options.displayName;
     this.searchName = options.searchName;
-    this.funder = options.funder || false;
+    this.funder = options.funder ?? false;
     this.fundrefId = options.fundrefId
     this.homepage = options.homepage;
-    this.acronyms = options.acronyms || [];
-    this.aliases = options.aliases || [];
-    this.types = options.types || [AffiliationType.OTHER];
+    this.acronyms = options.acronyms ?? [];
+    this.aliases = options.aliases ?? [];
+    this.types = options.types ?? [AffiliationType.OTHER];
+
+    // Properties specific to the DMPTool. These can be modified regardless of the record's provenance
     this.managed = options.managed;
     this.logoURI = options.logoURI;
     this.logoName = options.logoName;
@@ -79,6 +104,9 @@ export class Affiliation extends MySqlModel {
     this.feedbackEnabled = options.feedbackEnabled;
     this.feedbackMessage = options.feedbackMessage;
     this.feedbackEmails = options.feedbackEmails;
+
+    // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
+    this.apiTarget = prepareAPITarget(options.apiTarget);
 
     this.uneditableProperties = ['uri', 'provenance', 'searchName'];
 
@@ -90,47 +118,87 @@ export class Affiliation extends MySqlModel {
     }
   }
 
+  // Validate the Affiliation
+  async isValid(): Promise<boolean> {
+    await super.isValid();
+
+    if (!validateURL(this.uri)) this.addError('uri', 'Invalid URL');
+    if (!this.name) this.addError('name', 'Name can\'t be blank');
+    if (!this.displayName) this.addError('displayName', 'Display name can\'t be blank');
+    if (!this.searchName) this.addError('searchName', 'Search name can\'t be blank');
+    if (!this.provenance) this.addError('provenance', 'Provenance can\'t be blank');
+
+    if (!valueIsEmpty(this.apiTarget) && !validateURL(this.apiTarget)) {
+      this.addError('apiTarget', 'Invalid URL');
+    }
+
+    return Object.keys(this.errors).length === 0;
+  }
+
   // Convert the name, homepage, acronyms and aliases into a search string
   buildSearchName(): string {
-    const parts = [this.name, this.homepage, this.acronyms, this.aliases];
+    const parts = [this.name, this.getDomain(), this.acronyms, this.aliases];
     return parts.flat().filter((item) => item).join(' | ').substring(0, 249);
+  }
+
+  // Get the domain from the homepage
+  getDomain(): string {
+    try {
+      const url = new URL(this.homepage);
+      return url.hostname;
+    } catch (err) {
+      // It's not a URL so just return as is
+      return this.homepage;
+    }
   }
 
   // Perform tasks necessary to prepare the data to be saved
   prepForSave(): void {
-    this.managed = this.managed || false;
-    this.feedbackEnabled = this.feedbackEnabled || false;
-    this.acronyms = this.acronyms || [];
-    this.aliases = this.aliases || [];
-    this.types = this.types || [];
-    this.feedbackEmails = this.feedbackEmails || [];
+    this.name = this.name?.trim();
+    this.managed = this.managed ?? false;
+    this.feedbackEnabled = this.feedbackEnabled ?? false;
+    this.acronyms = this.acronyms ?? [];
+    this.aliases = this.aliases ?? [];
+    this.types = this.types ?? [AffiliationType.OTHER];
+    this.feedbackEmails = this.feedbackEmails ?? [];
     this.searchName = this.buildSearchName();
-    this.displayName = this.homepage ? `${this.name} (${this.homepage})` : this.name;
+    if (!this.displayName) {
+      this.displayName = this.homepage ? `${this.name} (${this.getDomain()})` : this.name;
+    }
   }
 
   // Save the current record
   async create(context: MyContext): Promise<Affiliation> {
-    // Assign a new DMPTool id if one was not provided (meaning it was manually added by a user)
-    if (!this.uri) {
+    let current;
+
+    // First make sure the record doesn't already exist based on the URI
+    if (this.uri) {
+      current = await Affiliation.findByURI('Affiliation.create', context, this.uri);
+    } else {
+      // Assign a new DMPTool id if one was not provided (meaning it was manually added by a user)
       this.uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${randomHex(6)}`;
     }
-    // First make sure the record doesn't already exist
-    const current = await Affiliation.findByURI('Affiliation.create', context, this.uri);
+
+    current = current ?? await Affiliation.findByName('Affiliation.create', context, this.name);
 
     // Then make sure it doesn't already exist
     if (current) {
-      this.errors.push('That Affiliation already exists');
+      this.addError('general', 'The Affiliation already exists');
+      return current;
     } else {
       // Save the record and then fetch it
       this.prepForSave();
-      const newId = await Affiliation.insert(
-        context,
-        this.tableName,
-        this,
-        'Affiliation.create',
-        ['uneditableProperties']
-      );
-      return await Affiliation.findById('Affiliation.create', context, newId);
+
+      if (await this.isValid()) {
+        const newId = await Affiliation.insert(
+          context,
+          this.tableName,
+          this,
+          'Affiliation.create',
+          ['uneditableProperties']
+        );
+        return await Affiliation.findById('Affiliation.create', context, newId);
+      }
     }
 
     // Otherwise return as-is with all the errors
@@ -139,24 +207,46 @@ export class Affiliation extends MySqlModel {
 
   // Save the changes made to the affiliation
   async update(context: MyContext): Promise<Affiliation> {
-    // First make sure the record is valid
-    if (await this.isValid()) {
-      if (this.uri) {
+    const reference = 'Affiliation.update';
+    if (this.id) {
+      if (await this.isValid()) {
+        const existing = await Affiliation.findById(reference, context, this.id);
+
+        // If the record is NOT managed by the DMP Tool then do not allow some fields to be changed
+        if (this.provenance !== AffiliationProvenance.DMPTOOL) {
+          this.uri = existing.uri;
+          this.name = existing.name;
+          this.provenance = existing.provenance;
+          this.funder = existing.funder;
+          this.types = existing.types;
+          this.fundrefId = existing.fundrefId;
+          this.homepage = existing.homepage;
+          this.aliases = existing.aliases;
+          this.acronyms = existing.acronyms;
+        }
+
+        // The following fields can never be modified here, they are auto-managed
+        this.provenance = existing.provenance;
+        this.searchName = existing.searchName;
         this.prepForSave();
-        const result = await Affiliation.update(
+
+        const updated = await Affiliation.update(
           context,
           this.tableName,
           this,
-          'Affiliation.update',
+          reference,
           ['uneditableProperties', this.uneditableProperties].flat()
         );
-        return result as Affiliation;
+
+        if (updated) {
+          return await Affiliation.findById(reference, context, this.id);
+        }
       }
-      // This template has never been saved before so we cannot update it!
-      this.errors.push('Affiliation has never been saved');
     } else {
-      this.errors.push('The affiliation is not valid');
+      // This template has never been saved before so we cannot update it!
+      this.addError('general', 'Affiliation has never been saved');
     }
+    // Return the affiliation as-is with all the errors
     return this;
   }
 
@@ -195,14 +285,13 @@ export class Affiliation extends MySqlModel {
         }
       }
     }
-    return affiliation;
+    return new Affiliation(affiliation);
   }
 
-
   // Return the specified Affiliation  based on the DB id
-  static async findById(reference: string, context: MyContext, id: string | number): Promise<Affiliation> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<Affiliation> {
     const sql = 'SELECT * FROM affiliations WHERE id = ?';
-    const results = await Affiliation.query(context, sql, [id.toString()], reference);
+    const results = await Affiliation.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 
@@ -216,7 +305,7 @@ export class Affiliation extends MySqlModel {
   // Return the specified Affiliation based on it's name
   static async findByName(reference: string, context: MyContext, name: string): Promise<Affiliation> {
     const sql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(name)) = ?';
-    const results = await Affiliation.query(context, sql, [name.toLowerCase().trim()], reference);
+    const results = await Affiliation.query(context, sql, [name?.toLowerCase()?.trim()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 }
@@ -233,15 +322,36 @@ export class AffiliationSearch {
   public uri!: string;
   public displayName!: string;
   public funder!: boolean;
-  public types!: AffiliationType[];
+  public types: AffiliationType[];
+  public apiTarget!: string;
 
   // Initialize a new AffiliationSearch result
   constructor(options) {
     this.id = options.id;
     this.uri = options.uri;
     this.displayName = options.displayName;
-    this.funder = options.funder || false;
-    this.types = options.types || [AffiliationType.OTHER];
+    this.funder = options.funder ?? false;
+    this.types = options.types ?? [AffiliationType.OTHER];
+
+    // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
+    this.apiTarget = prepareAPITarget(options.apiTarget);
+  }
+
+  // Some of the properties are stored as JSON strings in the DB so we need to parse them
+  // after fetching them
+  static processResult(affiliation: AffiliationSearch): AffiliationSearch {
+    // Only include types that are in the enum
+    if (affiliation?.types && typeof affiliation.types === 'string') {
+      const types = JSON.parse(affiliation.types);
+      affiliation.types = [];
+
+      for (const typ of types) {
+        if (AffiliationType[typ.toLocaleUpperCase()] !== undefined) {
+          affiliation.types.push(AffiliationType[typ.toLocaleUpperCase()]);
+        }
+      }
+    }
+    return new AffiliationSearch(affiliation);
   }
 
   // Search for Affiliations that match the term and the funder flag
@@ -259,7 +369,7 @@ export class AffiliationSearch {
 
     const results = await Affiliation.query(context, sql, vals, 'AffiliationSearch.search');
     if (Array.isArray(results) && results.length > 0) {
-      return results.map((entry) => { return new AffiliationSearch(entry) });
+      return results.map((entry) => { return AffiliationSearch.processResult(entry) });
     }
 
     return [];

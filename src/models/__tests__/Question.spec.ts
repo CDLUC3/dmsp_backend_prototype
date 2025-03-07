@@ -28,6 +28,7 @@ describe('Question', () => {
     requirementText: casual.sentences(3),
     guidanceText: casual.sentences(10),
     sampleText: casual.sentences(10),
+    useSampleTextAsDefault: true,
     displayOrder: casual.integer(1, 20),
   }
   beforeEach(() => {
@@ -40,6 +41,7 @@ describe('Question', () => {
     expect(question.requirementText).toEqual(questionData.requirementText);
     expect(question.guidanceText).toEqual(questionData.guidanceText);
     expect(question.sampleText).toEqual(questionData.sampleText);
+    expect(question.useSampleTextAsDefault).toEqual(questionData.useSampleTextAsDefault);
     expect(question.displayOrder).toEqual(questionData.displayOrder);
     expect(question.required).toEqual(false);
   });
@@ -135,7 +137,8 @@ describe('update', () => {
     (question.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await question.update(context)).toBe(question);
+    const result = await question.update(context);
+    expect(result instanceof Question).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
@@ -146,8 +149,8 @@ describe('update', () => {
 
     question.id = null;
     const result = await question.update(context);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Question has never been saved');
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
   });
 
   it('returns the updated Template', async () => {
@@ -164,14 +167,13 @@ describe('update', () => {
     const result = await question.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(question);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Question);
   });
 });
 
 describe('create', () => {
   const originalInsert = Question.insert;
-  const originalFindByQuestionText = Question.findByQuestionText;
   let insertQuery;
   let question;
 
@@ -193,7 +195,6 @@ describe('create', () => {
   afterEach(() => {
     // jest.resetAllMocks();
     Question.insert = originalInsert;
-    Question.findByQuestionText = originalFindByQuestionText;
   });
 
   it('returns the Question without errors if it is valid', async () => {
@@ -201,54 +202,39 @@ describe('create', () => {
     (question.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    expect(await question.create(context)).toBe(question);
+    const result = await question.create(context);
+    expect(result instanceof Question).toBe(true);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the Question with an error if templateId is undefined', async () => {
     question.templateId = undefined;
     const response = await question.create(context);
-    expect(response.errors[0]).toBe('Template ID can\'t be blank');
+    expect(response.errors['templateId']).toBe('Template can\'t be blank');
   });
 
   it('returns the Question with an error if sectionId is undefined', async () => {
     question.sectionId = undefined;
     const response = await question.create(context);
-    expect(response.errors[0]).toBe('Section ID can\'t be blank');
+    expect(response.errors['sectionId']).toBe('Section can\'t be blank');
   });
 
   it('returns the Question with an error if questionText is undefined', async () => {
     question.questionText = undefined;
     const response = await question.create(context);
-    expect(response.errors[0]).toBe('Question text can\'t be blank');
-  });
-
-  it('returns the Question with an error if the question already exists', async () => {
-    const mockFindBy = jest.fn();
-    (Question.findByQuestionText as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValueOnce(question);
-
-    const result = await question.create(context);
-    expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(1);
-    expect(result.errors[0]).toEqual('Question with this question text already exists');
+    expect(response.errors['questionText']).toBe('Question text can\'t be blank');
   });
 
   it('returns the newly added Question', async () => {
-    const mockFindBy = jest.fn();
-    (Question.findByQuestionText as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValueOnce(null);
-
     const mockFindById = jest.fn();
     (Question.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(question);
 
     const result = await question.create(context);
-    expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(question);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Question);
   });
 });
 
@@ -288,52 +274,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(question);
 
     const result = await question.delete(context);
-    expect(result.errors.length).toBe(0);
-    expect(result).toEqual(question);
-  });
-});
-
-describe('findByQuestionText', () => {
-  const originalQuery = Question.query;
-
-  let localQuery;
-  let context;
-  let question;
-
-  beforeEach(() => {
-    jest.resetAllMocks();
-
-    localQuery = jest.fn();
-    (Question.query as jest.Mock) = localQuery;
-
-    context = buildContext(logger, mockToken());
-
-    question = new Question({
-      templateId: casual.integer(1, 999),
-      sectionId: casual.integer(1, 999),
-      id: casual.integer(1, 9),
-      questionText: casual.sentences(5),
-      displayOrder: casual.integer(1, 9),
-    })
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    Question.query = originalQuery;
-  });
-
-  it('should call query with correct params and return the question', async () => {
-    localQuery.mockResolvedValueOnce([question]);
-    const result = await Question.findByQuestionText('Question query', context, question.questionText, question.sectionId, question.templateId);
-    const expectedSql = 'SELECT * FROM questions WHERE LOWER(questionText) = ? AND sectionId = ? AND templateId = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [question.questionText.toLowerCase(), question.sectionId.toString(), question.templateId.toString()], 'Question query')
-    expect(result).toEqual(question);
-  });
-
-  it('should return null if it finds no Question', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const result = await Question.findByQuestionText('Question query', context, question.questionText, question.sectionId, question.templateId);
-    expect(result).toEqual(null);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Question);
   });
 });

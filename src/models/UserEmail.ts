@@ -1,6 +1,9 @@
 import { MyContext } from "../context";
 import { sendEmailConfirmationNotification } from "../services/emailService";
-import { validateEmail } from '../utils/helpers';
+import {
+  validateEmail,
+  getCurrentDate,
+} from '../utils/helpers';
 import { TemplateCollaborator } from "./Collaborator";
 import { MySqlModel } from "./MySqlModel";
 
@@ -15,25 +18,22 @@ export class UserEmail extends MySqlModel {
 
   // Initialize a new User
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.userId = options.userId;
     this.email = options.email;
-    this.isPrimary = options.isPrimary || false;
-    this.isConfirmed = options.isConfirmed || false;
+    this.isPrimary = options.isPrimary ?? false;
+    this.isConfirmed = options.isConfirmed ?? false;
   }
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
-    if (this.userId === null) {
-      this.errors.push('User can\'t be blank');
-    }
-    if (!validateEmail(this.email)) {
-      this.errors.push('Enter valid email');
-    }
 
-    return this.errors.length <= 0;
+    if (this.userId === null) this.addError('userId', 'User can\'t be blank');
+    if (!validateEmail(this.email)) this.addError('email', 'Invalid email address');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Confirm the user owns the email
@@ -49,7 +49,7 @@ export class UserEmail extends MySqlModel {
 
       // If the email has already been confirmed by another account set an error message
       if (otherEmails && otherEmails.find((other) => { return other.isConfirmed; })) {
-        userEmail.errors.push('Email has already been confirmed');
+        userEmail.addError('email', 'Email has already been confirmed by another account');
         return userEmail;
 
       } else {
@@ -72,7 +72,34 @@ export class UserEmail extends MySqlModel {
         return updated;
       }
     }
-    return null;
+    return userEmail;
+  }
+
+  // Custom Insert logic
+  static async insert(
+    apolloContext: MyContext,
+    table: string,
+    obj: UserEmail,
+    reference = 'undefined caller',
+    skipKeys?: string[]
+  ): Promise<number> {
+    // Update the creator/modifier info
+    const currentDate = getCurrentDate();
+    obj.createdById = obj.userId;
+    obj.created = currentDate;
+    obj.modifiedById = obj.userId;
+    obj.modified = currentDate;
+
+    // Fetch all of the data from the object
+    const props = this.propertyInfo(obj, skipKeys);
+    const sql = `INSERT INTO ${table} \
+                  (${props.map((entry) => entry.name).join(', ')}) \
+                 VALUES (${Array(props.length).fill('?').join(', ')})`
+    const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
+
+    // Send the calcuated INSERT statement to the query function
+    const result = await this.query(apolloContext, sql, vals, reference);
+    return Array.isArray(result) ? result[0]?.insertId : null;
   }
 
   // Save the current record
@@ -86,29 +113,29 @@ export class UserEmail extends MySqlModel {
       // First make sure it's not already attached to this user account
       const existing = entries.find((entry) => { return entry.userId === this.userId; });
       if (existing) {
-        this.errors.push('Email is already associated with this account');
+        this.addError('general', 'This email has already been associated with this account');
       }
 
       // Then make sure it hasn't already been claimed/confirmed by another user account
       const confirmed = entries.find((entry) => { return entry.isConfirmed; });
       if (confirmed) {
-        this.errors.push('Email has already been confirmed by another account');
+        this.addError('general', 'Email has already been confirmed by another account');
       }
 
-      if (this.errors.length <= 0) {
+      if (Object.keys(this.errors).length === 0) {
         // Save the record and then fetch it
         const newId = await UserEmail.insert(context, this.tableName, this, ref);
         const created = await UserEmail.findById(ref, context, newId);
 
         if (created) {
           // Send out an email confirmation notification. No async, can happen in background
-          sendEmailConfirmationNotification(created.email);
+          await sendEmailConfirmationNotification(context, created.email);
         }
         return created;
       }
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new UserEmail(this);
   }
 
   // Save the changes made to the UserEmail
@@ -119,19 +146,19 @@ export class UserEmail extends MySqlModel {
         // Only allow this if the existing record or the update has been confirmed/verified
         const existing = await UserEmail.findById('UserEmail.update', context, this.id);
         if (existing && !existing.isConfirmed && !this.isConfirmed) {
-          this.errors.push('Email has not yet been confirmed');
+          this.addError('general', 'Email has not yet been confirmed');
         }
 
-        if (this.errors.length === 0) {
+        if (Object.keys(this.errors).length === 0) {
           await UserEmail.update(context, this.tableName, this, 'UserEmail.update');
           return await UserEmail.findById('UserEmail.update', context, this.id);
         }
       }
     } else {
-      this.errors.push('Email has not been created yet');
+      this.addError('general', 'Email has not been created yet');
     }
 
-    return this;
+    return new UserEmail(this);
   }
 
   //Delete this UserEmail
@@ -147,16 +174,16 @@ export class UserEmail extends MySqlModel {
       }
       return null;
     } else {
-      this.errors.push('Email has not been created yet');
+      this.addError('general', 'Cannot delete email that has never been saved');
     }
-    return this;
+    return new UserEmail(this);
   }
 
   // Return the specified UserEmail
   static async findById(reference: string, context: MyContext, id: number): Promise<UserEmail> {
     const sql = 'SELECT * FROM userEmails WHERE id = ?';
-    const results = await UserEmail.query(context, sql, [id.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    const results = await UserEmail.query(context, sql, [id?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new UserEmail(results[0]) : null;
   }
 
   // Return the specified UserEmail by UserId and Email
@@ -167,8 +194,8 @@ export class UserEmail extends MySqlModel {
     email: string
   ): Promise<UserEmail> {
     const sql = 'SELECT * FROM userEmails WHERE userId = ? AND email = ?';
-    const results = await UserEmail.query(context, sql, [userId.toString(), email], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    const results = await UserEmail.query(context, sql, [userId?.toString(), email], reference);
+    return Array.isArray(results) && results.length > 0 ? new UserEmail(results[0]) : null;
   }
 
   // Return the emails for the specified user
@@ -178,8 +205,8 @@ export class UserEmail extends MySqlModel {
     userId: number
   ): Promise<UserEmail[]> {
     const sql = 'SELECT * FROM userEmails WHERE userId = ?';
-    const results = await UserEmail.query(context, sql, [userId.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    const results = await UserEmail.query(context, sql, [userId?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new UserEmail(entry)) : [];
   }
 
   // Return the specified UserEmail
@@ -190,6 +217,6 @@ export class UserEmail extends MySqlModel {
   ): Promise<UserEmail[]> {
     const sql = 'SELECT * FROM userEmails WHERE email = ?';
     const results = await UserEmail.query(context, sql, [email], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((entry) => new UserEmail(entry)) : [];
   }
 }

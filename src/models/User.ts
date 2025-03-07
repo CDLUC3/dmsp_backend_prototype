@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { capitalizeFirstLetter, getCurrentDate, validateEmail, validateURL } from '../utils/helpers';
+import { capitalizeFirstLetter, getCurrentDate, validateEmail, valueIsEmpty } from '../utils/helpers';
 import { buildContext } from '../context';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
@@ -7,6 +7,9 @@ import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
+
+export const DEFAULT_ORCID_URL = 'https://orcid.org/';
+export const ORCID_REGEX = /^(https?:\/\/)?(www\.)?(sandbox\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -48,7 +51,7 @@ export class User extends MySqlModel {
 
   // Initialize a new User
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.email = options.email;
     this.password = options.password;
@@ -59,56 +62,56 @@ export class User extends MySqlModel {
     this.ssoId = options.ssoId;
     this.affiliationId = options.affiliationId;
     this.acceptedTerms = options.acceptedTerms;
-    this.languageId = options.languageId || defaultLanguageId;
-    this.failed_sign_in_attemps = options.failed_sign_in_attemps || 0;
-    this.locked = options.locked || false;
-    this.active = options.active || true;
-    this.notify_on_comment_added = options.notify_on_comment_added || true;
-    this.notify_on_template_shared = options.notify_on_template_shared || true;
-    this.notify_on_feedback_complete = options.notify_on_feedback_complete || true;
-    this.notify_on_plan_shared = options.notify_on_plan_shared || true;
-    this.notify_on_plan_visibility_change = options.notify_on_plan_visibility_change || true;
+    this.languageId = options.languageId ?? defaultLanguageId;
+    this.failed_sign_in_attemps = options.failed_sign_in_attemps ?? 0;
+    this.locked = options.locked ?? false;
+    this.active = options.active ?? true;
+    this.notify_on_comment_added = options.notify_on_comment_added ?? true;
+    this.notify_on_template_shared = options.notify_on_template_shared ?? true;
+    this.notify_on_feedback_complete = options.notify_on_feedback_complete ?? true;
+    this.notify_on_plan_shared = options.notify_on_plan_shared ?? true;
+    this.notify_on_plan_visibility_change = options.notify_on_plan_visibility_change ?? true;
 
-    this.cleanup();
+    this.prepForSave();
+  }
+
+  // Ensure that the ORCID is in the correct format (https://orcid.org/0000-0000-0000-0000)
+  static formatORCID(orcidIn: string): string {
+    // If it is blank or already in the correct format, return it
+    if (!valueIsEmpty(orcidIn) && (orcidIn.match(ORCID_REGEX) && orcidIn.startsWith('http'))) return orcidIn;
+
+    // If it matches the ORCID format but didn't start with http then its just the id
+    if (!valueIsEmpty(orcidIn) && orcidIn.match(ORCID_REGEX)) {
+      return `${DEFAULT_ORCID_URL}${orcidIn.split('/').pop()}`;
+    }
+
+    // Otherwise it's not an ORCID
+    return null;
   }
 
   // Ensure data integrity
-  cleanup() {
+  prepForSave() {
     this.email = this.email?.trim()?.replace('%40', '@');
-    this.role = this.role || UserRole.RESEARCHER;
+    this.role = this.role ?? UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
     // Set the languageId to the default if it is not a supported language
     if (!supportedLanguages.map((l) => l.id).includes(this.languageId)){
       this.languageId = defaultLanguageId;
     }
+    this.orcid = this.orcid? User.formatORCID(this.orcid) : null;
   }
 
   // Verify that the email does not already exist and that the required fields have values
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    // check if email is already taken
-    const context = buildContext(logger);
-    const existing = await User.findByEmail('User.isValid', context, this.email);
+    if (!validateEmail(this.email)) this.addError('email', 'Invalid email address');
+    if (!this.password) this.addError('password', 'Password is required');
+    if (!this.role) this.addError('role', 'Role can\'t be blank');
+    if (this.orcid && !this.orcid.match(ORCID_REGEX)) this.addError('orcid', 'Invalid ORCID');
 
-    if (existing && existing.id !== this.id) {
-      this.errors.push('Email address already in use');
-    } else {
-      if (!validateEmail(this.email)) {
-        this.errors.push('Invalid email address');
-      }
-      if (!this.password) {
-        this.errors.push('Password is required');
-      }
-      if (!validateURL(this.affiliationId)) {
-        this.errors.push('Affiliation can\'t be blank');
-      }
-      if (!this.role) {
-        this.errors.push('Role can\'t be blank');
-      }
-    }
-    return this.errors.length <= 0;
+    return Object.keys(this.errors).length === 0;
   }
 
   // Validate the password format
@@ -128,7 +131,7 @@ export class User extends MySqlModel {
     ) {
       return true;
     }
-    this.errors.push(`Invalid password format.
+    this.addError('password', `Invalid password format.
         Passwords must be greater than 8 characters, and contain at least
         one number,
         one upper case letter,
@@ -164,12 +167,12 @@ export class User extends MySqlModel {
 
       // Otherwise check the password
       if (users[0] && await bcrypt.compare(password, users[0].password)) {
-        formatLogMessage(context.logger).debug(`Successful authCheck for ${email}`);
+        formatLogMessage(context).debug(`Successful authCheck for ${email}`);
         return users[0].id;
       }
     }
 
-    formatLogMessage(context.logger).debug(`Failed authCheck for ${email}`);
+    formatLogMessage(context).debug(`Failed authCheck for ${email}`);
     return null;
   }
 
@@ -177,20 +180,21 @@ export class User extends MySqlModel {
   static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
     const sql = 'SELECT * FROM users WHERE id = ?';
 
-    const results = await User.query(context, sql, [userId.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    const results = await User.query(context, sql, [userId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
   // Find the User by their email address
   static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
     const sql = 'SELECT * FROM users WHERE email = ?';
     const results = await User.query(context, sql, [email], reference);
-    return results[0];
+    return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
     const sql = 'SELECT * FROM users WHERE affiliationId = ? ORDER BY created DESC';
-    return await User.query(context, sql, [affiliationId], reference);
+    const results = await User.query(context, sql, [affiliationId], reference);
+    return Array.isArray(results) ? results.map((item) => new User(item)) : [];
   }
 
   // Update the last_login fields
@@ -204,21 +208,21 @@ export class User extends MySqlModel {
       }
     }
     // This recordSignIn could not update the record for some reason
-    formatLogMessage(context.logger).error(null, `recordSignIn failed for user ${this.id}`);
+    formatLogMessage(context).error(null, `recordSignIn failed for user ${this.id}`);
     return false;
   }
 
   // Login making sure that the passwords match
   async login(context: MyContext): Promise<User> {
-    this.cleanup();
+    this.prepForSave();
 
     if (!validateEmail(this.email) || !this.validatePassword()) {
       return null;
     }
 
     try {
-      formatLogMessage(logger)?.debug(`User.login: ${this.email}`);
       const userId = await User.authCheck('User.login', context, this.email, this.password);
+      formatLogMessage(context)?.debug({ userId }, 'User.login:');
       if (userId) {
         const existing = await User.findById('User.login', context, userId);
 
@@ -230,20 +234,20 @@ export class User extends MySqlModel {
       }
       return null;
     } catch (err) {
-      formatLogMessage(logger).error(`Error logging in User: ${this.email} - ${err.message}`);
+      formatLogMessage(context).error({ err, email: this.email }, 'Error logging in User');
       return null;
     }
   }
 
   // Register the User if the data is valid
   async register(context: MyContext): Promise<User> {
-    this.cleanup();
+    this.prepForSave();
     await this.isValid();
 
     // Make sure the account does not already exist
     const existing = await User.findByEmail('User.register', context, this.email);
     if (existing) {
-      this.errors.push('Account already exists');
+      this.addError('general', 'Account already exists');
     }
 
     // Validate the password
@@ -251,10 +255,10 @@ export class User extends MySqlModel {
 
     // Ensure that the user has accepted the terms and conditions
     if (this.acceptedTerms !== true) {
-      this.errors.push('You must accept the terms and conditions');
+      this.addError('acceptedTerms', 'You must accept the terms and conditions');
     }
 
-    if (this.errors.length === 0) {
+    if (Object.keys(this.errors).length === 0) {
       const passwordHash = await this.hashPassword(this.password);
       this.password = passwordHash
 
@@ -264,39 +268,41 @@ export class User extends MySqlModel {
                      VALUES(?, ?, ?, ?, ?, ?, ?)`;
         const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
         const context = buildContext(logger);
-        formatLogMessage(logger)?.debug(`User.register: ${this.email}`);
+        formatLogMessage(context)?.debug({ email: this.email }, 'User.register');
         const result = await User.query(context, sql, vals, 'User.register');
 
         if (!Array.isArray(result) || !result[0].insertId) {
-          this.errors.push('Unable to register your account.');
+          this.addError('general', 'Unable to register your account');
           return this;
         }
-        formatLogMessage(logger).debug(`User was created: ${this.email}, id: ${result[0].insertId}`);
+        formatLogMessage(context).debug(
+          { email: this.email, userId: result[0].insertId }, 'User was created'
+        );
 
         // Fetch the new record
         const user = await User.findById('User.register', context, result[0].insertId);
 
         // Update the user's createdById and modifiedById to indicate themselves
         const sqlUpdate = `UPDATE users SET createdById = ?, modifiedById = ? WHERE id = ?`;
-        const valsUpdate = [this.id.toString(), this.id.toString(), this.id.toString()];
+        const valsUpdate = [user.id.toString(), user.id.toString(), user.id.toString()];
         await User.query(context, sqlUpdate, valsUpdate, 'User.register');
 
         // Add the email to the UserEmail table and send out a 'please confirm' email
         const userEmail = new UserEmail({ userId: user.id, email: user.email, isPrimary: true });
         if (!await userEmail.create(context)){
           // If we couldn't add the UserEmail record, log the error but let them continue
-          formatLogMessage(context.logger).error(userEmail, `User.register - unable to add UserEmail!`);
+          formatLogMessage(context).error({ email: userEmail }, 'User.register - unable to add UserEmail!');
         }
 
         // Remove the password! No need to expose that to the caller
         user.password = null;
         return user;
       } catch (err) {
-        formatLogMessage(logger)?.error(`Error creating User: ${this.email} - ${err.message}`);
+        formatLogMessage(context)?.error({ err, email: this.email }, 'Error creating User');
         return null;
       }
     } else {
-      formatLogMessage(logger)?.debug(`Invalid user: ${this.email}`);
+      formatLogMessage(context)?.debug({ email: this.email, errors: this.errors }, 'Invalid user');
       return this;
     }
   }
@@ -311,7 +317,7 @@ export class User extends MySqlModel {
           // If the user is an ADMIN then demote them to RESEARCHER
           if (this.role === UserRole.ADMIN) {
             const msg = `User.update Admin changed affiliation so their role must change to Researcher`;
-            formatLogMessage(context.logger).info(`${msg} id: ${this.id}, email: ${this.email}`);
+            formatLogMessage(context).info({ userId: this.id, email: this.email }, msg);
             this.role = UserRole.RESEARCHER;
           }
 
@@ -326,9 +332,9 @@ export class User extends MySqlModel {
         return await User.findById('User.update', context, this.id);
       }
       // This user has never been saved before so we cannot update it!
-      this.errors.push('User has never been saved');
+      this.addError('general', 'User has never been saved');
     }
-    return this;
+    return new User(this);
   }
 
   // Function to update the user's password
@@ -351,7 +357,7 @@ export class User extends MySqlModel {
         }
       }
       // The new password was invalid, so return the object with errors
-      return this;
+      return new User(this);
     }
     return null;
   }

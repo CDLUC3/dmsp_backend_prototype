@@ -31,6 +31,7 @@ CREATE TABLE `versionedTemplates` (
   `ownerId` VARCHAR(255) NOT NULL,
   `visibility` VARCHAR(16) NOT NULL,
   `bestPractice` TINYINT(1) NOT NULL DEFAULT 0,
+  `languageId` CHAR(5) NOT NULL DEFAULT 'en-US',
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

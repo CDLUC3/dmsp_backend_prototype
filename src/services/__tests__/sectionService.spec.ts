@@ -130,7 +130,7 @@ describe('cloneSection', () => {
     expect(copy.introduction).toEqual(introduction);
     expect(copy.requirements).toEqual(requirements);
     expect(copy.guidance).toEqual(guidance);
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.displayOrder).toEqual(displayOrder);
     expect(copy.isDirty).toEqual(true);//The cloneSection function accepts Section | VersionedSection, and VersionedSection doesn't have isDirty, so in this test will always be true
     expect(copy.created).toBeTruthy();
@@ -160,7 +160,7 @@ describe('cloneSection', () => {
     expect(copy.introduction).toEqual(published.introduction);
     expect(copy.requirements).toEqual(published.requirements);
     expect(copy.guidance).toEqual(published.guidance);
-    expect(copy.errors).toEqual([]);
+    expect(copy.errors).toEqual({});
     expect(copy.createdById).toEqual(clonedById);
     expect(copy.displayOrder).toEqual(published.displayOrder);
     expect(copy.isDirty).toEqual(true);
@@ -178,6 +178,8 @@ describe('generateSectionVersion', () => {
   let mockFindVersionedSectionbyId;
 
   beforeEach(() => {
+    jest.resetAllMocks();
+
     // Mock the Questions
     const mockQuestionFindBySectionId = jest.fn().mockResolvedValue([]);
     (Question.findBySectionId as jest.Mock) = mockQuestionFindBySectionId;
@@ -227,7 +229,7 @@ describe('generateSectionVersion', () => {
       obj.modifed = tstamp;
       obj.modifiedById = userId;
 
-      switch(table) {
+      switch (table) {
         case 'sections': {
           sectionStore.push(obj);
           break;
@@ -250,7 +252,7 @@ describe('generateSectionVersion', () => {
         obj.modifiedById = userId;
       }
 
-      switch(table) {
+      switch (table) {
         case 'sections': {
           const existing = sectionStore.find((entry) => { return entry.id === obj.id });
           if (!existing) {
@@ -272,6 +274,10 @@ describe('generateSectionVersion', () => {
     });
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('does not allow an unsaved section to be versioned', async () => {
     const section = new Section({ name: casual.words(4) });
 
@@ -283,14 +289,14 @@ describe('generateSectionVersion', () => {
   it('does not version if the VersionedSection could not be created', async () => {
     const section = sectionStore[0];
     const versioned = new VersionedSection({ sectionId: section.id });
-    versioned.errors = ['Test failure'];
+    versioned.errors = { general: 'Test failure' };
 
     (context.dataSources.sqlDataSource.query as jest.Mock).mockResolvedValueOnce(null);
     (VersionedSection.insert as jest.Mock) = mockInsert;
     const mockFindByFailure = jest.fn().mockImplementation(() => { return versioned; });
     (VersionedSection.findById as jest.Mock) = mockFindByFailure;
 
-    const err = `Unable to generateSectionVersion for versionedSection errs: Test failure`;
+    const err = `Unable to create a new version for section: ${section.id}`;
     expect(async () => {
       await generateSectionVersion(context, section, casual.integer(1, 999));
     }).rejects.toThrow(Error(err));
@@ -299,7 +305,7 @@ describe('generateSectionVersion', () => {
   it('does not version if the Section could not be updated', async () => {
     const section = sectionStore[0];
     const updated = new Section({ id: section.id });
-    updated.errors = ['Test failure'];
+    updated.errors = { general: 'Test failure' };
 
     (VersionedSection.insert as jest.Mock) = mockInsert;
     (VersionedSection.findById as jest.Mock) = mockFindVersionedSectionbyId;
@@ -307,7 +313,7 @@ describe('generateSectionVersion', () => {
     (Section.update as jest.Mock) = mockUpdate;
     (Section.findById as jest.Mock) = mockUpdateFailure;
 
-    const err = `Unable to generateSectionVersion for section: ${section.id}, errs: Test failure`;
+    const err = `Unable to set the isDirty flag for section: ${section.id}`;
     expect(async () => {
       await generateSectionVersion(context, section, casual.integer(1, 999))
     }).rejects.toThrow(Error(err));

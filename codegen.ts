@@ -8,9 +8,7 @@ const config: CodegenConfig = {
       config: {
         contextType: "./context#MyContext",
         enumsAsTypes: true,
-        mappers: {
-          Dmsp: "./models/Dmsp#DmspModel",
-        },
+
       },
     },
   },

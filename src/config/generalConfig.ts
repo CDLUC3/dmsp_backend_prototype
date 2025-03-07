@@ -4,6 +4,7 @@ import { verifyCriticalEnvVariable } from "../utils/helpers";
 verifyCriticalEnvVariable('DOMAIN');
 verifyCriticalEnvVariable('APP_NAME');
 verifyCriticalEnvVariable('DEFAULT_AFFILIATION_URI');
+verifyCriticalEnvVariable('DMP_ID_SHOULDER');
 verifyCriticalEnvVariable('TOKEN_HASH_SECRET');
 verifyCriticalEnvVariable('JWT_SECRET');
 verifyCriticalEnvVariable('JWT_REFRESH_SECRET');
@@ -21,6 +22,12 @@ export const generalConfig = {
   applicationName: env === 'prd' ? process.env.APP_NAME : `${process.env.APP_NAME} (${env})`,
   defaultAffiliatioURI: process.env.DEFAULT_AFFILIATION_URI,
 
+  dmpIdBaseURL: process.env.DMP_ID_BASE_URL || 'https://doi.org/',
+  dmpIdShoulder: process.env.DMP_ID_SHOULDER,
+
+  orcidBaseURL: process.env.ORCID_BASE_URL || 'https://orcid.org/',
+  rorBaseURL: process.env.ROR_BASE_URL || 'https://ror.org/',
+
   bcryptSaltRounds: Number.parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,
 
   hashTokenSecret: process.env.TOKEN_HASH_SECRET,
@@ -31,5 +38,5 @@ export const generalConfig = {
   jwtRefreshTTL: Number.parseInt(process.env.JWT_REFRESH_TTL) || 86400000, // Default is 24 hours (in milliseconds)
 
   csrfLength: Number.parseInt(process.env.CSRF_LENGTH) || 32,
-  csrfTTL: Number.parseInt(process.env.CSRF_TTL) || 3600 // Default is 1 hour
+  csrfTTL: Number.parseInt(process.env.CSRF_TTL) || 3600, // Default is 1 hour
 }

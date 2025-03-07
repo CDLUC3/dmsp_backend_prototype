@@ -1,3 +1,4 @@
+import { generalConfig } from '../../config/generalConfig';
 import {
   validateDate,
   validateEmail,
@@ -8,37 +9,39 @@ import {
   validateURL,
   getCurrentDate,
   randomHex,
+  stripIdentifierBaseURL,
+  stringToEnumValue,
 } from '../helpers';
 
 describe('Date validation', () => {
   test('returns true when the value is a date', async () => {
-    expect(await validateDate('2024-08-14T13:41:12.000Z')).toBe(true);
-    expect(await validateDate('2024-08-14T13:41:12Z')).toBe(true);
-    expect(await validateDate('2024-08-14T13:41:12')).toBe(true);
-    expect(await validateDate('2024-08-14 13:41:12')).toBe(true);
-    expect(await validateDate('2024-08-14 13:41')).toBe(true);
-    expect(await validateDate('08/14/2024')).toBe(true);
+    expect(validateDate('2024-08-14T13:41:12.000Z')).toBe(true);
+    expect(validateDate('2024-08-14T13:41:12Z')).toBe(true);
+    expect(validateDate('2024-08-14T13:41:12')).toBe(true);
+    expect(validateDate('2024-08-14 13:41:12')).toBe(true);
+    expect(validateDate('2024-08-14 13:41')).toBe(true);
+    expect(validateDate('08/14/2024')).toBe(true);
 
     const date = new Date();
-    expect(await validateDate(date.toDateString())).toBe(true);
-    expect(await validateDate(date.toISOString())).toBe(true);
-    expect(await validateDate(date.toLocaleDateString())).toBe(true);
-    expect(await validateDate(date.toLocaleString())).toBe(true);
-    expect(await validateDate(date.toISOString())).toBe(true);
-    expect(await validateDate(date.toString())).toBe(true);
+    expect(validateDate(date.toDateString())).toBe(true);
+    expect(validateDate(date.toISOString())).toBe(true);
+    expect(validateDate(date.toLocaleDateString())).toBe(true);
+    expect(validateDate(date.toLocaleString())).toBe(true);
+    expect(validateDate(date.toISOString())).toBe(true);
+    expect(validateDate(date.toString())).toBe(true);
   });
 
   test('returns false when the value is NOT a date', async () => {
-    expect(await validateDate('2024-AZ-14 13:BY:12')).toBe(false);
-    expect(await validateDate('425624756')).toBe(false);
-    expect(await validateDate('abcdef')).toBe(false);
-    expect(await validateDate('false')).toBe(false);
-    expect(await validateDate(null)).toBe(false);
-    expect(await validateDate('{"date": "2024-08-14T13:48:00Z"}')).toBe(false);
+    expect(validateDate('2024-AZ-14 13:BY:12')).toBe(false);
+    expect(validateDate('425624756')).toBe(false);
+    expect(validateDate('abcdef')).toBe(false);
+    expect(validateDate('false')).toBe(false);
+    expect(validateDate(null)).toBe(false);
+    expect(validateDate('{"date": "2024-08-14T13:48:00Z"}')).toBe(false);
 
     const date = new Date();
-    expect(await validateDate(date.toTimeString())).toBe(false);
-    expect(await validateDate(date.toLocaleTimeString())).toBe(false);
+    expect(validateDate(date.toTimeString())).toBe(false);
+    expect(validateDate(date.toLocaleTimeString())).toBe(false);
   });
 });
 
@@ -73,6 +76,37 @@ describe('URL validation', () => {
     expect(validateURL('example.com/path')).toBe(false);
     expect(validateURL('hehgiehgehgerge')).toBe(false);
     expect(validateURL('58757899')).toBe(false);
+  });
+});
+
+describe('Strips the protocol and domain from known identifiers', () => {
+  test('it handles ORCIDs properly', () => {
+    const orcidId = '0000-0000-0000-0000 ';
+    expect(stripIdentifierBaseURL(`${generalConfig.orcidBaseURL}${orcidId}`)).toEqual(orcidId.trim());
+    expect(stripIdentifierBaseURL(orcidId)).toEqual(orcidId.trim());
+  });
+
+  test('it handles RORs properly', () => {
+    const rorId = 'a0000z ';
+    expect(stripIdentifierBaseURL(`${generalConfig.rorBaseURL}${rorId}`)).toEqual(rorId.trim());
+    expect(stripIdentifierBaseURL(rorId)).toEqual(rorId.trim());
+  });
+
+  test('it handles DOIs properly', () => {
+    const dmpId = `${generalConfig.dmpIdShoulder}B2C3D4 `;
+    expect(stripIdentifierBaseURL(`${generalConfig.dmpIdBaseURL}${dmpId}`)).toEqual(dmpId.trim());
+    expect(stripIdentifierBaseURL(dmpId)).toEqual(dmpId.trim());
+  });
+
+  test('leaves others alone', () => {
+    let id = 'http://test.com/0000-0000-0000-0000';
+    expect(stripIdentifierBaseURL(id)).toEqual(id);
+    id = 'http://orcid.org/0000';
+    expect(stripIdentifierBaseURL(id)).toEqual(id);
+    id = 'http://ror.org/0000-0000-0000-0000';
+    expect(stripIdentifierBaseURL(id)).toEqual(id);
+    id = 'http://doi.org/98724896247698457604597645067452706';
+    expect(stripIdentifierBaseURL(id)).toEqual(id);
   });
 });
 
@@ -149,5 +183,20 @@ describe('randomHex', () => {
   it('returns a string in the expected format', () => {
     const val = randomHex(32);
     expect(/[a-z0-9]{32}/.test(val)).toBe(true);
+  });
+});
+
+describe('stringToEnumValue', () => {
+  enum testEnum {
+    A = "A",
+    B = "B"
+  }
+
+  it('returns null if the string is not one of the items in the enum', () => {
+    expect(stringToEnumValue(testEnum, 'C')).toBe(null);
+  });
+
+  it('returns the enum value for the string', () => {
+    expect(stringToEnumValue(testEnum, 'B')).toBe(testEnum.B);
   });
 });

@@ -16,7 +16,7 @@ export class VersionedQuestion extends MySqlModel {
   private tableName = 'versionedQuestions';
 
   constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.versionedTemplateId = options.versionedTemplateId;
     this.versionedSectionId = options.versionedSectionId;
@@ -26,7 +26,7 @@ export class VersionedQuestion extends MySqlModel {
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
     this.sampleText = options.sampleText;
-    this.required = options.required || false;
+    this.required = options.required ?? false;
     this.displayOrder = options.displayOrder;
   }
 
@@ -34,22 +34,13 @@ export class VersionedQuestion extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.versionedTemplateId) {
-      this.errors.push('Versioned Template can\'t be blank');
-    }
-    if (!this.versionedSectionId) {
-      this.errors.push('Versioned Section can\'t be blank');
-    }
-    if (!this.questionId) {
-      this.errors.push('Question can\'t be blank');
-    }
-    if (!this.questionTypeId) {
-      this.errors.push('Question type can\'t be blank');
-    }
-    if (!this.questionText) {
-      this.errors.push('Question text by can\'t be blank');
-    }
-    return this.errors.length <= 0;
+    if (!this.versionedTemplateId) this.addError('versionedTemplateId', 'Versioned Template can\'t be blank');
+    if (!this.versionedSectionId) this.addError('versionedSectionId', 'Versioned Section can\'t be blank');
+    if (!this.questionId) this.addError('questionId', 'Question can\'t be blank');
+    if (!this.questionTypeId) this.addError('questionTypeId', 'Question type can\'t be blank');
+    if (!this.questionText) this.addError('questionText', 'Question text can\'t be blank');
+
+    return Object.keys(this.errors).length === 0;
   }
 
   // Insert the new record
@@ -61,21 +52,21 @@ export class VersionedQuestion extends MySqlModel {
       return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
     }
     // Otherwise return as-is with all the errors
-    return this;
+    return new VersionedQuestion(this);
   }
 
   // Find the VersionedQuestion by id
   static async findById(reference: string, context: MyContext, id: number): Promise<VersionedQuestion> {
     const sql = 'SELECT * FROM versionedQuestions WHERE id = ?';
-    const results = await VersionedQuestion.query(context, sql, [id.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    const results = await VersionedQuestion.query(context, sql, [id?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new VersionedQuestion(results[0]) : null;
   }
 
 
   // Find all VersionedQuestion that match versionedSectionId
   static async findByVersionedSectionId(reference: string, context: MyContext, versionedSectionId: number): Promise<VersionedQuestion[]> {
     const sql = 'SELECT * FROM versionedQuestions WHERE versionedSectionId = ?';
-    const results = await VersionedQuestion.query(context, sql, [versionedSectionId.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    const results = await VersionedQuestion.query(context, sql, [versionedSectionId?.toString()], reference);
+    return Array.isArray(results) ? results.map((entry) => new VersionedQuestion(entry)) : [];
   }
 }

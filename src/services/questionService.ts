@@ -5,8 +5,9 @@ import { Question } from "../models/Question";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
+import { QuestionOption } from "../models/QuestionOption";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
-import { formatLogMessage, logger } from "../logger";
+import { formatLogMessage } from "../logger";
 
 // Determine whether the specified user has permission to access the Section
 export const hasPermissionOnQuestion = async (context: MyContext, templateId: number): Promise<boolean> => {
@@ -56,7 +57,7 @@ export const generateQuestionVersion = async (
   try {
     const saved = await versionedQuestion.create(context);
 
-    if (saved && (!saved.errors || (Array.isArray(saved.errors) && saved.errors.length === 0))) {
+    if (saved && !saved.hasErrors()) {
       // Version any QuestionConditions as well
       const questionConditions = await QuestionCondition.findByQuestionId('generateQuestionVersion', context, saved.questionId);
       let allConditionsWereVersioned = true;
@@ -75,30 +76,27 @@ export const generateQuestionVersion = async (
         }
       }
 
-
       // Only proceed if all the conditions were able to version properly
       if (allConditionsWereVersioned) {
         // Reset the dirty flag
         question.isDirty = false;
         const updated = await question.update(context, true);
 
-        if (updated && (!updated.errors || (Array.isArray(updated.errors) && updated.errors.length === 0))) {
-          return true;
-        } else {
-          // There were errors on the object so report them
-          const msg = `Unable to generateQuestionVersion for question: ${question.id}, errs: ${updated.errors}`;
-          formatLogMessage(logger).error(null, msg);
-          throw new Error(msg);
-        }
+        if (updated && !updated.hasErrors()) return true;
+
+        // There were errors on the object so report them
+        const msg = `Unable to set isDirty flag on question: ${question.id}`;
+        formatLogMessage(context).error(updated.errors, msg);
+        throw new Error(msg);
       }
     } else {
       // There were errors on the object so report them
-      const msg = `Unable to generateQuestionVersion for versionedQuestion errs: ${saved.errors}`;
-      formatLogMessage(logger).error(null, msg);
+      const msg = `Unable to create new version for question: ${question.id}`;
+      formatLogMessage(context).error(saved.errors, msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(logger).error(err, `Unable to generateQuestionVersion for question: ${question.id}`);
+    formatLogMessage(context).error(err, `Unable to generate a new version for question: ${question.id}`);
     throw err
   }
 
@@ -159,12 +157,28 @@ export const generateQuestionConditionVersion = async (
   });
 
   const created = await versionedQuestionCondition.create(context);
-  if (created && (!created.errors || (Array.isArray(created.errors) && created.errors.length === 0))) {
+  if (created && !created.hasErrors()) {
     return true;
-  } else {
-    // There were errors on the object so report them
-    const msg = `Unable to generateQuestionConditionVersion for questionCondition errs: ${created.errors}`
-    formatLogMessage(logger).error(null, `${msg}, errs: ${created.errors}`);
-    throw new Error(msg);
   }
+
+  // There were errors on the object so report them
+  const msg = `Unable to generate a new version for questionCondition: ${questionCondition.id}`;
+  formatLogMessage(context).error(created.errors, msg);
+  throw new Error(msg);
+}
+
+
+export const getQuestionOptionsToRemove = async (questionOptions: QuestionOption[], context: MyContext, questionId: number): Promise<QuestionOption[]> => {
+  //Get all the existing question options associated with this question
+  const existingOptions = await QuestionOption.findByQuestionId('questionService', context, questionId);
+
+  // Create a Set of question option ids
+  const questionOptionIds = new Set(
+    questionOptions.map(option => option.id)
+  );
+
+  // Get options that exist in questionOptions table, but are not included in updated questionOptions
+  const optionsToRemove = existingOptions.filter(existing => !questionOptionIds.has(existing.id))
+
+  return Array.isArray(optionsToRemove) ? optionsToRemove : [];
 }

@@ -5,13 +5,15 @@ export const BAD_REQUEST_ERROR_CODE = 'BAD_REQUEST';
 export const FORBIDDEN_ERROR_CODE = 'FORBIDDEN';
 export const INTERNAL_SERVER_ERROR_CODE = 'INTERNAL_SERVER';
 export const NOT_FOUND_ERROR_CODE = 'NOT_FOUND';
+export const NOT_ACCEPTABLE_ERROR_CODE = 'NOT_ACCEPTABLE';
 export const BAD_USER_INPUT = 'BAD_USER_INPUT';
 
 export const DEFAULT_UNAUTHORIZED_MESSAGE = 'Unauthorized';
 export const DEFAULT_BAD_REQUEST_MESSAGE = 'Bad Request';
 export const DEFAULT_FORBIDDEN_MESSAGE = 'Forbidden';
-export const DEFAULT_INTERNAL_SERVER_MESSAGE = 'Internal Server Error';
+export const DEFAULT_INTERNAL_SERVER_MESSAGE = 'Something went wrong';
 export const DEFAULT_NOT_FOUND_MESSAGE = 'Not Found';
+export const DEFAULT_NOT_ACCEPTABLE_MESSAGE = 'Not Acceptable';
 export const DEFAULT_BAD_USER_INPUT = 'Bad user input';
 
 export function AuthenticationError(errMessage = DEFAULT_UNAUTHORIZED_MESSAGE) {
@@ -34,6 +36,14 @@ export function NotFoundError(errMessage = DEFAULT_NOT_FOUND_MESSAGE) {
   return new GraphQLError(errMessage, {
     extensions: {
       code: NOT_FOUND_ERROR_CODE,
+    },
+  });
+};
+
+export function NotAcceptableError(errMessage = DEFAULT_NOT_ACCEPTABLE_MESSAGE) {
+  return new GraphQLError(errMessage, {
+    extensions: {
+      code: NOT_ACCEPTABLE_ERROR_CODE,
     },
   });
 };

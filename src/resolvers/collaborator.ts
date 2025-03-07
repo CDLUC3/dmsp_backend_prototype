@@ -3,19 +3,35 @@ import { TemplateCollaborator } from "../models/Collaborator";
 import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
-import { isAdmin, isAuthorized } from "../services/authService";
-import { AuthenticationError, ForbiddenError, NotFoundError } from "../utils/graphQLErrors";
+import { isAdmin } from "../services/authService";
+import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
+import { hasPermissionOnTemplate } from "../services/templateService";
+import { formatLogMessage } from "../logger";
+import { GraphQLError } from "graphql";
 
 export const resolvers: Resolvers = {
   Query: {
     // Get all of the Users that belong to another affiliation that can edit the Template
     //     - called from the Template options page
     templateCollaborators: async (_, { templateId }, context: MyContext): Promise<TemplateCollaborator[]> => {
-      if (isAdmin(context.token)){
-        return await TemplateCollaborator.findByTemplateId('templateCollaborators resolver', context, templateId);
+      const reference = 'templateCollaborators resolver';
+      try {
+        // if the user is an admin
+        if (isAdmin(context.token)){
+          const template = await Template.findById(reference, context, templateId);
+          // If the user has permission on the Template
+          if (template && await hasPermissionOnTemplate(context, template)) {
+            const results = await TemplateCollaborator.findByTemplateId(reference, context, templateId);
+            return results;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 
@@ -23,39 +39,71 @@ export const resolvers: Resolvers = {
     // Add a collaborator to a Template
     //     - called from the Template options page
     addTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<TemplateCollaborator> => {
-      if (!isAuthorized(context?.token)) {
-        // Invalid token!
-        throw AuthenticationError();
-      }
+      const reference = 'addTemplateCollaborator resolver';
+      try {
+        // if the user is an admin
+        if (isAdmin(context.token)){
+          const template = await Template.findById(reference, context, templateId);
 
-      if (isAdmin(context.token)){
-        const invitedById = context.token?.id;
-        const collaborator = await new TemplateCollaborator({ templateId, email, invitedById });
-        return await collaborator.create(context);
+          // The template doesn't exist
+          if (!template) {
+            throw NotFoundError();
+          }
+
+          // If the user has permission on the Template
+          if (await hasPermissionOnTemplate(context, template)) {
+            const invitedById = context.token?.id;
+            const collaborator = await new TemplateCollaborator({ templateId, email, invitedById });
+            const created = await collaborator.create(context);
+
+            if (created?.id) {
+              return created;
+            }
+
+            // A null was returned so add a generic error and return it
+            if (!collaborator.errors['general']) {
+              collaborator.addError('general', 'Unable to create Collaborator');
+            }
+            return collaborator;
+          }
+        }
+        // Unauthorized! or Forbidden
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw ForbiddenError();
     },
 
     // Remove a TemplateCollaborator from a Template
     //     - called from the Template options page
-    removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<boolean> => {
-      if (isAdmin(context.token)){
-        const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
-          'removeTemplateCollaborator resolver',
-          context,
-          templateId,
-          email
-        );
-        if (collaborator) {
-          return await collaborator.delete(context);
-        }
+    removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<TemplateCollaborator> => {
+      const reference = 'removeTemplateCollaborator resolver';
+      try {
+          // if the user is an admin
+        if (isAdmin(context.token)){
+          const template = await Template.findById(reference, context, templateId);
 
-        // Couldn't find the TemplateCollaborator
-        throw NotFoundError();
+          // If the user has permission on the Template
+          if (template && await hasPermissionOnTemplate(context, template)) {
+            const collaborator = await TemplateCollaborator.findByTemplateIdAndEmail(reference, context, templateId, email);
+            if (collaborator) {
+              return await collaborator.delete(context);
+            }
+            // Couldn't find the TemplateCollaborator
+            throw NotFoundError();
+          }
+        }
+        // Unauthorized! or Forbidden
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
       }
-      // Unauthorized!
-      throw context?.token ? ForbiddenError() : AuthenticationError();
     },
   },
 

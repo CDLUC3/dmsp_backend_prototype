@@ -1,0 +1,2 @@
+ALTER TABLE projectCollaborators
+  ADD COLUMN accessLevel VARCHAR(8) NOT NULL DEFAULT 'COMMENT';

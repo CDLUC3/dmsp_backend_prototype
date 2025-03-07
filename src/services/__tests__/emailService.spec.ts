@@ -15,7 +15,7 @@ import {
   emailMessages,
   emailSubjects,
   sendEmailConfirmationNotification,
-  sendPlanCollaborationEmail,
+  sendProjectCollaborationEmail,
   sendTemplateCollaborationEmail
 } from "../emailService";
 import { generalConfig } from "../../config/generalConfig";
@@ -40,7 +40,7 @@ describe('sendEmail', () => {
   it('sends the confirmation email', async () => {
     jest.spyOn(logger, 'info');
     const email = casual.email;
-    const sent = await sendEmailConfirmationNotification(email);
+    const sent = await sendEmailConfirmationNotification(context, email);
 
     const expectedSubject = `${subjectPrefix} - ${emailSubjects.emailConfirmation}`
 
@@ -114,15 +114,15 @@ describe('sendEmail', () => {
     });
   });
 
-  it('sends the plan collaboration email', async () => {
+  it('sends the project collaboration email', async () => {
     jest.spyOn(logger, 'info');
     const email = casual.email;
-    const planName = casual.sentence;
+    const projectName = casual.sentence;
     const inviterName = `${casual.first_name} ${casual.last_name}`;
-    const sent = await sendPlanCollaborationEmail(context, planName, inviterName, email);
+    const sent = await sendProjectCollaborationEmail(context, projectName, inviterName, email);
 
-    const expectedSubject = `${subjectPrefix} - ${emailSubjects.planCollaboration}`
-    const expectedMessage = emailMessages.planCollaboration;
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.projectCollaboration}`
+    const expectedMessage = emailMessages.projectCollaboration;
 
     expect(sent).toBe(true);
     expect(logger.info).toHaveBeenCalledTimes(1);
@@ -130,7 +130,7 @@ describe('sendEmail', () => {
       "bcc": "",
       "cc": "",
       "from": `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
-      "html": expectedMessage.replace('%{planTitle}', planName).replace('%{inviterName}', inviterName),
+      "html": expectedMessage.replace('%{projectTitle}', projectName).replace('%{inviterName}', inviterName),
       "replyTo": emailConfig.helpDeskAddress,
       "sender": emailConfig.doNotReplyAddress,
       "subject": expectedSubject,
@@ -138,7 +138,7 @@ describe('sendEmail', () => {
     });
   });
 
-  it('sends the plan collaboration email to the user\'s primary email', async () => {
+  it('sends the project collaboration email to the user\'s primary email', async () => {
     jest.spyOn(logger, 'info');
     const user = new User({
       id: casual.integer(1, 99),
@@ -147,14 +147,14 @@ describe('sendEmail', () => {
       surName: casual.last_name,
     });
     const email = casual.email;
-    const planName = casual.sentence;
+    const projectName = casual.sentence;
     const inviterName = `${casual.first_name} ${casual.last_name}`;
 
     (User.findById as jest.Mock) = jest.fn().mockResolvedValueOnce(user);
-    const sent = await sendPlanCollaborationEmail(context, planName, inviterName, email, user.id);
+    const sent = await sendProjectCollaborationEmail(context, projectName, inviterName, email, user.id);
 
-    const expectedSubject = `${subjectPrefix} - ${emailSubjects.planCollaboration}`
-    const expectedMessage = emailMessages.planCollaboration;
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.projectCollaboration}`
+    const expectedMessage = emailMessages.projectCollaboration;
 
     expect(sent).toBe(true);
     expect(logger.info).toHaveBeenCalledTimes(1);
@@ -162,7 +162,7 @@ describe('sendEmail', () => {
       "bcc": "",
       "cc": "",
       "from": `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
-      "html": expectedMessage.replace('%{planTitle}', planName).replace('%{inviterName}', inviterName),
+      "html": expectedMessage.replace('%{projectTitle}', projectName).replace('%{inviterName}', inviterName),
       "replyTo": emailConfig.helpDeskAddress,
       "sender": emailConfig.doNotReplyAddress,
       "subject": expectedSubject,
