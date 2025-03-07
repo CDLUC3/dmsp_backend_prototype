@@ -138,6 +138,8 @@ export const typeDefs = gql`
     featured: Boolean
     "The last time the plan was synced with the DMPHub"
     lastSynced: String
+    "The section search results"
+    sections: [PlanSectionProgress!]
 
     "The contributors for the plan"
     contributors: [PlanContributor!]

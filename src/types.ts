@@ -1347,6 +1347,8 @@ export type Plan = {
   registered?: Maybe<Scalars['String']['output']>;
   /** The individual who registered the plan */
   registeredById?: Maybe<Scalars['Int']['output']>;
+  /** The section search results */
+  sections?: Maybe<Array<PlanSectionProgress>>;
   /** The status/state of the plan */
   status?: Maybe<PlanStatus>;
   /** The template the plan is based on */
@@ -1977,7 +1979,7 @@ export type Query = {
   recommendedLicenses?: Maybe<Array<Maybe<License>>>;
   /** Fetch a specific related work */
   relatedWork?: Maybe<RelatedWork>;
-  /** Search for a related work */
+  /** Get all the realted works for the Project */
   relatedWorks?: Maybe<Array<Maybe<RelatedWork>>>;
   /** Search for a repository */
   repositories?: Maybe<Array<Maybe<Repository>>>;
@@ -4133,6 +4135,7 @@ export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversP
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
   registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  sections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
   versionedTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType>;
   versions?: Resolver<Maybe<Array<ResolversTypes['PlanVersion']>>, ParentType, ContextType>;

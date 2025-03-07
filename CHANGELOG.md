@@ -1,4 +1,5 @@
 ### Added
+- Added `sections` to `Plan` schema and to plan resolver
 - Added the `relatedWorks` data migration
 - Added model and resolvers for `RelatedWork`
 - Added model and resolvers mutations for `PlanContributor` and `PlanFunder`
