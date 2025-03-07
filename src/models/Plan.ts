@@ -5,13 +5,14 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 
 export enum PlanStatus {
+  ARCHIVED = 'ARCHIVED',
   DRAFT = 'DRAFT',
   COMPLETE = 'COMPLETE',
   PUBLISHED = 'PUBLISHED',
 }
 
 export enum PlanVisibility {
-  ORGANIATIONAL = 'ORGANIZATIONAL',
+  ORGANIZATIONAL = 'ORGANIZATIONAL',
   PUBLIC = 'PUBLIC',
   PRIVATE = 'PRIVATE',
 }
@@ -118,8 +119,7 @@ export class PlanSectionProgress {
   }
 }
 
-
-// A DMP/Plan
+// A Data management plan
 export class Plan extends MySqlModel {
   public projectId: number;
   public versionedTemplateId: number;
@@ -156,10 +156,60 @@ export class Plan extends MySqlModel {
 
     if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
     if (!this.versionedTemplateId) this.addError('versionedTemplateId', 'Versioned template can\'t be blank');
-    if (!this.dmpId && this.registered) this.addError('dmpId', 'A published plan must have a DMP ID');
-    if (!this.registered && this.dmpId) this.addError('registered', 'A published plan must have a registration date');
+    if (!this.dmpId && this.status === PlanStatus.PUBLISHED) {
+      this.addError('dmpId', 'A published plan must have a DMP ID');
+    }
+    if (!this.registered && this.status === PlanStatus.PUBLISHED) {
+      this.addError('registered', 'A published plan must have a registration date');
+    }
 
     return Object.keys(this.errors).length === 0;
+  }
+
+  //Create a new Plan
+  async create(context: MyContext): Promise<Plan> {
+    const reference = 'Plan.create';
+
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      // Save the record and then fetch it
+      const newId = await Plan.insert(context, Plan.tableName, this, reference);
+      const response = await Plan.findById(reference, context, newId);
+      return response;
+    }
+    // Otherwise return as-is with all the errors
+    return new Plan(this);
+  }
+
+  //Update an existing Plan
+  async update(context: MyContext, noTouch = false): Promise<Plan> {
+    const reference = 'Plan.update';
+
+    if (this.id) {
+      if (await this.isValid()) {
+        await Plan.update(context, Plan.tableName, this, reference, [], noTouch);
+      }
+    } else {
+      // This plan has never been saved before so we cannot update it!
+      this.addError('general', 'Plan has never been saved');
+    }
+    return new Plan(this);
+  }
+
+  //Delete the Plan
+  async delete(context: MyContext): Promise<Plan> {
+    const reference = 'Plan.delete';
+    if (this.id) {
+      const deleted = await Plan.findById(reference, context, this.id);
+
+      const successfullyDeleted = await Plan.delete(context, Plan.tableName, this.id, reference);
+      if (successfullyDeleted) {
+        return deleted;
+      } else {
+        return null
+      }
+    }
+    return null;
   }
 
   // Find the plan by its id

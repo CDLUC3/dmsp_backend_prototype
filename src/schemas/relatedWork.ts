@@ -2,11 +2,19 @@ import gql from 'graphql-tag';
 
 export const typeDefs = gql`
   extend type Query {
-    "Search for a related work"
+    "Get all the realted works for the Project"
     relatedWorks(projectId: Int): [RelatedWork]
-
     "Fetch a specific related work"
     relatedWork(id: Int!): RelatedWork
+  }
+
+  extend type Mutation {
+    "Add a related work to a research project"
+    addRelatedWork(input: AddRelatedWorkInput!): RelatedWork
+    "Update a related work on the research project"
+    updateRelatedWork(input: UpdateRelatedWorkInput!): RelatedWork
+    "Remove a related work from a research project"
+    removeRelatedWork(id: Int!): RelatedWork
   }
 
   "A metadata standard used when describing a research output"
@@ -24,12 +32,16 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: RelatedWorkErrors
 
+    "The projectId that the related work is associated with"
+    projectId: Int
     "The related work's relationship to the research project (e.g. references, isReferencedBy, etc.)"
-    descriptor: RelatedWorkDescriptor
+    relationDescriptor: RelatedWorkDescriptor
     "The type of the related work (e.g. dataset, software, etc.)"
     workType: RelatedWorkType
     "The unique identifier for the work (e.g. DOI, URL, etc."
     identifier: String
+    "The citation for the related work"
+    citation: String
   }
 
   "A collection of errors related to the MetadataStandard"
@@ -37,9 +49,36 @@ export const typeDefs = gql`
     "General error messages such as the object already exists"
     general: String
 
-    descriptor: String
+    projectId: String
+    relationDescriptor: String
     workType: String
     identifier: String
+  }
+
+  type AddRelatedWorkInput {
+    "The project that the related work is associated with"
+    projectId: Int!
+    "The related work's relationship to the research project (e.g. references, isReferencedBy, etc.)"
+    relationDescriptor: RelatedWorkDescriptor!
+    "The type of the related work (e.g. dataset, software, etc.)"
+    workType: RelatedWorkType!
+    "The unique identifier for the work (e.g. DOI, URL, etc."
+    identifier: String!
+    "The citation for the related work"
+    citation: String
+  }
+
+  type UpdateRelatedWorkInput {
+    "The related work"
+    relatedWorkId: Int!
+    "The related work's relationship to the research project (e.g. references, isReferencedBy, etc.)"
+    relationDescriptor: RelatedWorkDescriptor
+    "The type of the related work (e.g. dataset, software, etc.)"
+    workType: RelatedWorkType
+    "The unique identifier for the work (e.g. DOI, URL, etc."
+    identifier: String
+    "The citation for the related work"
+    citation: String
   }
 
   "Relationship types between a plan and a related work (derived from the DataCite metadata schema"

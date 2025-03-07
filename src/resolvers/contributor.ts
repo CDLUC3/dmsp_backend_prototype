@@ -238,6 +238,179 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    //Add a Contributor to a Plan
+    addPlanContributor: async (_, { planId, projectContributorId, roleIds }, context: MyContext): Promise<PlanContributor> => {
+      const reference = 'addPlanContributor resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findById(reference, context, planId);
+          const projectContributor = await ProjectContributor.findById(reference, context, projectContributorId);
+
+          if (!plan || !projectContributor) {
+            throw NotFoundError();
+          }
+
+          const project = await Project.findById(reference, context, projectContributor.projectId);
+          if (hasPermissionOnProject(context, project)) {
+            const newPlanContributor = new PlanContributor({ planId, projectContributorId });
+            const created = await newPlanContributor.create(context);
+
+            if (!created?.id) {
+              // A null was returned so add a generic error and return it
+              if (!newPlanContributor.errors['general']) {
+                newPlanContributor.addError('general', 'Unable to create PlanContributor');
+              }
+              return newPlanContributor;
+            }
+
+            // If any ContributorRole were specified and there were no errors creating the record
+            if (Array.isArray(roleIds)) {
+              if (created && !created.hasErrors()) {
+                const addErrors = [];
+                // Add any ContributorRole associations
+                for (const id of roleIds) {
+                  const role = await ContributorRole.findById(reference, context, id);
+                  if (role) {
+                    const wasAdded = await role.addToPlanContributor(context, created.id);
+                    if (!wasAdded) {
+                      addErrors.push(role.label);
+                    }
+                  }
+                }
+                // If any failed to be added, then add an error to the PlanContributor
+                if (addErrors.length > 0) {
+                  created.addError('contributorRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
+                }
+              }
+            }
+
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub
+
+            return created;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // update an existing PlanContributor
+    updatePlanContributor: async (_, { planContributorId, roleIds }, context) => {
+      const reference = 'updatePlanContributor resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const contributor = await PlanContributor.findById(reference, context, planContributorId);
+          if (!contributor) {
+            throw NotFoundError();
+          }
+
+          // Fetch the project and run a permission check
+          const projectContributor = await ProjectContributor.findById(
+            reference,
+            context,
+            contributor.projectContributorId
+          );
+          const project = await Project.findById(reference, context, projectContributor.projectId);
+          if (!hasPermissionOnProject(context, project)) {
+            // The only thing we're really changing here is the roles
+            const associationErrors = [];
+            // Fetch all of the current Roles associated with this Contirbutor
+            const roles = await ContributorRole.findByPlanContributorId(reference, context, contributor.id);
+            const currentRoleids = roles ? roles.map((d) => d.id) : [];
+
+            // Use the helper function to determine which Roles to keep
+            const { idsToBeRemoved, idsToBeSaved } = ContributorRole.reconcileAssociationIds(currentRoleids, roleIds);
+
+            const removeErrors = [];
+            // Delete any Role associations that were removed
+            for (const id of idsToBeRemoved) {
+              const role = await ContributorRole.findById(reference, context, id);
+              if (role) {
+                const wasRemoved = role.removeFromPlanContributor(context, contributor.id);
+                if (!wasRemoved) {
+                  removeErrors.push(role.label);
+                }
+              }
+            }
+            // If any failed to be removed, then add an error to the ProjectContributor
+            if (removeErrors.length > 0) {
+              associationErrors.push(`unable to remove roles: ${removeErrors.join(', ')}`);
+            }
+
+            const addErrors = [];
+            // Add any new Role associations
+            for (const id of idsToBeSaved) {
+              const role = await ContributorRole.findById(reference, context, id);
+              if (role) {
+                const wasAdded = role.addToPlanContributor(context, contributor.id);
+                if (!wasAdded) {
+                  addErrors.push(role.label);
+                }
+              }
+            }
+            // If any failed to be added, then add an error to the ProjectContributor
+            if (addErrors.length > 0) {
+              associationErrors.push(`unable to assign roles: ${addErrors.join(', ')}`);
+            }
+
+            if (associationErrors.length > 0) {
+              contributor.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
+            }
+
+            // TODO: We need to generate the plan version snapshot and sync with DMPHub
+
+            // Reload since the roles have changed
+            return await PlanContributor.findById(reference, context, contributor.id);
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // delete an existing PlanContributor
+    removePlanContributor: async (_, { planContributorId }, context) => {
+      const reference = 'removePlanContributor resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const contributor = await PlanContributor.findById(reference, context, planContributorId);
+          if (!contributor) {
+            throw NotFoundError();
+          }
+
+          // Fetch the project and run a permission check
+          const projectContributor = await ProjectContributor.findById(
+            reference,
+            context,
+            contributor.projectContributorId
+          );
+          const project = await Project.findById(reference, context, projectContributor.projectId);
+          if (!hasPermissionOnProject(context, project)) {
+            throw ForbiddenError();
+          }
+
+          // TODO: We need to generate the plan version snapshot and sync with DMPHub
+
+          // Any related contributorRoles will be automatically deleted within the DB
+          return await contributor.delete(context);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
   },
 
   ProjectContributor: {

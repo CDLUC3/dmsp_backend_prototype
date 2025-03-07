@@ -28,6 +28,7 @@
     - [Mocks](#mocks)
     - [Internationalization / Language support](#languages)
     - [Tests](#tests)
+    - [Conect to ECS instance](#connect-to-ecs-instance)
 - [Environment variables](#environment-variables)
 - [Routes](#routes)
 - [Contributing](#contributing)
@@ -479,6 +480,24 @@ You should try to add unit tests any time you add or modify a file! To do so, fi
 Resolver tests make use of mocks to simulate interaction with datasources. These mocks can be found in `src/models/__mocks__`. By using these mocks we are able to perform end-to-end integration testing.
 
 To run the unit tests `npm run test`
+
+### Connect to ECS instance
+
+If you are running your application within an AWS ECS cluster. You need to do the following to connect to the container.
+
+First run the command to list the task ARNs: `aws ecs list-tasks --cluster [Cluster Name]`.
+
+Which will return something like this, where the last part of the ARN is the task id:
+```
+{
+    "taskArns": [
+        "arn:aws:ecs:[region]:[account]:task/[cluster]/[task id]"
+    ]
+}
+```
+
+Then run the following to connect to the task container:
+`aws ecs execute-command --cluster [Cluster Name] --task [Task id] --interactive --command /bin/sh`
 
 ## Environment variables
 

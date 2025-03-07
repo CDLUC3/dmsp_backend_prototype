@@ -467,12 +467,6 @@ describe('PlanContributor', () => {
     expect(Object.keys(planContributor.errors).length).toBe(1);
     expect(planContributor.errors['contributorRoleIds']).toBeTruthy();
   });
-
-  it('prepForSave should default the appropriate properties', async () => {
-    planContributor.contributorRoleIds = null;
-    planContributor.prepForSave()
-    expect(planContributor.contributorRoleIds).toEqual([]);
-  });
 });
 
 describe('findByPlanId', () => {
@@ -521,7 +515,26 @@ describe('findByPlanId', () => {
     expect(result).toEqual(null);
   });
 
-  it('findById should call query with correct params and return the default', async () => {
+  it('findByPlanAndProjectContributor should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([planContributor]);
+    const planId = casual.integer(1, 999);
+    const planContributorId = casual.integer(1, 999);
+    const result = await PlanContributor.findByPlanAndProjectContributor('testing', context, planId, planContributorId);
+    const expectedSql = 'SELECT * FROM planContributors WHERE planId = ? AND projectContributorId = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planId.toString(), planContributorId.toString()], 'testing')
+    expect(result).toEqual(planContributor);
+  });
+
+  it('findByPlanAndProjectContributor should return null if it finds no default', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const planId = casual.integer(1, 999);
+    const planContributorId = casual.integer(1, 999);
+    const result = await PlanContributor.findByPlanAndProjectContributor('testing', context, planId, planContributorId);
+    expect(result).toEqual(null);
+  });
+
+  it('findByPlanId should call query with correct params and return the default', async () => {
     localQuery.mockResolvedValueOnce([planContributor]);
     const planId = casual.integer(1, 999);
     const result = await PlanContributor.findByPlanId('testing', context, planId);
@@ -531,7 +544,7 @@ describe('findByPlanId', () => {
     expect(result).toEqual([planContributor]);
   });
 
-  it('findById should return empty array if it finds no default', async () => {
+  it('findByPlanId should return empty array if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
     const planId = casual.integer(1, 999);
     const result = await PlanContributor.findByPlanId('testing', context, planId);
@@ -553,5 +566,167 @@ describe('findByPlanId', () => {
     const projectContributorId = casual.integer(1, 999);
     const result = await PlanContributor.findByProjectContributorId('testing', context, projectContributorId);
     expect(result).toEqual(null);
+  });
+});
+
+describe('update', () => {
+  let updateQuery;
+  let planContributor;
+
+  beforeEach(() => {
+    updateQuery = jest.fn();
+    (PlanContributor.update as jest.Mock) = updateQuery;
+
+    planContributor = new PlanContributor({
+      id: casual.integer(1, 9999),
+      planId: casual.integer(1, 999),
+      projectContributorId: casual.integer(1, 999),
+      contributorRoles: [casual.integer(1, 99)]
+    })
+  });
+
+  it('returns the PlanContributor with errors if it is not valid', async () => {
+    const localValidator = jest.fn();
+    (planContributor.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    const result = await planContributor.update(context);
+    expect(result).toBeInstanceOf(PlanContributor);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an error if the PlanContributor has no id', async () => {
+    const localValidator = jest.fn();
+    (planContributor.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    planContributor.id = null;
+    const result = await planContributor.update(context);
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
+  });
+
+  it('returns the updated PlanContributor', async () => {
+    const localValidator = jest.fn();
+    (planContributor.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    updateQuery.mockResolvedValueOnce(planContributor);
+
+    const mockFindById = jest.fn();
+    (PlanContributor.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planContributor);
+
+    const result = await planContributor.update(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(PlanContributor);
+  });
+});
+
+describe('create', () => {
+  const originalInsert = PlanContributor.insert;
+  let insertQuery;
+  let planContributor;
+
+  beforeEach(() => {
+    insertQuery = jest.fn();
+    (PlanContributor.insert as jest.Mock) = insertQuery;
+
+    planContributor = new PlanContributor({
+      planId: casual.integer(1, 999),
+      projectContributorId: casual.integer(1, 999),
+      contributorRoleIds: [casual.integer(1, 99)],
+    });
+  });
+
+  afterEach(() => {
+    PlanContributor.insert = originalInsert;
+    PlanContributor.findByPlanAndProjectContributor = null;
+  });
+
+  it('returns the PlanContributor without errors if it is valid', async () => {
+    const localValidator = jest.fn();
+    (planContributor.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    const result = await planContributor.create(context);
+    expect(result).toBeInstanceOf(PlanContributor);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the PlanContributor with errors if it is invalid', async () => {
+    planContributor.planId = undefined;
+    const response = await planContributor.create(context);
+    expect(response.errors['planId']).toBe('Plan can\'t be blank');
+  });
+
+  it('returns the PlanContributor with an error if the question already exists', async () => {
+    const mockFindBy = jest.fn();
+    (PlanContributor.findByPlanAndProjectContributor as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(planContributor);
+
+    const result = await planContributor.create(context);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
+  });
+
+  it('returns the newly added PlanContributor', async () => {
+    const mockFindBy = jest.fn();
+    (PlanContributor.findByPlanAndProjectContributor as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(null);
+
+    const mockFindById = jest.fn();
+    (PlanContributor.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planContributor);
+
+    const result = await planContributor.create(context);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(mockFindById).toHaveBeenCalledTimes(1);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(PlanContributor);
+  });
+});
+
+describe('delete', () => {
+  let planContributor;
+
+  beforeEach(() => {
+    planContributor = new PlanContributor({
+      id: casual.integer(1, 9999),
+      planId: casual.integer(1, 999),
+      projectContributorId: casual.integer(1, 999),
+      contributorRoleIds: [casual.integer(1, 99)],
+    });
+  })
+
+  it('returns null if the PlanContributor has no id', async () => {
+    planContributor.id = null;
+    expect(await planContributor.delete(context)).toBe(null);
+  });
+
+  it('returns null if it was not able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (PlanContributor.delete as jest.Mock) = deleteQuery;
+
+    deleteQuery.mockResolvedValueOnce(null);
+    expect(await planContributor.delete(context)).toBe(null);
+  });
+
+  it('returns the PlanContributor if it was able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (PlanContributor.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(planContributor);
+
+    const mockFindById = jest.fn();
+    (PlanContributor.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planContributor);
+
+    const result = await planContributor.delete(context);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(PlanContributor);
   });
 });

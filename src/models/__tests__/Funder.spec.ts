@@ -451,3 +451,161 @@ describe('findBy Queries', () => {
     expect(result).toEqual(null);
   });
 });
+
+describe('update', () => {
+  let updateQuery;
+  let planFunder;
+
+  beforeEach(() => {
+    updateQuery = jest.fn();
+    (PlanFunder.update as jest.Mock) = updateQuery;
+
+    planFunder = new PlanFunder({
+      id: casual.integer(1, 9999),
+      planId: casual.integer(1, 999),
+      projectFunderId: casual.integer(1, 999),
+    })
+  });
+
+  it('returns the PlanFunder with errors if it is not valid', async () => {
+    const localValidator = jest.fn();
+    (planFunder.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    const result = await planFunder.update(context);
+    expect(result).toBeInstanceOf(PlanFunder);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an error if the PlanFunder has no id', async () => {
+    const localValidator = jest.fn();
+    (planFunder.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    planFunder.id = null;
+    const result = await planFunder.update(context);
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
+  });
+
+  it('returns the updated PlanFunder', async () => {
+    const localValidator = jest.fn();
+    (planFunder.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    updateQuery.mockResolvedValueOnce(planFunder);
+
+    const mockFindById = jest.fn();
+    (PlanFunder.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planFunder);
+
+    const result = await planFunder.update(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(PlanFunder);
+  });
+});
+
+describe('create', () => {
+  const originalInsert = PlanFunder.insert;
+  let insertQuery;
+  let planFunder;
+
+  beforeEach(() => {
+    insertQuery = jest.fn();
+    (PlanFunder.insert as jest.Mock) = insertQuery;
+
+    planFunder = new PlanFunder({
+      planId: casual.integer(1, 999),
+      projectFunderId: casual.integer(1, 999),
+    });
+  });
+
+  afterEach(() => {
+    PlanFunder.insert = originalInsert;
+  });
+
+  it('returns the PlanFunder without errors if it is valid', async () => {
+    const localValidator = jest.fn();
+    (planFunder.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    const result = await planFunder.create(context);
+    expect(result).toBeInstanceOf(PlanFunder);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the PlanFunder with errors if it is invalid', async () => {
+    planFunder.planId = undefined;
+    const response = await planFunder.create(context);
+    expect(response.errors['planId']).toBe('Plan can\'t be blank');
+  });
+
+  it('returns the PlanFunder with an error if the question already exists', async () => {
+    const mockFindBy = jest.fn();
+    (PlanFunder.findByProjectFunderId as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(planFunder);
+
+    const result = await planFunder.create(context);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
+  });
+
+  it('returns the newly added PlanFunder', async () => {
+    const mockFindBy = jest.fn();
+    (PlanFunder.findByProjectFunderId as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(null);
+
+    const mockFindById = jest.fn();
+    (PlanFunder.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planFunder);
+
+    const result = await planFunder.create(context);
+    expect(mockFindBy).toHaveBeenCalledTimes(1);
+    expect(mockFindById).toHaveBeenCalledTimes(1);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(PlanFunder);
+  });
+});
+
+describe('delete', () => {
+  let planFunder;
+
+  beforeEach(() => {
+    planFunder = new PlanFunder({
+      id: casual.integer(1, 9999),
+      planId: casual.integer(1, 999),
+      projectFunderId: casual.integer(1, 999),
+    });
+  })
+
+  it('returns null if the PlanFunder has no id', async () => {
+    planFunder.id = null;
+    expect(await planFunder.delete(context)).toBe(null);
+  });
+
+  it('returns null if it was not able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (PlanFunder.delete as jest.Mock) = deleteQuery;
+
+    deleteQuery.mockResolvedValueOnce(null);
+    expect(await planFunder.delete(context)).toBe(null);
+  });
+
+  it('returns the PlanFunder if it was able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (PlanFunder.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(planFunder);
+
+    const mockFindById = jest.fn();
+    (PlanFunder.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planFunder);
+
+    const result = await planFunder.delete(context);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(PlanFunder);
+  });
+});

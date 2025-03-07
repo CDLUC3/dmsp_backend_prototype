@@ -234,6 +234,7 @@ export class ProjectContributor extends MySqlModel {
   }
 };
 
+// Represents a contributor to a DMP
 export class PlanContributor extends MySqlModel {
   public planId: number;
   public projectContributorId: number;
@@ -265,18 +266,95 @@ export class PlanContributor extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
 
-  // Ensure data integrity
-  prepForSave() {
-    // Ensure that contributorRoles is always an array
-    if (!Array.isArray(this.contributorRoleIds)) {
-      this.contributorRoleIds = []
+  //Create a new PlanContributor
+  async create(context: MyContext): Promise<PlanContributor> {
+    const reference = 'PlanContributor.create';
+
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      const current = await PlanContributor.findByPlanAndProjectContributor(
+        reference,
+        context,
+        this.planId,
+        this.projectContributorId
+      );
+
+      // Then make sure it doesn't already exist
+      if (current) {
+        this.addError('general', 'Plan already has an entry for this contributor');
+      } else {
+        // Save the record and then fetch it
+        const newId = await PlanContributor.insert(
+          context,
+          PlanContributor.tableName,
+          this,
+          reference,
+          ['contributorRoleIds']
+        );
+        const response = await PlanContributor.findById(reference, context, newId);
+        return response;
+      }
     }
+    // Otherwise return as-is with all the errors
+    return new PlanContributor(this);
+  }
+
+  //Update an existing Contributor
+  async update(context: MyContext, noTouch = false): Promise<PlanContributor> {
+    if (await this.isValid()) {
+      if (this.id) {
+        await PlanContributor.update(
+          context,
+          PlanContributor.tableName,
+          this,
+          'PlanContributor.update',
+          ['contributorRoleIds'],
+          noTouch
+        );
+        return await PlanContributor.findById('PlanContributor.update', context, this.id);
+      }
+      // This template has never been saved before so we cannot update it!
+      this.addError('general', 'PlanContributor has never been saved');
+    }
+    return new PlanContributor(this);
+  }
+
+  //Delete PlanContributor
+  async delete(context: MyContext): Promise<PlanContributor> {
+    if (this.id) {
+      const deleted = await PlanContributor.findById('PlanContributor.delete', context, this.id);
+
+      const successfullyDeleted = await PlanContributor.delete(
+        context,
+        PlanContributor.tableName,
+        this.id,
+        'PlanContributor.delete'
+      );
+      if (successfullyDeleted) {
+        return deleted;
+      } else {
+        return null
+      }
+    }
+    return null;
   }
 
   // Find the project contributor by its id
   static async findById(reference: string, context: MyContext, id: number): Promise<PlanContributor> {
     const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`;
     const results = await PlanContributor.query(context, sql, [id?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new PlanContributor(results[0]) : null;
+  }
+
+  // Fetch a contributor by the PLan and ProjectContributor
+  static async findByPlanAndProjectContributor(
+    reference: string,
+    context: MyContext,
+    planId: number,
+    projectContributorId: number
+  ): Promise<PlanContributor> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? AND projectContributorId = ?`;
+    const results = await PlanContributor.query(context, sql, [planId?.toString(), projectContributorId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new PlanContributor(results[0]) : null;
   }
 

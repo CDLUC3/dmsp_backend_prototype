@@ -253,17 +253,17 @@ describe('Plan', () => {
     expect(plan.errors['versionedTemplateId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the dmpId field is missing and registered is true', async () => {
+  it('should return false when calling isValid if the dmpId field is missing and the status is PUBLISHED', async () => {
     plan.dmpId = null;
-    plan.registered = '2023-10-01';
+    plan.status = PlanStatus.PUBLISHED;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['dmpId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the registered field is missing and dmpId is true', async () => {
+  it('should return false when calling isValid if the registered field is missing and status is PUBLISHED', async () => {
     plan.registered = null;
-    plan.dmpId = '12345';
+    plan.status = PlanStatus.PUBLISHED;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['registered']).toBeTruthy();
@@ -353,5 +353,156 @@ describe('findBy Queries', () => {
     const projectId = casual.integer(1, 999);
     const result = await Plan.findByProjectId('testing', context, projectId);
     expect(result).toEqual([]);
+  });
+});
+
+describe('create', () => {
+  const originalInsert = Plan.insert;
+  let insertQuery;
+  let plan;
+
+  beforeEach(() => {
+    insertQuery = jest.fn();
+    (Plan.insert as jest.Mock) = insertQuery;
+
+    plan = new Plan({
+      projectId: casual.integer(1, 99),
+      versionedTemplateId: casual.integer(1, 99),
+      dmpId: casual.url,
+      status: getRandomEnumValue(PlanStatus),
+      visibility: getRandomEnumValue(PlanVisibility),
+      registeredById: casual.integer(1, 99),
+      registered: casual.date('YYYY-MM-DD'),
+      lastSynced: casual.date('YYYY-MM-DD'),
+      languageId: defaultLanguageId,
+      featured: casual.boolean,
+    });
+  });
+
+  afterEach(() => {
+    Plan.insert = originalInsert;
+  });
+
+  it('returns the Plan with errors if it is invalid', async () => {
+    plan.projectId = undefined;
+    const response = await plan.create(context);
+    expect(response.errors['projectId']).toBe('Project can\'t be blank');
+  });
+
+  it('returns the newly added Plan', async () => {
+    const mockFindById = jest.fn();
+    (Plan.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(plan);
+
+    const result = await plan.create(context);
+    expect(mockFindById).toHaveBeenCalledTimes(1);
+    expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Plan);
+  });
+});
+
+describe('update', () => {
+  let updateQuery;
+  let plan;
+
+  beforeEach(() => {
+    updateQuery = jest.fn();
+    (Plan.update as jest.Mock) = updateQuery;
+
+    plan = new Plan({
+      id: casual.integer(1, 999),
+      projectId: casual.integer(1, 99),
+      versionedTemplateId: casual.integer(1, 99),
+      dmpId: casual.url,
+      status: getRandomEnumValue(PlanStatus),
+      visibility: getRandomEnumValue(PlanVisibility),
+      registeredById: casual.integer(1, 99),
+      registered: casual.date('YYYY-MM-DD'),
+      lastSynced: casual.date('YYYY-MM-DD'),
+      languageId: defaultLanguageId,
+      featured: casual.boolean,
+    })
+  });
+
+  it('returns the Plan with errors if it is not valid', async () => {
+    const localValidator = jest.fn();
+    (plan.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    const result = await plan.update(context);
+    expect(result instanceof Plan).toBe(true);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an error if the Plan has no id', async () => {
+    const localValidator = jest.fn();
+    (plan.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    plan.id = null;
+    const result = await plan.update(context);
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
+  });
+
+  it('returns the updated Plan', async () => {
+    const localValidator = jest.fn();
+    (plan.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(true);
+
+    updateQuery.mockResolvedValueOnce(plan);
+
+    const mockFindById = jest.fn();
+    (Plan.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(plan);
+
+    const result = await plan.update(context);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Plan);
+  });
+});
+
+describe('delete', () => {
+  let plan;
+
+  beforeEach(() => {
+    plan = new Plan({
+      id: casual.integer(1, 999),
+      projectId: casual.integer(1, 99),
+      versionedTemplateId: casual.integer(1, 99),
+      dmpId: casual.url,
+      languageId: defaultLanguageId,
+      featured: casual.boolean,
+    });
+  })
+
+  it('returns null if the Plan has no id', async () => {
+    plan.id = null;
+    expect(await plan.delete(context)).toBe(null);
+  });
+
+  it('returns null if it was not able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (Plan.delete as jest.Mock) = deleteQuery;
+
+    deleteQuery.mockResolvedValueOnce(null);
+    expect(await plan.delete(context)).toBe(null);
+  });
+
+  it('returns the Plan if it was able to delete the record', async () => {
+    const deleteQuery = jest.fn();
+    (Plan.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(plan);
+
+    const mockFindById = jest.fn();
+    (Plan.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(plan);
+
+    const result = await plan.delete(context);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Plan);
   });
 });

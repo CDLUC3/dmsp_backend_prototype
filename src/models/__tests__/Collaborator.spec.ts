@@ -1,5 +1,5 @@
 import casual from 'casual';
-import { Collaborator, ProjectCollaborator, TemplateCollaborator } from "../Collaborator";
+import { Collaborator, ProjectCollaborator, ProjectCollaboratorAccessLevel, TemplateCollaborator } from "../Collaborator";
 import { Template } from '../Template';
 import { User } from '../User';
 import { buildContext, mockToken } from '../../__mocks__/context';
@@ -459,6 +459,7 @@ describe('ProjectCollaborator', () => {
     expect(projectCollaborator.projectId).toEqual(projectId);
     expect(projectCollaborator.invitedById).toEqual(invitedById);
     expect(projectCollaborator.userId).toBeFalsy();
+    expect(projectCollaborator.accessLevel).toEqual(ProjectCollaboratorAccessLevel.COMMENT);
   });
 
   it('isValid returns true when the projectId is present', async () => {
@@ -482,6 +483,19 @@ describe('ProjectCollaborator', () => {
     expect(await collaborator.isValid()).toBe(false);
     expect(Object.keys(collaborator.errors).length).toBe(1);
     expect(collaborator.errors['projectId']).toBeTruthy()
+  });
+
+  it('isValid returns false when the accessLevel is NOT present', async () => {
+    const email = casual.email;
+    const invitedById = casual.integer(1, 999);
+    const createdById = casual.integer(1, 999);
+    const projectId = casual.integer(1, 999);
+
+    const collaborator = new ProjectCollaborator({ email, invitedById, createdById, projectId });
+    collaborator.accessLevel = null;
+    expect(await collaborator.isValid()).toBe(false);
+    expect(Object.keys(collaborator.errors).length).toBe(1);
+    expect(collaborator.errors['accessLevel']).toBeTruthy()
   });
 
   describe('findBy queries', () => {

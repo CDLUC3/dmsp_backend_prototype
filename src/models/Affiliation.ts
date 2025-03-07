@@ -5,6 +5,7 @@ import { DMPHubConfig } from "../config/dmpHubConfig";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
+export const ROR_REGEX = /^https?:\/\/ror\.org\/[0-9a-zA-Z]+$/;
 
 // The provenance of an Affiliation record
 // Users can only update certain properties for records managed by other systems.

@@ -1,5 +1,5 @@
 import 'jest-expect-message';
-import { LogInType, User, UserRole } from '../User';
+import { DEFAULT_ORCID_URL, LogInType, User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { logger } from '../../__mocks__/logger';
@@ -25,7 +25,7 @@ describe('constructor', () => {
       role: UserRole.ADMIN,
       givenName: casual.first_name,
       surName: casual.last_name,
-      orcid: '0000-0000-0000-000X',
+      orcid: `${DEFAULT_ORCID_URL}0000-0000-0000-000X`,
       ssoId: casual.uuid,
       languageId: lang.id,
     }
@@ -83,6 +83,7 @@ describe('prepForSave standardizes the format of properties', () => {
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
+      orcid: `${DEFAULT_ORCID_URL}0000-0000-0000-000X`,
     });
     user.prepForSave();
     expect(user.email).toEqual('TESTer@exaMPle.cOm');
@@ -90,6 +91,63 @@ describe('prepForSave standardizes the format of properties', () => {
     expect(user.surName).toEqual('User');
     expect(user.role).toEqual(UserRole.RESEARCHER);
     expect(user.languageId).toEqual(defaultLanguageId);
+    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+});
+
+describe('prepForSave properly handles ORCIDs', () => {
+  it('should null out invalid ORCIDs', () => {
+    const user = new User({
+      email: 'TESTer%40exaMPle.cOm',
+      givenName: ' Test ',
+      surName: '  user  ',
+      languageId: 'test',
+      orcid: '25t24g45g45g546gt',
+    });
+    user.prepForSave();
+    expect(user.orcid).toBeNull();
+  });
+
+  it('should handle the ORCID URL with no protocol', () => {
+    const user = new User({
+      email: 'TESTer%40exaMPle.cOm',
+      givenName: ' Test ',
+      surName: '  user  ',
+      languageId: 'test',
+      orcid: `${DEFAULT_ORCID_URL.replace(/https?:\/\//, '')}0000-0000-0000-000X`,
+    });
+    user.prepForSave();
+    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+
+  it('should handle the ORCID ID without base URL', () => {
+    const user = new User({
+      email: 'TESTer%40exaMPle.cOm',
+      givenName: ' Test ',
+      surName: '  user  ',
+      languageId: 'test',
+      orcid: `0000-0000-0000-000X`,
+    });
+    user.prepForSave();
+    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+});
+
+describe('formatORCID', () => {
+  // Test the ORCID formatting
+  it('should return null for an invalid ORCID', () => {
+    expect(User.formatORCID('25t24g45g45g546gt')).toBeNull();
+    expect(User.formatORCID('0000-0000-0000')).toBeNull();
+    expect(User.formatORCID(`${DEFAULT_ORCID_URL}/0000-0000-000`)).toBeNull();
+  });
+
+  it('should return the ORCID with the default URL', () => {
+    expect(User.formatORCID('0000-0000-0000-000X')).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+  });
+
+  it('should return the ORCID as is if it already a valid ORCID with the base URL', () => {
+    expect(User.formatORCID(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`)).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+    expect(User.formatORCID('https://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
   });
 });
 

@@ -31,8 +31,10 @@ export class ContributorRole extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
 
-  static defaultRole(): string {
-    return `${DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL}/other`;
+  // Return the default role
+  static async defaultRole(context: MyContext, reference = 'ContributorRole.defaultRole'): Promise<ContributorRole> {
+    const roleURI = `${DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL}/other`;
+    return await ContributorRole.findByURL(reference, context, roleURI);
   }
 
   // Add an association for a ContributorRole with a ProjectContributor
