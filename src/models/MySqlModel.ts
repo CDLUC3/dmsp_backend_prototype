@@ -278,14 +278,14 @@ export class MySqlModel {
   // Return a list of the ids to delete, idsToBeRemoved,  and a list of ids to add idsToBeSaved
   static reconcileAssociationIds(
     idsOnCurrentRecord: number[],
-    idsOnNewRecord: number[]
-  ): { idsToBeRemoved: number[], idsToBeSaved: number[] } {
+    idsOnNewRecord?: number[]
+  ): { idsToBeRemoved: number[], idsToBeSaved: number[] | undefined } {
     const current = new Set<number>(idsOnCurrentRecord);
     const wanted = new Set<number>(idsOnNewRecord);
 
     return {
       idsToBeRemoved: idsOnCurrentRecord.filter((id) => !wanted.has(id)),
-      idsToBeSaved: idsOnNewRecord.filter((id) => !current.has(id))
+      idsToBeSaved: idsOnNewRecord ? idsOnNewRecord.filter((id) => !current.has(id)) : []
     }
   }
 }

@@ -300,7 +300,7 @@ export const resolvers: Resolvers = {
     },
 
     // update an existing PlanContributor
-    updatePlanContributor: async (_, { planContributorId, roleIds }, context) => {
+    updatePlanContributor: async (_, { planId, planContributorId, contributorRoleIds, isPrimaryContact }, context) => {
       const reference = 'updatePlanContributor resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -316,15 +316,16 @@ export const resolvers: Resolvers = {
             contributor.projectContributorId
           );
           const project = await Project.findById(reference, context, projectContributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
-            // The only thing we're really changing here is the roles
+          const hasPermission = await hasPermissionOnProject(context, project);
+          if (hasPermission) {
+            // Update roles
             const associationErrors = [];
-            // Fetch all of the current Roles associated with this Contirbutor
+            // Fetch all of the current Roles associated with this Contributor
             const roles = await ContributorRole.findByPlanContributorId(reference, context, contributor.id);
             const currentRoleids = roles ? roles.map((d) => d.id) : [];
 
             // Use the helper function to determine which Roles to keep
-            const { idsToBeRemoved, idsToBeSaved } = ContributorRole.reconcileAssociationIds(currentRoleids, roleIds);
+            const { idsToBeRemoved, idsToBeSaved } = ContributorRole.reconcileAssociationIds(currentRoleids, contributorRoleIds);
 
             const removeErrors = [];
             // Delete any Role associations that were removed
@@ -360,6 +361,23 @@ export const resolvers: Resolvers = {
 
             if (associationErrors.length > 0) {
               contributor.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
+            }
+
+
+            // Update isPrimaryContact if it was provided
+            if (isPrimaryContact !== undefined) {
+              // Check if there is an existing PlanContributor with isPrimaryContact === true
+              const currentPrimaryContact = await PlanContributor.findPrimaryByPlanId(reference, context, planId);
+
+              // If one exists and it's not the same as the current contributor, set it to false
+              if (currentPrimaryContact && currentPrimaryContact.id !== contributor.id) {
+                currentPrimaryContact.isPrimaryContact = false;
+                await currentPrimaryContact.update(context);
+              }
+
+              // Set the new contributor as the primary contact
+              contributor.isPrimaryContact = isPrimaryContact;
+              await contributor.update(context);
             }
 
             // TODO: We need to generate the plan version snapshot and sync with DMPHub
