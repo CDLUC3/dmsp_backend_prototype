@@ -23,7 +23,7 @@ export const typeDefs = gql`
     "Add a Contributor to a Plan"
     addPlanContributor(planId: Int!, projectContributorId: Int!, roleIds: [Int!]): PlanContributor
     "Chnage a Contributor's accessLevel on a Plan"
-    updatePlanContributor(planId: Int!, planContributorId: Int!, projectContributorId: Int!, contributorRoleIds: [Int!], isPrimaryContact: Boolean): PlanContributor
+    updatePlanContributor(planId: Int!, planContributorId: Int!, contributorRoleIds: [Int!], isPrimaryContact: Boolean): PlanContributor
     "Remove a PlanContributor from a Plan"
     removePlanContributor(planContributorId: Int!): PlanContributor
   }

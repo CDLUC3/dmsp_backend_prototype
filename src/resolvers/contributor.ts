@@ -305,7 +305,7 @@ export const resolvers: Resolvers = {
     },
 
     // update an existing PlanContributor
-    updatePlanContributor: async (_, { planId, planContributorId, projectContributorId, contributorRoleIds, isPrimaryContact }, context) => {
+    updatePlanContributor: async (_, { planId, planContributorId, contributorRoleIds, isPrimaryContact }, context) => {
       const reference = 'updatePlanContributor resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -340,7 +340,7 @@ export const resolvers: Resolvers = {
             const toUpdate = new PlanContributor({
               id: planContributorId,
               planId: planId,
-              projectContributorId,
+              projectContributorId: projectContributor.id,
               isPrimaryContact,
               contributorRoleIds: updatedRoleIds ?? currentRoleIds,
             });
