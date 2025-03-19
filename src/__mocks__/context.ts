@@ -29,6 +29,7 @@ jest.mock('../datasources/DMPHubAPI', () => {
       getDMP: jest.fn(),
       createDMP: jest.fn(),
       updateDMP: jest.fn(),
+      validateDMP: jest.fn(),
       tombstoneDMP: jest.fn(),
       handleResponse: jest.fn(),
       willSendRequest: jest.fn(),

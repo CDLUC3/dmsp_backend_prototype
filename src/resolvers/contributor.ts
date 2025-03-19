@@ -11,6 +11,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
+import { createPlanVersion, syncWithDMPHub } from '../services/planService';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -254,45 +255,59 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, projectContributor.projectId);
           if (hasPermissionOnProject(context, project)) {
             const newPlanContributor = new PlanContributor({ planId, projectContributorId });
-            const created = await newPlanContributor.create(context);
 
-            if (!created?.id) {
-              // A null was returned so add a generic error and return it
-              if (!newPlanContributor.errors['general']) {
-                newPlanContributor.addError('general', 'Unable to create PlanContributor');
+            // First create a version snapshot (before making changes)
+            const newVersion = await createPlanVersion(context, plan, reference);
+            if (newVersion) {
+              const created = await newPlanContributor.create(context);
+
+console.log('created', created)
+
+              if (!created?.id) {
+                // A null was returned so add a generic error and return it
+                if (!newPlanContributor.errors['general']) {
+                  newPlanContributor.addError('general', 'Unable to create PlanContributor');
+                }
+                return newPlanContributor;
               }
-              return newPlanContributor;
-            }
 
-            // If any ContributorRole were specified and there were no errors creating the record
-            if (Array.isArray(roleIds)) {
-              if (created && !created.hasErrors()) {
-                const addErrors = [];
-                // Add any ContributorRole associations
-                for (const id of roleIds) {
-                  const role = await ContributorRole.findById(reference, context, id);
-                  if (role) {
-                    const wasAdded = await role.addToPlanContributor(context, created.id);
-                    if (!wasAdded) {
-                      addErrors.push(role.label);
+              // If any ContributorRole were specified and there were no errors creating the record
+              if (Array.isArray(roleIds)) {
+                if (created && !created.hasErrors()) {
+                  const addErrors = [];
+                  // Add any ContributorRole associations
+                  for (const id of roleIds) {
+                    const role = await ContributorRole.findById(reference, context, id);
+                    if (role) {
+                      const wasAdded = await role.addToPlanContributor(context, created.id);
+                      if (!wasAdded) {
+                        addErrors.push(role.label);
+                      }
                     }
                   }
-                }
-                // If any failed to be added, then add an error to the PlanContributor
-                if (addErrors.length > 0) {
-                  created.addError('contributorRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
+                  // If any failed to be added, then add an error to the PlanContributor
+                  if (addErrors.length > 0) {
+                    created.addError('contributorRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
+                  }
                 }
               }
+
+console.log('syncing with DMPHub')
+
+              // Asyncronously update the DMPHub
+              syncWithDMPHub(context, plan, reference);
+
+              return created;
+            } else {
+              newPlanContributor.addError('general', 'Unable to version the plan at this time');
             }
-
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub
-
-            return created;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
+
+console.log('error', err)
 
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();

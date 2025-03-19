@@ -353,7 +353,7 @@ describe('commonStandardService', () => {
           type: 'orcid',
         },
       },
-      created: "2023-01-01",
+      created: "2023-01-01T00:00:00Z",
       dataset: [
         {
           dataset_id: {
@@ -371,18 +371,18 @@ describe('commonStandardService', () => {
         type: 'doi'
       },
       dmphub_provenance_id: "testing",
-      dmproadmap_featured: true,
+      dmproadmap_featured: '1',
       dmproadmap_privacy: "public",
       dmproadmap_status: "published",
       ethical_issues_exist: "unknown",
       language: "eng",
-      modified: "2023-01-02",
+      modified: "2023-01-02T00:00:00Z",
       project: [
         {
           title: "Project title",
         },
       ],
-      registered: "2023-01-03",
+      registered: "2023-01-03T00:00:00Z",
       title: "DMP for: Template name"
     });
   });
@@ -405,13 +405,13 @@ describe('commonStandardService', () => {
 
     expect(result).toEqual({
       dmphub_provenance_id: 'testing',
-      created: '2023-01-01',
-      modified: '2023-01-02',
-      registered: '2023-01-03',
+      created: '2023-01-01T00:00:00Z',
+      modified: '2023-01-02T00:00:00Z',
+      registered: '2023-01-03T00:00:00Z',
       title: 'DMP for: Template name',
       language: 'eng',
       ethical_issues_exist: DMPYesNoUnknown.UNKNOWN,
-      dmproadmap_featured: true,
+      dmproadmap_featured: '1',
       dmproadmap_privacy: DMPPrivacy.PUBLIC,
       dmproadmap_status: DMPStatus.PUBLISHED,
       dmp_id: {
@@ -477,8 +477,8 @@ describe('commonStandardService', () => {
         {
           title: 'Project title',
           description: 'Project description',
-          start: '2023-01-01',
-          end: '2023-12-31',
+          start: '2023-01-01T00:00:00Z',
+          end: '2023-12-31T00:00:00Z',
           funding: [
             {
               name: 'Funder name',

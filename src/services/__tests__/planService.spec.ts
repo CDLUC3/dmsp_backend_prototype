@@ -43,47 +43,69 @@ describe('planService', () => {
   });
 
   describe('syncWithDMPHub', () => {
+    it('should return null if there are validation errors', async () => {
+      const commonStandard = {} as DMPCommonStandard;
+      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
+      (context.dataSources.dmphubAPIDataSource.validateDMP as jest.Mock).mockResolvedValue(['error']);
+
+      const result = await syncWithDMPHub(context, plan);
+
+      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'syncWithDMPHub', plan);
+      expect(context.dataSources.dmphubAPIDataSource.validateDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
+      expect(logger.error).toHaveBeenCalled();
+      expect(plan.update).not.toHaveBeenCalledWith(context, true);
+      expect(result).toBeNull();
+    });
+
     it('should create a new DMP if no DMP ID exists', async () => {
       const commonStandard = {} as DMPCommonStandard;
       (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
       const dmp = {};
+      (context.dataSources.dmphubAPIDataSource.validateDMP as jest.Mock).mockResolvedValue([]);
       (context.dataSources.dmphubAPIDataSource.createDMP as jest.Mock).mockResolvedValue(dmp);
 
       const result = await syncWithDMPHub(context, plan);
 
       expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'syncWithDMPHub', plan);
+      expect(context.dataSources.dmphubAPIDataSource.validateDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
       expect(context.dataSources.dmphubAPIDataSource.createDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
-      expect(plan.update).toHaveBeenCalledWith(context, true);
+      expect(plan.update).not.toHaveBeenCalledWith(context, true);
       expect(result).toEqual(dmp);
     });
 
     it('should tombstone the DMP if the plan is archived', async () => {
+      plan.id = 123;
       plan.dmpId = '123';
       plan.status = PlanStatus.ARCHIVED;
       const commonStandard = {} as DMPCommonStandard;
       (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
       const dmp = {};
+      (context.dataSources.dmphubAPIDataSource.validateDMP as jest.Mock).mockResolvedValue([]);
       (context.dataSources.dmphubAPIDataSource.tombstoneDMP as jest.Mock).mockResolvedValue(dmp);
 
       const result = await syncWithDMPHub(context, plan);
 
       expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'syncWithDMPHub', plan);
+      expect(context.dataSources.dmphubAPIDataSource.validateDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
       expect(context.dataSources.dmphubAPIDataSource.tombstoneDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
       expect(plan.update).toHaveBeenCalledWith(context, true);
       expect(result).toEqual(dmp);
     });
 
     it('should update the DMP if the plan is not archived', async () => {
+      plan.id = 123;
       plan.dmpId = '123';
       plan.status = PlanStatus.DRAFT;
       const commonStandard = {} as DMPCommonStandard;
       (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
       const dmp = {};
+      (context.dataSources.dmphubAPIDataSource.validateDMP as jest.Mock).mockResolvedValue([]);
       (context.dataSources.dmphubAPIDataSource.updateDMP as jest.Mock).mockResolvedValue(dmp);
 
       const result = await syncWithDMPHub(context, plan);
 
       expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'syncWithDMPHub', plan);
+      expect(context.dataSources.dmphubAPIDataSource.validateDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
       expect(context.dataSources.dmphubAPIDataSource.updateDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
       expect(plan.update).toHaveBeenCalledWith(context, true);
       expect(result).toEqual(dmp);

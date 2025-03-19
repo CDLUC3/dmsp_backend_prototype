@@ -10,6 +10,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
+import { createPlanVersion, syncWithDMPHub } from '../services/planService';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -176,10 +177,18 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          // TODO: We need to generate the plan version snapshot and sync with DMPHub
+          // First create a version snapshot (before making changes)
+          const newVersion = await createPlanVersion(context, plan, reference);
+          if (newVersion) {
+            const newFunder = new PlanFunder({ planId, projectFunderId });
 
-          const newFunder = new PlanFunder({ planId, projectFunderId });
-          return await newFunder.create(context);
+            if (newFunder){
+              // Asyncronously update the DMPHub
+              syncWithDMPHub(context, plan, reference);
+            }
+
+            return await newFunder.create(context);
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -200,15 +209,24 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          // TODO: We need to generate the plan version snapshot and sync with DMPHub
-
           const plan = await Plan.findById(reference, context, funder.planId);
           const project = await Project.findById(reference, context, plan.projectId);
           if (!plan || !project || !hasPermissionOnProject(context, project)) {
             throw ForbiddenError();
           }
 
-          return await funder.delete(context);
+          // First create a version snapshot (before making changes)
+          const newVersion = await createPlanVersion(context, plan, reference);
+          if (newVersion) {
+            const deletedFunder = await funder.delete(context);
+
+            if (deletedFunder){
+              // Asyncronously update the DMPHub
+              syncWithDMPHub(context, plan, reference);
+            }
+
+            return deletedFunder;
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

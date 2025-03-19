@@ -52,10 +52,12 @@ export class PlanVersion extends MySqlModel {
     if (await this.isValid()) {
       // Save the record and then fetch it
       this.prepForSave();
+
       const newId = await PlanVersion.insert(context, PlanVersion.tableName, this, reference);
       const response = await PlanVersion.findById(reference, context, newId);
       return response;
     }
+
     // Otherwise return as-is with all the errors
     return new PlanVersion(this);
   }

@@ -10,7 +10,7 @@ import { PlanContributor } from "../models/Contributor";
 import { PlanFunder } from "../models/Funder";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
-import { createPlanVersion } from "../services/planService";
+import { createPlanVersion, syncWithDMPHub } from "../services/planService";
 import { getCurrentDate, randomHex } from "../utils/helpers";
 import { Answer } from "../models/Answer";
 
@@ -79,12 +79,13 @@ export const resolvers: Resolvers = {
             // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
             //
             // Send the plan to the DMPHub so that it stores it and assigns a DMP ID
-            // const dmp = await syncWithDMPHub(context, plan, reference);
-            // formatLogMessage(context).debug({ dmp }, `DMP from the DMPHub API: for plan: ${plan.id}`);
+            const dmp = await syncWithDMPHub(context, plan, reference);
+            formatLogMessage(context).debug({ dmp }, `DMP from the DMPHub API: for plan: ${plan.id}`);
 
-            // Record the DMP ID that was assigned by the DMPHub
-            // plan.dmpId = dmp?.dmp_id?.identifier;
-            plan.dmpId = randomHex(16);
+            // Record the DMP ID that was assigned by the DMPHub. If the sync with DMPHub failed for
+            // some reason, then we'll just generate a temporary ID.
+            plan.dmpId = dmp && dmp.dmp_id ? dmp.dmp_id.identifier : `tmpId-${randomHex(16)}`;
+            if (dmp && dmp.dmp_id) plan.lastSynced = getCurrentDate();
 
             const newPlan = await plan.create(context);
             if (newPlan) {
@@ -115,7 +116,7 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
             // First create a version snapshot (before making changes)
-            const newVersion = createPlanVersion(context, plan, reference);
+            const newVersion = await createPlanVersion(context, plan, reference);
             if (newVersion) {
               plan.status = PlanStatus.ARCHIVED;
               const deletedPlan = await plan.delete(context);
@@ -189,7 +190,7 @@ export const resolvers: Resolvers = {
 
             if (!plan.hasErrors()) {
               // First create a version snapshot (before making changes)
-              const newVersion = createPlanVersion(context, plan, reference);
+              const newVersion = await createPlanVersion(context, plan, reference);
               if (newVersion) {
                 plan.status = PlanStatus.PUBLISHED;
                 plan.registered = new Date().toISOString();
@@ -198,9 +199,7 @@ export const resolvers: Resolvers = {
 
                 const publishedPlan = await plan.update(context);
                 if (publishedPlan) {
-                  // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
-                  //
-                  // asyncronously tombstone the DMP in the DMPHub (after making changes)
+                  // Asyncronously sync the plan with the DMPHub (after making changes)
                   // syncWithDMPHub(context, plan, reference);
 
                   return publishedPlan;
@@ -235,7 +234,7 @@ export const resolvers: Resolvers = {
               plan.addError('general', 'Plan is already published');
             } else {
               // First create a version snapshot (before making changes)
-              const newVersion = createPlanVersion(context, plan, reference);
+              const newVersion = await createPlanVersion(context, plan, reference);
               if (newVersion) {
                 plan.status = PlanStatus.COMPLETE;
                 plan.lastSynced = getCurrentDate();
@@ -278,7 +277,7 @@ export const resolvers: Resolvers = {
               plan.addError('general', 'Plan is already published');
             } else {
               // First create a version snapshot (before making changes)
-              const newVersion = createPlanVersion(context, plan, reference);
+              const newVersion = await createPlanVersion(context, plan, reference);
               if (newVersion) {
                 plan.status = PlanStatus.DRAFT;
                 plan.lastSynced = getCurrentDate();

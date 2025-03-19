@@ -74,7 +74,7 @@ export const resolvers: Resolvers = {
             const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, answerText });
 
             // First create a version snapshot (before making changes)
-            const newVersion = createPlanVersion(context, plan, reference);
+            const newVersion = await createPlanVersion(context, plan, reference);
             if (newVersion) {
 
               // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
@@ -119,7 +119,7 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
             // First create a version snapshot (before making changes)
-            const newVersion = createPlanVersion(context, plan, reference);
+            const newVersion = await createPlanVersion(context, plan, reference);
             if (newVersion) {
               answer.answerText = answerText;
 

@@ -140,7 +140,7 @@ export class DMPHubAPI extends RESTDataSource {
       const path = `dmps`;
       formatLogMessage(context).debug(`${reference} Calling DMPHub Create: ${this.baseURL}/${path}`)
       const response = await this.post(path, { body: JSON.stringify({ dmp }) });
-      if (response?.status === 200 && Array.isArray(response?.items) && response?.items?.length > 0) {
+      if (response?.status === 201 && Array.isArray(response?.items) && response?.items?.length > 0) {
         return response.items[0]?.dmp as DMPCommonStandard;
       }
       return null;
@@ -193,13 +193,13 @@ export class DMPHubAPI extends RESTDataSource {
   }
 
   // Validate the DMP JSON content against the RDA DMP Common Metadata Standard
-  async validate(context: MyContext, dmp: DMPCommonStandard, reference = 'dmphubAPI.validate'): Promise<string[]> {
+  async validateDMP(context: MyContext, dmp: DMPCommonStandard, reference = 'dmphubAPI.validate'): Promise<string[]> {
     try {
       // If we don't have a cached version, call the API
       const path = `dmps/validate`;
       formatLogMessage(context).debug(`${reference} Calling DMPHub: ${this.baseURL}/${path}`)
 
-      const response = await this.post(path, { body: JSON.stringify(dmp) });
+      const response = await this.post(path, { body: JSON.stringify({ dmp: dmp }) });
       if (response?.status === 400 && Array.isArray(response?.errors) && response?.errors?.length > 0) {
         return response.errors;
       }
@@ -228,7 +228,7 @@ export class DMPHubAPI extends RESTDataSource {
 // -----------------------------------------------------------------------------------------------
 export interface DMPCommonStandard {
   dmphub_provenance_id: string;
-  dmproadmap_featured: boolean;
+  dmproadmap_featured: string;
   dmproadmap_privacy: DMPPrivacy;
   dmproadmap_status: DMPStatus;
   dmproadmap_narrative?: DMPCommonStandardNarrative;
@@ -272,17 +272,19 @@ export interface DMPCommonStandard {
   dmphub_versions?: DMPCommonStandardVersion[],
 }
 
+export interface DMPCommonStandardAffiliation {
+  name: string;
+  affiliation_id?: {
+    identifier: string;
+    type: DMPIdentifierType;
+  }
+}
+
 // Representation of the primary contact in the DMP Common Standard format
 export interface DMPCommonStandardContact {
   name: string;
   mbox: string;
-  dmproadmap_affiliation: {
-    name: string;
-    affiliation_id: {
-      identifier: string;
-      type: DMPIdentifierType;
-    };
-  };
+  dmproadmap_affiliation?: DMPCommonStandardAffiliation;
   contact_id: {
     identifier: string;
     type: DMPIdentifierType;
@@ -293,13 +295,7 @@ export interface DMPCommonStandardContact {
 export interface DMPCommonStandardContributor {
   name: string;
   mbox?: string;
-  dmproadmap_affiliation?: {
-    name: string;
-    affiliation_id?: {
-      identifier: string;
-      type: DMPIdentifierType;
-    }
-  }
+  dmproadmap_affiliation?: DMPCommonStandardAffiliation;
   contributor_id?: {
     identifier: string;
     type: DMPIdentifierType;

@@ -29,7 +29,7 @@ export class ProjectContributor extends MySqlModel {
   }
 
   // Ensure data integrity
-  prepForSave() {
+  async prepForSave(context: MyContext, reference: string): Promise<void> {
     this.email = this.email?.trim()?.replace('%40', '@');
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
@@ -37,7 +37,7 @@ export class ProjectContributor extends MySqlModel {
 
     // Ensure that contributorRoles is always an array
     if (!Array.isArray(this.contributorRoles)) {
-      this.contributorRoles = []
+      this.contributorRoles = [await ContributorRole.defaultRole(context, reference)]
     }
   }
 
@@ -93,7 +93,7 @@ export class ProjectContributor extends MySqlModel {
       if (current) {
         this.addError('general', 'Project already has an entry for this contributor');
       } else {
-        this.prepForSave();
+        this.prepForSave(context, reference);
 
         // Save the record and then fetch it
         const newId = await ProjectContributor.insert(
@@ -113,24 +113,25 @@ export class ProjectContributor extends MySqlModel {
 
   //Update an existing Contributor
   async update(context: MyContext, noTouch = false): Promise<ProjectContributor> {
+    const reference = 'ProjectContributor.update';
     const id = this.id;
 
     if (await this.isValid()) {
       if (id) {
-        this.prepForSave();
+        this.prepForSave(context, reference);
 
         await ProjectContributor.update(
           context,
           this.tableName,
           this,
-          'ProjectContributor.update',
+          reference,
           ['contributorRoles'],
           noTouch
         );
-        return await ProjectContributor.findById('ProjectContributor.update', context, id);
+        return await ProjectContributor.findById(reference, context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.addError('general', 'ProjectContributor has never been saved');
+      this.addError('general', `${reference} has never been saved`);
     }
     return new ProjectContributor(this);
   }
@@ -249,7 +250,7 @@ export class PlanContributor extends MySqlModel {
     this.planId = options.planId;
     this.projectContributorId = options.projectContributorId;
     this.isPrimaryContact = options.isPrimaryContact ?? false;
-    this.contributorRoleIds = options.contributorRoleIds;
+    this.contributorRoleIds = options.contributorRoleIds ?? [];
   }
 
   // Validation to be used prior to saving the record
@@ -259,7 +260,7 @@ export class PlanContributor extends MySqlModel {
     if (!this.planId) this.addError('planId', 'Plan can\'t be blank');
     if (!this.projectContributorId) this.addError('projectContributorId', 'Project contributor can\'t be blank');
 
-    if (this.contributorRoleIds.length === 0) {
+    if (!Array.isArray(this.contributorRoleIds) || this.contributorRoleIds.length === 0) {
       this.addError('contributorRoleIds', 'You must specify at least one role');
     }
 
