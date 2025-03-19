@@ -8,7 +8,7 @@ import { PlanContributor, ProjectContributor } from "../models/Contributor";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
-import { hasPermissionOnProject } from '../services/projectService';
+import { hasPermissionOnProject, versionAndSyncPlans } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { createPlanVersion, syncWithDMPHub } from '../services/planService';
@@ -197,6 +197,12 @@ export const resolvers: Resolvers = {
             if (associationErrors.length > 0) {
               updated.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
             }
+
+            if (!updated.hasErrors()) {
+              // Asynchronously version all of the plans (if any) and sync with the DMPHub
+              versionAndSyncPlans(context, project, reference);
+            }
+
             // Reload since the roles may have changed
             return updated.hasErrors() ? updated : await ProjectContributor.findById(reference, context, contributor.id);
           }
@@ -229,7 +235,12 @@ export const resolvers: Resolvers = {
           }
 
           // Any related contributorRoles will be automatically deleted within the DB
-          return await contributor.delete(context);
+          const removed = await contributor.delete(context);
+          if (removed && !removed.hasErrors()) {
+            // Asynchronously version all of the plans (if any) and sync with the DMPHub
+            versionAndSyncPlans(context, project, reference);
+          }
+          return removed;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -261,8 +272,6 @@ export const resolvers: Resolvers = {
             if (newVersion) {
               const created = await newPlanContributor.create(context);
 
-console.log('created', created)
-
               if (!created?.id) {
                 // A null was returned so add a generic error and return it
                 if (!newPlanContributor.errors['general']) {
@@ -292,8 +301,6 @@ console.log('created', created)
                 }
               }
 
-console.log('syncing with DMPHub')
-
               // Asyncronously update the DMPHub
               syncWithDMPHub(context, plan, reference);
 
@@ -306,8 +313,6 @@ console.log('syncing with DMPHub')
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
-
-console.log('error', err)
 
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
@@ -377,10 +382,16 @@ console.log('error', err)
               contributor.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
             }
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub
+            if (!contributor.hasErrors()) {
+              const plan = await Plan.findById(reference, context, contributor.planId);
+              if (plan) {
+                // Asynchronously version all of the plans (if any) and sync with the DMPHub
+                syncWithDMPHub(context, plan, reference);
+              }
+            }
 
             // Reload since the roles have changed
-            return await PlanContributor.findById(reference, context, contributor.id);
+            return contributor.hasErrors() ? contributor : await PlanContributor.findById(reference, context, contributor.id);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -413,10 +424,17 @@ console.log('error', err)
             throw ForbiddenError();
           }
 
-          // TODO: We need to generate the plan version snapshot and sync with DMPHub
-
           // Any related contributorRoles will be automatically deleted within the DB
-          return await contributor.delete(context);
+          const removed = await contributor.delete(context);
+
+          if (removed && !removed.hasErrors()) {
+            const plan = await Plan.findById(reference, context, contributor.planId);
+            if (plan) {
+              // Asynchronously version all of the plans (if any) and sync with the DMPHub
+              syncWithDMPHub(context, plan, reference);
+            }
+          }
+          return removed;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

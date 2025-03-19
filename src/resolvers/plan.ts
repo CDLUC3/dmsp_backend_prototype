@@ -122,10 +122,8 @@ export const resolvers: Resolvers = {
               const deletedPlan = await plan.delete(context);
 
               if (deletedPlan) {
-                // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
-                //
                 // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                // syncWithDMPHub(context, plan, reference);
+                syncWithDMPHub(context, plan, reference);
 
                 return deletedPlan;
               }
@@ -200,7 +198,7 @@ export const resolvers: Resolvers = {
                 const publishedPlan = await plan.update(context);
                 if (publishedPlan) {
                   // Asyncronously sync the plan with the DMPHub (after making changes)
-                  // syncWithDMPHub(context, plan, reference);
+                  syncWithDMPHub(context, plan, reference);
 
                   return publishedPlan;
                 }
@@ -241,10 +239,8 @@ export const resolvers: Resolvers = {
 
                 const updatedPlan = await plan.update(context);
                 if (updatedPlan) {
-                  // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
-                  //
                   // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                  // syncWithDMPHub(context, plan, reference);
+                  syncWithDMPHub(context, plan, reference);
 
                   return updatedPlan;
                 }
@@ -284,10 +280,8 @@ export const resolvers: Resolvers = {
 
                 const updatedPlan = await plan.update(context);
                 if (updatedPlan) {
-                  // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
-                  //
                   // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                  // syncWithDMPHub(context, plan, reference);
+                  syncWithDMPHub(context, plan, reference);
 
                   return updatedPlan;
                 }

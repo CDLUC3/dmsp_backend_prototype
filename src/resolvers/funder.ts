@@ -7,7 +7,7 @@ import { PlanFunder, ProjectFunder } from "../models/Funder";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
-import { hasPermissionOnProject } from '../services/projectService';
+import { hasPermissionOnProject, versionAndSyncPlans } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { createPlanVersion, syncWithDMPHub } from '../services/planService';
@@ -128,7 +128,13 @@ export const resolvers: Resolvers = {
           toUpdate.projectId = funder?.projectId;
           toUpdate.id = funder?.id;
           toUpdate.affiliationId = funder.affiliationId;
-          return await toUpdate.update(context);
+
+          const updated = await toUpdate.update(context);
+          if (updated && !updated.hasErrors()) {
+            // Asyncronously version all of the plans (if any) and sync with the DMPHub
+            versionAndSyncPlans(context, project, reference);
+          }
+          return updated;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -155,7 +161,12 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          return await funder.delete(context);
+          const removed = await funder.delete(context);
+          if (removed && !removed.hasErrors()) {
+            // Asyncronously version all of the plans (if any) and sync with the DMPHub
+            versionAndSyncPlans(context, project, reference);
+          }
+          return removed;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -182,7 +193,7 @@ export const resolvers: Resolvers = {
           if (newVersion) {
             const newFunder = new PlanFunder({ planId, projectFunderId });
 
-            if (newFunder){
+            if (newFunder && !newFunder.hasErrors()) {
               // Asyncronously update the DMPHub
               syncWithDMPHub(context, plan, reference);
             }
@@ -220,7 +231,7 @@ export const resolvers: Resolvers = {
           if (newVersion) {
             const deletedFunder = await funder.delete(context);
 
-            if (deletedFunder){
+            if (deletedFunder && !deletedFunder.hasErrors()) {
               // Asyncronously update the DMPHub
               syncWithDMPHub(context, plan, reference);
             }

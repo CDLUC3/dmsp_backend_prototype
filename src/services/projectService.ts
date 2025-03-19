@@ -1,9 +1,12 @@
 import { MyContext } from "../context";
+import { DMPCommonStandard } from "../datasources/dmphubAPI";
 import { formatLogMessage } from "../logger";
 import { ProjectCollaborator } from "../models/Collaborator";
+import { Plan } from "../models/Plan";
 import { Project } from "../models/Project";
 import { User } from "../models/User";
 import { isAdmin, isSuperAdmin } from "./authService";
+import { syncWithDMPHub, createPlanVersion } from "./planService";
 
 // Determine whether the specified user has permission to access the Section
 export const hasPermissionOnProject = async (context: MyContext, project: Project): Promise<boolean> => {
@@ -38,4 +41,24 @@ export const hasPermissionOnProject = async (context: MyContext, project: Projec
   const payload = { projectId: project.id, userId: context.token.id };
   formatLogMessage(context).error(payload, `AUTH failure: ${reference}`)
   return false;
+}
+
+// Version and sync changes with the DMPHub
+export const versionAndSyncPlans = async (
+  context: MyContext,
+  project: Project,
+  reference = 'projectService.syncWithDMPHub'
+): Promise<DMPCommonStandard> => {
+  // Fetch all the plans for the project
+  const plans = await Plan.findByProjectId(reference, context, project.id);
+  if (!Array.isArray(plans) || plans.length === 0) {
+    return null;
+  }
+
+  for (const plan of plans) {
+    const newVersion = await createPlanVersion(context, plan, reference);
+    if (newVersion) {
+      await syncWithDMPHub(context, plan, reference);
+    }
+  }
 }

@@ -6,7 +6,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { RelatedWork } from '../models/RelatedWork';
 import { GraphQLError } from 'graphql';
 import { Project } from '../models/Project';
-import { hasPermissionOnProject } from '../services/projectService';
+import { hasPermissionOnProject, versionAndSyncPlans } from '../services/projectService';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -58,10 +58,13 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, input.projectId);
           if (project && hasPermissionOnProject(context, project)) {
             const relatedWork = new RelatedWork(input);
+            const newRelatedWork = await relatedWork.create(context);
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-
-            return await relatedWork.create(context);
+            if (newRelatedWork && !newRelatedWork.hasErrors()) {
+              // Asynchronously version all of the plans (if any) and sync with the DMPHub
+              versionAndSyncPlans(context, project, reference);
+            }
+            return newRelatedWork;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -86,10 +89,14 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, relatedWork.projectId);
           if (project && hasPermissionOnProject(context, project)) {
             const toUpdate = new RelatedWork({ ...relatedWork, ...input });
+            const updated = await toUpdate.update(context);
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+            if(updated && !updated.hasErrors()) {
+              // Asynchronously version all of the plans (if any) and sync with the DMPHub
+              versionAndSyncPlans(context, project, reference);
+            }
 
-            return await toUpdate.update(context);
+            return updated;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -113,10 +120,14 @@ export const resolvers: Resolvers = {
 
           const project = await Project.findById(reference, context, relatedWork.projectId);
           if (project && hasPermissionOnProject(context, project)) {
+            const removed = await relatedWork.delete(context);
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+            if(removed && !removed.hasErrors()) {
+              // Asynchronously version all of the plans (if any) and sync with the DMPHub
+              versionAndSyncPlans(context, project, reference);
+            }
 
-            return await relatedWork.delete(context);
+            return removed;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();

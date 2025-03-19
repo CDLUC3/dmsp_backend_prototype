@@ -6,7 +6,7 @@ import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ProjectFunder } from '../models/Funder';
 import { ProjectContributor } from '../models/Contributor';
-import { hasPermissionOnProject } from '../services/projectService';
+import { hasPermissionOnProject, versionAndSyncPlans } from '../services/projectService';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { ProjectOutput } from '../models/Output';
 import { GraphQLError } from 'graphql';
@@ -98,10 +98,13 @@ export const resolvers: Resolvers = {
               throw ForbiddenError();
             }
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-
             const toUpdate = new Project(input);
             const updated = await toUpdate.update(context);
+            if (updated && !updated.hasErrors()) {
+              // Asynchronously version all of the plans (if any) and sync with the DMPHub
+              versionAndSyncPlans(context, project, reference);
+            }
+
             return updated;
           } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
@@ -133,10 +136,12 @@ export const resolvers: Resolvers = {
               throw ForbiddenError();
             }
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-            // TODO: We need to do a check to see if it has been used and whether any of the related DMPs have
-            //       been published
             const deleted = await project.delete(context);
+            if (deleted && !deleted.hasErrors()) {
+              // Asynchronously version all of the plans (if any) and sync with the DMPHub
+              versionAndSyncPlans(context, project, reference);
+            }
+
             return deleted
           } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
