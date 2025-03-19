@@ -4,7 +4,7 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 
-jest.mock('../../dataSources/mySQLDataSource', () => {
+jest.mock('../../datasources/mySQLDataSource', () => {
   return {
     __esModule: true,
     MySQLDataSource: {
