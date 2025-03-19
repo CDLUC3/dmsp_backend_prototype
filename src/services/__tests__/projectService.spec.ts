@@ -5,11 +5,20 @@ import { MySQLDataSource } from "../../datasources/mySQLDataSource";
 import { Project } from "../../models/Project";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isAdmin, isSuperAdmin } from "../authService";
-import { hasPermissionOnProject } from "../projectService";
+import { hasPermissionOnProject, versionAndSyncPlans } from "../projectService";
 import { ProjectCollaborator } from "../../models/Collaborator";
+import { Plan } from "../../models/Plan";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { createPlanVersion, syncWithDMPHub } from "../planService";
 
 // Pulling context in here so that the MySQLDataSource gets mocked
 jest.mock('../../context.ts');
+jest.mock('../PlanService.ts', () => {
+  return {
+    createPlanVersion: jest.fn(),
+    syncWithDMPHub: jest.fn(),
+  };
+});
 
 let context;
 
@@ -112,5 +121,48 @@ describe('hasPermissionOnProject', () => {
     expect(mockIsAdmin).toHaveBeenCalledTimes(1);
     expect(mockQuery).toHaveBeenCalledTimes(0);
     expect(mockCollaboratorQuery).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('versionAndSyncPlans', () => {
+  let project;
+  let localQuery;
+  let mockCreatePlanVersion;
+  let mockSyncWithDMPHub;
+
+  beforeEach(() => {
+    localQuery = jest.fn();
+    (Plan.query as jest.Mock) = localQuery;
+
+    mockCreatePlanVersion = jest.fn();
+    mockSyncWithDMPHub = jest.fn();
+    (createPlanVersion as jest.Mock) = mockCreatePlanVersion;
+    (syncWithDMPHub as jest.Mock) = mockSyncWithDMPHub;
+
+    project = new Project({
+      id: casual.integer(1, 999),
+      title: casual.sentence,
+      createdById: casual.integer(1, 9999),
+    });
+  });
+
+  it('returns null when there are no plans for the project', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    expect(await versionAndSyncPlans(context, project)).toBe(null);
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(mockCreatePlanVersion).toHaveBeenCalledTimes(0);
+    expect(mockSyncWithDMPHub).toHaveBeenCalledTimes(0);
+  });
+
+  it('calls createPlanVersion and syncWithDMPHub for each plan', async () => {
+    const plans = [new Plan({ id: casual.integer(1, 999), projectId: project.id })];
+    localQuery.mockResolvedValueOnce(plans);
+    mockCreatePlanVersion.mockResolvedValueOnce(true);
+    mockSyncWithDMPHub.mockResolvedValueOnce(true);
+
+    expect(await versionAndSyncPlans(context, project)).toBe(undefined);
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(mockCreatePlanVersion).toHaveBeenCalledTimes(1);
+    expect(mockSyncWithDMPHub).toHaveBeenCalledTimes(1);
   });
 });
