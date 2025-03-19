@@ -7,7 +7,7 @@ import { MockCache } from '../__mocks__/context';
 import { randomHex } from '../utils/helpers';
 
 // Mock dependencies
-jest.mock('../datasources/DMPHubAPI');
+jest.mock('../datasources/dmphubAPI');
 jest.mock('../datasources/mySQLDataSource');
 jest.mock('../logger');
 
