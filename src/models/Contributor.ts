@@ -50,10 +50,10 @@ export class ProjectContributor extends MySqlModel {
     if (!this.surName && !this.email && !this.orcid) {
       this.addError('general', 'You must specify at least one name, ORCID or email');
     }
-    if (this.orcid && this.orcid.trim().length > 0){
+    if (this.orcid && this.orcid.trim().length > 0) {
       try {
         validateOrcid(this.orcid);
-      } catch(err) {
+      } catch (err) {
         this.addError('orcid', err.message);
       }
     }
@@ -65,7 +65,7 @@ export class ProjectContributor extends MySqlModel {
   }
 
   //Create a new ProjectContributor
-  async create(context: MyContext, projectId: number ): Promise<ProjectContributor> {
+  async create(context: MyContext, projectId: number): Promise<ProjectContributor> {
     const reference = 'ProjectContributor.create';
 
     // First make sure the record is valid
@@ -255,7 +255,6 @@ export class PlanContributor extends MySqlModel {
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
-
     if (!this.planId) this.addError('planId', 'Plan can\'t be blank');
     if (!this.projectContributorId) this.addError('projectContributorId', 'Project contributor can\'t be blank');
 
@@ -374,5 +373,11 @@ export class PlanContributor extends MySqlModel {
     const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? ORDER BY isPrimaryContact DESC`;
     const results = await PlanContributor.query(context, sql, [planId?.toString()], reference);
     return Array.isArray(results) ? results.map((item) => new PlanContributor(item)) : [];
+  }
+
+  static async findPrimaryByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanContributor> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? AND isPrimaryContact = 1`;
+    const results = await PlanContributor.query(context, sql, [planId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new PlanContributor(results[0]) : null;
   }
 }
