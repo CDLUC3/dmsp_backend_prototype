@@ -1,5 +1,5 @@
 import { Resolvers } from "../types";
-import { VersionedTemplate } from "../models/VersionedTemplate";
+import { VersionedTemplate, VersionedTemplateSearchResult } from "../models/VersionedTemplate";
 import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
@@ -32,11 +32,11 @@ export const resolvers: Resolvers = {
 
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
-    publishedTemplates: async (_, { term }, context: MyContext): Promise<VersionedTemplate[]> => {
+    publishedTemplates: async (_, { term }, context: MyContext): Promise<VersionedTemplateSearchResult[]> => {
       const reference = 'publishedTemplates resolver';
       try {
         if (isAdmin(context.token)) {
-          return await VersionedTemplate.search(reference, context, term);
+          return await VersionedTemplateSearchResult.search(reference, context, term);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -49,11 +49,15 @@ export const resolvers: Resolvers = {
     },
 
     // Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin)
-    myVersionedTemplates: async (_, __, context: MyContext): Promise<VersionedTemplate[]> => {
+    myVersionedTemplates: async (_, __, context: MyContext): Promise<VersionedTemplateSearchResult[]> => {
       const reference = 'myVersionedTemplates resolver';
       try {
         if (isAdmin(context.token)) {
-          return await VersionedTemplate.findByAffiliationId(reference, context, context.token?.affiliationId);
+          return await VersionedTemplateSearchResult.findByAffiliationId(
+            reference,
+            context,
+            context.token?.affiliationId
+          );
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

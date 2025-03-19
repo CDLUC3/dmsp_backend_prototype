@@ -1,4 +1,5 @@
 ### Added
+- Added `TemplateSearchResult`, `VersionedTemplateSearchResult` and `ProjectSearchResult` to optimize querying
 - Added `sections` to `Plan` schema and to plan resolver
 - Added the `relatedWorks` data migration
 - Added model and resolvers for `RelatedWork`
@@ -66,6 +67,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Fixed projectCollaborators table which had an FKey on the plans table instead of the projects table
 - Updated the `dmpHubAPI` datasource to support CRUD operations
 - Updated the `Plan` resolver and model to support mutations
 - Updated the `Affiliation` schema and model to include the new `apiTarget` property.
