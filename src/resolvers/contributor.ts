@@ -9,6 +9,7 @@ import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
+import { updateContributorRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 
@@ -247,13 +248,17 @@ export const resolvers: Resolvers = {
           const plan = await Plan.findById(reference, context, planId);
           const projectContributor = await ProjectContributor.findById(reference, context, projectContributorId);
 
+          // For now, planContributor roles will match the projectContributor roles
+          const roles = await ContributorRole.findByProjectContributorId(reference, context, projectContributorId);
+          const currentProjectRoleIds = roles ? roles.map((d) => d.id) : [];
+
           if (!plan || !projectContributor) {
             throw NotFoundError();
           }
 
           const project = await Project.findById(reference, context, projectContributor.projectId);
           if (hasPermissionOnProject(context, project)) {
-            const newPlanContributor = new PlanContributor({ planId, projectContributorId });
+            const newPlanContributor = new PlanContributor({ planId, projectContributorId, contributorRoleIds: currentProjectRoleIds });
             const created = await newPlanContributor.create(context);
 
             if (!created?.id) {
@@ -300,7 +305,7 @@ export const resolvers: Resolvers = {
     },
 
     // update an existing PlanContributor
-    updatePlanContributor: async (_, { planId, planContributorId, contributorRoleIds, isPrimaryContact }, context) => {
+    updatePlanContributor: async (_, { planId, planContributorId, projectContributorId, contributorRoleIds, isPrimaryContact }, context) => {
       const reference = 'updatePlanContributor resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -309,80 +314,58 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          // Fetch the project and run a permission check
-          const projectContributor = await ProjectContributor.findById(
-            reference,
-            context,
-            contributor.projectContributorId
-          );
+          const projectContributor = await ProjectContributor.findById(reference, context, contributor.projectContributorId);
           const project = await Project.findById(reference, context, projectContributor.projectId);
           const hasPermission = await hasPermissionOnProject(context, project);
+
           if (hasPermission) {
-            // Update roles
-            const associationErrors = [];
-            // Fetch all of the current Roles associated with this Contributor
-            const roles = await ContributorRole.findByPlanContributorId(reference, context, contributor.id);
-            const currentRoleids = roles ? roles.map((d) => d.id) : [];
+            // Fetch current roles
+            const roles = await ContributorRole.findByPlanContributorId(reference, context, planContributorId);
+            const currentRoleIds = roles ? roles.map((d) => d.id) : [];
 
-            // Use the helper function to determine which Roles to keep
-            const { idsToBeRemoved, idsToBeSaved } = ContributorRole.reconcileAssociationIds(currentRoleids, contributorRoleIds);
+            // Update roles using the helper function
+            const { updatedRoleIds, errors } = await updateContributorRoles(
+              reference,
+              context,
+              contributor.id,
+              currentRoleIds,
+              contributorRoleIds
+            );
 
-            const removeErrors = [];
-            // Delete any Role associations that were removed
-            for (const id of idsToBeRemoved) {
-              const role = await ContributorRole.findById(reference, context, id);
-              if (role) {
-                const wasRemoved = role.removeFromPlanContributor(context, contributor.id);
-                if (!wasRemoved) {
-                  removeErrors.push(role.label);
+            if (errors.length > 0) {
+              contributor.addError('contributorRoles', `Updated but ${errors.join(', ')}`);
+            }
+
+            // Create a new instance of PlanContributor and set the updated values
+            const toUpdate = new PlanContributor({
+              id: planContributorId,
+              planId: planId,
+              projectContributorId,
+              isPrimaryContact,
+              contributorRoleIds: updatedRoleIds ?? currentRoleIds,
+            });
+
+            //update the PlanContributor with new instance
+            const updatedPlan = await toUpdate.update(context);
+
+            // Make updates for isPrimaryContact
+            if (updatedPlan && !updatedPlan.hasErrors()) {
+              if (isPrimaryContact !== undefined) {
+                // Get the current primary contact and set isPrimaryContact to false if it does not match the passed in planContributorId
+                const currentPrimaryContact = await PlanContributor.findPrimaryByPlanId(reference, context, planId);
+                if (currentPrimaryContact && currentPrimaryContact.id !== planContributorId) {
+                  const roles = await ContributorRole.findByPlanContributorId(reference, context, currentPrimaryContact.id);
+                  const currentRoleIds = roles ? roles.map((d) => d.id) : [];
+                  currentPrimaryContact.isPrimaryContact = false;
+                  currentPrimaryContact.contributorRoleIds = currentRoleIds; //Have to add contributor's contributor roles when updating
+                  await currentPrimaryContact.update(context);
                 }
+                updatedPlan.isPrimaryContact = isPrimaryContact;
+                updatedPlan.contributorRoleIds = updatedRoleIds ?? [];
+                await updatedPlan.update(context);
               }
             }
-            // If any failed to be removed, then add an error to the ProjectContributor
-            if (removeErrors.length > 0) {
-              associationErrors.push(`unable to remove roles: ${removeErrors.join(', ')}`);
-            }
 
-            const addErrors = [];
-            // Add any new Role associations
-            for (const id of idsToBeSaved) {
-              const role = await ContributorRole.findById(reference, context, id);
-              if (role) {
-                const wasAdded = role.addToPlanContributor(context, contributor.id);
-                if (!wasAdded) {
-                  addErrors.push(role.label);
-                }
-              }
-            }
-            // If any failed to be added, then add an error to the ProjectContributor
-            if (addErrors.length > 0) {
-              associationErrors.push(`unable to assign roles: ${addErrors.join(', ')}`);
-            }
-
-            if (associationErrors.length > 0) {
-              contributor.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
-            }
-
-
-            // Update isPrimaryContact if it was provided
-            if (isPrimaryContact !== undefined) {
-              // Check if there is an existing PlanContributor with isPrimaryContact === true
-              const currentPrimaryContact = await PlanContributor.findPrimaryByPlanId(reference, context, planId);
-
-              // If one exists and it's not the same as the current contributor, set it to false
-              if (currentPrimaryContact && currentPrimaryContact.id !== contributor.id) {
-                currentPrimaryContact.isPrimaryContact = false;
-                await currentPrimaryContact.update(context);
-              }
-
-              // Set the new contributor as the primary contact
-              contributor.isPrimaryContact = isPrimaryContact;
-              await contributor.update(context);
-            }
-
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub
-
-            // Reload since the roles have changed
             return await PlanContributor.findById(reference, context, contributor.id);
           }
         }
