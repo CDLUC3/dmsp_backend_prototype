@@ -1,12 +1,18 @@
 import gql from "graphql-tag";
+import {mergeTypeDefs} from "@graphql-tools/merge";
+import {typeDefs as contributorTypeDefs} from "./contributor"
+import {typeDefs as funderTypeDefs} from "./funder"
 
-export const typeDefs = gql`
+export const projectTypeDefs = gql`
   extend type Query {
     "Get all of the user's projects"
     myProjects: [Project]
 
     "Get a specific project"
     project(projectId: Int!): Project
+
+    "Search for projects within external APIs"
+    searchExternalProjects(affiliationId: Int!, awardId: String, awardName: String, awardYear: String, piNames: [String]): [ExternalProject]
   }
 
   extend type Mutation {
@@ -16,8 +22,11 @@ export const typeDefs = gql`
     updateProject(input: UpdateProjectInput): Project
     "Download the plan"
     archiveProject(projectId: Int!): Project
+    "Import a project from an external source"
+    projectImport(input: ProjectImportInput): Project
   }
 
+  "DMP Tool Project type"
   type Project {
     "The unique identifer for the Object"
     id: Int
@@ -86,4 +95,53 @@ export const typeDefs = gql`
     "Whether or not the project is a mock/test"
     isTestProject: Boolean
   }
+
+  "External Project type"
+  type ExternalProject {
+    "The project title"
+    title: String
+    "The project description"
+    abstractText: String
+    "The project start date"
+    startDate: String
+    "The project end date"
+    endDate: String
+    "Funding information for this project"
+    funders: [ExternalFunding!]
+    "Contributor information for this project"
+    contributors: [ExternalContributor!]
+  }
+
+  type ExternalFunding {
+    "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
+    funderProjectNumber: String
+    "The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded)"
+    grantId: String
+    "The funder's unique id/url for the call for submissions to apply for a grant"
+    funderOpportunityNumber: String
+  }
+
+  type ExternalContributor {
+    "The ROR ID of the contributor's institution"
+    affiliationId: String
+    "The contributor's first/given name"
+    givenName: String
+    "The contributor's last/sur name"
+    surName: String
+    "The contributor's ORCID"
+    orcid: String
+    "The contributor's email address"
+    email: String
+  }
+
+  input ProjectImportInput {
+    "The external project data"
+    project: UpdateProjectInput!
+    "The external funding data"
+    funding: [AddProjectFunderInput!]
+    "The external contributor data"
+    contributors: [AddProjectContributorInput!]
+  }
 `;
+
+export const typeDefs = mergeTypeDefs([projectTypeDefs, funderTypeDefs, contributorTypeDefs]);

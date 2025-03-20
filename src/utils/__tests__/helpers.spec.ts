@@ -11,6 +11,8 @@ import {
   randomHex,
   stripIdentifierBaseURL,
   stringToEnumValue,
+  formatORCID,
+  normaliseHttpProtocol,
 } from '../helpers';
 
 describe('Date validation', () => {
@@ -198,5 +200,29 @@ describe('stringToEnumValue', () => {
 
   it('returns the enum value for the string', () => {
     expect(stringToEnumValue(testEnum, 'B')).toBe(testEnum.B);
+  });
+});
+
+
+describe('formatORCID', () => {
+  // Test the ORCID formatting
+  it('should return null for an invalid ORCID', () => {
+    expect(formatORCID('25t24g45g45g546gt')).toBeNull();
+    expect(formatORCID('0000-0000-0000')).toBeNull();
+    expect(formatORCID(`${generalConfig.orcidBaseURL}/0000-0000-000`)).toBeNull();
+  });
+
+  it('should return the ORCID with the default URL', () => {
+    expect(formatORCID('0000-0000-0000-000X')).toEqual(normaliseHttpProtocol(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`));
+  });
+
+  it('should return the ORCID as is if it already a valid ORCID with the base URL', () => {
+    expect(formatORCID(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`)).toEqual(normaliseHttpProtocol(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`));
+    expect(formatORCID('https://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
+  });
+
+  it('should convert http to https for valid ORCID URLs', () => {
+    expect(formatORCID(`http://orcid.org/0000-0000-0000-000X`)).toEqual(`https://orcid.org/0000-0000-0000-000X`);
+    expect(formatORCID('http://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
   });
 });

@@ -1,8 +1,8 @@
-import { MyContext } from "../context";
-import { validateOrcid } from "../resolvers/scalars/orcid";
-import { capitalizeFirstLetter, stripIdentifierBaseURL, validateEmail } from "../utils/helpers";
-import { ContributorRole } from "./ContributorRole";
-import { MySqlModel } from "./MySqlModel";
+import {MyContext} from "../context";
+import {validateOrcid} from "../resolvers/scalars/orcid";
+import {capitalizeFirstLetter, formatORCID, validateEmail} from "../utils/helpers";
+import {ContributorRole} from "./ContributorRole";
+import {MySqlModel} from "./MySqlModel";
 
 export class ProjectContributor extends MySqlModel {
   public projectId: number;
@@ -33,7 +33,7 @@ export class ProjectContributor extends MySqlModel {
     this.email = this.email?.trim()?.replace('%40', '@');
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
-    this.orcid = stripIdentifierBaseURL(this.orcid);
+    this.orcid = formatORCID(this.orcid);
 
     // Ensure that contributorRoles is always an array
     if (!Array.isArray(this.contributorRoles)) {
@@ -73,8 +73,9 @@ export class ProjectContributor extends MySqlModel {
       let current: ProjectContributor;
 
       // Then try to find an existing entry for each of the identifiers
-      if (this.orcid) {
-        current = await ProjectContributor.findByProjectAndORCID(reference, context, projectId, this.orcid);
+      const orcid = formatORCID(this.orcid);
+      if (orcid) {
+        current = await ProjectContributor.findByProjectAndORCID(reference, context, projectId, orcid);
       }
       if (!current) {
         current = await ProjectContributor.findByProjectAndEmail(reference, context, projectId, this.email);
@@ -232,7 +233,7 @@ export class ProjectContributor extends MySqlModel {
     // We've sorted by ORCID and the email descending so grab the first match
     return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
   }
-};
+}
 
 // Represents a contributor to a DMP
 export class PlanContributor extends MySqlModel {

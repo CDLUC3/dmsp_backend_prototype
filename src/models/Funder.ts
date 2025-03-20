@@ -134,7 +134,7 @@ export class ProjectFunder extends MySqlModel {
     const results = await ProjectFunder.query(context, sql, [projectFunderId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectFunder(results[0]) : null;
   }
-};
+}
 
 // A funder for the plan
 export class PlanFunder extends MySqlModel {

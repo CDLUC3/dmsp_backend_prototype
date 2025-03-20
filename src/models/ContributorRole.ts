@@ -33,7 +33,7 @@ export class ContributorRole extends MySqlModel {
 
   // Return the default role
   static async defaultRole(context: MyContext, reference = 'ContributorRole.defaultRole'): Promise<ContributorRole> {
-    const roleURI = `${DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL}/other`;
+    const roleURI = `${DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL}other`;
     return await ContributorRole.findByURL(reference, context, roleURI);
   }
 

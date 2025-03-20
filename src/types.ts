@@ -528,6 +528,47 @@ export type ContributorRoleErrors = {
   uri?: Maybe<Scalars['String']['output']>;
 };
 
+export type ExternalContributor = {
+  __typename?: 'ExternalContributor';
+  /** The ROR ID of the contributor's institution */
+  affiliationId?: Maybe<Scalars['String']['output']>;
+  /** The contributor's email address */
+  email?: Maybe<Scalars['String']['output']>;
+  /** The contributor's first/given name */
+  givenName?: Maybe<Scalars['String']['output']>;
+  /** The contributor's ORCID */
+  orcid?: Maybe<Scalars['String']['output']>;
+  /** The contributor's last/sur name */
+  surName?: Maybe<Scalars['String']['output']>;
+};
+
+export type ExternalFunding = {
+  __typename?: 'ExternalFunding';
+  /** The funder's unique id/url for the call for submissions to apply for a grant */
+  funderOpportunityNumber?: Maybe<Scalars['String']['output']>;
+  /** The funder's unique id/url for the research project (normally assigned after the grant has been awarded) */
+  funderProjectNumber?: Maybe<Scalars['String']['output']>;
+  /** The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded) */
+  grantId?: Maybe<Scalars['String']['output']>;
+};
+
+/** External Project type */
+export type ExternalProject = {
+  __typename?: 'ExternalProject';
+  /** The project description */
+  abstractText?: Maybe<Scalars['String']['output']>;
+  /** Contributor information for this project */
+  contributors?: Maybe<Array<ExternalContributor>>;
+  /** The project end date */
+  endDate?: Maybe<Scalars['String']['output']>;
+  /** Funding information for this project */
+  funders?: Maybe<Array<ExternalFunding>>;
+  /** The project start date */
+  startDate?: Maybe<Scalars['String']['output']>;
+  /** The project title */
+  title?: Maybe<Scalars['String']['output']>;
+};
+
 /** The types of object a User can be invited to Collaborate on */
 export type InvitedToType =
   | 'PLAN'
@@ -695,6 +736,8 @@ export type Mutation = {
   mergeRepositories?: Maybe<Repository>;
   /** Merge the 2 user accounts (Admin only) */
   mergeUsers?: Maybe<User>;
+  /** Import a project from an external source */
+  projectImport?: Maybe<Project>;
   /** Publish a plan (changes status to PUBLISHED) */
   publishPlan?: Maybe<Plan>;
   /** Delete an Affiliation (only applicable to AffiliationProvenance == DMPTOOL) */
@@ -1009,6 +1052,11 @@ export type MutationMergeRepositoriesArgs = {
 export type MutationMergeUsersArgs = {
   userIdToBeMerged: Scalars['Int']['input'];
   userIdToKeep: Scalars['Int']['input'];
+};
+
+
+export type MutationProjectImportArgs = {
+  input?: InputMaybe<ProjectImportInput>;
 };
 
 
@@ -1631,6 +1679,7 @@ export type PlanVisibility =
   /** Visible to anyone */
   | 'PUBLIC';
 
+/** DMP Tool Project type */
 export type Project = {
   __typename?: 'Project';
   /** The research project abstract */
@@ -1827,6 +1876,15 @@ export type ProjectFunderStatus =
   /** The project will be submitting a grant, or has not yet heard back from the funder */
   | 'PLANNED';
 
+export type ProjectImportInput = {
+  /** The external contributor data */
+  contributors?: InputMaybe<Array<AddProjectContributorInput>>;
+  /** The external funding data */
+  funding?: InputMaybe<Array<AddProjectFunderInput>>;
+  /** The external project data */
+  project: UpdateProjectInput;
+};
+
 /** Something produced/collected as part of (or as a result of) a research project */
 export type ProjectOutput = {
   __typename?: 'ProjectOutput';
@@ -1987,6 +2045,8 @@ export type Query = {
   repositories?: Maybe<Array<Maybe<Repository>>>;
   /** Fetch a specific repository */
   repository?: Maybe<Repository>;
+  /** Search for external projects */
+  searchExternalProjects?: Maybe<Array<Maybe<ExternalProject>>>;
   /** Get the specified section */
   section?: Maybe<Section>;
   /** Get all of the VersionedSection for the specified Section ID */
@@ -2223,6 +2283,15 @@ export type QueryRepositoriesArgs = {
 
 export type QueryRepositoryArgs = {
   uri: Scalars['String']['input'];
+};
+
+
+export type QuerySearchExternalProjectsArgs = {
+  affiliationId: Scalars['Int']['input'];
+  awardId?: InputMaybe<Scalars['String']['input']>;
+  awardName?: InputMaybe<Scalars['String']['input']>;
+  awardYear?: InputMaybe<Scalars['String']['input']>;
+  piNames?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
 };
 
 
@@ -2906,6 +2975,36 @@ export type UpdateMetadataStandardInput = {
   uri?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type UpdateProjectContributorInput = {
+  /** The contributor's affiliation URI */
+  affiliationId?: InputMaybe<Scalars['String']['input']>;
+  /** The roles the contributor has on the research project */
+  contributorRoleIds?: InputMaybe<Array<Scalars['Int']['input']>>;
+  /** The contributor's email address */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's first/given name */
+  givenName?: InputMaybe<Scalars['String']['input']>;
+  /** The contributor's ORCID */
+  orcid?: InputMaybe<Scalars['String']['input']>;
+  /** The project contributor */
+  projectContributorId: Scalars['Int']['input'];
+  /** The contributor's last/sur name */
+  surName?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateProjectFunderInput = {
+  /** The funder's unique id/url for the call for submissions to apply for a grant */
+  funderOpportunityNumber?: InputMaybe<Scalars['String']['input']>;
+  /** The funder's unique id/url for the research project (normally assigned after the grant has been awarded) */
+  funderProjectNumber?: InputMaybe<Scalars['String']['input']>;
+  /** The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded) */
+  grantId?: InputMaybe<Scalars['String']['input']>;
+  /** The project funder */
+  projectFunderId: Scalars['Int']['input'];
+  /** The status of the funding resquest */
+  status?: InputMaybe<ProjectFunderStatus>;
+};
+
 export type UpdateProjectInput = {
   /** The research project description/abstract */
   abstractText?: InputMaybe<Scalars['String']['input']>;
@@ -3047,6 +3146,32 @@ export type UpdateSectionInput = {
   sectionId: Scalars['Int']['input'];
   /** The Tags associated with this section. A section might not have any tags */
   tags?: InputMaybe<Array<TagInput>>;
+};
+
+export type UpdateUserNotificationsInput = {
+  /** Whether or not email notifications are on for when a Plan has a new comment */
+  notify_on_comment_added: Scalars['Boolean']['input'];
+  /** Whether or not email notifications are on for when feedback on a Plan is completed */
+  notify_on_feedback_complete: Scalars['Boolean']['input'];
+  /** Whether or not email notifications are on for when a Plan is shared with the user */
+  notify_on_plan_shared: Scalars['Boolean']['input'];
+  /** Whether or not email notifications are on for Plan visibility changes */
+  notify_on_plan_visibility_change: Scalars['Boolean']['input'];
+  /** Whether or not email notifications are on for when a Template is shared with the User (Admin only) */
+  notify_on_template_shared: Scalars['Boolean']['input'];
+};
+
+export type UpdateUserProfileInput = {
+  /** The id of the affiliation if the user selected one from the typeahead list */
+  affiliationId?: InputMaybe<Scalars['String']['input']>;
+  /** The user's first/given name */
+  givenName: Scalars['String']['input'];
+  /** The user's preferred language */
+  languageId?: InputMaybe<Scalars['String']['input']>;
+  /** The name of the affiliation if the user did not select one from the typeahead list */
+  otherAffiliationName?: InputMaybe<Scalars['String']['input']>;
+  /** The user's last/family name */
+  surName: Scalars['String']['input'];
 };
 
 /** A user of the DMPTool */
@@ -3390,62 +3515,6 @@ export type VersionedTemplateErrors = {
   visibility?: Maybe<Scalars['String']['output']>;
 };
 
-export type UpdateProjectContributorInput = {
-  /** The contributor's affiliation URI */
-  affiliationId?: InputMaybe<Scalars['String']['input']>;
-  /** The roles the contributor has on the research project */
-  contributorRoleIds?: InputMaybe<Array<Scalars['Int']['input']>>;
-  /** The contributor's email address */
-  email?: InputMaybe<Scalars['String']['input']>;
-  /** The contributor's first/given name */
-  givenName?: InputMaybe<Scalars['String']['input']>;
-  /** The contributor's ORCID */
-  orcid?: InputMaybe<Scalars['String']['input']>;
-  /** The project contributor */
-  projectContributorId: Scalars['Int']['input'];
-  /** The contributor's last/sur name */
-  surName?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type UpdateProjectFunderInput = {
-  /** The funder's unique id/url for the call for submissions to apply for a grant */
-  funderOpportunityNumber?: InputMaybe<Scalars['String']['input']>;
-  /** The funder's unique id/url for the research project (normally assigned after the grant has been awarded) */
-  funderProjectNumber?: InputMaybe<Scalars['String']['input']>;
-  /** The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded) */
-  grantId?: InputMaybe<Scalars['String']['input']>;
-  /** The project funder */
-  projectFunderId: Scalars['Int']['input'];
-  /** The status of the funding resquest */
-  status?: InputMaybe<ProjectFunderStatus>;
-};
-
-export type UpdateUserNotificationsInput = {
-  /** Whether or not email notifications are on for when a Plan has a new comment */
-  notify_on_comment_added: Scalars['Boolean']['input'];
-  /** Whether or not email notifications are on for when feedback on a Plan is completed */
-  notify_on_feedback_complete: Scalars['Boolean']['input'];
-  /** Whether or not email notifications are on for when a Plan is shared with the user */
-  notify_on_plan_shared: Scalars['Boolean']['input'];
-  /** Whether or not email notifications are on for Plan visibility changes */
-  notify_on_plan_visibility_change: Scalars['Boolean']['input'];
-  /** Whether or not email notifications are on for when a Template is shared with the User (Admin only) */
-  notify_on_template_shared: Scalars['Boolean']['input'];
-};
-
-export type UpdateUserProfileInput = {
-  /** The id of the affiliation if the user selected one from the typeahead list */
-  affiliationId?: InputMaybe<Scalars['String']['input']>;
-  /** The user's first/given name */
-  givenName: Scalars['String']['input'];
-  /** The user's preferred language */
-  languageId?: InputMaybe<Scalars['String']['input']>;
-  /** The name of the affiliation if the user did not select one from the typeahead list */
-  otherAffiliationName?: InputMaybe<Scalars['String']['input']>;
-  /** The user's last/family name */
-  surName: Scalars['String']['input'];
-};
-
 
 
 export type ResolverTypeWrapper<T> = Promise<T> | T;
@@ -3548,6 +3617,9 @@ export type ResolversTypes = {
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
+  ExternalContributor: ResolverTypeWrapper<ExternalContributor>;
+  ExternalFunding: ResolverTypeWrapper<ExternalFunding>;
+  ExternalProject: ResolverTypeWrapper<ExternalProject>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   InvitedToType: InvitedToType;
   Language: ResolverTypeWrapper<Language>;
@@ -3587,6 +3659,7 @@ export type ResolversTypes = {
   ProjectFunder: ResolverTypeWrapper<ProjectFunder>;
   ProjectFunderErrors: ResolverTypeWrapper<ProjectFunderErrors>;
   ProjectFunderStatus: ProjectFunderStatus;
+  ProjectImportInput: ProjectImportInput;
   ProjectOutput: ResolverTypeWrapper<ProjectOutput>;
   ProjectOutputErrors: ResolverTypeWrapper<ProjectOutputErrors>;
   Query: ResolverTypeWrapper<{}>;
@@ -3627,6 +3700,8 @@ export type ResolversTypes = {
   TemplateVisibility: TemplateVisibility;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
   UpdateMetadataStandardInput: UpdateMetadataStandardInput;
+  UpdateProjectContributorInput: UpdateProjectContributorInput;
+  UpdateProjectFunderInput: UpdateProjectFunderInput;
   UpdateProjectInput: UpdateProjectInput;
   UpdateProjectOutputInput: UpdateProjectOutputInput;
   UpdateQuestionConditionInput: UpdateQuestionConditionInput;
@@ -3635,6 +3710,8 @@ export type ResolversTypes = {
   UpdateRelatedWorkInput: ResolverTypeWrapper<UpdateRelatedWorkInput>;
   UpdateRepositoryInput: UpdateRepositoryInput;
   UpdateSectionInput: UpdateSectionInput;
+  UpdateUserNotificationsInput: UpdateUserNotificationsInput;
+  UpdateUserProfileInput: UpdateUserProfileInput;
   User: ResolverTypeWrapper<User>;
   UserEmail: ResolverTypeWrapper<UserEmail>;
   UserEmailErrors: ResolverTypeWrapper<UserEmailErrors>;
@@ -3650,10 +3727,6 @@ export type ResolversTypes = {
   VersionedSectionErrors: ResolverTypeWrapper<VersionedSectionErrors>;
   VersionedTemplate: ResolverTypeWrapper<VersionedTemplate>;
   VersionedTemplateErrors: ResolverTypeWrapper<VersionedTemplateErrors>;
-  updateProjectContributorInput: UpdateProjectContributorInput;
-  updateProjectFunderInput: UpdateProjectFunderInput;
-  updateUserNotificationsInput: UpdateUserNotificationsInput;
-  updateUserProfileInput: UpdateUserProfileInput;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
@@ -3686,6 +3759,9 @@ export type ResolversParentTypes = {
   DateTimeISO: Scalars['DateTimeISO']['output'];
   DmspId: Scalars['DmspId']['output'];
   EmailAddress: Scalars['EmailAddress']['output'];
+  ExternalContributor: ExternalContributor;
+  ExternalFunding: ExternalFunding;
+  ExternalProject: ExternalProject;
   Int: Scalars['Int']['output'];
   Language: Language;
   License: License;
@@ -3719,6 +3795,7 @@ export type ResolversParentTypes = {
   ProjectErrors: ProjectErrors;
   ProjectFunder: ProjectFunder;
   ProjectFunderErrors: ProjectFunderErrors;
+  ProjectImportInput: ProjectImportInput;
   ProjectOutput: ProjectOutput;
   ProjectOutputErrors: ProjectOutputErrors;
   Query: {};
@@ -3751,6 +3828,8 @@ export type ResolversParentTypes = {
   TemplateErrors: TemplateErrors;
   URL: Scalars['URL']['output'];
   UpdateMetadataStandardInput: UpdateMetadataStandardInput;
+  UpdateProjectContributorInput: UpdateProjectContributorInput;
+  UpdateProjectFunderInput: UpdateProjectFunderInput;
   UpdateProjectInput: UpdateProjectInput;
   UpdateProjectOutputInput: UpdateProjectOutputInput;
   UpdateQuestionConditionInput: UpdateQuestionConditionInput;
@@ -3759,6 +3838,8 @@ export type ResolversParentTypes = {
   UpdateRelatedWorkInput: UpdateRelatedWorkInput;
   UpdateRepositoryInput: UpdateRepositoryInput;
   UpdateSectionInput: UpdateSectionInput;
+  UpdateUserNotificationsInput: UpdateUserNotificationsInput;
+  UpdateUserProfileInput: UpdateUserProfileInput;
   User: User;
   UserEmail: UserEmail;
   UserEmailErrors: UserEmailErrors;
@@ -3771,10 +3852,6 @@ export type ResolversParentTypes = {
   VersionedSectionErrors: VersionedSectionErrors;
   VersionedTemplate: VersionedTemplate;
   VersionedTemplateErrors: VersionedTemplateErrors;
-  updateProjectContributorInput: UpdateProjectContributorInput;
-  updateProjectFunderInput: UpdateProjectFunderInput;
-  updateUserNotificationsInput: UpdateUserNotificationsInput;
-  updateUserProfileInput: UpdateUserProfileInput;
 };
 
 export type AddRelatedWorkInputResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['AddRelatedWorkInput'] = ResolversParentTypes['AddRelatedWorkInput']> = {
@@ -3949,6 +4026,32 @@ export interface EmailAddressScalarConfig extends GraphQLScalarTypeConfig<Resolv
   name: 'EmailAddress';
 }
 
+export type ExternalContributorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ExternalContributor'] = ResolversParentTypes['ExternalContributor']> = {
+  affiliationId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ExternalFundingResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ExternalFunding'] = ResolversParentTypes['ExternalFunding']> = {
+  funderOpportunityNumber?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  funderProjectNumber?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  grantId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ExternalProjectResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ExternalProject'] = ResolversParentTypes['ExternalProject']> = {
+  abstractText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  contributors?: Resolver<Maybe<Array<ResolversTypes['ExternalContributor']>>, ParentType, ContextType>;
+  endDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  funders?: Resolver<Maybe<Array<ResolversTypes['ExternalFunding']>>, ParentType, ContextType>;
+  startDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type LanguageResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Language'] = ResolversParentTypes['Language']> = {
   id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -4042,6 +4145,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   mergeMetadataStandards?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationMergeMetadataStandardsArgs, 'metadataStandardToKeepId' | 'metadataStandardToRemoveId'>>;
   mergeRepositories?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<MutationMergeRepositoriesArgs, 'repositoryToKeepId' | 'repositoryToRemoveId'>>;
   mergeUsers?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationMergeUsersArgs, 'userIdToBeMerged' | 'userIdToKeep'>>;
+  projectImport?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationProjectImportArgs>>;
   publishPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationPublishPlanArgs, 'dmpId'>>;
   removeAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationRemoveAffiliationArgs, 'affiliationId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
@@ -4502,6 +4606,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   relatedWorks?: Resolver<Maybe<Array<Maybe<ResolversTypes['RelatedWork']>>>, ParentType, ContextType, Partial<QueryRelatedWorksArgs>>;
   repositories?: Resolver<Maybe<Array<Maybe<ResolversTypes['Repository']>>>, ParentType, ContextType, RequireFields<QueryRepositoriesArgs, 'input'>>;
   repository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<QueryRepositoryArgs, 'uri'>>;
+  searchExternalProjects?: Resolver<Maybe<Array<Maybe<ResolversTypes['ExternalProject']>>>, ParentType, ContextType, RequireFields<QuerySearchExternalProjectsArgs, 'affiliationId'>>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;
   sectionVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QuerySectionVersionsArgs, 'sectionId'>>;
   sections?: Resolver<Maybe<Array<Maybe<ResolversTypes['Section']>>>, ParentType, ContextType, RequireFields<QuerySectionsArgs, 'templateId'>>;
@@ -5047,6 +5152,9 @@ export type Resolvers<ContextType = MyContext> = {
   DateTimeISO?: GraphQLScalarType;
   DmspId?: GraphQLScalarType;
   EmailAddress?: GraphQLScalarType;
+  ExternalContributor?: ExternalContributorResolvers<ContextType>;
+  ExternalFunding?: ExternalFundingResolvers<ContextType>;
+  ExternalProject?: ExternalProjectResolvers<ContextType>;
   Language?: LanguageResolvers<ContextType>;
   License?: LicenseResolvers<ContextType>;
   LicenseErrors?: LicenseErrorsResolvers<ContextType>;
