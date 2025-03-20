@@ -1,7 +1,7 @@
 import casual from "casual";
 import { logger } from "../../__mocks__/logger";
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { MySQLDataSource } from "../../datasources/mySQLDataSource";
+import { mysql } from "../../datasources/mysql";
 import { Project } from "../../models/Project";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isAdmin, isSuperAdmin } from "../authService";
@@ -11,7 +11,7 @@ import { Plan } from "../../models/Plan";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { createPlanVersion, syncWithDMPHub } from "../planService";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 jest.mock('../PlanService.ts', () => {
   return {
@@ -41,11 +41,11 @@ describe('hasPermissionOnProject', () => {
 
   beforeEach(() => {
     // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
+    (mysql.getInstance as jest.Mock).mockReturnValue({
       query: jest.fn(), // Initialize the query mock function here
     });
 
-    const instance = MySQLDataSource.getInstance();
+    const instance = mysql.getInstance();
     mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
     context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
 

@@ -4,10 +4,10 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 
-jest.mock('../../dataSources/mySQLDataSource', () => {
+jest.mock('../../dataSources/mysql', () => {
   return {
     __esModule: true,
-    MySQLDataSource: {
+    mysql: {
       getInstance: jest.fn().mockReturnValue({
         query: jest.fn(), // Initialize the query mock function
       }),

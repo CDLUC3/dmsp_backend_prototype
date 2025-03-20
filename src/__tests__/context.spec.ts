@@ -1,6 +1,6 @@
 import { buildContext } from '../context';
 import { DMPHubAPI } from '../datasources/dmphubAPI';
-import { MySQLDataSource } from '../datasources/mySQLDataSource';
+import { mysql } from '../datasources/mysql';
 import { MockCache } from '../__mocks__/context';
 // For some reason esLint is reporting this isn't used, but it used below
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -8,7 +8,7 @@ import { randomHex } from '../utils/helpers';
 
 // Mock dependencies
 jest.mock('../datasources/DMPHubAPI');
-jest.mock('../datasources/mySQLDataSource');
+jest.mock('../datasources/mysql');
 jest.mock('../logger');
 
 describe('buildContext', () => {
@@ -36,7 +36,7 @@ describe('buildContext', () => {
     };
 
     mockGetInstance = jest.fn().mockImplementation(() => { return sqlDataSourceMock; });
-    (MySQLDataSource.getInstance as jest.Mock) = mockGetInstance;
+    (mysql.getInstance as jest.Mock) = mockGetInstance;
 
     // Clear all mocks before each test
     jest.clearAllMocks();
@@ -54,7 +54,7 @@ describe('buildContext', () => {
 
     // Ensure data sources are initialized with cache and token
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: cacheMock, token: tokenMock });
-    expect(MySQLDataSource.getInstance).toHaveBeenCalled();
+    expect(mysql.getInstance).toHaveBeenCalled();
   });
 
   it('should return a valid context with default cache when cache is null', async () => {

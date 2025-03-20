@@ -2,7 +2,7 @@ import casual from "casual";
 import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
-import { MySQLDataSource } from "../../datasources/mySQLDataSource";
+import { mysql } from "../../datasources/mysql";
 import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion } from "../questionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
@@ -15,7 +15,7 @@ import { VersionedQuestionCondition } from "../../models/VersionedQuestionCondit
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { getCurrentDate } from "../../utils/helpers";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -42,11 +42,11 @@ describe('hasPermissionOnQuestion', () => {
     jest.resetAllMocks();
 
     // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
+    (mysql.getInstance as jest.Mock).mockReturnValue({
       query: jest.fn(), // Initialize the query mock function here
     });
 
-    const instance = MySQLDataSource.getInstance();
+    const instance = mysql.getInstance();
     mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
     context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
 

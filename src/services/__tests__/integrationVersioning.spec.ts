@@ -16,7 +16,7 @@ import { VersionedQuestion } from "../../models/VersionedQuestion";
 import { QuestionCondition, QuestionConditionActionType, QuestionConditionCondition } from "../../models/QuestionCondition";
 import { VersionedQuestionCondition } from "../../models/VersionedQuestionCondition";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 let context;

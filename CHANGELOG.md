@@ -66,6 +66,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Renamed `datasources/MySQLDataSource` to `datasources/mysql` to follow naming pattern of other datasources
 - Updated the `dmpHubAPI` datasource to support CRUD operations
 - Updated the `Plan` resolver and model to support mutations
 - Updated the `Affiliation` schema and model to include the new `apiTarget` property.
@@ -78,7 +79,7 @@
 - Removed old unused `Affiliation` methods from `dmpHubAPI` and added `getDMP` and `validate` (for use in the near future when syncing changes within our system and the DMPHub)
 - Updated structure of `cacheConfig.ts` to match other configs
 - Moved config for `MysSQLDataSource` from the datasource into its config file
-- Moved `SigTerm` handler tests for `MySQLDataSource` into a separate test file. They were failing for some reason when run together
+- Moved `SigTerm` handler tests for `mysql` into a separate test file. They were failing for some reason when run together
 - Refactored `context.ts` and tests to use new `dmpHubAPI` datasource
 - Refactored old "mocks" to extract duplicative code into the `MySQLMock.ts`
 - Update existing resolver tests to use new mocks
