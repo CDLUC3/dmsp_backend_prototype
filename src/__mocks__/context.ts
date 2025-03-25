@@ -19,7 +19,7 @@ jest.mock('../datasources/mysql', () => {
   };
 });
 
-jest.mock('../datasources/DMPHubAPI', () => {
+jest.mock('../datasources/dmphubAPI', () => {
   return {
     __esModule: true,
     Authorizer: jest.fn().mockImplementation(() => ({

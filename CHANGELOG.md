@@ -117,6 +117,8 @@
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- Fixed an issue where Jest tests failed on Linux due to case-sensitive file paths. The tests passed on macOS because its file system is case-insensitive by default.
+- Fixed bugs related to addPlanContributor and updatePlanContributor since these were not working without missing contributorRoles
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test
 
 ## v0.0.1
