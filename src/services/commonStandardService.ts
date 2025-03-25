@@ -16,8 +16,7 @@ import {
   DMPRelatedIdentifierWorkType,
   DMPStatus,
   DMPYesNoUnknown,
-  DOI_REGEX
-} from "../datasources/dmphubAPI";
+} from "../types/DMP";
 import { ROR_REGEX } from "../models/Affiliation";
 import { ContributorRole } from "../models/ContributorRole";
 import { ProjectFunderStatus } from "../models/Funder";
@@ -28,6 +27,9 @@ import { RelatedWork } from "../models/RelatedWork";
 import { ORCID_REGEX, User } from "../models/User";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { valueIsEmpty } from "../utils/helpers";
+
+// eslint-disable-next-line no-useless-escape
+export const DOI_REGEX = /^(https?:\/\/)?(doi\.org\/)?(doi:)?(10\.\d{4,9}\/[-._;()/:\w]+)$/;
 
 // Represents the the RDA Common Metadata standard version of a plan/DMP. When communicating with external
 // systems we need to convert project/plan data into this format. This is the format that the DMPHub

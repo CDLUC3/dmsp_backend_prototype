@@ -1,8 +1,15 @@
 
 // Represents an entry from the projectPlans table
 
+import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
+import { dynamo } from "../datasources/dynamo";
+import { planToDMPCommonStandard } from "../services/commonStandardService";
+import { DMPCommonStandard } from "../types/DMP";
+import { getCurrentDate, randomHex, valueIsEmpty } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
+
+export const DEFAULT_TEMPORARY_DMP_ID_PREFIX = 'temp-dmpId-';
 
 export enum PlanStatus {
   ARCHIVED = 'ARCHIVED',
@@ -150,6 +157,29 @@ export class Plan extends MySqlModel {
     this.lastSynced = options.lastSynced;
   }
 
+  // Generate a new DMP ID
+  async generateDMPId(context: MyContext): Promise<string> {
+    // If the Plan already has a DMP ID, just return it
+    if (!valueIsEmpty(this.dmpId)) return this.dmpId;
+
+    const dmpIdPrefix = `${generalConfig.dmpIdBaseURL}${generalConfig.dmpIdShoulder}`;
+    let id = randomHex(16);
+    let i = 0;
+
+    // Check if the ID already exists up to 5 times
+    while (i < 5) {
+      const dmpId = `${dmpIdPrefix}${id}`;
+      const sql = `SELECT dmpId FROM ${Plan.tableName} WHERE dmpId = ?`;
+      const results = await Plan.query(context, sql, [dmpId], 'Plan.generateDMPId');
+      if (Array.isArray(results) && results.length <= 0) {
+        return dmpId;
+      }
+      id = randomHex(16);
+      i++;
+    }
+    return `${DEFAULT_TEMPORARY_DMP_ID_PREFIX}${id}`;
+  }
+
   // Make sure the plan is valid
   async isValid(): Promise<boolean> {
     await super.isValid();
@@ -166,16 +196,83 @@ export class Plan extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
 
+  // Comvert the Plan into the JSON RDA Common Metadata Standard for DMPs
+  async toCommonStandard(context: MyContext, reference = 'Plan.toCommonStandard'): Promise<DMPCommonStandard> {
+    // Convert the plan to the DMP Common Standard
+    return await planToDMPCommonStandard(context, reference, this);
+  }
+
+  // Manage the version history of the DMP
+  async generateVersion(context: MyContext, reference = 'Plan.generateVersion'): Promise<Plan> {
+    // Convert the plan to the DMP Common Standard
+    const commonStandard = await this.toCommonStandard(context, reference);
+    if (!commonStandard) {
+      this.addError('general', 'Unable to convert the plan to the DMP Common Standard');
+      return new Plan(this);
+    }
+
+    // Fetch the latest version of the DMP
+    const existingDMP = await dynamo.getDMP(this.dmpId, null);
+    if (Array.isArray(existingDMP) && existingDMP.length > 0) {
+      // If the lastSynced date is not within the last hour, create a new version snapshot
+      const lastSynced = new Date(this.lastSynced);
+      const now = new Date();
+      // Calculate the difference in hours between the lastSynced and now
+      const diff = Math.abs(now.getTime() - lastSynced.getTime()) / 36e5;
+      // If the change happened more than one hour since the lastSync date then generate a version snapshot
+      if (diff >= 1) {
+        // Create the version snapshot
+        const newVersion = await dynamo.createDMP(this.dmpId, existingDMP[0], existingDMP[0].modified);
+        if (!newVersion) {
+          this.addError('general', 'Unable to modify the version history of the DMP');
+        }
+      }
+
+      // Update the the latest version of the DMP
+      const updatedVersion = await dynamo.updateDMP(commonStandard);
+      if (!updatedVersion) {
+        this.addError('general', 'Unable to update the version history of the DMP');
+      }
+
+    } else {
+      // This is the first time so create the initial version
+      const firstVersion = await dynamo.createDMP(this.dmpId, commonStandard);
+      if (!firstVersion) {
+        this.addError('general', 'Unable to create the initial version of the DMP');
+      }
+    }
+
+    if (!this.hasErrors()) {
+      // Update the lastSync date if the version snapshot updates were successful
+      this.lastSynced = getCurrentDate();
+      this.update(context, true);
+    }
+    return new Plan(this);
+  }
+
   //Create a new Plan
   async create(context: MyContext): Promise<Plan> {
     const reference = 'Plan.create';
 
-    // First make sure the record is valid
-    if (await this.isValid()) {
-      // Save the record and then fetch it
-      const newId = await Plan.insert(context, Plan.tableName, this, reference);
-      const response = await Plan.findById(reference, context, newId);
-      return response;
+    if (!this.id) {
+      // First make sure the record is valid
+      if (await this.isValid()) {
+        // Assign the new DMP Id
+        this.dmpId = await this.generateDMPId(context);
+
+        // Create the new Plan
+        const newId = await Plan.insert(context, Plan.tableName, this, reference);
+
+        // Create the original version snapshot of the DMP
+        if (newId) {
+          const newPlan = await Plan.findById(reference, context, newId);
+          if (newPlan && !newPlan.hasErrors()) {
+            // Generate the version history of the DMP
+            await newPlan.generateVersion(context, reference);
+          }
+          return newPlan;
+        }
+      }
     }
     // Otherwise return as-is with all the errors
     return new Plan(this);
@@ -187,7 +284,13 @@ export class Plan extends MySqlModel {
 
     if (this.id) {
       if (await this.isValid()) {
-        await Plan.update(context, Plan.tableName, this, reference, [], noTouch);
+        // Update the plan
+        const updated = await Plan.update(context, Plan.tableName, this, reference, [], noTouch);
+
+        // Do not update any version info if the plan has not been modified or noTouch is true
+        if (!noTouch && updated && !updated.hasErrors()) {
+          this.generateVersion(context, reference);
+        }
       }
     } else {
       // This plan has never been saved before so we cannot update it!
@@ -202,8 +305,19 @@ export class Plan extends MySqlModel {
     if (this.id) {
       const deleted = await Plan.findById(reference, context, this.id);
 
+      // Delete the plan
       const successfullyDeleted = await Plan.delete(context, Plan.tableName, this.id, reference);
       if (successfullyDeleted) {
+        // If the plan was registered then tombstone the DMP otherwise delete it
+        if (deleted.registered) {
+          const tombstoned = await dynamo.tombstoneDMP(deleted.dmpId);
+          if (!tombstoned) {
+            this.addError('general', 'Unable to tombstone the DMP');
+          }
+        } else {
+          await dynamo.deleteDMP(deleted.dmpId);
+        }
+
         return deleted;
       } else {
         return null

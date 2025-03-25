@@ -1,5 +1,5 @@
 import { MyContext } from "../context";
-import { DMPCommonStandard } from "../datasources/dmphubAPI";
+import { DMPCommonStandard } from "../types/DMP";
 import { formatLogMessage } from "../logger";
 import { ProjectCollaborator } from "../models/Collaborator";
 import { Plan } from "../models/Plan";

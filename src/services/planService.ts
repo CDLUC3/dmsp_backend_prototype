@@ -1,88 +1,62 @@
 import { MyContext } from "../context";
-import { PlanVersion } from "../models/PlanVersion";
 import { Plan, PlanStatus } from "../models/Plan";
-import { planToDMPCommonStandard } from "./commonStandardService";
+import { determineIdentifierType, planToDMPCommonStandard } from "./commonStandardService";
 import { formatLogMessage } from "../logger";
-import { DMPCommonStandard } from "../datasources/dmphubAPI";
+import { DMPCommonStandard } from "../types/DMP";
 import { getCurrentDate } from "../utils/helpers";
+import { dynamo } from "../datasources/dynamo";
 
-// Version the plan in the local DB
-export const createPlanVersion = async (
-  context: MyContext,
-  plan: Plan,
-  reference = 'createPlanVersion'
-): Promise<PlanVersion> => {
+const DEFAULT_TEMPORARY_DMP_ID_PREFIX = 'temp-dmpId-';
+
+// Create the
+export const versionDMP = async (context: MyContext, plan: Plan, reference = 'versionDMP'): Promise<Plan> => {
   // Convert the plan to the DMP Common Standard
   const commonStandard = await planToDMPCommonStandard(context, reference, plan);
-  formatLogMessage(context).debug({ commonStandard }, 'createPlanVersion: Converted plan to DMP Common Standard');
+  formatLogMessage(context).debug({ commonStandard }, `${reference}: Converted plan to DMP Common Standard`);
 
-  // Create the new version
-  const planVersion = new PlanVersion({ planId: plan.id, dmp: commonStandard });
-  return await planVersion.create(context);
-}
-
-// Sync the plan with the DMPHub
-export const syncWithDMPHub = async (
-  context: MyContext,
-  plan: Plan,
-  reference = 'syncWithDMPHub'
-): Promise<DMPCommonStandard> => {
-  // Convert the plan to the DMP Common Standard
-  const commonStandard = await planToDMPCommonStandard(context, reference, plan);
-
-  // TODO: Determine the grace period before syncing. We don't want to sync ever time a tiny change is made
-
-  const dmphubAPI = context.dataSources.dmphubAPIDataSource;
-  let dmp;
-
-  // Validate the common standard format.
-  const validationErrors = await dmphubAPI.validateDMP(context, commonStandard, reference);
-  if (Array.isArray(validationErrors) && validationErrors.length > 0) {
-    // If there were validation errors, log them and return null (this will allow the system to continue
-    // to function without interrupting the user)
-    formatLogMessage(context).error(
-      { planId: plan.id, validationErrors, commonStandard },
-      `${reference}: Invalid DMP metadata`
-    );
-    return null;
-  }
-
-  try {
-    if (!plan.dmpId) {
-      // There is no DMP ID, so we need to create a new DMP
-      dmp = await dmphubAPI.createDMP(context, commonStandard, reference);
-      formatLogMessage(context).debug({ dmp }, 'syncWithDMPHub: Created DMP in DMPHub');
-
-    } else if (plan.status === PlanStatus.ARCHIVED) {
-      // The plan is archived, so we need to tombstone the DMP
-      dmp = await dmphubAPI.tombstoneDMP(context, commonStandard, reference);
-      formatLogMessage(context).debug({ dmp }, 'syncWithDMPHub: Tombstoned DMP in DMPHub');
-
-    } else {
-      // Otherwise we are just doing an update
-      dmp = await dmphubAPI.updateDMP(context, commonStandard, reference);
-      formatLogMessage(context).debug({ dmp }, 'syncWithDMPHub: Updated DMP in DMPHub');
+  if (!plan.dmpId) {
+    // If the plan does not have a dmpId then it is new so we need to assign one
+    const dmpId = await generateDMPId(context);
+    // Assign the new DMP Id
+    plan.dmpId = dmpId;
+    commonStandard.dmp_id = { identifier: dmpId, type: determineIdentifierType(dmpId) };
+    const created = await dynamo.createDMP(plan.dmpId, commonStandard);
+    if (!created) {
+      plan.addError('general', 'Unable to create a version snapshot of the plan');
     }
 
-    // Update the plan's sync and registered date (if applicable) and using `noTouch` so the created/modified
-    // aren't impacted
-    if (plan.id) {
-      plan.lastSynced = getCurrentDate();
-      if (plan.status === PlanStatus.PUBLISHED && plan.registered === null) {
-        plan.registered = getCurrentDate();
-        plan.registeredById = context.token.id;
+  } else if (plan.status === PlanStatus.ARCHIVED) {
+    // If the plan is archived then we need to tombstone the existing DMP
+    const existingDMP = await dynamo.getDMP(plan.dmpId, 'latest');
+    if (Array.isArray(existingDMP) && existingDMP.length > 0) {
+      commonStandard.dmp_id = existingDMP[0].dmp_id;
+      const tombstoned = await dynamo.tombstoneDMP(plan.dmpId);
+      if (!tombstoned) {
+        plan.addError('general', 'Unable to create a version snapshot of the plan');
       }
-      await plan.update(context, true);
+    } else {
+      formatLogMessage(context).error({ planId: plan.id }, `${reference}: No existing DMP found for tombstoning`);
+      plan.addError('general', 'Unable to tombstone a DMP that does not exist');
     }
 
-    return dmp;
-  } catch (err) {
-    // A fatal error occurred, log it and return null (this will allow the system to continue to function
-    // without interrupting the user)
-    formatLogMessage(context).error(
-      { planId: plan.id, err, commonStandard },
-      `${reference}: Failure to sync with DMPHub`
-    );
-    return null;
+  } else {
+    // If the plan is not new and not archived then we need to update the existing DMP
+    const existingDMP = await dynamo.getDMP(plan.dmpId, 'latest');
+    if (Array.isArray(existingDMP) && existingDMP.length > 0) {
+      commonStandard.dmp_id = existingDMP[0].dmp_id;
+      const updated = await dynamo.updateDMP(commonStandard);
+      if (!updated) {
+        plan.addError('general', 'Unable to create a version snapshot of the plan');
+      }
+    } else {
+      formatLogMessage(context).error({ planId: plan.id }, `${reference}: No existing DMP found for update`);
+      plan.addError('general', 'Unable to update a DMP that does not exist');
+    }
   }
+
+  if (plan && !plan.hasErrors()) {
+    plan.lastSynced = getCurrentDate();
+  }
+
+  return plan;
 }

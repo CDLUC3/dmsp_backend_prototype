@@ -9,7 +9,7 @@ import {
   DMPPrivacy,
   DMPStatus,
   DMPIdentifierType
-} from '../../datasources/dmphubAPI';
+} from '../../types/DMP';
 import { MyContext } from '../../context';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';

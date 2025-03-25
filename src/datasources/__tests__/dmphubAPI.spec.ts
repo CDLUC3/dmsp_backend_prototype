@@ -1,12 +1,6 @@
 import nock from 'nock';
-import {
-  DMPHubAPI,
-  Authorizer,
-  DMPIdentifierType,
-  DMPPrivacy,
-  DMPStatus,
-  DMPYesNoUnknown
-} from '../dmphubAPI';
+import { DMPHubAPI, Authorizer } from '../dmphubAPI';
+import { DMPIdentifierType, DMPPrivacy, DMPStatus, DMPYesNoUnknown } from '../../types/DMP';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';

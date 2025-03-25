@@ -10,8 +10,8 @@ import { PlanContributor } from "../models/Contributor";
 import { PlanFunder } from "../models/Funder";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
-import { createPlanVersion, syncWithDMPHub } from "../services/planService";
-import { getCurrentDate, randomHex } from "../utils/helpers";
+import { versionDMP } from "../services/planService";
+import { valueIsEmpty } from "../utils/helpers";
 import { Answer } from "../models/Answer";
 
 export const resolvers: Resolvers = {
@@ -76,23 +76,20 @@ export const resolvers: Resolvers = {
 
           if (await hasPermissionOnProject(context, project)) {
             const plan = new Plan({ projectId, versionedTemplateId });
-            // TODO: Uncomment this bit once we do more thorough testing of comms with the DMPHub
-            //
-            // Send the plan to the DMPHub so that it stores it and assigns a DMP ID
-            const dmp = await syncWithDMPHub(context, plan, reference);
-            formatLogMessage(context).debug({ dmp }, `DMP from the DMPHub API: for plan: ${plan.id}`);
 
-            // Record the DMP ID that was assigned by the DMPHub. If the sync with DMPHub failed for
-            // some reason, then we'll just generate a temporary ID.
-            plan.dmpId = dmp && dmp.dmp_id ? dmp.dmp_id.identifier : `tmpId-${randomHex(16)}`;
-            if (dmp && dmp.dmp_id) plan.lastSynced = getCurrentDate();
-
-            const newPlan = await plan.create(context);
-            if (newPlan) {
-              return new Plan(newPlan);
+            // Create the initial version of the DMP
+            const version = await versionDMP(context, plan, reference);
+            if (version && !version.hasErrors()) {
+              const newPlan = await version.create(context);
+              if (newPlan) {
+                return new Plan(newPlan);
+              }
             }
 
-            return null;
+            if (!plan.hasErrors()) {
+              plan.addError('general', 'Unable to create a new plan. Failed to create a version snapshot');
+            }
+            return plan;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -114,22 +111,25 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with DMP ID ${dmpId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
-            // First create a version snapshot (before making changes)
-            const newVersion = await createPlanVersion(context, plan, reference);
+          if (!valueIsEmpty(plan.registered)) {
+            plan.addError('general', 'Plan is already published and cannot be archived');
+          }
+          if (!plan.hasErrors() && await hasPermissionOnProject(context, project)) {
+            plan.status = PlanStatus.ARCHIVED;
+
+            // Create the tombstoned version of the DMP
+            const newVersion = await versionDMP(context, plan, reference);
             if (newVersion) {
-              plan.status = PlanStatus.ARCHIVED;
+              // If the versioning was successful, then delete the current plan
               const deletedPlan = await plan.delete(context);
-
               if (deletedPlan) {
-                // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                syncWithDMPHub(context, plan, reference);
-
                 return deletedPlan;
               }
             }
 
-            plan.addError('general', 'Unable to archive plan. Failed to create a version snapshot');
+            if (!plan.hasErrors()) {
+              plan.addError('general', 'Unable to archive plan. Failed to create a version snapshot');
+            }
             return plan;
           }
         }
@@ -178,8 +178,12 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan with DMP ID ${dmpId} not found`);
           }
+          if (!valueIsEmpty(plan.registered)) {
+            plan.addError('general', 'Plan is already published');
+          }
+
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (!plan.hasErrors() && await hasPermissionOnProject(context, project)) {
             if (project.isTestProject) {
               plan.addError('general', 'Test projects cannot be published');
             } else if (plan.registered) {
@@ -187,24 +191,26 @@ export const resolvers: Resolvers = {
             }
 
             if (!plan.hasErrors()) {
-              // First create a version snapshot (before making changes)
-              const newVersion = await createPlanVersion(context, plan, reference);
+              plan.status = PlanStatus.PUBLISHED;
+              plan.registered = new Date().toISOString();
+              plan.registeredById = context.token.id;
+              plan.visibility = visibility as PlanVisibility;
+
+              // Create a version snapshot
+              const newVersion = await versionDMP(context, plan, reference);
               if (newVersion) {
-                plan.status = PlanStatus.PUBLISHED;
-                plan.registered = new Date().toISOString();
-                plan.registeredById = context.token.id;
-                plan.visibility = visibility as PlanVisibility;
-
+                // if the versioning was successful, then update the plan
                 const publishedPlan = await plan.update(context);
-                if (publishedPlan) {
-                  // Asyncronously sync the plan with the DMPHub (after making changes)
-                  syncWithDMPHub(context, plan, reference);
 
+                if (publishedPlan) {
                   return publishedPlan;
                 }
               }
             }
 
+            if (!plan.hasErrors()) {
+              plan.addError('general', 'Unable to publish plan. Failed to create a version snapshot');
+            }
             return plan;
           }
         }
@@ -231,20 +237,21 @@ export const resolvers: Resolvers = {
             if (plan.registered) {
               plan.addError('general', 'Plan is already published');
             } else {
+              plan.status = PlanStatus.COMPLETE;
+
               // First create a version snapshot (before making changes)
-              const newVersion = await createPlanVersion(context, plan, reference);
+              const newVersion = await versionDMP(context, plan, reference);
               if (newVersion) {
-                plan.status = PlanStatus.COMPLETE;
-                plan.lastSynced = getCurrentDate();
-
                 const updatedPlan = await plan.update(context);
-                if (updatedPlan) {
-                  // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                  syncWithDMPHub(context, plan, reference);
 
+                if (updatedPlan) {
                   return updatedPlan;
                 }
               }
+            }
+
+            if (!plan.hasErrors()) {
+              plan.addError('general', 'Unable to mark plan as complete. Failed to create a version snapshot');
             }
             return plan;
           }
@@ -272,20 +279,20 @@ export const resolvers: Resolvers = {
             if (plan.registered) {
               plan.addError('general', 'Plan is already published');
             } else {
-              // First create a version snapshot (before making changes)
-              const newVersion = await createPlanVersion(context, plan, reference);
-              if (newVersion) {
-                plan.status = PlanStatus.DRAFT;
-                plan.lastSynced = getCurrentDate();
+              plan.status = PlanStatus.DRAFT;
 
+              // First create a version snapshot (before making changes)
+              const newVersion = await versionDMP(context, plan, reference);
+              if (newVersion) {
                 const updatedPlan = await plan.update(context);
                 if (updatedPlan) {
-                  // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                  syncWithDMPHub(context, plan, reference);
-
                   return updatedPlan;
                 }
               }
+            }
+
+            if (!plan.hasErrors()) {
+              plan.addError('general', 'Unable to mark plan as draft. Failed to create a version snapshot');
             }
             return plan;
           }

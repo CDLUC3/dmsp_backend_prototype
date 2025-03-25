@@ -6,6 +6,7 @@ import { mysql } from "../datasources/mysql";
 import { User, UserRole } from "../models/User";
 import casual from "casual";
 import { defaultLanguageId } from "../models/Language";
+import { dynamo } from "../datasources/dynamo";
 
 jest.mock('../datasources/mysql', () => {
   return {
@@ -41,6 +42,22 @@ jest.mock('../datasources/DMPHubAPI', () => {
       delete: jest.fn(),
       authorizer: new Authorizer(),
     })),
+  };
+});
+
+jest.mock('../datasources/dynamo', () => {
+  return {
+    __esModule: true,
+    dynamo: {
+      getDMP: jest.fn(),
+      createDMP: jest.fn(),
+      updateDMP: jest.fn(),
+      deleteDMP: jest.fn(),
+      tombstoneDMP: jest.fn(),
+      scanTable: jest.fn(),
+      queryTable: jest.fn(),
+      deserializeDynamoItem: jest.fn(),
+    },
   };
 });
 
@@ -115,6 +132,7 @@ export const mockToken = (user = mockUser()): JWTAccessToken => {
 export const mockDataSources = {
   dmphubAPIDataSource: new DMPHubAPI({ cache: null, token: null}),
   sqlDataSource: mockedMysqlInstance,
+  dynamoDataSource: dynamo,
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

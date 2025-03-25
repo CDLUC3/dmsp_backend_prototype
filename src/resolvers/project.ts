@@ -10,7 +10,7 @@ import { hasPermissionOnProject, versionAndSyncPlans } from '../services/project
 import { ResearchDomain } from '../models/ResearchDomain';
 import { ProjectOutput } from '../models/Output';
 import { GraphQLError } from 'graphql';
-import { PlanSearchResult } from '../models/Plan';
+import { Plan, PlanSearchResult } from '../models/Plan';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -134,6 +134,11 @@ export const resolvers: Resolvers = {
             // Only allow the owner of the project to delete it
             if (!hasPermissionOnProject(context, project)) {
               throw ForbiddenError();
+            }
+
+            const plans = await Plan.findByProjectId(reference, context, projectId);
+            for (const plan of plans) {
+              const archivedPlan =
             }
 
             const deleted = await project.delete(context);
