@@ -485,12 +485,12 @@ export type CollaboratorSearchResult = {
   affiliation?: Maybe<Affiliation>;
   /** The collaborator's first/given name */
   givenName?: Maybe<Scalars['String']['output']>;
-  /** The unique identifer for the Object */
-  id?: Maybe<Scalars['Int']['output']>;
   /** The collaborator's ORCID */
   orcid?: Maybe<Scalars['String']['output']>;
   /** The collaborator's last/sur name */
   surName?: Maybe<Scalars['String']['output']>;
+  /** The userId of the collaborator */
+  userId?: Maybe<Scalars['Int']['output']>;
 };
 
 export type ContributorRole = {
@@ -526,6 +526,21 @@ export type ContributorRoleErrors = {
   general?: Maybe<Scalars['String']['output']>;
   label?: Maybe<Scalars['String']['output']>;
   uri?: Maybe<Scalars['String']['output']>;
+};
+
+/** The result of the findCollaborator query */
+export type ContributorSearchResult = {
+  __typename?: 'ContributorSearchResult';
+  /** The collaborator's affiliation */
+  affiliation?: Maybe<Affiliation>;
+  /** The collaborator's first/given name */
+  givenName?: Maybe<Scalars['String']['output']>;
+  /** The collaborator's ORCID */
+  orcid?: Maybe<Scalars['String']['output']>;
+  /** The collaborator's last/sur name */
+  surName?: Maybe<Scalars['String']['output']>;
+  /** The userId of the collaborator */
+  userId?: Maybe<Scalars['Int']['output']>;
 };
 
 /** The types of object a User can be invited to Collaborate on */
@@ -765,7 +780,7 @@ export type Mutation = {
   updatePlanContributor?: Maybe<PlanContributor>;
   /** Edit a project */
   updateProject?: Maybe<Project>;
-  /** Chnage a collaborator's accessLevel on a Plan */
+  /** Change a collaborator's accessLevel on a Plan */
   updateProjectCollaborator?: Maybe<ProjectCollaborator>;
   /** Update a contributor on the research project */
   updateProjectContributor?: Maybe<ProjectContributor>;
@@ -871,7 +886,8 @@ export type MutationAddProjectArgs = {
 
 export type MutationAddProjectCollaboratorArgs = {
   email: Scalars['String']['input'];
-  planId: Scalars['Int']['input'];
+  projectId: Scalars['Int']['input'];
+  userId: Scalars['Int']['input'];
 };
 
 
@@ -1688,8 +1704,8 @@ export type ProjectCollaborator = {
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** The plan the collaborator may edit */
-  plan?: Maybe<Plan>;
+  /** The project the collaborator may edit */
+  project?: Maybe<Project>;
   /** The ProjectContributor id */
   projectContributorId?: Maybe<Scalars['Int']['output']>;
   /** The collaborator (if they have an account) */
@@ -1745,6 +1761,8 @@ export type ProjectContributor = {
   project?: Maybe<Project>;
   /** The contributor's last/sur name */
   surName?: Maybe<Scalars['String']['output']>;
+  /** The user id of the contributor */
+  userId?: Maybe<Scalars['Int']['output']>;
 };
 
 /** A collection of errors related to the ProjectContributor */
@@ -1907,6 +1925,8 @@ export type Query = {
   contributorRoles?: Maybe<Array<Maybe<ContributorRole>>>;
   /** Search for a User to add as a collaborator */
   findCollaborator?: Maybe<Array<Maybe<CollaboratorSearchResult>>>;
+  /** Search for a user to add as a project contributor */
+  findContributor?: Maybe<Array<Maybe<ContributorSearchResult>>>;
   /** Get all of the supported Languages */
   languages?: Maybe<Array<Maybe<Language>>>;
   /** Fetch a specific license */
@@ -1929,8 +1949,6 @@ export type Query = {
   outputTypes?: Maybe<Array<Maybe<OutputType>>>;
   /** Get a specific plan */
   plan?: Maybe<Plan>;
-  /** Get all of the Users that are collaborators for the Plan */
-  planCollaborators?: Maybe<Array<Maybe<ProjectCollaborator>>>;
   /** Get all of the Users that are contributors for the specific Plan */
   planContributors?: Maybe<Array<Maybe<PlanContributor>>>;
   /** Get all rounds of admin feedback for the plan */
@@ -1945,6 +1963,8 @@ export type Query = {
   plans?: Maybe<Array<PlanSearchResult>>;
   /** Get a specific project */
   project?: Maybe<Project>;
+  /** Get all of the Users that are collaborators for the Project */
+  projectCollaborators?: Maybe<Array<Maybe<ProjectCollaborator>>>;
   /** Get a specific contributor on the research project */
   projectContributor?: Maybe<ProjectContributor>;
   /** Get all of the Users that a contributors to the research project */
@@ -2060,6 +2080,11 @@ export type QueryFindCollaboratorArgs = {
 };
 
 
+export type QueryFindContributorArgs = {
+  term: Scalars['String']['input'];
+};
+
+
 export type QueryLicenseArgs = {
   uri: Scalars['String']['input'];
 };
@@ -2082,11 +2107,6 @@ export type QueryMetadataStandardsArgs = {
 
 
 export type QueryPlanArgs = {
-  planId: Scalars['Int']['input'];
-};
-
-
-export type QueryPlanCollaboratorsArgs = {
   planId: Scalars['Int']['input'];
 };
 
@@ -2122,6 +2142,11 @@ export type QueryPlansArgs = {
 
 
 export type QueryProjectArgs = {
+  projectId: Scalars['Int']['input'];
+};
+
+
+export type QueryProjectCollaboratorsArgs = {
   projectId: Scalars['Int']['input'];
 };
 
@@ -3545,6 +3570,7 @@ export type ResolversTypes = {
   CollaboratorSearchResult: ResolverTypeWrapper<CollaboratorSearchResult>;
   ContributorRole: ResolverTypeWrapper<ContributorRole>;
   ContributorRoleErrors: ResolverTypeWrapper<ContributorRoleErrors>;
+  ContributorSearchResult: ResolverTypeWrapper<ContributorSearchResult>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
@@ -3683,6 +3709,7 @@ export type ResolversParentTypes = {
   CollaboratorSearchResult: CollaboratorSearchResult;
   ContributorRole: ContributorRole;
   ContributorRoleErrors: ContributorRoleErrors;
+  ContributorSearchResult: ContributorSearchResult;
   DateTimeISO: Scalars['DateTimeISO']['output'];
   DmspId: Scalars['DmspId']['output'];
   EmailAddress: Scalars['EmailAddress']['output'];
@@ -3908,9 +3935,9 @@ export type AnswerCommentErrorsResolvers<ContextType = MyContext, ParentType ext
 export type CollaboratorSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['CollaboratorSearchResult'] = ResolversParentTypes['CollaboratorSearchResult']> = {
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  userId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -3934,6 +3961,15 @@ export type ContributorRoleErrorsResolvers<ContextType = MyContext, ParentType e
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   label?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   uri?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ContributorSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ContributorSearchResult'] = ResolversParentTypes['ContributorSearchResult']> = {
+  affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  userId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4016,7 +4052,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addPlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationAddPlanContributorArgs, 'planId' | 'projectContributorId'>>;
   addPlanFunder?: Resolver<Maybe<ResolversTypes['PlanFunder']>, ParentType, ContextType, RequireFields<MutationAddPlanFunderArgs, 'planId' | 'projectFunderId'>>;
   addProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<MutationAddProjectArgs, 'title'>>;
-  addProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationAddProjectCollaboratorArgs, 'email' | 'planId'>>;
+  addProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationAddProjectCollaboratorArgs, 'email' | 'projectId' | 'userId'>>;
   addProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationAddProjectContributorArgs, 'input'>>;
   addProjectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<MutationAddProjectFunderArgs, 'input'>>;
   addProjectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationAddProjectOutputArgs, 'input'>>;
@@ -4329,7 +4365,7 @@ export type ProjectCollaboratorResolvers<ContextType = MyContext, ParentType ext
   invitedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType>;
+  project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
   projectContributorId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -4359,6 +4395,7 @@ export type ProjectContributorResolvers<ContextType = MyContext, ParentType exte
   orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
   surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  userId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4462,6 +4499,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
   findCollaborator?: Resolver<Maybe<Array<Maybe<ResolversTypes['CollaboratorSearchResult']>>>, ParentType, ContextType, Partial<QueryFindCollaboratorArgs>>;
+  findContributor?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorSearchResult']>>>, ParentType, ContextType, RequireFields<QueryFindContributorArgs, 'term'>>;
   languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
   license?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<QueryLicenseArgs, 'uri'>>;
   licenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, Partial<QueryLicensesArgs>>;
@@ -4473,7 +4511,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   myVersionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
   outputTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['OutputType']>>>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
-  planCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectCollaborator']>>>, ParentType, ContextType, RequireFields<QueryPlanCollaboratorsArgs, 'planId'>>;
   planContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanContributor']>>>, ParentType, ContextType, RequireFields<QueryPlanContributorsArgs, 'planId'>>;
   planFeedback?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedback']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackArgs, 'planId'>>;
   planFeedbackComments?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedbackComment']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackCommentsArgs, 'planFeedbackId'>>;
@@ -4481,6 +4518,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   planOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryPlanOutputsArgs, 'planId'>>;
   plans?: Resolver<Maybe<Array<ResolversTypes['PlanSearchResult']>>, ParentType, ContextType, RequireFields<QueryPlansArgs, 'projectId'>>;
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<QueryProjectArgs, 'projectId'>>;
+  projectCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectCollaborator']>>>, ParentType, ContextType, RequireFields<QueryProjectCollaboratorsArgs, 'projectId'>>;
   projectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<QueryProjectContributorArgs, 'projectContributorId'>>;
   projectContributors?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectContributor']>>>, ParentType, ContextType, RequireFields<QueryProjectContributorsArgs, 'projectId'>>;
   projectFunder?: Resolver<Maybe<ResolversTypes['ProjectFunder']>, ParentType, ContextType, RequireFields<QueryProjectFunderArgs, 'projectFunderId'>>;
@@ -5044,6 +5082,7 @@ export type Resolvers<ContextType = MyContext> = {
   CollaboratorSearchResult?: CollaboratorSearchResultResolvers<ContextType>;
   ContributorRole?: ContributorRoleResolvers<ContextType>;
   ContributorRoleErrors?: ContributorRoleErrorsResolvers<ContextType>;
+  ContributorSearchResult?: ContributorSearchResultResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;
   DmspId?: GraphQLScalarType;
   EmailAddress?: GraphQLScalarType;

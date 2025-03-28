@@ -1,6 +1,7 @@
 import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 import { Project } from "../models/Project";
+import { ProjectCollaborator } from '../models/Collaborator';
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
@@ -60,6 +61,15 @@ export const resolvers: Resolvers = {
             const newProject = new Project({ title, isTestProject });
             const created = await newProject.create(context);
 
+            // Automatically add this user as a projectCollaborator with acccessLevel = OWN when project created
+            const collaborator = new ProjectCollaborator({
+              projectId: created.id,
+              email: context.token?.email,
+              userId: context.token?.id,
+              accessLevel: 'OWN',
+            });
+            await collaborator.create(context);
+
             if (created?.id) {
               return created;
             }
@@ -68,6 +78,8 @@ export const resolvers: Resolvers = {
             if (!newProject.errors['general']) {
               newProject.addError('general', 'Unable to create Project');
             }
+
+            // Return new project
             return newProject;
           } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);

@@ -1,4 +1,5 @@
 ### Added
+- Added new resolvers related to `projectCollaborators`
 - Added `sections` to `Plan` schema and to plan resolver
 - Added the `relatedWorks` data migration
 - Added model and resolvers for `RelatedWork`

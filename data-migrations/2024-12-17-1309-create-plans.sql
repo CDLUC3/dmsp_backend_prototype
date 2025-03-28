@@ -45,25 +45,6 @@ CREATE TABLE `planContributorRoles` (
   FOREIGN KEY (contributorRoleId) REFERENCES contributorRoles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-# People who have access to collaborate on writing the Plan
-CREATE TABLE `planCollaborators` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `planId` INT NOT NULL,
-  `email` VARCHAR(255) NOT NULL,
-  `invitedById` INT NOT NULL,
-  `userId` INT NOT NULL,
-  `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` INT NOT NULL,
-  `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
-  CONSTRAINT unique_template_collaborator UNIQUE (`planId`, `email`),
-  FOREIGN KEY (planId) REFERENCES plans(id) ON DELETE CASCADE,
-  FOREIGN KEY (invitedById) REFERENCES users(id),
-  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX planCollaborators_email_idx (`email`),
-  INDEX planCollaborators_user_idx (`userId`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
-
 # Institutions/organizations that provide financial support for the work associated with a Plan
 CREATE TABLE `planFunders` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

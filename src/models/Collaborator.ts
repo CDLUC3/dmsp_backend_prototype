@@ -13,7 +13,7 @@ export class Collaborator extends MySqlModel {
   public invitedById: number;
   public userId: number;
 
-  constructor(options){
+  constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.email = options.email;
@@ -211,7 +211,7 @@ export enum ProjectCollaboratorAccessLevel {
 // An individual that has permission to work on a Project and it's plans
 export class ProjectCollaborator extends Collaborator {
   public projectId: number;
-  public accessLevel: string;
+  public accessLevel: ProjectCollaboratorAccessLevel;
 
   private tableName = 'projectCollaborators';
 

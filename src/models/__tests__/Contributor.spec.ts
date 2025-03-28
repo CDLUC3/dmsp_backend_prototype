@@ -230,7 +230,7 @@ describe('findBy Queries', () => {
     const email = casual.email;
     const result = await ProjectContributor.findByProjectAndNameOrORCIDOrEmail('testing', context, projectId, givenName, surName, orcid, email);
     const expectedSql = 'SELECT * FROM projectContributors WHERE projectId = ? AND (LOWER(givenName) = ? AND LOWER(surName) = ?) OR (orcid = ?) ' +
-                        'OR (email = ?) ORDER BY orcid DESC, email DESC, surName, givenName';
+      'OR (email = ?) ORDER BY orcid DESC, email DESC, surName, givenName';
     expect(localQuery).toHaveBeenCalledTimes(1);
     const vals = [projectId.toString(), givenName.toLowerCase(), surName.toLowerCase(), orcid, email];
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
@@ -246,6 +246,26 @@ describe('findBy Queries', () => {
     const email = casual.email;
     const result = await ProjectContributor.findByProjectAndNameOrORCIDOrEmail('testing', context, projectId, givenName, surName, orcid, email);
     expect(result).toEqual(null);
+  });
+
+  it('search should return expected result based on the matching term', async () => {
+    const contributor = new ProjectContributor({
+      projectId: 1,
+      affiliationId: "https://ror.org/00dmfq477",
+      givenName: "Jacques",
+      surName: "Cousteau",
+      orcid: getMockORCID(),
+      email: "super@example.com",
+      contributorRoles: [new ContributorRole({ id: casual.integer(1, 99) })]
+    });
+
+    localQuery.mockResolvedValueOnce([contributor]);
+    const result = await ProjectContributor.search('testing', context, 'Jacques');
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ givenName: "Jacques" })
+      ])
+    );
   });
 });
 

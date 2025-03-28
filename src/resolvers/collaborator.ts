@@ -1,11 +1,13 @@
 import { Resolvers } from "../types";
-import { TemplateCollaborator } from "../models/Collaborator";
+import { TemplateCollaborator, ProjectCollaborator } from "../models/Collaborator";
 import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
+import { Project } from "../models/Project";
 import { isAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { hasPermissionOnTemplate } from "../services/templateService";
+import { hasPermissionOnProject } from "../services/projectService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
 
@@ -17,11 +19,31 @@ export const resolvers: Resolvers = {
       const reference = 'templateCollaborators resolver';
       try {
         // if the user is an admin
-        if (isAdmin(context.token)){
+        if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
           // If the user has permission on the Template
           if (template && await hasPermissionOnTemplate(context, template)) {
             const results = await TemplateCollaborator.findByTemplateId(reference, context, templateId);
+            return results;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+    projectCollaborators: async (_, { projectId }, context: MyContext): Promise<ProjectCollaborator[]> => {
+      const reference = 'projectCollaborators resolver';
+      try {
+        // if the user is an admin
+        if (isAdmin(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
+          // If the user has permission on the Template
+          if (project && await hasPermissionOnProject(context, project)) {
+            const results = await ProjectCollaborator.findByProjectId(reference, context, projectId);
             return results;
           }
         }
@@ -42,7 +64,7 @@ export const resolvers: Resolvers = {
       const reference = 'addTemplateCollaborator resolver';
       try {
         // if the user is an admin
-        if (isAdmin(context.token)){
+        if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
 
           // The template doesn't exist
@@ -82,8 +104,8 @@ export const resolvers: Resolvers = {
     removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<TemplateCollaborator> => {
       const reference = 'removeTemplateCollaborator resolver';
       try {
-          // if the user is an admin
-        if (isAdmin(context.token)){
+        // if the user is an admin
+        if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
 
           // If the user has permission on the Template
@@ -105,8 +127,132 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+    // Add a collaborator to a Project
+    addProjectCollaborator: async (_, { projectId, email, userId }, context: MyContext): Promise<ProjectCollaborator> => {
+      const reference = 'addProjectCollaborator resolver';
+      try {
+        // if the user is an admin
+        if (isAdmin(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
+
+          // The project doesn't exist
+          if (!project) {
+            throw NotFoundError();
+          }
+
+          // If the user has permission on the Project
+          if (await hasPermissionOnProject(context, project)) {
+            const invitedById = context.token?.id;
+            const projectCollaborator = new ProjectCollaborator({ projectId, email, userId, invitedById });
+            const created = await projectCollaborator.create(context);
+
+            if (created?.id) {
+              return created;
+            }
+
+            // A null was returned so add a generic error and return it
+            if (!projectCollaborator.errors['general']) {
+              projectCollaborator.addError('general', 'Unable to create Project collaborator');
+            }
+            return projectCollaborator;
+          }
+        }
+        // Unauthorized! or Forbidden
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+    // Add a collaborator to a Project
+    updateProjectCollaborator: async (_, { projectCollaboratorId, accessLevel }, context: MyContext): Promise<ProjectCollaborator> => {
+      const reference = 'updateProjectCollaborator resolver';
+      try {
+        // if the user is an admin
+        if (isAdmin(context.token)) {
+          const projectCollaborator = await ProjectCollaborator.findById(reference, context, projectCollaboratorId);
+
+          // The projectCollaborator doesn't exist
+          if (!projectCollaborator) {
+            throw NotFoundError();
+          }
+
+          // Get project info to check permissions
+          const project = await Project.findById(reference, context, projectCollaborator.projectId);
+
+          // If the user has permission on the Project
+          if (await hasPermissionOnProject(context, project)) {
+            const newProjectCollaborator = new ProjectCollaborator({
+              ...projectCollaborator,
+              accessLevel: accessLevel
+            });
+
+            const updatedProjectCollaborator = await newProjectCollaborator.update(context);
+
+            if (updatedProjectCollaborator?.id) {
+              return updatedProjectCollaborator;
+            }
+
+            // A null was returned so add a generic error and return it
+            if (!projectCollaborator.errors['general']) {
+              projectCollaborator.addError('general', 'Unable to create Project collaborator');
+            }
+            return projectCollaborator;
+          }
+        }
+        // Unauthorized! or Forbidden
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+    // Remove a ProjectCollaborator from a Project
+    removeProjectCollaborator: async (_, { projectCollaboratorId }, context: MyContext): Promise<ProjectCollaborator> => {
+      const reference = 'removeProjectCollaborator resolver';
+      try {
+        // if the user is an admin
+        if (isAdmin(context.token)) {
+          const projectCollaborator = await ProjectCollaborator.findById(reference, context, projectCollaboratorId);
+
+          // The projectCollaborator doesn't exist
+          if (!projectCollaborator) {
+            throw NotFoundError();
+          }
+
+          // Get project info to check permissions
+          const project = await Project.findById(reference, context, projectCollaborator.projectId);
+
+          // If the user has permission on the Project
+          if (await hasPermissionOnProject(context, project)) {
+            if (projectCollaborator) {
+              return await projectCollaborator.delete(context);
+            }
+            // Couldn't find the TemplateCollaborator
+            throw NotFoundError();
+          }
+        }
+        // Unauthorized! or Forbidden
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
   },
 
+  ProjectCollaborator: {
+    // Chained resolver to fetch the User record
+    user: async (parent: ProjectCollaborator, _, context: MyContext): Promise<User> => {
+      return await User.findById('Chained TemplateController.user', context, parent.userId);
+    },
+  },
   TemplateCollaborator: {
     // Chained resolver to fetch the Template info
     template: async (parent: TemplateCollaborator, _, context: MyContext): Promise<Template> => {
