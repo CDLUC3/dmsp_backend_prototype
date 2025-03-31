@@ -6,11 +6,12 @@ import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ProjectFunder } from '../models/Funder';
 import { ProjectContributor } from '../models/Contributor';
-import { hasPermissionOnProject, versionAndSyncPlans } from '../services/projectService';
+import { hasPermissionOnProject } from '../services/projectService';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { ProjectOutput } from '../models/Output';
 import { GraphQLError } from 'graphql';
 import { Plan, PlanSearchResult } from '../models/Plan';
+import { addVersion } from '../models/PlanVersion';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -101,8 +102,11 @@ export const resolvers: Resolvers = {
             const toUpdate = new Project(input);
             const updated = await toUpdate.update(context);
             if (updated && !updated.hasErrors()) {
-              // Asynchronously version all of the plans (if any) and sync with the DMPHub
-              versionAndSyncPlans(context, project, reference);
+              // Update each plan's version snapshot if the project was updated
+              const plans = await Plan.findByProjectId(reference, context, project.id);
+              for (const plan of plans) {
+                await addVersion(context, plan, reference);
+              }
             }
 
             return updated;
@@ -136,18 +140,13 @@ export const resolvers: Resolvers = {
               throw ForbiddenError();
             }
 
-            const plans = await Plan.findByProjectId(reference, context, projectId);
+            // Delete/Tombstone each plan associated with the project
+            const plans = await Plan.findByProjectId(reference, context, project.id);
             for (const plan of plans) {
-              const archivedPlan =
+              plan.delete(context);
             }
 
-            const deleted = await project.delete(context);
-            if (deleted && !deleted.hasErrors()) {
-              // Asynchronously version all of the plans (if any) and sync with the DMPHub
-              versionAndSyncPlans(context, project, reference);
-            }
-
-            return deleted
+            return await project.delete(context);
           } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
             throw InternalServerError();

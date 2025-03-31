@@ -2,6 +2,7 @@
 import casual from "casual";
 import { getCurrentDate } from "../../utils/helpers";
 import { addEntryToMockTable, addMockTableStore, clearMockTableStore, deleteEntryFromMockTable, findEntryInMockTableByFilter, findEntryInMockTableById, getMockTableStore, updateEntryInMockTable } from "./MockStore";
+import { ContributorRole } from "../ContributorRole";
 
 export const getContributorRoleStore = () => {
   return getMockTableStore('contributorRoles');
@@ -52,6 +53,11 @@ export const mockFindContributorRoleByURL = async (_, __, uri) => {
     'contributorRoles',
     (entry) => { return entry.uri.toLowerCase().trim() === uri.toLowerCase().trim() }
   );
+};
+
+export const mockDefaultContributorRole = async (): Promise<ContributorRole | null> => {
+  const store = getContributorRoleStore();
+  return Array.isArray(store) ? store[0] : null;
 };
 
 // Mock the mutations

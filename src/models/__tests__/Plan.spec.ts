@@ -1,7 +1,7 @@
 import casual from "casual";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
-import { getRandomEnumValue } from "../../__tests__/helpers";
+import { getMockDMPId, getRandomEnumValue } from "../../__tests__/helpers";
 import {
   DEFAULT_TEMPORARY_DMP_ID_PREFIX,
   Plan,
@@ -12,46 +12,17 @@ import {
 } from "../Plan";
 import { defaultLanguageId } from "../Language";
 import { generalConfig } from "../../config/generalConfig";
-import { dynamo } from "../../datasources/dynamo";
 import { getCurrentDate } from "../../utils/helpers";
+import * as PlanVersionModule from "../PlanVersion";
 
 jest.mock('../../context.ts');
 
 let context;
-let commonStandard;
 
 beforeEach(() => {
   jest.resetAllMocks();
 
   context = buildContext(logger, mockToken());
-
-  commonStandard = {
-    title: 'testTitle',
-    created: '2025-03-20T07:51:43.000Z',
-    modified: '2025-03-20T07:51:43.000Z',
-    language: 'eng',
-    ethical_issues_exist: 'unknown',
-    dmphub_provenance_id: 'testProvenanceId',
-    dmproadmap_featured: '0',
-    dmproadmap_privacy: 'public',
-    dmproadmap_status: 'draft',
-    dmp_id: { identifier: 'testDmpId', type: 'other' },
-    contact: {
-      name: 'testContactName',
-      mbox: 'testContactEmail',
-      contact_id: { identifier: 'testContactId', type: 'other' }
-    },
-    project: [{
-      title: 'testProjectTitle',
-    }],
-    dataset: [{
-      title: 'testDatasetTitle',
-      type: 'dataset',
-      personal_data: 'unknown',
-      sensitive_data: 'no',
-      dataset_id: { identifier: 'testDatasetId', type: 'other' }
-    }],
-  };
 });
 
 afterEach(() => {
@@ -254,7 +225,6 @@ describe('Plan', () => {
     dmpId: casual.uuid,
     registeredById: casual.integer(1, 99),
     registered: casual.date('YYYY-MM-DD'),
-    lastSynced: casual.date('YYYY-MM-DD'),
   }
 
   beforeEach(() => {
@@ -267,7 +237,6 @@ describe('Plan', () => {
     expect(plan.dmpId).toEqual(planData.dmpId);
     expect(plan.registeredById).toEqual(planData.registeredById);
     expect(plan.registered).toEqual(planData.registered);
-    expect(plan.lastSynced).toEqual(planData.lastSynced);
     expect(plan.featured).toEqual(false);
     expect(plan.status).toEqual(PlanStatus.DRAFT);
     expect(plan.visibility).toEqual(PlanVisibility.PRIVATE);
@@ -350,7 +319,6 @@ describe('findBy Queries', () => {
       dmpId: casual.uuid,
       registeredById: casual.integer(1, 99),
       registered: casual.date('YYYY-MM-DD'),
-      lastSynced: casual.date('YYYY-MM-DD'),
       status: getRandomEnumValue(PlanStatus),
       visibility: getRandomEnumValue(PlanVisibility),
       languageId: defaultLanguageId,
@@ -420,143 +388,77 @@ describe('findBy Queries', () => {
   });
 });
 
-describe('generateVersion', () => {
+describe('publish', () => {
   let plan;
+  let mockFindById;
+  let updateQuery;
 
   beforeEach(() => {
+    mockFindById = jest.fn();
+    (Plan.findById as jest.Mock) = mockFindById;
+    updateQuery = jest.fn();
+    (Plan.update as jest.Mock) = updateQuery;
+
     plan = new Plan({
+      id: casual.integer(1, 999),
+      createdById: casual.integer(1, 99),
+      created: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
+      modifiedById: casual.integer(1, 99),
+      modified: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
       projectId: casual.integer(1, 99),
       versionedTemplateId: casual.integer(1, 99),
-      dmpId: casual.url,
-      status: getRandomEnumValue(PlanStatus),
       visibility: getRandomEnumValue(PlanVisibility),
-      registeredById: casual.integer(1, 99),
-      registered: casual.date('YYYY-MM-DD'),
-      lastSynced: '2025-01-01T00:00:00.000Z',
       languageId: defaultLanguageId,
       featured: casual.boolean,
     });
   });
 
-  it('Fails if the Plan could not be converted to the DMP Common Standard', async () => {
-    jest.spyOn(plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'toCommonStandard').mockResolvedValueOnce(null);
-    jest.spyOn(dynamo, 'getDMP').mockResolvedValueOnce([]);
-    jest.spyOn(dynamo, 'createDMP').mockResolvedValueOnce(null);
-    jest.spyOn(dynamo, 'updateDMP').mockResolvedValueOnce(null);
+  it('returns the newly published Plan', async () => {
+    const dmpId = getMockDMPId();
+    updateQuery.mockResolvedValueOnce(plan);
+    jest.spyOn(plan, 'generateDMPId').mockResolvedValueOnce(dmpId);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
 
-    const result = await plan.generateVersion(context);
-    expect(plan.update).toHaveBeenCalledTimes(0);
-    expect(Object.keys(result.errors).length).toBe(1);
-    expect(result).toBeInstanceOf(Plan);
-    expect(plan.toCommonStandard).toHaveBeenCalledTimes(1);
-    expect(dynamo.getDMP).toHaveBeenCalledTimes(0);
-    expect(dynamo.createDMP).toHaveBeenCalledTimes(0);
-    expect(dynamo.updateDMP).toHaveBeenCalledTimes(0);
-  });
+    const result = await plan.publish(context);
+    const versionMockInput = versionMock.mock.calls[0][1] as Plan;
 
-  it('Creates the initial version', async () => {
-    jest.spyOn(plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'toCommonStandard').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'getDMP').mockResolvedValueOnce([]);
-    jest.spyOn(dynamo, 'createDMP').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'updateDMP').mockResolvedValueOnce(null);
-
-    const result = await plan.generateVersion(context);
-    expect(plan.update).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
+    expect(plan.generateDMPId).toHaveBeenCalledTimes(1);
+    expect(PlanVersionModule.updateVersion).toHaveBeenCalledTimes(1);
+
     expect(result).toBeInstanceOf(Plan);
-    expect(plan.toCommonStandard).toHaveBeenCalledTimes(1);
-    expect(dynamo.getDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.createDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.updateDMP).toHaveBeenCalledTimes(0);
+    expect(versionMockInput.dmpId).toEqual(dmpId);
+    expect(versionMockInput.status).toEqual(PlanStatus.PUBLISHED);
+    expect(versionMockInput.registered).toBeTruthy();
+    expect(versionMockInput.registeredById).toBeTruthy();
   });
 
-  it('Returns and error if unable to create the initial version', async () => {
-    jest.spyOn(plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'toCommonStandard').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'getDMP').mockResolvedValueOnce([]);
-    jest.spyOn(dynamo, 'createDMP').mockResolvedValueOnce(null);
-    jest.spyOn(dynamo, 'updateDMP').mockResolvedValueOnce(null);
+  it('returns an error if the Plan is not valid', async () => {
+    const localValidator = jest.fn();
+    (plan.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
 
-    const result = await plan.generateVersion(context);
-    expect(plan.update).toHaveBeenCalledTimes(0);
+    const result = await plan.publish(context);
+    expect(result instanceof Plan).toBe(true);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an error if the Plan is already published', async () => {
+    plan.dmpId = getMockDMPId();
+    plan.registered = getCurrentDate();
+    const result = await plan.publish(context);
     expect(Object.keys(result.errors).length).toBe(1);
-    expect(result).toBeInstanceOf(Plan);
-    expect(plan.toCommonStandard).toHaveBeenCalledTimes(1);
-    expect(dynamo.getDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.createDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.updateDMP).toHaveBeenCalledTimes(0);
+    expect(result.errors['general']).toBeTruthy();
   });
 
-  it('updates the current version and does not generate a version snapshot', async () => {
-    plan.lastSynced = getCurrentDate();
-    jest.spyOn(plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'toCommonStandard').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'getDMP').mockResolvedValueOnce([commonStandard]);
-    jest.spyOn(dynamo, 'createDMP').mockResolvedValueOnce(null);
-    jest.spyOn(dynamo, 'updateDMP').mockResolvedValueOnce(commonStandard);
+  it('returns an error if a DMP ID could not be generated', async () => {
+    jest.spyOn(plan, 'generateDMPId').mockResolvedValueOnce(null);
 
-    const result = await plan.generateVersion(context);
-    expect(plan.update).toHaveBeenCalledTimes(1);
-    expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(Plan);
-    expect(plan.toCommonStandard).toHaveBeenCalledTimes(1);
-    expect(dynamo.getDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.createDMP).toHaveBeenCalledTimes(0);
-    expect(dynamo.updateDMP).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns an error if the update to the current version fails', async () => {
-    plan.lastSynced = getCurrentDate();
-    jest.spyOn(plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'toCommonStandard').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'getDMP').mockResolvedValueOnce([commonStandard]);
-    jest.spyOn(dynamo, 'createDMP').mockResolvedValueOnce(null);
-    jest.spyOn(dynamo, 'updateDMP').mockResolvedValueOnce(null);
-
-    const result = await plan.generateVersion(context);
-    expect(plan.update).toHaveBeenCalledTimes(0);
-    expect(Object.keys(result.errors).length).toBe(1);
-    expect(result).toBeInstanceOf(Plan);
-    expect(plan.toCommonStandard).toHaveBeenCalledTimes(1);
-    expect(dynamo.getDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.createDMP).toHaveBeenCalledTimes(0);
-    expect(dynamo.updateDMP).toHaveBeenCalledTimes(1);
-  });
-
-  it('creates a snapshot version and then updates the current version', async () => {
-    jest.spyOn(plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'toCommonStandard').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'getDMP').mockResolvedValueOnce([commonStandard]);
-    jest.spyOn(dynamo, 'createDMP').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'updateDMP').mockResolvedValueOnce(commonStandard);
-
-    const result = await plan.generateVersion(context);
-    expect(plan.update).toHaveBeenCalledTimes(1);
-    expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(Plan);
-    expect(plan.toCommonStandard).toHaveBeenCalledTimes(1);
-    expect(dynamo.getDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.createDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.updateDMP).toHaveBeenCalledTimes(1);
-  });
-
-  it('fails if unable to create a snapshot version', async () => {
-    jest.spyOn(plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'toCommonStandard').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'getDMP').mockResolvedValueOnce([commonStandard]);
-    jest.spyOn(dynamo, 'createDMP').mockResolvedValueOnce(null);
-    jest.spyOn(dynamo, 'updateDMP').mockResolvedValueOnce(null);
-
-    const result = await plan.generateVersion(context);
-    expect(plan.update).toHaveBeenCalledTimes(0);
-    expect(Object.keys(result.errors).length).toBe(1);
-    expect(result).toBeInstanceOf(Plan);
-    expect(plan.toCommonStandard).toHaveBeenCalledTimes(1);
-    expect(dynamo.getDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.createDMP).toHaveBeenCalledTimes(1);
-    expect(dynamo.updateDMP).toHaveBeenCalledTimes(1);
+    const result = await plan.publish(context);
+    expect(result instanceof Plan).toBe(true);
+    expect(plan.generateDMPId).toHaveBeenCalledTimes(1);
+    expect(result.errors['dmpId']).toBeTruthy();
   });
 });
 
@@ -572,12 +474,8 @@ describe('create', () => {
     plan = new Plan({
       projectId: casual.integer(1, 99),
       versionedTemplateId: casual.integer(1, 99),
-      dmpId: casual.url,
-      status: getRandomEnumValue(PlanStatus),
+      status: PlanStatus.DRAFT,
       visibility: getRandomEnumValue(PlanVisibility),
-      registeredById: casual.integer(1, 99),
-      registered: casual.date('YYYY-MM-DD'),
-      lastSynced: casual.date('YYYY-MM-DD'),
       languageId: defaultLanguageId,
       featured: casual.boolean,
     });
@@ -595,37 +493,19 @@ describe('create', () => {
 
   it('returns the newly added Plan', async () => {
     const createdPlan = new Plan({ ...plan, id: 123 });
-    insertQuery.mockResolvedValueOnce(createdPlan);
-    const mockFindById = jest.fn();
+    insertQuery.mockResolvedValueOnce(createdPlan.id);
+    const mockFindById = jest.fn().mockResolvedValueOnce(createdPlan);
     (Plan.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(createdPlan);
-    jest.spyOn(plan, 'generateDMPId').mockResolvedValueOnce('12345');
-    jest.spyOn(plan, 'generateVersion').mockResolvedValueOnce(createdPlan);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.addVersion as jest.Mock) = versionMock;
 
     const result = await plan.create(context);
 
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(PlanVersionModule.addVersion).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Plan);
-    expect(plan.generateDMPId).toHaveBeenCalledTimes(1);
-    expect(plan.generateVersion).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns an error about creating the initial DMP version', async () => {
-    const createdPlan = new Plan({ ...plan, id: 123 });
-    const planWithErrors = new Plan({ ...createdPlan, errors: { general: 'Error creating DMP version' } });
-    insertQuery.mockResolvedValueOnce(createdPlan);
-    const mockFindById = jest.fn();
-    (Plan.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(createdPlan);
-    jest.spyOn(plan, 'generateDMPId').mockResolvedValueOnce('12345');
-    jest.spyOn(plan, 'generateVersion').mockResolvedValueOnce(planWithErrors);
-
-    const result = await plan.create(context);
-    expect(Object.keys(result.errors).length).toBe(1);
-    expect(plan.generateDMPId).toHaveBeenCalledTimes(1);
-    expect(plan.generateVersion).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -646,7 +526,6 @@ describe('update', () => {
       visibility: getRandomEnumValue(PlanVisibility),
       registeredById: casual.integer(1, 99),
       registered: casual.date('YYYY-MM-DD'),
-      lastSynced: casual.date('YYYY-MM-DD'),
       languageId: defaultLanguageId,
       featured: casual.boolean,
     })
@@ -679,16 +558,16 @@ describe('update', () => {
     localValidator.mockResolvedValue(true);
 
     updateQuery.mockResolvedValueOnce(plan);
-
-    jest.spyOn(Plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'generateVersion').mockResolvedValueOnce([commonStandard]);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
 
     const result = await plan.update(context);
-    expect(localValidator).toHaveBeenCalledTimes(2);
-    expect(updateQuery).toHaveBeenCalledTimes(2);
+
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Plan);
-    expect(plan.generateVersion).toHaveBeenCalledTimes(1);
+    expect(versionMock).toHaveBeenCalledTimes(1);
   });
 
   it('does not do any versioning if noTouch is true', async () => {
@@ -697,16 +576,15 @@ describe('update', () => {
     localValidator.mockResolvedValue(true);
 
     updateQuery.mockResolvedValueOnce(plan);
-
-    jest.spyOn(Plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'generateVersion').mockResolvedValueOnce([]);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
 
     const result = await plan.update(context, true);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Plan);
-    expect(plan.generateVersion).toHaveBeenCalledTimes(0);
+    expect(versionMock).toHaveBeenCalledTimes(0);
   });
 
   it('does not do any versioning if the Plan update failed', async () => {
@@ -715,16 +593,15 @@ describe('update', () => {
     localValidator.mockResolvedValue(true);
 
     updateQuery.mockResolvedValueOnce(null);
-
-    jest.spyOn(Plan, 'update').mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'generateVersion').mockResolvedValueOnce(commonStandard);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
 
     const result = await plan.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Plan);
-    expect(plan.generateVersion).toHaveBeenCalledTimes(0);
+    expect(versionMock).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -764,59 +641,14 @@ describe('delete', () => {
     (Plan.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(plan);
 
-    jest.spyOn(dynamo, 'deleteDMP').mockResolvedValueOnce(commonStandard);
-    jest.spyOn(dynamo, 'tombstoneDMP').mockResolvedValueOnce(null);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.removeVersions as jest.Mock) = versionMock;
 
     const result = await plan.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Plan);
-    expect(dynamo.deleteDMP).toHaveBeenCalledTimes(1);
     expect(deleteQuery).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(dynamo.tombstoneDMP).toHaveBeenCalledTimes(0);
-  });
-
-  it('tombstones the DMP if it was registered', async () => {
-    plan.registered = '2025-03-20T07:51:43.000Z';
-    const deleteQuery = jest.fn();
-    (Plan.delete as jest.Mock) = deleteQuery;
-    deleteQuery.mockResolvedValueOnce(plan);
-
-    const mockFindById = jest.fn();
-    (Plan.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(plan);
-
-    jest.spyOn(dynamo, 'deleteDMP').mockResolvedValueOnce(null);
-    jest.spyOn(dynamo, 'tombstoneDMP').mockResolvedValueOnce(commonStandard);
-
-    const result = await plan.delete(context);
-    expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(Plan);
-    expect(dynamo.deleteDMP).toHaveBeenCalledTimes(0);
-    expect(deleteQuery).toHaveBeenCalledTimes(1);
-    expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(dynamo.tombstoneDMP).toHaveBeenCalledTimes(1);
-  });
-
-  it('deletes the Plan but returns an error if tombstoning fails', async () => {
-    plan.registered = '2025-03-20T07:51:43.000Z';
-    const deleteQuery = jest.fn();
-    (Plan.delete as jest.Mock) = deleteQuery;
-    deleteQuery.mockResolvedValueOnce(plan);
-
-    const mockFindById = jest.fn();
-    (Plan.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(plan);
-
-    jest.spyOn(dynamo, 'deleteDMP').mockResolvedValueOnce(null);
-    jest.spyOn(dynamo, 'tombstoneDMP').mockResolvedValueOnce(null);
-
-    const result = await plan.delete(context);
-    expect(Object.keys(result.errors).length).toBe(1);
-    expect(result).toBeInstanceOf(Plan);
-    expect(dynamo.deleteDMP).toHaveBeenCalledTimes(0);
-    expect(deleteQuery).toHaveBeenCalledTimes(1);
-    expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(dynamo.tombstoneDMP).toHaveBeenCalledTimes(1);
+    expect(versionMock).toHaveBeenCalledTimes(1);
   });
 });

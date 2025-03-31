@@ -4,7 +4,6 @@ import { mysql } from './datasources/mysql';
 import { JWTAccessToken } from './services/tokenService';
 import { randomHex } from './utils/helpers';
 import { Cache } from './datasources/cache';
-import { dynamo } from './datasources/dynamo';
 
 // The Apollo Server Context object passed in to the Resolver on each request
 export interface MyContext {
@@ -20,7 +19,6 @@ export interface MyContext {
   dataSources: {
     dmphubAPIDataSource: DMPHubAPI;
     sqlDataSource: mysql;
-    dynamoDataSource: dynamo;
   };
 }
 
@@ -42,7 +40,6 @@ export function buildContext(logger: Logger, cache: any = null, token: JWTAccess
       dataSources: {
         dmphubAPIDataSource: new DMPHubAPI({ cache, token }),
         sqlDataSource: mysql.getInstance(),
-        dynamoDataSource: dynamo,
       }
     }
   } catch(err) {

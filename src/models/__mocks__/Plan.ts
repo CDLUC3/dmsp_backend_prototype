@@ -13,7 +13,7 @@ import {
 } from "./MockStore";
 import { getCurrentDate } from "../../utils/helpers";
 import { getMockDMPId, getRandomEnumValue } from "../../__tests__/helpers";
-import { Plan, PlanStatus, PlanVisibility } from "../Plan";
+import { Plan, PlanSearchResult, PlanStatus, PlanVisibility } from "../Plan";
 import { supportedLanguages } from "../Language";
 import { MyContext } from "../../context";
 
@@ -44,7 +44,28 @@ export const generateNewPlan = (options) => {
     registeredById: options.registeredById ?? casual.integer(1, 9999),
     languageId: options.languageId ?? supportedLanguages[Math.floor(Math.random() * supportedLanguages.length)].id,
     featured: options.featured ?? casual.boolean,
-    lastSynced: options.lastSync ?? casual.date('YYYY-MM-DD'),
+  }
+}
+
+// Converts a Mock Store Plan into a PlanSearchResult. Note that some data is mocked
+// because we do not have access to the other stores here
+const planToPlanSearchResult = (plan: Plan): PlanSearchResult => {
+  return {
+    id: plan.id,
+    createdBy: casual.full_name,
+    created: plan.created,
+    modifiedBy: casual.full_name,
+    modified: plan.modified,
+    title: casual.sentence,
+    status: plan.status,
+    visibility: plan.visibility,
+    dmpId: plan.dmpId,
+    registeredBy: casual.full_name,
+    registered: plan.registered,
+    featured: plan.featured,
+    funder: casual.company_name,
+    contributors: casual.full_name,
+    templateTitle: casual.title,
   }
 }
 
@@ -73,7 +94,17 @@ export const mockFindPlanByDMPId = async (_, __, dmpId: string): Promise<Plan> =
   return result ? new Plan(result) : null;
 };
 
-export const mockFindPlansByProjectId = async (_, { projectId }: { projectId: number }): Promise<Plan[]> => {
+// Mock the PlanSearchResult query
+export const mockFindPlanSearchResultsByProjectId = async (_, __, projectId: number): Promise<PlanSearchResult[]> => {
+  // Filter the plans based on the search term
+  const results = findEntriesInMockTableByFilter(
+    'plans',
+    (entry) => { return entry.projectId === projectId }
+  );
+  return results ? results.map((entry) => { return planToPlanSearchResult(new Plan(entry)) }) : [];
+};
+
+export const mockFindPlansByProjectId = async (_, __, projectId: number): Promise<Plan[]> => {
   // Filter the plans based on the search term
   const results = findEntriesInMockTableByFilter(
     'plans',
@@ -82,11 +113,20 @@ export const mockFindPlansByProjectId = async (_, { projectId }: { projectId: nu
   return results ? results.map((entry) => { return new Plan(entry) }) : [];
 };
 
+// Mock the PlanSearchResult query
+export const mockPlanSearchResultFindByProjectId = async (_, __, projectId: number): Promise<Plan[]> => {
+  // Filter the plans based on the search term
+  const results = findEntriesInMockTableByFilter(
+    'plans',
+    (entry) => { return entry.projectId === projectId }
+  );
+  return results ? results.map((entry) => { return new PlanSearchResult(entry) }) : [];
+};
+
 // Mock the mutations
 export const mockInsertPlan = async (context: MyContext, _, obj: Plan): Promise<number> => {
-  const newObj = generateNewPlan(obj);
   const { insertId } = addEntryToMockTable('plans', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,

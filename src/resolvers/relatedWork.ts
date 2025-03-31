@@ -6,7 +6,9 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { RelatedWork } from '../models/RelatedWork';
 import { GraphQLError } from 'graphql';
 import { Project } from '../models/Project';
-import { hasPermissionOnProject, versionAndSyncPlans } from '../services/projectService';
+import { hasPermissionOnProject } from '../services/projectService';
+import { Plan } from '../models/Plan';
+import { addVersion } from '../models/PlanVersion';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -61,8 +63,11 @@ export const resolvers: Resolvers = {
             const newRelatedWork = await relatedWork.create(context);
 
             if (newRelatedWork && !newRelatedWork.hasErrors()) {
-              // Asynchronously version all of the plans (if any) and sync with the DMPHub
-              versionAndSyncPlans(context, project, reference);
+              // Version all of the plans (if any) and sync with the DMPHub
+              const plans = await Plan.findByProjectId(reference, context, project.id);
+              for (const plan of plans) {
+                await addVersion(context, plan, reference);
+              }
             }
             return newRelatedWork;
           }
@@ -92,8 +97,11 @@ export const resolvers: Resolvers = {
             const updated = await toUpdate.update(context);
 
             if(updated && !updated.hasErrors()) {
-              // Asynchronously version all of the plans (if any) and sync with the DMPHub
-              versionAndSyncPlans(context, project, reference);
+              // Version all of the plans (if any) and sync with the DMPHub
+              const plans = await Plan.findByProjectId(reference, context, project.id);
+              for (const plan of plans) {
+                await addVersion(context, plan, reference);
+              }
             }
 
             return updated;
@@ -123,8 +131,11 @@ export const resolvers: Resolvers = {
             const removed = await relatedWork.delete(context);
 
             if(removed && !removed.hasErrors()) {
-              // Asynchronously version all of the plans (if any) and sync with the DMPHub
-              versionAndSyncPlans(context, project, reference);
+              // Version all of the plans (if any) and sync with the DMPHub
+              const plans = await Plan.findByProjectId(reference, context, project.id);
+              for (const plan of plans) {
+                await addVersion(context, plan, reference);
+              }
             }
 
             return removed;

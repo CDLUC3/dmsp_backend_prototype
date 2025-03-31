@@ -1,11 +1,8 @@
-import { versionDMP } from '../planService';
 import { MyContext } from '../../context';
-import { Plan, PlanStatus } from '../../models/Plan';
-import { planToDMPCommonStandard } from '../commonStandardService';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';
-import { DMPCommonStandard } from '../../types/DMP';
-import { dynamo } from '../../datasources/dynamo';
+import { updateContributorRoles } from '../planService';
+import { ContributorRole } from '../../models/ContributorRole';
 
 jest.mock('../commonStandardService');
 jest.mock('../../datasources/dynamo');
@@ -14,144 +11,106 @@ jest.mock('../../logger');
 
 describe('planService', () => {
   let context: MyContext;
-  let plan: Plan;
 
   beforeEach(() => {
     context = buildContext(logger, mockToken());
-
-    plan = new Plan({
-      dmpId: null,
-      status: PlanStatus.DRAFT,
-      lastSynced: null,
-      update: jest.fn(),
-    });
+  });
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  describe.only('versionDMP', () => {
-    it('should create a new DMP', async () => {
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(Plan, 'findByDMPId').mockResolvedValue(null);
-      jest.spyOn(dynamo, 'createDMP').mockResolvedValue(commonStandard);
+  jest.mock('../../models/ContributorRole');
 
-      const result = await versionDMP(context, plan);
+  describe('updateContributorRoles', () => {
+    it('should remove roles and return updated role IDs', async () => {
+      const reference = 'test-reference';
+      const contributorId = 1;
+      const currentRoleIds = [1, 2, 3];
+      const newRoleIds = [2, 4];
 
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'versionDMP', plan);
-      expect(dynamo.createDMP).toHaveBeenCalled();
-      expect(result).toEqual(plan);
-      expect(plan.lastSynced).toBeTruthy();
+      ContributorRole.reconcileAssociationIds = jest.fn().mockReturnValue({
+        idsToBeRemoved: [1, 3],
+        idsToBeSaved: [4],
+      });
+
+      ContributorRole.findById = jest.fn()
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(true), label: 'Role 1' })
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(true), label: 'Role 3' })
+        .mockResolvedValueOnce({ addToPlanContributor: jest.fn().mockResolvedValue(true), label: 'Role 4' });
+
+      const result = await updateContributorRoles(reference, context, contributorId, currentRoleIds, newRoleIds);
+
+      expect(result.updatedRoleIds).toEqual([2, 4]);
+      expect(result.errors).toEqual([]);
+      expect(ContributorRole.findById).toHaveBeenCalledTimes(3);
     });
 
-    it('should create a new temporary DMP ID if it cannot generate a unique DMP ID', async () => {
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(Plan, 'findByDMPId').mockResolvedValue(new Plan({}));
-      (dynamo.createDMP as jest.Mock).mockResolvedValue(commonStandard);
+    it('should return errors if roles cannot be removed', async () => {
+      const reference = 'test-reference';
+      const contributorId = 1;
+      const currentRoleIds = [1, 2];
+      const newRoleIds = [2];
 
-      const result = await versionDMP(context, plan);
+      ContributorRole.reconcileAssociationIds = jest.fn().mockReturnValue({
+        idsToBeRemoved: [1],
+        idsToBeSaved: [],
+      });
 
-      expect(dynamo.createDMP).toHaveBeenCalled();
-      expect(result.dmpId.startsWith('temp-dmpId-')).toBe(true);
+      ContributorRole.findById = jest.fn()
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 1' });
+
+      const result = await updateContributorRoles(reference, context, contributorId, currentRoleIds, newRoleIds);
+
+      expect(result.updatedRoleIds).toEqual([2]);
+      expect(result.errors).toEqual(['unable to remove roles: Role 1']);
+      expect(ContributorRole.findById).toHaveBeenCalledTimes(1);
     });
 
-    it('should return the plan with an error if the create fails', async () => {
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(dynamo, 'createDMP').mockResolvedValue(null);
+    it('should return errors if roles cannot be added', async () => {
+      const reference = 'test-reference';
+      const contributorId = 1;
+      const currentRoleIds = [1];
+      const newRoleIds = [1, 2];
 
-      const result = await versionDMP(context, plan);
+      ContributorRole.reconcileAssociationIds = jest.fn().mockReturnValue({
+        idsToBeRemoved: [],
+        idsToBeSaved: [2],
+      });
 
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'versionDMP', plan);
-      expect(dynamo.createDMP).toHaveBeenCalled();
-      expect(result).toEqual(plan);
-      expect(plan.hasErrors()).toBeTruthy();
+      ContributorRole.findById = jest.fn()
+        .mockResolvedValueOnce({ addToPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 2' });
+
+      const result = await updateContributorRoles(reference, context, contributorId, currentRoleIds, newRoleIds);
+
+      expect(result.updatedRoleIds).toEqual([1]);
+      expect(result.errors).toEqual(['unable to assign roles: Role 2']);
+      expect(ContributorRole.findById).toHaveBeenCalledTimes(1);
     });
 
-    it('should tombstone the DMP', async () => {
-      plan.dmpId = '12345';
-      plan.status = PlanStatus.ARCHIVED;
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(dynamo, 'getDMP').mockResolvedValue([commonStandard]);
-      jest.spyOn(dynamo, 'tombstoneDMP').mockResolvedValue(commonStandard);
+    it('should handle both add and remove errors', async () => {
+      const reference = 'test-reference';
+      const contributorId = 1;
+      const currentRoleIds = [1, 2];
+      const newRoleIds = [3];
 
-      const result = await versionDMP(context, plan);
+      ContributorRole.reconcileAssociationIds = jest.fn().mockReturnValue({
+        idsToBeRemoved: [1, 2],
+        idsToBeSaved: [3],
+      });
 
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'versionDMP', plan);
-      expect(dynamo.tombstoneDMP).toHaveBeenCalled();
-      expect(result).toEqual(plan);
-    });
+      ContributorRole.findById = jest.fn()
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 1' })
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 2' })
+        .mockResolvedValueOnce({ addToPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 3' });
 
-    it('should return the plan with an error if the tombstone fails', async () => {
-      plan.dmpId = '12345';
-      plan.status = PlanStatus.ARCHIVED;
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(dynamo, 'getDMP').mockResolvedValue([commonStandard]);
-      jest.spyOn(dynamo, 'tombstoneDMP').mockResolvedValue(null);
+      const result = await updateContributorRoles(reference, context, contributorId, currentRoleIds, newRoleIds);
 
-      const result = await versionDMP(context, plan);
-
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'versionDMP', plan);
-      expect(dynamo.tombstoneDMP).toHaveBeenCalled();
-      expect(result).toEqual(plan);
-      expect(plan.hasErrors()).toBeTruthy();
-    });
-
-    it('should return the plan with an error if the DMP does not exist', async () => {
-      plan.dmpId = '12345';
-      plan.status = PlanStatus.ARCHIVED;
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(dynamo, 'getDMP').mockResolvedValue([]);
-
-      const result = await versionDMP(context, plan);
-
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'versionDMP', plan);
-      expect(result).toEqual(plan);
-      expect(plan.hasErrors()).toBeTruthy();
-    });
-
-    it('should generate a new version of the DMP', async () => {
-      plan.dmpId = '12345';
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(dynamo, 'getDMP').mockResolvedValue([commonStandard]);
-      jest.spyOn(dynamo, 'updateDMP').mockResolvedValue(commonStandard);
-
-      const result = await versionDMP(context, plan);
-
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'versionDMP', plan);
-      expect(dynamo.updateDMP).toHaveBeenCalled();
-      expect(result).toEqual(plan);
-    });
-
-    it('should return the plan with an error if the update fails', async () => {
-      plan.dmpId = '12345';
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(dynamo, 'getDMP').mockResolvedValue([commonStandard]);
-      jest.spyOn(dynamo, 'updateDMP').mockResolvedValue(null);
-
-      const result = await versionDMP(context, plan);
-
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'versionDMP', plan);
-      expect(dynamo.updateDMP).toHaveBeenCalled();
-      expect(result).toEqual(plan);
-      expect(plan.hasErrors()).toBeTruthy();
-    });
-
-    it('should return the plan with an error if the DMP does not exist', async () => {
-      plan.dmpId = '12345';
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      jest.spyOn(dynamo, 'getDMP').mockResolvedValue([]);
-
-      const result = await versionDMP(context, plan);
-
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'versionDMP', plan);
-      expect(result).toEqual(plan);
-      expect(plan.hasErrors()).toBeTruthy();
+      expect(result.updatedRoleIds).toEqual([1, 2]);
+      expect(result.errors).toEqual([
+        'unable to remove roles: Role 1, Role 2',
+        'unable to assign roles: Role 3',
+      ]);
+      expect(ContributorRole.findById).toHaveBeenCalledTimes(3);
     });
   });
 });

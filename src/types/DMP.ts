@@ -326,6 +326,7 @@ export interface DMPCommonStandardProject {
   description?: string;
   start?: string;
   end?: string;
+  dmptool_research_domain?: string;
 
   funding?: DMPCommonStandardFunding[];
 }

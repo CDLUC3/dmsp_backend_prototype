@@ -3,6 +3,8 @@ import { validateDmspId } from '../resolvers/scalars/dmspId';
 import { validateOrcid } from '../resolvers/scalars/orcid';
 import { validateRor } from '../resolvers/scalars/ror';
 import { generalConfig } from '../config/generalConfig';
+import { DEFAULT_ORCID_URL } from '../models/User';
+import { DEFAULT_ROR_AFFILIATION_URL } from '../models/Affiliation';
 
 const emailRegex = new RegExp(/^[a-zA-Z0–9._-]+@[a-zA-Z0–9.-]+\.[a-zA-Z]{2,4}$/);
 const timestampRegex = new RegExp(/[0-9]{4}-[0-9]{2}-[0-9]{2}\s([0-9]{2}:){2}[0-9]{2}/);
@@ -10,10 +12,17 @@ const urlRegex = new RegExp(/(https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\
 
 // Generate a random bogus ORCID
 export function getMockORCID(): string {
-  return Array.from({ length: 4 }, () => casual.integer(1000, 9999)).join('-');
+  const id = Array.from({ length: 4 }, () => casual.integer(1000, 9999)).join('-');
+  return `${DEFAULT_ORCID_URL}${id}`;
 }
 
-// Generate a random DMP ID (DOI)
+// Generate a random bogus ROR
+export function getMockROR(): string {
+  const id = `${casual.rgb_hex.replace('#', '')}${casual.integer(1, 99)}`;
+  return `${DEFAULT_ROR_AFFILIATION_URL} ${id}`;
+}
+
+// Generate a random DOI
 export function getMockDOI(): string {
   // Generate a random DOI prefix
   const shoulder = `10.${casual.integer(10000, 99999)}/${casual.letter.toUpperCase()}${casual.integer(0, 9)}`;

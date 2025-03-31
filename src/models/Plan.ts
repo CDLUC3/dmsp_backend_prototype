@@ -1,13 +1,10 @@
-
 // Represents an entry from the projectPlans table
 
 import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
-import { dynamo } from "../datasources/dynamo";
-import { planToDMPCommonStandard } from "../services/commonStandardService";
-import { DMPCommonStandard } from "../types/DMP";
 import { getCurrentDate, randomHex, valueIsEmpty } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
+import { addVersion, removeVersions, updateVersion } from "./PlanVersion";
 
 export const DEFAULT_TEMPORARY_DMP_ID_PREFIX = 'temp-dmpId-';
 
@@ -34,13 +31,15 @@ export class PlanSearchResult {
   public title: string;
   public status: PlanStatus;
   public visibility: PlanVisibility;
-  public dmpId: string;
-  public registeredBy: string;
-  public registered: string;
   public featured: boolean;
   public funder: string;
   public contributors: string;
   public templateTitle: string;
+
+  // The following fields will only be set when the plan is published!
+  public dmpId: string;
+  public registeredBy: string;
+  public registered: string;
 
   constructor(options) {
     this.id = options.id;
@@ -51,13 +50,14 @@ export class PlanSearchResult {
     this.title = options.title;
     this.status = options.status ?? PlanStatus.DRAFT;
     this.visibility = options.visibility ?? PlanVisibility.PRIVATE;
-    this.dmpId = options.dmpId;
-    this.registeredBy = options.registeredBy;
-    this.registered = options.registered;
     this.featured = options.featured ?? false;
     this.funder = options.funder;
     this.contributors = options.contributors;
     this.templateTitle = options.title;
+
+    this.dmpId = options.dmpId;
+    this.registeredBy = options.registeredBy;
+    this.registered = options.registered;
   }
 
   // Find all of the high level details about the plans for a project
@@ -130,14 +130,15 @@ export class PlanSectionProgress {
 export class Plan extends MySqlModel {
   public projectId: number;
   public versionedTemplateId: number;
-  public dmpId: string;
   public status: PlanStatus;
   public visibility: PlanVisibility;
-  public registeredById: number;
-  public registered: string;
   public languageId: string;
   public featured: boolean;
-  public lastSynced: string;
+
+  // The following fields should only be set when the plan is published!
+  public dmpId: string;
+  public registeredById: number;
+  public registered: string;
 
   private static tableName = 'plans';
 
@@ -147,14 +148,14 @@ export class Plan extends MySqlModel {
     this.projectId = options.projectId;
     this.versionedTemplateId = options.versionedTemplateId;
 
-    this.dmpId = options.dmpId;
     this.status = options.status ?? PlanStatus.DRAFT;
     this.visibility = options.visibility ?? PlanVisibility.PRIVATE;
     this.languageId = options.languageId ?? 'en-US';
     this.featured = options.featured ?? false;
+
+    this.dmpId = options.dmpId;
     this.registeredById = options.registeredById;
     this.registered = options.registered;
-    this.lastSynced = options.lastSynced;
   }
 
   // Generate a new DMP ID
@@ -186,67 +187,44 @@ export class Plan extends MySqlModel {
 
     if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
     if (!this.versionedTemplateId) this.addError('versionedTemplateId', 'Versioned template can\'t be blank');
-    if (!this.dmpId && this.status === PlanStatus.PUBLISHED) {
+    if (valueIsEmpty(this.dmpId) && !valueIsEmpty(this.registered)) {
       this.addError('dmpId', 'A published plan must have a DMP ID');
     }
-    if (!this.registered && this.status === PlanStatus.PUBLISHED) {
+    if (valueIsEmpty(this.registered) && this.status === PlanStatus.PUBLISHED) {
       this.addError('registered', 'A published plan must have a registration date');
     }
 
     return Object.keys(this.errors).length === 0;
   }
 
-  // Comvert the Plan into the JSON RDA Common Metadata Standard for DMPs
-  async toCommonStandard(context: MyContext, reference = 'Plan.toCommonStandard'): Promise<DMPCommonStandard> {
-    // Convert the plan to the DMP Common Standard
-    return await planToDMPCommonStandard(context, reference, this);
-  }
+  // Publish the plan (register a DOI)
+  async publish(context: MyContext): Promise<Plan> {
+    if (this.id) {
+      // Make sure the plan is valid
+      if (await this.isValid()) {
+        if (valueIsEmpty(this.dmpId) && valueIsEmpty(this.registered)) {
+          // Generate a new DMP ID
+          const dmpId = await this.generateDMPId(context);
+          if (dmpId) {
+            this.dmpId = dmpId;
+            this.status = PlanStatus.PUBLISHED;
+            this.registered = getCurrentDate();
+            this.registeredById = context.token.id;
 
-  // Manage the version history of the DMP
-  async generateVersion(context: MyContext, reference = 'Plan.generateVersion'): Promise<Plan> {
-    // Convert the plan to the DMP Common Standard
-    const commonStandard = await this.toCommonStandard(context, reference);
-    if (!commonStandard) {
-      this.addError('general', 'Unable to convert the plan to the DMP Common Standard');
-      return new Plan(this);
-    }
+            // Update the plan
+            return await this.update(context);
 
-    // Fetch the latest version of the DMP
-    const existingDMP = await dynamo.getDMP(this.dmpId, null);
-    if (Array.isArray(existingDMP) && existingDMP.length > 0) {
-      // If the lastSynced date is not within the last hour, create a new version snapshot
-      const lastSynced = new Date(this.lastSynced);
-      const now = new Date();
-      // Calculate the difference in hours between the lastSynced and now
-      const diff = Math.abs(now.getTime() - lastSynced.getTime()) / 36e5;
-      // If the change happened more than one hour since the lastSync date then generate a version snapshot
-      if (diff >= 1) {
-        // Create the version snapshot
-        const newVersion = await dynamo.createDMP(this.dmpId, existingDMP[0], existingDMP[0].modified);
-        if (!newVersion) {
-          this.addError('general', 'Unable to modify the version history of the DMP');
+            // TODO: Eventually make a asyncronous call to EZID to register the DMP ID (DOI)
+
+          } else {
+            this.addError('dmpId', 'Unable to generate a DMP ID');
+          }
+        } else {
+          this.addError('general', 'The plan is already registered');
         }
       }
-
-      // Update the the latest version of the DMP
-      const updatedVersion = await dynamo.updateDMP(commonStandard);
-      if (!updatedVersion) {
-        this.addError('general', 'Unable to update the version history of the DMP');
-      }
-
-    } else {
-      // This is the first time so create the initial version
-      const firstVersion = await dynamo.createDMP(this.dmpId, commonStandard);
-      if (!firstVersion) {
-        this.addError('general', 'Unable to create the initial version of the DMP');
-      }
     }
-
-    if (!this.hasErrors()) {
-      // Update the lastSync date if the version snapshot updates were successful
-      this.lastSynced = getCurrentDate();
-      this.update(context, true);
-    }
+    // Otherwise return as-is with all the errors
     return new Plan(this);
   }
 
@@ -257,20 +235,17 @@ export class Plan extends MySqlModel {
     if (!this.id) {
       // First make sure the record is valid
       if (await this.isValid()) {
-        // Assign the new DMP Id
-        this.dmpId = await this.generateDMPId(context);
-
         // Create the new Plan
         const newId = await Plan.insert(context, Plan.tableName, this, reference);
 
         // Create the original version snapshot of the DMP
         if (newId) {
-          const newPlan = await Plan.findById(reference, context, newId);
+          let newPlan = await Plan.findById(reference, context, newId);
           if (newPlan && !newPlan.hasErrors()) {
             // Generate the version history of the DMP
-            await newPlan.generateVersion(context, reference);
+            newPlan = await addVersion(context, newPlan, reference);
           }
-          return newPlan;
+          return new Plan(newPlan);
         }
       }
     }
@@ -289,7 +264,8 @@ export class Plan extends MySqlModel {
 
         // Do not update any version info if the plan has not been modified or noTouch is true
         if (!noTouch && updated && !updated.hasErrors()) {
-          this.generateVersion(context, reference);
+          // Update the version history of the DMP
+          return await updateVersion(context, this, reference);
         }
       }
     } else {
@@ -300,27 +276,17 @@ export class Plan extends MySqlModel {
   }
 
   //Delete the Plan
-  async delete(context: MyContext): Promise<Plan> {
+  async delete(context: MyContext): Promise<Plan | null> {
     const reference = 'Plan.delete';
     if (this.id) {
-      const deleted = await Plan.findById(reference, context, this.id);
+      const toDelete = await Plan.findById(reference, context, this.id);
 
-      // Delete the plan
-      const successfullyDeleted = await Plan.delete(context, Plan.tableName, this.id, reference);
-      if (successfullyDeleted) {
-        // If the plan was registered then tombstone the DMP otherwise delete it
-        if (deleted.registered) {
-          const tombstoned = await dynamo.tombstoneDMP(deleted.dmpId);
-          if (!tombstoned) {
-            this.addError('general', 'Unable to tombstone the DMP');
-          }
-        } else {
-          await dynamo.deleteDMP(deleted.dmpId);
+      if (toDelete) {
+        // Delete the plan
+        const successfullyDeleted = await Plan.delete(context, Plan.tableName, this.id, reference);
+        if (successfullyDeleted) {
+          return await removeVersions(context, this, reference);
         }
-
-        return deleted;
-      } else {
-        return null
       }
     }
     return null;

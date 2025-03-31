@@ -11,7 +11,9 @@ if (!['development', 'test'].includes(process.env.NODE_ENV)) {
   verifyCriticalEnvVariable('SES_BOUNCED_EMAIL_BUCKET');
 }
 
-verifyCriticalEnvVariable('DYNAMO_TABLE_NAME');
+if (process.env.NODE_ENV !== 'development') {
+  verifyCriticalEnvVariable('DYNAMO_TABLE_NAME');
+}
 
 export const awsConfig = {
   // Basic AWS config

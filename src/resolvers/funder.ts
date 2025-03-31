@@ -7,10 +7,10 @@ import { PlanFunder, ProjectFunder } from "../models/Funder";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
-import { hasPermissionOnProject, versionAndSyncPlans } from '../services/projectService';
+import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
-import { createPlanVersion, syncWithDMPHub } from '../services/planService';
+import { addVersion } from '../models/PlanVersion';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -131,8 +131,11 @@ export const resolvers: Resolvers = {
 
           const updated = await toUpdate.update(context);
           if (updated && !updated.hasErrors()) {
-            // Asyncronously version all of the plans (if any) and sync with the DMPHub
-            versionAndSyncPlans(context, project, reference);
+            const plans = await Plan.findByProjectId(reference, context, funder.projectId);
+            for (const plan of plans) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              await addVersion(context, plan, reference);
+            }
           }
           return updated;
         }
@@ -163,8 +166,11 @@ export const resolvers: Resolvers = {
 
           const removed = await funder.delete(context);
           if (removed && !removed.hasErrors()) {
-            // Asyncronously version all of the plans (if any) and sync with the DMPHub
-            versionAndSyncPlans(context, project, reference);
+            const plans = await Plan.findByProjectId(reference, context, funder.projectId);
+            for (const plan of plans) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              addVersion(context, plan, reference);
+            }
           }
           return removed;
         }
@@ -188,18 +194,14 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          // First create a version snapshot (before making changes)
-          const newVersion = await createPlanVersion(context, plan, reference);
-          if (newVersion) {
-            const newFunder = new PlanFunder({ planId, projectFunderId });
+          const newFunder = new PlanFunder({ planId, projectFunderId });
 
-            if (newFunder && !newFunder.hasErrors()) {
-              // Asyncronously update the DMPHub
-              syncWithDMPHub(context, plan, reference);
-            }
-
-            return await newFunder.create(context);
+          if (newFunder && !newFunder.hasErrors()) {
+            // Version all of the plans (if any) and sync with the DMPHub
+            await addVersion(context, plan, reference);
           }
+
+          return await newFunder.create(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -226,18 +228,14 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          // First create a version snapshot (before making changes)
-          const newVersion = await createPlanVersion(context, plan, reference);
-          if (newVersion) {
-            const deletedFunder = await funder.delete(context);
+          const deletedFunder = await funder.delete(context);
 
-            if (deletedFunder && !deletedFunder.hasErrors()) {
-              // Asyncronously update the DMPHub
-              syncWithDMPHub(context, plan, reference);
-            }
-
-            return deletedFunder;
+          if (deletedFunder && !deletedFunder.hasErrors()) {
+            // Version the plan
+            await addVersion(context, plan, reference);
           }
+
+          return deletedFunder;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

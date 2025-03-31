@@ -12,6 +12,7 @@ import { hasPermissionOnProject } from '../services/projectService';
 import { updateContributorRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
+import { addVersion } from '../models/PlanVersion';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -199,8 +200,11 @@ export const resolvers: Resolvers = {
             }
 
             if (!updated.hasErrors()) {
-              // Asynchronously version all of the plans (if any) and sync with the DMPHub
-              versionAndSyncPlans(context, project, reference);
+              const plans = await Plan.findByProjectId(reference, context, contributor.projectId);
+              for (const plan of plans) {
+                // Version all of the plans (if any) and sync with the DMPHub
+                await addVersion(context, plan, reference);
+              }
             }
 
             // Reload since the roles may have changed
@@ -237,8 +241,11 @@ export const resolvers: Resolvers = {
           // Any related contributorRoles will be automatically deleted within the DB
           const removed = await contributor.delete(context);
           if (removed && !removed.hasErrors()) {
-            // Asynchronously version all of the plans (if any) and sync with the DMPHub
-            versionAndSyncPlans(context, project, reference);
+            const plans = await Plan.findByProjectId(reference, context, contributor.projectId);
+            for (const plan of plans) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              await addVersion(context, plan, reference);
+            }
           }
           return removed;
         }
@@ -272,47 +279,39 @@ export const resolvers: Resolvers = {
             const newPlanContributor = new PlanContributor({ planId, projectContributorId, contributorRoleIds: currentProjectRoleIds });
             const created = await newPlanContributor.create(context);
 
-            // First create a version snapshot (before making changes)
-            const newVersion = await createPlanVersion(context, plan, reference);
-            if (newVersion) {
-              const created = await newPlanContributor.create(context);
-
-              if (!created?.id) {
-                // A null was returned so add a generic error and return it
-                if (!newPlanContributor.errors['general']) {
-                  newPlanContributor.addError('general', 'Unable to create PlanContributor');
-                }
-                return newPlanContributor;
+            if (!created?.id) {
+              // A null was returned so add a generic error and return it
+              if (!newPlanContributor.errors['general']) {
+                newPlanContributor.addError('general', 'Unable to create PlanContributor');
               }
+              return newPlanContributor;
+            }
 
-              // If any ContributorRole were specified and there were no errors creating the record
-              if (Array.isArray(roleIds)) {
-                if (created && !created.hasErrors()) {
-                  const addErrors = [];
-                  // Add any ContributorRole associations
-                  for (const id of roleIds) {
-                    const role = await ContributorRole.findById(reference, context, id);
-                    if (role) {
-                      const wasAdded = await role.addToPlanContributor(context, created.id);
-                      if (!wasAdded) {
-                        addErrors.push(role.label);
-                      }
+            // If any ContributorRole were specified and there were no errors creating the record
+            if (Array.isArray(roleIds)) {
+              if (created && !created.hasErrors()) {
+                const addErrors = [];
+                // Add any ContributorRole associations
+                for (const id of roleIds) {
+                  const role = await ContributorRole.findById(reference, context, id);
+                  if (role) {
+                    const wasAdded = await role.addToPlanContributor(context, created.id);
+                    if (!wasAdded) {
+                      addErrors.push(role.label);
                     }
                   }
-                  // If any failed to be added, then add an error to the PlanContributor
-                  if (addErrors.length > 0) {
-                    created.addError('contributorRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
-                  }
+                }
+                // If any failed to be added, then add an error to the PlanContributor
+                if (addErrors.length > 0) {
+                  created.addError('contributorRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
                 }
               }
-
-              // Asyncronously update the DMPHub
-              syncWithDMPHub(context, plan, reference);
-
-              return created;
-            } else {
-              newPlanContributor.addError('general', 'Unable to version the plan at this time');
             }
+
+            // Version the plan
+            await addVersion(context, plan, reference);
+
+            return created;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -384,6 +383,12 @@ export const resolvers: Resolvers = {
                 updatedPlan.contributorRoleIds = updatedRoleIds ?? [];
                 await updatedPlan.update(context);
               }
+
+              const plan = await Plan.findById(reference, context, planId);
+              if (plan) {
+                // Version all of the plans (if any) and sync with the DMPHub
+                await addVersion(context, plan, reference);
+              }
             }
 
             return await PlanContributor.findById(reference, context, contributor.id);
@@ -425,8 +430,8 @@ export const resolvers: Resolvers = {
           if (removed && !removed.hasErrors()) {
             const plan = await Plan.findById(reference, context, contributor.planId);
             if (plan) {
-              // Asynchronously version all of the plans (if any) and sync with the DMPHub
-              syncWithDMPHub(context, plan, reference);
+              // Version all of the plans (if any) and sync with the DMPHub
+              addVersion(context, plan, reference);
             }
           }
           return removed;

@@ -32,6 +32,9 @@ export const generalConfig = {
 
   hashTokenSecret: process.env.TOKEN_HASH_SECRET,
 
+  // Number of hours before we consider a change a new version
+  versionPlanAfter: Number.parseInt(process.env.VERSION_PLAN_AFTER) || 1,
+
   jwtSecret: process.env.JWT_SECRET,
   jwtTTL: Number.parseInt(process.env.JWT_TTL) || 1800000, // Default is 30 minutes (in milliseconds)
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,

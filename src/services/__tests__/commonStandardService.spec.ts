@@ -18,6 +18,11 @@ import { ContributorRole } from '../../models/ContributorRole';
 import { User } from '../../models/User';
 import { Project } from '../../models/Project';
 import { VersionedTemplate } from '../../models/VersionedTemplate';
+import { PlanContributor } from '../../models/Contributor';
+import { PlanFunder } from '../../models/Funder';
+import { Answer } from '../../models/Answer';
+import { ResearchDomain } from '../../models/ResearchDomain';
+import casual from 'casual';
 
 let context: MyContext;
 let plan: Plan;
@@ -160,6 +165,7 @@ beforeEach(() => {
     id: 1,
     title: 'Project title',
     abstractText: 'Project description',
+    dmptool_research_domain: 'http://example.com/research_domain/1',
     startDate: '2023-01-01',
     endDate: '2023-12-31',
   });
@@ -254,20 +260,22 @@ describe('commonStandardService', () => {
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: casual.uuid }));
     // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
     // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
     const result = await planToDMPCommonStandard(context, 'reference', plan);
 
-    expect(result.dmp_id).toEqual({ identifier: 'https://localhost:3000/project/1/new', type: 'url' });
+    expect(result.dmp_id).toEqual({ identifier: 'https://localhost:3000/dmps/1', type: 'url' });
   });
 
   it('planToDMPCommonStandard - handles plan with no primary contact', async () => {
@@ -286,14 +294,16 @@ describe('commonStandardService', () => {
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: casual.uuid }));
     // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
     // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
@@ -318,20 +328,23 @@ describe('commonStandardService', () => {
 
 
   it('planToDMPCommonStandard - minimal DMP', async () => {
+    const researchDomainURI = casual.url;
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(new Project({
       id: 1,
       title: 'Project title'
     }));
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: researchDomainURI }));
     // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
     // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
@@ -380,6 +393,7 @@ describe('commonStandardService', () => {
       project: [
         {
           title: "Project title",
+          dmptool_research_domain: researchDomainURI
         },
       ],
       registered: "2023-01-03T00:00:00Z",
@@ -389,15 +403,20 @@ describe('commonStandardService', () => {
 
 
   it('planToDMPCommonStandard - complete DMP', async () => {
+    const researchDomainURI = casual.url;
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: researchDomainURI }));
     // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockContributorResult);
+    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce(mockContributorResult);
+    // Return the Plan owner information
+    jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
     // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockFunderResult);
+    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce(mockFunderResult);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockNarrativeResult);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce(mockNarrativeResult);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce(mockRelatedWorkResult);
 
@@ -477,6 +496,7 @@ describe('commonStandardService', () => {
         {
           title: 'Project title',
           description: 'Project description',
+          dmptool_research_domain: researchDomainURI,
           start: '2023-01-01T00:00:00Z',
           end: '2023-12-31T00:00:00Z',
           funding: [

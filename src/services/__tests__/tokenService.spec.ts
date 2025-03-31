@@ -22,7 +22,6 @@ import { defaultLanguageId } from '../../models/Language';
 
 jest.mock('jsonwebtoken');
 jest.mock('../../datasources/cache');
-jest.mock('../../models/User');
 
 // Mock the process.env
 const originalEnv = process.env;
@@ -301,7 +300,7 @@ describe('refreshAccessToken', () => {
 
     (jwt.verify as jest.Mock).mockImplementation(() => { return mockUser; });
     jest.spyOn(mockCache.adapter, 'get').mockResolvedValue(hashedToken);
-    (User.findById as jest.Mock).mockReturnValue(mockUser);
+    jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
     (jwt.sign as jest.Mock).mockImplementation((_payload, secret) => {
       if (secret === generalConfig.jwtSecret) return mockNewAccessToken;
       if (secret === generalConfig.jwtRefreshSecret) return mockNewRefreshToken;
@@ -320,7 +319,7 @@ describe('refreshAccessToken', () => {
 
     (jwt.verify as jest.Mock).mockImplementation(() => { return { id: mockUserId }; });
     jest.spyOn(mockCache.adapter, 'get').mockResolvedValue(hashedToken);
-    (User.findById as jest.Mock).mockReturnValue(null);
+    jest.spyOn(User, 'findById').mockResolvedValue(null);
 
     await expect(refreshAccessToken(context, mockRefreshToken))
       .rejects.toThrow(DEFAULT_UNAUTHORIZED_MESSAGE);

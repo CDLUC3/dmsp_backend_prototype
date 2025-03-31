@@ -29,7 +29,6 @@ afterEach(() => {
 
 describe('hasPermissionOnTemplate', () => {
   let template;
-  let mockQuery;
   let mockIsSuperAdmin;
   let mockFindByTemplateAndEmail;
   let context;
@@ -42,9 +41,7 @@ describe('hasPermissionOnTemplate', () => {
       query: jest.fn(), // Initialize the query mock function here
     });
 
-    const instance = mysql.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+    context = buildContext(logger, mockToken());
 
     mockIsSuperAdmin = jest.fn();
     (isSuperAdmin as jest.Mock) = mockIsSuperAdmin;

@@ -33,7 +33,6 @@ afterEach(() => {
 
 describe('hasPermissionOnQuestion', () => {
   let template;
-  let mockQuery;
   let mockFindById;
   let mockHashPermissionOnTemplate;
   let context;
@@ -46,9 +45,7 @@ describe('hasPermissionOnQuestion', () => {
       query: jest.fn(), // Initialize the query mock function here
     });
 
-    const instance = mysql.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+    context = buildContext(logger, mockToken());
 
     mockFindById = jest.fn();
     (Template.findById as jest.Mock) = mockFindById;

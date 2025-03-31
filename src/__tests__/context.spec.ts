@@ -9,7 +9,6 @@ import { randomHex } from '../utils/helpers';
 // Mock dependencies
 jest.mock('../datasources/dmpHubAPI');
 jest.mock('../datasources/mysql');
-jest.mock('../datasources/dynamo');
 jest.mock('../logger');
 
 describe('buildContext', () => {
@@ -52,7 +51,6 @@ describe('buildContext', () => {
     expect(context.logger).toEqual(loggerMock);
     expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
     expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
-    expect(context.dataSources.dynamoDataSource).toBeTruthy();
 
     // Ensure data sources are initialized with cache and token
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: cacheMock, token: tokenMock });
@@ -68,7 +66,6 @@ describe('buildContext', () => {
     expect(context.logger).toEqual(loggerMock);
     expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
     expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
-    expect(context.dataSources.dynamoDataSource).toBeTruthy();
     expect(context.cache).toEqual({ skipCache: true });
 
     // Ensure cache is defaulted to { skipCache: true }
@@ -84,7 +81,6 @@ describe('buildContext', () => {
     expect(context.logger).toEqual(loggerMock);
     expect(context.dataSources.dmphubAPIDataSource).toBeTruthy();
     expect(context.dataSources.sqlDataSource).toEqual(sqlDataSourceMock);
-    expect(context.dataSources.dynamoDataSource).toBeTruthy();
 
     // Ensure data sources are called with cache and null token
     expect(DMPHubAPI).toHaveBeenCalledWith({ cache: cacheMock, token: null });

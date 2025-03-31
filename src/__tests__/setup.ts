@@ -69,6 +69,8 @@ jest.mock('../config/generalConfig', () => ({
     dmpIdBaseURL: 'http://dmsp.com/',
     dmpIdShoulder: '11.22222/C3',
 
+    versionPlanAfter: 1,
+
     orcidBaseURL: 'http://orcid.example.com/',
     rorBaseURL: 'http://ror.example.com/',
 

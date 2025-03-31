@@ -154,9 +154,8 @@ export const mockFindProjectContributorsByProjectAndNameOrORCIDOrEmail = async (
 
 // Mock the mutations
 export const mockInsertProjectContributor = async (context: MyContext, _, obj: ProjectContributor): Promise<number> => {
-  const newObj = generateNewProjectContributor(obj);
   const { insertId } = addEntryToMockTable('projectContributors', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,
@@ -203,6 +202,7 @@ export const generateNewPlanContributor = (options) => {
     planId: options.projectId ?? casual.integer(1, 9999),
     projectContributorId: options.projectContributorId ?? casual.integer(1, 9999),
     contributorRoles: [getRandomContributorRole().id],
+    isPrimaryContact: options.isPrimaryContact ?? false,
   }
 }
 
@@ -240,9 +240,8 @@ export const mockFindPlanContributorsByProjectContributorId = async (_, __, proj
 
 // Mock the mutations
 export const mockInsertPlanContributor = async (context: MyContext, _, obj: PlanContributor): Promise<number> => {
-  const newObj = generateNewPlanContributor(obj);
   const { insertId } = addEntryToMockTable('planContributors', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,

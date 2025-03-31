@@ -1,16 +1,18 @@
 import { MyContext } from "../context";
-import { DMPCommonStandard } from "../types/DMP";
 import { formatLogMessage } from "../logger";
-import { ProjectCollaborator } from "../models/Collaborator";
-import { Plan } from "../models/Plan";
+import { ProjectCollaborator, ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { Project } from "../models/Project";
 import { User } from "../models/User";
 import { isAdmin, isSuperAdmin } from "./authService";
-import { syncWithDMPHub, createPlanVersion } from "./planService";
 
 // Determine whether the specified user has permission to access the Section
-export const hasPermissionOnProject = async (context: MyContext, project: Project): Promise<boolean> => {
+export const hasPermissionOnProject = async (
+  context: MyContext,
+  project: Project,
+  requiredAccessLevel = ProjectCollaboratorAccessLevel.EDIT,
+): Promise<boolean> => {
   const reference = 'projectService.hasPermissionOnProject';
+  if (!context || !context.token) return false;
 
   // Super admins always have permission
   if (await isSuperAdmin(context.token)) {
@@ -34,31 +36,24 @@ export const hasPermissionOnProject = async (context: MyContext, project: Projec
     // Otherwise check to see if the user is a collaborator on the project
     const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
     if (Array.isArray(collaborators) && collaborators.length > 0) {
-      return collaborators.some((collaborator) => collaborator.userId === context.token.id);
+      const collab = collaborators.find((collaborator) => collaborator.userId === context.token.id);
+      if (collab) {
+        switch (requiredAccessLevel) {
+          case ProjectCollaboratorAccessLevel.COMMENT:
+            return true;
+          case ProjectCollaboratorAccessLevel.EDIT:
+            return collab.accessLevel === ProjectCollaboratorAccessLevel.OWN ||
+                   collab.accessLevel === ProjectCollaboratorAccessLevel.EDIT;
+          case ProjectCollaboratorAccessLevel.OWN:
+            return collab.accessLevel === ProjectCollaboratorAccessLevel.OWN;
+          default:
+            return false;
+        }
+      }
     }
   }
 
   const payload = { projectId: project.id, userId: context.token.id };
   formatLogMessage(context).error(payload, `AUTH failure: ${reference}`)
   return false;
-}
-
-// Version and sync changes with the DMPHub
-export const versionAndSyncPlans = async (
-  context: MyContext,
-  project: Project,
-  reference = 'projectService.syncWithDMPHub'
-): Promise<DMPCommonStandard> => {
-  // Fetch all the plans for the project
-  const plans = await Plan.findByProjectId(reference, context, project.id);
-  if (!Array.isArray(plans) || plans.length === 0) {
-    return null;
-  }
-
-  for (const plan of plans) {
-    const newVersion = await createPlanVersion(context, plan, reference);
-    if (newVersion) {
-      await syncWithDMPHub(context, plan, reference);
-    }
-  }
 }
