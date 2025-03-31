@@ -198,7 +198,7 @@ afterEach(() => {
   clearRelatedWorkStore();
 });
 
-describe('plan query', () => {
+describe('plans query', () => {
   beforeEach(() => {
     query = `
       query plansQuery($projectId: Int!) {

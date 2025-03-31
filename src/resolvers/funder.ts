@@ -21,7 +21,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return await ProjectFunder.findByProjectId(reference, context, projectId);
           }
         }
@@ -42,7 +42,7 @@ export const resolvers: Resolvers = {
           const projectFunder = await ProjectFunder.findById(reference, context, projectFunderId);
           const project = await Project.findById(reference, context, projectFunder.projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return projectFunder;
           }
         }
@@ -61,7 +61,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (plan && hasPermissionOnProject(context, project)) {
+          if (plan && await hasPermissionOnProject(context, project)) {
             return await PlanFunder.findByPlanId(reference, context, plan.id);
           }
         }
@@ -82,7 +82,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
+          if (!project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -120,7 +120,7 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, funder.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -160,7 +160,7 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, funder.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -190,7 +190,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (!plan || !project || !hasPermissionOnProject(context, project)) {
+          if (!plan || !project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -224,7 +224,7 @@ export const resolvers: Resolvers = {
 
           const plan = await Plan.findById(reference, context, funder.planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (!plan || !project || !hasPermissionOnProject(context, project)) {
+          if (!plan || !project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 

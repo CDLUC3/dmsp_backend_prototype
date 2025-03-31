@@ -18,7 +18,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return await RelatedWork.findByProjectId(reference, context, projectId);
           }
         }
@@ -37,7 +37,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const relatedWork = await RelatedWork.findById(reference, context, id);
           const project = await Project.findById(reference, context, relatedWork.projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return relatedWork;
           }
         }
@@ -58,7 +58,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             const relatedWork = new RelatedWork(input);
             const newRelatedWork = await relatedWork.create(context);
 
@@ -92,7 +92,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, relatedWork.projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             const toUpdate = new RelatedWork({ ...relatedWork, ...input });
             const updated = await toUpdate.update(context);
 
@@ -127,7 +127,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, relatedWork.projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             const removed = await relatedWork.delete(context);
 
             if(removed && !removed.hasErrors()) {

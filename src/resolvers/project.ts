@@ -37,7 +37,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-          if (hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project)) {
             return project;
           }
         }
@@ -95,7 +95,7 @@ export const resolvers: Resolvers = {
               throw NotFoundError();
             }
 
-            if (!hasPermissionOnProject(context, project)) {
+            if (!(await hasPermissionOnProject(context, project))) {
               throw ForbiddenError();
             }
 
@@ -136,7 +136,7 @@ export const resolvers: Resolvers = {
             }
 
             // Only allow the owner of the project to delete it
-            if (!hasPermissionOnProject(context, project)) {
+            if (!(await hasPermissionOnProject(context, project))) {
               throw ForbiddenError();
             }
 

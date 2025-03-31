@@ -22,15 +22,13 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return await ProjectContributor.findByProjectId(reference, context, projectId);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
-
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -44,7 +42,7 @@ export const resolvers: Resolvers = {
           const contributor = await ProjectContributor.findById(reference, context, projectContributorId);
           const project = await Project.findById(reference, context, contributor.projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return contributor;
           }
         }
@@ -63,7 +61,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (plan && hasPermissionOnProject(context, project)) {
+          if (plan && await hasPermissionOnProject(context, project)) {
             return await PlanContributor.findByPlanId(reference, context, plan.id);
           }
         }
@@ -84,7 +82,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
+          if (!project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -142,7 +140,7 @@ export const resolvers: Resolvers = {
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, contributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -234,7 +232,7 @@ export const resolvers: Resolvers = {
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, contributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -275,7 +273,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, projectContributor.projectId);
-          if (hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project)) {
             const newPlanContributor = new PlanContributor({ planId, projectContributorId, contributorRoleIds: currentProjectRoleIds });
             const created = await newPlanContributor.create(context);
 
@@ -420,7 +418,7 @@ export const resolvers: Resolvers = {
             contributor.projectContributorId
           );
           const project = await Project.findById(reference, context, projectContributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -472,6 +470,12 @@ export const resolvers: Resolvers = {
   },
 
   PlanContributor: {
+    plan: async (parent: PlanContributor, _, context: MyContext): Promise<Plan> => {
+      if (parent?.planId) {
+        return await Plan.findById('Chained PlanContributor.plan', context, parent.planId);
+      }
+      return null;
+    },
     projectContributor: async (parent: PlanContributor, _, context: MyContext): Promise<ProjectContributor> => {
       if (parent?.projectContributorId) {
         return await ProjectContributor.findById(

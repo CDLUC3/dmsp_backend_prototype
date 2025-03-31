@@ -230,12 +230,20 @@ export const mockFindPlanContributorById = async (_, __, id: number): Promise<Pl
   return result ? new PlanContributor(result) : null;
 };
 
-export const mockFindPlanContributorsByProjectContributorId = async (_, __, projectContributorId: number): Promise<PlanContributor> => {
-  const result = findEntriesInMockTableByFilter(
+export const mockFindPlanContributorsByProjectContributorId = async (_, __, projectContributorId: number): Promise<PlanContributor[]> => {
+  const results = findEntriesInMockTableByFilter(
     'planContributors',
     (entry) => { return entry.projectContributorId === projectContributorId }
   );
-  return result ? new PlanContributor(result) : null;
+  return Array.isArray(results) ? results.map((result) => new PlanContributor(result)) : [];
+};
+
+export const mockFindPlanContributorsByPlanId = async (_, __, planId: number): Promise<PlanContributor[]> => {
+  const results = findEntriesInMockTableByFilter(
+    'planContributors',
+    (entry) => { return entry.planId === planId }
+  );
+  return Array.isArray(results) ? results.map((result) => new PlanContributor(result)) : [];
 };
 
 // Mock the mutations

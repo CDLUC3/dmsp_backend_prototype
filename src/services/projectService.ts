@@ -53,7 +53,7 @@ export const hasPermissionOnProject = async (
     }
   }
 
-  const payload = { projectId: project.id, userId: context.token.id };
+  const payload = { projectId: project?.id, userId: context.token?.id };
   formatLogMessage(context).error(payload, `AUTH failure: ${reference}`)
   return false;
 }
