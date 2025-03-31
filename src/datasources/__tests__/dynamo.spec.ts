@@ -88,7 +88,7 @@ describe("getDMP", () => {
     const result = await getDMP(context, dmpId, null);
 
     expect(mockQueryTable).toHaveBeenCalledWith(context, expect.any(String), {
-      KeyConditionExpression: "PK = :pk and SK = :sk",
+      KeyConditionExpression: "PK = :pk",
       ExpressionAttributeValues: {
         ":pk": { S: "DMP#test-dmp-id" },
       },
@@ -172,23 +172,96 @@ describe("DynamoDB Datasource", () => {
   });
 
   describe("createDMP", () => {
-    it("should properly generate a PK for a DMP ID (DOI)", () => {
-      let dmpId = "10.1234/test-dmp-id";
-      let expectedPK = "DMP#10.1234/test-dmp-id";
-      let result = createDMP(context, dmpId, dmp);
-      expect(result).toHaveProperty("PK", expectedPK);
+    it("should properly generate a PK for a DMP ID (DOI)", async () => {
+      const testDMP = {
+        title: "Test DMP",
+        dmp_id: { identifier: "https://doi.org/10.1234/test-dmp-id", type: DMPIdentifierType.DOI },
+        dmphub_provenance_id: casual.word,
+        dmproadmap_featured: '1',
+        dmproadmap_privacy: getRandomEnumValue(DMPPrivacy),
+        dmproadmap_status: getRandomEnumValue(DMPStatus),
+        created: casual.date('YYYY-MM-DD'),
+        modified: casual.date('YYYY-MM-DD'),
+        language: 'eng',
+        ethical_issues_exist: getRandomEnumValue(DMPYesNoUnknown),
+        contact: {
+          mbox: casual.email,
+          name: casual.name,
+          contact_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.uuid },
+          dmproadmap_affiliation: {
+            name: casual.company_name,
+            affiliation_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.url }
+          }
+        },
+        project: [{ title: casual.title }],
+        dataset: [{
+          type: casual.word,
+          title: casual.title,
+          dataset_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.url },
+          sensitive_data: getRandomEnumValue(DMPYesNoUnknown),
+          personal_data: getRandomEnumValue(DMPYesNoUnknown),
+        }],
+      }
+      const expectedPK = "DMP#doi.org/10.1234/test-dmp-id";
+      const expectedVersion = "VERSION#latest";
+      mockQueryTable.mockResolvedValueOnce({ Items: [] });
+      mockPutItem.mockResolvedValue({});
+      mockQueryTable.mockResolvedValue({ Items: [{
+        PK: { S: expectedPK },
+        SK: { S: expectedVersion },
+        title: { S: "Test DMP" }
+      }] });
 
-      dmpId = "https://doi.org/10.1234/test-dmp-id";
-      expectedPK = "DMP#doi.org/10.1234/test-dmp-id";
-      result = createDMP(context, dmpId, dmp);
-      expect(result).toHaveProperty("PK", expectedPK);
+      await createDMP(context, testDMP.dmp_id.identifier, testDMP);
+      const putInput = mockPutItem.mock.calls[0][2]; // Get the input for the first call to putItem
+      expect(putInput.PK).toEqual({ S: expectedPK });
+      expect(putInput.SK).toEqual({ S: expectedVersion });
     });
 
-    it("should properly generate a PK for a DMP ID (URL)", () => {
-      const dmpId = "https://example.com/test-dmp-id";
+    it("should properly generate a PK for a DMP ID (URL)", async () => {
+      const testDMP = {
+        title: "Test DMP",
+        dmp_id: { identifier: "https://example.com/test-dmp-id", type: DMPIdentifierType.URL },
+        dmphub_provenance_id: casual.word,
+        dmproadmap_featured: '1',
+        dmproadmap_privacy: getRandomEnumValue(DMPPrivacy),
+        dmproadmap_status: getRandomEnumValue(DMPStatus),
+        created: casual.date('YYYY-MM-DD'),
+        modified: casual.date('YYYY-MM-DD'),
+        language: 'eng',
+        ethical_issues_exist: getRandomEnumValue(DMPYesNoUnknown),
+        contact: {
+          mbox: casual.email,
+          name: casual.name,
+          contact_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.uuid },
+          dmproadmap_affiliation: {
+            name: casual.company_name,
+            affiliation_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.url }
+          }
+        },
+        project: [{ title: casual.title }],
+        dataset: [{
+          type: casual.word,
+          title: casual.title,
+          dataset_id: { type: getRandomEnumValue(DMPIdentifierType), identifier: casual.url },
+          sensitive_data: getRandomEnumValue(DMPYesNoUnknown),
+          personal_data: getRandomEnumValue(DMPYesNoUnknown),
+        }],
+      }
       const expectedPK = "DMP#example.com/test-dmp-id";
-      const result = createDMP(context, dmpId, dmp);
-      expect(result).toHaveProperty("PK", expectedPK);
+      const expectedVersion = "VERSION#latest";
+      mockQueryTable.mockResolvedValueOnce({ Items: [] });
+      mockPutItem.mockResolvedValue({});
+      mockQueryTable.mockResolvedValue({ Items: [{
+        PK: { S: expectedPK },
+        SK: { S: expectedVersion },
+        title: { S: "Test DMP" }
+      }] });
+
+      await createDMP(context, testDMP.dmp_id.identifier, testDMP);
+      const putInput = mockPutItem.mock.calls[0][2]; // Get the input for the first call to putItem
+      expect(putInput.PK).toEqual({ S: expectedPK });
+      expect(putInput.SK).toEqual({ S: expectedVersion });
     });
 
     it("should create a new DMP and return the created record", async () => {
@@ -243,7 +316,7 @@ describe("DynamoDB Datasource", () => {
   });
 
   describe("deleteDMP", () => {
-    it.only("should delete the DMP without errors", async () => {
+    it("should delete the DMP without errors", async () => {
       const dmpId = "test-dmp-id";
       const mockResponse = { PK: { S: "DMP#test-dmp-id" }, SK: { S: "VERSION#latest" }, title: { S: "Test DMP" } };
       mockQueryTable.mockResolvedValueOnce({ Items: [mockResponse] });
