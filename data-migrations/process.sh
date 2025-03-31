@@ -28,9 +28,6 @@ fi
 process_migration() {
   # See if the migration was already processed
   echo "Checking to see if $1 has been run ..."
-  mariadb ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile = '$1';"
-mariadb ${MYSQL_ARGS} ${MYSQL_DATABASE} -e "SHOW TABLES LIKE 'projectCollaborators';"
-
   EXISTS=$(mariadb ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile = '$1';")
 
   if [ -z "$EXISTS" ]; then
