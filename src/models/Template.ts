@@ -7,6 +7,65 @@ export enum TemplateVisibility {
   PUBLIC = 'PUBLIC', // Template is available to everyone creating a DMP
 }
 
+// A paired down version of template information for search results
+export class TemplateSearchResult {
+  public id: number;
+  public name: string;
+  public description?: string;
+  public visibility: TemplateVisibility;
+  public bestPractice: boolean;
+  public latestPublishVersion?: string;
+  public latestPublishDate?: string;
+  public isDirty: boolean;
+  public ownerId: string;
+  public ownerDisplayName: string;
+  public createdById: number;
+  public createdByName: string;
+  public created: string;
+  public modifiedById: number;
+  public modifiedByName: string;
+  public modified: string;
+
+  constructor(options) {
+    this.id = options.id;
+    this.name = options.name;
+    this.description = options.description;
+    this.visibility = options.visibility;
+    this.bestPractice = options.bestPractice;
+    this.latestPublishVersion = options.latestPublishVersion;
+    this.latestPublishDate = options.latestPublishDate;
+    this.isDirty = options.isDirty;
+    this.ownerId = options.ownerId;
+    this.ownerDisplayName = options.ownerDisplayName;
+    this.createdById = options.createdById;
+    this.createdByName = options.createdByName;
+    this.created = options.created;
+    this.modifiedById = options.modifiedById;
+    this.modifiedByName = options.modifiedByName;
+    this.modified = options.modified;
+  }
+
+  // Return the templates associated with the Affiliation
+  static async findByAffiliationId(
+    reference: string,
+    context: MyContext,
+    affiliationId: string
+  ): Promise<TemplateSearchResult[]> {
+    const sql = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
+                  't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
+                  't.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created, ' +
+                  't.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified ' +
+                'FROM templates t ' +
+                  'INNER JOIN affiliations a ON a.uri = t.ownerId ' +
+                  'INNER JOIN users cu ON cu.id = t.createdById ' +
+                  'INNER JOIN users mu ON mu.id = t.modifiedById ' +
+                'WHERE ownerId = ? ' +
+                'ORDER BY modified DESC';
+    const results = await Template.query(context, sql, [affiliationId], reference);
+    return Array.isArray(results) ? results.map((item) => new TemplateSearchResult(item)) : [];
+  }
+}
+
 // A Template for creating a DMP
 export class Template extends MySqlModel {
   public sourceTemplateId?: number;

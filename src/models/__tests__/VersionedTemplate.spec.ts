@@ -1,9 +1,10 @@
 import casual from 'casual';
 import { TemplateVisibility } from "../Template";
-import { TemplateVersionType, VersionedTemplate } from '../VersionedTemplate';
+import { TemplateVersionType, VersionedTemplate, VersionedTemplateSearchResult } from '../VersionedTemplate';
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { defaultLanguageId } from '../Language';
+import { getRandomEnumValue } from '../../__tests__/helpers';
 
 jest.mock('../../context.ts');
 
@@ -17,6 +18,107 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.clearAllMocks();
+});
+
+describe('VersionedTemplateSearchResult', () => {
+  const originalQuery = VersionedTemplate.query;
+
+  let localQuery;
+  let context;
+  let versionedTemplateSearchResult;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (VersionedTemplate.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    versionedTemplateSearchResult = new VersionedTemplateSearchResult({
+      id: casual.integer(1, 9),
+      templateId: casual.integer(1, 99),
+      name: casual.sentence,
+      description: casual.sentences(5),
+      version: `v${casual.integer(1, 9)}`,
+      visibility: getRandomEnumValue(TemplateVisibility),
+      bestPractice: casual.boolean,
+      ownerId: casual.integer(1, 99),
+      ownerURI: casual.url,
+      ownerSearchName: casual.name,
+      ownerDisplayName: casual.name,
+      modifiedById: casual.integer(1, 999),
+      modifiedByName: casual.name,
+      modified: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    VersionedTemplate.query = originalQuery;
+  });
+
+  describe('search', () => {
+    it('returns the matching VersionedTemplateSearchResults', async () => {
+      localQuery.mockResolvedValueOnce([versionedTemplateSearchResult]);
+
+      const term = versionedTemplateSearchResult.name.split(0, 5);
+      const result = await VersionedTemplateSearchResult.search('Test', context, term);
+      const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
+                    'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
+                    'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
+                    'a.searchName as ownerSearchName ' +
+                  'FROM versionedTemplates vt ' +
+                    'LEFT JOIN users u ON u.id = vt.modifiedById ' +
+                    'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
+                  'WHERE (vt.name LIKE ? OR a.searchName LIKE ?) AND vt.active = 1 AND vt.versionType = ? '
+                  'ORDER BY vt.modified DESC;';
+      const vals = [`%${term}%`, `%${term}%`, TemplateVersionType.PUBLISHED];
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
+      expect(result).toEqual([versionedTemplateSearchResult]);
+    });
+
+    it('returns an empty array if there are no matching VersionedTemplateSearchResults', async () => {
+      localQuery.mockResolvedValueOnce([]);
+
+      const term = versionedTemplateSearchResult.name.split(0, 5);
+      const result = await VersionedTemplateSearchResult.search('Test', context, term);
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('findByAffiliationId', () => {
+    it('returns the matching VersionedTemplateSearchResults', async () => {
+      localQuery.mockResolvedValueOnce([versionedTemplateSearchResult]);
+
+      const affiliationId = versionedTemplateSearchResult.ownerURI;
+      const result = await VersionedTemplateSearchResult.findByAffiliationId('Test', context, affiliationId);
+      const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
+                    'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
+                    'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
+                    'a.searchName as ownerSearchName ' +
+                  'FROM versionedTemplates vt ' +
+                    'LEFT JOIN users u ON u.id = vt.modifiedById ' +
+                    'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
+                  'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
+                  'ORDER BY vt.modified DESC;';
+      const vals = [affiliationId, TemplateVersionType.PUBLISHED];
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
+      expect(result).toEqual([versionedTemplateSearchResult]);
+    });
+
+    it('returns an empty array if there are no matching VersionedTemplateSearchResults', async () => {
+      localQuery.mockResolvedValueOnce([]);
+
+      const affiliationId = versionedTemplateSearchResult.ownerURI;
+      const result = await VersionedTemplateSearchResult.findByAffiliationId('Test', context, affiliationId);
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([]);
+    });
+  });
 });
 
 describe('VersionedTemplate', () => {
@@ -89,279 +191,220 @@ describe('VersionedTemplate', () => {
     expect(Object.keys(versioned.errors).length).toBe(1);
     expect(versioned.errors['ownerId'].includes('Owner')).toBe(true);
   });
-});
 
-describe('findBy queries', () => {
-  const originalQuery = VersionedTemplate.query;
+  describe('findBy queries', () => {
+    const originalQuery = VersionedTemplate.query;
 
-  let localQuery;
-  let context;
-  let versionedTemplate;
+    let localQuery;
+    let context;
+    let versionedTemplate;
 
-  beforeEach(() => {
-    jest.resetAllMocks();
+    beforeEach(() => {
+      jest.resetAllMocks();
 
-    localQuery = jest.fn();
-    (VersionedTemplate.query as jest.Mock) = localQuery;
+      localQuery = jest.fn();
+      (VersionedTemplate.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+      context = buildContext(logger, mockToken());
 
-    versionedTemplate = new VersionedTemplate({
-      id: casual.integer(1, 9),
-      createdById: casual.integer(1, 999),
-      templateId: casual.integer(1, 99),
-      name: casual.sentence,
-      ownerId: casual.url,
-      version: `v${casual.integer(1, 9)}`,
-    })
+      versionedTemplate = new VersionedTemplate({
+        id: casual.integer(1, 9),
+        createdById: casual.integer(1, 999),
+        templateId: casual.integer(1, 99),
+        name: casual.sentence,
+        ownerId: casual.url,
+        version: `v${casual.integer(1, 9)}`,
+      })
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+      VersionedTemplate.query = originalQuery;
+    });
+
+    it('findById returns the VersionedTemplate', async () => {
+      localQuery.mockResolvedValueOnce([versionedTemplate]);
+      const id = versionedTemplate.id;
+      const result = await VersionedTemplate.findById('Test', context, id);
+      const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+      expect(result).toEqual(versionedTemplate);
+      expect(result).toBeInstanceOf(VersionedTemplate);
+      expect(Object.keys(result.errors).length).toBe(0);
+    });
+
+    it('findById returns null if there is no VersionedTemplate', async () => {
+      localQuery.mockResolvedValueOnce([]);
+      const id = versionedTemplate.id;
+      const result = await VersionedTemplate.findById('Test', context, id);
+      const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+      expect(result).toEqual(null);
+    });
+
+    it('findByAffiliationId returns the VersionedTemplates', async () => {
+      localQuery.mockResolvedValueOnce([versionedTemplate]);
+      const affiliationId = '1234'
+      const result = await VersionedTemplate.findByAffiliationId('Test', context, affiliationId);
+      const expectedSql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
+      expect(result).toEqual([versionedTemplate]);
+    });
+
+    it('findByAffiliationId returns an empty array if there are no VersionedTemplates', async () => {
+      localQuery.mockResolvedValueOnce([]);
+      const affiliationId = '1234'
+      const result = await VersionedTemplate.findByAffiliationId('Test', context, affiliationId);
+      const expectedSql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
+      expect(result).toEqual([]);
+    });
+
+    it('findByTemplateId returns the VersionedTemplates for the Template', async () => {
+      localQuery.mockResolvedValueOnce([versionedTemplate]);
+
+      const templateId = versionedTemplate.templateId;
+      const result = await VersionedTemplate.findByTemplateId('Test', context, templateId);
+      const expectedSql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Test')
+      expect(result).toEqual([versionedTemplate]);
+    });
+
+    it('findByTemplateId returns an empty array if there are no VersionedTemplates', async () => {
+      localQuery.mockResolvedValueOnce([]);
+
+      const templateId = versionedTemplate.templateId;
+      const result = await VersionedTemplate.findByTemplateId('Test', context, templateId);
+      const expectedSql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Test')
+      expect(result).toEqual([]);
+    });
+
+    it('findVersionedTemplateById returns the VersionedTemplate', async () => {
+      localQuery.mockResolvedValueOnce([versionedTemplate]);
+
+      const id = versionedTemplate.id;
+      const result = await VersionedTemplate.findVersionedTemplateById('Test', context, id);
+      const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+      expect(result).toEqual(versionedTemplate);
+    });
+
+    it('findVersionedTemplateById returns null if there is no VersionedTemplate', async () => {
+      localQuery.mockResolvedValueOnce([]);
+
+      const id = versionedTemplate.id;
+      const result = await VersionedTemplate.findVersionedTemplateById('Test', context, id);
+      const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
+      expect(result).toEqual(null);
+    });
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    VersionedTemplate.query = originalQuery;
+  describe('create', () => {
+    let insertQuery;
+    let versionedTemplate;
+
+    beforeEach(() => {
+      insertQuery = jest.fn();
+      (VersionedTemplate.insert as jest.Mock) = insertQuery;
+
+      versionedTemplate = new VersionedTemplate({
+        templateId: casual.integer(1, 999),
+        versionedById: casual.integer(1, 99),
+        version: `v${casual.integer(1, 9)}`,
+        ownerId: casual.url,
+        name: casual.sentence,
+        description: casual.sentences(5),
+        comment: casual.sentences(10),
+      })
+    });
+
+    it('returns the VersionedTemplate with errors if it is not valid', async () => {
+      const localValidator = jest.fn();
+      (versionedTemplate.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(false);
+
+      const result = await versionedTemplate.create(context);
+      expect(result).toBeInstanceOf(VersionedTemplate);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns the newly added VersionedTemplate', async () => {
+      const localValidator = jest.fn();
+      (versionedTemplate.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(true);
+
+      const mockFindBy = jest.fn();
+      (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindBy;
+      mockFindBy.mockResolvedValue(versionedTemplate);
+
+      const result = await versionedTemplate.create(context);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+      expect(mockFindBy).toHaveBeenCalledTimes(1);
+      expect(insertQuery).toHaveBeenCalledTimes(1);
+      expect(result).toBeInstanceOf(VersionedTemplate);
+      expect(Object.keys(result.errors).length).toBe(0);
+    });
   });
 
-  it('findById returns the VersionedTemplate', async () => {
-    localQuery.mockResolvedValueOnce([versionedTemplate]);
-    const id = versionedTemplate.id;
-    const result = await VersionedTemplate.findById('Test', context, id);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
-    expect(result).toEqual(versionedTemplate);
-    expect(result).toBeInstanceOf(VersionedTemplate);
-    expect(Object.keys(result.errors).length).toBe(0);
-  });
+  describe('update', () => {
+    let updateQuery;
+    let versionedTemplate;
 
-  it('findById returns null if there is no VersionedTemplate', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const id = versionedTemplate.id;
-    const result = await VersionedTemplate.findById('Test', context, id);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
-    expect(result).toEqual(null);
-  });
+    beforeEach(() => {
+      updateQuery = jest.fn();
+      (VersionedTemplate.update as jest.Mock) = updateQuery;
 
-  it('findByAffiliationId returns the VersionedTemplates', async () => {
-    localQuery.mockResolvedValueOnce([versionedTemplate]);
-    const affiliationId = '1234'
-    const result = await VersionedTemplate.findByAffiliationId('Test', context, affiliationId);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
-    expect(result).toEqual([versionedTemplate]);
-  });
+      versionedTemplate = new VersionedTemplate({
+        id: casual.integer(1, 99),
+        createdById: casual.integer(1, 999),
+        ownerId: casual.url,
+        name: casual.sentence,
+      })
+    });
 
-  it('findByAffiliationId returns an empty array if there are no VersionedTemplates', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const affiliationId = '1234'
-    const result = await VersionedTemplate.findByAffiliationId('Test', context, affiliationId);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'Test')
-    expect(result).toEqual([]);
-  });
+    it('returns the VersionedTemplate with errors if it is not valid', async () => {
+      const localValidator = jest.fn();
+      (versionedTemplate.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(false);
 
-  it('findByTemplateId returns the VersionedTemplates for the Template', async () => {
-    localQuery.mockResolvedValueOnce([versionedTemplate]);
+      const result = await versionedTemplate.update(context);
+      expect(result).toBeInstanceOf(VersionedTemplate);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+    });
 
-    const templateId = versionedTemplate.templateId;
-    const result = await VersionedTemplate.findByTemplateId('Test', context, templateId);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Test')
-    expect(result).toEqual([versionedTemplate]);
-  });
+    it('returns an error if the VersionedTemplate has no id', async () => {
+      const localValidator = jest.fn();
+      (versionedTemplate.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(true);
 
-  it('findByTemplateId returns an empty array if there are no VersionedTemplates', async () => {
-    localQuery.mockResolvedValueOnce([]);
+      versionedTemplate.id = null;
+      const result = await versionedTemplate.update(context);
+      expect(Object.keys(result.errors).length).toBe(1);
+      expect(result.errors['general']).toBeTruthy();
+    });
 
-    const templateId = versionedTemplate.templateId;
-    const result = await VersionedTemplate.findByTemplateId('Test', context, templateId);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Test')
-    expect(result).toEqual([]);
-  });
+    it('returns the updated VersionedTemplate', async () => {
+      const localValidator = jest.fn();
+      (versionedTemplate.isValid as jest.Mock) = localValidator;
+      localValidator.mockResolvedValueOnce(true);
 
-  it('findVersionedTemplateById returns the VersionedTemplate', async () => {
-    localQuery.mockResolvedValueOnce([versionedTemplate]);
+      updateQuery.mockResolvedValueOnce(versionedTemplate);
 
-    const id = versionedTemplate.id;
-    const result = await VersionedTemplate.findVersionedTemplateById('Test', context, id);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
-    expect(result).toEqual(versionedTemplate);
-  });
-
-  it('findVersionedTemplateById returns null if there is no VersionedTemplate', async () => {
-    localQuery.mockResolvedValueOnce([]);
-
-    const id = versionedTemplate.id;
-    const result = await VersionedTemplate.findVersionedTemplateById('Test', context, id);
-    const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test')
-    expect(result).toEqual(null);
-  });
-});
-
-describe('search', () => {
-  const originalQuery = VersionedTemplate.query;
-
-  let localQuery;
-  let context;
-  let versionedTemplate;
-
-  beforeEach(() => {
-    jest.resetAllMocks();
-
-    localQuery = jest.fn();
-    (VersionedTemplate.query as jest.Mock) = localQuery;
-
-    context = buildContext(logger, mockToken());
-
-    versionedTemplate = new VersionedTemplate({
-      id: casual.integer(1, 9),
-      createdById: casual.integer(1, 999),
-      templateId: casual.integer(1, 99),
-      name: casual.sentence,
-      ownerId: casual.url,
-      version: `v${casual.integer(1, 9)}`,
-    })
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    VersionedTemplate.query = originalQuery;
-  });
-
-  it('search returns the matching VersionedTemplates', async () => {
-    localQuery.mockResolvedValueOnce([versionedTemplate]);
-
-    const term = versionedTemplate.name.split(0, 5);
-    const result = await VersionedTemplate.search('Test', context, term);
-    const sql = 'SELECT * FROM versionedTemplates \
-                 WHERE name LIKE ? AND active = 1 AND versionType = ? \
-                 ORDER BY name ASC';
-    const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
-    expect(result).toEqual([versionedTemplate]);
-  });
-
-  it('search returns null if there are no matching VersionedTemplates', async () => {
-    localQuery.mockResolvedValueOnce([]);
-
-    const term = versionedTemplate.name.split(0, 5);
-    const result = await VersionedTemplate.search('Test', context, term);
-    const sql = 'SELECT * FROM versionedTemplates \
-                 WHERE name LIKE ? AND active = 1 AND versionType = ? \
-                 ORDER BY name ASC';
-    const vals = [`%${term}%`, TemplateVersionType.PUBLISHED];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
-    expect(result).toEqual([]);
-  });
-});
-
-describe('create', () => {
-  let insertQuery;
-  let versionedTemplate;
-
-  beforeEach(() => {
-    insertQuery = jest.fn();
-    (VersionedTemplate.insert as jest.Mock) = insertQuery;
-
-    versionedTemplate = new VersionedTemplate({
-      templateId: casual.integer(1, 999),
-      versionedById: casual.integer(1, 99),
-      version: `v${casual.integer(1, 9)}`,
-      ownerId: casual.url,
-      name: casual.sentence,
-      description: casual.sentences(5),
-      comment: casual.sentences(10),
-    })
-  });
-
-  it('returns the VersionedTemplate with errors if it is not valid', async () => {
-    const localValidator = jest.fn();
-    (versionedTemplate.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(false);
-
-    const result = await versionedTemplate.create(context);
-    expect(result).toBeInstanceOf(VersionedTemplate);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns the newly added VersionedTemplate', async () => {
-    const localValidator = jest.fn();
-    (versionedTemplate.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
-
-    const mockFindBy = jest.fn();
-    (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValue(versionedTemplate);
-
-    const result = await versionedTemplate.create(context);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(result).toBeInstanceOf(VersionedTemplate);
-    expect(Object.keys(result.errors).length).toBe(0);
-  });
-});
-
-describe('update', () => {
-  let updateQuery;
-  let versionedTemplate;
-
-  beforeEach(() => {
-    updateQuery = jest.fn();
-    (VersionedTemplate.update as jest.Mock) = updateQuery;
-
-    versionedTemplate = new VersionedTemplate({
-      id: casual.integer(1, 99),
-      createdById: casual.integer(1, 999),
-      ownerId: casual.url,
-      name: casual.sentence,
-    })
-  });
-
-  it('returns the VersionedTemplate with errors if it is not valid', async () => {
-    const localValidator = jest.fn();
-    (versionedTemplate.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(false);
-
-    const result = await versionedTemplate.update(context);
-    expect(result).toBeInstanceOf(VersionedTemplate);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns an error if the VersionedTemplate has no id', async () => {
-    const localValidator = jest.fn();
-    (versionedTemplate.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
-
-    versionedTemplate.id = null;
-    const result = await versionedTemplate.update(context);
-    expect(Object.keys(result.errors).length).toBe(1);
-    expect(result.errors['general']).toBeTruthy();
-  });
-
-  it('returns the updated VersionedTemplate', async () => {
-    const localValidator = jest.fn();
-    (versionedTemplate.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
-
-    updateQuery.mockResolvedValueOnce(versionedTemplate);
-
-    const result = await versionedTemplate.update(context);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(updateQuery).toHaveBeenCalledTimes(1);
-    expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(VersionedTemplate);
+      const result = await versionedTemplate.update(context);
+      expect(localValidator).toHaveBeenCalledTimes(1);
+      expect(updateQuery).toHaveBeenCalledTimes(1);
+      expect(Object.keys(result.errors).length).toBe(0);
+      expect(result).toBeInstanceOf(VersionedTemplate);
+    });
   });
 });

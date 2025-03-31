@@ -1882,6 +1882,72 @@ export type ProjectOutputErrors = {
   title?: Maybe<Scalars['String']['output']>;
 };
 
+export type ProjectSearchResult = {
+  __typename?: 'ProjectSearchResult';
+  /** The research project abstract */
+  abstractText?: Maybe<Scalars['String']['output']>;
+  /** The names and access levels of the collaborators */
+  collaborators?: Maybe<Array<ProjectSearchResultCollaborator>>;
+  /** The names and roles of the contributors */
+  contributors?: Maybe<Array<ProjectSearchResultContributor>>;
+  /** The timestamp when the project was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The id of the person who created the project */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** The name of the person who created the project */
+  createdByName?: Maybe<Scalars['String']['output']>;
+  /** The estimated date the research project will end (use YYYY-MM-DD format) */
+  endDate?: Maybe<Scalars['String']['output']>;
+  /** Search results errors */
+  errors?: Maybe<ProjectErrors>;
+  /** The names of the funders */
+  funders?: Maybe<Array<ProjectSearchResultFunder>>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not this is test/mock research project */
+  isTestProject?: Maybe<Scalars['Boolean']['output']>;
+  /** The timestamp when the project was last modified */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The id of the person who last modified the project */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The name of the person who last modified the project */
+  modifiedByName?: Maybe<Scalars['String']['output']>;
+  /** The type of research being done */
+  researchDomain?: Maybe<Scalars['String']['output']>;
+  /** The estimated date the research project will begin (use YYYY-MM-DD format) */
+  startDate?: Maybe<Scalars['String']['output']>;
+  /** The name/title of the research project */
+  title?: Maybe<Scalars['String']['output']>;
+};
+
+export type ProjectSearchResultCollaborator = {
+  __typename?: 'ProjectSearchResultCollaborator';
+  /** The access level of the collaborator */
+  accessLevel?: Maybe<Scalars['String']['output']>;
+  /** The name of the collaborator */
+  name?: Maybe<Scalars['String']['output']>;
+  /** The ORCiD ID */
+  orcid?: Maybe<Scalars['String']['output']>;
+};
+
+export type ProjectSearchResultContributor = {
+  __typename?: 'ProjectSearchResultContributor';
+  /** The name of the contributor */
+  name?: Maybe<Scalars['String']['output']>;
+  /** The ORCiD ID */
+  orcid?: Maybe<Scalars['String']['output']>;
+  /** The role of the contributor */
+  role?: Maybe<Scalars['String']['output']>;
+};
+
+export type ProjectSearchResultFunder = {
+  __typename?: 'ProjectSearchResultFunder';
+  /** The grant id/url */
+  grantId?: Maybe<Scalars['String']['output']>;
+  /** The name of the funder */
+  name?: Maybe<Scalars['String']['output']>;
+};
+
 export type Query = {
   __typename?: 'Query';
   _empty?: Maybe<Scalars['String']['output']>;
@@ -1920,11 +1986,11 @@ export type Query = {
   /** Search for a metadata standard */
   metadataStandards?: Maybe<Array<Maybe<MetadataStandard>>>;
   /** Get all of the user's projects */
-  myProjects?: Maybe<Array<Maybe<Project>>>;
+  myProjects?: Maybe<Array<Maybe<ProjectSearchResult>>>;
   /** Get the Templates that belong to the current user's affiliation (user must be an Admin) */
-  myTemplates?: Maybe<Array<Maybe<Template>>>;
+  myTemplates?: Maybe<Array<Maybe<TemplateSearchResult>>>;
   /** Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin) */
-  myVersionedTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
+  myVersionedTemplates?: Maybe<Array<Maybe<VersionedTemplateSearchResult>>>;
   /** Get all the research output types */
   outputTypes?: Maybe<Array<Maybe<OutputType>>>;
   /** Get a specific plan */
@@ -1964,7 +2030,7 @@ export type Query = {
   /** Search for VersionedSection whose name contains the search term */
   publishedSections?: Maybe<Array<Maybe<VersionedSection>>>;
   /** Search for VersionedTemplate whose name or owning Org's name contains the search term */
-  publishedTemplates?: Maybe<Array<Maybe<VersionedTemplate>>>;
+  publishedTemplates?: Maybe<Array<Maybe<VersionedTemplateSearchResult>>>;
   /** Get the specific Question based on questionId */
   question?: Maybe<Question>;
   /** Get the QuestionConditions that belong to a specific question */
@@ -2877,6 +2943,43 @@ export type TemplateErrors = {
   visibility?: Maybe<Scalars['String']['output']>;
 };
 
+/** A search result for templates */
+export type TemplateSearchResult = {
+  __typename?: 'TemplateSearchResult';
+  /** Whether or not this Template is designated as a 'Best Practice' template */
+  bestPractice?: Maybe<Scalars['Boolean']['output']>;
+  /** The timestamp when the Template was created */
+  created?: Maybe<Scalars['String']['output']>;
+  /** The id of the person who created the template */
+  createdById?: Maybe<Scalars['Int']['output']>;
+  /** the name of the person who created the template */
+  createdByName?: Maybe<Scalars['String']['output']>;
+  /** A description of the purpose of the template */
+  description?: Maybe<Scalars['String']['output']>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** Whether or not the Template has had any changes since it was last published */
+  isDirty?: Maybe<Scalars['Boolean']['output']>;
+  /** The last published date */
+  latestPublishDate?: Maybe<Scalars['String']['output']>;
+  /** The last published version */
+  latestPublishVersion?: Maybe<Scalars['String']['output']>;
+  /** The timestamp when the Template was last modified */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The id of the person who last modified the template */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The name of the person who last modified the template */
+  modifiedByName?: Maybe<Scalars['String']['output']>;
+  /** The name/title of the template */
+  name?: Maybe<Scalars['String']['output']>;
+  /** The display name of the affiliation that owns the Template */
+  ownerDisplayName?: Maybe<Scalars['String']['output']>;
+  /** The id of the affiliation that owns the Template */
+  ownerId?: Maybe<Scalars['String']['output']>;
+  /** The template's availability setting: Public is available to everyone, Private only your affiliation */
+  visibility?: Maybe<TemplateVisibility>;
+};
+
 /** Template version type */
 export type TemplateVersionType =
   /** Draft - saved state for internal review */
@@ -3390,6 +3493,39 @@ export type VersionedTemplateErrors = {
   visibility?: Maybe<Scalars['String']['output']>;
 };
 
+/** An abbreviated view of a Template for pages that allow search/filtering of published Templates */
+export type VersionedTemplateSearchResult = {
+  __typename?: 'VersionedTemplateSearchResult';
+  /** Whether or not this Template is designated as a 'Best Practice' template */
+  bestPractice?: Maybe<Scalars['Boolean']['output']>;
+  /** A description of the purpose of the template */
+  description?: Maybe<Scalars['String']['output']>;
+  /** The unique identifer for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
+  /** The timestamp when the Template was last modified */
+  modified?: Maybe<Scalars['String']['output']>;
+  /** The name of the last person who modified the Template */
+  modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The name of the last person who modified the Template */
+  modifiedByName?: Maybe<Scalars['String']['output']>;
+  /** The name/title of the template */
+  name?: Maybe<Scalars['String']['output']>;
+  /** The display name of the affiliation that owns the Template */
+  ownerDisplayName?: Maybe<Scalars['String']['output']>;
+  /** The id of the affiliation that owns the Template */
+  ownerId?: Maybe<Scalars['Int']['output']>;
+  /** The search name of the affiliation that owns the Template */
+  ownerSearchName?: Maybe<Scalars['String']['output']>;
+  /** The URI of the affiliation that owns the Template */
+  ownerURI?: Maybe<Scalars['String']['output']>;
+  /** The id of the template that this version is based on */
+  templateId?: Maybe<Scalars['Int']['output']>;
+  /** The major.minor semantic version */
+  version?: Maybe<Scalars['String']['output']>;
+  /** The template's availability setting: Public is available to everyone, Private only your affiliation */
+  visibility?: Maybe<TemplateVisibility>;
+};
+
 export type UpdateProjectContributorInput = {
   /** The contributor's affiliation URI */
   affiliationId?: InputMaybe<Scalars['String']['input']>;
@@ -3589,6 +3725,10 @@ export type ResolversTypes = {
   ProjectFunderStatus: ProjectFunderStatus;
   ProjectOutput: ResolverTypeWrapper<ProjectOutput>;
   ProjectOutputErrors: ResolverTypeWrapper<ProjectOutputErrors>;
+  ProjectSearchResult: ResolverTypeWrapper<ProjectSearchResult>;
+  ProjectSearchResultCollaborator: ResolverTypeWrapper<ProjectSearchResultCollaborator>;
+  ProjectSearchResultContributor: ResolverTypeWrapper<ProjectSearchResultContributor>;
+  ProjectSearchResultFunder: ResolverTypeWrapper<ProjectSearchResultFunder>;
   Query: ResolverTypeWrapper<{}>;
   Question: ResolverTypeWrapper<Question>;
   QuestionCondition: ResolverTypeWrapper<QuestionCondition>;
@@ -3623,6 +3763,7 @@ export type ResolversTypes = {
   TemplateCollaborator: ResolverTypeWrapper<TemplateCollaborator>;
   TemplateCollaboratorErrors: ResolverTypeWrapper<TemplateCollaboratorErrors>;
   TemplateErrors: ResolverTypeWrapper<TemplateErrors>;
+  TemplateSearchResult: ResolverTypeWrapper<TemplateSearchResult>;
   TemplateVersionType: TemplateVersionType;
   TemplateVisibility: TemplateVisibility;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
@@ -3650,6 +3791,7 @@ export type ResolversTypes = {
   VersionedSectionErrors: ResolverTypeWrapper<VersionedSectionErrors>;
   VersionedTemplate: ResolverTypeWrapper<VersionedTemplate>;
   VersionedTemplateErrors: ResolverTypeWrapper<VersionedTemplateErrors>;
+  VersionedTemplateSearchResult: ResolverTypeWrapper<VersionedTemplateSearchResult>;
   updateProjectContributorInput: UpdateProjectContributorInput;
   updateProjectFunderInput: UpdateProjectFunderInput;
   updateUserNotificationsInput: UpdateUserNotificationsInput;
@@ -3721,6 +3863,10 @@ export type ResolversParentTypes = {
   ProjectFunderErrors: ProjectFunderErrors;
   ProjectOutput: ProjectOutput;
   ProjectOutputErrors: ProjectOutputErrors;
+  ProjectSearchResult: ProjectSearchResult;
+  ProjectSearchResultCollaborator: ProjectSearchResultCollaborator;
+  ProjectSearchResultContributor: ProjectSearchResultContributor;
+  ProjectSearchResultFunder: ProjectSearchResultFunder;
   Query: {};
   Question: Question;
   QuestionCondition: QuestionCondition;
@@ -3749,6 +3895,7 @@ export type ResolversParentTypes = {
   TemplateCollaborator: TemplateCollaborator;
   TemplateCollaboratorErrors: TemplateCollaboratorErrors;
   TemplateErrors: TemplateErrors;
+  TemplateSearchResult: TemplateSearchResult;
   URL: Scalars['URL']['output'];
   UpdateMetadataStandardInput: UpdateMetadataStandardInput;
   UpdateProjectInput: UpdateProjectInput;
@@ -3771,6 +3918,7 @@ export type ResolversParentTypes = {
   VersionedSectionErrors: VersionedSectionErrors;
   VersionedTemplate: VersionedTemplate;
   VersionedTemplateErrors: VersionedTemplateErrors;
+  VersionedTemplateSearchResult: VersionedTemplateSearchResult;
   updateProjectContributorInput: UpdateProjectContributorInput;
   updateProjectFunderInput: UpdateProjectFunderInput;
   updateUserNotificationsInput: UpdateUserNotificationsInput;
@@ -4449,6 +4597,47 @@ export type ProjectOutputErrorsResolvers<ContextType = MyContext, ParentType ext
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ProjectSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ProjectSearchResult'] = ResolversParentTypes['ProjectSearchResult']> = {
+  abstractText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  collaborators?: Resolver<Maybe<Array<ResolversTypes['ProjectSearchResultCollaborator']>>, ParentType, ContextType>;
+  contributors?: Resolver<Maybe<Array<ResolversTypes['ProjectSearchResultContributor']>>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  createdByName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  endDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  errors?: Resolver<Maybe<ResolversTypes['ProjectErrors']>, ParentType, ContextType>;
+  funders?: Resolver<Maybe<Array<ResolversTypes['ProjectSearchResultFunder']>>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  isTestProject?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modifiedByName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  researchDomain?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  startDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ProjectSearchResultCollaboratorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ProjectSearchResultCollaborator'] = ResolversParentTypes['ProjectSearchResultCollaborator']> = {
+  accessLevel?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ProjectSearchResultContributorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ProjectSearchResultContributor'] = ResolversParentTypes['ProjectSearchResultContributor']> = {
+  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  role?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ProjectSearchResultFunderResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ProjectSearchResultFunder'] = ResolversParentTypes['ProjectSearchResultFunder']> = {
+  grantId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type QueryResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   affiliationById?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByIdArgs, 'affiliationId'>>;
@@ -4468,9 +4657,9 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   metadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<QueryMetadataStandardArgs, 'uri'>>;
   metadataStandards?: Resolver<Maybe<Array<Maybe<ResolversTypes['MetadataStandard']>>>, ParentType, ContextType, Partial<QueryMetadataStandardsArgs>>;
-  myProjects?: Resolver<Maybe<Array<Maybe<ResolversTypes['Project']>>>, ParentType, ContextType>;
-  myTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['Template']>>>, ParentType, ContextType>;
-  myVersionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType>;
+  myProjects?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectSearchResult']>>>, ParentType, ContextType>;
+  myTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateSearchResult']>>>, ParentType, ContextType>;
+  myVersionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplateSearchResult']>>>, ParentType, ContextType>;
   outputTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['OutputType']>>>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
   planCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectCollaborator']>>>, ParentType, ContextType, RequireFields<QueryPlanCollaboratorsArgs, 'planId'>>;
@@ -4490,7 +4679,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
   publishedSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
-  publishedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
+  publishedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplateSearchResult']>>>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
   question?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<QueryQuestionArgs, 'questionId'>>;
   questionConditions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryQuestionConditionsArgs, 'questionId'>>;
   questionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<QueryQuestionOptionArgs, 'id'>>;
@@ -4817,6 +5006,26 @@ export type TemplateErrorsResolvers<ContextType = MyContext, ParentType extends 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type TemplateSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['TemplateSearchResult'] = ResolversParentTypes['TemplateSearchResult']> = {
+  bestPractice?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  createdByName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  isDirty?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  latestPublishDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  latestPublishVersion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modifiedByName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ownerDisplayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ownerId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  visibility?: Resolver<Maybe<ResolversTypes['TemplateVisibility']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['URL'], any> {
   name: 'URL';
 }
@@ -5031,6 +5240,24 @@ export type VersionedTemplateErrorsResolvers<ContextType = MyContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type VersionedTemplateSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedTemplateSearchResult'] = ResolversParentTypes['VersionedTemplateSearchResult']> = {
+  bestPractice?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  modifiedByName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ownerDisplayName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ownerId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  ownerSearchName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  ownerURI?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  templateId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  version?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  visibility?: Resolver<Maybe<ResolversTypes['TemplateVisibility']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type Resolvers<ContextType = MyContext> = {
   AddRelatedWorkInput?: AddRelatedWorkInputResolvers<ContextType>;
   Affiliation?: AffiliationResolvers<ContextType>;
@@ -5081,6 +5308,10 @@ export type Resolvers<ContextType = MyContext> = {
   ProjectFunderErrors?: ProjectFunderErrorsResolvers<ContextType>;
   ProjectOutput?: ProjectOutputResolvers<ContextType>;
   ProjectOutputErrors?: ProjectOutputErrorsResolvers<ContextType>;
+  ProjectSearchResult?: ProjectSearchResultResolvers<ContextType>;
+  ProjectSearchResultCollaborator?: ProjectSearchResultCollaboratorResolvers<ContextType>;
+  ProjectSearchResultContributor?: ProjectSearchResultContributorResolvers<ContextType>;
+  ProjectSearchResultFunder?: ProjectSearchResultFunderResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Question?: QuestionResolvers<ContextType>;
   QuestionCondition?: QuestionConditionResolvers<ContextType>;
@@ -5105,6 +5336,7 @@ export type Resolvers<ContextType = MyContext> = {
   TemplateCollaborator?: TemplateCollaboratorResolvers<ContextType>;
   TemplateCollaboratorErrors?: TemplateCollaboratorErrorsResolvers<ContextType>;
   TemplateErrors?: TemplateErrorsResolvers<ContextType>;
+  TemplateSearchResult?: TemplateSearchResultResolvers<ContextType>;
   URL?: GraphQLScalarType;
   UpdateRelatedWorkInput?: UpdateRelatedWorkInputResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
@@ -5119,5 +5351,6 @@ export type Resolvers<ContextType = MyContext> = {
   VersionedSectionErrors?: VersionedSectionErrorsResolvers<ContextType>;
   VersionedTemplate?: VersionedTemplateResolvers<ContextType>;
   VersionedTemplateErrors?: VersionedTemplateErrorsResolvers<ContextType>;
+  VersionedTemplateSearchResult?: VersionedTemplateSearchResultResolvers<ContextType>;
 };
 

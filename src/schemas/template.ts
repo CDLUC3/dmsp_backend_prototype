@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get the Templates that belong to the current user's affiliation (user must be an Admin)"
-    myTemplates: [Template]
+    myTemplates: [TemplateSearchResult]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
   }
@@ -26,6 +26,42 @@ export const typeDefs = gql`
     PRIVATE
     "Visible to all users"
     PUBLIC
+  }
+
+  "A search result for templates"
+  type TemplateSearchResult {
+    "The unique identifer for the Object"
+    id: Int
+    "The name/title of the template"
+    name: String
+    "A description of the purpose of the template"
+    description: String
+    "The template's availability setting: Public is available to everyone, Private only your affiliation"
+    visibility: TemplateVisibility
+    "Whether or not this Template is designated as a 'Best Practice' template"
+    bestPractice: Boolean
+    "The last published version"
+    latestPublishVersion: String
+    "The last published date"
+    latestPublishDate: String
+    "Whether or not the Template has had any changes since it was last published"
+    isDirty: Boolean
+    "The id of the affiliation that owns the Template"
+    ownerId: String
+    "The display name of the affiliation that owns the Template"
+    ownerDisplayName: String
+    "The id of the person who created the template"
+    createdById: Int
+    "the name of the person who created the template"
+    createdByName: String
+    "The timestamp when the Template was created"
+    created: String
+    "The id of the person who last modified the template"
+    modifiedById: Int
+    "The name of the person who last modified the template"
+    modifiedByName: String
+    "The timestamp when the Template was last modified"
+    modified: String
   }
 
   "A Template used to create DMPs"
