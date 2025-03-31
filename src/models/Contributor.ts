@@ -234,29 +234,6 @@ export class ProjectContributor extends MySqlModel {
     // We've sorted by ORCID and the email descending so grab the first match
     return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
   }
-
-  // Search all users by name, affiliation, orcid, or email
-  static async search(reference: string, context: MyContext, term: string): Promise<ProjectContributor[]> {
-    const sql = `SELECT u.id, u.givenName, u.surName, u.orcid, u.affiliationId, a.displayName FROM users u \
-                   LEFT JOIN affiliations a ON u.affiliationId = a.uri \
-                   WHERE u.givenName LIKE ?
-                   OR
-                   u.surName LIKE ?
-                   OR
-                   u.orcid LIKE ?
-                   OR
-                   CONCAT(u.givenName, ' ', u.surName) LIKE ?
-                   OR
-                   a.searchName LIKE ?
-                   ORDER BY givenName ASC`;
-
-    const searchTerm = (term ?? '');
-    const vals = [`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`];
-    const results = await ProjectContributor.query(context, sql, vals, reference);
-    // These are just search results so no need to instantiate the objects
-    return Array.isArray(results) ? results : [];
-  }
-
 };
 
 // Represents a contributor to a DMP

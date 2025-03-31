@@ -247,26 +247,6 @@ describe('findBy Queries', () => {
     const result = await ProjectContributor.findByProjectAndNameOrORCIDOrEmail('testing', context, projectId, givenName, surName, orcid, email);
     expect(result).toEqual(null);
   });
-
-  it('search should return expected result based on the matching term', async () => {
-    const contributor = new ProjectContributor({
-      projectId: 1,
-      affiliationId: "https://ror.org/00dmfq477",
-      givenName: "Jacques",
-      surName: "Cousteau",
-      orcid: getMockORCID(),
-      email: "super@example.com",
-      contributorRoles: [new ContributorRole({ id: casual.integer(1, 99) })]
-    });
-
-    localQuery.mockResolvedValueOnce([contributor]);
-    const result = await ProjectContributor.search('testing', context, 'Jacques');
-    expect(result).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ givenName: "Jacques" })
-      ])
-    );
-  });
 });
 
 describe('update', () => {

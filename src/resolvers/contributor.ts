@@ -74,22 +74,6 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
-    // Find all users that match the search term
-    findContributor: async (_, { term }, context: MyContext): Promise<ProjectContributor[]> => {
-      const reference = 'findContributors resolver';
-      try {
-        if (isAuthorized(context.token)) {
-          return await ProjectContributor.search(reference, context, term);
-        }
-        // Unauthorized!
-        throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch (err) {
-        if (err instanceof GraphQLError) throw err;
-
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
-        throw InternalServerError();
-      }
-    },
   },
 
   Mutation: {

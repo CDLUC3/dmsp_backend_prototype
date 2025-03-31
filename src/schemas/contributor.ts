@@ -10,9 +10,6 @@ export const typeDefs = gql`
 
     "Get all of the Users that are contributors for the specific Plan"
     planContributors(planId: Int!): [PlanContributor]
-
-    "Search for a user to add as a project contributor"
-    findContributor(term: String!): [ContributorSearchResult]
   }
 
   extend type Mutation {
@@ -149,19 +146,5 @@ export const typeDefs = gql`
     email: String
     "The roles the contributor has on the research project"
     contributorRoleIds: [Int!]
-  }
-
-    "The result of the findCollaborator query"
-  type ContributorSearchResult {
-    "The userId of the collaborator"
-    userId: Int
-    "The collaborator's first/given name"
-    givenName: String
-    "The collaborator's last/sur name"
-    surName: String
-    "The collaborator's ORCID"
-    orcid: String
-    "The collaborator's affiliation"
-    affiliation: Affiliation
   }
 `;

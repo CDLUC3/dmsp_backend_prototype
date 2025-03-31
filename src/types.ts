@@ -528,21 +528,6 @@ export type ContributorRoleErrors = {
   uri?: Maybe<Scalars['String']['output']>;
 };
 
-/** The result of the findCollaborator query */
-export type ContributorSearchResult = {
-  __typename?: 'ContributorSearchResult';
-  /** The collaborator's affiliation */
-  affiliation?: Maybe<Affiliation>;
-  /** The collaborator's first/given name */
-  givenName?: Maybe<Scalars['String']['output']>;
-  /** The collaborator's ORCID */
-  orcid?: Maybe<Scalars['String']['output']>;
-  /** The collaborator's last/sur name */
-  surName?: Maybe<Scalars['String']['output']>;
-  /** The userId of the collaborator */
-  userId?: Maybe<Scalars['Int']['output']>;
-};
-
 /** The types of object a User can be invited to Collaborate on */
 export type InvitedToType =
   | 'PLAN'
@@ -1925,8 +1910,6 @@ export type Query = {
   contributorRoles?: Maybe<Array<Maybe<ContributorRole>>>;
   /** Search for a User to add as a collaborator */
   findCollaborator?: Maybe<Array<Maybe<CollaboratorSearchResult>>>;
-  /** Search for a user to add as a project contributor */
-  findContributor?: Maybe<Array<Maybe<ContributorSearchResult>>>;
   /** Get all of the supported Languages */
   languages?: Maybe<Array<Maybe<Language>>>;
   /** Fetch a specific license */
@@ -2077,11 +2060,6 @@ export type QueryContributorRoleByUrlArgs = {
 
 export type QueryFindCollaboratorArgs = {
   term?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryFindContributorArgs = {
-  term: Scalars['String']['input'];
 };
 
 
@@ -3570,7 +3548,6 @@ export type ResolversTypes = {
   CollaboratorSearchResult: ResolverTypeWrapper<CollaboratorSearchResult>;
   ContributorRole: ResolverTypeWrapper<ContributorRole>;
   ContributorRoleErrors: ResolverTypeWrapper<ContributorRoleErrors>;
-  ContributorSearchResult: ResolverTypeWrapper<ContributorSearchResult>;
   DateTimeISO: ResolverTypeWrapper<Scalars['DateTimeISO']['output']>;
   DmspId: ResolverTypeWrapper<Scalars['DmspId']['output']>;
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']['output']>;
@@ -3709,7 +3686,6 @@ export type ResolversParentTypes = {
   CollaboratorSearchResult: CollaboratorSearchResult;
   ContributorRole: ContributorRole;
   ContributorRoleErrors: ContributorRoleErrors;
-  ContributorSearchResult: ContributorSearchResult;
   DateTimeISO: Scalars['DateTimeISO']['output'];
   DmspId: Scalars['DmspId']['output'];
   EmailAddress: Scalars['EmailAddress']['output'];
@@ -3961,15 +3937,6 @@ export type ContributorRoleErrorsResolvers<ContextType = MyContext, ParentType e
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   label?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   uri?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ContributorSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ContributorSearchResult'] = ResolversParentTypes['ContributorSearchResult']> = {
-  affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
-  givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  userId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4499,7 +4466,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   contributorRoleByURL?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<QueryContributorRoleByUrlArgs, 'contributorRoleURL'>>;
   contributorRoles?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorRole']>>>, ParentType, ContextType>;
   findCollaborator?: Resolver<Maybe<Array<Maybe<ResolversTypes['CollaboratorSearchResult']>>>, ParentType, ContextType, Partial<QueryFindCollaboratorArgs>>;
-  findContributor?: Resolver<Maybe<Array<Maybe<ResolversTypes['ContributorSearchResult']>>>, ParentType, ContextType, RequireFields<QueryFindContributorArgs, 'term'>>;
   languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
   license?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<QueryLicenseArgs, 'uri'>>;
   licenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, Partial<QueryLicensesArgs>>;
@@ -5082,7 +5048,6 @@ export type Resolvers<ContextType = MyContext> = {
   CollaboratorSearchResult?: CollaboratorSearchResultResolvers<ContextType>;
   ContributorRole?: ContributorRoleResolvers<ContextType>;
   ContributorRoleErrors?: ContributorRoleErrorsResolvers<ContextType>;
-  ContributorSearchResult?: ContributorSearchResultResolvers<ContextType>;
   DateTimeISO?: GraphQLScalarType;
   DmspId?: GraphQLScalarType;
   EmailAddress?: GraphQLScalarType;
