@@ -1,5 +1,5 @@
 import { Resolvers } from "../types";
-import { Template, TemplateVisibility } from "../models/Template";
+import { Template, TemplateSearchResult, TemplateVisibility } from "../models/Template";
 import { Affiliation } from "../models/Affiliation";
 import { TemplateCollaborator } from "../models/Collaborator";
 import { Section } from "../models/Section";
@@ -19,11 +19,11 @@ import { GraphQLError } from "graphql";
 export const resolvers: Resolvers = {
   Query: {
     // Get the Templates that belong to the current user's affiliation (user must be an Admin)
-    myTemplates: async (_, __, context: MyContext): Promise<Template[]> => {
+    myTemplates: async (_, __, context: MyContext): Promise<TemplateSearchResult[]> => {
       const reference = 'myTemplates resolver';
       try {
         if (isAdmin(context.token)) {
-          return await Template.findByAffiliationId(reference, context, context.token.affiliationId);
+          return await TemplateSearchResult.findByAffiliationId(reference, context, context.token.affiliationId);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

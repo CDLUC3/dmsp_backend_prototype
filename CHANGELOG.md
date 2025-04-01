@@ -1,4 +1,8 @@
 ### Added
+- Added tests for `plan` resolver and added tests for `contributor` resolver's queries
+- Added mocks for most of the MySQL tables and the Dynamo table
+- Added a new `dynamo` datasource (to replace the DMPHub API one ... much faster to access the table directly)
+- Added `TemplateSearchResult`, `VersionedTemplateSearchResult` and `ProjectSearchResult` to optimize querying
 - Added `sections` to `Plan` schema and to plan resolver
 - Added the `relatedWorks` data migration
 - Added model and resolvers for `RelatedWork`
@@ -66,7 +70,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
-- Renamed `datasources/MySQLDataSource` to `datasources/mysql` to follow naming pattern of other datasources
+- Fixed projectCollaborators table which had an FKey on the plans table instead of the projects table
 - Updated the `dmpHubAPI` datasource to support CRUD operations
 - Updated the `Plan` resolver and model to support mutations
 - Updated the `Affiliation` schema and model to include the new `apiTarget` property.
@@ -112,11 +116,13 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Dropped the `PlanVersion` table
 - Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
 - Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- When calling `updatePlanContributors`, the resolver should set isPrimaryContact to `false` for all contributors other than the one marked as isPrimary.
 - Fixed an issue where Jest tests failed on Linux due to case-sensitive file paths. The tests passed on macOS because its file system is case-insensitive by default.
 - Fixed bugs related to addPlanContributor and updatePlanContributor since these were not working without missing contributorRoles
 - Converted DateTimeISO to String in schemas so that dates could be inserted into mariaDB database, and updated MySqlModel and associated unit test

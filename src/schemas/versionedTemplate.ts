@@ -5,9 +5,9 @@ export const typeDefs = gql`
     "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
     templateVersions(templateId: Int!): [VersionedTemplate]
     "Search for VersionedTemplate whose name or owning Org's name contains the search term"
-    publishedTemplates(term: String): [VersionedTemplate]
+    publishedTemplates(term: String): [VersionedTemplateSearchResult]
     "Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin)"
-    myVersionedTemplates: [VersionedTemplate]
+    myVersionedTemplates: [VersionedTemplateSearchResult]
   }
 
   "Template version type"
@@ -16,6 +16,38 @@ export const typeDefs = gql`
     DRAFT
     "Published - saved state for use when creating DMPs"
     PUBLISHED
+  }
+
+  "An abbreviated view of a Template for pages that allow search/filtering of published Templates"
+  type VersionedTemplateSearchResult {
+    "The unique identifer for the Object"
+    id: Int
+    "The id of the template that this version is based on"
+    templateId: Int
+    "The name/title of the template"
+    name: String
+    "A description of the purpose of the template"
+    description: String
+    "The major.minor semantic version"
+    version: String
+    "The template's availability setting: Public is available to everyone, Private only your affiliation"
+    visibility: TemplateVisibility
+    "Whether or not this Template is designated as a 'Best Practice' template"
+    bestPractice: Boolean
+    "The id of the affiliation that owns the Template"
+    ownerId: Int
+    "The URI of the affiliation that owns the Template"
+    ownerURI: String
+    "The search name of the affiliation that owns the Template"
+    ownerSearchName: String
+    "The display name of the affiliation that owns the Template"
+    ownerDisplayName: String
+    "The name of the last person who modified the Template"
+    modifiedById: Int
+    "The name of the last person who modified the Template"
+    modifiedByName: String
+    "The timestamp when the Template was last modified"
+    modified: String
   }
 
   "A snapshot of a Template when it became published. DMPs are created from published templates"
