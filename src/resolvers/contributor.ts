@@ -350,20 +350,27 @@ export const resolvers: Resolvers = {
 
             // Make updates for isPrimaryContact
             if (updatedPlan && !updatedPlan.hasErrors()) {
-              if (isPrimaryContact !== undefined) {
-                // Get the current primary contact and set isPrimaryContact to false if it does not match the passed in planContributorId
-                const currentPrimaryContact = await PlanContributor.findPrimaryByPlanId(reference, context, planId);
-                if (currentPrimaryContact && currentPrimaryContact.id !== planContributorId) {
-                  const roles = await ContributorRole.findByPlanContributorId(reference, context, currentPrimaryContact.id);
-                  const currentRoleIds = roles ? roles.map((d) => d.id) : [];
-                  currentPrimaryContact.isPrimaryContact = false;
-                  currentPrimaryContact.contributorRoleIds = currentRoleIds; //Have to add contributor's contributor roles when updating
-                  await currentPrimaryContact.update(context);
+              if (isPrimaryContact === true) {
+                // Get all contributors for the plan
+                const allContributors = await PlanContributor.findByPlanId(reference, context, planId);
+
+                // Set isPrimaryContact to false for all other contributors
+                for (const contributor of allContributors) {
+                  if (contributor.id !== planContributorId) {
+                    contributor.isPrimaryContact = false;
+                    // Fetch current roles
+                    const roles = await ContributorRole.findByPlanContributorId(reference, context, contributor.id);
+                    const roleIds = roles ? roles.map((d) => d.id) : [];
+                    contributor.contributorRoleIds = roleIds;
+                    await contributor.update(context);
+                  }
                 }
-                updatedPlan.isPrimaryContact = isPrimaryContact;
-                updatedPlan.contributorRoleIds = updatedRoleIds ?? [];
-                await updatedPlan.update(context);
               }
+
+              // Update the current contributor's isPrimaryContact field
+              updatedPlan.isPrimaryContact = isPrimaryContact;
+              updatedPlan.contributorRoleIds = updatedRoleIds ?? [];
+              await updatedPlan.update(context);
             }
 
             return await PlanContributor.findById(reference, context, contributor.id);
