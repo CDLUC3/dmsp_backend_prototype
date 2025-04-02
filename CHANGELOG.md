@@ -1,4 +1,10 @@
+# DMP Tool Apollo Server Change Log
+
+## v0.2 - Initial deploy to the stage environment to facilitate user testing
+
 ### Added
+- Added `aws-process.sh` to allow migrations to be run in the AWS environment
+- Added `init-tables` and `init-seed` data migration files
 - Added `TemplateSearchResult`, `VersionedTemplateSearchResult` and `ProjectSearchResult` to optimize querying
 - Added `sections` to `Plan` schema and to plan resolver
 - Added the `relatedWorks` data migration
@@ -67,6 +73,8 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Renamed the `outputTypes` table to `projectOutputTypes`
+- Updated `buildspec` to allow for a "MODE" env variable to be set so that we can run migrations, tests and the build separately
 - Fixed projectCollaborators table which had an FKey on the plans table instead of the projects table
 - Updated the `dmpHubAPI` datasource to support CRUD operations
 - Updated the `Plan` resolver and model to support mutations
@@ -113,6 +121,7 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Dropped all previous `data-migration` files in favor of the new `init-tables` and `init-seed` files
 - Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
 - Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic

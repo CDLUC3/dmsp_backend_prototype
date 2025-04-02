@@ -35,15 +35,11 @@ phases:
       - IMAGE_TAG=${COMMIT_HASH:=apollo-latest}
 
       # Install MySQL so we can run DB migrations
-      # - dnf -y install mariadb105
+      - dnf -y install mariadb105
   build:
     commands:
-      - echo "Running build in ${NODE_ENV} mode - started on `date`"
+      - echo "Running in ${MODE} mode in ${NODE_ENV} - started on `date`"
       - cd $CODEBUILD_SRC_DIR
-
-      # - echo Checking for DB migrations
-      # - cd $CODEBUILD_SRC_DIR
-      # - cd data-migrations && ./process-aws.sh $NODE_ENV && cd ..
 
       # Install all of the dependencies (including dev so we can compile TS)
       - npm install --production=false
@@ -51,15 +47,35 @@ phases:
       # Generate all of the GraphQL schema types
       - npm run generate
 
-      # Run any tests here
-      # - npm run test
+      - |
+        case "$MODE" in
+          "TEST")
+            echo "Running linter checks"
+            npm run lint
 
-      # Build the Apollo server which writes to the ./dist dir
-      - npm run build
+            echo "Running tests"
+            npm run test
+            ;;
 
-      - echo Building the Docker image...
-      - docker build -f Dockerfile.aws -t $SHORT_ECR_URI:apollo-latest .
-      - docker tag $ECR_REPOSITORY_URI:apollo-latest $SHORT_ECR_URI:$IMAGE_TAG
+          "MIGRATE")
+            echo "Running DB migrations"
+            ./data-migrations/aws-process.sh
+            ;;
+
+          "BUILD")
+            # Build the Apollo server which writes to the ./dist dir
+            npm run build
+
+            echo Building the Docker image...
+            docker build -f Dockerfile.aws -t $SHORT_ECR_URI:apollo-latest .
+            docker tag $ECR_REPOSITORY_URI:apollo-latest $SHORT_ECR_URI:$IMAGE_TAG
+            ;;
+          *)
+            echo "Unknown mode: $MODE"
+            exit 1
+            ;;
+        esac
+
   post_build:
     commands:
       # Push the Docker image to the ECR repository. Fargate will pick it up an deploy automatically
