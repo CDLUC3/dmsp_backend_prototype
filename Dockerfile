@@ -4,7 +4,8 @@ FROM public.ecr.aws/docker/library/node:22.1.0-alpine3.19
 
 # Install MariaDB and Bash so we can run data-migrations/process.sh
 RUN apk update && \
-    apk add mariadb-client && \
+    apk add mysql-client && \
+    apk add mariadb-connector-c && \
     apk add --no-cache bash
 
 # Create the directory on the node image

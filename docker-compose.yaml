@@ -8,25 +8,21 @@ networks:
     driver: bridge
 
 services:
-  mariadb:
-    image: "bitnami/mariadb:latest"
-    restart: always
-    container_name: apollo-mariadb
-    environment:
-      - "MARIADB_ROOT_PASSWORD=d0ckerSecr3t"
-      - "MARIADB_USER=dmspuser"
-      - "MARIADB_PASSWORD=abcd3fgh1j"
-      - "MARIADB_DATABASE=dmsp"
-    networks:
-      - apollo-network
+  mysql:
+    image: mysql:latest
+    container_name: apollo-mysql
     ports:
       - "3307:3306"
       - "3306:3306"
     expose:
       - 3307
+    environment:
+      - MYSQL_ROOT_PASSWORD=d0ckerSecr3t
+      - MYSQL_DATABASE=dmsp
+    networks:
+      - apollo-network
     volumes:
-      - "./docker/mariadb-persistence:/bitnami/mariadb"
-      - "./mariadb.cnf:/etc/mysql/conf.d/appollo.cnf"
+      - ./docker/mysql:/var/lib/mysql
 
   redis:
     image: "public.ecr.aws/docker/library/redis:alpine"
@@ -42,7 +38,7 @@ services:
   apollo:
     container_name: apollo-server
     depends_on:
-      - mariadb
+      - mysql
       - redis
     build:
       context: .
@@ -58,11 +54,11 @@ services:
     environment:
       - "NODE_ENV=development"
       - "MYSQL_CONNECTION_LIMIT=5"
-      - "MYSQL_HOST=apollo-mariadb"
+      - "MYSQL_HOST=apollo-mysql"
       - "MYSQL_PORT=3306"
       - "MYSQL_DATABASE=dmsp"
-      - "MYSQL_USER=dmspuser"
-      - "MYSQL_PASSWORD=abcd3fgh1j"
+      - "MYSQL_USER=root"
+      - "MYSQL_PASSWORD=d0ckerSecr3t"
       - "CACHE_HOST=apollo-redis"
       - "CACHE_PORT=6379"
       - "CACHE_CONNECT_TIMEOUT=10000"

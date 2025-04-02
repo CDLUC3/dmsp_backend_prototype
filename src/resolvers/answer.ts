@@ -15,7 +15,7 @@ import { addVersion } from "../models/PlanVersion";
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all of the projects that the current user owns or is a collaborator on
+    // return all of the answers for the given plan
     answers: async (_, { projectId, planId, versionedSectionId }, context: MyContext): Promise<Answer[]> => {
       const reference = 'planSectionAnswers resolver';
       try {
@@ -37,7 +37,7 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // Find the plan by its id
+    // Find the answer by its id
     answer: async (_, { projectId, answerId }, context: MyContext): Promise<Answer> => {
       const reference = 'plan resolver';
       try {
@@ -56,7 +56,7 @@ export const resolvers: Resolvers = {
   },
 
   Mutation: {
-    // Create a new plan
+    // Create a new answer
     addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, answerText }, context: MyContext): Promise<Answer> => {
       const reference = 'addAnswer resolver';
       try {
@@ -89,7 +89,7 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // Delete a plan
+    // Delete an answer
     updateAnswer: async (_, { answerId, answerText }, context: MyContext): Promise<Answer> => {
       const reference = 'updateAnswer resolver';
       try {
@@ -126,21 +126,21 @@ export const resolvers: Resolvers = {
   },
 
   Answer: {
-    // The project the plan is associated with
+    // The plan the answer is associated with
     plan: async (parent: Answer, _, context: MyContext): Promise<Plan> => {
       if (parent?.planId) {
         return await Plan.findById('Answer plan resolver', context, parent.planId);
       }
       return null;
     },
-    // The template the plan is based on
+    // The section the answer's question belongs to
     versionedSection: async (parent: Answer, _, context: MyContext): Promise<VersionedSection> => {
       if (parent?.versionedSectionId) {
         return await VersionedSection.findById('Answer versionedSection resolver', context, parent.versionedSectionId);
       }
       return null;
     },
-    // The contributors to the plan
+    // The question the answer is associated with
     versionedQuestion: async (parent: Answer, _, context: MyContext): Promise<VersionedQuestion> => {
       if (parent?.versionedQuestionId) {
         return await VersionedQuestion.findById('Answer versionedQuestion resolver', context, parent.versionedQuestionId);
