@@ -1,20 +1,64 @@
 # syntax = docker/dockerfile:1
 
-# This version of the Dockerfile is used by the buildspec.yaml within the AWS environment
-FROM public.ecr.aws/docker/library/node:22.1.0-alpine3.19
+# Stage 1: Dependencies
+# preferred node version chosen here (LTS = 20.9.0 as of 10/24/2023)
+FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as deps
+WORKDIR /app
 
-# Create the directory on the node image where our Apollo server will live
-RUN mkdir -p /dist
-
-# Copy package.json and package-lock.json to the /app working directory
+# Copy package.json and package-lock.json
+# to the /app working directory
 COPY package*.json ./
 
-# Build the node_modules for production mode
+# Install dependencies in /app (excluding devDependencies)
 RUN npm install
 
-# The app was built in the CodeBuild buildspec.yaml, so just copy dist/ in
+#Stage 2: Builder
+FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as builder
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Set production environment
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+
+# Generate the types for GraphQL
+RUN npm run generate
+
+# Build the application
+RUN npm run build
+
+# Remove all the unecessary test and mock files from the distribution
+RUN rm -rf dist/__tests__ \
+           dist/__mocks__ \
+           dist/**/__tests__ \
+           dist/**/__mocks__ \
+
+# Stage 3: Runner
+FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
+WORKDIR /app
+
+# Set production environment
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 apollo
+
+# Copy necessary files
 COPY dist/ ./dist
 
+#Switch to non-root user
+USER apollo
+
+# Ensure port 3000 is accessible to our system
 EXPOSE 4000
 
+# Set hostname
+ENV HOSTNAME 0.0.0.0
+
+# Start the application
 CMD ["node", "dist/index.js"]
