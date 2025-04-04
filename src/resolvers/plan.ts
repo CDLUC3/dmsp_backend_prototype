@@ -10,7 +10,6 @@ import { PlanContributor } from "../models/Contributor";
 import { PlanFunder } from "../models/Funder";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
-import { valueIsEmpty } from "../utils/helpers";
 import { Answer } from "../models/Answer";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 
@@ -103,7 +102,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (!valueIsEmpty(plan.registered)) {
+          if (plan.isPublished()) {
             plan.addError('general', 'Plan is already published and cannot be archived');
           }
 
@@ -160,7 +159,7 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
-          if (!valueIsEmpty(plan.registered)) {
+          if (plan.isPublished()) {
             plan.addError('general', 'Plan is already published');
           }
 
@@ -169,7 +168,7 @@ export const resolvers: Resolvers = {
             if (!plan.hasErrors()) {
               if (project.isTestProject) {
                 plan.addError('general', 'Test projects cannot be published');
-              } else if (plan.registered) {
+              } else if (plan.isPublished()) {
                 plan.addError('general', 'Plan is already published');
               }
 
@@ -201,7 +200,7 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
-            if (plan.registered) {
+            if (plan.isPublished()) {
               plan.addError('general', 'Plan is already published');
             } else {
               plan.status = PlanStatus.COMPLETE;
@@ -231,7 +230,7 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
-            if (plan.registered) {
+            if (plan.isPublished()) {
               plan.addError('general', 'Plan is already published');
             } else {
               plan.status = PlanStatus.DRAFT;

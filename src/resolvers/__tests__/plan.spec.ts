@@ -712,6 +712,8 @@ describe('archivePlan', () => {
     const expectedId = planStore[1].id;
     const originalPlanCount = planStore.length;
     delete planStore[1].registered;
+    delete planStore[1].dmpId;
+    delete planStore[1].registeredById;
     const resp = await executeQuery(query, variables, context);
 
     assert(resp.body.kind === 'single');
@@ -726,6 +728,8 @@ describe('archivePlan', () => {
     const expectedId = planStore[1].id;
     const originalPlanCount = planStore.length;
     delete planStore[1].registered;
+    delete planStore[1].dmpId;
+    delete planStore[1].registeredById;
     // Make the last user in the userStore a collaborator on the project
     projectCollaboratorStore[0].projectId = projectId;
     projectCollaboratorStore[0].userId = userStore[3].id;
@@ -745,6 +749,8 @@ describe('archivePlan', () => {
     const expectedId = planStore[1].id;
     const originalPlanCount = planStore.length;
     delete planStore[1].registered;
+    delete planStore[1].dmpId;
+    delete planStore[1].registeredById;
     context.token = adminToken;
     const resp = await executeQuery(query, variables, context);
 
@@ -760,6 +766,8 @@ describe('archivePlan', () => {
     const expectedId = planStore[1].id;
     const originalPlanCount = planStore.length;
     delete planStore[1].registered;
+    delete planStore[1].dmpId;
+    delete planStore[1].registeredById;
     context.token = superAdminToken;
     const resp = await executeQuery(query, variables, context);
 
@@ -820,6 +828,8 @@ describe('archivePlan', () => {
 
     const variables = { planId: planStore[1].id };
     delete planStore[1].registered;
+    delete planStore[1].dmpId;
+    delete planStore[1].registeredById;
     const resp = await executeQuery(query, variables, context);
 
     assert(resp.body.kind === 'single');

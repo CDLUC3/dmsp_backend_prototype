@@ -261,20 +261,28 @@ describe('Plan', () => {
     expect(plan.errors['versionedTemplateId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the dmpId field is missing and the status is PUBLISHED', async () => {
+  it('should return false when calling isValid if the dmpId field is missing but registered is present', async () => {
     plan.dmpId = null;
-    plan.status = PlanStatus.PUBLISHED;
+    plan.registered = casual.date('YYYY-MM-DD');
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['dmpId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the registered field is missing and status is PUBLISHED', async () => {
+  it('should return false when calling isValid if the Plan is published but the registered field is missing', async () => {
     plan.registered = null;
-    plan.status = PlanStatus.PUBLISHED;
+    plan.dmpId = casual.uuid;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['registered']).toBeTruthy();
+  });
+
+  it('should return false when calling isValid if the Plan is published but a registeredById field is missing', async () => {
+    plan.registeredById = null;
+    plan.dmpId = casual.uuid;
+    expect(await plan.isValid()).toBe(false);
+    expect(Object.keys(plan.errors).length).toBe(1);
+    expect(plan.errors['registeredById']).toBeTruthy();
   });
 
   it('generateDMPId should return the existing DMP Id', async () => {
@@ -300,6 +308,16 @@ describe('Plan', () => {
     const dmpId = await plan.generateDMPId(context);
     expect(Plan.query).toHaveBeenCalledTimes(5);
     expect(dmpId.startsWith(DEFAULT_TEMPORARY_DMP_ID_PREFIX)).toBe(true);
+  });
+
+  it('isPublished should return true if the Plan has a dmpId', () => {
+    plan.dmpId = casual.uuid;
+    expect(plan.isPublished()).toBe(true);
+  });
+
+  it('isPublished should return false if the Plan does NOT have a dmpId', () => {
+    plan.dmpId = null;
+    expect(plan.isPublished()).toBe(false);
   });
 });
 
@@ -429,7 +447,6 @@ describe('publish', () => {
 
     expect(result).toBeInstanceOf(Plan);
     expect(versionMockInput.dmpId).toEqual(dmpId);
-    expect(versionMockInput.status).toEqual(PlanStatus.PUBLISHED);
     expect(versionMockInput.registered).toBeTruthy();
     expect(versionMockInput.registeredById).toBeTruthy();
   });
@@ -447,6 +464,7 @@ describe('publish', () => {
   it('returns an error if the Plan is already published', async () => {
     plan.dmpId = getMockDMPId();
     plan.registered = getCurrentDate();
+    plan.registeredById = casual.integer(1, 99);
     const result = await plan.publish(context);
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();

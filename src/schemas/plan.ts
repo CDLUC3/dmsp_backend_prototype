@@ -99,8 +99,6 @@ export const typeDefs = gql`
     DRAFT
     "The Plan is ready for submission or download"
     COMPLETE
-    "The Plan's DMP ID (DOI) has been registered"
-    PUBLISHED
   }
 
   "A Data Managament Plan (DMP)"

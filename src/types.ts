@@ -1606,9 +1606,7 @@ export type PlanStatus =
   /** The Plan is ready for submission or download */
   | 'COMPLETE'
   /** The Plan is still being written and reviewed */
-  | 'DRAFT'
-  /** The Plan's DMP ID (DOI) has been registered */
-  | 'PUBLISHED';
+  | 'DRAFT';
 
 /** A version of the plan */
 export type PlanVersion = {

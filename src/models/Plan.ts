@@ -12,7 +12,6 @@ export enum PlanStatus {
   ARCHIVED = 'ARCHIVED',
   DRAFT = 'DRAFT',
   COMPLETE = 'COMPLETE',
-  PUBLISHED = 'PUBLISHED',
 }
 
 export enum PlanVisibility {
@@ -181,6 +180,11 @@ export class Plan extends MySqlModel {
     return `${DEFAULT_TEMPORARY_DMP_ID_PREFIX}${id}`;
   }
 
+  // Helper function to determine if the plan has been published
+  isPublished(): boolean {
+    return !valueIsEmpty(this.dmpId);
+  }
+
   // Make sure the plan is valid
   async isValid(): Promise<boolean> {
     await super.isValid();
@@ -190,8 +194,11 @@ export class Plan extends MySqlModel {
     if (valueIsEmpty(this.dmpId) && !valueIsEmpty(this.registered)) {
       this.addError('dmpId', 'A published plan must have a DMP ID');
     }
-    if (valueIsEmpty(this.registered) && this.status === PlanStatus.PUBLISHED) {
+    if (this.isPublished() && valueIsEmpty(this.registered)) {
       this.addError('registered', 'A published plan must have a registration date');
+    }
+    if (this.isPublished() && valueIsEmpty(this.registeredById)) {
+      this.addError('registeredById', 'A published plan must have been registered by a user');
     }
 
     return Object.keys(this.errors).length === 0;
@@ -207,7 +214,6 @@ export class Plan extends MySqlModel {
           const dmpId = await this.generateDMPId(context);
           if (dmpId) {
             this.dmpId = dmpId;
-            this.status = PlanStatus.PUBLISHED;
             this.registered = getCurrentDate();
             this.registeredById = context.token.id;
 
@@ -296,20 +302,20 @@ export class Plan extends MySqlModel {
   static async findById(reference: string, context: MyContext, planId: number): Promise<Plan | null> {
     const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`;
     const results = await Plan.query(context, sql, [planId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new Plan(results[0]) : null;
   }
 
   // Find the plan by its DMP ID
   static async findByDMPId(reference: string, context: MyContext, dmpId: string): Promise<Plan | null> {
     const sql = `SELECT * FROM ${this.tableName} WHERE dmpId = ?`;
     const results = await Plan.query(context, sql, [dmpId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results[0] : null;
+    return Array.isArray(results) && results.length > 0 ? new Plan(results[0]) : null;
   }
 
   // Find all of the plans for a project
   static async findByProjectId(reference: string, context: MyContext, projectId: number): Promise<Plan[]> {
     const sql = `SELECT * FROM ${this.tableName} WHERE projectId = ?`;
     const results = await Plan.query(context, sql, [projectId?.toString()], reference);
-    return Array.isArray(results) ? results : [];
+    return Array.isArray(results) ? results.map((result) => new Plan(result)) : [];
   }
 }
