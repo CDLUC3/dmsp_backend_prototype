@@ -108,10 +108,6 @@ export class Affiliation extends MySqlModel {
     if (!this.searchName) this.addError('searchName', 'Search name can\'t be blank');
     if (!this.provenance) this.addError('provenance', 'Provenance can\'t be blank');
 
-    // if (!valueIsEmpty(this.apiTarget) && !validateURL(this.apiTarget)) {
-    //   this.addError('apiTarget', 'Invalid URL');
-    // }
-
     return Object.keys(this.errors).length === 0;
   }
 

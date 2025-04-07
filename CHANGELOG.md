@@ -1,4 +1,6 @@
 ### Added
+- Added `getAwards` method to `DMPHubAPI`.
+- Added `searchExternalProjects` query and `projectImport` mutation.
 - Added `TemplateSearchResult`, `VersionedTemplateSearchResult` and `ProjectSearchResult` to optimize querying
 - Added `sections` to `Plan` schema and to plan resolver
 - Added the `relatedWorks` data migration
@@ -67,6 +69,8 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Format ORCID identifiers consistently, in the `Contributor` and `User` models, the `projectImport` resolver and `orcid` scalar.
+- Changed a number of GraphQL definitions to PascalCase.
 - Fixed projectCollaborators table which had an FKey on the plans table instead of the projects table
 - Updated the `dmpHubAPI` datasource to support CRUD operations
 - Updated the `Plan` resolver and model to support mutations
@@ -113,6 +117,7 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Removed `prepareAPITarget` function.
 - Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
 - Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
