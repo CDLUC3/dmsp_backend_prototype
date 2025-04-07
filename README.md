@@ -15,7 +15,7 @@
     - [Installation](#installation)
     - [Running the App](#running-the-app)
     - [Building for Production](#building-for-production)
-    - [Managing the database](#managing-the-database)
+    - [Managing the databases](#managing-the-database)
 - [Querying the Apollo Server](#querying-apollo-server)
     - [Errors](#errors)
 - [Development](#development)
@@ -202,40 +202,25 @@ When deploying manually, you will need to ensure that all of the environment var
 
 If you plan on deploying to the AWS cloud, you can refer to the [corresponding AWS infrastructure repository](https://github.com/CDLUC3/dmsp_frontend_prototype?tab=readme-ov-file#running-the-app). For the CloudFormation templates needed to build this application using CodePipeline and then host it within an ECS cluster.
 
-### Managing the database
+### Managing the databases
 
-#### Running database migrations
+The system has a DynamoDB Table and a MySQL database. Please note that the Docker container must be running to execute any of these commands!
 
-**Local Docker container**
+You can run AWS CLI commands to interact with the DynamoDB table or MySQL commands to interact with that database by using `docker-compose exec`.
+
+#### DynamoDB
+
+- To create a local instance of the DynamoDB table, startup the Docker container and run `docker-compose exec apollo bash ./data-migrations/dynamo-init.sh`. This will create the table if it does not already exist
+
+#### Running MySQL database migrations
+
 - While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh` in a seperate terminal window.
 
-**AWS Cloud9 Bastion Host**
-- Login to the AWS console and start the bastion cloud9 instance.
-- Navigate to this repo on the instance (clone it if it is not there)
-- Checkout the appropriate branch/tag and pull down the latest
-- Run `./data-migrations/process.sh [env]`
+#### Dropping all of the MySQL tables in the local database
 
-#### Dropping all of the tables in the local database
-
-In the event that you want to delete all of the tables and data from your database and rebuild a clean database you can run.
-
-**Local Docker container**
-- Drop the tables: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh`
-- Rebuild the tables and seed them: `docker-compose exec apollo bash ./data-migrations/process.sh`
-
-Note that the container must be running!
+In the event that you want to delete all of the tables and data from your database and rebuild a clean database you can run: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh`
 
 You may find that you receive an error that the `dataMigrations` table already exists when running the `process.sh` script. If so, restart the container and try again.
-
-**AWS Cloud9 Bastion Host**
-
-NEVER EVER do this in production! You will lose ALL data.
-
-- Login to the AWS console and start the bastion cloud9 instance.
-- Navigate to this repo on the instance (clone it if it is not there)
-- Checkout the appropriate branch/tag and pull down the latest
-- Drop the tables: `./data-migrations/nuke-db.sh`
-- Rebuild the tables and seed them: `./data-migrations/process.sh`
 
 ## Querying Apollo Server
 
