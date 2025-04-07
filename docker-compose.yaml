@@ -24,6 +24,18 @@ services:
     volumes:
       - ./docker/mysql:/var/lib/mysql
 
+  dynamodb:
+    image: "amazon/dynamodb-local:latest"
+    container_name: dynamodb
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    networks:
+      - apollo-network
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./docker/dynamodb/data:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal
+
   redis:
     image: "public.ecr.aws/docker/library/redis:alpine"
     container_name: apollo-redis
@@ -39,6 +51,7 @@ services:
     container_name: apollo-server
     depends_on:
       - mysql
+      - dynamodb
       - redis
     build:
       context: .
@@ -52,6 +65,9 @@ services:
     env_file:
       - .env
     environment:
+      - "AWS_ACCESS_KEY_ID=DUMMYIDEXAMPLE"
+      - "AWS_SECRET_ACCESS_KEY=DUMMYEXAMPLEKEY"
+      - "REGION=us-west-2"
       - "NODE_ENV=development"
       - "MYSQL_CONNECTION_LIMIT=5"
       - "MYSQL_HOST=apollo-mysql"
@@ -59,6 +75,8 @@ services:
       - "MYSQL_DATABASE=dmsp"
       - "MYSQL_USER=root"
       - "MYSQL_PASSWORD=d0ckerSecr3t"
+      - "DYNAMO_TABLE_NAME=localDMPTable"
+      - "DYNAMO_ENDPOINT=http://dynamodb:8000"
       - "CACHE_HOST=apollo-redis"
       - "CACHE_PORT=6379"
       - "CACHE_CONNECT_TIMEOUT=10000"

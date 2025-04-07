@@ -2,6 +2,7 @@ import {
   AttributeValue,
   DeleteItemCommand,
   DynamoDBClient,
+  DynamoDBClientConfig,
   PutItemCommand,
   PutItemCommandOutput,
   QueryCommand,
@@ -23,12 +24,18 @@ const DMP_TOMBSTONE_VERSION = 'tombstone';
 
 export const dynamoEnabled = !isNullOrUndefined(awsConfig.dynamoTableName);
 
-// Initialize AWS SDK clients (outside the handler function)
-const dynamoDBClient = new DynamoDBClient({
+const dynamoConfigParams: DynamoDBClientConfig = {
   region: awsConfig.region,
   maxAttempts: awsConfig.dynamoMaxQueryAttempts,
   logger: logger,
-});
+}
+
+if (process.env.NODE_ENV === 'development') {
+  dynamoConfigParams.endpoint = awsConfig.dynamoEndpoint;
+}
+
+// Initialize AWS SDK clients (outside the handler function)
+const dynamoDBClient = new DynamoDBClient(dynamoConfigParams);
 
 export interface dynamoInterface {
   getDMP: (dmpId: string, version: string | null) => Promise<DMPCommonStandard[] | []>;

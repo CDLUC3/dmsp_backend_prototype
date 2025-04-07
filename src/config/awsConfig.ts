@@ -9,9 +9,6 @@ if (!['development', 'test'].includes(process.env.NODE_ENV)) {
   verifyCriticalEnvVariable('SES_ACCESS_SECRET');
   verifyCriticalEnvVariable('SES_BOUNCE_EMAIL_ADDRESS');
   verifyCriticalEnvVariable('SES_BOUNCED_EMAIL_BUCKET');
-}
-
-if (process.env.NODE_ENV !== 'development') {
   verifyCriticalEnvVariable('DYNAMO_TABLE_NAME');
 }
 
@@ -29,5 +26,6 @@ export const awsConfig = {
 
   // DynamoDB configuration
   dynamoTableName: process.env.DYNAMO_TABLE_NAME,
+  dynamoEndpoint: process.env.DYNAMO_ENDPOINT,
   dynamoMaxQueryAttempts: process.env.DYNAMO_MAX_ATTEMPTS ? parseInt(process.env.DYNAMO_MAX_ATTEMPTS) : 3,
 }

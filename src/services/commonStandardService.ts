@@ -415,7 +415,7 @@ const loadProjectAndTemplateInfo = async (
     startDate: project.startDate,
     endDate: project.endDate,
     name: template.name,
-    dmptool_research_domain: researchDomain.uri,
+    dmptool_research_domain: researchDomain?.uri,
   }
 }
 
@@ -448,7 +448,7 @@ export const loadContributorInfo = async (
                         'LEFT JOIN projectContributors pctr ON pc.projectContributorId = pctr.id ' +
                           'LEFT JOIN affiliations a ON pctr.affiliationId = a.uri ' +
                         'WHERE pc.planId = ? ' +
-                        'GROUP BY a.uri, a.name, pctr.email, pctr.givenName, pctr.surName, pctr.orcid;';
+                        'GROUP BY a.uri, a.name, pctr.email, pctr.givenName, pctr.surName, pctr.orcid, pc.isPrimaryContact;';
   let contributors = await PlanContributor.query(context, sql, [planId.toString()], reference);
   contributors = contributors.filter((row) => !isNullOrUndefined(row));
   return Array.isArray(contributors) ? contributors : [];

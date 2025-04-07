@@ -1,4 +1,5 @@
 ### Added
+- Added dynamoDb to the docker-compose file and setup dev to use the local instance
 - Added tests for `plan` resolver and added tests for `contributor` resolver's queries
 - Added mocks for most of the MySQL tables and the Dynamo table
 - Added a new `dynamo` datasource (to replace the DMPHub API one ... much faster to access the table directly)

@@ -15,6 +15,7 @@ jest.mock('../config/awsConfig', () => ({
     sesBouncedEmailBucket: 'my-test-bucket',
     dynamoTableName: 'test-table',
     dynamoMaxQueryAttempts: 3,
+    dynamoEndpoint: 'http://localhost:8000',
   }
 }));
 
