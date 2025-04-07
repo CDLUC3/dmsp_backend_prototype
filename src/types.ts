@@ -2111,7 +2111,7 @@ export type Query = {
   repositories?: Maybe<Array<Maybe<Repository>>>;
   /** Fetch a specific repository */
   repository?: Maybe<Repository>;
-  /** Search for external projects */
+  /** Search for projects within external APIs */
   searchExternalProjects?: Maybe<Array<Maybe<ExternalProject>>>;
   /** Get the specified section */
   section?: Maybe<Section>;
@@ -3650,6 +3650,7 @@ export type VersionedTemplateSearchResult = {
   /** The template's availability setting: Public is available to everyone, Private only your affiliation */
   visibility?: Maybe<TemplateVisibility>;
 };
+
 
 
 export type ResolverTypeWrapper<T> = Promise<T> | T;
