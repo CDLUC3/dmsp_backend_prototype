@@ -7,7 +7,7 @@ import {ContributorRole} from "../models/ContributorRole";
 import {ProjectFunder} from '../models/Funder';
 import {ProjectOutput} from '../models/Output';
 import {PlanSearchResult} from '../models/Plan';
-import {Project} from "../models/Project";
+import {Project, ProjectSearchResult} from "../models/Project";
 import {ResearchDomain} from '../models/ResearchDomain';
 import {isAuthorized} from '../services/authService';
 import {parseContributor} from "../services/commonStandardService";
@@ -24,11 +24,11 @@ import {normaliseDate} from "../utils/helpers";
 export const resolvers: Resolvers = {
   Query: {
     // return all of the projects that the current user owns or is a collaborator on
-    myProjects: async (_, __, context: MyContext): Promise<Project[]> => {
+    myProjects: async (_, __, context: MyContext): Promise<ProjectSearchResult[]> => {
       const reference = 'myProjects resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await Project.findByUserId(reference, context, context.token?.id);
+          return await ProjectSearchResult.findByUserId(reference, context, context.token?.id);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

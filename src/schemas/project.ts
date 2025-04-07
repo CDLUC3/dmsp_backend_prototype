@@ -6,7 +6,7 @@ import {typeDefs as funderTypeDefs} from "./funder"
 export const projectTypeDefs = gql`
   extend type Query {
     "Get all of the user's projects"
-    myProjects: [Project]
+    myProjects: [ProjectSearchResult]
 
     "Get a specific project"
     project(projectId: Int!): Project
@@ -24,6 +24,43 @@ export const projectTypeDefs = gql`
     archiveProject(projectId: Int!): Project
     "Import a project from an external source"
     projectImport(input: ProjectImportInput): Project
+  }
+
+  type ProjectSearchResult {
+    "The unique identifer for the Object"
+    id: Int
+    "The name/title of the research project"
+    title: String
+    "The research project abstract"
+    abstractText: String
+    "The estimated date the research project will begin (use YYYY-MM-DD format)"
+    startDate: String
+    "The estimated date the research project will end (use YYYY-MM-DD format)"
+    endDate: String
+    "The type of research being done"
+    researchDomain: String
+    "Whether or not this is test/mock research project"
+    isTestProject: Boolean
+    "The id of the person who created the project"
+    createdById: Int
+    "The name of the person who created the project"
+    createdByName: String
+    "The timestamp when the project was created"
+    created: String
+    "The id of the person who last modified the project"
+    modifiedById: Int
+    "The name of the person who last modified the project"
+    modifiedByName: String
+    "The timestamp when the project was last modified"
+    modified: String
+    "The names and access levels of the collaborators"
+    collaborators: [ProjectSearchResultCollaborator!]
+    "The names and roles of the contributors"
+    contributors: [ProjectSearchResultContributor!]
+    "The names of the funders"
+    funders: [ProjectSearchResultFunder!]
+    "Search results errors"
+    errors: ProjectErrors
   }
 
   "DMP Tool Project type"
@@ -77,6 +114,31 @@ export const projectTypeDefs = gql`
     contributorIds: String
     funderIds: String
     outputIds: String
+  }
+
+  type ProjectSearchResultCollaborator {
+    "The name of the collaborator"
+    name: String
+    "The access level of the collaborator"
+    accessLevel: String
+    "The ORCiD ID"
+    orcid: String
+  }
+
+  type ProjectSearchResultContributor {
+    "The name of the contributor"
+    name: String
+    "The role of the contributor"
+    role: String
+    "The ORCiD ID"
+    orcid: String
+  }
+
+  type ProjectSearchResultFunder {
+    "The name of the funder"
+    name: String
+    "The grant id/url"
+    grantId: String
   }
 
   input UpdateProjectInput {
