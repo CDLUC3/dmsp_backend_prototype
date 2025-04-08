@@ -12,9 +12,9 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Update the current user's information"
-    updateUserProfile(input: updateUserProfileInput!): User
+    updateUserProfile(input: UpdateUserProfileInput!): User
     "Update the current user's email notifications"
-    updateUserNotifications(input: updateUserNotificationsInput!): User
+    updateUserNotifications(input: UpdateUserNotificationsInput!): User
     "Set the user's ORCID"
     setUserOrcid(orcid: String!): User
     "Anonymize the current user's account (essentially deletes their account without orphaning things)"
@@ -165,7 +165,7 @@ export const typeDefs = gql`
     email: String
   }
 
-  input updateUserProfileInput {
+  input UpdateUserProfileInput {
     "The user's first/given name"
     givenName: String!
     "The user's last/family name"
@@ -178,7 +178,7 @@ export const typeDefs = gql`
     languageId: String
   }
 
-  input updateUserNotificationsInput {
+  input UpdateUserNotificationsInput {
     "Whether or not email notifications are on for when a Plan has a new comment"
     notify_on_comment_added: Boolean!
     "Whether or not email notifications are on for when a Template is shared with the User (Admin only)"

@@ -1,7 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { randomHex, validateURL, valueIsEmpty } from "../utils/helpers";
-import { DMPHubConfig } from "../config/dmpHubConfig";
+import { randomHex, validateURL } from "../utils/helpers";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
@@ -24,25 +23,6 @@ export enum AffiliationType {
   HEALTHCARE = 'HEALTHCARE',
   ARCHIVE = 'ARCHIVE',
   OTHER = 'OTHER',
-}
-
-// Prepare the API target URL for the Affiliation
-// We are currently proxying calls to external funder APIs through the DMPHub API
-// This may change in the future
-const prepareAPITarget = (target: string): string => {
-  // If the target is a URL then return it as-is
-  if (target && target.startsWith('http')) {
-    return target;
-  } else if (target && target.startsWith('/')) {
-    // If the target is a relative URL then prepend the DMPHub URL
-    return `${DMPHubConfig.dmpHubURL}${target}`;
-  } else if (target) {
-    // If the target is a relative URL then prepend the DMPHub URL
-    return `${DMPHubConfig.dmpHubURL}/${target}`;
-  } else {
-    // Otherwise return null
-    return null;
-  }
 }
 
 // Represents an Institution, Organization or Company
@@ -106,7 +86,7 @@ export class Affiliation extends MySqlModel {
     this.feedbackEmails = options.feedbackEmails;
 
     // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
-    this.apiTarget = prepareAPITarget(options.apiTarget);
+    this.apiTarget = options.apiTarget;
 
     this.uneditableProperties = ['uri', 'provenance', 'searchName'];
 
@@ -127,10 +107,6 @@ export class Affiliation extends MySqlModel {
     if (!this.displayName) this.addError('displayName', 'Display name can\'t be blank');
     if (!this.searchName) this.addError('searchName', 'Search name can\'t be blank');
     if (!this.provenance) this.addError('provenance', 'Provenance can\'t be blank');
-
-    if (!valueIsEmpty(this.apiTarget) && !validateURL(this.apiTarget)) {
-      this.addError('apiTarget', 'Invalid URL');
-    }
 
     return Object.keys(this.errors).length === 0;
   }
@@ -334,7 +310,7 @@ export class AffiliationSearch {
     this.types = options.types ?? [AffiliationType.OTHER];
 
     // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
-    this.apiTarget = prepareAPITarget(options.apiTarget);
+    this.apiTarget = options.apiTarget;
   }
 
   // Some of the properties are stored as JSON strings in the DB so we need to parse them

@@ -1,16 +1,25 @@
-import { formatLogMessage } from '../logger';
-import { Resolvers } from "../types";
-import { Project, ProjectSearchResult } from "../models/Project";
-import { MyContext } from '../context';
-import { isAuthorized } from '../services/authService';
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
-import { ProjectFunder } from '../models/Funder';
-import { ProjectContributor } from '../models/Contributor';
-import { hasPermissionOnProject } from '../services/projectService';
-import { ResearchDomain } from '../models/ResearchDomain';
-import { ProjectOutput } from '../models/Output';
-import { GraphQLError } from 'graphql';
-import { PlanSearchResult } from '../models/Plan';
+import {GraphQLError} from 'graphql';
+import {MyContext} from '../context';
+import {formatLogMessage} from '../logger';
+import {Affiliation} from "../models/Affiliation";
+import {ProjectContributor} from '../models/Contributor';
+import {ContributorRole} from "../models/ContributorRole";
+import {ProjectFunder} from '../models/Funder';
+import {ProjectOutput} from '../models/Output';
+import {PlanSearchResult} from '../models/Plan';
+import {Project, ProjectSearchResult} from "../models/Project";
+import {ResearchDomain} from '../models/ResearchDomain';
+import {isAuthorized} from '../services/authService';
+import {parseContributor} from "../services/commonStandardService";
+import {hasPermissionOnProject} from '../services/projectService';
+import {ExternalProject, Resolvers} from "../types";
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from '../utils/graphQLErrors';
+import {normaliseDate} from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -39,6 +48,50 @@ export const resolvers: Resolvers = {
           if (hasPermissionOnProject(context, project)) {
             return project;
           }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    searchExternalProjects: async (_, { affiliationId , awardId, awardName, awardYear, piNames }, context: MyContext): Promise<ExternalProject[]> => {
+      const reference = 'external project search resolver';
+
+      try {
+        if (isAuthorized(context.token)) {
+          const dmphubAPI = context.dataSources.dmphubAPIDataSource;
+          const affiliation = await Affiliation.findById(reference, context, affiliationId);
+          const dmps = await dmphubAPI.getAwards(
+            context,
+            affiliation.apiTarget,
+            awardId,
+            awardName,
+            awardYear,
+            piNames,
+          );
+          return dmps.map((dmpHubAward) => {
+            const contributors = [
+              parseContributor(dmpHubAward.contact),
+              ...dmpHubAward.contributor.map((c) => parseContributor(c)),
+            ].filter((c) => c !== null);
+
+            return {
+              title: dmpHubAward.project.title,
+              abstractText: dmpHubAward.project.description,
+              startDate: normaliseDate(dmpHubAward.project.start),
+              endDate: normaliseDate(dmpHubAward.project.end),
+              funders: dmpHubAward.project.funding.map((fund) => ({
+                funderProjectNumber: fund.dmproadmap_project_number,
+                grantId: fund.grant_id.identifier,
+                funderOpportunityNumber: fund.dmproadmap_opportunity_number,
+              })),
+              contributors: contributors,
+            };
+          });
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -138,6 +191,96 @@ export const resolvers: Resolvers = {
             //       been published
             const deleted = await project.delete(context);
             return deleted
+          } catch (err) {
+            formatLogMessage(context).error(err, `Failure in ${reference}`);
+            throw InternalServerError();
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Import project from an external data source
+    projectImport: async (_, {input}, context) => {
+      const reference = 'updateProject resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          try {
+            const projectId = input.project.id;
+            const existingProject = await Project.findById(reference, context, projectId);
+            if (!existingProject) {
+              throw NotFoundError();
+            }
+
+            if (!hasPermissionOnProject(context, existingProject)) {
+              throw ForbiddenError();
+            }
+
+            // Update project
+            const toUpdateProject = new Project(input.project);
+            const updatedProject = await toUpdateProject.update(context);
+
+            // Add project funding and project contributors
+            if (updatedProject && !updatedProject.hasErrors()) {
+              // Update project funding
+              const addFunderErrors = [];
+              for (const fund of input.funding) {
+                const newFunder = new ProjectFunder(fund);
+                const funderAdded = await newFunder.create(context, projectId);
+                if(!funderAdded){
+                  addFunderErrors.push(`Funder(affiliationId=${newFunder.affiliationId})`);
+                }
+              }
+              if(addFunderErrors.length > 0){
+                const msg = `Unable to add funders to project: ${addFunderErrors.join(', ')}`;
+                formatLogMessage(context).error(msg);
+                updatedProject.addError('funders', msg)
+              }
+
+              // Update project contributors
+              const addContributorErrors = [];
+              const addContributorRoleErrors = [];
+              for (const contrib of input.contributors) {
+                // Add project contributor
+                const newContributor = new ProjectContributor(contrib);
+                formatLogMessage(context).debug(`${reference}: add project contributor`);
+                const contributorAdded = await newContributor.create(context, projectId);
+                if(!contributorAdded){
+                  addContributorErrors.push(`Contributor(affiliationId=${newContributor.affiliationId}, givenName=${newContributor.givenName}, surName=${newContributor.surName}, orcid=${newContributor.orcid}, email=${newContributor.email})`);
+                } else {
+                  // Add contributor role
+                  formatLogMessage(context).debug(`${reference}: add contributor role`);
+                  const role = await ContributorRole.defaultRole(context, reference);
+                  if(!role){
+                    formatLogMessage(context).error(`${reference}: could not find default role`);
+                  } else {
+                    formatLogMessage(context).debug(`${reference}: add ${role.label} to contributor ${contributorAdded.id}`);
+                    const wasAdded = await role.addToProjectContributor(context, contributorAdded.id);
+                    if (!wasAdded) {
+                      addContributorRoleErrors.push(`ContributorRole(contributorId=${contributorAdded.id}, role=${role.label})`);
+                    }
+                  }
+                }
+              }
+
+              if(addContributorErrors.length > 0){
+                const msg = `Unable to add contributors to project: ${addContributorErrors.join(', ')}`;
+                formatLogMessage(context).error(msg);
+                updatedProject.addError('contributors', msg)
+              }
+              if(addContributorRoleErrors.length > 0){
+                const msg = `Unable to add default contributor roles: ${addContributorRoleErrors.join(', ')}`
+                formatLogMessage(context).error(msg);
+                updatedProject.addError('contributorRoles', msg)
+              }
+            }
+
+            return updatedProject;
           } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
             throw InternalServerError();

@@ -1,8 +1,9 @@
-import { DMPHubConfig } from "../config/dmpHubConfig";
-import { generalConfig } from "../config/generalConfig";
-import { MyContext } from "../context";
+import {DMPHubConfig} from "../config/dmpHubConfig";
+import {generalConfig} from "../config/generalConfig";
+import {MyContext} from "../context";
 import {
   DMPCommonStandard,
+  DMPCommonStandardContact,
   DMPCommonStandardContributor,
   DMPCommonStandardFunding,
   DMPCommonStandardNarrative,
@@ -16,16 +17,17 @@ import {
   DMPYesNoUnknown,
   DOI_REGEX
 } from "../datasources/dmphubAPI";
-import { ROR_REGEX } from "../models/Affiliation";
-import { ContributorRole } from "../models/ContributorRole";
-import { ProjectFunderStatus } from "../models/Funder";
-import { defaultLanguageId } from "../models/Language";
-import { Plan, PlanVisibility } from "../models/Plan"
-import { Project } from "../models/Project";
-import { RelatedWork } from "../models/RelatedWork";
-import { ORCID_REGEX, User } from "../models/User";
-import { VersionedTemplate } from "../models/VersionedTemplate";
-import { valueIsEmpty } from "../utils/helpers";
+import {ROR_REGEX} from "../models/Affiliation";
+import {ContributorRole} from "../models/ContributorRole";
+import {ProjectFunderStatus} from "../models/Funder";
+import {defaultLanguageId} from "../models/Language";
+import {Plan, PlanVisibility} from "../models/Plan"
+import {Project} from "../models/Project";
+import {RelatedWork} from "../models/RelatedWork";
+import {User} from "../models/User";
+import {VersionedTemplate} from "../models/VersionedTemplate";
+import {ExternalContributor} from "../types";
+import {formatORCID, isNullOrUndefined, ORCID_REGEX, valueIsEmpty} from "../utils/helpers";
 
 // Represents the the RDA Common Metadata standard version of a plan/DMP. When communicating with external
 // systems we need to convert project/plan data into this format. This is the format that the DMPHub
@@ -497,3 +499,40 @@ const loadNarrativeTemplateInfo = async (
 
   return narrative;
 }
+
+// Parses a contributor into a standard format
+export function parseContributor(
+  input: DMPCommonStandardContact | DMPCommonStandardContributor | null,
+): ExternalContributor | null {
+  if (isNullOrUndefined(input)) {
+    return null;
+  }
+
+  const nameParts = input.name.split(",").map((t) => t.trim());
+  const surName = nameParts[0];
+  const givenName = nameParts[nameParts.length - 1];
+  const email = input.mbox;
+  let orcid = null;
+
+  // ORCID ID
+  if ("contact_id" in input && input.contact_id.type == "orcid") {
+    orcid = formatORCID(input.contact_id.identifier);
+  } else if ("contributor_id" in input && input.contributor_id.type == "orcid") {
+    orcid = formatORCID(input.contributor_id.identifier);
+  }
+
+  // ROR ID
+  let rorId = null;
+  if (input.dmproadmap_affiliation?.affiliation_id?.type == "ror") {
+    rorId = input.dmproadmap_affiliation.affiliation_id.identifier;
+  }
+
+  return {
+    affiliationId: rorId,
+    givenName: givenName,
+    surName: surName,
+    orcid: orcid,
+    email: email,
+  };
+}
+
