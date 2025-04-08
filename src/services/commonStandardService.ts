@@ -131,9 +131,11 @@ export async function planToDMPCommonStandard(
   // Add the contributors if there are any
   if (Array.isArray(contributors) && contributors.length > 0) {
     commonStandard.contributor = contributors.map((contributor) => {
+      // Make sure that we always have roles as an array
+      const roles = contributor.roles && contributor.roles.includes('[') ? JSON.parse(contributor.roles) : [defaultRole?.uri];
       const contrib = {
         name: [contributor.givenName, contributor.surName].filter((n) => n).join(' ').trim(),
-        role: contributor.roles ? JSON.parse(contributor.roles) : [defaultRole?.uri],
+        role: roles,
       } as DMPCommonStandardContributor;
 
       // Only add the rest if they have values

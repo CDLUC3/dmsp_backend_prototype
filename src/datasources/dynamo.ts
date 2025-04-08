@@ -45,9 +45,30 @@ export interface dynamoInterface {
   deleteDMP: (dmpId: string) => Promise<void>;
 }
 
-  // Fetch the specified DMP metadata record
-  //   - Version is optional, if not provided ALL versions of the DMP will be returned
-  //   - If you just want the latest version, use the DMP_LATEST_VERSION constant
+// Lightweight query just to check if the DMP exists
+export const DMPExists = async (context: MyContext, dmpId: string): Promise<boolean> => {
+  // Very lightweight here, just returning a PK if successful
+  const params = {
+    KeyConditionExpression: "PK = :pk AND SK = :sk",
+    ExpressionAttributeValues: {
+      ":pk": { S: dmpIdToPK(dmpId) },
+      ":sk": { S: versionToSK(DMP_LATEST_VERSION) }
+    },
+    ProjectExpression: "PK"
+  }
+
+  try {
+    const response = await queryTable(context, awsConfig.dynamoTableName, params);
+    return response && response.Items.length > 0;
+  } catch (err) {
+    formatLogMessage(context).error(params, 'Error checking DynamoDB for DMP existence');
+    return false;
+  }
+}
+
+// Fetch the specified DMP metadata record
+//   - Version is optional, if not provided ALL versions of the DMP will be returned
+//   - If you just want the latest version, use the DMP_LATEST_VERSION constant
 export const getDMP = async (
   context: MyContext,
   dmpId: string,

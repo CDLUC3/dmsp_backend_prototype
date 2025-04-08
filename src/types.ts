@@ -569,6 +569,15 @@ export type ExternalProject = {
   title?: Maybe<Scalars['String']['output']>;
 };
 
+/** Output type for the initializePlanVersion mutation */
+export type InitializePlanVersionOutput = {
+  __typename?: 'InitializePlanVersionOutput';
+  /** The number of PlanVersion records that were created */
+  count: Scalars['Int']['output'];
+  /** The ids of the Plans that were processed */
+  planIds?: Maybe<Array<Scalars['Int']['output']>>;
+};
+
 /** The types of object a User can be invited to Collaborate on */
 export type InvitedToType =
   | 'PLAN'
@@ -788,6 +797,8 @@ export type Mutation = {
   setPrimaryUserEmail?: Maybe<Array<Maybe<UserEmail>>>;
   /** Set the user's ORCID */
   setUserOrcid?: Maybe<User>;
+  /** Initialize an PLanVersion record in the DynamoDB for all Plans that do not have one */
+  superInitializePlanVersions: InitializePlanVersionOutput;
   /** Update an Affiliation */
   updateAffiliation?: Maybe<Affiliation>;
   /** Edit an answer */
@@ -2108,6 +2119,8 @@ export type Query = {
   sectionVersions?: Maybe<Array<Maybe<VersionedSection>>>;
   /** Get the Sections that belong to the associated templateId */
   sections?: Maybe<Array<Maybe<Section>>>;
+  /** Fetch the DynamoDB PlanVersion record for a specific plan and version timestamp (leave blank for the latest) */
+  superInspectPlanVersion?: Maybe<Scalars['String']['output']>;
   /** Get all available tags to display */
   tags: Array<Tag>;
   tagsBySectionId?: Maybe<Array<Maybe<Tag>>>;
@@ -2362,6 +2375,12 @@ export type QuerySectionVersionsArgs = {
 
 export type QuerySectionsArgs = {
   templateId: Scalars['Int']['input'];
+};
+
+
+export type QuerySuperInspectPlanVersionArgs = {
+  modified?: InputMaybe<Scalars['String']['input']>;
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -3745,6 +3764,7 @@ export type ResolversTypes = {
   ExternalContributor: ResolverTypeWrapper<ExternalContributor>;
   ExternalFunding: ResolverTypeWrapper<ExternalFunding>;
   ExternalProject: ResolverTypeWrapper<ExternalProject>;
+  InitializePlanVersionOutput: ResolverTypeWrapper<InitializePlanVersionOutput>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   InvitedToType: InvitedToType;
   Language: ResolverTypeWrapper<Language>;
@@ -3893,6 +3913,7 @@ export type ResolversParentTypes = {
   ExternalContributor: ExternalContributor;
   ExternalFunding: ExternalFunding;
   ExternalProject: ExternalProject;
+  InitializePlanVersionOutput: InitializePlanVersionOutput;
   Int: Scalars['Int']['output'];
   Language: Language;
   License: License;
@@ -4189,6 +4210,12 @@ export type ExternalProjectResolvers<ContextType = MyContext, ParentType extends
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type InitializePlanVersionOutputResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['InitializePlanVersionOutput'] = ResolversParentTypes['InitializePlanVersionOutput']> = {
+  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  planIds?: Resolver<Maybe<Array<ResolversTypes['Int']>>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type LanguageResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Language'] = ResolversParentTypes['Language']> = {
   id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -4308,6 +4335,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   selectProjectOutputForPlan?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationSelectProjectOutputForPlanArgs, 'planId' | 'projectOutputId'>>;
   setPrimaryUserEmail?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType, RequireFields<MutationSetPrimaryUserEmailArgs, 'email'>>;
   setUserOrcid?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationSetUserOrcidArgs, 'orcid'>>;
+  superInitializePlanVersions?: Resolver<ResolversTypes['InitializePlanVersionOutput'], ParentType, ContextType>;
   updateAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationUpdateAffiliationArgs, 'input'>>;
   updateAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationUpdateAnswerArgs, 'answerId'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
@@ -4785,6 +4813,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;
   sectionVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QuerySectionVersionsArgs, 'sectionId'>>;
   sections?: Resolver<Maybe<Array<Maybe<ResolversTypes['Section']>>>, ParentType, ContextType, RequireFields<QuerySectionsArgs, 'templateId'>>;
+  superInspectPlanVersion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, RequireFields<QuerySuperInspectPlanVersionArgs, 'planId'>>;
   tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
   tagsBySectionId?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType, RequireFields<QueryTagsBySectionIdArgs, 'sectionId'>>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
@@ -5368,6 +5397,7 @@ export type Resolvers<ContextType = MyContext> = {
   ExternalContributor?: ExternalContributorResolvers<ContextType>;
   ExternalFunding?: ExternalFundingResolvers<ContextType>;
   ExternalProject?: ExternalProjectResolvers<ContextType>;
+  InitializePlanVersionOutput?: InitializePlanVersionOutputResolvers<ContextType>;
   Language?: LanguageResolvers<ContextType>;
   License?: LicenseResolvers<ContextType>;
   LicenseErrors?: LicenseErrorsResolvers<ContextType>;

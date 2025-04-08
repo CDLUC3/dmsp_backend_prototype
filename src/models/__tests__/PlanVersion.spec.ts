@@ -5,6 +5,7 @@ import {
   addVersion,
   findVersionByTimestamp,
   findVersionsByDMPId,
+  latestVersion,
   removeVersions,
   updateVersion
 } from "../PlanVersion";
@@ -110,7 +111,7 @@ describe('updateVersion', () => {
     expect(result).toEqual(plan);
     expect(plan.errors.general).toEqual('Unable to find the latest version of the DMP');
     expect(mockCommonStandard).toHaveBeenCalledTimes(1);
-    expect(mockVersion).toHaveBeenCalledTimes(2)
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 
   it('should handle error when updating the version of the plan', async () => {
@@ -130,7 +131,7 @@ describe('findVersionByTimestamp', () => {
     const mockVersion = jest.fn().mockResolvedValueOnce(plan);
     (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
-    const result = await findVersionByTimestamp(context, plan.dmpId, timestamp);
+    const result = await findVersionByTimestamp(context, plan, timestamp);
 
     expect(result).toBeDefined();
     expect(mockVersion).toHaveBeenCalledTimes(1);
@@ -141,7 +142,7 @@ describe('findVersionByTimestamp', () => {
     const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error finding versions'); });
     (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
-    await expect(findVersionByTimestamp(context, plan.dmpId, timestamp)).rejects.toThrow('Error finding version');
+    await expect(findVersionByTimestamp(context, plan, timestamp)).rejects.toThrow('Error finding version');
     expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 });
@@ -163,6 +164,25 @@ describe('findVersionsByDMPId', () => {
     (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
     await expect(findVersionsByDMPId(context, dmpId)).rejects.toThrow('Error finding versions');
+    expect(mockVersion).toHaveBeenCalledTimes(1)
+  });
+});
+
+describe('latestVersion', () => {
+  it('should find versions by DMP ID', async () => {
+    const mockVersion = jest.fn().mockResolvedValueOnce([plan]);
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
+
+    const result = await latestVersion(context, plan);
+
+    expect(result).toBeDefined();
+  });
+
+  it('should handle error when finding versions by DMP ID', async () => {
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error finding versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
+
+    await expect(latestVersion(context, plan)).rejects.toThrow('Error finding versions');
     expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 });

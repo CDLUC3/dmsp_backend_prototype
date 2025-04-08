@@ -314,11 +314,6 @@ describe('Plan', () => {
     plan.dmpId = casual.uuid;
     expect(plan.isPublished()).toBe(true);
   });
-
-  it('isPublished should return false if the Plan does NOT have a dmpId', () => {
-    plan.dmpId = null;
-    expect(plan.isPublished()).toBe(false);
-  });
 });
 
 describe('findBy Queries', () => {
@@ -419,6 +414,7 @@ describe('publish', () => {
 
     plan = new Plan({
       id: casual.integer(1, 999),
+      dmpId: getMockDMPId(),
       createdById: casual.integer(1, 99),
       created: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
       modifiedById: casual.integer(1, 99),
@@ -432,9 +428,7 @@ describe('publish', () => {
   });
 
   it('returns the newly published Plan', async () => {
-    const dmpId = getMockDMPId();
     updateQuery.mockResolvedValueOnce(plan);
-    jest.spyOn(plan, 'generateDMPId').mockResolvedValueOnce(dmpId);
     const versionMock = jest.fn().mockResolvedValueOnce(plan);
     (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
 
@@ -442,11 +436,9 @@ describe('publish', () => {
     const versionMockInput = versionMock.mock.calls[0][1] as Plan;
 
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(plan.generateDMPId).toHaveBeenCalledTimes(1);
     expect(PlanVersionModule.updateVersion).toHaveBeenCalledTimes(1);
 
     expect(result).toBeInstanceOf(Plan);
-    expect(versionMockInput.dmpId).toEqual(dmpId);
     expect(versionMockInput.registered).toBeTruthy();
     expect(versionMockInput.registeredById).toBeTruthy();
   });
@@ -468,15 +460,6 @@ describe('publish', () => {
     const result = await plan.publish(context);
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
-  });
-
-  it('returns an error if a DMP ID could not be generated', async () => {
-    jest.spyOn(plan, 'generateDMPId').mockResolvedValueOnce(null);
-
-    const result = await plan.publish(context);
-    expect(result instanceof Plan).toBe(true);
-    expect(plan.generateDMPId).toHaveBeenCalledTimes(1);
-    expect(result.errors['dmpId']).toBeTruthy();
   });
 });
 

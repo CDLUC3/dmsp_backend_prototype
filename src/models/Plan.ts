@@ -163,7 +163,7 @@ export class Plan extends MySqlModel {
     if (!valueIsEmpty(this.dmpId)) return this.dmpId;
 
     const dmpIdPrefix = `${generalConfig.dmpIdBaseURL}${generalConfig.dmpIdShoulder}`;
-    let id = randomHex(16);
+    let id = randomHex(8);
     let i = 0;
 
     // Check if the ID already exists up to 5 times
@@ -182,7 +182,7 @@ export class Plan extends MySqlModel {
 
   // Helper function to determine if the plan has been published
   isPublished(): boolean {
-    return !valueIsEmpty(this.dmpId);
+    return !valueIsEmpty(this.registered) || !valueIsEmpty(this.registeredById);
   }
 
   // Make sure the plan is valid
@@ -191,8 +191,8 @@ export class Plan extends MySqlModel {
 
     if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
     if (!this.versionedTemplateId) this.addError('versionedTemplateId', 'Versioned template can\'t be blank');
-    if (valueIsEmpty(this.dmpId) && !valueIsEmpty(this.registered)) {
-      this.addError('dmpId', 'A published plan must have a DMP ID');
+    if (valueIsEmpty(this.dmpId)) {
+      this.addError('dmpId', 'A plan must have a DMP ID');
     }
     if (this.isPublished() && valueIsEmpty(this.registered)) {
       this.addError('registered', 'A published plan must have a registration date');
@@ -209,22 +209,14 @@ export class Plan extends MySqlModel {
     if (this.id) {
       // Make sure the plan is valid
       if (await this.isValid()) {
-        if (valueIsEmpty(this.dmpId) && valueIsEmpty(this.registered)) {
-          // Generate a new DMP ID
-          const dmpId = await this.generateDMPId(context);
-          if (dmpId) {
-            this.dmpId = dmpId;
-            this.registered = getCurrentDate();
-            this.registeredById = context.token.id;
+        if (!this.isPublished()) {
+          this.registered = getCurrentDate();
+          this.registeredById = context.token.id;
 
-            // Update the plan
-            return await this.update(context);
+          // Update the plan
+          return await this.update(context);
 
-            // TODO: Eventually make a asyncronous call to EZID to register the DMP ID (DOI)
-
-          } else {
-            this.addError('dmpId', 'Unable to generate a DMP ID');
-          }
+          // TODO: Eventually make a asyncronous call to EZID to register the DMP ID (DOI)
         } else {
           this.addError('general', 'The plan is already registered');
         }
@@ -239,6 +231,9 @@ export class Plan extends MySqlModel {
     const reference = 'Plan.create';
 
     if (!this.id) {
+      // Generate a new DMP ID
+      this.dmpId = await this.generateDMPId(context);
+
       // First make sure the record is valid
       if (await this.isValid()) {
         // Create the new Plan

@@ -636,9 +636,8 @@ describe('addPlan mutation', () => {
     expect(version.dmproadmap_featured['S']).toEqual('0');
     expect(version.dmproadmap_privacy['S']).toEqual('private');
     expect(version.dmproadmap_status['S']).toEqual('draft');
-    const expectedDmpId = `https://${generalConfig.domain}/dmps/4`;
-    expect(version.dmp_id['M']['identifier']['S']).toEqual(expectedDmpId);
-    expect(version.dmp_id['M']['type']['S']).toEqual('url');
+    expect(version.dmp_id['M']['identifier']['S']).toBeTruthy();
+    expect(version.dmp_id['M']['type']['S']).toEqual('doi');
 
     const contactObj = {
       name: { S: [userStore[0].givenName, userStore[0].surName].join(' ') },
@@ -860,7 +859,7 @@ describe('publishPlan', () => {
     mockPutItem(null, null, {
       TableName: process.env.DYNAMODB_TABLE,
       Item: {
-        dmp_id: { M: { identifier: { S: `https://${generalConfig.domain}/dmps/${planStore[1].id}` } } },
+        dmp_id: { M: { identifier: { S: planStore[1].dmpId } } },
         created: { S: getCurrentDate() },
         modified: { S: getCurrentDate() },
       }
@@ -870,7 +869,6 @@ describe('publishPlan', () => {
   it('publishes a plan when the current user is the creator of the project', async () => {
     const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
     projectStore[0].isTestProject = false;
-    delete planStore[1].dmpId;
     delete planStore[1].registered;
     delete planStore[1].registeredById;
     planStore[1].status = PlanStatus.DRAFT;
