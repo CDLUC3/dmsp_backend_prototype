@@ -1027,11 +1027,11 @@ describe('publishPlan', () => {
   });
 });
 
-describe('markPlanAsComplete', () => {
+describe('updatePlanStatus', () => {
   beforeEach(() => {
     query = `
-      mutation markAsCompleteMutation($planId: Int!) {
-        markPlanAsComplete (planId: $planId) {
+      mutation updatePlanStatus($planId: Int!, $status: PlanStatus!) {
+        updatePlanStatus (planId: $planId, status: $status) {
           id
           status
           errors {
@@ -1053,8 +1053,8 @@ describe('markPlanAsComplete', () => {
     });
   });
 
-  it('completes a plan when the current user is the creator of the project', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
+  it('updates the status of a plan when the current user is the creator of the project', async () => {
+    const variables = { planId: planStore[1].id, status: PlanStatus.COMPLETE };
     projectStore[0].isTestProject = false;
     delete planStore[1].dmpId;
     delete planStore[1].registered;
@@ -1064,14 +1064,14 @@ describe('markPlanAsComplete', () => {
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.status).toEqual(PlanStatus.COMPLETE);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.general).toBeNull();
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.status).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus.id).toEqual(planStore[1].id);
+    expect(resp.body.singleResult.data?.updatePlanStatus.status).toEqual(PlanStatus.COMPLETE);
+    expect(resp.body.singleResult.data?.updatePlanStatus.errors.general).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus.errors.status).toBeNull();
   });
 
-  it('completes a plan when the current user is a collaborator with owner access', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
+  it('updates the status of a plan when the current user is a collaborator with owner access', async () => {
+    const variables = { planId: planStore[1].id, status: PlanStatus.COMPLETE };
     projectStore[0].isTestProject = false;
     delete planStore[1].dmpId;
     delete planStore[1].registered;
@@ -1085,14 +1085,14 @@ describe('markPlanAsComplete', () => {
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.status).toEqual(PlanStatus.COMPLETE);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.general).toBeNull();
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.status).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus.id).toEqual(planStore[1].id);
+    expect(resp.body.singleResult.data?.updatePlanStatus.status).toEqual(PlanStatus.COMPLETE);
+    expect(resp.body.singleResult.data?.updatePlanStatus.errors.general).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus.errors.status).toBeNull();
   });
 
-  it('completes a plan when the current user is an admin for the same org as the project creator', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
+  it('updates the status of a plan when the current user is an admin for the same org as the project creator', async () => {
+    const variables = { planId: planStore[1].id, status: PlanStatus.COMPLETE };
     projectStore[0].isTestProject = false;
     delete planStore[1].dmpId;
     delete planStore[1].registered;
@@ -1102,14 +1102,14 @@ describe('markPlanAsComplete', () => {
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.status).toEqual(PlanStatus.COMPLETE);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.general).toBeNull();
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.status).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus.id).toEqual(planStore[1].id);
+    expect(resp.body.singleResult.data?.updatePlanStatus.status).toEqual(PlanStatus.COMPLETE);
+    expect(resp.body.singleResult.data?.updatePlanStatus.errors.general).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus.errors.status).toBeNull();
   });
 
-  it('completes a plan when the current user is a super admin', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
+  it('updates the status of a plan when the current user is a super admin', async () => {
+    const variables = { planId: planStore[1].id, status: PlanStatus.COMPLETE };
     projectStore[0].isTestProject = false;
     delete planStore[1].dmpId;
     delete planStore[1].registered;
@@ -1119,40 +1119,14 @@ describe('markPlanAsComplete', () => {
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.status).toEqual(PlanStatus.COMPLETE);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.general).toBeNull();
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.status).toBeNull();
-  });
-
-  it('returns the plan with an error if it is a test plan', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = true;
-    const originalPlanCount = planStore.length;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(planStore.length).toEqual(originalPlanCount);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.general).toBeTruthy();
-  });
-
-  it('returns the plan with an error if it is already complete', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = false;
-    const originalPlanCount = planStore.length;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(planStore.length).toEqual(originalPlanCount);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsComplete.errors.general).toBeTruthy();
+    expect(resp.body.singleResult.data?.updatePlanStatus.id).toEqual(planStore[1].id);
+    expect(resp.body.singleResult.data?.updatePlanStatus.status).toEqual(PlanStatus.COMPLETE);
+    expect(resp.body.singleResult.data?.updatePlanStatus.errors.general).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus.errors.status).toBeNull();
   });
 
   it('returns a 403 if the current user is a collaborator but without owner access', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
+    const variables = { planId: planStore[1].id, status: PlanStatus.COMPLETE };
     projectStore[0].isTestProject = false;
     delete planStore[1].dmpId;
     delete planStore[1].registered;
@@ -1166,243 +1140,53 @@ describe('markPlanAsComplete', () => {
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
   });
 
   it('returns a 403 if the current user is not a collaborator', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
+    const variables = { planId: planStore[1].id, status: PlanStatus.COMPLETE };
     context.token = mockToken(new User({ id: 99999, affiliationId: 'fake-org', role: UserRole.RESEARCHER }));
     const resp = await executeQuery(query, variables, context);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
   });
 
   it('returns a 401 when the current user is not authenticated', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
+    const variables = { planId: planStore[1].id, status: PlanStatus.COMPLETE };
     context.token = null;
     const resp = await executeQuery(query, variables, context);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('UNAUTHENTICATED');
   });
 
   it('returns a 404 when no matching record is found', async () => {
     // Use an id that will not match any records
-    const variables = { planId: 99999, visibility: PlanVisibility.PUBLIC };
+    const variables = { planId: 99999, status: PlanStatus.COMPLETE };
     const resp = await executeQuery(query, variables, context);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('NOT_FOUND');
   });
 
   it('returns a 500 when a fatal error occurs', async () => {
     jest.spyOn(Plan, 'findById').mockImplementation(() => { throw new Error('Error!') });
 
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
+    const variables = { planId: planStore[1].id, status: PlanStatus.COMPLETE };
     delete planStore[1].registered;
     const resp = await executeQuery(query, variables, context);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsComplete).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
-  });
-});
-
-describe('markPlanAsDraft', () => {
-  beforeEach(() => {
-    query = `
-      mutation markAsDraftMutation($planId: Int!) {
-        markPlanAsDraft (planId: $planId) {
-          id
-          status
-          errors {
-            general
-            status
-          }
-        }
-      }
-    `;
-
-    // The Plan.update attempts to update the version so we need to init the PlanVersion record in the DynamoDB table
-    mockPutItem(null, null, {
-      TableName: process.env.DYNAMODB_TABLE,
-      Item: {
-        dmp_id: { M: { identifier: { S: `https://${generalConfig.domain}/dmps/${planStore[1].id}` } } },
-        created: { S: getCurrentDate() },
-        modified: { S: getCurrentDate() },
-      }
-    });
-  });
-
-  it('marks a plan as draft when the current user is the creator of the project', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = false;
-    delete planStore[1].dmpId;
-    delete planStore[1].registered;
-    delete planStore[1].registeredById;
-    planStore[1].status = PlanStatus.DRAFT;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.status).toEqual(PlanStatus.DRAFT);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.general).toBeNull();
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.status).toBeNull();
-  });
-
-  it('marks a plan as draft when the current user is a collaborator with owner access', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = false;
-    delete planStore[1].dmpId;
-    delete planStore[1].registered;
-    delete planStore[1].registeredById;
-    // Make the last user in the userStore a collaborator on the project
-    projectCollaboratorStore[0].projectId = projectId;
-    projectCollaboratorStore[0].accessLevel = ProjectCollaboratorAccessLevel.OWN;
-    projectCollaboratorStore[0].userId = userStore[3].id;
-    context.token = mockToken(userStore[3]);
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.status).toEqual(PlanStatus.DRAFT);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.general).toBeNull();
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.status).toBeNull();
-  });
-
-  it('marks a plan as draft when the current user is an admin for the same org as the project creator', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = false;
-    delete planStore[1].dmpId;
-    delete planStore[1].registered;
-    delete planStore[1].registeredById;
-    context.token = adminToken;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.status).toEqual(PlanStatus.DRAFT);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.general).toBeNull();
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.status).toBeNull();
-  });
-
-  it('marks a plan as draft when the current user is a super admin', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = false;
-    delete planStore[1].dmpId;
-    delete planStore[1].registered;
-    delete planStore[1].registeredById;
-    context.token = superAdminToken;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.status).toEqual(PlanStatus.DRAFT);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.general).toBeNull();
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.status).toBeNull();
-  });
-
-  it('returns the plan with an error if it is a test plan', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = true;
-    const originalPlanCount = planStore.length;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(planStore.length).toEqual(originalPlanCount);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.general).toBeTruthy();
-  });
-
-  it('returns the plan with an error if it is already complete', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = false;
-    const originalPlanCount = planStore.length;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(planStore.length).toEqual(originalPlanCount);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.id).toEqual(planStore[1].id);
-    expect(resp.body.singleResult.data?.markPlanAsDraft.errors.general).toBeTruthy();
-  });
-
-  it('returns a 403 if the current user is a collaborator but without owner access', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    projectStore[0].isTestProject = false;
-    delete planStore[1].dmpId;
-    delete planStore[1].registered;
-    delete planStore[1].registeredById;
-    // Make the last user in the userStore a collaborator on the project
-    projectCollaboratorStore[0].projectId = projectId;
-    projectCollaboratorStore[0].accessLevel = ProjectCollaboratorAccessLevel.EDIT;
-    projectCollaboratorStore[0].userId = userStore[3].id;
-    context.token = mockToken(userStore[3]);
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
-  });
-
-  it('returns a 403 if the current user is not a collaborator', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    context.token = mockToken(new User({ id: 99999, affiliationId: 'fake-org', role: UserRole.RESEARCHER }));
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
-  });
-
-  it('returns a 401 when the current user is not authenticated', async () => {
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    context.token = null;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('UNAUTHENTICATED');
-  });
-
-  it('returns a 404 when no matching record is found', async () => {
-    // Use an id that will not match any records
-    const variables = { planId: 99999, visibility: PlanVisibility.PUBLIC };
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('NOT_FOUND');
-  });
-
-  it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Plan, 'findById').mockImplementation(() => { throw new Error('Error!') });
-
-    const variables = { planId: planStore[1].id, visibility: PlanVisibility.PUBLIC };
-    delete planStore[1].registered;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.markPlanAsDraft).toBeNull();
+    expect(resp.body.singleResult.data?.updatePlanStatus).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
   });
 });

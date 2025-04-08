@@ -16,10 +16,8 @@ export const typeDefs = gql`
     uploadPlan(projectId: Int!, fileName: String, fileContent: String): Plan
     "Publish a plan (changes status to PUBLISHED)"
     publishPlan(planId: Int!, visibility: PlanVisibility): Plan
-    "Change the plan's status to COMPLETE (cannot be done once the plan is PUBLISHED)"
-    markPlanAsComplete(planId: Int!): Plan
-    "Change the plan's status to DRAFT (cannot be done once the plan is PUBLISHED)"
-    markPlanAsDraft(planId: Int!): Plan
+    "Change the plan's status"
+    updatePlanStatus(planId: Int!, status: PlanStatus!): Plan
     "Archive a plan"
     archivePlan(planId: Int!): Plan
   }

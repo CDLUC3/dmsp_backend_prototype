@@ -267,13 +267,15 @@ export class Plan extends MySqlModel {
       if (await this.isValid()) {
         // Update the plan
         let updated = await Plan.update(context, Plan.tableName, this, reference, [], noTouch);
-
-        // Do not update any version info if the plan has not been modified or noTouch is true
-        if (!noTouch && updated && !updated.hasErrors()) {
-          // Update the version history of the DMP
-          updated = await updateVersion(context, this, reference);
-          if (updated && !updated.hasErrors()) {
-            return new Plan(updated);
+        if (updated) {
+          updated = new Plan(updated);
+          // Do not update any version info if the plan has not been modified or noTouch is true
+          if (!noTouch && updated && !updated.hasErrors()) {
+            // Update the version history of the DMP
+            updated = await updateVersion(context, this, reference);
+            if (updated && !updated.hasErrors()) {
+              return new Plan(updated);
+            }
           }
         }
       }

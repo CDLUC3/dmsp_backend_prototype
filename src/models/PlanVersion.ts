@@ -13,22 +13,19 @@ export const addVersion = async (
   plan: Plan,
   reference = 'PlanVersion.addVersion'
 ): Promise<Plan> => {
-  // If the DynamoDB is not enabled (e.g. working locally) then just return the plan as-is
-  if (!dynamoEnabled) return plan;
-
   const commonStandard = await planToDMPCommonStandard(context, reference, plan);
   if (!commonStandard) {
     plan.addError('general', 'Unable to convert the plan to the DMP Common Standard');
-    return plan;
   }
 
   formatLogMessage(context).debug(commonStandard, `${reference} - creating Plan Version`);
-  const newPlanVersion = await createDMP(context, plan.dmpId, commonStandard);
+  const id = plan.isPublished() ? plan.dmpId : `https://${generalConfig.domain}/dmps/${plan.id}`;
+  const newPlanVersion = await createDMP(context, id, commonStandard);
   if (!newPlanVersion) {
     formatLogMessage(context).error({ plan }, `${reference} - Unable to create a new version snapshot`);
     plan.addError('general', 'Unable to create a new version snapshot');
   }
-  return plan;
+  return new Plan(plan);
 }
 
 // Update the latest version of the Plan
@@ -37,13 +34,9 @@ export const updateVersion = async (
   plan: Plan,
   reference = 'PlanVersion.updateVersion'
 ): Promise<Plan> => {
-  // If the DynamoDB is not enabled (e.g. working locally) then just return the plan as-is
-  if (!dynamoEnabled) return plan;
-
   const commonStandard = await planToDMPCommonStandard(context, reference, plan);
   if (!commonStandard) {
     plan.addError('general', 'Unable to convert the plan to the DMP Common Standard');
-    return plan;
   }
 
   // If the lastModified date is not within the last hour, create a new version snapshot
@@ -71,7 +64,7 @@ export const updateVersion = async (
   } else {
     plan.addError('general', 'Unable to find the latest version of the DMP');
   }
-  return plan;
+  return new Plan(plan);
 }
 
 // Delete/Tombstone the specified Plan Version (registered/published DMPs can only be Tombstoned!)
@@ -80,9 +73,6 @@ export const removeVersions = async (
   plan: Plan,
   reference = 'PlanVersion.removeVersion'
 ): Promise<Plan> => {
-  // If the DynamoDB is not enabled (e.g. working locally) then just return the plan as-is
-  if (!dynamoEnabled) return plan;
-
   // Get the latest version and see if it is registered
   const mostRecentVersion = await latestVersion(context, plan.id, plan.dmpId, reference);
   // If the plan is registered then tombstone the DMP otherwise delete it
@@ -96,7 +86,7 @@ export const removeVersions = async (
     formatLogMessage(context).debug({ dmpId: plan.dmpId }, `${reference} - deleting all versions of the DMP`);
     await deleteDMP(context, plan.dmpId);
   }
-  return plan;
+  return new Plan(plan);
 }
 
 // Find all of the versions for a specific plan

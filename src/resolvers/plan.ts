@@ -189,9 +189,8 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // Mark the plan as complete
-    markPlanAsComplete: async (_, { planId }, context: MyContext): Promise<Plan> => {
-      const reference = 'mark plan complete resolver';
+    updatePlanStatus: async (_, { planId, status }, context: MyContext): Promise<Plan> => {
+      const reference = 'update plan status resolver';
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
@@ -200,44 +199,8 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
-            if (plan.isPublished()) {
-              plan.addError('general', 'Plan is already published');
-            } else {
-              plan.status = PlanStatus.COMPLETE;
-              return await plan.update(context);
-            }
-
-            return plan;
-          }
-        }
-        throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch (err) {
-        if (err instanceof GraphQLError) throw err;
-
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
-        throw InternalServerError();
-      }
-    },
-
-    // Mark the plan as a draft
-    markPlanAsDraft: async (_, { planId }, context: MyContext): Promise<Plan> => {
-      const reference = 'mark plan draft resolver';
-      try {
-        if (isAuthorized(context.token)) {
-          const plan = await Plan.findById(reference, context, planId);
-          if (!plan) {
-            throw NotFoundError(`Plan with DMP ID ${planId} not found`);
-          }
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
-            if (plan.isPublished()) {
-              plan.addError('general', 'Plan is already published');
-            } else {
-              plan.status = PlanStatus.DRAFT;
-              return await plan.update(context);
-            }
-
-            return plan;
+            plan.status = status as PlanStatus;
+            return await plan.update(context);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();

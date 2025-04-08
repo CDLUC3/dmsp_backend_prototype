@@ -724,10 +724,6 @@ export type Mutation = {
   createTemplateVersion?: Maybe<Template>;
   /** Deactivate the specified user Account (Admin only) */
   deactivateUser?: Maybe<User>;
-  /** Change the plan's status to COMPLETE (cannot be done once the plan is PUBLISHED) */
-  markPlanAsComplete?: Maybe<Plan>;
-  /** Change the plan's status to DRAFT (cannot be done once the plan is PUBLISHED) */
-  markPlanAsDraft?: Maybe<Plan>;
   /** Merge two licenses */
   mergeLicenses?: Maybe<License>;
   /** Merge two metadata standards */
@@ -806,6 +802,8 @@ export type Mutation = {
   updatePassword?: Maybe<User>;
   /** Chnage a Contributor's accessLevel on a Plan */
   updatePlanContributor?: Maybe<PlanContributor>;
+  /** Change the plan's status */
+  updatePlanStatus?: Maybe<Plan>;
   /** Edit a project */
   updateProject?: Maybe<Project>;
   /** Chnage a collaborator's accessLevel on a Plan */
@@ -1021,16 +1019,6 @@ export type MutationDeactivateUserArgs = {
 };
 
 
-export type MutationMarkPlanAsCompleteArgs = {
-  planId: Scalars['Int']['input'];
-};
-
-
-export type MutationMarkPlanAsDraftArgs = {
-  planId: Scalars['Int']['input'];
-};
-
-
 export type MutationMergeLicensesArgs = {
   licenseToKeepId: Scalars['Int']['input'];
   licenseToRemoveId: Scalars['Int']['input'];
@@ -1238,6 +1226,12 @@ export type MutationUpdatePlanContributorArgs = {
   isPrimaryContact?: InputMaybe<Scalars['Boolean']['input']>;
   planContributorId: Scalars['Int']['input'];
   planId: Scalars['Int']['input'];
+};
+
+
+export type MutationUpdatePlanStatusArgs = {
+  planId: Scalars['Int']['input'];
+  status: PlanStatus;
 };
 
 
@@ -4282,8 +4276,6 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   completeFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationCompleteFeedbackArgs, 'planFeedbackId'>>;
   createTemplateVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateTemplateVersionArgs, 'templateId' | 'visibility'>>;
   deactivateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationDeactivateUserArgs, 'userId'>>;
-  markPlanAsComplete?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanAsCompleteArgs, 'planId'>>;
-  markPlanAsDraft?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanAsDraftArgs, 'planId'>>;
   mergeLicenses?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationMergeLicensesArgs, 'licenseToKeepId' | 'licenseToRemoveId'>>;
   mergeMetadataStandards?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationMergeMetadataStandardsArgs, 'metadataStandardToKeepId' | 'metadataStandardToRemoveId'>>;
   mergeRepositories?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<MutationMergeRepositoriesArgs, 'repositoryToKeepId' | 'repositoryToRemoveId'>>;
@@ -4323,6 +4315,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
   updatePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationUpdatePlanContributorArgs, 'planContributorId' | 'planId'>>;
+  updatePlanStatus?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUpdatePlanStatusArgs, 'planId' | 'status'>>;
   updateProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationUpdateProjectArgs>>;
   updateProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdateProjectCollaboratorArgs, 'accessLevel' | 'projectCollaboratorId'>>;
   updateProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationUpdateProjectContributorArgs, 'input'>>;

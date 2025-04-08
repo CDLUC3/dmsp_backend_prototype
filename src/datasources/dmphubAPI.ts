@@ -7,7 +7,6 @@ import { JWTAccessToken } from '../services/tokenService';
 import { MyContext } from "../context";
 import { GraphQLError } from "graphql";
 import { DMPCommonStandard, DMPCommonStandardContact, DMPCommonStandardContributor, DMPCommonStandardProject } from "../types/DMP";
-import { DOI_REGEX } from "../services/commonStandardService";
 import { isNullOrUndefined } from "../utils/helpers";
 
 // Singleton class that retrieves an Auth token from the API

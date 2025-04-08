@@ -53,7 +53,7 @@ describe('addVersion', () => {
 
     const result = await addVersion(context, plan, reference);
 
-    expect(result).toBe(plan);
+    expect(result).toEqual(plan);
     expect(mockCommonStandard).toHaveBeenCalledTimes(1);
     expect(mockVersion).toHaveBeenCalledTimes(1)
   });
@@ -79,7 +79,7 @@ describe('updateVersion', () => {
 
     const result = await updateVersion(context, plan, reference);
 
-    expect(result).toBe(plan);
+    expect(result).toEqual(plan);
     expect(mockCommonStandard).toHaveBeenCalledTimes(1);
     expect(mockLatestVersion).toHaveBeenCalledTimes(1)
     expect(mockVersion).toHaveBeenCalledTimes(1)
@@ -94,7 +94,7 @@ describe('updateVersion', () => {
 
     const result = await updateVersion(context, plan, reference);
 
-    expect(result).toBe(plan);
+    expect(result).toEqual(plan);
     expect(mockCommonStandard).toHaveBeenCalledTimes(2);
     expect(mockLatestVersion).toHaveBeenCalledTimes(1)
     expect(mockVersion).toHaveBeenCalledTimes(1)
@@ -107,7 +107,7 @@ describe('updateVersion', () => {
 
     const result = await updateVersion(context, plan, reference);
 
-    expect(result).toBe(plan);
+    expect(result).toEqual(plan);
     expect(plan.errors.general).toEqual('Unable to find the latest version of the DMP');
     expect(mockCommonStandard).toHaveBeenCalledTimes(1);
     expect(mockVersion).toHaveBeenCalledTimes(2)
@@ -177,7 +177,7 @@ describe('removeVersions', () => {
 
     const result = await removeVersions(context, plan, reference);
 
-    expect(result).toBe(plan);
+    expect(result).toEqual(plan);
     expect(mockLatestVersion).toHaveBeenCalledTimes(1)
     expect(mockVersion).toHaveBeenCalledTimes(1)
   });
@@ -193,8 +193,7 @@ describe('removeVersions', () => {
     (DynamoModule.deleteDMP as jest.Mock) = mockVersion;
 
     const result = await removeVersions(context, plan, reference);
-
-    expect(result).toBe(plan);
+    expect(result).toEqual(plan);
     expect(mockLatestVersion).toHaveBeenCalledTimes(1)
     expect(mockVersion).toHaveBeenCalledTimes(1)
   });
