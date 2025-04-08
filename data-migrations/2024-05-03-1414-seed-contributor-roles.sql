@@ -5,4 +5,4 @@ INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
   (SELECT 'Project Administrator', 'https://credit.niso.org/contributor-roles/project-administration/', 'An individual with management and coordination responsibility for the research activity planning and execution.', 2, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Other', 'http://dmptool.org/contributor_roles/other', '', 4, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Other', 'https://dmptool.org/contributor_roles/other', '', 4, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');

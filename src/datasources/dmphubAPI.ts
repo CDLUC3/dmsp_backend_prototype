@@ -6,7 +6,9 @@ import { DMPHubConfig } from '../config/dmpHubConfig';
 import { JWTAccessToken } from '../services/tokenService';
 import { MyContext } from "../context";
 import { GraphQLError } from "graphql";
-import { DMPCommonStandard } from "../types/DMP";
+import { DMPCommonStandard, DMPCommonStandardContact, DMPCommonStandardContributor, DMPCommonStandardProject } from "../types/DMP";
+import { DOI_REGEX } from "../services/commonStandardService";
+import { isNullOrUndefined } from "../utils/helpers";
 
 // Singleton class that retrieves an Auth token from the API
 export class Authorizer extends RESTDataSource {
@@ -220,4 +222,77 @@ export class DMPHubAPI extends RESTDataSource {
       throw(err);
     }
   }
+
+  /**
+   * Retrieves award information from the specified funder API.
+   *
+   * @param context - The Apollo Server Context object passed in to the Resolver on each request.
+   * @param apiTarget - The funder API endpoint to query. Valid values include:
+   *                    - 'awards/nih' for NIH awards,
+   *                    - 'awards/nsf' for NSF awards,
+   *                    - 'awards/crossref/{funderDOI}' for Crossref Metadata (requires a funder DOI, e.g. '10.00000/000000000000').
+   * @param awardId - (Optional) The award ID (e.g., "P30 GM123456"). If null, it will not be sent to the API.
+   * @param awardName - (Optional) The name of the award (e.g., "My Project"). If null, it will not be sent to the API.
+   * @param awardYear - (Optional) The year of the award (e.g., "1961"). If null, it will not be sent to the API.
+   * @param piNames - (Optional) Names of the principal investigators (e.g. "Carl Sagan"). If null, they will not be included in the API request.
+   * @param reference - A reference string used for logging.
+   */
+  async getAwards(
+    context: MyContext,
+    apiTarget: string,
+    awardId: string | null = null,
+    awardName: string | null = null,
+    awardYear: string | null = null,
+    piNames: string[] | null = null,
+    reference = 'dmphubAPI.getAwards'
+  ): Promise<DMPHubAward[]> {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      if(!isNullOrUndefined(awardId)) {
+        params.set("project", awardId);
+      }
+      if(!isNullOrUndefined(piNames) && piNames.length) {
+        params.set("pi_names", piNames.join(","));
+      }
+      if(!isNullOrUndefined(awardName) && awardName.length) {
+        params.set("keywords", awardName);
+      }
+      if(!isNullOrUndefined(awardYear)) {
+        params.set("years", awardYear);
+      }
+
+      // Create path
+      let path = apiTarget;
+      const queryString = params.toString();
+      if(queryString){
+        path += `?${queryString}`;
+      }
+
+      const fullUrl = `${this.baseURL}/${path}`;
+      formatLogMessage(context).debug(`${reference} Calling DMPHub getAwards: ${fullUrl}`)
+      const response = await this.get(path);
+      if (response?.status === 200 && Array.isArray(response?.items)) {
+        formatLogMessage(context).debug(response.items, `${reference} Results from DMPHub getAwards: ${fullUrl}`);
+        return response.items as DMPHubAward[];
+      }
+
+      formatLogMessage(context).error(
+        {  code: response?.status, errs: response?.errors },
+        `${reference} Error retrieving Awards from DMPHub API`
+      );
+      return null;
+    } catch(err) {
+      formatLogMessage(context).error({ err }, `${reference} Error calling DMPHub API getAwards.`);
+      throw(err);
+    }
+  }
+}
+
+// Types returned by DMPHubAPI awards endpoint
+// -----------------------------------------------------------------------------------------------
+export interface DMPHubAward {
+  project: DMPCommonStandardProject
+  contact: DMPCommonStandardContact
+  contributor: [DMPCommonStandardContributor]
 }

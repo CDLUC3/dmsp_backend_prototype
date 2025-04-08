@@ -72,7 +72,7 @@ jest.mock('../config/generalConfig', () => ({
 
     versionPlanAfter: 1,
 
-    orcidBaseURL: 'http://orcid.example.com/',
+    orcidBaseURL: 'http://sandbox.orcid.org/',
     rorBaseURL: 'http://ror.example.com/',
 
     jwtSecret: 'testJwtSecret',
