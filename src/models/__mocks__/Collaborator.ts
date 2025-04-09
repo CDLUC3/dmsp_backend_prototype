@@ -95,9 +95,8 @@ export const mockFindTemplateCollaboratorByTemplateId = async (_, __, templateId
 
 // Mock the mutations
 export const mockInsertTemplateCollaborators = async (context: MyContext, _, obj: TemplateCollaborator): Promise<number> => {
-  const newObj = generateNewTemplateCollaborators(obj);
   const { insertId } = addEntryToMockTable('templateCollaborators', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,
@@ -192,19 +191,18 @@ export const mockFindProjectCollaboratorByProjectIdAndEmail = async (_, __, temp
   return result ? new ProjectCollaborator(result) : null;
 };
 
-export const mockFindProjectCollaboratorByProjectId = async (_, __, templateId: number): Promise<ProjectCollaborator[]> => {
+export const mockFindProjectCollaboratorByProjectId = async (_, __, projectId: number): Promise<ProjectCollaborator[]> => {
   const results = findEntriesInMockTableByFilter(
     'projectCollaborators',
-    (entry) => { return entry.templateId === templateId }
+    (entry) => { return entry.projectId === projectId }
   );
   return results ? results.map((entry) => { return new ProjectCollaborator(entry) }) : [];
 };
 
 // Mock the mutations
 export const mockInsertProjectCollaborators = async (context: MyContext, _, obj: ProjectCollaborator): Promise<number> => {
-  const newObj = generateNewProjectCollaborators(obj);
   const { insertId } = addEntryToMockTable('projectCollaborators', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,

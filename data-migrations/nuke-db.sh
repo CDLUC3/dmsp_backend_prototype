@@ -33,17 +33,17 @@ LIST_TABLES="SELECT table_name FROM information_schema.tables WHERE table_schema
 FK_ON="SET FOREIGN_KEY_CHECKS = 1;"
 
 echo "Purging all tables from database ${MYSQL_DATABASE} ..."
-mariadb $MYSQL_ARGS -N $MYSQL_DATABASE <<< $FK_OFF
-declare -a TABLE_LIST=$(mariadb ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< ${LIST_TABLES})
+mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< $FK_OFF
+declare -a TABLE_LIST=$(mysql ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< ${LIST_TABLES})
 
 while IFS=' ' read -ra TABLES; do
   for i in "${TABLES[@]}"; do
     echo "  Dropping: $i"
-    mariadb $MYSQL_ARGS -N $MYSQL_DATABASE <<< "${FK_OFF} DROP TABLE ${i}; ${FK_ON}"
+    mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "${FK_OFF} DROP TABLE ${i}; ${FK_ON}"
   done
 done <<< "$TABLE_LIST"
 
-mariadb $MYSQL_ARGS -N $MYSQL_DATABASE <<< $FK_ON
+mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< $FK_ON
 
 CREATE_MIGRATIONS_TABLE="USE ${MYSQL_DATABASE}; CREATE TABLE dataMigrations (
     migrationFile varchar(255) NOT NULL,
@@ -53,6 +53,6 @@ CREATE_MIGRATIONS_TABLE="USE ${MYSQL_DATABASE}; CREATE TABLE dataMigrations (
 
 # Create the Database
 echo "Creating the dataMigrations table ..."
-mariadb -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} <<< ${CREATE_MIGRATIONS_TABLE}
+mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} <<< ${CREATE_MIGRATIONS_TABLE}
 
 echo "Nuke complete. You may now run data-migrations/process.sh to rebuild the database tables"

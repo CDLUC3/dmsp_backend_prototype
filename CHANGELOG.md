@@ -1,4 +1,8 @@
 ### Added
+- Added dynamoDb to the docker-compose file and setup dev to use the local instance
+- Added tests for `plan` resolver and added tests for `contributor` resolver's queries
+- Added mocks for most of the MySQL tables and the Dynamo table
+- Added a new `dynamo` datasource (to replace the DMPHub API one ... much faster to access the table directly)
 - Added `getAwards` method to `DMPHubAPI`.
 - Added `searchExternalProjects` query and `projectImport` mutation.
 - Added `TemplateSearchResult`, `VersionedTemplateSearchResult` and `ProjectSearchResult` to optimize querying
@@ -84,7 +88,7 @@
 - Removed old unused `Affiliation` methods from `dmpHubAPI` and added `getDMP` and `validate` (for use in the near future when syncing changes within our system and the DMPHub)
 - Updated structure of `cacheConfig.ts` to match other configs
 - Moved config for `MysSQLDataSource` from the datasource into its config file
-- Moved `SigTerm` handler tests for `MySQLDataSource` into a separate test file. They were failing for some reason when run together
+- Moved `SigTerm` handler tests for `mysql` into a separate test file. They were failing for some reason when run together
 - Refactored `context.ts` and tests to use new `dmpHubAPI` datasource
 - Refactored old "mocks" to extract duplicative code into the `MySQLMock.ts`
 - Update existing resolver tests to use new mocks
@@ -117,7 +121,11 @@
 - added bestPractice flag to the Section
 
 ### Removed
+<<<<<<< HEAD
+- Dropped the `PlanVersion` table
+=======
 - Removed `prepareAPITarget` function.
+>>>>>>> development
 - Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
 - Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic

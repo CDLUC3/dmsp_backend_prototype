@@ -12,6 +12,7 @@ import { hasPermissionOnProject } from '../services/projectService';
 import { updateContributorRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
+import { addVersion } from '../models/PlanVersion';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -21,15 +22,13 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return await ProjectContributor.findByProjectId(reference, context, projectId);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
-
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -43,7 +42,7 @@ export const resolvers: Resolvers = {
           const contributor = await ProjectContributor.findById(reference, context, projectContributorId);
           const project = await Project.findById(reference, context, contributor.projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return contributor;
           }
         }
@@ -62,7 +61,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (plan && hasPermissionOnProject(context, project)) {
+          if (plan && await hasPermissionOnProject(context, project)) {
             return await PlanContributor.findByPlanId(reference, context, plan.id);
           }
         }
@@ -83,7 +82,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
+          if (!project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -141,7 +140,7 @@ export const resolvers: Resolvers = {
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, contributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -197,6 +196,15 @@ export const resolvers: Resolvers = {
             if (associationErrors.length > 0) {
               updated.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
             }
+
+            if (!updated.hasErrors()) {
+              const plans = await Plan.findByProjectId(reference, context, contributor.projectId);
+              for (const plan of plans) {
+                // Version all of the plans (if any) and sync with the DMPHub
+                await addVersion(context, plan, reference);
+              }
+            }
+
             // Reload since the roles may have changed
             return updated.hasErrors() ? updated : await ProjectContributor.findById(reference, context, contributor.id);
           }
@@ -224,12 +232,20 @@ export const resolvers: Resolvers = {
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, contributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
           // Any related contributorRoles will be automatically deleted within the DB
-          return await contributor.delete(context);
+          const removed = await contributor.delete(context);
+          if (removed && !removed.hasErrors()) {
+            const plans = await Plan.findByProjectId(reference, context, contributor.projectId);
+            for (const plan of plans) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              await addVersion(context, plan, reference);
+            }
+          }
+          return removed;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -257,7 +273,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, projectContributor.projectId);
-          if (hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project)) {
             const newPlanContributor = new PlanContributor({ planId, projectContributorId, contributorRoleIds: currentProjectRoleIds });
             const created = await newPlanContributor.create(context);
 
@@ -290,7 +306,8 @@ export const resolvers: Resolvers = {
               }
             }
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub
+            // Version the plan
+            await addVersion(context, plan, reference);
 
             return created;
           }
@@ -367,10 +384,11 @@ export const resolvers: Resolvers = {
                 }
               }
 
-              // Update the current contributor's isPrimaryContact field
-              updatedPlan.isPrimaryContact = isPrimaryContact;
-              updatedPlan.contributorRoleIds = updatedRoleIds ?? [];
-              await updatedPlan.update(context);
+              const plan = await Plan.findById(reference, context, planId);
+              if (plan) {
+                // Version all of the plans (if any) and sync with the DMPHub
+                await addVersion(context, plan, reference);
+              }
             }
 
             return await PlanContributor.findById(reference, context, contributor.id);
@@ -402,14 +420,21 @@ export const resolvers: Resolvers = {
             contributor.projectContributorId
           );
           const project = await Project.findById(reference, context, projectContributor.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          // TODO: We need to generate the plan version snapshot and sync with DMPHub
-
           // Any related contributorRoles will be automatically deleted within the DB
-          return await contributor.delete(context);
+          const removed = await contributor.delete(context);
+
+          if (removed && !removed.hasErrors()) {
+            const plan = await Plan.findById(reference, context, contributor.planId);
+            if (plan) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              addVersion(context, plan, reference);
+            }
+          }
+          return removed;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -447,6 +472,12 @@ export const resolvers: Resolvers = {
   },
 
   PlanContributor: {
+    plan: async (parent: PlanContributor, _, context: MyContext): Promise<Plan> => {
+      if (parent?.planId) {
+        return await Plan.findById('Chained PlanContributor.plan', context, parent.planId);
+      }
+      return null;
+    },
     projectContributor: async (parent: PlanContributor, _, context: MyContext): Promise<ProjectContributor> => {
       if (parent?.projectContributorId) {
         return await ProjectContributor.findById(

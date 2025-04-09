@@ -2,15 +2,15 @@ import { Logger } from "pino";
 import { JWTAccessToken } from "../services/tokenService";
 import { MyContext } from "../context";
 import { Authorizer, DMPHubAPI } from "../datasources/dmphubAPI";
-import { MySQLDataSource } from "../datasources/mySQLDataSource";
+import { mysql } from "../datasources/mysql";
 import { User, UserRole } from "../models/User";
 import casual from "casual";
 import { defaultLanguageId } from "../models/Language";
 
-jest.mock('../datasources/mySQLDataSource', () => {
+jest.mock('../datasources/mysql', () => {
   return {
     __esModule: true,
-    MySQLDataSource: {
+    mysql: {
       getInstance: jest.fn().mockReturnValue({
         query: jest.fn(),
       }),
@@ -29,6 +29,7 @@ jest.mock('../datasources/dmphubAPI', () => {
       getDMP: jest.fn(),
       createDMP: jest.fn(),
       updateDMP: jest.fn(),
+      validateDMP: jest.fn(),
       tombstoneDMP: jest.fn(),
       getAwards: jest.fn(),
       handleResponse: jest.fn(),
@@ -44,7 +45,7 @@ jest.mock('../datasources/dmphubAPI', () => {
   };
 });
 
-jest.spyOn(MySQLDataSource, 'getInstance').mockImplementation(function () {
+jest.spyOn(mysql, 'getInstance').mockImplementation(function () {
   this.pool = null;
   this.connection = null;
   this.initializePool = jest.fn();
@@ -83,7 +84,7 @@ export class MockCache {
   }
 }
 
-const mockedMysqlInstance = MySQLDataSource.getInstance();
+const mockedMysqlInstance = mysql.getInstance();
 
 // Generate a mock user
 export const mockUser = (

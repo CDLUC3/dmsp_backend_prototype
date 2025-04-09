@@ -13,6 +13,9 @@ jest.mock('../config/awsConfig', () => ({
     sesAccessSecret: '98765',
     sesBounceAddress: 'bounce@example.com',
     sesBouncedEmailBucket: 'my-test-bucket',
+    dynamoTableName: 'test-table',
+    dynamoMaxQueryAttempts: 3,
+    dynamoEndpoint: 'http://localhost:8000',
   }
 }));
 
@@ -66,6 +69,8 @@ jest.mock('../config/generalConfig', () => ({
 
     dmpIdBaseURL: 'http://dmsp.com/',
     dmpIdShoulder: '11.22222/C3',
+
+    versionPlanAfter: 1,
 
     orcidBaseURL: 'http://sandbox.orcid.org/',
     rorBaseURL: 'http://ror.example.com/',

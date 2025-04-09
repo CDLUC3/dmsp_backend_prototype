@@ -1,25 +1,21 @@
-import {GraphQLError} from 'graphql';
-import {MyContext} from '../context';
-import {formatLogMessage} from '../logger';
-import {Affiliation} from "../models/Affiliation";
-import {ProjectContributor} from '../models/Contributor';
-import {ContributorRole} from "../models/ContributorRole";
-import {ProjectFunder} from '../models/Funder';
-import {ProjectOutput} from '../models/Output';
-import {PlanSearchResult} from '../models/Plan';
-import {Project, ProjectSearchResult} from "../models/Project";
-import {ResearchDomain} from '../models/ResearchDomain';
-import {isAuthorized} from '../services/authService';
-import {parseContributor} from "../services/commonStandardService";
-import {hasPermissionOnProject} from '../services/projectService';
-import {ExternalProject, Resolvers} from "../types";
-import {
-  AuthenticationError,
-  ForbiddenError,
-  InternalServerError,
-  NotFoundError
-} from '../utils/graphQLErrors';
-import {normaliseDate} from "../utils/helpers";
+import { formatLogMessage } from '../logger';
+import { ExternalProject, Resolvers } from "../types";
+import { Project, ProjectSearchResult } from "../models/Project";
+import { MyContext } from '../context';
+import { isAuthorized } from '../services/authService';
+import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
+import { ProjectFunder } from '../models/Funder';
+import { ProjectContributor } from '../models/Contributor';
+import { hasPermissionOnProject } from '../services/projectService';
+import { Affiliation } from '../models/Affiliation';
+import { ResearchDomain } from '../models/ResearchDomain';
+import { ProjectOutput } from '../models/Output';
+import { ContributorRole } from '../models/ContributorRole';
+import { GraphQLError } from 'graphql';
+import { Plan, PlanSearchResult } from '../models/Plan';
+import { addVersion } from '../models/PlanVersion';
+import { normaliseDate } from '../utils/helpers';
+import { parseContributor } from '../services/commonStandardService';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -45,7 +41,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-          if (hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project)) {
             return project;
           }
         }
@@ -147,14 +143,20 @@ export const resolvers: Resolvers = {
               throw NotFoundError();
             }
 
-            if (!hasPermissionOnProject(context, project)) {
+            if (!(await hasPermissionOnProject(context, project))) {
               throw ForbiddenError();
             }
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-
             const toUpdate = new Project(input);
             const updated = await toUpdate.update(context);
+            if (updated && !updated.hasErrors()) {
+              // Update each plan's version snapshot if the project was updated
+              const plans = await Plan.findByProjectId(reference, context, project.id);
+              for (const plan of plans) {
+                await addVersion(context, plan, reference);
+              }
+            }
+
             return updated;
           } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
@@ -182,15 +184,17 @@ export const resolvers: Resolvers = {
             }
 
             // Only allow the owner of the project to delete it
-            if (!hasPermissionOnProject(context, project)) {
+            if (!(await hasPermissionOnProject(context, project))) {
               throw ForbiddenError();
             }
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-            // TODO: We need to do a check to see if it has been used and whether any of the related DMPs have
-            //       been published
-            const deleted = await project.delete(context);
-            return deleted
+            // Delete/Tombstone each plan associated with the project
+            const plans = await Plan.findByProjectId(reference, context, project.id);
+            for (const plan of plans) {
+              plan.delete(context);
+            }
+
+            return await project.delete(context);
           } catch (err) {
             formatLogMessage(context).error(err, `Failure in ${reference}`);
             throw InternalServerError();

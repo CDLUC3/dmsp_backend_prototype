@@ -569,6 +569,15 @@ export type ExternalProject = {
   title?: Maybe<Scalars['String']['output']>;
 };
 
+/** Output type for the initializePlanVersion mutation */
+export type InitializePlanVersionOutput = {
+  __typename?: 'InitializePlanVersionOutput';
+  /** The number of PlanVersion records that were created */
+  count: Scalars['Int']['output'];
+  /** The ids of the Plans that were processed */
+  planIds?: Maybe<Array<Scalars['Int']['output']>>;
+};
+
 /** The types of object a User can be invited to Collaborate on */
 export type InvitedToType =
   | 'PLAN'
@@ -724,10 +733,6 @@ export type Mutation = {
   createTemplateVersion?: Maybe<Template>;
   /** Deactivate the specified user Account (Admin only) */
   deactivateUser?: Maybe<User>;
-  /** Change the plan's status to COMPLETE (cannot be done once the plan is PUBLISHED) */
-  markPlanAsComplete?: Maybe<Plan>;
-  /** Change the plan's status to DRAFT (cannot be done once the plan is PUBLISHED) */
-  markPlanAsDraft?: Maybe<Plan>;
   /** Merge two licenses */
   mergeLicenses?: Maybe<License>;
   /** Merge two metadata standards */
@@ -792,6 +797,8 @@ export type Mutation = {
   setPrimaryUserEmail?: Maybe<Array<Maybe<UserEmail>>>;
   /** Set the user's ORCID */
   setUserOrcid?: Maybe<User>;
+  /** Initialize an PLanVersion record in the DynamoDB for all Plans that do not have one */
+  superInitializePlanVersions: InitializePlanVersionOutput;
   /** Update an Affiliation */
   updateAffiliation?: Maybe<Affiliation>;
   /** Edit an answer */
@@ -806,6 +813,8 @@ export type Mutation = {
   updatePassword?: Maybe<User>;
   /** Chnage a Contributor's accessLevel on a Plan */
   updatePlanContributor?: Maybe<PlanContributor>;
+  /** Change the plan's status */
+  updatePlanStatus?: Maybe<Plan>;
   /** Edit a project */
   updateProject?: Maybe<Project>;
   /** Chnage a collaborator's accessLevel on a Plan */
@@ -988,7 +997,7 @@ export type MutationAddUserEmailArgs = {
 
 
 export type MutationArchivePlanArgs = {
-  dmpId: Scalars['String']['input'];
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -1018,16 +1027,6 @@ export type MutationCreateTemplateVersionArgs = {
 
 export type MutationDeactivateUserArgs = {
   userId: Scalars['Int']['input'];
-};
-
-
-export type MutationMarkPlanAsCompleteArgs = {
-  dmpId: Scalars['String']['input'];
-};
-
-
-export type MutationMarkPlanAsDraftArgs = {
-  dmpId: Scalars['String']['input'];
 };
 
 
@@ -1061,7 +1060,7 @@ export type MutationProjectImportArgs = {
 
 
 export type MutationPublishPlanArgs = {
-  dmpId: Scalars['String']['input'];
+  planId: Scalars['Int']['input'];
   visibility?: InputMaybe<PlanVisibility>;
 };
 
@@ -1241,6 +1240,12 @@ export type MutationUpdatePlanContributorArgs = {
 };
 
 
+export type MutationUpdatePlanStatusArgs = {
+  planId: Scalars['Int']['input'];
+  status: PlanStatus;
+};
+
+
 export type MutationUpdateProjectArgs = {
   input?: InputMaybe<UpdateProjectInput>;
 };
@@ -1383,8 +1388,6 @@ export type Plan = {
   id?: Maybe<Scalars['Int']['output']>;
   /** The language of the plan */
   languageId?: Maybe<Scalars['String']['output']>;
-  /** The last time the plan was synced with the DMPHub */
-  lastSynced?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
@@ -1464,7 +1467,6 @@ export type PlanErrors = {
   featured?: Maybe<Scalars['String']['output']>;
   general?: Maybe<Scalars['String']['output']>;
   languageId?: Maybe<Scalars['String']['output']>;
-  lastSynced?: Maybe<Scalars['String']['output']>;
   projectId?: Maybe<Scalars['String']['output']>;
   registered?: Maybe<Scalars['String']['output']>;
   registeredById?: Maybe<Scalars['String']['output']>;
@@ -1657,9 +1659,7 @@ export type PlanStatus =
   /** The Plan is ready for submission or download */
   | 'COMPLETE'
   /** The Plan is still being written and reviewed */
-  | 'DRAFT'
-  /** The Plan's DMP ID (DOI) has been registered */
-  | 'PUBLISHED';
+  | 'DRAFT';
 
 /** A version of the plan */
 export type PlanVersion = {
@@ -2119,6 +2119,8 @@ export type Query = {
   sectionVersions?: Maybe<Array<Maybe<VersionedSection>>>;
   /** Get the Sections that belong to the associated templateId */
   sections?: Maybe<Array<Maybe<Section>>>;
+  /** Fetch the DynamoDB PlanVersion record for a specific plan and version timestamp (leave blank for the latest) */
+  superInspectPlanVersion?: Maybe<Scalars['String']['output']>;
   /** Get all available tags to display */
   tags: Array<Tag>;
   tagsBySectionId?: Maybe<Array<Maybe<Tag>>>;
@@ -2373,6 +2375,12 @@ export type QuerySectionVersionsArgs = {
 
 export type QuerySectionsArgs = {
   templateId: Scalars['Int']['input'];
+};
+
+
+export type QuerySuperInspectPlanVersionArgs = {
+  modified?: InputMaybe<Scalars['String']['input']>;
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -3756,6 +3764,7 @@ export type ResolversTypes = {
   ExternalContributor: ResolverTypeWrapper<ExternalContributor>;
   ExternalFunding: ResolverTypeWrapper<ExternalFunding>;
   ExternalProject: ResolverTypeWrapper<ExternalProject>;
+  InitializePlanVersionOutput: ResolverTypeWrapper<InitializePlanVersionOutput>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   InvitedToType: InvitedToType;
   Language: ResolverTypeWrapper<Language>;
@@ -3904,6 +3913,7 @@ export type ResolversParentTypes = {
   ExternalContributor: ExternalContributor;
   ExternalFunding: ExternalFunding;
   ExternalProject: ExternalProject;
+  InitializePlanVersionOutput: InitializePlanVersionOutput;
   Int: Scalars['Int']['output'];
   Language: Language;
   License: License;
@@ -4200,6 +4210,12 @@ export type ExternalProjectResolvers<ContextType = MyContext, ParentType extends
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type InitializePlanVersionOutputResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['InitializePlanVersionOutput'] = ResolversParentTypes['InitializePlanVersionOutput']> = {
+  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  planIds?: Resolver<Maybe<Array<ResolversTypes['Int']>>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type LanguageResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Language'] = ResolversParentTypes['Language']> = {
   id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -4281,20 +4297,18 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationAddTemplateArgs, 'name'>>;
   addTemplateCollaborator?: Resolver<Maybe<ResolversTypes['TemplateCollaborator']>, ParentType, ContextType, RequireFields<MutationAddTemplateCollaboratorArgs, 'email' | 'templateId'>>;
   addUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationAddUserEmailArgs, 'email' | 'isPrimary'>>;
-  archivePlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationArchivePlanArgs, 'dmpId'>>;
+  archivePlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationArchivePlanArgs, 'planId'>>;
   archiveProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<MutationArchiveProjectArgs, 'projectId'>>;
   archiveTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
   completeFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationCompleteFeedbackArgs, 'planFeedbackId'>>;
   createTemplateVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateTemplateVersionArgs, 'templateId' | 'visibility'>>;
   deactivateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationDeactivateUserArgs, 'userId'>>;
-  markPlanAsComplete?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanAsCompleteArgs, 'dmpId'>>;
-  markPlanAsDraft?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationMarkPlanAsDraftArgs, 'dmpId'>>;
   mergeLicenses?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationMergeLicensesArgs, 'licenseToKeepId' | 'licenseToRemoveId'>>;
   mergeMetadataStandards?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationMergeMetadataStandardsArgs, 'metadataStandardToKeepId' | 'metadataStandardToRemoveId'>>;
   mergeRepositories?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<MutationMergeRepositoriesArgs, 'repositoryToKeepId' | 'repositoryToRemoveId'>>;
   mergeUsers?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationMergeUsersArgs, 'userIdToBeMerged' | 'userIdToKeep'>>;
   projectImport?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationProjectImportArgs>>;
-  publishPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationPublishPlanArgs, 'dmpId'>>;
+  publishPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationPublishPlanArgs, 'planId'>>;
   removeAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationRemoveAffiliationArgs, 'affiliationId'>>;
   removeContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationRemoveContributorRoleArgs, 'id'>>;
   removeFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationRemoveFeedbackCommentArgs, 'PlanFeedbackCommentId'>>;
@@ -4321,6 +4335,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   selectProjectOutputForPlan?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationSelectProjectOutputForPlanArgs, 'planId' | 'projectOutputId'>>;
   setPrimaryUserEmail?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType, RequireFields<MutationSetPrimaryUserEmailArgs, 'email'>>;
   setUserOrcid?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationSetUserOrcidArgs, 'orcid'>>;
+  superInitializePlanVersions?: Resolver<ResolversTypes['InitializePlanVersionOutput'], ParentType, ContextType>;
   updateAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationUpdateAffiliationArgs, 'input'>>;
   updateAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationUpdateAnswerArgs, 'answerId'>>;
   updateContributorRole?: Resolver<Maybe<ResolversTypes['ContributorRole']>, ParentType, ContextType, RequireFields<MutationUpdateContributorRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
@@ -4328,6 +4343,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
   updatePlanContributor?: Resolver<Maybe<ResolversTypes['PlanContributor']>, ParentType, ContextType, RequireFields<MutationUpdatePlanContributorArgs, 'planContributorId' | 'planId'>>;
+  updatePlanStatus?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUpdatePlanStatusArgs, 'planId' | 'status'>>;
   updateProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationUpdateProjectArgs>>;
   updateProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdateProjectCollaboratorArgs, 'accessLevel' | 'projectCollaboratorId'>>;
   updateProjectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<MutationUpdateProjectContributorArgs, 'input'>>;
@@ -4382,7 +4398,6 @@ export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversP
   funders?: Resolver<Maybe<Array<ResolversTypes['PlanFunder']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   languageId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  lastSynced?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   outputs?: Resolver<Maybe<Array<ResolversTypes['PlanOutput']>>, ParentType, ContextType>;
@@ -4425,7 +4440,6 @@ export type PlanErrorsResolvers<ContextType = MyContext, ParentType extends Reso
   featured?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   languageId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  lastSynced?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   projectId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4799,6 +4813,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;
   sectionVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QuerySectionVersionsArgs, 'sectionId'>>;
   sections?: Resolver<Maybe<Array<Maybe<ResolversTypes['Section']>>>, ParentType, ContextType, RequireFields<QuerySectionsArgs, 'templateId'>>;
+  superInspectPlanVersion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType, RequireFields<QuerySuperInspectPlanVersionArgs, 'planId'>>;
   tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
   tagsBySectionId?: Resolver<Maybe<Array<Maybe<ResolversTypes['Tag']>>>, ParentType, ContextType, RequireFields<QueryTagsBySectionIdArgs, 'sectionId'>>;
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
@@ -5382,6 +5397,7 @@ export type Resolvers<ContextType = MyContext> = {
   ExternalContributor?: ExternalContributorResolvers<ContextType>;
   ExternalFunding?: ExternalFundingResolvers<ContextType>;
   ExternalProject?: ExternalProjectResolvers<ContextType>;
+  InitializePlanVersionOutput?: InitializePlanVersionOutputResolvers<ContextType>;
   Language?: LanguageResolvers<ContextType>;
   License?: LicenseResolvers<ContextType>;
   LicenseErrors?: LicenseErrorsResolvers<ContextType>;

@@ -5,7 +5,7 @@ import { Affiliation, AffiliationProvenance, AffiliationType, DEFAULT_DMPTOOL_AF
 import { processOtherAffiliationName } from "../affiliationService";
 import { getCurrentDate } from "../../utils/helpers";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

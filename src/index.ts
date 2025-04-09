@@ -8,7 +8,7 @@ import { serverConfig } from './config';
 import { healthcheck } from './controllers/healthcheck';
 import { attachApolloServer } from './middleware/express';
 import router from './router';
-import { MySQLDataSource } from './datasources/mySQLDataSource';
+import { mysql } from './datasources/mysql';
 import { Cache } from './datasources/cache';
 import { verifyCriticalEnvVariable } from './utils/helpers';
 import corsConfig from './config/corsConfig';
@@ -63,7 +63,7 @@ const startServer = async () => {
 // Handle graceful shutdown
 const shutdown = async () => {
   console.log('Shutting down server...');
-  const pool = MySQLDataSource.getInstance();
+  const pool = mysql.getInstance();
   await pool.close();
   process.exit(0);
 };

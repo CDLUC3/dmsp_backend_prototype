@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 import { verifyCriticalEnvVariable } from "../utils/helpers";
-import { PoolConfig } from '../datasources/mySQLDataSource';
+import { PoolConfig } from '../datasources/mysql';
 
 dotenv.config();
 

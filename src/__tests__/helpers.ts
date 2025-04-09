@@ -10,17 +10,24 @@ const urlRegex = new RegExp(/(https:\/\/www\.|http:\/\/www\.|https:\/\/|http:\/\
 
 // Generate a random bogus ORCID
 export function getMockORCID(): string {
-  return Array.from({ length: 4 }, () => casual.integer(1000, 9999)).join('-');
+  const id = Array.from({ length: 4 }, () => casual.integer(1000, 9999)).join('-');
+  return `${generalConfig.orcidBaseURL}${id}`;
 }
 
-// Generate a random DMP ID (DOI)
+// Generate a random bogus ROR
+export function getMockROR(): string {
+  const id = `${casual.rgb_hex.replace('#', '')}${casual.integer(1, 99)}`;
+  return `${generalConfig.rorBaseURL} ${id}`;
+}
+
+// Generate a random DOI
 export function getMockDOI(): string {
   // Generate a random DOI prefix
   const shoulder = `10.${casual.integer(10000, 99999)}/${casual.letter.toUpperCase()}${casual.integer(0, 9)}`;
   // Generate a random DOI suffix
   const suffix = `${casual.integer(1000, 9999)}/${casual.integer(1000, 9999)}`;
   // Combine prefix and suffix
-  return `https://doi.org/${shoulder}/${suffix}`;
+  return `${generalConfig.dmpIdBaseURL}${shoulder}/${suffix}`;
 }
 
 // Generate a random DMP ID

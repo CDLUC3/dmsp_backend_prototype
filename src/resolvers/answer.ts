@@ -7,15 +7,15 @@ import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { Resolvers } from "../types";
-import { createPlanVersion, syncWithDMPHub } from "../services/planService";
 import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
+import { addVersion } from "../models/PlanVersion";
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all of the projects that the current user owns or is a collaborator on
+    // return all of the answers for the given plan
     answers: async (_, { projectId, planId, versionedSectionId }, context: MyContext): Promise<Answer[]> => {
       const reference = 'planSectionAnswers resolver';
       try {
@@ -37,12 +37,12 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // Find the plan by its id
+    // Find the answer by its id
     answer: async (_, { projectId, answerId }, context: MyContext): Promise<Answer> => {
       const reference = 'plan resolver';
       try {
         const project = await Project.findById(reference, context, projectId);
-        if (project && hasPermissionOnProject(context, project)) {
+        if (project && await hasPermissionOnProject(context, project)) {
           return await Answer.findById(reference, context, answerId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -56,7 +56,7 @@ export const resolvers: Resolvers = {
   },
 
   Mutation: {
-    // Create a new plan
+    // Create a new answer
     addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, answerText }, context: MyContext): Promise<Answer> => {
       const reference = 'addAnswer resolver';
       try {
@@ -72,26 +72,12 @@ export const resolvers: Resolvers = {
 
           if (await hasPermissionOnProject(context, project)) {
             const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, answerText });
-
-            // First create a version snapshot (before making changes)
-            const newVersion = createPlanVersion(context, plan, reference);
-            if (newVersion) {
-
-              // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-
-              const newAnswer = await answer.create(context);
-              if (newAnswer) {
-                // asyncronously send the plan to the DMPHub so that it stores it and assigns a DMP ID
-                syncWithDMPHub(context, plan, reference);
-
-                return newAnswer;
-              }
-            } else {
-              answer.addError('general', 'Unable to add answer. Failed to create a plan version snapshot');
-              return answer;
+            const newAnswer = await answer.create(context);
+            if (newAnswer && !newAnswer.hasErrors()) {
+              // Version the plan
+              await addVersion(context, plan, reference);
             }
-
-            return answer;
+            return newAnswer;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -103,7 +89,7 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // Delete a plan
+    // Delete an answer
     updateAnswer: async (_, { answerId, answerText }, context: MyContext): Promise<Answer> => {
       const reference = 'updateAnswer resolver';
       try {
@@ -118,25 +104,15 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
-            // First create a version snapshot (before making changes)
-            const newVersion = createPlanVersion(context, plan, reference);
-            if (newVersion) {
-              answer.answerText = answerText;
+            answer.answerText = answerText;
+            const updatedAnswer = await answer.update(context);
 
-              // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-
-              const updatedAnswer = await answer.update(context);
-
-              if (updatedAnswer) {
-                // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                syncWithDMPHub(context, plan, reference);
-
-                return updatedAnswer;
-              }
+            if (updatedAnswer && !updatedAnswer.hasErrors()) {
+              // Version the plan
+              await addVersion(context, plan, reference);
             }
 
-            answer.addError('general', 'Unable to archive plan. Failed to create a version snapshot');
-            return answer;
+            return updatedAnswer;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -150,21 +126,21 @@ export const resolvers: Resolvers = {
   },
 
   Answer: {
-    // The project the plan is associated with
+    // The plan the answer is associated with
     plan: async (parent: Answer, _, context: MyContext): Promise<Plan> => {
       if (parent?.planId) {
         return await Plan.findById('Answer plan resolver', context, parent.planId);
       }
       return null;
     },
-    // The template the plan is based on
+    // The section the answer's question belongs to
     versionedSection: async (parent: Answer, _, context: MyContext): Promise<VersionedSection> => {
       if (parent?.versionedSectionId) {
         return await VersionedSection.findById('Answer versionedSection resolver', context, parent.versionedSectionId);
       }
       return null;
     },
-    // The contributors to the plan
+    // The question the answer is associated with
     versionedQuestion: async (parent: Answer, _, context: MyContext): Promise<VersionedQuestion> => {
       if (parent?.versionedQuestionId) {
         return await VersionedQuestion.findById('Answer versionedQuestion resolver', context, parent.versionedQuestionId);

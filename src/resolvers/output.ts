@@ -128,7 +128,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return await ProjectOutput.findByProjectId(reference, context, projectId);
           }
         }
@@ -149,7 +149,7 @@ export const resolvers: Resolvers = {
           const projectFunder = await ProjectOutput.findById(reference, context, projectOutputId);
           const project = await Project.findById(reference, context, projectFunder.projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return projectFunder;
           }
         }
@@ -170,7 +170,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
+          if (!project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -238,7 +238,7 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, output.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -304,7 +304,7 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, output.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 

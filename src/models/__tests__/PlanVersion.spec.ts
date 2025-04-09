@@ -1,284 +1,259 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { PlanVersion } from "../PlanVersion";
+import {
+  addVersion,
+  findVersionByTimestamp,
+  findVersionsByDMPId,
+  latestVersion,
+  removeVersions,
+  updateVersion
+} from "../PlanVersion";
+import { Plan, PlanStatus, PlanVisibility } from "../Plan";
+import { getRandomEnumValue } from "../../__tests__/helpers";
+import * as DynamoModule from '../../datasources/dynamo';
+import * as CommonStandardModule from '../../services/commonStandardService';
+import { getCurrentDate } from "../../utils/helpers";
 
 jest.mock('../../context.ts');
 
 let context;
+let plan;
+let mockCommonStandard;
 
 beforeEach(() => {
   jest.resetAllMocks();
 
   context = buildContext(logger, mockToken());
+
+  plan = new Plan({
+    projectId: casual.integer(1, 100),
+    versionedTemplateId: casual.integer(1, 100),
+    status: getRandomEnumValue(PlanStatus),
+    visibility: getRandomEnumValue(PlanVisibility),
+    languageId: 'en-US',
+    featured: casual.boolean,
+    dmpId: casual.uuid,
+    registeredById: casual.integer(1, 100),
+    registered: casual.date,
+  });
+
+  mockCommonStandard = jest.fn().mockResolvedValue({});
+  (CommonStandardModule.planToDMPCommonStandard as jest.Mock) = mockCommonStandard;
 });
 
 afterEach(() => {
   jest.clearAllMocks();
 });
 
-describe('PlanVersion', () => {
-  let planVersion;
+describe('addVersion', () => {
+  it('should add an initial version of the plan', async () => {
+    const reference = 'addVersion';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([]);
+    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
+    (DynamoModule.createDMP as jest.Mock) = mockVersion;
 
-  const planVersionData = {
-    planId: casual.integer(1, 9999),
-    dmp: {
-      title: casual.title,
-      description: casual.sentences(3),
-      created: casual.date('YYYY-MM-DD'),
-      modified: casual.date('YYYY-MM-DD'),
-      dmproadmap_status: casual.random_element(['draft', 'published', 'archived']),
-      dmproadmap_visibility: casual.random_element(['private', 'public']),
-      dmp_id: {
-        identifier: casual.url,
-        type: 'url',
-      },
-      dataset: [{
-        title: casual.title,
-        dataset_id: {
-          identifier: casual.url,
-          type: 'url',
-        },
-      }],
-      project: [{
-        title: casual.title,
-      }]
-    },
-  }
-  beforeEach(() => {
-    planVersion = new PlanVersion(planVersionData);
+    const result = await addVersion(context, plan, reference);
+
+    expect(result).toEqual(plan);
+    expect(mockCommonStandard).toHaveBeenCalledTimes(1);
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 
-  it('should initialize options as expected', () => {
-    expect(planVersion.planId).toEqual(planVersionData.planId);
-    expect(planVersion.dmp).toEqual(planVersionData.dmp);
+  it('should create a version snapshot of the plan', async () => {
+    const reference = 'addVersion';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: getCurrentDate() }]);
+    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
+    (DynamoModule.createDMP as jest.Mock) = mockVersion;
+
+    const result = await addVersion(context, plan, reference);
+
+    expect(result).toEqual(plan);
+    expect(mockCommonStandard).toHaveBeenCalledTimes(1);
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 
-  it('should return true when calling isValid if object is valid', async () => {
-    expect(await planVersion.isValid()).toBe(true);
-  });
+  it('should handle error when adding a version to the plan', async () => {
+    const reference = 'addVersion';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: getCurrentDate() }]);
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error adding versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
+    (DynamoModule.createDMP as jest.Mock) = mockVersion;
 
-  it('should return false when calling isValid if the planId field is missing', async () => {
-    planVersion.planId = null;
-    expect(await planVersion.isValid()).toBe(false);
-    expect(Object.keys(planVersion.errors).length).toBe(1);
-    expect(planVersion.errors['planId']).toBeTruthy();
-  });
-
-  it('should return false when calling isValid if the dmp field is missing', async () => {
-    planVersion.dmp = null;
-    expect(await planVersion.isValid()).toBe(false);
-    expect(Object.keys(planVersion.errors).length).toBe(1);
-    expect(planVersion.errors['dmp']).toBeTruthy();
+    await expect(addVersion(context, plan, reference)).rejects.toThrow('Error adding version');
+    expect(mockCommonStandard).toHaveBeenCalledTimes(1);
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 });
 
-describe('findBy Queries', () => {
-  const originalQuery = PlanVersion.query;
+describe('updateVersion', () => {
+  it('should update the version of the plan if it was last modified within the last hour', async () => {
+    const reference = 'updateVersion';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: getCurrentDate() }]);
+    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
+    (DynamoModule.updateDMP as jest.Mock) = mockVersion;
 
-  let localQuery;
-  let context;
-  let planVersion;
+    const result = await updateVersion(context, plan, reference);
 
-  beforeEach(() => {
-    localQuery = jest.fn();
-    (PlanVersion.query as jest.Mock) = localQuery;
-
-    context = buildContext(logger, mockToken());
-
-    planVersion = new PlanVersion({
-      id: casual.integer(1,9999),
-      planId: casual.integer(1, 9999),
-      dmp: {
-        title: casual.title,
-        description: casual.sentences(3),
-        created: casual.date('YYYY-MM-DD'),
-        modified: casual.date('YYYY-MM-DD'),
-        dmproadmap_status: casual.random_element(['draft', 'published', 'archived']),
-        dmproadmap_visibility: casual.random_element(['private', 'public']),
-        dmp_id: {
-          identifier: casual.url,
-          type: 'url',
-        },
-        dataset: [{
-          title: casual.title,
-          dataset_id: {
-            identifier: casual.url,
-            type: 'url',
-          },
-        }],
-        project: [{
-          title: casual.title,
-        }]
-      },
-    });
+    expect(result).toEqual(plan);
+    expect(mockCommonStandard).toHaveBeenCalledTimes(1);
+    expect(mockLatestVersion).toHaveBeenCalledTimes(1)
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    PlanVersion.query = originalQuery;
+  it('should add a new version of the plan if it was last modified longer than one hour ago', async () => {
+    const reference = 'updateVersion';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: '2020-01-01T00:00:00Z' }]);
+    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
+    (DynamoModule.createDMP as jest.Mock) = mockVersion;
+
+    const result = await updateVersion(context, plan, reference);
+
+    expect(result).toEqual(plan);
+    expect(mockCommonStandard).toHaveBeenCalledTimes(2);
+    expect(mockLatestVersion).toHaveBeenCalledTimes(2)
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 
-  it('findById should call query with correct params and return the object', async () => {
-    localQuery.mockResolvedValueOnce([planVersion]);
-    const planVersionId = casual.integer(1, 999);
-    const result = await PlanVersion.findById('testing', context, planVersionId);
-    const expectedSql = 'SELECT * FROM planVersions WHERE id = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planVersionId.toString()], 'testing')
-    expect(result).toEqual(planVersion);
+  it('should add an error if the plan has no latest version', async () => {
+    const reference = 'updateVersion';
+    const mockVersion = jest.fn().mockResolvedValue([]);
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
+
+    const result = await updateVersion(context, plan, reference);
+
+    expect(result).toEqual(plan);
+    expect(plan.errors.general).toEqual('Unable to find the latest version of the DMP');
+    expect(mockCommonStandard).toHaveBeenCalledTimes(1);
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 
-  it('findById should return null if it finds no records', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const planVersionId = casual.integer(1, 999);
-    const result = await PlanVersion.findById('testing', context, planVersionId);
-    expect(result).toEqual(null);
-  });
+  it('should handle error when updating the version of the plan', async () => {
+    const reference = 'updateVersion';
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error updating versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
-  it('findByPlanId should call query with correct params and return the object', async () => {
-    localQuery.mockResolvedValueOnce([planVersion]);
-    const planId = casual.integer(1, 9999);
-    const result = await PlanVersion.findByPlanId('testing', context, planId);
-    const expectedSql = 'SELECT * FROM planVersions WHERE planId = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planId.toString()], 'testing')
-    expect(result).toEqual([planVersion]);
-  });
-
-  it('findByPlanId should return null if it finds no records', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const planId = casual.integer(1, 9999);
-    const result = await PlanVersion.findByPlanId('testing', context, planId);
-    expect(result).toEqual([]);
+    await expect(updateVersion(context, plan, reference)).rejects.toThrow('Error updating version');
+    expect(mockCommonStandard).toHaveBeenCalledTimes(1);
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 });
 
-describe('create', () => {
-  const originalInsert = PlanVersion.insert;
-  let insertQuery;
-  let planVersion;
+describe('findVersionByTimestamp', () => {
+  it('should find a version by timestamp', async () => {
+    const timestamp = casual.date();
+    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
-  beforeEach(() => {
-    insertQuery = jest.fn();
-    (PlanVersion.insert as jest.Mock) = insertQuery;
+    const result = await findVersionByTimestamp(context, plan, timestamp);
 
-    planVersion = new PlanVersion({
-      planId: casual.integer(1, 9999),
-      dmp: {
-        title: casual.title,
-        description: casual.sentences(3),
-        created: casual.date('YYYY-MM-DD'),
-        modified: casual.date('YYYY-MM-DD'),
-        dmproadmap_status: casual.random_element(['draft', 'published', 'archived']),
-        dmproadmap_visibility: casual.random_element(['private', 'public']),
-        dmp_id: {
-          identifier: casual.url,
-          type: 'url',
-        },
-        dataset: [{
-          title: casual.title,
-          dataset_id: {
-            identifier: casual.url,
-            type: 'url',
-          },
-        }],
-        project: [{
-          title: casual.title,
-        }]
-      },
-    });
+    expect(result).toBeDefined();
+    expect(mockVersion).toHaveBeenCalledTimes(1);
   });
 
-  afterEach(() => {
-    PlanVersion.insert = originalInsert;
-  });
+  it('should handle error when finding a version by timestamp', async () => {
+    const timestamp = casual.date();
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error finding versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
-  it('returns the PlanVersion without errors if it is valid', async () => {
-    const localValidator = jest.fn();
-    (planVersion.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(false);
-
-    const result = await planVersion.create(context);
-    expect(result instanceof PlanVersion).toBe(true);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns the PlanVersion with errors if it is invalid', async () => {
-    planVersion.planId = undefined;
-    const response = await planVersion.create(context);
-    expect(response.errors['planId']).toBe('Plan can\'t be blank');
-  });
-
-  it('returns the newly added PlanVersion', async () => {
-    const mockFindById = jest.fn();
-    (PlanVersion.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(planVersion);
-
-    const result = await planVersion.create(context);
-    expect(mockFindById).toHaveBeenCalledTimes(1);
-    expect(insertQuery).toHaveBeenCalledTimes(1);
-    expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(PlanVersion);
+    await expect(findVersionByTimestamp(context, plan, timestamp)).rejects.toThrow('Error finding version');
+    expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 });
 
-describe('delete', () => {
-  let planVersion;
+describe('findVersionsByDMPId', () => {
+  it('should find versions by DMP ID', async () => {
+    const dmpId = casual.uuid;
+    const mockVersion = jest.fn().mockResolvedValueOnce([plan]);
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
-  beforeEach(() => {
-    planVersion = new PlanVersion({
-      id: casual.integer(1, 9999),
-      planId: casual.integer(1, 9999),
-      dmp: {
-        title: casual.title,
-        description: casual.sentences(3),
-        created: casual.date('YYYY-MM-DD'),
-        modified: casual.date('YYYY-MM-DD'),
-        dmproadmap_status: casual.random_element(['draft', 'published', 'archived']),
-        dmproadmap_visibility: casual.random_element(['private', 'public']),
-        dmp_id: {
-          identifier: casual.url,
-          type: 'url',
-        },
-        dataset: [{
-          title: casual.title,
-          dataset_id: {
-            identifier: casual.url,
-            type: 'url',
-          },
-        }],
-        project: [{
-          title: casual.title,
-        }]
-      },
-    });
-  })
+    const result = await findVersionsByDMPId(context, dmpId);
 
-  it('returns null if the PlanVersion has no id', async () => {
-    planVersion.id = null;
-    expect(await planVersion.delete(context)).toBe(null);
+    expect(result).toBeDefined();
   });
 
-  it('returns null if it was not able to delete the record', async () => {
-    const deleteQuery = jest.fn();
-    (PlanVersion.delete as jest.Mock) = deleteQuery;
+  it('should handle error when finding versions by DMP ID', async () => {
+    const dmpId = casual.uuid;
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error finding versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
-    deleteQuery.mockResolvedValueOnce(null);
-    expect(await planVersion.delete(context)).toBe(null);
+    await expect(findVersionsByDMPId(context, dmpId)).rejects.toThrow('Error finding versions');
+    expect(mockVersion).toHaveBeenCalledTimes(1)
+  });
+});
+
+describe('latestVersion', () => {
+  it('should find versions by DMP ID', async () => {
+    const mockVersion = jest.fn().mockResolvedValueOnce([plan]);
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
+
+    const result = await latestVersion(context, plan);
+
+    expect(result).toBeDefined();
   });
 
-  it('returns the PlanVersion if it was able to delete the record', async () => {
-    const deleteQuery = jest.fn();
-    (PlanVersion.delete as jest.Mock) = deleteQuery;
-    deleteQuery.mockResolvedValueOnce(planVersion);
+  it('should handle error when finding versions by DMP ID', async () => {
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error finding versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
 
-    const mockFindById = jest.fn();
-    (PlanVersion.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(planVersion);
+    await expect(latestVersion(context, plan)).rejects.toThrow('Error finding versions');
+    expect(mockVersion).toHaveBeenCalledTimes(1)
+  });
+});
 
-    const result = await planVersion.delete(context);
-    expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(PlanVersion);
+describe('removeVersions', () => {
+  it('should tombstone the DMP if the plan is registered/published', async () => {
+    const reference = 'removeVersions';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ registered: getCurrentDate() }]);
+    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
+    (DynamoModule.tombstoneDMP as jest.Mock) = mockVersion;
+
+    const result = await removeVersions(context, plan, reference);
+
+    expect(result).toEqual(plan);
+    expect(mockLatestVersion).toHaveBeenCalledTimes(1)
+    expect(mockVersion).toHaveBeenCalledTimes(1)
+  });
+
+  it('should remove the versions of the plan if it is NOT registered/published', async () => {
+    const reference = 'removeVersions';
+    plan.registered = null;
+    plan.registeredById = null;
+    plan.dmpId = null;
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: getCurrentDate() }]);
+    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
+    (DynamoModule.deleteDMP as jest.Mock) = mockVersion;
+
+    const result = await removeVersions(context, plan, reference);
+    expect(result).toEqual(plan);
+    expect(mockLatestVersion).toHaveBeenCalledTimes(1)
+    expect(mockVersion).toHaveBeenCalledTimes(1)
+  });
+
+  it('should handle error when tombstoning a registered/published plan', async () => {
+    const reference = 'removeVersions';
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error removing versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
+
+    await expect(removeVersions(context, plan, reference)).rejects.toThrow('Error removing versions');
+    expect(mockVersion).toHaveBeenCalledTimes(1);
+  });
+
+  it('should handle error when removing versions from a plan that is NOT registered/published', async () => {
+    const reference = 'removeVersions';
+    plan.registered = null;
+    plan.registeredById = null;
+    plan.dmpId = null;
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error removing versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockVersion;
+
+    await expect(removeVersions(context, plan, reference)).rejects.toThrow('Error removing versions');
+    expect(mockVersion).toHaveBeenCalledTimes(1);
   });
 });

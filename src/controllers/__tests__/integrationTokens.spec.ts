@@ -22,8 +22,6 @@ jest.mock('../../datasources/dmphubAPI');
 
 let context;
 
-jest.mock('../../models/User');
-
 // Process the response cookies into an object since cookies are returned in the `set-cookie` header in
 // supertest and each one is a string like `cookieName=cookieValue`
 function processResponseCookies(headers) {
@@ -525,7 +523,8 @@ describe('token refresh', () => {
       .digest('hex');
     expect(await context.cache.adapter.get(`{dmspr}:${jwt.jti}`)).toEqual(hashedToken);
 
-    (UserModel.User.findById as jest.Mock).mockImplementation(() => { throw new Error('testing') });
+    const errMock = jest.fn().mockImplementation(() => { throw new Error('testing') });
+    (UserModel.User.findById as jest.Mock) = errMock;
 
     // Now try to refresh the access token
     const respRefresh = await request(app)
