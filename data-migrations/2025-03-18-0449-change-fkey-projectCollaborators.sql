@@ -1,4 +1,3 @@
-
 ALTER TABLE `projectCollaborators`
   ADD COLUMN `projectId` INT NOT NULL,
   ADD CONSTRAINT `unique_project_collaborator` UNIQUE (`projectId`, `email`),

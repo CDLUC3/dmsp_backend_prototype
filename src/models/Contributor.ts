@@ -7,7 +7,6 @@ import { MySqlModel } from "./MySqlModel";
 export class ProjectContributor extends MySqlModel {
   public projectId: number;
   public affiliationId?: string;
-  public userId: number;
   public givenName?: string;
   public surName?: string;
   public orcid?: string;
@@ -22,7 +21,6 @@ export class ProjectContributor extends MySqlModel {
     this.id = options.id;
     this.projectId = options.projectId;
     this.affiliationId = options.affiliationId;
-    this.userId = options.userId;
     this.givenName = options.givenName;
     this.surName = options.surName;
     this.orcid = options.orcid;

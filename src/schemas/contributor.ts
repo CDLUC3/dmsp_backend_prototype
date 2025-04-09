@@ -47,8 +47,6 @@ export const typeDefs = gql`
     project: Project
     "The contributor's affiliation"
     affiliation: Affiliation
-    "The user id of the contributor"
-    userId: Int
     "The contributor's first/given name"
     givenName: String
     "The contributor's last/sur name"

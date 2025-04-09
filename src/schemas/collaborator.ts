@@ -114,8 +114,8 @@ export const typeDefs = gql`
 
   "The result of the findCollaborator query"
   type CollaboratorSearchResult {
-    "The userId of the collaborator"
-    userId: Int
+    "The unique identifier for the Object"
+    id: Int
     "The collaborator's first/given name"
     givenName: String
     "The collaborator's last/sur name"

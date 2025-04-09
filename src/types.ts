@@ -485,12 +485,12 @@ export type CollaboratorSearchResult = {
   affiliation?: Maybe<Affiliation>;
   /** The collaborator's first/given name */
   givenName?: Maybe<Scalars['String']['output']>;
+  /** The unique identifier for the Object */
+  id?: Maybe<Scalars['Int']['output']>;
   /** The collaborator's ORCID */
   orcid?: Maybe<Scalars['String']['output']>;
   /** The collaborator's last/sur name */
   surName?: Maybe<Scalars['String']['output']>;
-  /** The userId of the collaborator */
-  userId?: Maybe<Scalars['Int']['output']>;
 };
 
 export type ContributorRole = {
@@ -1746,8 +1746,6 @@ export type ProjectContributor = {
   project?: Maybe<Project>;
   /** The contributor's last/sur name */
   surName?: Maybe<Scalars['String']['output']>;
-  /** The user id of the contributor */
-  userId?: Maybe<Scalars['Int']['output']>;
 };
 
 /** A collection of errors related to the ProjectContributor */
@@ -4059,9 +4057,9 @@ export type AnswerCommentErrorsResolvers<ContextType = MyContext, ParentType ext
 export type CollaboratorSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['CollaboratorSearchResult'] = ResolversParentTypes['CollaboratorSearchResult']> = {
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  userId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4510,7 +4508,6 @@ export type ProjectContributorResolvers<ContextType = MyContext, ParentType exte
   orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
   surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  userId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
