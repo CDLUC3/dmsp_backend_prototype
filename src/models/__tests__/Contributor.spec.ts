@@ -230,7 +230,7 @@ describe('findBy Queries', () => {
     const email = casual.email;
     const result = await ProjectContributor.findByProjectAndNameOrORCIDOrEmail('testing', context, projectId, givenName, surName, orcid, email);
     const expectedSql = 'SELECT * FROM projectContributors WHERE projectId = ? AND (LOWER(givenName) = ? AND LOWER(surName) = ?) OR (orcid = ?) ' +
-                        'OR (email = ?) ORDER BY orcid DESC, email DESC, surName, givenName';
+      'OR (email = ?) ORDER BY orcid DESC, email DESC, surName, givenName';
     expect(localQuery).toHaveBeenCalledTimes(1);
     const vals = [projectId.toString(), givenName.toLowerCase(), surName.toLowerCase(), orcid, email];
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
