@@ -1,12 +1,6 @@
 import nock from 'nock';
-import {
-  DMPHubAPI,
-  Authorizer,
-  DMPIdentifierType,
-  DMPPrivacy,
-  DMPStatus,
-  DMPYesNoUnknown
-} from '../dmphubAPI';
+import { DMPHubAPI, Authorizer } from '../dmphubAPI';
+import { DMPIdentifierType, DMPPrivacy, DMPStatus, DMPYesNoUnknown } from '../../types/DMP';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { KeyValueCache } from '@apollo/utils.keyvaluecache';
@@ -289,6 +283,96 @@ describe('DMPToolAPI', () => {
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
       await expect(dmphubAPI.tombstoneDMP(context, dmp)).rejects.toThrow('API error');
+    });
+  });
+
+  describe('getAwards', () => {
+
+    it('should getAwards', async () => {
+      const context = buildContext(logger, mockToken(), new MockCache());
+      const mockItems = [{
+        project: {
+          title: casual.title,
+          description: casual.description,
+          start: casual.date('YYYY-M-DD'),
+          end: casual.date('YYYY-M-DD'),
+          funding: [
+            {
+              dmproadmap_project_number: "CTF-2023-01-006",
+              dmproadmap_award_amount: casual.double(1000, 1000000).toFixed(2),
+              grant_id: {
+                identifier: "https://doi.org/10.00000/grant-id",
+                type: "url"
+              }
+            }
+          ]
+        },
+        contact: {
+          name: `${casual.last_name}, ${casual.first_name}`,
+          dmproadmap_affiliation: {
+            "name": casual.name,
+            "affiliation_id": {
+              "identifier": "https://ror.org/000000000",
+              "type": "ror"
+            }
+          },
+          contact_id: {
+            type: "orcid",
+            identifier: "http://orcid.org/0000-0000-0000-0000"
+          },
+          role: [
+            "http://credit.niso.org/contributor-roles/investigation"
+          ]
+        },
+        contributor: [
+          {
+            name: `${casual.last_name}, ${casual.first_name}`,
+            dmproadmap_affiliation: {
+              name: casual.name,
+              affiliation_id: {
+                identifier: "https://ror.org/000000000",
+                type: "ror"
+              }
+            },
+            contributor_id: {
+              type: "orcid",
+              identifier: "http://orcid.org/0000-0000-0000-0000"
+            },
+            role: [
+              "http://credit.niso.org/contributor-roles/investigation"
+            ]
+          }
+        ]
+      }];
+      const mockResponse = {
+        status: 200,
+        items: mockItems
+      };
+
+      const apiTarget = "awards/crossref/000000000000";
+      const awardId = "123";
+      const awardName = "Physics";
+      const awardYear = "2024";
+      const piNames = ["John Doe", "Jane Doe"];
+      const expectedPath = "awards/crossref/000000000000?project=123&pi_names=John+Doe%2CJane+Doe&keywords=Physics&years=2024";
+      mockGet.mockResolvedValue(mockResponse);
+      const result = await dmphubAPI.getAwards(context, apiTarget, awardId, awardName, awardYear, piNames);
+
+      expect(mockGet).toHaveBeenCalledWith(expectedPath);
+      expect(result).toEqual(mockItems);
+      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
+        mockItems,
+        `dmphubAPI.getAwards Results from DMPHub getAwards: ${DMPHubConfig.dmpHubURL}/${expectedPath}`
+      );
+    });
+
+    it('should throw and error when get fails', async () => {
+      const context = buildContext(logger);
+      const apiTarget = 'awards/nih';
+      const mockError = new Error('API down');
+      mockGet.mockImplementation(() => { throw mockError });
+
+      await expect(dmphubAPI.getAwards(context, apiTarget)).rejects.toThrow('API down');
     });
   });
 });

@@ -16,7 +16,7 @@ export const typeDefs = gql`
     "Add a Funder to a research project"
     addProjectFunder(input: AddProjectFunderInput!): ProjectFunder
     "Update a Funder on the research project"
-    updateProjectFunder(input: updateProjectFunderInput!): ProjectFunder
+    updateProjectFunder(input: UpdateProjectFunderInput!): ProjectFunder
     "Remove a research project Funder"
     removeProjectFunder(projectFunderId: Int!): ProjectFunder
 
@@ -101,7 +101,7 @@ export const typeDefs = gql`
     funderOpportunityNumber: String
   }
 
-  input updateProjectFunderInput {
+  input UpdateProjectFunderInput {
     "The project funder"
     projectFunderId: Int!
     "The status of the funding resquest"

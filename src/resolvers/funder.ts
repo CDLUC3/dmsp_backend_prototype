@@ -10,6 +10,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
+import { addVersion } from '../models/PlanVersion';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -20,7 +21,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return await ProjectFunder.findByProjectId(reference, context, projectId);
           }
         }
@@ -41,7 +42,7 @@ export const resolvers: Resolvers = {
           const projectFunder = await ProjectFunder.findById(reference, context, projectFunderId);
           const project = await Project.findById(reference, context, projectFunder.projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return projectFunder;
           }
         }
@@ -60,7 +61,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (plan && hasPermissionOnProject(context, project)) {
+          if (plan && await hasPermissionOnProject(context, project)) {
             return await PlanFunder.findByPlanId(reference, context, plan.id);
           }
         }
@@ -81,7 +82,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
+          if (!project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -119,7 +120,7 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, funder.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -127,7 +128,16 @@ export const resolvers: Resolvers = {
           toUpdate.projectId = funder?.projectId;
           toUpdate.id = funder?.id;
           toUpdate.affiliationId = funder.affiliationId;
-          return await toUpdate.update(context);
+
+          const updated = await toUpdate.update(context);
+          if (updated && !updated.hasErrors()) {
+            const plans = await Plan.findByProjectId(reference, context, funder.projectId);
+            for (const plan of plans) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              await addVersion(context, plan, reference);
+            }
+          }
+          return updated;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -150,11 +160,19 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, funder.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          return await funder.delete(context);
+          const removed = await funder.delete(context);
+          if (removed && !removed.hasErrors()) {
+            const plans = await Plan.findByProjectId(reference, context, funder.projectId);
+            for (const plan of plans) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              addVersion(context, plan, reference);
+            }
+          }
+          return removed;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -172,13 +190,17 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (!plan || !project || !hasPermissionOnProject(context, project)) {
+          if (!plan || !project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          // TODO: We need to generate the plan version snapshot and sync with DMPHub
-
           const newFunder = new PlanFunder({ planId, projectFunderId });
+
+          if (newFunder && !newFunder.hasErrors()) {
+            // Version all of the plans (if any) and sync with the DMPHub
+            await addVersion(context, plan, reference);
+          }
+
           return await newFunder.create(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -200,15 +222,20 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          // TODO: We need to generate the plan version snapshot and sync with DMPHub
-
           const plan = await Plan.findById(reference, context, funder.planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (!plan || !project || !hasPermissionOnProject(context, project)) {
+          if (!plan || !project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          return await funder.delete(context);
+          const deletedFunder = await funder.delete(context);
+
+          if (deletedFunder && !deletedFunder.hasErrors()) {
+            // Version the plan
+            await addVersion(context, plan, reference);
+          }
+
+          return deletedFunder;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

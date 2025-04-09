@@ -1,13 +1,18 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { ProjectCollaborator } from "../models/Collaborator";
+import { ProjectCollaborator, ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { Project } from "../models/Project";
 import { User } from "../models/User";
 import { isAdmin, isSuperAdmin } from "./authService";
 
 // Determine whether the specified user has permission to access the Section
-export const hasPermissionOnProject = async (context: MyContext, project: Project): Promise<boolean> => {
+export const hasPermissionOnProject = async (
+  context: MyContext,
+  project: Project,
+  requiredAccessLevel = ProjectCollaboratorAccessLevel.EDIT,
+): Promise<boolean> => {
   const reference = 'projectService.hasPermissionOnProject';
+  if (!context || !context.token) return false;
 
   // Super admins always have permission
   if (await isSuperAdmin(context.token)) {
@@ -31,11 +36,24 @@ export const hasPermissionOnProject = async (context: MyContext, project: Projec
     // Otherwise check to see if the user is a collaborator on the project
     const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
     if (Array.isArray(collaborators) && collaborators.length > 0) {
-      return collaborators.some((collaborator) => collaborator.userId === context.token.id);
+      const collab = collaborators.find((collaborator) => collaborator.userId === context.token.id);
+      if (collab) {
+        switch (requiredAccessLevel) {
+          case ProjectCollaboratorAccessLevel.COMMENT:
+            return true;
+          case ProjectCollaboratorAccessLevel.EDIT:
+            return collab.accessLevel === ProjectCollaboratorAccessLevel.OWN ||
+                   collab.accessLevel === ProjectCollaboratorAccessLevel.EDIT;
+          case ProjectCollaboratorAccessLevel.OWN:
+            return collab.accessLevel === ProjectCollaboratorAccessLevel.OWN;
+          default:
+            return false;
+        }
+      }
     }
   }
 
-  const payload = { projectId: project.id, userId: context.token.id };
+  const payload = { projectId: project?.id, userId: context.token?.id };
   formatLogMessage(context).error(payload, `AUTH failure: ${reference}`)
   return false;
 }

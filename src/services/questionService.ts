@@ -11,6 +11,8 @@ import { formatLogMessage } from "../logger";
 
 // Determine whether the specified user has permission to access the Section
 export const hasPermissionOnQuestion = async (context: MyContext, templateId: number): Promise<boolean> => {
+  if (!context || !context.token) return false;
+
   // Find associated template info
   const template = await Template.findById('question resolver.hasPermission', context, templateId);
 

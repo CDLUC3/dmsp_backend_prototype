@@ -1,92 +1,116 @@
-import { createPlanVersion, syncWithDMPHub } from '../planService';
 import { MyContext } from '../../context';
-import { Plan, PlanStatus } from '../../models/Plan';
-import { PlanVersion } from '../../models/PlanVersion';
-import { planToDMPCommonStandard } from '../commonStandardService';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';
-import { DMPCommonStandard } from '../../datasources/dmphubAPI';
+import { updateContributorRoles } from '../planService';
+import { ContributorRole } from '../../models/ContributorRole';
 
 jest.mock('../commonStandardService');
+jest.mock('../../datasources/dynamo');
 jest.mock('../../models/PlanVersion');
 jest.mock('../../logger');
 
 describe('planService', () => {
   let context: MyContext;
-  let plan: Plan;
 
   beforeEach(() => {
     context = buildContext(logger, mockToken());
-
-    plan = {
-      dmpId: null,
-      status: PlanStatus.DRAFT,
-      lastSynced: null,
-      registered: null,
-      update: jest.fn(),
-    } as unknown as Plan;
+  });
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  describe('createPlanVersion', () => {
-    it('should create a new plan version', async () => {
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      const planVersion = { create: jest.fn().mockResolvedValue({}) } as unknown as PlanVersion;
-      (PlanVersion as unknown as jest.Mock).mockImplementation(() => planVersion);
+  jest.mock('../../models/ContributorRole');
 
-      const result = await createPlanVersion(context, plan);
+  describe('updateContributorRoles', () => {
+    it('should remove roles and return updated role IDs', async () => {
+      const reference = 'test-reference';
+      const contributorId = 1;
+      const currentRoleIds = [1, 2, 3];
+      const newRoleIds = [2, 4];
 
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'createPlanVersion', plan);
-      expect(planVersion.create).toHaveBeenCalledWith(context);
-      expect(result).toEqual({});
-    });
-  });
+      ContributorRole.reconcileAssociationIds = jest.fn().mockReturnValue({
+        idsToBeRemoved: [1, 3],
+        idsToBeSaved: [4],
+      });
 
-  describe('syncWithDMPHub', () => {
-    it('should create a new DMP if no DMP ID exists', async () => {
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      const dmp = {};
-      (context.dataSources.dmphubAPIDataSource.createDMP as jest.Mock).mockResolvedValue(dmp);
+      ContributorRole.findById = jest.fn()
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(true), label: 'Role 1' })
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(true), label: 'Role 3' })
+        .mockResolvedValueOnce({ addToPlanContributor: jest.fn().mockResolvedValue(true), label: 'Role 4' });
 
-      const result = await syncWithDMPHub(context, plan);
+      const result = await updateContributorRoles(reference, context, contributorId, currentRoleIds, newRoleIds);
 
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'syncWithDMPHub', plan);
-      expect(context.dataSources.dmphubAPIDataSource.createDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
-      expect(plan.update).toHaveBeenCalledWith(context, true);
-      expect(result).toEqual(dmp);
+      expect(result.updatedRoleIds).toEqual([2, 4]);
+      expect(result.errors).toEqual([]);
+      expect(ContributorRole.findById).toHaveBeenCalledTimes(3);
     });
 
-    it('should tombstone the DMP if the plan is archived', async () => {
-      plan.dmpId = '123';
-      plan.status = PlanStatus.ARCHIVED;
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      const dmp = {};
-      (context.dataSources.dmphubAPIDataSource.tombstoneDMP as jest.Mock).mockResolvedValue(dmp);
+    it('should return errors if roles cannot be removed', async () => {
+      const reference = 'test-reference';
+      const contributorId = 1;
+      const currentRoleIds = [1, 2];
+      const newRoleIds = [2];
 
-      const result = await syncWithDMPHub(context, plan);
+      ContributorRole.reconcileAssociationIds = jest.fn().mockReturnValue({
+        idsToBeRemoved: [1],
+        idsToBeSaved: [],
+      });
 
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'syncWithDMPHub', plan);
-      expect(context.dataSources.dmphubAPIDataSource.tombstoneDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
-      expect(plan.update).toHaveBeenCalledWith(context, true);
-      expect(result).toEqual(dmp);
+      ContributorRole.findById = jest.fn()
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 1' });
+
+      const result = await updateContributorRoles(reference, context, contributorId, currentRoleIds, newRoleIds);
+
+      expect(result.updatedRoleIds).toEqual([2]);
+      expect(result.errors).toEqual(['unable to remove roles: Role 1']);
+      expect(ContributorRole.findById).toHaveBeenCalledTimes(1);
     });
 
-    it('should update the DMP if the plan is not archived', async () => {
-      plan.dmpId = '123';
-      plan.status = PlanStatus.DRAFT;
-      const commonStandard = {} as DMPCommonStandard;
-      (planToDMPCommonStandard as jest.Mock).mockResolvedValue(commonStandard);
-      const dmp = {};
-      (context.dataSources.dmphubAPIDataSource.updateDMP as jest.Mock).mockResolvedValue(dmp);
+    it('should return errors if roles cannot be added', async () => {
+      const reference = 'test-reference';
+      const contributorId = 1;
+      const currentRoleIds = [1];
+      const newRoleIds = [1, 2];
 
-      const result = await syncWithDMPHub(context, plan);
+      ContributorRole.reconcileAssociationIds = jest.fn().mockReturnValue({
+        idsToBeRemoved: [],
+        idsToBeSaved: [2],
+      });
 
-      expect(planToDMPCommonStandard).toHaveBeenCalledWith(context, 'syncWithDMPHub', plan);
-      expect(context.dataSources.dmphubAPIDataSource.updateDMP).toHaveBeenCalledWith(context, commonStandard, 'syncWithDMPHub');
-      expect(plan.update).toHaveBeenCalledWith(context, true);
-      expect(result).toEqual(dmp);
+      ContributorRole.findById = jest.fn()
+        .mockResolvedValueOnce({ addToPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 2' });
+
+      const result = await updateContributorRoles(reference, context, contributorId, currentRoleIds, newRoleIds);
+
+      expect(result.updatedRoleIds).toEqual([1]);
+      expect(result.errors).toEqual(['unable to assign roles: Role 2']);
+      expect(ContributorRole.findById).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle both add and remove errors', async () => {
+      const reference = 'test-reference';
+      const contributorId = 1;
+      const currentRoleIds = [1, 2];
+      const newRoleIds = [3];
+
+      ContributorRole.reconcileAssociationIds = jest.fn().mockReturnValue({
+        idsToBeRemoved: [1, 2],
+        idsToBeSaved: [3],
+      });
+
+      ContributorRole.findById = jest.fn()
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 1' })
+        .mockResolvedValueOnce({ removeFromPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 2' })
+        .mockResolvedValueOnce({ addToPlanContributor: jest.fn().mockResolvedValue(false), label: 'Role 3' });
+
+      const result = await updateContributorRoles(reference, context, contributorId, currentRoleIds, newRoleIds);
+
+      expect(result.updatedRoleIds).toEqual([1, 2]);
+      expect(result.errors).toEqual([
+        'unable to remove roles: Role 1, Role 2',
+        'unable to assign roles: Role 3',
+      ]);
+      expect(ContributorRole.findById).toHaveBeenCalledTimes(3);
     });
   });
 });

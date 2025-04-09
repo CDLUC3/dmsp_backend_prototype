@@ -92,9 +92,8 @@ export const mockFindProjectFundersByProjectAndAffiliation = async (
 
 // Mock the mutations
 export const mockInsertProjectFunder = async (context: MyContext, _, obj: ProjectFunder): Promise<number> => {
-  const newObj = generateNewProjectFunder(obj);
   const { insertId } = addEntryToMockTable('projectFunders', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,
@@ -178,9 +177,8 @@ export const mockFindPlanFundersByPlanId = async (_, __, planId: number): Promis
 
 // Mock the mutations
 export const mockInsertPlanFunder = async (context: MyContext, _, obj: PlanFunder): Promise<number> => {
-  const newObj = generateNewPlanFunder(obj);
   const { insertId } = addEntryToMockTable('planFunders', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,

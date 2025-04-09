@@ -9,6 +9,7 @@ export class ContributorRole extends MySqlModel {
   public uri: string;
   public label: string;
   public description?: string;
+  public isDefault: boolean
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -18,6 +19,7 @@ export class ContributorRole extends MySqlModel {
     this.uri = options.uri;
     this.label = options.label;
     this.description = options.description;
+    this.isDefault = options.isDefault ?? false;
   }
 
   // Validation to be used prior to saving the record
@@ -33,8 +35,9 @@ export class ContributorRole extends MySqlModel {
 
   // Return the default role
   static async defaultRole(context: MyContext, reference = 'ContributorRole.defaultRole'): Promise<ContributorRole> {
-    const roleURI = `${DEFAULT_DMPTOOL_CONTRIBUTOR_ROLE_URL}/other`;
-    return await ContributorRole.findByURL(reference, context, roleURI);
+    const sql = 'SELECT * FROM contributorRoles WHERE isDefault = 1';
+    const results = await ContributorRole.query(context, sql, [], reference);
+    return Array.isArray(results) ? new ContributorRole(results[0]) : null;
   }
 
   // Add an association for a ContributorRole with a ProjectContributor

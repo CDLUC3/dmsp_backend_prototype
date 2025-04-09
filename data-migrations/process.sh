@@ -28,19 +28,18 @@ fi
 process_migration() {
   # See if the migration was already processed
   echo "Checking to see if $1 has been run ..."
-  EXISTS=$(mariadb ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile = '$1';")
+  EXISTS=$(mysql ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< "SELECT * FROM dataMigrations WHERE migrationFile = '$1';")
 
   if [ -z "$EXISTS" ]; then
     # If not run it
     echo "NEW MIGRATION - $1. Processing migration ..."
-    echo " mariadb ${MYSQL_ARGS} ${MYSQL_DATABASE} < $1"
 
-    mariadb ${MYSQL_ARGS} ${MYSQL_DATABASE} < $1
+    mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} < $1
     WAS_PROCESSED=$?
 
     # If it worked then update the data-migrations table so we don't run it again!
     if [ $WAS_PROCESSED -eq 0 ]; then
-      mariadb ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< "INSERT INTO dataMigrations (migrationFile) VALUES ('$1');"
+      mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< "INSERT INTO dataMigrations (migrationFile) VALUES ('$1');"
       echo "    done"
       # Sleep for 2 seconds to allow the DB engine to fully process the last script
       # MariaDB tables have a tendency to get corrupted if too many schema changes happen in rapid sequence
@@ -53,6 +52,16 @@ process_migration() {
     echo "    it has."
   fi
 }
+
+# Create the dataMigrations table if it doesn't exist
+CREATE_MIGRATIONS_TABLE="CREATE TABLE IF NOT EXISTS dataMigrations (
+    migrationFile varchar(255) NOT NULL,
+    created timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_migration_file UNIQUE (migrationFile)
+  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;"
+
+echo "Creating the dataMigrations table if it does not already exist..."
+mysql ${MYSQL_ARGS} ${MYSQL_DATABASE} <<< ${CREATE_MIGRATIONS_TABLE}
 
 # Run this script to process any new SQL migrations on youor local DB.
 for i in ./data-migrations/*.sql; do

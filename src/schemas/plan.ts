@@ -15,13 +15,11 @@ export const typeDefs = gql`
     "Upload a plan"
     uploadPlan(projectId: Int!, fileName: String, fileContent: String): Plan
     "Publish a plan (changes status to PUBLISHED)"
-    publishPlan(dmpId: String!, visibility: PlanVisibility): Plan
-    "Change the plan's status to COMPLETE (cannot be done once the plan is PUBLISHED)"
-    markPlanAsComplete(dmpId: String!): Plan
-    "Change the plan's status to DRAFT (cannot be done once the plan is PUBLISHED)"
-    markPlanAsDraft(dmpId: String!): Plan
+    publishPlan(planId: Int!, visibility: PlanVisibility): Plan
+    "Change the plan's status"
+    updatePlanStatus(planId: Int!, status: PlanStatus!): Plan
     "Archive a plan"
-    archivePlan(dmpId: String!): Plan
+    archivePlan(planId: Int!): Plan
   }
 
   type PlanSearchResult {
@@ -99,8 +97,6 @@ export const typeDefs = gql`
     DRAFT
     "The Plan is ready for submission or download"
     COMPLETE
-    "The Plan's DMP ID (DOI) has been registered"
-    PUBLISHED
   }
 
   "A Data Managament Plan (DMP)"
@@ -136,8 +132,6 @@ export const typeDefs = gql`
     languageId: String
     "Whether or not the plan is featured on the public plans page"
     featured: Boolean
-    "The last time the plan was synced with the DMPHub"
-    lastSynced: String
     "The section search results"
     sections: [PlanSectionProgress!]
 
@@ -167,7 +161,6 @@ export const typeDefs = gql`
     registered: String
     languageId: String
     featured: String
-    lastSynced: String
   }
 
   "A version of the plan"

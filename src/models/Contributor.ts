@@ -1,8 +1,8 @@
-import { MyContext } from "../context";
-import { validateOrcid } from "../resolvers/scalars/orcid";
-import { capitalizeFirstLetter, stripIdentifierBaseURL, validateEmail } from "../utils/helpers";
-import { ContributorRole } from "./ContributorRole";
-import { MySqlModel } from "./MySqlModel";
+import {MyContext} from "../context";
+import {validateOrcid} from "../resolvers/scalars/orcid";
+import {capitalizeFirstLetter, formatORCID, validateEmail} from "../utils/helpers";
+import {ContributorRole} from "./ContributorRole";
+import {MySqlModel} from "./MySqlModel";
 
 export class ProjectContributor extends MySqlModel {
   public projectId: number;
@@ -29,15 +29,15 @@ export class ProjectContributor extends MySqlModel {
   }
 
   // Ensure data integrity
-  prepForSave() {
+  async prepForSave(context: MyContext, reference: string): Promise<void> {
     this.email = this.email?.trim()?.replace('%40', '@');
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
-    this.orcid = stripIdentifierBaseURL(this.orcid);
+    this.orcid = formatORCID(this.orcid);
 
     // Ensure that contributorRoles is always an array
     if (!Array.isArray(this.contributorRoles)) {
-      this.contributorRoles = []
+      this.contributorRoles = [await ContributorRole.defaultRole(context, reference)]
     }
   }
 
@@ -73,8 +73,9 @@ export class ProjectContributor extends MySqlModel {
       let current: ProjectContributor;
 
       // Then try to find an existing entry for each of the identifiers
-      if (this.orcid) {
-        current = await ProjectContributor.findByProjectAndORCID(reference, context, projectId, this.orcid);
+      const orcid = formatORCID(this.orcid);
+      if (orcid) {
+        current = await ProjectContributor.findByProjectAndORCID(reference, context, projectId, orcid);
       }
       if (!current) {
         current = await ProjectContributor.findByProjectAndEmail(reference, context, projectId, this.email);
@@ -93,7 +94,7 @@ export class ProjectContributor extends MySqlModel {
       if (current) {
         this.addError('general', 'Project already has an entry for this contributor');
       } else {
-        this.prepForSave();
+        this.prepForSave(context, reference);
 
         // Save the record and then fetch it
         const newId = await ProjectContributor.insert(
@@ -113,24 +114,25 @@ export class ProjectContributor extends MySqlModel {
 
   //Update an existing Contributor
   async update(context: MyContext, noTouch = false): Promise<ProjectContributor> {
+    const reference = 'ProjectContributor.update';
     const id = this.id;
 
     if (await this.isValid()) {
       if (id) {
-        this.prepForSave();
+        this.prepForSave(context, reference);
 
         await ProjectContributor.update(
           context,
           this.tableName,
           this,
-          'ProjectContributor.update',
+          reference,
           ['contributorRoles'],
           noTouch
         );
-        return await ProjectContributor.findById('ProjectContributor.update', context, id);
+        return await ProjectContributor.findById(reference, context, id);
       }
       // This template has never been saved before so we cannot update it!
-      this.addError('general', 'ProjectContributor has never been saved');
+      this.addError('general', `${reference} has never been saved`);
     }
     return new ProjectContributor(this);
   }
@@ -232,7 +234,7 @@ export class ProjectContributor extends MySqlModel {
     // We've sorted by ORCID and the email descending so grab the first match
     return Array.isArray(results) && results.length > 0 ? new ProjectContributor(results[0]) : null;
   }
-};
+}
 
 // Represents a contributor to a DMP
 export class PlanContributor extends MySqlModel {
@@ -249,7 +251,7 @@ export class PlanContributor extends MySqlModel {
     this.planId = options.planId;
     this.projectContributorId = options.projectContributorId;
     this.isPrimaryContact = options.isPrimaryContact ?? false;
-    this.contributorRoleIds = options.contributorRoleIds;
+    this.contributorRoleIds = options.contributorRoleIds ?? [];
   }
 
   // Validation to be used prior to saving the record
@@ -258,7 +260,7 @@ export class PlanContributor extends MySqlModel {
     if (!this.planId) this.addError('planId', 'Plan can\'t be blank');
     if (!this.projectContributorId) this.addError('projectContributorId', 'Project contributor can\'t be blank');
 
-    if (this.contributorRoleIds.length === 0) {
+    if (!Array.isArray(this.contributorRoleIds) || this.contributorRoleIds.length === 0) {
       this.addError('contributorRoleIds', 'You must specify at least one role');
     }
 

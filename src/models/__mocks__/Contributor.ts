@@ -154,9 +154,8 @@ export const mockFindProjectContributorsByProjectAndNameOrORCIDOrEmail = async (
 
 // Mock the mutations
 export const mockInsertProjectContributor = async (context: MyContext, _, obj: ProjectContributor): Promise<number> => {
-  const newObj = generateNewProjectContributor(obj);
   const { insertId } = addEntryToMockTable('projectContributors', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,
@@ -203,6 +202,7 @@ export const generateNewPlanContributor = (options) => {
     planId: options.projectId ?? casual.integer(1, 9999),
     projectContributorId: options.projectContributorId ?? casual.integer(1, 9999),
     contributorRoles: [getRandomContributorRole().id],
+    isPrimaryContact: options.isPrimaryContact ?? false,
   }
 }
 
@@ -230,19 +230,26 @@ export const mockFindPlanContributorById = async (_, __, id: number): Promise<Pl
   return result ? new PlanContributor(result) : null;
 };
 
-export const mockFindPlanContributorsByProjectContributorId = async (_, __, projectContributorId: number): Promise<PlanContributor> => {
-  const result = findEntriesInMockTableByFilter(
+export const mockFindPlanContributorsByProjectContributorId = async (_, __, projectContributorId: number): Promise<PlanContributor[]> => {
+  const results = findEntriesInMockTableByFilter(
     'planContributors',
     (entry) => { return entry.projectContributorId === projectContributorId }
   );
-  return result ? new PlanContributor(result) : null;
+  return Array.isArray(results) ? results.map((result) => new PlanContributor(result)) : [];
+};
+
+export const mockFindPlanContributorsByPlanId = async (_, __, planId: number): Promise<PlanContributor[]> => {
+  const results = findEntriesInMockTableByFilter(
+    'planContributors',
+    (entry) => { return entry.planId === planId }
+  );
+  return Array.isArray(results) ? results.map((result) => new PlanContributor(result)) : [];
 };
 
 // Mock the mutations
 export const mockInsertPlanContributor = async (context: MyContext, _, obj: PlanContributor): Promise<number> => {
-  const newObj = generateNewPlanContributor(obj);
   const { insertId } = addEntryToMockTable('planContributors', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,

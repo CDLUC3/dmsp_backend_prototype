@@ -29,7 +29,7 @@ describe('Affiliation', () => {
     feedbackMessage: '<p>Will response to your request within 48 hours</p>',
     feedbackEmails: ["admin@virginia.edu"],
     managed: 1,
-    apiTarget: '/api/test',
+    apiTarget: 'api/test',
   }
   beforeEach(() => {
     affiliation = new Affiliation(affiliationData);
@@ -55,7 +55,7 @@ describe('Affiliation', () => {
     expect(affiliation.feedbackMessage).toEqual(affiliationData.feedbackMessage);
     expect(affiliation.feedbackEmails).toEqual(affiliationData.feedbackEmails);
     expect(affiliation.managed).toEqual(affiliationData.managed);
-    expect(affiliation.apiTarget).toEqual(`${DMPHubConfig.dmpHubURL}${affiliationData.apiTarget}`);
+    expect(affiliation.apiTarget).toEqual(affiliationData.apiTarget);
   });
 
   it('should add additional properties to uneditableProperties if provenance is ROR', async () => {

@@ -1,8 +1,8 @@
-import { MySQLDataSource } from "../mySQLDataSource";
+import { mysql } from "../mysql";
 
 describe('SIGTERM handler', () => {
   it('should gracefully close the connection pool on SIGTERM', async () => {
-    const instance = MySQLDataSource.getInstance();
+    const instance = mysql.getInstance();
     const closeSpy = jest.spyOn(instance, 'close').mockResolvedValue();
     const releaseSpy = jest.spyOn(instance, 'releaseConnection').mockResolvedValue();
 
@@ -20,7 +20,7 @@ describe('SIGTERM handler', () => {
   });
 
   it('should handle errors when closing the pool on SIGTERM', async () => {
-    const instance = MySQLDataSource.getInstance();
+    const instance = mysql.getInstance();
     const closeSpy = jest.spyOn(instance, 'close').mockRejectedValue(new Error('Close failed'));
     const releaseSpy = jest.spyOn(instance, 'releaseConnection').mockResolvedValue();
 
