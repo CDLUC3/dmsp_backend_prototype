@@ -38,14 +38,11 @@ export const resolvers: Resolvers = {
     projectCollaborators: async (_, { projectId }, context: MyContext): Promise<ProjectCollaborator[]> => {
       const reference = 'projectCollaborators resolver';
       try {
-        // if the user is an admin
-        if (isAdmin(context.token)) {
-          const project = await Project.findById(reference, context, projectId);
-          // If the user has permission on the Template
-          if (project && await hasPermissionOnProject(context, project)) {
-            const results = await ProjectCollaborator.findByProjectId(reference, context, projectId);
-            return results;
-          }
+        const project = await Project.findById(reference, context, projectId);
+        // If the user has permission on the Template
+        if (project && await hasPermissionOnProject(context, project)) {
+          const results = await ProjectCollaborator.findByProjectId(reference, context, projectId);
+          return results;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -131,31 +128,30 @@ export const resolvers: Resolvers = {
     addProjectCollaborator: async (_, { projectId, email, userId }, context: MyContext): Promise<ProjectCollaborator> => {
       const reference = 'addProjectCollaborator resolver';
       try {
-        // if the user is an admin
-        if (isAdmin(context.token)) {
-          const project = await Project.findById(reference, context, projectId);
 
-          // The project doesn't exist
-          if (!project) {
-            throw NotFoundError();
+        const project = await Project.findById(reference, context, projectId);
+
+        // The project doesn't exist
+        if (!project) {
+          throw NotFoundError();
+        }
+
+        // If the user has permission on the Project
+        if (await hasPermissionOnProject(context, project)) {
+          const invitedById = context.token?.id;
+          const projectCollaborator = new ProjectCollaborator({ projectId, email, userId, invitedById });
+          const created = await projectCollaborator.create(context);
+
+          if (created?.id) {
+            return created;
           }
 
-          // If the user has permission on the Project
-          if (await hasPermissionOnProject(context, project)) {
-            const invitedById = context.token?.id;
-            const projectCollaborator = new ProjectCollaborator({ projectId, email, userId, invitedById });
-            const created = await projectCollaborator.create(context);
-
-            if (created?.id) {
-              return created;
-            }
-
-            // A null was returned so add a generic error and return it
-            if (!projectCollaborator.errors['general']) {
-              projectCollaborator.addError('general', 'Unable to create Project collaborator');
-            }
-            return projectCollaborator;
+          // A null was returned so add a generic error and return it
+          if (!projectCollaborator.errors['general']) {
+            projectCollaborator.addError('general', 'Unable to create Project collaborator');
           }
+          return projectCollaborator;
+
         }
         // Unauthorized! or Forbidden
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -170,38 +166,36 @@ export const resolvers: Resolvers = {
     updateProjectCollaborator: async (_, { projectCollaboratorId, accessLevel }, context: MyContext): Promise<ProjectCollaborator> => {
       const reference = 'updateProjectCollaborator resolver';
       try {
-        // if the user is an admin
-        if (isAdmin(context.token)) {
-          const projectCollaborator = await ProjectCollaborator.findById(reference, context, projectCollaboratorId);
+        const projectCollaborator = await ProjectCollaborator.findById(reference, context, projectCollaboratorId);
 
-          // The projectCollaborator doesn't exist
-          if (!projectCollaborator) {
-            throw NotFoundError();
-          }
-
-          // Get project info to check permissions
-          const project = await Project.findById(reference, context, projectCollaborator.projectId);
-
-          // If the user has permission on the Project
-          if (await hasPermissionOnProject(context, project)) {
-            const newProjectCollaborator = new ProjectCollaborator({
-              ...projectCollaborator,
-              accessLevel: accessLevel
-            });
-
-            const updatedProjectCollaborator = await newProjectCollaborator.update(context);
-
-            if (updatedProjectCollaborator?.id) {
-              return updatedProjectCollaborator;
-            }
-
-            // A null was returned so add a generic error and return it
-            if (!projectCollaborator.errors['general']) {
-              projectCollaborator.addError('general', 'Unable to create Project collaborator');
-            }
-            return projectCollaborator;
-          }
+        // The projectCollaborator doesn't exist
+        if (!projectCollaborator) {
+          throw NotFoundError();
         }
+
+        // Get project info to check permissions
+        const project = await Project.findById(reference, context, projectCollaborator.projectId);
+
+        // If the user has permission on the Project
+        if (await hasPermissionOnProject(context, project)) {
+          const newProjectCollaborator = new ProjectCollaborator({
+            ...projectCollaborator,
+            accessLevel: accessLevel
+          });
+
+          const updatedProjectCollaborator = await newProjectCollaborator.update(context);
+
+          if (updatedProjectCollaborator?.id) {
+            return updatedProjectCollaborator;
+          }
+
+          // A null was returned so add a generic error and return it
+          if (!projectCollaborator.errors['general']) {
+            projectCollaborator.addError('general', 'Unable to create Project collaborator');
+          }
+          return projectCollaborator;
+        }
+
         // Unauthorized! or Forbidden
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -215,27 +209,26 @@ export const resolvers: Resolvers = {
     removeProjectCollaborator: async (_, { projectCollaboratorId }, context: MyContext): Promise<ProjectCollaborator> => {
       const reference = 'removeProjectCollaborator resolver';
       try {
-        // if the user is an admin
-        if (isAdmin(context.token)) {
-          const projectCollaborator = await ProjectCollaborator.findById(reference, context, projectCollaboratorId);
 
-          // The projectCollaborator doesn't exist
-          if (!projectCollaborator) {
-            throw NotFoundError();
-          }
+        const projectCollaborator = await ProjectCollaborator.findById(reference, context, projectCollaboratorId);
 
-          // Get project info to check permissions
-          const project = await Project.findById(reference, context, projectCollaborator.projectId);
-
-          // If the user has permission on the Project
-          if (await hasPermissionOnProject(context, project)) {
-            if (projectCollaborator) {
-              return await projectCollaborator.delete(context);
-            }
-            // Couldn't find the TemplateCollaborator
-            throw NotFoundError();
-          }
+        // The projectCollaborator doesn't exist
+        if (!projectCollaborator) {
+          throw NotFoundError();
         }
+
+        // Get project info to check permissions
+        const project = await Project.findById(reference, context, projectCollaborator.projectId);
+
+        // If the user has permission on the Project
+        if (await hasPermissionOnProject(context, project)) {
+          if (projectCollaborator) {
+            return await projectCollaborator.delete(context);
+          }
+          // Couldn't find the TemplateCollaborator
+          throw NotFoundError();
+        }
+
         // Unauthorized! or Forbidden
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
