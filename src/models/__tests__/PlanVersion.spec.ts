@@ -47,9 +47,25 @@ afterEach(() => {
 });
 
 describe('addVersion', () => {
-  it('should add a version to the plan', async () => {
+  it('should add an initial version of the plan', async () => {
     const reference = 'addVersion';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([]);
     const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
+    (DynamoModule.createDMP as jest.Mock) = mockVersion;
+
+    const result = await addVersion(context, plan, reference);
+
+    expect(result).toEqual(plan);
+    expect(mockCommonStandard).toHaveBeenCalledTimes(1);
+    expect(mockVersion).toHaveBeenCalledTimes(1)
+  });
+
+  it('should create a version snapshot of the plan', async () => {
+    const reference = 'addVersion';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: getCurrentDate() }]);
+    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
     (DynamoModule.createDMP as jest.Mock) = mockVersion;
 
     const result = await addVersion(context, plan, reference);
@@ -61,7 +77,9 @@ describe('addVersion', () => {
 
   it('should handle error when adding a version to the plan', async () => {
     const reference = 'addVersion';
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: getCurrentDate() }]);
     const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error adding versions'); });
+    (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
     (DynamoModule.createDMP as jest.Mock) = mockVersion;
 
     await expect(addVersion(context, plan, reference)).rejects.toThrow('Error adding version');
@@ -97,7 +115,7 @@ describe('updateVersion', () => {
 
     expect(result).toEqual(plan);
     expect(mockCommonStandard).toHaveBeenCalledTimes(2);
-    expect(mockLatestVersion).toHaveBeenCalledTimes(1)
+    expect(mockLatestVersion).toHaveBeenCalledTimes(2)
     expect(mockVersion).toHaveBeenCalledTimes(1)
   });
 

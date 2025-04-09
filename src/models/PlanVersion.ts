@@ -7,6 +7,28 @@ import { planToDMPCommonStandard } from "../services/commonStandardService";
 import { DMPCommonStandard } from "../types/DMP";
 import { Plan } from "./Plan";
 
+/*
+ * Plan versioning management:
+ *
+ * A Plan always has a "latest" version that is the most recent snapshot of the DMP.
+ *
+ * When a plan is first created, an initial version snapshot is created. this becomes the "latest" version.
+ * This initial version has the following properties:
+ *  - created: current timestamp
+ *  - modified: current timestamp
+ *  - dmpId: unique identifier for the DMP
+ *
+ * When a plan (or any aspect of the parent project) is updated, a check is performed to see if the
+ * "latest" version of the DMP has been modified within the last x hour(s) (x is defined in
+ * generalConfig.versionPlanAfter). If it has been modified within that time frame, the "latest" version
+ * is updated directly. If it has not been modified within that time frame, a version snapshot is created.
+ *
+ * A version snapshot is the state of the "latest" version at the time the change is being made. The
+ * version snapshot is created and then the changes are made to the "latest" version.
+ *
+ * Each time a change is made, the "latest" version's modified timestamp is updated to the current timestamp.
+ */
+
 // Create a new PlanVersion
 export const addVersion = async (
   context: MyContext,
@@ -18,11 +40,24 @@ export const addVersion = async (
     plan.addError('general', 'Unable to convert the plan to the DMP Common Standard');
   }
 
-  formatLogMessage(context).debug(commonStandard, `${reference} - creating Plan Version`);
-  const newPlanVersion = await createDMP(context, plan.dmpId, commonStandard);
-  if (!newPlanVersion) {
-    formatLogMessage(context).error({ plan }, `${reference} - Unable to create a new version snapshot`);
-    plan.addError('general', 'Unable to create a new version snapshot');
+  // First see if this is the first version of the plan
+  const currentVersion = await latestVersion(context, plan, reference);
+  if (currentVersion) {
+    // There is already a latest version, so we are creating a snapshot before making changes
+    formatLogMessage(context).debug(commonStandard, `${reference} - creating a version snapshot`);
+    const newSnapshot = await createDMP(context, plan.dmpId, commonStandard, currentVersion.modified);
+    if (!newSnapshot) {
+      formatLogMessage(context).error({ timestamp: currentVersion.modified, plan }, `${reference} - Unable to create a version snapshot`);
+      plan.addError('general', 'Unable to create a new version snapshot');
+    }
+  } else {
+    // This is the first version of the plan
+    formatLogMessage(context).debug(commonStandard, `${reference} - creating and initial version`);
+    const newPlanVersion = await createDMP(context, plan.dmpId, commonStandard);
+    if (!newPlanVersion) {
+      formatLogMessage(context).error({ plan }, `${reference} - Unable to create an initial version snapshot`);
+      plan.addError('general', 'Unable to create a new version snapshot');
+    }
   }
   return new Plan(plan);
 }
