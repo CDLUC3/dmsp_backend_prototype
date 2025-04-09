@@ -1,5 +1,5 @@
 ### Added
-- Added new resolvers related to `projectCollaborators`
+- Added new resolvers related to `projectCollaborators`. Also, when project is created, automatically add user as `projectCollaborator` with `access level`= `OWN`
 - Added dynamoDb to the docker-compose file and setup dev to use the local instance
 - Added tests for `plan` resolver and added tests for `contributor` resolver's queries
 - Added mocks for most of the MySQL tables and the Dynamo table
