@@ -55,7 +55,7 @@ export const anonymizeUser = async (context: MyContext, user: User): Promise<Use
 
   // Anonymize the user's information
   user.email = `${randomHex(6)}@deleted-account.${generalConfig.domain}`;
-  user.password = await user.hashPassword(generateRandomPassword()),
+  user.password = await user.hashPassword(generateRandomPassword());
   user.givenName = 'Deleted';
   user.surName = 'Account';
   user.affiliationId = null;
@@ -90,7 +90,7 @@ export const anonymizeUser = async (context: MyContext, user: User): Promise<Use
         const templateCollaborators = await TemplateCollaborator.findByEmail(ref, context, userEmail.email);
         for (const collaborator of templateCollaborators) {
           await collaborator.delete(context);
-        };
+        }
       }
     }
   }

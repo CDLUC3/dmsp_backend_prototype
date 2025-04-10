@@ -120,9 +120,8 @@ export const mockAffiliationSearch = async (
 
 // Mock the mutations
 export const mockInsertAffiliation = async (context: MyContext, _, obj: Affiliation): Promise<number> => {
-  const newObj = generateNewAffiliation(obj);
   const { insertId } = addEntryToMockTable('affiliations', {
-    ...newObj,
+    ...obj,
     createdById: context.token.id,
     created: getCurrentDate(),
     modifiedById: context.token.id,

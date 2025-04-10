@@ -2,7 +2,7 @@ import casual from "casual";
 import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
-import { MySQLDataSource } from "../../datasources/mySQLDataSource";
+import { mysql } from "../../datasources/mysql";
 import { cloneSection, generateSectionVersion, hasPermissionOnSection } from "../sectionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
@@ -13,7 +13,7 @@ import { Tag } from "../../models/Tag";
 import { getCurrentDate } from "../../utils/helpers";
 import { Question } from "../../models/Question";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -31,7 +31,6 @@ afterEach(() => {
 
 describe('hasPermissionOnSection', () => {
   let template;
-  let mockQuery;
   let mockFindById;
   let mockHashPermissionOnTemplate;
   let context;
@@ -40,13 +39,11 @@ describe('hasPermissionOnSection', () => {
     jest.resetAllMocks();
 
     // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
+    (mysql.getInstance as jest.Mock).mockReturnValue({
       query: jest.fn(), // Initialize the query mock function here
     });
 
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+    context = buildContext(logger, mockToken());
 
     mockFindById = jest.fn();
     (Template.findById as jest.Mock) = mockFindById;

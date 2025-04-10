@@ -9,7 +9,7 @@ import {
   DMPPrivacy,
   DMPStatus,
   DMPIdentifierType
-} from '../../datasources/dmphubAPI';
+} from '../../types/DMP';
 import { MyContext } from '../../context';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';
@@ -18,6 +18,11 @@ import { ContributorRole } from '../../models/ContributorRole';
 import { User } from '../../models/User';
 import { Project } from '../../models/Project';
 import { VersionedTemplate } from '../../models/VersionedTemplate';
+import { PlanContributor } from '../../models/Contributor';
+import { PlanFunder } from '../../models/Funder';
+import { Answer } from '../../models/Answer';
+import { ResearchDomain } from '../../models/ResearchDomain';
+import casual from 'casual';
 
 let context: MyContext;
 let plan: Plan;
@@ -160,6 +165,7 @@ beforeEach(() => {
     id: 1,
     title: 'Project title',
     abstractText: 'Project description',
+    dmptool_research_domain: 'http://example.com/research_domain/1',
     startDate: '2023-01-01',
     endDate: '2023-12-31',
   });
@@ -172,7 +178,7 @@ beforeEach(() => {
     createdById: 1,
     modified: '2023-01-02',
     registered: '2023-01-03',
-    status: PlanStatus.PUBLISHED,
+    status: PlanStatus.COMPLETE,
     languageId: 'eng',
     featured: true,
     visibility: PlanVisibility.PUBLIC,
@@ -254,20 +260,22 @@ describe('commonStandardService', () => {
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: casual.uuid }));
     // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
     // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
     const result = await planToDMPCommonStandard(context, 'reference', plan);
 
-    expect(result.dmp_id).toEqual({ identifier: 'https://localhost:3000/project/1/new', type: 'url' });
+    expect(result.dmp_id).toEqual({ identifier: 'https://localhost:3000/dmps/1', type: 'url' });
   });
 
   it('planToDMPCommonStandard - handles plan with no primary contact', async () => {
@@ -286,14 +294,16 @@ describe('commonStandardService', () => {
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: casual.uuid }));
     // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
     // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
@@ -318,20 +328,23 @@ describe('commonStandardService', () => {
 
 
   it('planToDMPCommonStandard - minimal DMP', async () => {
+    const researchDomainURI = casual.url;
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(new Project({
       id: 1,
       title: 'Project title'
     }));
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: researchDomainURI }));
     // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
     // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
@@ -353,7 +366,7 @@ describe('commonStandardService', () => {
           type: 'orcid',
         },
       },
-      created: "2023-01-01",
+      created: "2023-01-01T00:00:00Z",
       dataset: [
         {
           dataset_id: {
@@ -371,33 +384,39 @@ describe('commonStandardService', () => {
         type: 'doi'
       },
       dmphub_provenance_id: "testing",
-      dmproadmap_featured: true,
+      dmproadmap_featured: '1',
       dmproadmap_privacy: "public",
-      dmproadmap_status: "published",
+      dmproadmap_status: "complete",
       ethical_issues_exist: "unknown",
       language: "eng",
-      modified: "2023-01-02",
+      modified: "2023-01-02T00:00:00Z",
       project: [
         {
           title: "Project title",
+          dmptool_research_domain: researchDomainURI
         },
       ],
-      registered: "2023-01-03",
+      registered: "2023-01-03T00:00:00Z",
       title: "DMP for: Template name"
     });
   });
 
 
   it('planToDMPCommonStandard - complete DMP', async () => {
+    const researchDomainURI = casual.url;
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: researchDomainURI }));
     // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockContributorResult);
+    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce(mockContributorResult);
+    // Return the Plan owner information
+    jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
     // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockFunderResult);
+    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce(mockFunderResult);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockNarrativeResult);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce(mockNarrativeResult);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce(mockRelatedWorkResult);
 
@@ -405,15 +424,15 @@ describe('commonStandardService', () => {
 
     expect(result).toEqual({
       dmphub_provenance_id: 'testing',
-      created: '2023-01-01',
-      modified: '2023-01-02',
-      registered: '2023-01-03',
+      created: '2023-01-01T00:00:00Z',
+      modified: '2023-01-02T00:00:00Z',
+      registered: '2023-01-03T00:00:00Z',
       title: 'DMP for: Template name',
       language: 'eng',
       ethical_issues_exist: DMPYesNoUnknown.UNKNOWN,
-      dmproadmap_featured: true,
+      dmproadmap_featured: '1',
       dmproadmap_privacy: DMPPrivacy.PUBLIC,
-      dmproadmap_status: DMPStatus.PUBLISHED,
+      dmproadmap_status: DMPStatus.COMPLETE,
       dmp_id: {
         identifier: '10.1234/dmp',
         type: 'doi',
@@ -477,8 +496,9 @@ describe('commonStandardService', () => {
         {
           title: 'Project title',
           description: 'Project description',
-          start: '2023-01-01',
-          end: '2023-12-31',
+          dmptool_research_domain: researchDomainURI,
+          start: '2023-01-01T00:00:00Z',
+          end: '2023-12-31T00:00:00Z',
           funding: [
             {
               name: 'Funder name',

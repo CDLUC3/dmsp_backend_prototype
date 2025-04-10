@@ -22,6 +22,7 @@ import { typeDefs as questionTypeTypeDefs } from './schemas/questionType';
 import { typeDefs as repositoryTypeDefs } from './schemas/repository';
 import { typeDefs as researchDomainTypeDefs } from './schemas/researchDomain';
 import { typeDefs as sectionTypeDefs } from './schemas/section';
+import { typeDefs as superAdminTypeDefs } from './schemas/superAdmin';
 import { typeDefs as tagTypeDefs } from './schemas/tag';
 import { typeDefs as templateTypeDefs } from './schemas/template';
 import { typeDefs as userTypeDefs } from './schemas/user';
@@ -54,6 +55,7 @@ export const typeDefs = mergeTypeDefs([
   repositoryTypeDefs,
   researchDomainTypeDefs,
   sectionTypeDefs,
+  superAdminTypeDefs,
   tagTypeDefs,
   templateTypeDefs,
   userTypeDefs,

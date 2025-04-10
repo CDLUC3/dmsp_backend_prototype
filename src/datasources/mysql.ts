@@ -1,4 +1,4 @@
-import * as mysql from 'mysql2/promise';
+import * as mysql2 from 'mysql2/promise';
 import { mysqlGeneralConfig, mysqlPoolConfig } from "../config/mysqlConfig";
 import { logger, formatLogMessage } from '../logger';
 import { MyContext } from '../context';
@@ -12,16 +12,16 @@ export interface PoolConfig {
 }
 
 // Singleton MySQL Connection Pool
-export class MySQLDataSource {
-  private static instance: MySQLDataSource;
+export class mysql {
+  private static instance: mysql;
 
-  public pool: mysql.Pool;
+  public pool: mysql2.Pool;
 
-  private connection: mysql.PoolConnection;
+  private connection: mysql2.PoolConnection;
 
   private initializePool(): void {
     if (!this.pool) {
-      this.pool = mysql.createPool({
+      this.pool = mysql2.createPool({
         ...mysqlPoolConfig,
         waitForConnections: true,
         queueLimit: 0,
@@ -35,7 +35,7 @@ export class MySQLDataSource {
     logger.info('Establishing MySQL connection pool ...');
 
     try {
-      this.pool = mysql.createPool({
+      this.pool = mysql2.createPool({
         ...mysqlPoolConfig,
         waitForConnections: true,  // Queue if no connections are available
         queueLimit: mysqlGeneralConfig.queueLimit,
@@ -66,22 +66,22 @@ export class MySQLDataSource {
   }
 
   // Retrieve the instance of this class
-  public static getInstance(): MySQLDataSource {
-    if (!MySQLDataSource.instance) {
-      MySQLDataSource.instance = new MySQLDataSource();
+  public static getInstance(): mysql {
+    if (!mysql.instance) {
+      mysql.instance = new mysql();
     }
-    return MySQLDataSource.instance;
+    return mysql.instance;
   }
 
   public static async removeInstance(): Promise<void> {
-    if (MySQLDataSource.instance) {
-      MySQLDataSource.instance.close();
-      MySQLDataSource.instance = null;
+    if (mysql.instance) {
+      mysql.instance.close();
+      mysql.instance = null;
     }
   }
 
   // Retrieve a MySQL connection
-  public async getConnection(): Promise<mysql.PoolConnection> {
+  public async getConnection(): Promise<mysql2.PoolConnection> {
     this.initializePool();
 
     if (!this.connection) {

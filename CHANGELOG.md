@@ -5,6 +5,13 @@
 ### Added
 - Added `aws-process.sh` to allow migrations to be run in the AWS environment
 - Added `init-tables` and `init-seed` data migration files
+- Added new resolvers related to `projectCollaborators`. Also, when project is created, automatically add user as `projectCollaborator` with `access level`= `OWN`
+- Added dynamoDb to the docker-compose file and setup dev to use the local instance
+- Added tests for `plan` resolver and added tests for `contributor` resolver's queries
+- Added mocks for most of the MySQL tables and the Dynamo table
+- Added a new `dynamo` datasource (to replace the DMPHub API one ... much faster to access the table directly)
+- Added `getAwards` method to `DMPHubAPI`.
+- Added `searchExternalProjects` query and `projectImport` mutation.
 - Added `TemplateSearchResult`, `VersionedTemplateSearchResult` and `ProjectSearchResult` to optimize querying
 - Added `sections` to `Plan` schema and to plan resolver
 - Added the `relatedWorks` data migration
@@ -75,6 +82,8 @@
 ### Updated
 - Renamed the `outputTypes` table to `projectOutputTypes`
 - Updated `buildspec` to allow for a "MODE" env variable to be set so that we can run migrations, tests and the build separately
+- Format ORCID identifiers consistently, in the `Contributor` and `User` models, the `projectImport` resolver and `orcid` scalar.
+- Changed a number of GraphQL definitions to PascalCase.
 - Fixed projectCollaborators table which had an FKey on the plans table instead of the projects table
 - Updated the `dmpHubAPI` datasource to support CRUD operations
 - Updated the `Plan` resolver and model to support mutations
@@ -88,7 +97,7 @@
 - Removed old unused `Affiliation` methods from `dmpHubAPI` and added `getDMP` and `validate` (for use in the near future when syncing changes within our system and the DMPHub)
 - Updated structure of `cacheConfig.ts` to match other configs
 - Moved config for `MysSQLDataSource` from the datasource into its config file
-- Moved `SigTerm` handler tests for `MySQLDataSource` into a separate test file. They were failing for some reason when run together
+- Moved `SigTerm` handler tests for `mysql` into a separate test file. They were failing for some reason when run together
 - Refactored `context.ts` and tests to use new `dmpHubAPI` datasource
 - Refactored old "mocks" to extract duplicative code into the `MySQLMock.ts`
 - Update existing resolver tests to use new mocks
@@ -121,7 +130,15 @@
 - added bestPractice flag to the Section
 
 ### Removed
+<<<<<<< HEAD
 - Dropped all previous `data-migration` files in favor of the new `init-tables` and `init-seed` files
+=======
+<<<<<<< HEAD
+- Dropped the `PlanVersion` table
+=======
+- Removed `prepareAPITarget` function.
+>>>>>>> development
+>>>>>>> development
 - Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
 - Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic

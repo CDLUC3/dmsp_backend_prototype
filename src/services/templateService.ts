@@ -11,6 +11,8 @@ import { formatLogMessage } from "../logger";
 
 // Determine whether the specified user has permission to access the Template
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
+  if (!context || !context.token) return false;
+
   // If the current user belongs to the same affiliation OR the user is a super admin
   if (context.token?.affiliationId === template?.ownerId || await isSuperAdmin(context.token)) {
     return true;

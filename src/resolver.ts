@@ -24,6 +24,7 @@ import { resolvers as templateResolvers } from './resolvers/template';
 import { resolvers as repositoryResolvers } from './resolvers/repository';
 import { resolvers as researchDomainResolvers } from './resolvers/researchDomain';
 import { resolvers as sectionResolvers } from './resolvers/section';
+import { resolvers as superAdminResolvers } from './resolvers/superAdmin';
 import { resolvers as tagResolvers } from './resolvers/tag';
 import { resolvers as userResolvers } from './resolvers/user';
 import { resolvers as versionedQuestionResolvers } from './resolvers/versionedQuestion';
@@ -59,6 +60,7 @@ export const resolvers: IResolvers = mergeResolvers([
   researchDomainResolvers,
   templateResolvers,
   sectionResolvers,
+  superAdminResolvers,
   tagResolvers,
   userResolvers,
   versionedQuestionResolvers,

@@ -61,8 +61,6 @@ const mockedUser: UserModel.User = {
   hasErrors: jest.fn(),
 };
 
-jest.mock('../../models/User');
-
 describe('signupController', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
