@@ -19,7 +19,7 @@ export const typeDefs = gql`
     removeTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
 
     "Add a collaborator to a Plan"
-    addProjectCollaborator(projectId: Int!, email: String!, userId: Int!): ProjectCollaborator
+    addProjectCollaborator(projectId: Int!, email: String!, accessLevel: ProjectCollaboratorAccessLevel): ProjectCollaborator
     "Change a collaborator's accessLevel on a Plan"
     updateProjectCollaborator(projectCollaboratorId: Int!, accessLevel: ProjectCollaboratorAccessLevel!): ProjectCollaborator
     "Remove a ProjectCollaborator from a Plan"
