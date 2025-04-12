@@ -43,24 +43,21 @@ phases:
       # Generate all of the GraphQL schema types
       - npm run generate
 
+      # Run the linter checks
       - echo "Running linter checks"
       - npm run lint
 
+      # Run the tests
       - echo "Running tests"
       - npm run test
 
-      # Build the Apollo server which writes to the ./dist dir
+      # Build the Apollo server to ensure that it can compile
       - npm run build
 
-      # Build the Docker image
+      # All is good so build the Docker image
       - echo Building the Docker image...
       - docker build -f Dockerfile.aws -t $SHORT_ECR_URI:apollo-latest .
       - docker tag $ECR_REPOSITORY_URI:apollo-latest $SHORT_ECR_URI:$IMAGE_TAG
-
-      # Run the DB migrations
-      - echo "Running DB migrations"
-      - ./data-migrations/aws-process.sh
-
   post_build:
     commands:
       # Push the Docker image to the ECR repository. Fargate will pick it up an deploy automatically
