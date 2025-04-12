@@ -19,12 +19,6 @@ phases:
       # EnvironmentVariable config for the Pipeline action :(
       - export AWS_VERSION=$(aws --version)
 
-      # Fetch the git repo cloned by the Source stage of the CodePipeline
-      - echo Unzipping source artifact...
-      - unzip $CODEBUILD_SRC_DIR/repo.zip -d $CODEBUILD_SRC_DIR
-      - mv $CODEBUILD_SRC_DIR/repo/* $CODEBUILD_SRC_DIR
-      - rm -rf $CODEBUILD_SRC_DIR/repo $CODEBUILD_SRC_DIR/repo.zip
-
       # Fetch the ECR repository name
       - echo $ECR_REPOSITORY_URI >> .ecr
       - export SHORT_ECR_URI=$(awk '{gsub("$ECR_REPOSITORY_NAME", "");print}' .ecr)
