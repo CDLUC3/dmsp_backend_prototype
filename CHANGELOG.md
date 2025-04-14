@@ -1,4 +1,5 @@
 ### Added
+- Added `accessLevel` to projectCollaborator and removed `userId`
 - Added new resolvers related to `projectCollaborators`. Also, when project is created, automatically add user as `projectCollaborator` with `access level`= `OWN`
 - Added dynamoDb to the docker-compose file and setup dev to use the local instance
 - Added tests for `plan` resolver and added tests for `contributor` resolver's queries
