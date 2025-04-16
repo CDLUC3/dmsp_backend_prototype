@@ -67,8 +67,11 @@ const shutdown = async () => {
   await pool.close();
   process.exit(0);
 };
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+
+if (process.env.NODE_ENV !== 'test') {
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+}
 
 startServer().catch((error) => {
   console.log('Error starting server:', error)
