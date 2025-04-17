@@ -64,12 +64,15 @@ const startServer = async () => {
 const shutdown = async () => {
   console.log('Shutting down server...');
   const pool = mysql.getInstance();
+  pool.releaseConnection();
   await pool.close();
   process.exit(0);
 };
 
-if (process.env.NODE_ENV !== 'test') {
+if (!process.listeners('SIGINT').includes(shutdown)) {
   process.on('SIGINT', shutdown);
+}
+if (!process.listeners('SIGTERM').includes(shutdown)) {
   process.on('SIGTERM', shutdown);
 }
 

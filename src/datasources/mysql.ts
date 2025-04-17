@@ -11,26 +11,6 @@ export interface PoolConfig {
   password: string;
 }
 
-// Register SIGTERM handler for graceful shutdown of the MYSQL connection pool
-process.on('SIGTERM', () => {
-  const instance = mysql.getInstance();
-
-  if (instance) {
-    instance.releaseConnection();
-
-    // Close the MySQL connection pool
-    instance.close()
-      .then(() => {
-        logger.debug('MySQL connection pool closed');
-        process.exit(0);
-      })
-      .catch((err) => {
-        logger.error({ err, message: 'Error while closing MySQL connection pool' });
-        process.exit(1);
-      });
-  }
-});
-
 // Singleton MySQL Connection Pool
 export class mysql {
   private static instance: mysql;
