@@ -39,21 +39,20 @@ phases:
 
       # Install all of the dependencies (including dev so we can compile TS)
       - npm install
-      - export PATH=$PATH:./node_modules/.bin
 
       # Generate all of the GraphQL schema types
-      - npm run generate
+      - ./node_modules/.bin/graphql-codegen
 
       # Run the linter checks
       - echo "Running linter checks"
-      - eslint . --ignore-pattern src/types.ts
+      - ./node_modules/.bin/eslint . --ignore-pattern src/types.ts
 
       # Run the tests
       - echo "Running tests"
-      - jest
+      - ./node_modules/.bin/jest
 
       # Build the Apollo server to ensure that it can compile
-      - npm run build
+      - ./node_modules/.bin/tsc
 
       # All is good so build the Docker image
       - echo Building the Docker image...
