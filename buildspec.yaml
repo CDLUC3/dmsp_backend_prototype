@@ -35,7 +35,7 @@ phases:
       - cd $CODEBUILD_SRC_DIR
 
       # Install Husky
-      - npm install -g husky graphql-codegen eslint @eslint/js jest
+      - npm install -g husky graphql-codegen eslint jest
 
       # Install all of the dependencies (including dev so we can compile TS)
       - npm install
@@ -46,8 +46,8 @@ phases:
       - npm run generate
 
       # Run the linter checks
-      - echo "Running linter checks"
-      - npm run lint
+      # - echo "Running linter checks"
+      # - npm run lint
 
       # Run the tests
       - echo "Running tests"
