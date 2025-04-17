@@ -43,7 +43,7 @@ FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
 WORKDIR /app
 
 # Copy necessary files from builder stage
-COPY --from=builder dist/ ./dist
+COPY --from=builder /app/dist/ ./dist
 
 # Reinstall dependencies but without devDependencies
 RUN rm -rf node_modules
