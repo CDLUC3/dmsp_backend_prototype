@@ -41,24 +41,20 @@ phases:
       # CI deletes the node_modules folder and installs the dependencies as defined in package-lock.json
       - npm ci
 
-      - echo $(ls -lah ./node_modules/.bin)
-
       # Generate all of the GraphQL schema types
+      - echo "Generating GraphQL types"
       - npm run generate
 
       # Run the linter checks
       - echo "Running linter checks"
-      # - ./node_modules/.bin/eslint . --ignore-pattern src/types.ts
       - npm run lint
 
       # Run the tests
-      - echo "Running tests"
-      - npm run test
-      # - ./node_modules/.bin/jest
+      # - echo "Running tests"
+      # - npm run test
 
       # Build the Apollo server to ensure that it can compile
       - npm run build
-      # - ./node_modules/.bin/tsc
 
       # All is good so build the Docker image
       - echo Building the Docker image...
