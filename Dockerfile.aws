@@ -30,7 +30,7 @@ RUN npm run build
 RUN rm -rf dist/__tests__ \
            dist/__mocks__ \
            dist/**/__tests__ \
-           dist/**/__mocks__ \
+           dist/**/__mocks__
 
 # Reinstall dependencies but without devDependencies
 RUN npm ci --omit=dev
