@@ -34,9 +34,6 @@ phases:
       - echo "Running in ${NODE_ENV} - started on `date`"
       - cd $CODEBUILD_SRC_DIR
 
-      # We don't need the husky pre-commit hooks to run in the build
-      - export HUSKY_SKIP_INSTALL=1
-
       # CI deletes the node_modules folder and installs the dependencies as defined in package-lock.json
       - npm ci
 
