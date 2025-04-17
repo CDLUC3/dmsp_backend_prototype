@@ -1,5 +1,8 @@
 # syntax = docker/dockerfile:1
 
+# Set production environment
+ENV CI=true
+
 # Stage 1: Dependencies
 # preferred node version chosen here (LTS = 20.9.0 as of 10/24/2023)
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as deps
@@ -19,9 +22,6 @@ WORKDIR /app
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Set production environment
-ENV CI=true
 
 # Build the application
 RUN npm run build
