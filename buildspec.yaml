@@ -50,9 +50,6 @@ phases:
       # Build the Apollo server to ensure that it can compile
       - npm run build
 
-      # Run the database migrations
-      - ./data-migrations/aws-process.sh
-
       # All is good so build the Docker image
       - echo Building the Docker image...
       - docker build -f Dockerfile.aws -t $SHORT_ECR_URI:apollo-latest .
