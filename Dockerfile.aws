@@ -35,17 +35,18 @@ RUN rm -rf dist/__tests__ \
            dist/**/__tests__ \
            dist/**/__mocks__
 
-# Reinstall dependencies but without devDependencies
-RUN rm -rf node_modules
-RUN echo "production=false" >> .npmrc
-RUN npm install --omit=dev
-
 # Stage 3: Runner
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
 WORKDIR /app
 
 # Copy necessary files from builder stage
 COPY --from=builder dist/ ./dist
+
+# Reinstall dependencies but without devDependencies
+RUN rm -rf node_modules
+RUN echo "production=false" >> .npmrc
+COPY package*.json ./
+RUN npm install --omit=dev
 
 # Ensure port 3000 is accessible to our system
 EXPOSE 4000
