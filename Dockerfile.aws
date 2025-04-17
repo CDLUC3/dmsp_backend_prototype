@@ -15,6 +15,7 @@ COPY package*.json ./
 # Install dependencies in /app (excluding devDependencies)
 RUN npm install
 
+
 #Stage 2: Builder
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as builder
 WORKDIR /app
@@ -34,6 +35,8 @@ RUN rm -rf dist/__tests__ \
            dist/__mocks__ \
            dist/**/__tests__ \
            dist/**/__mocks__
+
+RUN ls -la dist/
 
 # Stage 3: Runner
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
