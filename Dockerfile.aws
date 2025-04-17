@@ -27,7 +27,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV=production
 
 # Generate the types for GraphQL
-RUN npm run generate
+# RUN npm run generate
 
 # Build the application
 RUN npm run build
