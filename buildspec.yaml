@@ -34,6 +34,9 @@ phases:
       - echo "Running in ${NODE_ENV} - started on `date`"
       - cd $CODEBUILD_SRC_DIR
 
+      # We need husky installed to run anything
+      - npm install husky
+
       # Install all of the dependencies (including dev so we can compile TS)
       - npm install
       - export PATH=$PATH:./node_modules/.bin
