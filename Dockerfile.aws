@@ -46,6 +46,8 @@ WORKDIR /app
 COPY --from=builder /app/dist/ ./dist
 
 # Reinstall dependencies but without devDependencies
+# Set production environment
+ENV CI=true
 RUN rm -rf node_modules
 RUN echo "production=false" >> .npmrc
 COPY package*.json ./
