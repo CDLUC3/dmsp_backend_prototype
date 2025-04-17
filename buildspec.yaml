@@ -9,11 +9,6 @@
 version: 0.2
 
 phases:
-  # install:
-    # runtime-versions:
-      # # Apollo gives error when building on < 21
-      #nodejs: 21
-
   pre_build:
     commands:
       # Set some ENV variables here because CF only allows a limit of 1000 characters in the
@@ -30,9 +25,6 @@ phases:
       - echo Logging in to Amazon ECR ...
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $SHORT_ECR_URI
       - IMAGE_TAG=${COMMIT_HASH:=apollo-latest}
-
-      # Install MySQL so we can run DB migrations
-      - dnf -y install mariadb105
   build:
     commands:
       - echo "Running in ${MODE} mode in ${NODE_ENV} - started on `date`"
@@ -54,6 +46,9 @@ phases:
 
       # Build the Apollo server to ensure that it can compile
       - npm run build
+
+      # Run the database migrations
+      - ./data-migrations/aws-process.sh
 
       # All is good so build the Docker image
       - echo Building the Docker image...
