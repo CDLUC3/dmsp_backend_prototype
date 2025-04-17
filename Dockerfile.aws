@@ -9,10 +9,8 @@ WORKDIR /app
 # to the /app working directory
 COPY package*.json ./
 
-ENV CI=true
-
 # Install dependencies in /app (excluding devDependencies)
-RUN npm install --omit=dev
+RUN npm install
 
 #Stage 2: Builder
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as builder
@@ -23,14 +21,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set production environment
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV=production
-
-# Generate the types for GraphQL
-# RUN npm run generate
+ENV CI=true
 
 # Build the application
-RUN npm run compile
+RUN npm run build
 
 # Remove all the unecessary test and mock files from the distribution
 RUN rm -rf dist/__tests__ \
@@ -38,20 +32,19 @@ RUN rm -rf dist/__tests__ \
            dist/**/__tests__ \
            dist/**/__mocks__ \
 
+# Reinstall dependencies but without devDependencies
+RUN npm ci --omit=dev
+
 # Stage 3: Runner
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
 WORKDIR /app
-
-# Set production environment
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV=production
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 apollo
 
-# Copy necessary files
-COPY dist/ ./dist
+# Copy necessary files from builder stage
+COPY --from=builder --chown=apollo:nodejs dist/ ./dist
 
 #Switch to non-root user
 USER apollo
