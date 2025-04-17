@@ -35,7 +35,7 @@ phases:
       - cd $CODEBUILD_SRC_DIR
 
       # Install Husky globally so we can run our scripts in package.json
-      - npm install -g husky graphql-codegen
+      - npm install -g husky
 
       # Install all of the dependencies (including dev so we can compile TS)
       - npm install
@@ -46,11 +46,11 @@ phases:
 
       # Run the linter checks
       - echo "Running linter checks"
-      - npm run lint
+      - eslint . --ignore-pattern src/types.ts
 
       # Run the tests
       - echo "Running tests"
-      - npm run test
+      - jest
 
       # Build the Apollo server to ensure that it can compile
       - npm run build
