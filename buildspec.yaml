@@ -35,7 +35,7 @@ phases:
       - cd $CODEBUILD_SRC_DIR
 
       # Install Husky globally so we can run our scripts in package.json
-      - npm install -g husky
+      - npm install -g husky graphql-codegen
 
       # Install all of the dependencies (including dev so we can compile TS)
       - npm install
