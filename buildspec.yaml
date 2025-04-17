@@ -40,6 +40,8 @@ phases:
       # Install all of the dependencies (including dev so we can compile TS)
       - npm install
 
+      - echo $(ls -lah)
+
       # Generate all of the GraphQL schema types
       - npm run generate
 
