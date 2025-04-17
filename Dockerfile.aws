@@ -30,7 +30,7 @@ ENV NODE_ENV=production
 # RUN npm run generate
 
 # Build the application
-RUN npm run build
+RUN npm run compile
 
 # Remove all the unecessary test and mock files from the distribution
 RUN rm -rf dist/__tests__ \
