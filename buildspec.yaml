@@ -9,10 +9,11 @@
 version: 0.2
 
 phases:
-  install:
-    runtime-versions:
-      # Apollo gives error when building on < 21
-      nodejs: 21
+  # install:
+    # runtime-versions:
+      # # Apollo gives error when building on < 21
+      #nodejs: 21
+
   pre_build:
     commands:
       # Set some ENV variables here because CF only allows a limit of 1000 characters in the
