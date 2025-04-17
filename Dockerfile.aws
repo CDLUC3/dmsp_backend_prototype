@@ -36,7 +36,8 @@ RUN rm -rf dist/__tests__ \
            dist/**/__mocks__
 
 # Reinstall dependencies but without devDependencies
-RUN npm ci --omit=dev
+RUN rm -rf node_modules
+RUN npm install --omit=dev
 
 # Stage 3: Runner
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
