@@ -9,8 +9,10 @@ WORKDIR /app
 # to the /app working directory
 COPY package*.json ./
 
+ENV CI=true
+
 # Install dependencies in /app (excluding devDependencies)
-RUN npm install
+RUN npm install --omit=dev
 
 #Stage 2: Builder
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as builder
