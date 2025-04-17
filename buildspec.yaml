@@ -35,7 +35,7 @@ phases:
       - cd $CODEBUILD_SRC_DIR
 
       # Install Husky
-      - npx husky install
+      - npm install -g husky
 
       # Install all of the dependencies (including dev so we can compile TS)
       - npm install
