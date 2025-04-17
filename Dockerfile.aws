@@ -37,21 +37,15 @@ RUN rm -rf dist/__tests__ \
 
 # Reinstall dependencies but without devDependencies
 RUN rm -rf node_modules
+RUN echo "production=false" >> .npmrc
 RUN npm install --omit=dev
 
 # Stage 3: Runner
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 apollo
-
 # Copy necessary files from builder stage
-COPY --from=builder --chown=apollo:nodejs dist/ ./dist
-
-#Switch to non-root user
-USER apollo
+COPY --from=builder dist/ ./dist
 
 # Ensure port 3000 is accessible to our system
 EXPOSE 4000
