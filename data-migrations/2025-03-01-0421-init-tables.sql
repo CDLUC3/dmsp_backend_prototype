@@ -1,5 +1,5 @@
 # The email domains associated with an affiliation to assist with SSO
-CREATE TABLE `affiliationEmailDomains` (
+CREATE TABLE IF NOT EXISTS `affiliationEmailDomains` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `affiliationId` INT NOT NULL,
   `emailDomain` VARCHAR(255) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE `affiliationEmailDomains` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
 # The URLs defined by the affiliation admins that are displayed on the sites sub header
-CREATE TABLE `affiliationLinks` (
+CREATE TABLE IF NOT EXISTS `affiliationLinks` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `affiliationId` INT NOT NULL,
   `url` VARCHAR(255) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE `affiliationLinks` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `affiliations` (
+CREATE TABLE IF NOT EXISTS `affiliations` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `uri` VARCHAR(255) NOT NULL,
   `provenance` VARCHAR(255) NOT NULL DEFAULT 'DMPTOOL',
@@ -60,7 +60,7 @@ CREATE TABLE `affiliations` (
   INDEX affiliations_provenance_idx (`provenance`, `uri`, `displayName`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `answerComments` (
+CREATE TABLE IF NOT EXISTS `answerComments` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `answerId` INT NOT NULL,
   `commentText` TEXT NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE `answerComments` (
   INDEX answer_comments_modified_idx (`answerId`, `modified`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `answers` (
+CREATE TABLE IF NOT EXISTS `answers` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `planId` INT NOT NULL,
   `versionedSectionId` INT NOT NULL,
@@ -83,7 +83,7 @@ CREATE TABLE `answers` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `contributorRoles` (
+CREATE TABLE IF NOT EXISTS `contributorRoles` (
   `id` int AUTO_INCREMENT PRIMARY KEY,
   `label` varchar(255) NOT NULL,
   `uri` varchar(255) NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE `contributorRoles` (
   CONSTRAINT unique_contributor_role_order UNIQUE (`displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `feedbackComments` (
+CREATE TABLE IF NOT EXISTS `feedbackComments` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `feedbackId` INT NOT NULL,
   `answerId` INT NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE `feedbackComments` (
   INDEX feedback_comments_modified_idx (`answerId`, `modified`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `feedback` (
+CREATE TABLE IF NOT EXISTS `feedback` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `planId` INT NOT NULL,
   `requestedById` INT NOT NULL,
@@ -124,7 +124,7 @@ CREATE TABLE `feedback` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `licenses` (
+CREATE TABLE IF NOT EXISTS `licenses` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
@@ -138,7 +138,7 @@ CREATE TABLE `licenses` (
   CONSTRAINT unique_license_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `metadataStandardResearchDomains` (
+CREATE TABLE IF NOT EXISTS `metadataStandardResearchDomains` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `metadataStandardId` INT NOT NULL,
   `researchDomainId` INT NOT NULL,
@@ -148,7 +148,7 @@ CREATE TABLE `metadataStandardResearchDomains` (
   `modifiedById` int NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `metadataStandards` (
+CREATE TABLE IF NOT EXISTS `metadataStandards` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
@@ -162,7 +162,7 @@ CREATE TABLE `metadataStandards` (
   CONSTRAINT unique_mstandard_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `planContributorRoles` (
+CREATE TABLE IF NOT EXISTS `planContributorRoles` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `planContributorId` INT NOT NULL,
   `contributorRoleId` INT NOT NULL,
@@ -172,7 +172,7 @@ CREATE TABLE `planContributorRoles` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `planContributors` (
+CREATE TABLE IF NOT EXISTS `planContributors` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `planId` INT NOT NULL,
   `projectContributorId` INT NOT NULL,
@@ -183,7 +183,7 @@ CREATE TABLE `planContributors` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `planFunders` (
+CREATE TABLE IF NOT EXISTS `planFunders` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `planId` INT NOT NULL,
   `projectFunderId` INT NOT NULL,
@@ -193,7 +193,7 @@ CREATE TABLE `planFunders` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `plans` (
+CREATE TABLE IF NOT EXISTS `plans` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectId` INT NOT NULL,
   `versionedTemplateId` INT NOT NULL,
@@ -214,7 +214,7 @@ CREATE TABLE `plans` (
   INDEX plans_featured_idx (`featured`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projectCollaborators` (
+CREATE TABLE IF NOT EXISTS `projectCollaborators` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectId` INT NOT NULL,
   `email` VARCHAR(255) NOT NULL,
@@ -230,7 +230,7 @@ CREATE TABLE `projectCollaborators` (
   INDEX projectCollaborators_user_idx (`userId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projectContributorRoles` (
+CREATE TABLE IF NOT EXISTS `projectContributorRoles` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectContributorId` INT NOT NULL,
   `contributorRoleId` INT NOT NULL,
@@ -240,7 +240,7 @@ CREATE TABLE `projectContributorRoles` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projectContributors` (
+CREATE TABLE IF NOT EXISTS `projectContributors` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectId` INT NOT NULL,
   `affiliationId` VARCHAR(255),
@@ -254,7 +254,7 @@ CREATE TABLE `projectContributors` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projectFunders` (
+CREATE TABLE IF NOT EXISTS `projectFunders` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectId` INT NOT NULL,
   `affiliationId` VARCHAR(255) NOT NULL,
@@ -268,7 +268,7 @@ CREATE TABLE `projectFunders` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projectOutputMetadataStandards` (
+CREATE TABLE IF NOT EXISTS `projectOutputMetadataStandards` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectOutputId` INT NOT NULL,
   `metadataStandardId` INT NOT NULL,
@@ -278,7 +278,7 @@ CREATE TABLE `projectOutputMetadataStandards` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projectOutputRepositories` (
+CREATE TABLE IF NOT EXISTS `projectOutputRepositories` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectOutputId` INT NOT NULL,
   `repositoryId` INT NOT NULL,
@@ -288,7 +288,7 @@ CREATE TABLE `projectOutputRepositories` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projectOutputTypes` (
+CREATE TABLE IF NOT EXISTS `projectOutputTypes` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
@@ -301,7 +301,7 @@ CREATE TABLE `projectOutputTypes` (
   CONSTRAINT unique_license_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projectOutputs` (
+CREATE TABLE IF NOT EXISTS `projectOutputs` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectId` INT NOT NULL,
   `outputTypeId` INT NOT NULL,
@@ -320,7 +320,7 @@ CREATE TABLE `projectOutputs` (
   INDEX projectOutputs_release_date_idx (`anticipatedReleaseDate`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `projects` (
+CREATE TABLE IF NOT EXISTS `projects` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `title` VARCHAR(255) NOT NULL,
   `abstractText` TEXT,
@@ -338,7 +338,7 @@ CREATE TABLE `projects` (
   INDEX projects_dates_idx (`id`, `startDate`, `endDate`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `questionConditions` (
+CREATE TABLE IF NOT EXISTS `questionConditions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `questionId` INT NOT NULL,
   `action` VARCHAR(255) NOT NULL DEFAULT 'SHOW_QUESTION',
@@ -351,7 +351,7 @@ CREATE TABLE `questionConditions` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `questionOptions` (
+CREATE TABLE IF NOT EXISTS `questionOptions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `questionId` INT NOT NULL,
   `text` VARCHAR(255) NOT NULL,
@@ -363,7 +363,7 @@ CREATE TABLE `questionOptions` (
   `modifiedById` int
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `questionTypes` (
+CREATE TABLE IF NOT EXISTS `questionTypes` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(255) NOT NULL,
   `usageDescription` text,
@@ -376,7 +376,7 @@ CREATE TABLE `questionTypes` (
   INDEX questionTypes_name_idx (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `questions` (
+CREATE TABLE IF NOT EXISTS `questions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `templateId` INT NOT NULL,
   `sectionId` INT NOT NULL,
@@ -399,7 +399,7 @@ CREATE TABLE `questions` (
   INDEX questions_template_idx (`templateId`, `displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `relatedWorks` (
+CREATE TABLE IF NOT EXISTS `relatedWorks` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `projectId` INT NOT NULL,
   `identifier` VARCHAR(255) NOT NULL,
@@ -412,7 +412,7 @@ CREATE TABLE `relatedWorks` (
   `modifiedById` int
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `repositories` (
+CREATE TABLE IF NOT EXISTS `repositories` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
@@ -429,7 +429,7 @@ CREATE TABLE `repositories` (
   CONSTRAINT unique_license_website UNIQUE (`website`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `repositoryResearchDomains` (
+CREATE TABLE IF NOT EXISTS `repositoryResearchDomains` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `repositoryId` INT NOT NULL,
   `researchDomainId` INT NOT NULL,
@@ -439,7 +439,7 @@ CREATE TABLE `repositoryResearchDomains` (
   `modifiedById` int NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `researchDomains` (
+CREATE TABLE IF NOT EXISTS `researchDomains` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
@@ -453,7 +453,7 @@ CREATE TABLE `researchDomains` (
   CONSTRAINT unique_research_domain_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `sectionTags` (
+CREATE TABLE IF NOT EXISTS `sectionTags` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `sectionId` INT NOT NULL,
   `tagId` INT NOT NULL,
@@ -464,7 +464,7 @@ CREATE TABLE `sectionTags` (
   INDEX sectionTags_idx(`sectionId`, `tagId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `sections` (
+CREATE TABLE IF NOT EXISTS `sections` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `templateId` INT NOT NULL,
   `sourceSectionId` INT,
@@ -484,7 +484,7 @@ CREATE TABLE `sections` (
   INDEX sections_template_idx (`templateId`, `displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `tags` (
+CREATE TABLE IF NOT EXISTS `tags` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `description` TEXT,
@@ -495,7 +495,7 @@ CREATE TABLE `tags` (
   INDEX tags_name_idx (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `templateCollaborators` (
+CREATE TABLE IF NOT EXISTS `templateCollaborators` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `templateId` INT NOT NULL,
   `email` VARCHAR(255) NOT NULL,
@@ -510,7 +510,7 @@ CREATE TABLE `templateCollaborators` (
   INDEX templateCollaborators_user_idx (`userId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `templates` (
+CREATE TABLE IF NOT EXISTS `templates` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `sourceTemplateId` INT,
   `name` TEXT NOT NULL,
@@ -530,7 +530,7 @@ CREATE TABLE `templates` (
   INDEX templates_owner_idx (`ownerId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `versionedQuestionConditions` (
+CREATE TABLE IF NOT EXISTS `versionedQuestionConditions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `versionedQuestionId` INT NOT NULL,
   `questionConditionId` INT NOT NULL,
@@ -544,7 +544,7 @@ CREATE TABLE `versionedQuestionConditions` (
   `modifiedById` int NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `versionedQuestions` (
+CREATE TABLE IF NOT EXISTS `versionedQuestions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `versionedTemplateId` INT NOT NULL,
   `versionedSectionId` INT NOT NULL,
@@ -564,7 +564,7 @@ CREATE TABLE `versionedQuestions` (
   INDEX versionedQuestions_section_idx (`versionedSectionId`, `displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `versionedSections` (
+CREATE TABLE IF NOT EXISTS `versionedSections` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `versionedTemplateId` INT NOT NULL,
   `sectionId` INT NOT NULL,
@@ -582,7 +582,7 @@ CREATE TABLE `versionedSections` (
   INDEX versionedSections_name_ids (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `versionedTemplates` (
+CREATE TABLE IF NOT EXISTS `versionedTemplates` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `templateId` INT NOT NULL,
   `active` TINYINT(1) NOT NULL DEFAULT 0,
@@ -605,7 +605,7 @@ CREATE TABLE `versionedTemplates` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
 # User email addresses
-CREATE TABLE `userEmails` (
+CREATE TABLE IF NOT EXISTS `userEmails` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `userId` INT NOT NULL,
   `email` VARCHAR(255) NOT NULL,
@@ -619,7 +619,7 @@ CREATE TABLE `userEmails` (
   INDEX userEmails_email_idx (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
