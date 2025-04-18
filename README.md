@@ -212,9 +212,16 @@ You can run AWS CLI commands to interact with the DynamoDB table or MySQL comman
 
 - To create a local instance of the DynamoDB table, startup the Docker container and run `docker-compose exec apollo bash ./data-migrations/dynamo-init.sh`. This will create the table if it does not already exist
 
-#### Running MySQL database migrations
+#### MySQL
 
-- While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh` in a seperate terminal window.
+**Running Database Migrations**
+This system manages the database schema via SQL files located in the `./data-migrations` folder.
+
+- While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh` in a seperate terminal window. This script will create both the database and the `dataMigrations` table if they do not yet exist.
+
+When you run `process.sh` the script checks each SQL file located in the `./data-migrations/` folder sequentially by the date/time prefix (e.g. `2025-04-18-1235-run-me.sql` is checked after `2025-04-17-1200-run-me.sql`).
+
+It queries the `dataMigrations` table to see if the file has already been run. If it has not, it executes the SQL within the file and then records the file name in the `dataMigrations` table so that it does not get run again.
 
 #### Dropping all of the MySQL tables in the local database
 
