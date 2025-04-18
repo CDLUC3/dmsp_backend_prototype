@@ -692,7 +692,7 @@ ALTER TABLE feedbackComments
   ADD FOREIGN KEY (feedbackId) REFERENCES feedback(id) ON DELETE CASCADE,
   ADD FOREIGN KEY (answerId) REFERENCES answers(id) ON DELETE CASCADE;
 
-ALTER TABLE feedbacks
+ALTER TABLE feedback
   ADD FOREIGN KEY (createdById) REFERENCES users(id),
   ADD FOREIGN KEY (modifiedById) REFERENCES users(id),
   ADD FOREIGN KEY (planId) REFERENCES plans(id) ON DELETE CASCADE,
