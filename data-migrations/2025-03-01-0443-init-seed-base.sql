@@ -1,55 +1,67 @@
-# Initial a default super admin user
+# Initialize the default affiliation and a default super admin user (will be used as the creator of other records)
 # ---------------------------------------------------
+# Disable foreign key checks to avoid constraint violations when creating the super admin user
+SET FOREIGN_KEY_CHECKS = 0;
 INSERT INTO `users` (`email`, `affiliationId`, `password`, `givenName`, `surName`, `role`)
 VALUES ('super@example.com', 'https://ror.org/03yrm5c26', '$2a$10$f3wCBdUVt/2aMcPOb.GX1OBO9WMGxDXx5HKeSBBnrMhat4.pis4Pe', 'Super', 'Admin', 'SUPERADMIN');
+SET FOREIGN_KEY_CHECKS = 1;
+
+# Initialize the default affiliation
+INSERT INTO `affiliations` (`uri`, `provenance`, `name`, `displayName`, `searchName`, `funder`, `fundrefId`, `homepage`, `acronyms`, `aliases`, `types`, `logoURI`, `logoName`, `contactName`, `contactEmail`, `ssoEntityId`, `feedbackEnabled`, `feedbackMessage`, `feedbackEmails`, `managed`, `createdById`, `created`, `modifiedById`, `modified`)
+  (SELECT 'https://ror.org/03yrm5c26', 'ROR', 'California Digital Library', 'California Digital Library (cdlib.org)', 'California Digital Library | cdlib.org | CDL ', 0, NULL, 'http://www.cdlib.org/', '["CDL"]', '[]', '["Archive"]', NULL, NULL, 'UC3 Helpdesk', 'uc3@cdlib.org', NULL, false, '<p>Dear %{user_name},</p><p>"%{plan_name}" has been sent to your %{application_name} account administrator for feedback.</p><p>Please email %{organisation_email} with any questions about this process.</p>', '["uc3@cdlib.org"]', true, `users`.`id`, CURDATE(), `users`.`id`, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `affiliationEmailDomains` (`emailDomain`, `affiliationId`, `createdById`, `created`, `modifiedById`, `modified`)
+  (SELECT 'cdlib.org', `affiliations`.`id`, `affiliations`.`createdById`, CURDATE(), `affiliations`.`modifiedById`, CURDATE() FROM `affiliations` WHERE `affiliations`.`uri` = 'https://ror.org/03yrm5c26');
+
+# Update the super admin user with the affiliation
+UPDATE `users` SET `affiliationId` = 'https://ror.org/03yrm5c26' WHERE `email` = 'super@example.com';
 
 # Initialize the contributor roles
 # ---------------------------------------------------
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Conceptualization', 'https://credit.niso.org/contributor-roles/conceptualization/', 'Ideas; formulation or evolution of overarching research goals and aims.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Conceptualization', 'https://credit.niso.org/contributor-roles/conceptualization/', 'Ideas; formulation or evolution of overarching research goals and aims.', 6, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
   (SELECT 'Data Manager', 'https://credit.niso.org/contributor-roles/data-curation/', 'An individual engaged in management activities to annotate (produce metadata), scrub data and maintain research data (including software code, where it is necessary for interpreting the data itself) for initial use and later re-use.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Formal analysis', 'https://credit.niso.org/contributor-roles/formal-analysis/', 'Application of statistical, mathematical, computational, or other formal techniques to analyze or synthesize study data.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Formal analysis', 'https://credit.niso.org/contributor-roles/formal-analysis/', 'Application of statistical, mathematical, computational, or other formal techniques to analyze or synthesize study data.', 8, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Funding acquisition', 'https://credit.niso.org/contributor-roles/funding-acquisition/', 'Acquisition of the financial support for the project leading to this publication.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Funding acquisition', 'https://credit.niso.org/contributor-roles/funding-acquisition/', 'Acquisition of the financial support for the project leading to this publication.', 12, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
   (SELECT 'Principal Investigator (PI)', 'https://credit.niso.org/contributor-roles/investigation/', 'An individual conducting a research and investigation process, specifically performing the experiments, or data/evidence collection.', 1, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Methodology', 'https://credit.niso.org/contributor-roles/methodology/', 'Development or design of methodology; creation of models.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Methodology', 'https://credit.niso.org/contributor-roles/methodology/', 'Development or design of methodology; creation of models.', 7, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
   (SELECT 'Project Administrator', 'https://credit.niso.org/contributor-roles/project-administration/', 'An individual with management and coordination responsibility for the research activity planning and execution.', 2, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Resources', 'https://credit.niso.org/contributor-roles/resources/', 'Provision of study materials, reagents, laboratory samples, animals, instrumentation, computing resources, or other analysis tools.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Resources', 'https://credit.niso.org/contributor-roles/resources/', 'Provision of study materials, reagents, laboratory samples, animals, instrumentation, computing resources, or other analysis tools.', 11, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Software', 'https://credit.niso.org/contributor-roles/software/', 'Programming, software development; designing computer programs; implementation of the computer code and supporting algorithms; testing of existing code components.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Software', 'https://credit.niso.org/contributor-roles/software/', 'Programming, software development; designing computer programs; implementation of the computer code and supporting algorithms; testing of existing code components.', 4, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Supervision', 'https://credit.niso.org/contributor-roles/supervision/', 'Oversight and leadership responsibility for the research activity planning and execution, including mentorship external to the core team.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Supervision', 'https://credit.niso.org/contributor-roles/supervision/', 'Oversight and leadership responsibility for the research activity planning and execution, including mentorship external to the core team.', 5, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Validation', 'https://credit.niso.org/contributor-roles/validation/', 'Verification, either in a formal analysis or through a different approach, of the results of the study.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Validation', 'https://credit.niso.org/contributor-roles/validation/', 'Verification, either in a formal analysis or through a different approach, of the results of the study.', 9, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Visualization', 'https://credit.niso.org/contributor-roles/visualization/', 'Preparation, creation and/or presentation of the published work, specifically visualization/data presentation.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Visualization', 'https://credit.niso.org/contributor-roles/visualization/', 'Preparation, creation and/or presentation of the published work, specifically visualization/data presentation.', 10, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Writing - original draft', 'https://credit.niso.org/contributor-roles/writing-original-draft/', 'Preparation, creation and/or presentation of the published work, specifically writing the initial draft (including substantive translation).', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Writing - original draft', 'https://credit.niso.org/contributor-roles/writing-original-draft/', 'Preparation, creation and/or presentation of the published work, specifically writing the initial draft (including substantive translation).', 13, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, createdById, modifiedById)
-  (SELECT 'Writing - review and editing', 'https://credit.niso.org/contributor-roles/writing-review-editing/', 'Preparation, creation and/or presentation of the published work by those from the original research group, specifically critical review, commentary or revision including pre-or post-publication stages.', 3, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Writing - review and editing', 'https://credit.niso.org/contributor-roles/writing-review-editing/', 'Preparation, creation and/or presentation of the published work by those from the original research group, specifically critical review, commentary or revision including pre-or post-publication stages.', 14, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 INSERT INTO contributorRoles (label, uri, description, displayOrder, isDefault, createdById, modifiedById)
-  (SELECT 'Other', 'http://dmptool.org/contributor_roles/other', '', 4, 1, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
+  (SELECT 'Other', 'http://dmptool.org/contributor_roles/other', '', 99, 1, `users`.`id`, `users`.`id` FROM `users` WHERE `email` = 'super@example.com');
 
 # Initialize the tags
 # ---------------------------------------------------
@@ -165,17 +177,17 @@ INSERT INTO `researchDomains` (`name`, `description`, `uri`, `parentResearchDoma
 
 # Initialize the project output types
 # ---------------------------------------------------
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'audiovisual', 'Audiovisual', 'https://dmptool.org/output_types/audiovisual', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'collection', 'Collection', 'https://dmptool.org/output_types/collection', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'data paper', 'Data paper', 'https://dmptool.org/output_types/data_paper', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'dataset', 'Dataset', 'https://dmptool.org/output_types/dataset', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'event', 'Event', 'https://dmptool.org/output_types/event', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'image', 'Image', 'https://dmptool.org/output_types/image', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'interactive resource', 'Interactive resource', 'https://dmptool.org/output_types/interactive_resource', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'model representation', 'Model representation', 'https://dmptool.org/output_types/model_representation', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'physical object', 'Physical object', 'https://dmptool.org/output_types/physical_object', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'service', 'Service', 'https://dmptool.org/output_types/service', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'software', 'Software', 'https://dmptool.org/output_types/software', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'sound', 'Sound', 'https://dmptool.org/output_types/sound', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'text', 'Text', 'https://dmptool.org/output_types/text', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
-INSERT INTO `outputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'workflow', 'Workflow', 'https://dmptool.org/output_types/workflow', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'audiovisual', 'Audiovisual', 'https://dmptool.org/output_types/audiovisual', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'collection', 'Collection', 'https://dmptool.org/output_types/collection', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'data paper', 'Data paper', 'https://dmptool.org/output_types/data_paper', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'dataset', 'Dataset', 'https://dmptool.org/output_types/dataset', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'event', 'Event', 'https://dmptool.org/output_types/event', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'image', 'Image', 'https://dmptool.org/output_types/image', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'interactive resource', 'Interactive resource', 'https://dmptool.org/output_types/interactive_resource', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'model representation', 'Model representation', 'https://dmptool.org/output_types/model_representation', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'physical object', 'Physical object', 'https://dmptool.org/output_types/physical_object', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'service', 'Service', 'https://dmptool.org/output_types/service', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'software', 'Software', 'https://dmptool.org/output_types/software', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'sound', 'Sound', 'https://dmptool.org/output_types/sound', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'text', 'Text', 'https://dmptool.org/output_types/text', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');
+INSERT INTO `projectOutputTypes` (`name`, `description`, `uri`, `createdById`, `created`, `modifiedById`, `modified`) (SELECT 'workflow', 'Workflow', 'https://dmptool.org/output_types/workflow', users.id, CURDATE(), users.id, CURDATE() FROM users WHERE email = 'super@example.com');

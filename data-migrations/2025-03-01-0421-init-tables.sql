@@ -782,7 +782,6 @@ ALTER TABLE projectOutputs
   ADD FOREIGN KEY (createdById) REFERENCES users(id),
   ADD FOREIGN KEY (modifiedById) REFERENCES users(id),
   ADD FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
-  ADD FOREIGN KEY (outputTypeId) REFERENCES outputTypes(id),
   ADD FOREIGN KEY (initialLicenseId) REFERENCES licenses(id);
 
 ALTER TABLE questionConditions
