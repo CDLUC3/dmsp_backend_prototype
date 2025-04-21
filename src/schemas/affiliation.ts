@@ -10,6 +10,8 @@ export const typeDefs = gql`
     affiliationByURI(uri: String!): Affiliation
     "Perform a search for Affiliations matching the specified name"
     affiliations(name: String!, funderOnly: Boolean): [AffiliationSearch]
+    "Returns a list of the top 20 funders ranked by popularity (nbr of plans) for the past year"
+    popularFunders: [FunderPopularityResult]
   }
 
   extend type Mutation {
@@ -23,9 +25,9 @@ export const typeDefs = gql`
 
   "Search result - An abbreviated version of an Affiliation"
   type AffiliationSearch {
-    "The unique identifer for the affiliation (typically the ROR id)"
+    "The unique identifer for the affiliation"
     id: Int!
-    "The URI of the affiliation"
+    "The URI of the affiliation (typically the ROR id)"
     uri: String!
     "The official display name"
     displayName: String!
@@ -35,6 +37,18 @@ export const typeDefs = gql`
     types: [AffiliationType!]
     "Has an API that be used to search for project/award information"
     apiTarget: String
+  }
+
+  "A result of the most popular funders"
+  type FunderPopularityResult {
+    "The unique identifer for the affiliation"
+    id: Int!
+    "The URI of the affiliation (typically the ROR id)"
+    uri: String!
+    "The official display name"
+    displayName: String!
+    "The number of plans associated with this funder in the past year"
+    nbrPlans: Int!
   }
 
   "The provenance of an Affiliation record"

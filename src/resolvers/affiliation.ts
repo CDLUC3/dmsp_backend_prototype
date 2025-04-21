@@ -1,6 +1,6 @@
 import { Resolvers } from "../types";
 import { MyContext } from '../context';
-import { Affiliation, AffiliationSearch, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL } from '../models/Affiliation';
+import { Affiliation, AffiliationSearch, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL, PopularFunder } from '../models/Affiliation';
 import { isAdmin, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
@@ -45,6 +45,17 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    // Returns the most popular funders
+    popularFunders: async (_, __, context: MyContext): Promise<PopularFunder[]> => {
+      const reference = 'popularFunders resolver';
+      try {
+        return await PopularFunder.top20(context);
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    }
   },
 
   Mutation: {

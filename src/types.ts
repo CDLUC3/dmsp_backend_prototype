@@ -403,11 +403,11 @@ export type AffiliationSearch = {
   displayName: Scalars['String']['output'];
   /** Whether or not this affiliation is a funder */
   funder: Scalars['Boolean']['output'];
-  /** The unique identifer for the affiliation (typically the ROR id) */
+  /** The unique identifer for the affiliation */
   id: Scalars['Int']['output'];
   /** The categories the Affiliation belongs to */
   types?: Maybe<Array<AffiliationType>>;
-  /** The URI of the affiliation */
+  /** The URI of the affiliation (typically the ROR id) */
   uri: Scalars['String']['output'];
 };
 
@@ -567,6 +567,19 @@ export type ExternalProject = {
   startDate?: Maybe<Scalars['String']['output']>;
   /** The project title */
   title?: Maybe<Scalars['String']['output']>;
+};
+
+/** A result of the most popular funders */
+export type FunderPopularityResult = {
+  __typename?: 'FunderPopularityResult';
+  /** The official display name */
+  displayName: Scalars['String']['output'];
+  /** The unique identifer for the affiliation */
+  id: Scalars['Int']['output'];
+  /** The number of plans associated with this funder in the past year */
+  nbrPlans: Scalars['Int']['output'];
+  /** The URI of the affiliation (typically the ROR id) */
+  uri: Scalars['String']['output'];
 };
 
 /** Output type for the initializePlanVersion mutation */
@@ -2066,6 +2079,8 @@ export type Query = {
   planOutputs?: Maybe<Array<Maybe<ProjectOutput>>>;
   /** Get all plans for the research project */
   plans?: Maybe<Array<PlanSearchResult>>;
+  /** Returns a list of funders ranked by popularity (nbr of plans) for the past year */
+  popularFunders?: Maybe<Array<Maybe<FunderPopularityResult>>>;
   /** Get a specific project */
   project?: Maybe<Project>;
   /** Get all of the Users that are collaborators for the Project */
@@ -3765,6 +3780,7 @@ export type ResolversTypes = {
   ExternalContributor: ResolverTypeWrapper<ExternalContributor>;
   ExternalFunding: ResolverTypeWrapper<ExternalFunding>;
   ExternalProject: ResolverTypeWrapper<ExternalProject>;
+  FunderPopularityResult: ResolverTypeWrapper<FunderPopularityResult>;
   InitializePlanVersionOutput: ResolverTypeWrapper<InitializePlanVersionOutput>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   InvitedToType: InvitedToType;
@@ -3914,6 +3930,7 @@ export type ResolversParentTypes = {
   ExternalContributor: ExternalContributor;
   ExternalFunding: ExternalFunding;
   ExternalProject: ExternalProject;
+  FunderPopularityResult: FunderPopularityResult;
   InitializePlanVersionOutput: InitializePlanVersionOutput;
   Int: Scalars['Int']['output'];
   Language: Language;
@@ -4208,6 +4225,14 @@ export type ExternalProjectResolvers<ContextType = MyContext, ParentType extends
   funders?: Resolver<Maybe<Array<ResolversTypes['ExternalFunding']>>, ParentType, ContextType>;
   startDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type FunderPopularityResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['FunderPopularityResult'] = ResolversParentTypes['FunderPopularityResult']> = {
+  displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  nbrPlans?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  uri?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4787,6 +4812,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   planFunders?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFunder']>>>, ParentType, ContextType, RequireFields<QueryPlanFundersArgs, 'planId'>>;
   planOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryPlanOutputsArgs, 'planId'>>;
   plans?: Resolver<Maybe<Array<ResolversTypes['PlanSearchResult']>>, ParentType, ContextType, RequireFields<QueryPlansArgs, 'projectId'>>;
+  popularFunders?: Resolver<Maybe<Array<Maybe<ResolversTypes['FunderPopularityResult']>>>, ParentType, ContextType>;
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<QueryProjectArgs, 'projectId'>>;
   projectCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectCollaborator']>>>, ParentType, ContextType, RequireFields<QueryProjectCollaboratorsArgs, 'projectId'>>;
   projectContributor?: Resolver<Maybe<ResolversTypes['ProjectContributor']>, ParentType, ContextType, RequireFields<QueryProjectContributorArgs, 'projectContributorId'>>;
@@ -5398,6 +5424,7 @@ export type Resolvers<ContextType = MyContext> = {
   ExternalContributor?: ExternalContributorResolvers<ContextType>;
   ExternalFunding?: ExternalFundingResolvers<ContextType>;
   ExternalProject?: ExternalProjectResolvers<ContextType>;
+  FunderPopularityResult?: FunderPopularityResultResolvers<ContextType>;
   InitializePlanVersionOutput?: InitializePlanVersionOutputResolvers<ContextType>;
   Language?: LanguageResolvers<ContextType>;
   License?: LicenseResolvers<ContextType>;
