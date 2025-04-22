@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import { PublishedTemplateResults, Resolvers } from "../types";
 import { VersionedTemplate, VersionedTemplateSearchResult } from "../models/VersionedTemplate";
 import { User } from '../models/User';
 import { MyContext } from "../context";
@@ -32,11 +32,28 @@ export const resolvers: Resolvers = {
 
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
-    publishedTemplates: async (_, { term }, context: MyContext): Promise<VersionedTemplateSearchResult[]> => {
+    publishedTemplates: async (_, { term, cursor, limit }, context: MyContext): Promise<PublishedTemplateResults> => {
       const reference = 'publishedTemplates resolver';
+
       try {
         if (isAdmin(context.token)) {
-          return await VersionedTemplateSearchResult.search(reference, context, term);
+          const { items, nextCursor, error } = await VersionedTemplateSearchResult.search(
+            reference,
+            context,
+            term,
+            cursor,
+            limit
+          );
+          if (!Array.isArray(items))  return { versionedTemplates: [], totalCount: 0, cursor: null };
+
+          const response: PublishedTemplateResults = {
+            versionedTemplates: items,
+            totalCount: items.length,
+            cursor: nextCursor as number
+          };
+          // If any error was returned from the search, add it to the response
+          if (error) response.error = { general: error };
+          return response
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

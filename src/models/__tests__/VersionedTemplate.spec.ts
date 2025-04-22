@@ -63,7 +63,7 @@ describe('VersionedTemplateSearchResult', () => {
       localQuery.mockResolvedValueOnce([versionedTemplateSearchResult]);
 
       const term = versionedTemplateSearchResult.name.split(0, 5);
-      const result = await VersionedTemplateSearchResult.search('Test', context, term);
+      const result = await VersionedTemplateSearchResult.search('Test', context, term, null);
       const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
                     'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
                     'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
@@ -76,16 +76,20 @@ describe('VersionedTemplateSearchResult', () => {
       const vals = [`%${term}%`, `%${term}%`, TemplateVersionType.PUBLISHED];
       expect(localQuery).toHaveBeenCalledTimes(1);
       expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
-      expect(result).toEqual([versionedTemplateSearchResult]);
+      expect(result.items).toEqual([versionedTemplateSearchResult]);
+      expect(result.nextCursor).toEqual(null);
+      expect(result.error).toBeFalsy();
     });
 
     it('returns an empty array if there are no matching VersionedTemplateSearchResults', async () => {
       localQuery.mockResolvedValueOnce([]);
 
       const term = versionedTemplateSearchResult.name.split(0, 5);
-      const result = await VersionedTemplateSearchResult.search('Test', context, term);
+      const result = await VersionedTemplateSearchResult.search('Test', context, term, null);
       expect(localQuery).toHaveBeenCalledTimes(1);
-      expect(result).toEqual([]);
+      expect(result.items).toEqual([]);
+      expect(result.nextCursor).toEqual(null);
+      expect(result.error).toBeFalsy();
     });
   });
 
