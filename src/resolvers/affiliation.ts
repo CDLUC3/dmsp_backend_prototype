@@ -15,10 +15,10 @@ export const resolvers: Resolvers = {
     },
 
     // returns an array of Affiliations that match the search criteria
-    affiliations: async (_, { name, funderOnly, cursor, limit }, context: MyContext): Promise<AffiliationSearchResults> => {
+    affiliations: async (_, { term, funderOnly, cursor, limit }, context: MyContext): Promise<AffiliationSearchResults> => {
       const reference = 'affiliations resolver';
       try {
-        const results = await AffiliationSearch.search(context, { name, funderOnly });
+        const results = await AffiliationSearch.search(context, { name: term, funderOnly });
 
         if (results) {
           const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);

@@ -188,8 +188,8 @@ describe('affiliationById query', () => {
 describe('affiliations query', () => {
   beforeEach(() => {
     query = `
-      query Affiliations($name: String!) {
-        affiliations (name: $name) {
+      query Affiliations($term: String!) {
+        affiliations (term: $term) {
           cursor
           totalCount
           error {
@@ -209,7 +209,7 @@ describe('affiliations query', () => {
   });
 
   it('returns the expected affiliations when successful', async () => {
-    const variables = { name: affiliationStore[0].name };
+    const variables = { term: affiliationStore[0].name };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
@@ -227,7 +227,7 @@ describe('affiliations query', () => {
 
   it('returns an empty array when no matches are found', async () => {
     // Use a series of number since it will never match one of the names
-    const variables = { name: '1234567890' };
+    const variables = { term: '1234567890' };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
@@ -239,7 +239,7 @@ describe('affiliations query', () => {
   it('returns a 500 when a fatal error occurs', async () => {
     jest.spyOn(AffiliationSearch, 'search').mockImplementation(() => { throw new Error('Error!') });
 
-    const variables = { name: casual.company_name };
+    const variables = { term: casual.company_name };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');

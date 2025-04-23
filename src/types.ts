@@ -2249,7 +2249,7 @@ export type QueryAffiliationsArgs = {
   cursor?: InputMaybe<Scalars['Int']['input']>;
   funderOnly?: InputMaybe<Scalars['Boolean']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
-  name: Scalars['String']['input'];
+  term: Scalars['String']['input'];
 };
 
 
@@ -5033,7 +5033,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliationById?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByIdArgs, 'affiliationId'>>;
   affiliationByURI?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByUriArgs, 'uri'>>;
   affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
+  affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'term'>>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;
   childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;
