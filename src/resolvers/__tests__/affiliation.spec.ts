@@ -190,12 +190,19 @@ describe('affiliations query', () => {
     query = `
       query Affiliations($name: String!) {
         affiliations (name: $name) {
-          id
-          uri
-          displayName
-          funder
-          types
-          apiTarget
+          cursor
+          totalCount
+          error {
+            general
+          }
+          affiliations {
+            id
+            uri
+            displayName
+            funder
+            types
+            apiTarget
+          }
         }
       }
     `;
@@ -209,12 +216,13 @@ describe('affiliations query', () => {
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.affiliations).toBeDefined();
     // Since we're not returning everything, verify the fields we are returning
-    expect(resp.body.singleResult.data?.affiliations[0]?.id).toEqual(affiliationStore[0].id);
-    expect(resp.body.singleResult.data?.affiliations[0]?.displayName).toEqual(affiliationStore[0].displayName);
-    expect(resp.body.singleResult.data?.affiliations[0]?.uri).toEqual(affiliationStore[0].uri);
-    expect(resp.body.singleResult.data?.affiliations[0]?.funder).toEqual(affiliationStore[0].funder);
-    expect(resp.body.singleResult.data?.affiliations[0]?.types).toEqual(affiliationStore[0].types);
-    expect(resp.body.singleResult.data?.affiliations[0]?.apiTarget).toEqual(affiliationStore[0].apiTarget);
+    const affiliation = resp.body.singleResult.data?.affiliations.affiliations[0];
+    expect(affiliation?.id).toEqual(affiliationStore[0].id);
+    expect(affiliation?.displayName).toEqual(affiliationStore[0].displayName);
+    expect(affiliation?.uri).toEqual(affiliationStore[0].uri);
+    expect(affiliation?.funder).toEqual(affiliationStore[0].funder);
+    expect(affiliation?.types).toEqual(affiliationStore[0].types);
+    expect(affiliation?.apiTarget).toEqual(affiliationStore[0].apiTarget);
   });
 
   it('returns an empty array when no matches are found', async () => {

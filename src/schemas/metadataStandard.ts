@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for a metadata standard"
-    metadataStandards(term: String, researchDomainId: Int): [MetadataStandard]
+    metadataStandards(term: String, researchDomainId: Int, cursor: Int, limit: Int): MetadataStandardSearchResults
     "Fetch a specific metadata standard"
     metadataStandard(uri: String!): MetadataStandard
   }
@@ -45,6 +45,17 @@ export const typeDefs = gql`
     researchDomains: [ResearchDomain!]
     "Keywords to assist in finding the metadata standard"
     keywords: [String!]
+  }
+
+  type MetadataStandardSearchResults {
+    "The list of metadata standards"
+    metadataStandards: [MetadataStandard]
+    "The id of the last MetadataStandard in the results"
+    cursor: Int
+    "The total number of metadata standards"
+    totalCount: Int
+    "Any errors associated with the search"
+    error: PaginationError
   }
 
   "A collection of errors related to the MetadataStandard"

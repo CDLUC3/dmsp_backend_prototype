@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for a license"
-    licenses(term: String): [License]
+    licenses(term: String, cursor: Int, limit: Int): LicenseSearchResults
     "Return the recommended Licenses"
     recommendedLicenses(recommended: Boolean!): [License]
     "Fetch a specific license"
@@ -45,6 +45,17 @@ export const typeDefs = gql`
     description: String
     "Whether or not the license is recommended"
     recommended: Boolean!
+  }
+
+  type LicenseSearchResults {
+    "The list of licenses"
+    licenses: [License]
+    "The id of the last License in the results"
+    cursor: Int
+    "The total number of licenses"
+    totalCount: Int
+    "Any errors associated with the search"
+    error: PaginationError
   }
 
   "A collection of errors related to the License"

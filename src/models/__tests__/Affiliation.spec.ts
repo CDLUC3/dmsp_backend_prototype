@@ -1,5 +1,5 @@
 import casual from "casual";
-import { Affiliation, AffiliationSearch } from "../Affiliation";
+import { Affiliation, AffiliationSearch, PopularFunder } from "../Affiliation";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { DMPHubConfig } from "../../config/dmpHubConfig";
@@ -478,5 +478,77 @@ describe('search', () => {
     localQuery.mockResolvedValueOnce([]);
     const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
     expect(result).toEqual([]);
+  });
+});
+
+describe('PopularFunder', () => {
+  let popularFunder;
+
+  const popularFunderData = {
+    id: casual.integer(1, 9),
+    uri: 'https://ror.org/01234',
+    displayName: 'University of Virginia (virginia.edu)',
+    nbrPlans: casual.integer(1, 999),
+  }
+  beforeEach(() => {
+    popularFunder = new PopularFunder(popularFunderData);
+  });
+
+  it('should initialize options as expected', () => {
+    expect(popularFunder.id).toEqual(popularFunderData.id);
+    expect(popularFunder.uri).toEqual(popularFunderData.uri);
+    expect(popularFunder.displayName).toEqual(popularFunderData.displayName);
+    expect(popularFunder.nbrPlans).toEqual(popularFunderData.nbrPlans);
+  });
+});
+describe('top20', () => {
+  it('should call query with correct params and return the popular funders', async () => {
+    const context = buildContext(logger, mockToken());
+    const localQuery = jest.fn();
+    (Affiliation.query as jest.Mock) = localQuery;
+
+    const popularFunder = new PopularFunder({
+      id: casual.integer(1, 9),
+      uri: 'https://ror.org/01234',
+      displayName: 'University of Virginia (virginia.edu)',
+      nbrPlans: casual.integer(1, 999),
+    });
+
+    localQuery.mockResolvedValueOnce([popularFunder]);
+    const result = await PopularFunder.top20(context);
+    const expectedSql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
+                        'FROM affiliations a LEFT JOIN projectFunders pf ON pf.affiliationId = a.uri ' +
+                        'LEFT JOIN projects p ON p.id = pf.projectId WHERE a.active = 1 AND a.funder = 1 ' +
+                        'AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? GROUP BY a.id, a.uri, ' +
+                        'a.displayName ORDER BY nbrPlans DESC LIMIT 20';
+    // Get the date range for the past year
+    const today = new Date();
+    const lastYear = new Date();
+    lastYear.setFullYear(today.getFullYear() - 1);
+    const startDate = lastYear.toISOString().split('T')[0];
+    const endDate = today.toISOString().split('T')[0];
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [startDate, endDate], 'PopularFunder.top20')
+    expect(result).toEqual([popularFunder]);
+  });
+
+  it('should return an empty array if it finds no popular funders', async () => {
+    const context = buildContext(logger, mockToken());
+    const localQuery = jest.fn();
+    (Affiliation.query as jest.Mock) = localQuery;
+
+    localQuery.mockResolvedValueOnce([]);
+    const result = await PopularFunder.top20(context);
+    expect(result).toEqual([]);
+  });
+
+  it('should throw an error if the query fails', async () => {
+    const context = buildContext(logger, mockToken());
+    const localQuery = jest.fn();
+    (Affiliation.query as jest.Mock) = localQuery;
+
+    localQuery.mockRejectedValueOnce(new Error('Query failed'));
+    await expect(PopularFunder.top20(context)).rejects.toThrow('Query failed');
   });
 });
