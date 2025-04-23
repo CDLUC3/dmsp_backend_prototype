@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Get all of the top level research domains (the most generic ones)"
-    topLevelResearchDomains: [ResearchDomain]
+    topLevelResearchDomains(cursor: Int, limit: Int): ResearchDomainResults
     "Get all of the research domains related to the specified top level domain (more nuanced ones)"
     childResearchDomains(parentResearchDomainId: Int!): [ResearchDomain]
   }
@@ -37,6 +37,17 @@ export const typeDefs = gql`
     childResearchDomains: [ResearchDomain!]
   }
 
+  type ResearchDomainResults {
+    "The list of research domains"
+    researchDomains: [ResearchDomain]
+    "The id of the last ResearchDomain in the results"
+    cursor: Int
+    "The total number of research domains"
+    totalCount: Int
+    "Any errors associated with the search"
+    error: PaginationError
+  }
+
   "A collection of errors related to the ResearchDomain"
   type ResearchDomainErrors {
     "General error messages such as the object already exists"
@@ -49,4 +60,3 @@ export const typeDefs = gql`
     childResearchDomainIds: String
   }
 `;
-

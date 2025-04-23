@@ -1,5 +1,5 @@
 import { formatLogMessage } from '../logger';
-import { ExternalProject, Resolvers } from "../types";
+import { ExternalProject, ProjectSearchResults, Resolvers } from "../types";
 import { Project, ProjectSearchResult } from "../models/Project";
 import { ProjectCollaborator } from '../models/Collaborator';
 import { MyContext } from '../context';
@@ -17,15 +17,29 @@ import { Plan, PlanSearchResult } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
 import { normaliseDate } from '../utils/helpers';
 import { parseContributor } from '../services/commonStandardService';
+import { paginateResults } from '../services/paginationService';
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the projects that the current user owns or is a collaborator on
-    myProjects: async (_, __, context: MyContext): Promise<ProjectSearchResult[]> => {
+    myProjects: async (_, { cursor, limit }, context: MyContext): Promise<ProjectSearchResults> => {
       const reference = 'myProjects resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await ProjectSearchResult.findByUserId(reference, context, context.token?.id);
+          const results = await ProjectSearchResult.findByUserId(reference, context, context.token?.id);
+
+          if (results) {
+            const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
+
+            return {
+              projects: items,
+              totalCount: results.length,
+              cursor: nextCursor as number,
+              error: {
+                general: error,
+              }
+            }
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

@@ -9,10 +9,11 @@ import { AuthenticationError, ForbiddenError, InternalServerError } from "../uti
 import { isAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
-    // Get all of the PublishedTemplates for the specified Template (a.k. the Template history)
+    // Get all of the versions for the specified VersionedTemplate (a.k. the Template history)
     //    - called from the Template history page
     templateVersions: async (_, { templateId }, context: MyContext): Promise<VersionedTemplate[]> => {
       const reference = 'templateVersions resolver';
@@ -37,23 +38,17 @@ export const resolvers: Resolvers = {
 
       try {
         if (isAdmin(context.token)) {
-          const { items, nextCursor, error } = await VersionedTemplateSearchResult.search(
-            reference,
-            context,
-            term,
-            cursor,
-            limit
-          );
-          if (!Array.isArray(items))  return { versionedTemplates: [], totalCount: 0, cursor: null };
+          const results = await VersionedTemplateSearchResult.search(reference, context, term);
+          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
 
-          const response: PublishedTemplateResults = {
+          return {
             versionedTemplates: items,
-            totalCount: items.length,
-            cursor: nextCursor as number
-          };
-          // If any error was returned from the search, add it to the response
-          if (error) response.error = { general: error };
-          return response
+            totalCount: results.length,
+            cursor: nextCursor as number,
+            error: {
+              general: error,
+            }
+          }
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

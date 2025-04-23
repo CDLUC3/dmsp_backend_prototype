@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import { Resolvers, TemplateSearchResults } from "../types";
 import { Template, TemplateSearchResult, TemplateVisibility } from "../models/Template";
 import { Affiliation } from "../models/Affiliation";
 import { TemplateCollaborator } from "../models/Collaborator";
@@ -15,15 +15,29 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
     // Get the Templates that belong to the current user's affiliation (user must be an Admin)
-    myTemplates: async (_, __, context: MyContext): Promise<TemplateSearchResult[]> => {
+    myTemplates: async (_, { cursor, limit }, context: MyContext): Promise<TemplateSearchResults> => {
       const reference = 'myTemplates resolver';
       try {
         if (isAdmin(context.token)) {
-          return await TemplateSearchResult.findByAffiliationId(reference, context, context.token.affiliationId);
+          const results = await TemplateSearchResult.findByAffiliationId(reference, context, context.token.affiliationId);
+
+          if (results) {
+            const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
+
+            return {
+              templateSearchResults: items,
+              totalCount: results.length,
+              cursor: nextCursor as number,
+              error: {
+                general: error,
+              }
+            }
+          }
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -257,24 +271,35 @@ export const resolvers: Resolvers = {
   Template: {
     // Chained resolver to fetch the Affiliation info for the user
     owner: async (parent: Template, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findByURI('Chained Template.owner', context, parent.ownerId);
+      if (parent.ownerId) {
+        return await Affiliation.findByURI('Chained Template.owner', context, parent.ownerId);
+      }
+      return null;
     },
 
     // Chained resolver to fetch the TemplateCollaborators
     collaborators: async (parent: Template, _, context: MyContext): Promise<TemplateCollaborator[]> => {
-      return await TemplateCollaborator.findByTemplateId('Chained Template.collaborators', context, parent.id);
+      if (parent.id) {
+        return await TemplateCollaborator.findByTemplateId('Chained Template.collaborators', context, parent.id);
+      }
+      return [];
     },
 
     // Allow the GraphQL client to fetch the template when querying for a Section
     sections: async (parent: Template, _, context: MyContext): Promise<Section[]> => {
-      return await Section.findByTemplateId('Chained Template.sections', context, parent.id);
+      if (parent.id) {
+        return await Section.findByTemplateId('Chained Template.sections', context, parent.id);
+      }
+      return [];
     },
 
     // Chained resolver to fetch the admins associated with the template's owner
     admins: async (parent: Template, _, context: MyContext): Promise<User[]> => {
-      const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId);
-      return results.filter((user) => user.role === UserRole.ADMIN);
-
+      if (parent.ownerId) {
+        const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId, null);
+        return results.filter((user) => user.role === UserRole.ADMIN);
+      }
+      return [];
     }
   },
 };
