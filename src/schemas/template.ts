@@ -67,7 +67,7 @@ export const typeDefs = gql`
    "Paginated results of a search for templates"
    type TemplateSearchResults {
     "The TemplateSearchResults that match the search criteria"
-    templateSearchResults: [TemplateSearchResult]
+    feed: [TemplateSearchResult]
     "The total number of results"
     totalCount: Int
     "The id of the last TemplateSearchResult in the results"

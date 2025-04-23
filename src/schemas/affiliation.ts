@@ -41,7 +41,7 @@ export const typeDefs = gql`
 
   type AffiliationSearchResults {
     "The list of Affiliation search results"
-    affiliations: [AffiliationSearch]
+    feed: [AffiliationSearch]
     "The id of the last Affiliation in the results"
     cursor: Int
     "The total number of Affiliation search results"

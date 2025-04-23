@@ -39,7 +39,7 @@ export const typeDefs = gql`
 
   type ResearchDomainResults {
     "The list of research domains"
-    researchDomains: [ResearchDomain]
+    feed: [ResearchDomain]
     "The id of the last ResearchDomain in the results"
     cursor: Int
     "The total number of research domains"

@@ -42,7 +42,7 @@ export const resolvers: Resolvers = {
         const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
 
         return {
-          versionedSections: items,
+          feed: items,
           totalCount: results.length,
           cursor: nextCursor as number,
           error: {

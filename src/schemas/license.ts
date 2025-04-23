@@ -49,7 +49,7 @@ export const typeDefs = gql`
 
   type LicenseSearchResults {
     "The list of licenses"
-    licenses: [License]
+    feed: [License]
     "The id of the last License in the results"
     cursor: Int
     "The total number of licenses"

@@ -62,7 +62,7 @@ export const typeDefs = gql`
 
   type RepositorySearchResults {
     "The list of repositories"
-    repositories: [Repository]
+    feed: [Repository]
     "The total number of results"
     totalCount: Int
     "The id of the last Repository in the results"

@@ -115,7 +115,7 @@ export const typeDefs = gql`
   "Paginated results of a search for users"
   type UserResults {
     "The users that match the search criteria"
-    users: [User]
+    feed: [User]
     "The total number of results"
     totalCount: Int
     "The id of the last VersionedTemplate in the results"

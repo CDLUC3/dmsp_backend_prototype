@@ -49,7 +49,7 @@ export const typeDefs = gql`
 
   type MetadataStandardSearchResults {
     "The list of metadata standards"
-    metadataStandards: [MetadataStandard]
+    feed: [MetadataStandard]
     "The id of the last MetadataStandard in the results"
     cursor: Int
     "The total number of metadata standards"

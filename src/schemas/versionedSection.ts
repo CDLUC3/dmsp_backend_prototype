@@ -55,7 +55,7 @@ export const typeDefs = gql`
   "Paginated results of a search for publishedTemplates query"
   type PublishedSectionSearchResult {
     "The versioned sections"
-    versionedSections: [VersionedSection]
+    feed: [VersionedSection]
     "The total number of results"
     totalCount: Int
     "The id of the last VersionedSection in the results"

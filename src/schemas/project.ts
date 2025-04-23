@@ -65,7 +65,7 @@ export const projectTypeDefs = gql`
 
   type ProjectSearchResults {
     "The list of projects"
-    projects: [ProjectSearchResult]
+    feed: [ProjectSearchResult]
     "The id of the last ProjectSearchResult in the results"
     cursor: Int
     "The total number of projects"

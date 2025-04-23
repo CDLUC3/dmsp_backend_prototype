@@ -195,7 +195,7 @@ describe('affiliations query', () => {
           error {
             general
           }
-          affiliations {
+          feed {
             id
             uri
             displayName
@@ -216,7 +216,7 @@ describe('affiliations query', () => {
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.affiliations).toBeDefined();
     // Since we're not returning everything, verify the fields we are returning
-    const affiliation = resp.body.singleResult.data?.affiliations.affiliations[0];
+    const affiliation = resp.body.singleResult.data?.affiliations.feed[0];
     expect(affiliation?.id).toEqual(affiliationStore[0].id);
     expect(affiliation?.displayName).toEqual(affiliationStore[0].displayName);
     expect(affiliation?.uri).toEqual(affiliationStore[0].uri);
