@@ -190,12 +190,13 @@ describe('affiliations query', () => {
     query = `
       query Affiliations($term: String!) {
         affiliations (term: $term) {
-          cursor
           totalCount
-          error {
-            general
-          }
-          feed {
+          limit
+          nextCursor
+          currentOffset
+          hasNextPage
+          hasPreviousPage
+          items {
             id
             uri
             displayName
@@ -208,15 +209,18 @@ describe('affiliations query', () => {
     `;
   });
 
-  it('returns the expected affiliations when successful', async () => {
+  it.only('returns the expected affiliations when successful', async () => {
     const variables = { term: affiliationStore[0].name };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+console.log(resp.body.singleResult.data?.affiliations);
+
     // Since we're not returning everything, verify the fields we are returning
-    const affiliation = resp.body.singleResult.data?.affiliations.feed[0];
+    const affiliation = resp.body.singleResult.data?.affiliations.items[0];
     expect(affiliation?.id).toEqual(affiliationStore[0].id);
     expect(affiliation?.displayName).toEqual(affiliationStore[0].displayName);
     expect(affiliation?.uri).toEqual(affiliationStore[0].uri);

@@ -216,17 +216,16 @@ export class Repository extends MySqlModel {
     // Specify the field we want to use for the count
     options.countField = 'r.id';
 
-    // if the options are of type PaginationOptionsForCursors
-    if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))';
-    } else if ('offset' in options) {
+    // if the options are of type PaginationOptionsForOffsets
+    if ('offset' in options && !isNullOrUndefined(options.offset)) {
       // Specify the fields available for sorting
       options.availableSortFields = ['r.name', 'r.created'];
+    } else if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))';
     }
 
-    let response: PaginatedQueryResults<Repository> | undefined;
-    response = await Repository.queryWithPagination(
+    const response: PaginatedQueryResults<Repository> = await Repository.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,

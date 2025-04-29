@@ -1,5 +1,6 @@
 import casual from "casual";
-import { getCurrentDate } from "../../utils/helpers";
+import { getCurrentDate, isNullOrUndefined } from "../../utils/helpers";
+import { PaginationOptions, PaginationOptionsForOffsets, PaginationOptionsForCursors } from '../../types/general';
 
 const mockTableStores = {};
 
@@ -117,4 +118,48 @@ export const findEntriesInMockTableByFilter = (tableName, criteria) => {
     throw new Error(`Table ${tableName} does not exist.`);
   }
   return store.filter(criteria);
+}
+
+// Paginate the results returned from a query
+export const paginate = (results, paginationOptions: PaginationOptions) => {
+  let paginatedResults = [];
+
+  if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
+    paginatedResults = paginateByOffset(results, paginationOptions);
+  } else {
+    paginatedResults = paginateByCursor(results, paginationOptions);
+  }
+
+  const lastId = paginatedResults.length > 0 ? paginatedResults[paginatedResults.length - 1].id : null;
+  return {
+    totalCount: paginationOptions.includeTotal ? results.length : null,
+    limit: paginationOptions.limit,
+    currentOffset: ('offset' in paginationOptions) ? paginationOptions.offset : null,
+    nextCursor: ('cursor' in paginationOptions) ? lastId : null,
+    hasNextPage: paginatedResults.length === paginationOptions.limit,
+    hasPreviousPage: ('offset' in paginationOptions) ? paginationOptions.offset > 0 : false,
+    availableSortFields: [],
+    items: paginatedResults,
+  }
+}
+
+// Paginate the results by offset
+const paginateByOffset = (results, paginationOptions: PaginationOptionsForOffsets) => {
+  if (Array.isArray(results)) {
+    const { offset, limit } = paginationOptions;
+    return results.slice(offset, offset + limit);
+  }
+}
+
+// Paginate the results by cursor
+const paginateByCursor = (results, paginationOptions: PaginationOptionsForCursors) => {
+  if (Array.isArray(results)) {
+    const { cursor, limit } = paginationOptions;
+    const index = results.findIndex((entry) => entry.id === cursor);
+    if (index === -1) {
+      return [];
+    }
+    return results.slice(index + 1, index + 1 + limit);
+  }
+  return [];
 }

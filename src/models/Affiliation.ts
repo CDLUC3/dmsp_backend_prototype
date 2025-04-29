@@ -357,17 +357,16 @@ export class AffiliationSearch {
     // Specify the field we want to use for the count
     options.countField = 'a.id';
 
-    // if the options are of type PaginationOptionsForCursors
-    if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))';
-    } else if ('offset' in options) {
+    // if the options are of type PaginationOptionsForOffsets
+    if ('offset' in options && !isNullOrUndefined(options.offset)) {
       // Specify the fields available for sorting
       options.availableSortFields = ['a.displayName', 'a.created'];
+    } else if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))';
     }
 
-    let response: PaginatedQueryResults<AffiliationSearch> | undefined;
-    response = await Affiliation.queryWithPagination(
+    const response: PaginatedQueryResults<AffiliationSearch> = await Affiliation.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,

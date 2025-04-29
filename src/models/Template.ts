@@ -57,7 +57,7 @@ export class TemplateSearchResult {
     options: PaginationOptions,
   ): Promise<PaginatedQueryResults<TemplateSearchResult>> {
     const whereFilters = ['t.ownerId = ?'];
-    const values: any[] = [affiliationId];
+    const values: string[] = [affiliationId];
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
@@ -73,8 +73,8 @@ export class TemplateSearchResult {
     const sqlStatement = `
       SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty,
              t.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName,
-             t.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created,
-             t.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified
+             t.createdById, TRIM(CONCAT(cu.givenName, CONCAT(' ', cu.surName))) as createdByName, t.created,
+             t.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(' ', mu.surName))) as modifiedByName, t.modified
       FROM templates t
         INNER JOIN affiliations a ON a.uri = t.ownerId
         INNER JOIN users cu ON cu.id = t.createdById
@@ -84,17 +84,16 @@ export class TemplateSearchResult {
     // Specify the field we want to use for the count
     options.countField = 't.id';
 
-    // if the options are of type PaginationOptionsForCursors
-    if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'CONCAT(t.modified, t.id)';
-    } else if ('offset' in options) {
+    // if the options are of type PaginationOptionsForOffsets
+    if ('offset' in options && !isNullOrUndefined(options.offset)) {
       // Specify the fields available for sorting
       options.availableSortFields = ['t.name', 't.created', 't.visibility', 't.bestPractice', 't.latestPublishDate'];
+    } else if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(t.modified, t.id), \' \', \'_\'))';
     }
 
-    let response: PaginatedQueryResults<TemplateSearchResult> | undefined;
-    response = await Template.queryWithPagination(
+    const response: PaginatedQueryResults<TemplateSearchResult> = await Template.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,

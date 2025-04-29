@@ -9,6 +9,7 @@ import {
   findEntryInMockTableByFilter,
   findEntryInMockTableById,
   getMockTableStore,
+  paginate,
   updateEntryInMockTable
 } from "./MockStore";
 import {
@@ -20,6 +21,8 @@ import {
 } from "../Affiliation";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
+import { PaginationOptions } from "../../types";
+import { PaginatedQueryResults } from "../../types/general";
 
 export const getAffiliationStore = () => {
   return getMockTableStore('affiliations');
@@ -107,15 +110,21 @@ export const mockFindAffiliationByName = async (_, __, name: string): Promise<Af
 
 export const mockAffiliationSearch = async (
   _,
-  { name, funderOnly = false }: { name: string, funderOnly: boolean}
-): Promise<AffiliationSearch[]> => {
+  __,
+  name: string,
+  funderOnly: boolean = false,
+  paginationOptions: PaginationOptions = { cursor: null, limit: 3 }
+): Promise<PaginatedQueryResults<AffiliationSearch>> => {
   const affiliations = findEntriesInMockTableByFilter(
     'affiliations',
-    (entry) => entry.name.toLowerCase().includes(name.toLowerCase())
+    (entry) => entry.name.toLowerCase().includes(name.toLowerCase()),
   );
   // If funderOnly is true, filter the affiliations to only include funders
   const results = funderOnly ? affiliations.filter((entry) => entry.funder) : affiliations;
-  return results ? results.map((entry) => { return new AffiliationSearch(entry) }) : [];
+  if (results.length === 0) {
+    paginate(results, paginationOptions);
+  }
+  return results ? results.map((entry) => { return new AffiliationSearch(entry) }) : undefined;
 };
 
 // Mock the mutations

@@ -78,16 +78,17 @@ export class VersionedTemplateSearchResult {
     options.countField = 'vt.id';
 
     // if the options are of type PaginationOptionsForCursors
-    if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'CONCAT(vs.modified, vs.id)';
-    } else if ('offset' in options) {
+
+    // if the options are of type PaginationOptionsForOffsets
+    if ('offset' in options && !isNullOrUndefined(options.offset)) {
       // Specify the fields available for sorting
       options.availableSortFields = ['vt.name', 'vt.created', 'vt.visibility', 'vt.bestPractice', 'vt.modified'];
+    } else if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(vs.modified, vs.id), \' \', \'_\'))';
     }
 
-    let response: PaginatedQueryResults<VersionedTemplateSearchResult> | undefined;
-    response = await VersionedTemplate.queryWithPagination(
+    const response: PaginatedQueryResults<VersionedTemplateSearchResult> = await VersionedTemplate.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,

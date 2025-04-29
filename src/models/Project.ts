@@ -114,17 +114,16 @@ export class ProjectSearchResult {
     // Specify the field we want to use for the totalCount
     options.countField = 'p.id';
 
-    // if the options are of type PaginationOptionsForCursors
-    if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'CONCAT(p.modified, p.id)';
-    } else if ('offset' in options) {
+    // if the options are of type PaginationOptionsForOffsets
+    if ('offset' in options && !isNullOrUndefined(options.offset)) {
       // Specify the fields available for sorting
       options.availableSortFields = ['p.title', 'p.created', 'p.modified', 'p.startDate', 'p.endDate', 'p.isTestProject'];
+    } else if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(p.modified, p.id), \' \', \'_\'))';
     }
 
-    let response: PaginatedQueryResults<ProjectSearchResult> | undefined;
-    response = await Project.queryWithPagination(
+    const response: PaginatedQueryResults<ProjectSearchResult> = await Project.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,

@@ -200,17 +200,16 @@ export class MetadataStandard extends MySqlModel {
     const sqlStatement = 'SELECT m.* FROM metadataStandards m \
                           LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
 
-    // if the options are of type PaginationOptionsForCursors
-    if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))';
-    } else if ('offset' in options) {
+    // if the options are of type PaginationOptionsForOffsets
+    if ('offset' in options && !isNullOrUndefined(options.offset)) {
       // Specify the fields available for sorting
       options.availableSortFields = ['m.name', 'm.created'];
+    } else if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))';
     }
 
-    let response: PaginatedQueryResults<MetadataStandard> | undefined;
-    response = await MetadataStandard.queryWithPagination(
+    const response: PaginatedQueryResults<MetadataStandard> = await MetadataStandard.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,

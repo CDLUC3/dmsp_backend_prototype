@@ -107,17 +107,16 @@ export class VersionedSection extends MySqlModel {
     // Specify the field we want to use for the count
     options.countField = 'vs.id';
 
-    // if the options are of type PaginationOptionsForCursors
-    if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'REPLACE(CONCAT(vs.name, vs.id)';
-    } else if ('offset' in options) {
+    // if the options are of type PaginationOptionsForOffsets
+    if ('offset' in options && !isNullOrUndefined(options.offset)) {
       // Specify the fields available for sorting
       options.availableSortFields = ['vs.name', 'vs.created'];
+    } else if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\')';
     }
 
-    let response: PaginatedQueryResults<VersionedSection> | undefined;
-    response = await VersionedSection.queryWithPagination(
+    const response: PaginatedQueryResults<VersionedSection> = await VersionedSection.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,
