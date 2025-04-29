@@ -125,7 +125,7 @@ export const resolvers: Resolvers = {
       }
     },
     // Add a collaborator to a Project
-    addProjectCollaborator: async (_, { projectId, email, userId }, context: MyContext): Promise<ProjectCollaborator> => {
+    addProjectCollaborator: async (_, { projectId, email, accessLevel }, context: MyContext): Promise<ProjectCollaborator> => {
       const reference = 'addProjectCollaborator resolver';
       try {
 
@@ -139,7 +139,7 @@ export const resolvers: Resolvers = {
         // If the user has permission on the Project
         if (await hasPermissionOnProject(context, project)) {
           const invitedById = context.token?.id;
-          const projectCollaborator = new ProjectCollaborator({ projectId, email, userId, invitedById });
+          const projectCollaborator = new ProjectCollaborator({ projectId, email, accessLevel, invitedById });
           const created = await projectCollaborator.create(context);
 
           if (created?.id) {
