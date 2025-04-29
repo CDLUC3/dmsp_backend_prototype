@@ -126,6 +126,9 @@ export const paginate = (results, paginationOptions: PaginationOptions) => {
   const totalCount = results.length;
   const finalId = results.length > 0 ? results[results.length - 1].id : null;
 
+console.log(`totalCount: ${totalCount}, finalId: ${finalId}`)
+console.log(paginationOptions)
+
   if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
     paginatedResults = paginateByOffset(results, paginationOptions);
   } else {
@@ -133,6 +136,8 @@ export const paginate = (results, paginationOptions: PaginationOptions) => {
   }
 
   const lastId = paginatedResults.length > 0 ? paginatedResults[paginatedResults.length - 1].id : null;
+
+console.log('lastId', lastId)
 
   let hasPreviousPage = false;
   if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {

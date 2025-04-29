@@ -121,7 +121,13 @@ export const mockAffiliationSearch = async (
   );
   // If funderOnly is true, filter the affiliations to only include funders
   const results = funderOnly ? affiliations.filter((entry) => entry.funder) : affiliations;
+
+console.log('results', results)
+
   const paginatedResults = paginate(results, paginationOptions);
+
+console.log('paginatedResults', paginatedResults)
+
   return {
     ...paginatedResults,
     items: paginatedResults.items.map((entry) => { return new AffiliationSearch(entry) }),

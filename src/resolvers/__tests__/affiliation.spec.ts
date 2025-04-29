@@ -209,7 +209,7 @@ describe('affiliations query', () => {
     `;
   });
 
-  it('returns the expected affiliations when successful', async () => {
+  it.only('returns the expected affiliations when successful', async () => {
     const variables = { term: affiliationStore[0].name };
     const resp = await executeQuery(query, variables, mockToken());
 
@@ -284,7 +284,7 @@ describe('affiliations query', () => {
     expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[2].id);
   });
 
-  it.only('handles offset pagination successfuly', async () => {
+  it('handles offset pagination successfuly', async () => {
     const variables = { term: '', paginationOptions: { offset: 0, limit: 2 } };
     let resp = await executeQuery(query, variables, mockToken());
 
@@ -295,7 +295,7 @@ describe('affiliations query', () => {
     expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
     expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
     expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
-    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBeTruthy();
+    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBe(0);
     expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeTruthy();
     expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeFalsy();
 
@@ -315,7 +315,7 @@ describe('affiliations query', () => {
     expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
     expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
     expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
-    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBeTruthy();
+    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBe(2);
     expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
     expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeTruthy();
 
