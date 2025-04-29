@@ -219,15 +219,14 @@ CREATE TABLE IF NOT EXISTS `projectCollaborators` (
   `projectId` INT NOT NULL,
   `email` VARCHAR(255) NOT NULL,
   `invitedById` INT NOT NULL,
-  `userId` INT NOT NULL,
+  `userId` INT,
   `accessLevel` VARCHAR(8) NOT NULL DEFAULT 'COMMENT',
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   CONSTRAINT unique_template_collaborator UNIQUE (`projectId`, `email`),
-  INDEX projectCollaborators_email_idx (`email`),
-  INDEX projectCollaborators_user_idx (`userId`)
+  INDEX projectCollaborators_email_idx (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
 CREATE TABLE IF NOT EXISTS `projectContributorRoles` (
