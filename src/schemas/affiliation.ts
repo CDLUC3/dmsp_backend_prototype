@@ -9,7 +9,7 @@ export const typeDefs = gql`
     "Retrieve a specific Affiliation by its URI"
     affiliationByURI(uri: String!): Affiliation
     "Perform a search for Affiliations matching the specified name"
-    affiliations(term: String!, funderOnly: Boolean, cursor: Int, limit: Int): AffiliationSearchResults
+    affiliations(term: String!, funderOnly: Boolean, paginationOptions: PaginationOptions): AffiliationSearchResults
     "Returns a list of the top 20 funders ranked by popularity (nbr of plans) for the past year"
     popularFunders: [FunderPopularityResult]
   }
@@ -39,15 +39,23 @@ export const typeDefs = gql`
     apiTarget: String
   }
 
-  type AffiliationSearchResults {
-    "The list of Affiliation search results"
-    feed: [AffiliationSearch]
-    "The id of the last Affiliation in the results"
-    cursor: Int
-    "The total number of Affiliation search results"
+  type AffiliationSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [AffiliationSearch]
+    "The total number of possible items"
     totalCount: Int
-    "Any errors associated with the search"
-    error: PaginationError
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
   }
 
   "A result of the most popular funders"

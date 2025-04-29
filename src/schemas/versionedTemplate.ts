@@ -5,7 +5,7 @@ export const typeDefs = gql`
     "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
     templateVersions(templateId: Int!): [VersionedTemplate]
     "Search for VersionedTemplate whose name or owning Org's name contains the search term"
-    publishedTemplates(term: String, cursor: Int, limit: Int): PublishedTemplateResults
+    publishedTemplates(term: String, paginationOptions: PaginationOptions): PublishedTemplateSearchResults
     "Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin)"
     myVersionedTemplates: [VersionedTemplateSearchResult]
   }
@@ -18,16 +18,23 @@ export const typeDefs = gql`
     PUBLISHED
   }
 
-  "Paginated results of a search for publishedTemplates query"
-  type PublishedTemplateResults {
-    "The versioned template results"
-    feed: [VersionedTemplateSearchResult]
-    "The total number of results"
+  type PublishedTemplateSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [VersionedTemplateSearchResult]
+    "The total number of possible items"
     totalCount: Int
-    "The id of the last VersionedTemplate in the results"
-    cursor: Int
-    "Any errors associated with the search"
-    error: PaginationError
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
   }
 
   "An abbreviated view of a Template for pages that allow search/filtering of published Templates"

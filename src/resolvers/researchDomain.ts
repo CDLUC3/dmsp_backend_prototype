@@ -1,35 +1,22 @@
-import { ResearchDomainResults, Resolvers } from "../types";
+import { Resolvers } from "../types";
 import { ResearchDomain } from "../models/ResearchDomain";
 import { MyContext } from '../context';
-import { AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
+import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
 import { isAuthorized } from "../services/authService";
 import { GraphQLError } from "graphql";
-import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the top level research domains
-    topLevelResearchDomains: async (_, { cursor, limit }, context: MyContext): Promise<ResearchDomainResults> => {
+    topLevelResearchDomains: async (_, __, context: MyContext): Promise<ResearchDomain[]> => {
       const reference = 'topLevelResearchDomains resolver';
       try {
         if (isAuthorized(context.token)) {
-          const results = await ResearchDomain.topLevelDomains(reference, context);
-
-          if (results) {
-            const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-            return {
-              feed: items,
-              totalCount: results.length,
-              cursor: nextCursor as number,
-              error: {
-                general: error,
-              }
-            }
-          }
+          return await ResearchDomain.topLevelDomains(reference, context);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -45,7 +32,8 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           return await ResearchDomain.findByParentId(reference, context, parentResearchDomainId);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 

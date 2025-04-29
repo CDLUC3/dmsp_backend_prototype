@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { randomHex, validateURL } from "../utils/helpers";
+import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { ResearchDomain } from "./ResearchDomain";
 
@@ -182,40 +183,61 @@ export class Repository extends MySqlModel {
     context: MyContext,
     term: string,
     researchDomainId: number,
-    repositoryType: RepositoryType
-  ): Promise<Repository[]> {
-    const searchTerm = (term ?? '');
-    const qryVal = `%${searchTerm?.toLowerCase()?.trim()}%`;
+    repositoryType: RepositoryType,
+    options: PaginationOptions
+  ): Promise<PaginatedQueryResults<Repository>> {
+    const whereFilters = [];
+    const values = [];
 
-    let sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? ';
-    sql += 'OR keywords LIKE ?';
-
-    const vals = [qryVal, qryVal, qryVal];
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR r.keywords LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+    }
+    // Handle the incoming repository type
     if (repositoryType) {
-      sql = `${sql} AND JSON_CONTAINS(repositoryTypes, ?, '$')`;
-      vals.push(repositoryType);
+      whereFilters.push('JSON_CONTAINS(r.repositoryTypes, ?, \'$\')');
+      values.push(repositoryType);
+    }
+    // Handle the incoming research domain
+    if (researchDomainId) {
+      whereFilters.push('rrd.researchDomainId = ?');
+      values.push(researchDomainId);
     }
 
-    const results = await Repository.query(context, `${sql} ORDER BY name`, vals, reference);
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'r.name';
+    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
 
-    // Apply any filters
-    if (Array.isArray(results) && researchDomainId) {
-      const repos = await Repository.findByResearchDomainId(
-        reference,
-        context,
-        researchDomainId
-      );
-      if (repos) {
-        const repoIds = repos.map((repo) => repo.id);
-        return results.filter((repo) => repoIds.includes(repo.id))
-      }
+    const sqlStatement = 'SELECT r.* FROM repositories r \
+                          LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+
+    // Specify the field we want to use for the count
+    options.countField = 'r.id';
+
+    // if the options are of type PaginationOptionsForCursors
+    if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))';
+    } else if ('offset' in options) {
+      // Specify the fields available for sorting
+      options.availableSortFields = ['r.name', 'r.created'];
     }
 
-    // No need to reinitialize all of the results to objects here because they're just search results
-    if (Array.isArray(results) && results.length !== 0){
-      return results.map((res) => Repository.processResult(res))
-    }
-    return [];
+    let response: PaginatedQueryResults<Repository> | undefined;
+    response = await Repository.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      options,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 
   // Fetch a Repository by it's id

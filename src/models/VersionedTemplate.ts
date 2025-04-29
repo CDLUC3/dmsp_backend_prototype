@@ -2,6 +2,9 @@ import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
+import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { formatLogMessage } from "../logger";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export enum TemplateVersionType {
   DRAFT = 'DRAFT',
@@ -43,20 +46,59 @@ export class VersionedTemplateSearchResult {
   }
 
   // Find all of the high level details about the published templates matching the search term
-  static async search(reference: string, context: MyContext, term: string): Promise<VersionedTemplateSearchResult[]> {
-    const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-                'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-                'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-                'a.searchName as ownerSearchName ' +
-              'FROM versionedTemplates vt ' +
-                'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-                'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-              'WHERE (vt.name LIKE ? OR a.searchName LIKE ?) AND vt.active = 1 AND vt.versionType = ? '
-              'ORDER BY vt.modified DESC;';
-    const searchTerm = (term ?? '');
-    const vals = [`%${searchTerm}%`, `%${searchTerm}%`, TemplateVersionType.PUBLISHED];
-    const results = await VersionedTemplate.query(context, sql, vals, reference);
-    return Array.isArray(results) ? results.map((entry) => new VersionedTemplateSearchResult(entry)) : [];
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptions,
+  ): Promise<PaginatedQueryResults<VersionedTemplateSearchResult>> {
+    const whereFilters = ['vt.active = 1 AND vt.versionType = ?'];
+    const values = [TemplateVersionType.PUBLISHED.toString()];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(vt.name LIKE ? OR a.searchName LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'vt.modified';
+    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+
+    const sqlStatement = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, \
+                            vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, \
+                            a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, \
+                            a.searchName as ownerSearchName \
+                          FROM versionedTemplates vt \
+                            LEFT JOIN users u ON u.id = vt.modifiedById \
+                            LEFT JOIN affiliations a ON a.uri = vt.ownerId';
+
+    // Specify the field we want to use for the count
+    options.countField = 'vt.id';
+
+    // if the options are of type PaginationOptionsForCursors
+    if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'CONCAT(vs.modified, vs.id)';
+    } else if ('offset' in options) {
+      // Specify the fields available for sorting
+      options.availableSortFields = ['vt.name', 'vt.created', 'vt.visibility', 'vt.bestPractice', 'vt.modified'];
+    }
+
+    let response: PaginatedQueryResults<VersionedTemplateSearchResult> | undefined;
+    response = await VersionedTemplate.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      options,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 
   // Find all of the high level details about the published templates for a specific affiliation

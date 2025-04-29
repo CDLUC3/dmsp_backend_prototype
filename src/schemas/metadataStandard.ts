@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for a metadata standard"
-    metadataStandards(term: String, researchDomainId: Int, cursor: Int, limit: Int): MetadataStandardSearchResults
+    metadataStandards(term: String, researchDomainId: Int, paginationOptions: PaginationOptions): MetadataStandardSearchResults
     "Fetch a specific metadata standard"
     metadataStandard(uri: String!): MetadataStandard
   }
@@ -47,15 +47,23 @@ export const typeDefs = gql`
     keywords: [String!]
   }
 
-  type MetadataStandardSearchResults {
-    "The list of metadata standards"
-    feed: [MetadataStandard]
-    "The id of the last MetadataStandard in the results"
-    cursor: Int
-    "The total number of metadata standards"
+  type MetadataStandardSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [MetadataStandard]
+    "The total number of possible items"
     totalCount: Int
-    "Any errors associated with the search"
-    error: PaginationError
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
   }
 
   "A collection of errors related to the MetadataStandard"

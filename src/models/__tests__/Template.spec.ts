@@ -58,11 +58,11 @@ describe('TemplateSearchResult', () => {
     Template.query = originalQuery;
   });
 
-  describe('findByUserId', () => {
+  describe('findByAffiliationIdAndTerm', () => {
     it('returns the matching TemplateSearchResults', async () => {
       localQuery.mockResolvedValueOnce([templateSearchResult]);
-
-      const result = await TemplateSearchResult.findByAffiliationId('Test', context, templateSearchResult.ownerId);
+      const term = 'test';
+      const result = await TemplateSearchResult.findByAffiliationIdAndTerm('Test', context, templateSearchResult.ownerId, term);
       const sql = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
                     't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
                     't.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created, ' +
@@ -71,17 +71,18 @@ describe('TemplateSearchResult', () => {
                     'INNER JOIN affiliations a ON a.uri = t.ownerId ' +
                     'INNER JOIN users cu ON cu.id = t.createdById ' +
                     'INNER JOIN users mu ON mu.id = t.modifiedById ' +
-                  'WHERE ownerId = ? ' +
+                  'WHERE ownerId = ? AND (LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?) ' +
                   'ORDER BY modified DESC';
+      const vals = [templateSearchResult.ownerId, `%${term}%`, `%${term}%`];
       expect(localQuery).toHaveBeenCalledTimes(1);
-      expect(localQuery).toHaveBeenLastCalledWith(context, sql, [templateSearchResult.ownerId], 'Test')
+      expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
       expect(result).toEqual([templateSearchResult]);
     });
 
     it('returns an empty array if there are no matching TemplateSearchResults', async () => {
       localQuery.mockResolvedValueOnce([]);
 
-      const result = await TemplateSearchResult.findByAffiliationId('Test', context, templateSearchResult.ownerId);
+      const result = await TemplateSearchResult.findByAffiliationIdAndTerm('Test', context, templateSearchResult.ownerId, 'test');
       expect(localQuery).toHaveBeenCalledTimes(1);
       expect(result).toEqual([]);
     });

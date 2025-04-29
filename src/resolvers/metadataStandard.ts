@@ -7,28 +7,15 @@ import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { GraphQLError } from 'graphql';
-import { paginateResults } from '../services/paginationService';
 
 export const resolvers: Resolvers = {
   Query: {
     // searches the metadata standards table or returns all standards if no critieria is specified
-    metadataStandards: async (_, { term, researchDomainId, cursor, limit }, context: MyContext): Promise<MetadataStandardSearchResults> => {
+    metadataStandards: async (_, params, context: MyContext): Promise<MetadataStandardSearchResults> => {
       const reference = 'metadataStandards resolver';
+      const { term, researchDomainId, paginationOptions } = params;
       try {
-        const results = await MetadataStandard.search(reference, context, term, researchDomainId);
-
-        if (results) {
-          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-          return {
-            feed: items,
-            totalCount: results.length,
-            cursor: nextCursor as number,
-            error: {
-              general: error,
-            }
-          }
-        }
+        return await MetadataStandard.search(reference, context, term, researchDomainId, paginationOptions);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();

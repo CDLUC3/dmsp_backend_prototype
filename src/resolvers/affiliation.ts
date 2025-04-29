@@ -5,7 +5,6 @@ import { isAdmin, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
-import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -15,23 +14,10 @@ export const resolvers: Resolvers = {
     },
 
     // returns an array of Affiliations that match the search criteria
-    affiliations: async (_, { term, funderOnly, cursor, limit }, context: MyContext): Promise<AffiliationSearchResults> => {
+    affiliations: async (_, { term, funderOnly, paginationOptions }, context: MyContext): Promise<AffiliationSearchResults> => {
       const reference = 'affiliations resolver';
       try {
-        const results = await AffiliationSearch.search(context, { name: term, funderOnly });
-
-        if (results) {
-          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-          return {
-            feed: items,
-            totalCount: results.length,
-            cursor: nextCursor as number,
-            error: {
-              general: error,
-            }
-          }
-        }
+        return await AffiliationSearch.search(reference, context, term, funderOnly, paginationOptions);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();

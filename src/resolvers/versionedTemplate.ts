@@ -1,4 +1,4 @@
-import { PublishedTemplateResults, Resolvers } from "../types";
+import { PublishedTemplateSearchResults, Resolvers } from "../types";
 import { VersionedTemplate, VersionedTemplateSearchResult } from "../models/VersionedTemplate";
 import { User } from '../models/User';
 import { MyContext } from "../context";
@@ -9,7 +9,6 @@ import { AuthenticationError, ForbiddenError, InternalServerError } from "../uti
 import { isAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
-import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -33,22 +32,12 @@ export const resolvers: Resolvers = {
 
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
-    publishedTemplates: async (_, { term, cursor, limit }, context: MyContext): Promise<PublishedTemplateResults> => {
+    publishedTemplates: async (_, { term, paginationOptions }, context: MyContext): Promise<PublishedTemplateSearchResults> => {
       const reference = 'publishedTemplates resolver';
 
       try {
         if (isAdmin(context.token)) {
-          const results = await VersionedTemplateSearchResult.search(reference, context, term);
-          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-          return {
-            feed: items,
-            totalCount: results.length,
-            cursor: nextCursor as number,
-            error: {
-              general: error,
-            }
-          }
+          return await VersionedTemplateSearchResult.search(reference, context, term, paginationOptions);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

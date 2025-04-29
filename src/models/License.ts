@@ -1,5 +1,7 @@
 import { MyContext } from "../context";
-import { randomHex, validateURL } from "../utils/helpers";
+import { formatLogMessage } from "../logger";
+import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
 export const DEFAULT_DMPTOOL_LICENSE_URL = 'https://dmptool.org/licenses/';;
@@ -124,13 +126,53 @@ export class License extends MySqlModel {
   }
 
   // Find licenses that match the search term
-  static async search(reference: string, context: MyContext, name: string): Promise<License[]> {
-    const searchTerm = (name ?? '');
-    const qryVal = `%${searchTerm?.toLowerCase()?.trim()}%`;
-    const sql = `SELECT * FROM licenses WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ?`;
-    const results = await License.query(context, sql, [qryVal, qryVal], reference);
-    // No need to initialize new License objects here as they are just search results
-    return Array.isArray(results) ? results : [];
+  static async search(
+    reference: string,
+    context: MyContext,
+    name: string,
+    options: PaginationOptions,
+  ): Promise<PaginatedQueryResults<License>> {
+    const whereFilters = [];
+    const values = [];
+
+    // Handle the incoming search term
+    const searchTerm = (name ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(l.name) LIKE ? OR LOWER(l.description) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'l.name';
+    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+
+    const sqlStatement = 'SELECT l.* FROM licenses l';
+
+    // Specify the field we want to use for the count
+    options.countField = 'l.id';
+
+    // if the options are of type PaginationOptionsForCursors
+    if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(l.name, l.id), \' \', \'_\'))';
+    } else if ('offset' in options) {
+      // Specify the fields available for sorting
+      options.availableSortFields = ['l.name', 'l.created', 'l.recommended'];
+    }
+
+    let response: PaginatedQueryResults<License> | undefined;
+    response = await License.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      options,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 
   // Find licenses that match the search term

@@ -8,7 +8,6 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { ResearchDomain } from '../models/ResearchDomain';
 import { stringToEnumValue } from '../utils/helpers';
 import { GraphQLError } from 'graphql';
-import { paginateResults } from '../services/paginationService';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -17,24 +16,12 @@ export const resolvers: Resolvers = {
       const reference = 'repositories resolver';
       try {
         if (isAuthorized(context.token)) {
-          const { term, researchDomainId, repositoryType, cursor, limit } = input
+          const { term, researchDomainId, repositoryType, paginationOptions } = input
           const repoType = stringToEnumValue(RepositoryType, repositoryType);
-          const results = await Repository.search(reference, context, term, researchDomainId, repoType);
-
-          if (results) {
-            const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-            return {
-              feed: items,
-              totalCount: results.length,
-              cursor: nextCursor as number,
-              error: {
-                general: error,
-              }
-            }
-          }
+          return await Repository.search(reference, context, term, researchDomainId, repoType, paginationOptions);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -50,7 +37,8 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           return await Repository.findByURI(reference, context, uri);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 

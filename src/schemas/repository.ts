@@ -60,15 +60,23 @@ export const typeDefs = gql`
     repositoryTypes: [RepositoryType!]
   }
 
-  type RepositorySearchResults {
-    "The list of repositories"
-    feed: [Repository]
-    "The total number of results"
+  type RepositorySearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [Repository]
+    "The total number of possible items"
     totalCount: Int
-    "The id of the last Repository in the results"
-    cursor: Int
-    "Any errors associated with the search"
-    error: PaginationError
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
   }
 
   "A collection of errors related to the Repository"
@@ -92,10 +100,8 @@ export const typeDefs = gql`
     repositoryType: String
     "The research domain associated with the repository"
     researchDomainId: Int
-    "The cursor for pagination"
-    cursor: Int
-    "The number of results to return"
-    limit: Int
+    "The pagination options"
+    paginationOptions: PaginationOptions
   }
 
   input AddRepositoryInput {

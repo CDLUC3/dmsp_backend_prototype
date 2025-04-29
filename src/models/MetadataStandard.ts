@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { randomHex, validateURL } from "../utils/helpers";
+import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { ResearchDomain } from "./ResearchDomain";
 
@@ -173,31 +174,54 @@ export class MetadataStandard extends MySqlModel {
     context: MyContext,
     term: string,
     researchDomainId: number,
-  ): Promise<MetadataStandard[]> {
-    const searchTerm = (term ?? '');
-    const qryVal = `%${searchTerm?.toLowerCase()?.trim()}%`;
-    let sql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? ';
-    sql += 'OR keywords LIKE ? ORDER BY name';
-    const results = await MetadataStandard.query(context, sql, [qryVal, qryVal, qryVal], reference);
+    options: PaginationOptions
+  ): Promise<PaginatedQueryResults<MetadataStandard>> {
+    const whereFilters = [];
+    const values = [];
 
-    // Apply any filters
-    if (Array.isArray(results) && researchDomainId) {
-      const standards = await MetadataStandard.findByResearchDomainId(
-        reference,
-        context,
-        researchDomainId
-      );
-      if (standards) {
-        const standardIds = standards.map((standard) => standard.id);
-        return results.filter((standard) => standardIds.includes(standard.id))
-      }
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(m.name) LIKE ? OR m.keywords LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+    if (researchDomainId) {
+      whereFilters.push('rrd.researchDomainId = ?');
+      values.push(researchDomainId);
     }
 
-    // No need to reinitialize all of the results to objects here because they're just search results
-    if (Array.isArray(results) && results.length !== 0){
-      return results.map((res) => MetadataStandard.processResult(res))
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'm.name';
+    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+
+    // Specify the field we want to use for the count
+    options.countField = 'm.id';
+
+    const sqlStatement = 'SELECT m.* FROM metadataStandards m \
+                          LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
+
+    // if the options are of type PaginationOptionsForCursors
+    if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))';
+    } else if ('offset' in options) {
+      // Specify the fields available for sorting
+      options.availableSortFields = ['m.name', 'm.created'];
     }
-    return [];
+
+    let response: PaginatedQueryResults<MetadataStandard> | undefined;
+    response = await MetadataStandard.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      options,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 
   // Fetch a MetadataStandard by it's id

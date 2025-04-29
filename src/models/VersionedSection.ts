@@ -2,6 +2,9 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
 import { Tag } from "../models/Tag";
+import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { formatLogMessage } from "../logger";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export class VersionedSection extends MySqlModel {
   public versionedTemplateId: number;
@@ -79,10 +82,52 @@ export class VersionedSection extends MySqlModel {
   }
 
   // Find the VersionedSection by name
-  static async findByName(reference: string, context: MyContext, term: string): Promise<VersionedSection[]> {
-    const sql = 'SELECT * FROM versionedSections WHERE name LIKE ?';
-    const vals = [`%${term}%`];
-    const results = await VersionedSection.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : null;
+  static async findByName(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptions,
+  ): Promise<PaginatedQueryResults<VersionedSection>> {
+    const whereFilters = [];
+    const values = [];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('LOWER(vs.name)');
+      values.push(`%${searchTerm}%`);
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'vs.name';
+    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+
+    const sqlStatement = 'SELECT vs.* FROM versionedSections vs';
+
+    // Specify the field we want to use for the count
+    options.countField = 'vs.id';
+
+    // if the options are of type PaginationOptionsForCursors
+    if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'REPLACE(CONCAT(vs.name, vs.id)';
+    } else if ('offset' in options) {
+      // Specify the fields available for sorting
+      options.availableSortFields = ['vs.name', 'vs.created'];
+    }
+
+    let response: PaginatedQueryResults<VersionedSection> | undefined;
+    response = await VersionedSection.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      options,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 }

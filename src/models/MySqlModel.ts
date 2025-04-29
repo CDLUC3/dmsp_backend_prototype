@@ -1,8 +1,10 @@
 import { formatLogMessage } from "../logger";
 import { MyContext } from '../context';
-import { validateDate } from "../utils/helpers";
+import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
+import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets } from "../types/general";
+import { generalConfig } from "../config/generalConfig";
 
 type MixedArray<T> = T[];
 
@@ -131,6 +133,42 @@ export class MySqlModel {
     return results && results.length === 1;
   }
 
+  // Determine the pagination limit base on the provided limit or the default
+  //    - limit:           The number of records to return
+  static getPaginationLimit(limit: number | undefined): number {
+    return Math.min(
+      (limit && limit >= 1) ? limit : generalConfig.defaultSearchLimit,
+      generalConfig.maximumSearchLimit
+    );
+  }
+
+  // Run a query to get the total number of records for the given SQL statement and where clause
+  //    - apolloContext:   The Apollo server context
+  //    - sqlStatement:    The SQL statement to perform e.g. `SELECT * FROM table WHERE id = ?`
+  //    - whereClause:     The WHERE clause to append to the SQL statement e.g. `WHERE id = ?`
+  //    - countField:      The field to count e.g. `id` or `t.name`
+  //    - values:          The values to inject into the SQL statement e.g. `[id.toString()]`
+  //    - reference:       A reference to contextualize log messages e.g. `users resolver`
+  static async getTotalCountForPagination(
+    apolloContext: MyContext,
+    sqlStatement: string,
+    whereClause: string,
+    groupByClause: string,
+    countField: string,
+    values: string[],
+    reference = 'undefined caller'
+  ): Promise<number> {
+    const sqlParts = sqlStatement.split(' FROM ');
+    const fromClause = sqlParts[sqlParts.length - 1];
+
+    const countSql = `SELECT COUNT(${countField}) total FROM ${fromClause} ${whereClause} ${groupByClause}`;
+    const countResponse = await MySqlModel.query(apolloContext, countSql, values, reference);
+
+    console.log(`countResponse`, countResponse)
+
+    return Array.isArray(countResponse) && countResponse.length > 0 ? countResponse?.[0]?.total : 0;
+  }
+
   // Execute a SQL query
   //    - apolloContext:   The Apollo server context
   //    - sqlStatement:    The SQL statement to perform e.g. `SELECT * FROM table WHERE id = ?`
@@ -168,6 +206,167 @@ export class MySqlModel {
       console.log(errMsg);
     }
     return [];
+  }
+
+  // Execute a SQL query and sort and paginate the results
+  //    - apolloContext:   The Apollo server context
+  //    - sqlStatement:    The SQL statement to perform e.g. `SELECT * FROM table WHERE id = ?`
+  //    - whereFilters:    The WHERE clause to append to the SQL statement e.g. `WHERE id = ?`
+  //    - values:          The values to inject into the SQL statement e.g. `[id.toString()]`
+  //    - options:         The pagination options to use (see PaginationOptionsForOffsets
+  //                                                      and PaginationOptionsForCursors)
+  //    - reference:       A reference to contextualize log messages e.g. `users resolver`
+  static async queryWithPagination<T>(
+    apolloContext: MyContext,
+    sqlStatement: string,
+    whereFilters: string[],
+    groupByClause: string,
+    values: string[],
+    options: PaginationOptionsForOffsets,
+    reference = 'undefined caller',
+  ): Promise<PaginatedQueryResults<T>> {
+    // If the options contain a cursorField then this is a cursor-based query
+    if ('cursorField' in options && !isNullOrUndefined(options.cursorField)) {
+      return await this.paginatedQueryByCursor(
+        apolloContext,
+        sqlStatement,
+        whereFilters,
+        groupByClause ?? '',
+        values,
+        options as PaginationOptionsForCursors,
+        reference
+      );
+
+    } else {
+      // Otherwise this is an offset-based query
+      return await this.paginatedQueryByOffset(
+        apolloContext,
+        sqlStatement,
+        whereFilters,
+        groupByClause ?? '',
+        values,
+        options as PaginationOptionsForOffsets,
+        reference
+      );
+    }
+  }
+
+  // Execute a SQL query and return the results in a paginated format using offsets
+  //    - apolloContext:   The Apollo server context
+  //    - sqlStatement:    The SQL statement to perform e.g. `SELECT * FROM table WHERE id = ?`
+  //    - whereFilters:    The WHERE clause to append to the SQL statement e.g. `WHERE id = ?`
+  //    - values:          The values to inject into the SQL statement e.g. `[id.toString()]`
+  //    - options:         The pagination options to use
+  //    - reference:       A reference to contextualize log messages e.g. `users resolver`
+  static async paginatedQueryByOffset<T>(
+    apolloContext: MyContext,
+    sqlStatement: string,
+    whereFilters: string[],
+    groupByClause: string,
+    values: string[],
+    options: PaginationOptionsForOffsets,
+    reference = 'undefined caller',
+  ): Promise<PaginatedQueryResults<T>> {
+    // Determine the maximum number of results to return
+    const limit = this.getPaginationLimit(options.limit);
+    // We don't want to attach the limit and offset for the count query
+    const vals = [...values];
+
+    // Add the limit and offset
+    vals.push(limit.toString(), options.offset.toString() ?? '0');
+
+    const whereClause = whereFilters.length ? `WHERE ${whereFilters.join(' AND ')}` : '';
+    const orderByClause = `ORDER BY ${options.sortField} ${options.sortOrder ?? 'ASC'}`;
+    const limitClause = 'LIMIT ? OFFSET ?';
+
+    const sql = `${sqlStatement} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
+    const rows = await MySqlModel.query(apolloContext, sql, vals, reference);
+    const items = Array.isArray(rows) ? rows : [];
+
+    const totalCount = await this.getTotalCountForPagination(
+      apolloContext,
+      sqlStatement,
+      whereClause,
+      groupByClause,
+      options.countField ?? 'id',
+      values,
+      reference
+    );
+
+    const currentOffset = options.offset ?? 0;
+    const hasNextPage = items.length === limit && (!totalCount || currentOffset + limit < totalCount);
+    const hasPreviousPage = currentOffset > 0;
+
+    return {
+      items,
+      limit,
+      totalCount,
+      currentOffset,
+      hasNextPage,
+      hasPreviousPage,
+      availableSortFields: options.availableSortFields ?? [],
+    };
+  }
+
+  // Execute a SQL query and return the results in a paginated format using cursors
+  //    - apolloContext:   The Apollo server context
+  //    - sqlStatement:    The SQL statement to perform e.g. `SELECT * FROM table WHERE id = ?`
+  //    - whereFilters:    The WHERE clause to append to the SQL statement e.g. `WHERE id = ?`
+  //    - orderByClause:   The ORDER BY clause to append to the SQL statement e.g. `ORDER BY id ASC`
+  //    - values:          The values to inject into the SQL statement e.g. `[id.toString()]`
+  //    - options:         The pagination options to use
+  //    - reference:       A reference to contextualize log messages e.g. `users resolver`
+  static async paginatedQueryByCursor<T>(
+    apolloContext: MyContext,
+    sqlStatement: string,
+    whereFilters: string[],
+    groupByClause: string,
+    values: string[],
+    options: PaginationOptionsForCursors,
+    reference = 'undefined caller',
+  ): Promise<PaginatedQueryResults<T>> {
+    // Determine the maximum number of results to return
+    const limit = this.getPaginationLimit(options.limit);
+
+    const filters = [...whereFilters];
+    const vals = [...values];
+
+    // Add the cursor to the where clause
+    filters.push(`${options.cursorField} > ?`);
+    vals.push(options.cursor ?? '');
+    const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+
+    // Add the limit
+    const limitClause = 'LIMIT ?';
+    vals.push(limit.toString());
+
+    const orderByClause = `ORDER BY ${options.sortField} ${options.sortOrder}`;
+    let sql = `${sqlStatement.replace('SELECT ', `SELECT ${options.cursorField} cursorId, `)} `
+    sql += `${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
+    const rows = await MySqlModel.query(apolloContext, sql, vals, reference);
+    const items = Array.isArray(rows) ? rows : [];
+
+    const totalCount = await this.getTotalCountForPagination(
+      apolloContext,
+      sqlStatement,
+      `WHERE ${whereFilters.join(' AND ')}`,  // use only the original whereFilters
+      groupByClause,
+      options.countField ?? 'id',
+      values,
+      reference
+    );
+
+    const nextCursor = items.length > 0 ? items[items.length - 1]?.cursorId : undefined;
+    const hasNextPage = nextCursor !== undefined && options.cursor !== nextCursor;
+
+    return {
+      items,
+      limit,
+      totalCount,
+      nextCursor,
+      hasNextPage,
+      availableSortFields: [],
+    };
   }
 
   // Execute a SQL insert

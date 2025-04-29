@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { randomHex, validateURL } from "../utils/helpers";
+import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
 export const DEFAULT_DMPTOOL_RESEARCH_DOMAIN_URL = 'https://dmptool.org/research-domains/';;
@@ -184,6 +185,56 @@ export class ResearchDomain extends MySqlModel {
   }
 
   // Return all of the top level Research Domains (meaning they have no parent)
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptions
+  ): Promise<PaginatedQueryResults<ResearchDomain>> {
+    const whereFilters = [];
+    const values = [];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(rd.name) LIKE ? OR LOWER(rd.description) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'rd.name';
+    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+
+    const sqlStatement = 'SELECT rd.* FROM researchDomains rd';
+
+    // Specify the field we want to use for the count
+    options.countField = 'rd.id';
+
+    // if the options are of type PaginationOptionsForCursors
+    if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'LOWER(REPLACE(CONCAT(rd.name, rd.id), \' \', \'_\'))';
+    } else if ('offset' in options) {
+      // Specify the fields available for sorting
+      options.availableSortFields = ['rd.name', 'rd.created'];
+    }
+
+    let response: PaginatedQueryResults<ResearchDomain> | undefined;
+    response = await ResearchDomain.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      options,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
+  }
+
+  // Return all of the top level Research Domains (meaning they have no parent)
   static async topLevelDomains(reference: string, context: MyContext): Promise<ResearchDomain[]> {
     const sql = 'SELECT * FROM researchDomains WHERE parentResearchDomainId IS NULL ORDER BY name';
     const results = await ResearchDomain.query(context, sql, [], reference);
@@ -247,4 +298,3 @@ export class ResearchDomain extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;
   }
 };
-

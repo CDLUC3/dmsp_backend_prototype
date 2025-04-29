@@ -1,6 +1,9 @@
 import { MyContext } from "../context";
+import { PaginatedQueryResults, PaginationOptions } from "../types/general";
 import { defaultLanguageId, supportedLanguages } from "./Language";
 import { MySqlModel } from "./MySqlModel";
+import { formatLogMessage } from "../logger";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export enum TemplateVisibility {
   PRIVATE = 'PRIVATE', // Template is only available to Researchers that belong to the same affiliation
@@ -45,24 +48,64 @@ export class TemplateSearchResult {
     this.modified = options.modified;
   }
 
-  // Return the templates associated with the Affiliation
-  static async findByAffiliationId(
+  // Return the templates associated with the Affiliation and search term
+  static async findByAffiliationIdAndTerm(
     reference: string,
     context: MyContext,
-    affiliationId: string
-  ): Promise<TemplateSearchResult[]> {
-    const sql = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
-                  't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
-                  't.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created, ' +
-                  't.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified ' +
-                'FROM templates t ' +
-                  'INNER JOIN affiliations a ON a.uri = t.ownerId ' +
-                  'INNER JOIN users cu ON cu.id = t.createdById ' +
-                  'INNER JOIN users mu ON mu.id = t.modifiedById ' +
-                'WHERE ownerId = ? ' +
-                'ORDER BY modified DESC';
-    const results = await Template.query(context, sql, [affiliationId], reference);
-    return Array.isArray(results) ? results.map((item) => new TemplateSearchResult(item)) : [];
+    affiliationId: string,
+    term: string,
+    options: PaginationOptions,
+  ): Promise<PaginatedQueryResults<TemplateSearchResult>> {
+    const whereFilters = ['t.ownerId = ?'];
+    const values: any[] = [affiliationId];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 't.modified';
+    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'DESC';
+
+    const sqlStatement = `
+      SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty,
+             t.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName,
+             t.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created,
+             t.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified
+      FROM templates t
+        INNER JOIN affiliations a ON a.uri = t.ownerId
+        INNER JOIN users cu ON cu.id = t.createdById
+        INNER JOIN users mu ON mu.id = t.modifiedById
+    `;
+
+    // Specify the field we want to use for the count
+    options.countField = 't.id';
+
+    // if the options are of type PaginationOptionsForCursors
+    if ('cursor' in options) {
+      // Specify the field we want to use for the cursor (should typically match the sort field)
+      options.cursorField = 'CONCAT(t.modified, t.id)';
+    } else if ('offset' in options) {
+      // Specify the fields available for sorting
+      options.availableSortFields = ['t.name', 't.created', 't.visibility', 't.bestPractice', 't.latestPublishDate'];
+    }
+
+    let response: PaginatedQueryResults<TemplateSearchResult> | undefined;
+    response = await Template.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      options,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 }
 

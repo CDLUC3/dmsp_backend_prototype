@@ -17,29 +17,15 @@ import { Plan, PlanSearchResult } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
 import { normaliseDate } from '../utils/helpers';
 import { parseContributor } from '../services/commonStandardService';
-import { paginateResults } from '../services/paginationService';
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the projects that the current user owns or is a collaborator on
-    myProjects: async (_, { cursor, limit }, context: MyContext): Promise<ProjectSearchResults> => {
+    myProjects: async (_, { term, paginationOptions }, context: MyContext): Promise<ProjectSearchResults> => {
       const reference = 'myProjects resolver';
       try {
         if (isAuthorized(context.token)) {
-          const results = await ProjectSearchResult.findByUserId(reference, context, context.token?.id);
-
-          if (results) {
-            const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-            return {
-              feed: items,
-              totalCount: results.length,
-              cursor: nextCursor as number,
-              error: {
-                general: error,
-              }
-            }
-          }
+          return await ProjectSearchResult.search(reference, context, term, context.token?.id, paginationOptions);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

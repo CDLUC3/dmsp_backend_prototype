@@ -15,29 +15,22 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
-import { paginateResults } from "../services/paginationService";
+import { generalConfig } from "../config/generalConfig";
 
 export const resolvers: Resolvers = {
   Query: {
     // Get the Templates that belong to the current user's affiliation (user must be an Admin)
-    myTemplates: async (_, { cursor, limit }, context: MyContext): Promise<TemplateSearchResults> => {
+    myTemplates: async (_, { term, paginationOptions }, context: MyContext): Promise<TemplateSearchResults> => {
       const reference = 'myTemplates resolver';
       try {
         if (isAdmin(context.token)) {
-          const results = await TemplateSearchResult.findByAffiliationId(reference, context, context.token.affiliationId);
-
-          if (results) {
-            const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-            return {
-              feed: items,
-              totalCount: results.length,
-              cursor: nextCursor as number,
-              error: {
-                general: error,
-              }
-            }
-          }
+          return await TemplateSearchResult.findByAffiliationIdAndTerm(
+            reference,
+            context,
+            context.token.affiliationId,
+            term,
+            paginationOptions,
+          );
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -296,8 +289,9 @@ export const resolvers: Resolvers = {
     // Chained resolver to fetch the admins associated with the template's owner
     admins: async (parent: Template, _, context: MyContext): Promise<User[]> => {
       if (parent.ownerId) {
-        const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId, null);
-        return results.filter((user) => user.role === UserRole.ADMIN);
+        const opts = { cursor: null, limit: generalConfig.maximumSearchLimit };
+        const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId, null, opts);
+        return Array.isArray(results.items) ? results.items.filter((user) => user.role === UserRole.ADMIN) : [];
       }
       return [];
     }
