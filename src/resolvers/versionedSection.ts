@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import { PublishedSectionSearchResult, Resolvers } from "../types";
 import { MyContext } from "../context";
 import { VersionedSection } from "../models/VersionedSection";
 import { Section } from "../models/Section";
@@ -9,6 +9,7 @@ import { hasPermissionOnSection } from "../services/sectionService";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -33,11 +34,22 @@ export const resolvers: Resolvers = {
       }
     },
     // Get all of the published versionedSections with the given name
-    publishedSections: async (_, { term }, context: MyContext): Promise<VersionedSection[]> => {
+    publishedSections: async (_, { term, cursor, limit }, context: MyContext): Promise<PublishedSectionSearchResult> => {
       const reference = 'publishedSections resolver';
       try {
-        // Find published versionedSections with similar names
-        return await VersionedSection.findByName(reference, context, term);
+        const results = await VersionedSection.findByName(reference, context, term);
+
+        const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
+
+        return {
+          versionedSections: items,
+          totalCount: results.length,
+          cursor: nextCursor as number,
+          error: {
+            general: error,
+          }
+        }
+
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 

@@ -1,10 +1,11 @@
-import { Resolvers } from "../types";
+import { AffiliationSearchResults, Resolvers } from "../types";
 import { MyContext } from '../context';
-import { Affiliation, AffiliationSearch, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL } from '../models/Affiliation';
+import { Affiliation, AffiliationSearch, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL, PopularFunder } from '../models/Affiliation';
 import { isAdmin, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -14,10 +15,23 @@ export const resolvers: Resolvers = {
     },
 
     // returns an array of Affiliations that match the search criteria
-    affiliations: async (_, { name, funderOnly }, context: MyContext): Promise<AffiliationSearch[]> => {
+    affiliations: async (_, { name, funderOnly, cursor, limit }, context: MyContext): Promise<AffiliationSearchResults> => {
       const reference = 'affiliations resolver';
       try {
-        return await AffiliationSearch.search(context, { name, funderOnly });
+        const results = await AffiliationSearch.search(context, { name, funderOnly });
+
+        if (results) {
+          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
+
+          return {
+            affiliations: items,
+            totalCount: results.length,
+            cursor: nextCursor as number,
+            error: {
+              general: error,
+            }
+          }
+        }
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
@@ -45,6 +59,17 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    // Returns the most popular funders
+    popularFunders: async (_, __, context: MyContext): Promise<PopularFunder[]> => {
+      const reference = 'popularFunders resolver';
+      try {
+        return await PopularFunder.top20(context);
+      } catch (err) {
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    }
   },
 
   Mutation: {

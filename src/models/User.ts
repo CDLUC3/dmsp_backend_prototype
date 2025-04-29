@@ -8,7 +8,6 @@ import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
 
-
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
   ADMIN = 'ADMIN',
@@ -176,10 +175,31 @@ export class User extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
-  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
-    const sql = 'SELECT * FROM users WHERE affiliationId = ? ORDER BY created DESC';
-    const results = await User.query(context, sql, [affiliationId], reference);
-    return Array.isArray(results) ? results.map((item) => new User(item)) : [];
+  // Return all of the Users associated with the specified affiliationId that match the search term
+  static async findByAffiliationId(
+    reference: string,
+    context: MyContext,
+    affiliationId: string,
+    term: string,
+  ): Promise<User[]> {
+    const searchTerm = `%${term}%`;
+    const sql = 'SELECT * FROM users WHERE affiliationId = ? AND ' +
+                '(u.givenName LIKE ? OR u.surName LIKE ? OR u.email LIKE ? OR u.orcid LIKE ?) ORDER BY created DESC';
+    const vals = [affiliationId, searchTerm, searchTerm, searchTerm, searchTerm];
+    const results = await User.query(context, sql, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new User(entry)) : [];
+  }
+
+  // Return all of the Users that match the search term
+  static async search(reference: string, context: MyContext, term: string): Promise<User[]> {
+    const searchTerm = `%${term}%`;
+    const sql = 'SELECT u.* ' +
+                'FROM users u LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri ' +
+                'WHERE u.givenName LIKE ? OR u.surName LIKE ? OR u.email LIKE ? OR u.orcid LIKE ? OR a.searchName LIKE ? ' +
+                'ORDER BY created DESC';
+    const vals = [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm];
+    const results = await User.query(context, sql, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new User(entry)) : [];
   }
 
   // Update the last_login fields
