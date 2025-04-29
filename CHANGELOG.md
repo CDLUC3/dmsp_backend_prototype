@@ -123,11 +123,8 @@
 - added bestPractice flag to the Section
 
 ### Removed
-<<<<<<< HEAD
 - Dropped the `PlanVersion` table
-=======
 - Removed `prepareAPITarget` function.
->>>>>>> development
 - Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
 - Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
