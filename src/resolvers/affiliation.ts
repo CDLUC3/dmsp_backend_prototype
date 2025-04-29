@@ -17,9 +17,6 @@ export const resolvers: Resolvers = {
     affiliations: async (_, { term, funderOnly, paginationOptions }, context: MyContext): Promise<AffiliationSearchResults> => {
       const reference = 'affiliations resolver';
       try {
-
-console.log('paginationOptions', paginationOptions);
-
         return await AffiliationSearch.search(reference, context, term, funderOnly, paginationOptions);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);

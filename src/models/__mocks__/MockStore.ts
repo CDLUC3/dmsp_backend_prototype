@@ -134,15 +134,20 @@ export const paginate = (results, paginationOptions: PaginationOptions) => {
 
   const lastId = paginatedResults.length > 0 ? paginatedResults[paginatedResults.length - 1].id : null;
 
-console.log(`finalId: ${finalId}, lastId: ${lastId}`);
+  let hasPreviousPage = false;
+  if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
+    hasPreviousPage = totalCount > paginationOptions.limit && paginationOptions.offset > 0;
+  } else {
+    hasPreviousPage = !isNullOrUndefined(lastId) && lastId !== results[paginationOptions.limit - 1].id;
+  }
 
   return {
     totalCount,
     limit: paginationOptions.limit,
-    currentOffset: ('offset' in paginationOptions) && finalId!== lastId ? paginationOptions.offset : null,
-    nextCursor: ('cursor' in paginationOptions) ? lastId : null,
+    currentOffset: ('offset' in paginationOptions) ? paginationOptions.offset : null,
+    nextCursor: ('cursor' in paginationOptions) && finalId!== lastId ? lastId.toString() : null,
     hasNextPage: paginatedResults.length === paginationOptions.limit,
-    hasPreviousPage: ('offset' in paginationOptions) ? paginationOptions.offset > 0 : false,
+    hasPreviousPage,
     availableSortFields: [],
     items: paginatedResults,
   }
@@ -160,7 +165,7 @@ const paginateByOffset = (results, paginationOptions: PaginationOptionsForOffset
 const paginateByCursor = (results, paginationOptions: PaginationOptionsForCursors) => {
   if (Array.isArray(results)) {
     const { cursor, limit } = paginationOptions;
-    const index = results.findIndex((entry) => entry.id === cursor);
+    const index = results.findIndex((entry) => entry.id.toString() === cursor);
     if (index === -1) {
       return results.slice(0, limit);
     }
