@@ -123,6 +123,8 @@ export const findEntriesInMockTableByFilter = (tableName, criteria) => {
 // Paginate the results returned from a query
 export const paginate = (results, paginationOptions: PaginationOptions) => {
   let paginatedResults = [];
+  const totalCount = results.length;
+  const finalId = results.length > 0 ? results[results.length - 1].id : null;
 
   if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
     paginatedResults = paginateByOffset(results, paginationOptions);
@@ -131,10 +133,13 @@ export const paginate = (results, paginationOptions: PaginationOptions) => {
   }
 
   const lastId = paginatedResults.length > 0 ? paginatedResults[paginatedResults.length - 1].id : null;
+
+console.log(`finalId: ${finalId}, lastId: ${lastId}`);
+
   return {
-    totalCount: paginationOptions.includeTotal ? results.length : null,
+    totalCount,
     limit: paginationOptions.limit,
-    currentOffset: ('offset' in paginationOptions) ? paginationOptions.offset : null,
+    currentOffset: ('offset' in paginationOptions) && finalId!== lastId ? paginationOptions.offset : null,
     nextCursor: ('cursor' in paginationOptions) ? lastId : null,
     hasNextPage: paginatedResults.length === paginationOptions.limit,
     hasPreviousPage: ('offset' in paginationOptions) ? paginationOptions.offset > 0 : false,
@@ -157,7 +162,7 @@ const paginateByCursor = (results, paginationOptions: PaginationOptionsForCursor
     const { cursor, limit } = paginationOptions;
     const index = results.findIndex((entry) => entry.id === cursor);
     if (index === -1) {
-      return [];
+      return results.slice(0, limit);
     }
     return results.slice(index + 1, index + 1 + limit);
   }

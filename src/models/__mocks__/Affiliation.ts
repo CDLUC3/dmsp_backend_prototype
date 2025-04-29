@@ -121,10 +121,11 @@ export const mockAffiliationSearch = async (
   );
   // If funderOnly is true, filter the affiliations to only include funders
   const results = funderOnly ? affiliations.filter((entry) => entry.funder) : affiliations;
-  if (results.length === 0) {
-    paginate(results, paginationOptions);
-  }
-  return results ? results.map((entry) => { return new AffiliationSearch(entry) }) : undefined;
+  const paginatedResults = paginate(results, paginationOptions);
+  return {
+    ...paginatedResults,
+    items: paginatedResults.items.map((entry) => { return new AffiliationSearch(entry) }),
+  };
 };
 
 // Mock the mutations

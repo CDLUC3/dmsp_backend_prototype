@@ -188,8 +188,8 @@ describe('affiliationById query', () => {
 describe('affiliations query', () => {
   beforeEach(() => {
     query = `
-      query Affiliations($term: String!) {
-        affiliations (term: $term) {
+      query Affiliations($term: String!, $funderOnly: Boolean, $paginationOptions: PaginationOptions) {
+        affiliations (term: $term, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
           totalCount
           limit
           nextCursor
@@ -209,15 +209,13 @@ describe('affiliations query', () => {
     `;
   });
 
-  it.only('returns the expected affiliations when successful', async () => {
+  it('returns the expected affiliations when successful', async () => {
     const variables = { term: affiliationStore[0].name };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.affiliations).toBeDefined();
-
-console.log(resp.body.singleResult.data?.affiliations);
 
     // Since we're not returning everything, verify the fields we are returning
     const affiliation = resp.body.singleResult.data?.affiliations.items[0];
@@ -227,6 +225,63 @@ console.log(resp.body.singleResult.data?.affiliations);
     expect(affiliation?.funder).toEqual(affiliationStore[0].funder);
     expect(affiliation?.types).toEqual(affiliationStore[0].types);
     expect(affiliation?.apiTarget).toEqual(affiliationStore[0].apiTarget);
+  });
+
+  it('obeys the funderOnly flag', async () => {
+    affiliationStore[0].funder = true;
+    affiliationStore[1].funder = false;
+    affiliationStore[2].funder = true;
+
+    const variables = { term: '', funderOnly: true };
+    const resp = await executeQuery(query, variables, mockToken());
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+    // Since we're not returning everything, verify the fields we are returning
+    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.items[0]).toEqual(affiliationStore[0]);
+    expect(resp.body.singleResult.data?.affiliations.items[1]).toEqual(affiliationStore[2]);
+  });
+
+  it.only('handles cursor pagination successfuly', async () => {
+    const variables = { term: '', paginationOptions: { cursor: null, limit: 2 } };
+    let resp = await executeQuery(query, variables, mockToken());
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+    expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
+    expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeTruthy();
+    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeTruthy();
+    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeFalsy();
+
+    const paginatedResults = resp.body.singleResult.data?.affiliations.items ?? [];
+    expect(paginatedResults.length).toBe(2);
+    expect(paginatedResults[0].id).toEqual(affiliationStore[0].id);
+    expect(paginatedResults[1].id).toEqual(affiliationStore[1].id);
+
+    // Bump the cursor and query again
+    variables.paginationOptions.cursor = resp.body.singleResult.data?.affiliations.nextCursor;
+    resp = await executeQuery(query, variables, mockToken());
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+    expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
+    expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeTruthy();
+
+    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(1);
+    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[2].id);
   });
 
   it('returns an empty array when no matches are found', async () => {
