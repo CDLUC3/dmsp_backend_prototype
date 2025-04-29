@@ -1,6 +1,6 @@
 # DMP Tool Apollo Server Change Log
 
-## v0.2 - Initial deploy to the stage environment on AWS
+## v0.2 - Initial deploy to the AWS stage environment
 
 ### Added
 - Added `aws-process.sh` to allow migrations to be run in the AWS environment
