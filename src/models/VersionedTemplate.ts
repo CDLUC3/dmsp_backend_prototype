@@ -2,8 +2,6 @@ import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
-import { generalConfig } from "../config/generalConfig";
-import { PaginatedQueryResult } from "./../types/general";
 
 export enum TemplateVersionType {
   DRAFT = 'DRAFT',
@@ -45,13 +43,7 @@ export class VersionedTemplateSearchResult {
   }
 
   // Find all of the high level details about the published templates matching the search term
-  static async search(
-    reference: string,
-    context: MyContext,
-    term: string,
-    cursor: number,
-    limit: number = generalConfig.defaultSearchLimit
-  ): Promise<PaginatedQueryResult> {
+  static async search(reference: string, context: MyContext, term: string): Promise<VersionedTemplateSearchResult[]> {
     const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
                 'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
                 'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
@@ -63,9 +55,8 @@ export class VersionedTemplateSearchResult {
               'ORDER BY vt.modified DESC;';
     const searchTerm = (term ?? '');
     const vals = [`%${searchTerm}%`, `%${searchTerm}%`, TemplateVersionType.PUBLISHED];
-    const queryResults = await VersionedTemplate.query(context, sql, vals, reference);
-    const { results, nextCursor, error } = VersionedTemplate.paginateResults(queryResults, cursor, 'id', limit);
-    return { items: results.map((entry) => new VersionedTemplateSearchResult(entry)), nextCursor, error };
+    const results = await VersionedTemplate.query(context, sql, vals, reference);
+    return Array.isArray(results) ? results.map((entry) => new VersionedTemplateSearchResult(entry)) : [];
   }
 
   // Find all of the high level details about the published templates for a specific affiliation

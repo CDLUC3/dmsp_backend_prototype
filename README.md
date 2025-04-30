@@ -17,7 +17,6 @@
     - [Building for Production](#building-for-production)
     - [Managing the databases](#managing-the-database)
 - [Querying the Apollo Server](#querying-apollo-server)
-    - [Pagination](#pagination)
     - [Errors](#errors)
 - [Development](#development)
     - [Data Model](#data-model)
@@ -282,51 +281,6 @@ async function fetchTemplateCollaborators() {
 
 fetchTemplateCollaborators();
 ```
-
-### Pagination
-
-Most queries that return multiple results can handle pagination. This means that the query can accept a `cursor` and a `limit` argument and will also return those values in the resultset.
-
-For example an initial query for the list of published templates:
-```
-query PublishedTemplates($term: String) {
-  publishedTemplates(term: $term) {
-    cursor
-    totalCount
-    versionedTemplates {
-      id
-      name
-    }
-    error {
-      general
-    }
-  }
-}
-```
-
-Might return something like this (assuming the default limit was 2):
-```
-{
-  "cursor": 342,
-  "limit": 2,
-  "totalCount": 5,
-  "versionedTemplates": [
-    { "id": 12, "name": "Template A" },
-    { "id": 286, "name": "Template B" },
-  ],
-  "error": {
-    "general": null
-  }
-}
-```
-
-Then a subsequent request using the cursor would return the next 2 records.
-
-The cursor is specific to the type of record. In most cases it will be the id of the next item, but in other cases it might be a URI or some other string value.
-
-Note that the default limit and the maximum allowed limit are defined in `src/config/generalConfig` and can be overridden with environment variables.
-
-If the cursor specified does not exist the an error is returned (e.g. "Cursor 9999 not found") along with an empty array of results and a null cursor.
 
 ### Errors
 

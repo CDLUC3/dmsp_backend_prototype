@@ -3,7 +3,6 @@ import { MyContext } from '../context';
 import { validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
-import { generalConfig } from "../config/generalConfig";
 
 type MixedArray<T> = T[];
 
@@ -112,52 +111,6 @@ export class MySqlModel {
           name: key,
           value: obj[key]
         }));
-  }
-
-  // Paginate the results of a query
-  static paginateResults(
-    results: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
-    cursor: string | number | null,
-    cursorField: string,
-    limit: number,
-  ): { results: any[], nextCursor: string | number | null, error: string | null } { // eslint-disable-line @typescript-eslint/no-explicit-any
-    // Return an empty array if the results are not an array or empty
-    if (!Array.isArray(results) || results.length === 0) {
-      return { results: [], nextCursor: null, error: null };
-    }
-
-    // Determine the maximum number of results to return
-    const maxNbrResults = Math.min(
-      (limit && limit >= 1) ? limit : generalConfig.defaultSearchLimit,
-      generalConfig.maximumSearchLimit
-    );
-
-    // If a cursor was provided, return only the next set of results
-    if (cursor && cursorField) {
-      const startIndex = results.findIndex((entry) => entry[cursorField] === cursor);
-      if (startIndex > -1) {
-        const paginatedResults = results.slice(startIndex + 1, startIndex + 1 + maxNbrResults);
-        const nextCursor = paginatedResults.length === maxNbrResults
-          ? paginatedResults[paginatedResults.length - 1][cursorField]
-          : null;
-        return { results: paginatedResults, nextCursor, error: null };
-      }
-      // If the cursor was not found, return an error
-      return { results: [], nextCursor: null, error: `Cursor ${cursor} not found` };
-    }
-
-    // If a cursor was provided but the cursorField is invalid, return an error
-    if (cursor && !cursorField) {
-      return { results: [], nextCursor: null, error: `Invalid cursor field: ${cursorField}` };
-    }
-
-    // No cursor provided, return the first N results
-    const paginatedResults = results.slice(0, maxNbrResults);
-    const nextCursor = paginatedResults.length === maxNbrResults
-      ? paginatedResults[paginatedResults.length - 1][cursorField]
-      : null;
-
-    return { results: paginatedResults, nextCursor, error: null };
   }
 
   // Run a query to check for the existence of a record in the database. Typically used to verify that

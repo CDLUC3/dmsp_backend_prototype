@@ -3,7 +3,6 @@ import { MySqlModel } from "../MySqlModel";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
-import { generalConfig } from '../../config/generalConfig';
 
 jest.mock('../../dataSources/mysql', () => {
   return {
@@ -17,7 +16,6 @@ jest.mock('../../dataSources/mysql', () => {
 });
 
 class TestImplementation extends MySqlModel {
-  public name: string;
   public testA: string;
   public testB: number;
   public testC: string[];
@@ -28,7 +26,6 @@ class TestImplementation extends MySqlModel {
   constructor(opts) {
     super(opts.id, opts.created, opts.createdById, opts.modified, opts.modifiedById);
 
-    this.name = opts.name ?? casual.sentence;
     this.testA = opts.testA;
     this.testB = opts.testB;
     this.testC = opts.testC;
@@ -188,159 +185,6 @@ describe('propertyInfo', () => {
     expect(props.find(i => i.name === 'testZ')).toBeFalsy();
     expect(props.find(i => i.name === 'id')).toBeFalsy();
     expect(props.find(i => i.name === 'errors')).toBeFalsy();
-  });
-});
-
-describe('paginateResults', () => {
-  let queryResults;
-
-  beforeEach(() => {
-    queryResults = [
-      new TestImplementation({ id: casual.integer(1, 9999), name: casual.sentence }),
-      new TestImplementation({ id: casual.integer(1, 9999), name: casual.sentence }),
-      new TestImplementation({ id: casual.integer(1, 9999), name: casual.sentence }),
-      new TestImplementation({ id: casual.integer(1, 9999), name: casual.sentence }),
-      new TestImplementation({ id: casual.integer(1, 9999), name: casual.sentence }),
-    ];
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('returns an empty resultset with no errors and no cursor if the the results were empty', () => {
-    const cursor = queryResults[1].id;
-    const limit = 2;
-    const field = 'id';
-    const { results, nextCursor, error } = MySqlModel.paginateResults([], cursor, field, limit);
-
-    expect(results.length).toEqual(0);
-    expect(nextCursor).toBeFalsy();
-    expect(error).toBeFalsy();
-  });
-
-  it('uses the specified limit', () => {
-    const limit = 1;
-    const field = 'id';
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, null, field, limit);
-
-    expect(results.length).toEqual(1);
-    expect(nextCursor).toEqual(queryResults[0].id);
-    expect(error).toBeFalsy();
-  });
-
-  it('uses the default limit if no limit is specified', () => {
-    generalConfig.defaultSearchLimit = 2;
-    const field = 'id';
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, null, field, null);
-
-    expect(results.length).toEqual(2);
-    expect(nextCursor).toEqual(queryResults[1].id);
-    expect(error).toBeFalsy();
-  });
-
-  it('uses the default limit if the specified limit was zero', () => {
-    generalConfig.defaultSearchLimit = 2;
-    const field = 'id';
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, null, field, 0);
-
-    expect(results.length).toEqual(2);
-    expect(nextCursor).toEqual(queryResults[1].id);
-    expect(error).toBeFalsy();
-  });
-
-  it('uses the default limit if the specified limit was less than zero', () => {
-    generalConfig.defaultSearchLimit = 2;
-    const field = 'id';
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, null, field, -2);
-
-    expect(results.length).toEqual(2);
-    expect(nextCursor).toEqual(queryResults[1].id);
-    expect(error).toBeFalsy();
-  });
-
-  it('does not allow more results than the maximum limit', () => {
-    generalConfig.maximumSearchLimit = 2;
-    const field = 'id';
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, null, field, 3);
-
-    expect(results.length).toEqual(2);
-    expect(nextCursor).toEqual(queryResults[1].id);
-    expect(error).toBeFalsy();
-  });
-
-  it('returns an empty array and error if the cursor is not found', () => {
-    const cursor = "testing-missing-record";
-    const field = 'id';
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, cursor, field, 1);
-
-    expect(results.length).toEqual(0);
-    expect(nextCursor).toBeFalsy();
-    expect(error).toBeTruthy();
-  });
-
-  it('returns an empty array and error if the cursorField does not exist on the objects', () => {
-    const cursor = queryResults[0].id;
-    const field = 'testing-missing-field';
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, cursor, field, 1);
-
-    expect(results.length).toEqual(0);
-    expect(nextCursor).toBeFalsy();
-    expect(error).toBeTruthy();
-  });
-
-  it('returns the expected results when the cursor is found and there are more pages', () => {
-    const cursor = queryResults[1].id;
-    const field = 'id';
-    const limit = 2;
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, cursor, field, limit);
-
-    expect(results.length).toEqual(2);
-    expect(results[0].id).toEqual(queryResults[2].id);
-    expect(results[1].id).toEqual(queryResults[3].id);
-    expect(nextCursor).toEqual(queryResults[3].id);
-    expect(error).toBeFalsy();
-  });
-
-  it('returns the expected results when the cursor is found and there are no more pages', () => {
-    const cursor = queryResults[3].id;
-    const field = 'id';
-    const limit = 2;
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, cursor, field, limit);
-
-    expect(results.length).toEqual(1);
-    expect(results[0].id).toEqual(queryResults[4].id);
-    expect(nextCursor).toBeFalsy();
-    expect(error).toBeFalsy();
-  });
-
-  it('returns the expected results when the cursor is null and there are more pages', () => {
-    const field = 'id';
-    const limit = 2;
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, null, field, limit);
-
-    expect(results.length).toEqual(2);
-    expect(results[0].id).toEqual(queryResults[0].id);
-    expect(results[1].id).toEqual(queryResults[1].id);
-    expect(nextCursor).toEqual(queryResults[1].id);
-    expect(error).toBeFalsy();
-  });
-
-  it('returns the expected results when the cursor is null and there are no more pages', () => {
-    generalConfig.defaultSearchLimit = 20;
-    generalConfig.maximumSearchLimit = 100;
-    const field = 'id';
-    const limit = 10;
-    const { results, nextCursor, error } = MySqlModel.paginateResults(queryResults, null, field, limit);
-
-    expect(results.length).toEqual(5);
-    expect(results[0].id).toEqual(queryResults[0].id);
-    expect(results[1].id).toEqual(queryResults[1].id);
-    expect(results[2].id).toEqual(queryResults[2].id);
-    expect(results[3].id).toEqual(queryResults[3].id);
-    expect(results[4].id).toEqual(queryResults[4].id);
-    expect(nextCursor).toBeFalsy();
-    expect(error).toBeFalsy();
   });
 });
 

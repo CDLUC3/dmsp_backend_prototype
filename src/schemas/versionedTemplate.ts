@@ -5,7 +5,7 @@ export const typeDefs = gql`
     "Get all of the VersionedTemplate for the specified Template (a.k. the Template history)"
     templateVersions(templateId: Int!): [VersionedTemplate]
     "Search for VersionedTemplate whose name or owning Org's name contains the search term"
-    publishedTemplates(term: String, cursor: Int, limit: Int): PublishedTemplateResults
+    publishedTemplates(term: String): [VersionedTemplateSearchResult]
     "Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin)"
     myVersionedTemplates: [VersionedTemplateSearchResult]
   }
@@ -16,18 +16,6 @@ export const typeDefs = gql`
     DRAFT
     "Published - saved state for use when creating DMPs"
     PUBLISHED
-  }
-
-  "Paginated results of a search for publishedTemplates query"
-  type PublishedTemplateResults {
-    "The versioned template results"
-    versionedTemplates: [VersionedTemplateSearchResult]
-    "The total number of results"
-    totalCount: Int
-    "The id of the last VersionedTemplate in the results"
-    cursor: Int
-    "Any errors associated with the search"
-    error: PaginationError
   }
 
   "An abbreviated view of a Template for pages that allow search/filtering of published Templates"
@@ -60,9 +48,6 @@ export const typeDefs = gql`
     modifiedByName: String
     "The timestamp when the Template was last modified"
     modified: String
-
-    "The id of the last VersionedTemplate in the results"
-    cursor: String
   }
 
   "A snapshot of a Template when it became published. DMPs are created from published templates"
