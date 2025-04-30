@@ -1,5 +1,5 @@
 ### Added
-- Added `paginateResults` helper function to `MySQLModel`.
+- Added `queryWithPagination` function to `MySQLModel`.
 - Added `popularFunders` query to the `affiliations` resolver
 - Added `accessLevel` to projectCollaborator and removed `userId`
 - Added new resolvers related to `projectCollaborators`. Also, when project is created, automatically add user as `projectCollaborator` with `access level`= `OWN`

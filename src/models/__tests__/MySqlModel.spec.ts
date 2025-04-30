@@ -151,7 +151,7 @@ describe('MySqlModel abstract class', () => {
   });
 
   describe('getTotalCountForPagination', () => {
-    let originalQuery = MySqlModel.query;
+    const originalQuery = MySqlModel.query;
     let localQuery;
     let context;
 
@@ -364,7 +364,7 @@ describe('propertyInfo', () => {
 });
 
 describe('query function', () => {
-  let originalQuery = MySqlModel.query;
+  const originalQuery = MySqlModel.query;
   let mockQuery;
   let context;
 
@@ -565,8 +565,8 @@ describe('queryWithPagination', () => {
 });
 
 describe('paginatedQueryByOffset', () => {
-  let originalQuery = MySqlModel.query;
-  let originalGetTotalCountForPagination = MySqlModel.getTotalCountForPagination;
+  const originalQuery = MySqlModel.query;
+  const originalGetTotalCountForPagination = MySqlModel.getTotalCountForPagination;
   let context;
   let localQuery;
   let localGetTotalCountForPagination;
@@ -769,8 +769,8 @@ describe('paginatedQueryByOffset', () => {
 });
 
 describe('paginatedQueryByCursor', () => {
-  let originalQuery = MySqlModel.query;
-  let originalGetTotalCountForPagination = MySqlModel.getTotalCountForPagination;
+  const originalQuery = MySqlModel.query;
+  const originalGetTotalCountForPagination = MySqlModel.getTotalCountForPagination;
   let context;
   let localQuery;
   let localGetTotalCountForPagination;
