@@ -83,7 +83,7 @@ describe('VersionedTemplateSearchResult', () => {
         cursor: null,
         limit: generalConfig.defaultSearchLimit,
         sortField: 'vt.modified',
-        sortOrder: 'DESC',
+        sortDir: 'DESC',
         countField: 'vt.id',
         cursorField: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))',
       };

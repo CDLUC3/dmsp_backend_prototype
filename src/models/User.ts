@@ -197,7 +197,7 @@ export class User extends MySqlModel {
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'u.created';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'DESC';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
 
     const sqlStatement = 'SELECT u.* FROM users u';
 
@@ -246,7 +246,7 @@ export class User extends MySqlModel {
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'u.created';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'DESC';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
 
     const sqlStatement = 'SELECT u.* FROM users u LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri';
 

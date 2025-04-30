@@ -188,8 +188,8 @@ describe('affiliationById query', () => {
 describe('affiliations query', () => {
   beforeEach(() => {
     query = `
-      query Affiliations($term: String!, $funderOnly: Boolean, $paginationOptions: PaginationOptions) {
-        affiliations (term: $term, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
+      query Affiliations($name: String!, $funderOnly: Boolean, $paginationOptions: PaginationOptions) {
+        affiliations (name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
           totalCount
           limit
           nextCursor
@@ -210,7 +210,7 @@ describe('affiliations query', () => {
   });
 
   it('returns the expected affiliations when successful', async () => {
-    const variables = { term: affiliationStore[0].name };
+    const variables = { name: affiliationStore[0].name };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
@@ -232,7 +232,7 @@ describe('affiliations query', () => {
     affiliationStore[1].funder = false;
     affiliationStore[2].funder = true;
 
-    const variables = { term: '', funderOnly: true };
+    const variables = { name: '', funderOnly: true };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
@@ -246,7 +246,7 @@ describe('affiliations query', () => {
   });
 
   it('handles cursor pagination successfuly', async () => {
-    const variables = { term: '', paginationOptions: { cursor: null, limit: 2 } };
+    const variables = { name: '', paginationOptions: { cursor: null, limit: 2 } };
     let resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
@@ -285,7 +285,7 @@ describe('affiliations query', () => {
   });
 
   it('handles offset pagination successfuly', async () => {
-    const variables = { term: '', paginationOptions: { offset: 0, limit: 2 } };
+    const variables = { name: '', paginationOptions: { offset: 0, limit: 2 } };
     let resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
@@ -325,7 +325,7 @@ describe('affiliations query', () => {
 
   it('returns an empty array when no matches are found', async () => {
     // Use a series of number since it will never match one of the names
-    const variables = { term: '1234567890' };
+    const variables = { name: '1234567890' };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');
@@ -337,7 +337,7 @@ describe('affiliations query', () => {
   it('returns a 500 when a fatal error occurs', async () => {
     jest.spyOn(AffiliationSearch, 'search').mockImplementation(() => { throw new Error('Error!') });
 
-    const variables = { term: casual.company_name };
+    const variables = { name: casual.company_name };
     const resp = await executeQuery(query, variables, mockToken());
 
     assert(resp.body.kind === 'single');

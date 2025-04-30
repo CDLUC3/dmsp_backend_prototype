@@ -4,10 +4,9 @@ export type PaginationOptions = PaginationOptionsForOffsets | PaginationOptionsF
 export interface PaginationOptionsForOffsets {
   limit?: number;                 // The number of items to return (integer)
   offset?: number;                // Used for offset pagination for standard pagination (integer)
-  includeTotal?: boolean;         // Optionally fetch total row count
   countField?: string;            // The field to count for totalCount (string)
   sortField?: string;             // The field to sort by (string)
-  sortOrder?: string;             // The order to sort by (must be 'ASC' or 'DESC')
+  sortDir?: string;             // The order to sort by (must be 'ASC' or 'DESC')
   availableSortFields?: string[]; // The available sort fields (string array)
 }
 
@@ -17,10 +16,9 @@ export interface PaginationOptionsForCursors {
   limit?: number;               // The number of items to return (integer)
   cursor?: string;              // Used for cursor-based pagination for endless scroll functionality (ISO string)
   cursorField?: string;         // The field to use for cursor-based pagination (string)
-  includeTotal?: boolean;       // Optionally fetch total row count
   countField?: string;          // The field to count for totalCount (string)
   sortField?: string;           // The field to sort by (string)
-  sortOrder?: string;           // The order to sort by (must be 'ASC' or 'DESC')
+  sortDir?: string;           // The order to sort by (must be 'ASC' or 'DESC')
 }
 
 // The results of a query that supports pagination.

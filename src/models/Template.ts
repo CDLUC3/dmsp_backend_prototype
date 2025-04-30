@@ -68,7 +68,7 @@ export class TemplateSearchResult {
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 't.modified';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'DESC';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
 
     const sqlStatement = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
                                 't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +

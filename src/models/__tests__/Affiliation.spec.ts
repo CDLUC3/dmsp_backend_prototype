@@ -468,7 +468,7 @@ describe('search', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'a.displayName',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'a.id',
       cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
     };
@@ -488,7 +488,7 @@ describe('search', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'a.displayName',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'a.id',
       cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
     };

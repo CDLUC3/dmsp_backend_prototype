@@ -1461,16 +1461,14 @@ export type PaginatedQueryResults = {
 export type PaginationOptions = {
   /** The cursor to start the pagination from (used for cursor infinite scroll/load more only!) */
   cursor?: InputMaybe<Scalars['String']['input']>;
-  /** Whether or not to include the total count of items */
-  includeTotal?: InputMaybe<Scalars['Boolean']['input']>;
   /** The number of items to return */
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** The number of items to skip before starting the pagination (used for standard offset pagination only!) */
   offset?: InputMaybe<Scalars['Int']['input']>;
+  /** The sort order (used for standard offset pagination only!) */
+  sortDir?: InputMaybe<Scalars['String']['input']>;
   /** The sort field (used for standard offset pagination only!) */
   sortField?: InputMaybe<Scalars['String']['input']>;
-  /** The sort order (used for standard offset pagination only!) */
-  sortOrder?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** A Data Managament Plan (DMP) */
@@ -2320,8 +2318,8 @@ export type QueryAffiliationByUriArgs = {
 
 export type QueryAffiliationsArgs = {
   funderOnly?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
   paginationOptions?: InputMaybe<PaginationOptions>;
-  term: Scalars['String']['input'];
 };
 
 
@@ -5159,7 +5157,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliationById?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByIdArgs, 'affiliationId'>>;
   affiliationByURI?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByUriArgs, 'uri'>>;
   affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'term'>>;
+  affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;
   childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;

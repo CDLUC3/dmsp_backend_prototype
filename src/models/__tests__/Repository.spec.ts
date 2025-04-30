@@ -219,7 +219,7 @@ describe('findBy Queries', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'r.id',
       cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
     };
@@ -240,7 +240,7 @@ describe('findBy Queries', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'r.id',
       cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
     };
@@ -261,7 +261,7 @@ describe('findBy Queries', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'r.id',
       cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
     };
@@ -283,7 +283,7 @@ describe('findBy Queries', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'r.id',
       cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
     };
@@ -304,7 +304,7 @@ describe('findBy Queries', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'r.id',
       cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
     };

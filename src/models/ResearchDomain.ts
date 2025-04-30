@@ -203,7 +203,7 @@ export class ResearchDomain extends MySqlModel {
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'rd.name';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
 
     const sqlStatement = 'SELECT rd.* FROM researchDomains rd';
 

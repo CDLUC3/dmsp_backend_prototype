@@ -65,7 +65,7 @@ export class ProjectSearchResult {
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'p.modified';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'DESC';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
 
     // If a userId was provided, add it to the filters
     if (userId) {

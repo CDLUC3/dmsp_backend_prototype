@@ -29,12 +29,10 @@ export const typeDefs = gql`
     cursor: String
     "The number of items to skip before starting the pagination (used for standard offset pagination only!)"
     offset: Int
-    "Whether or not to include the total count of items"
-    includeTotal: Boolean
     "The sort field (used for standard offset pagination only!)"
     sortField: String
     "The sort order (used for standard offset pagination only!)"
-    sortOrder: String
+    sortDir: String
   }
 
   interface PaginatedQueryResults {

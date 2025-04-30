@@ -129,7 +129,7 @@ describe('findByName', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'vs.name',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'vs.id',
       cursorField: 'LOWER(REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\'))',
     };

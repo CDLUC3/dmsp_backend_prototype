@@ -208,7 +208,7 @@ export class Repository extends MySqlModel {
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'r.name';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
 
     const sqlStatement = 'SELECT r.* FROM repositories r ' +
                           'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';

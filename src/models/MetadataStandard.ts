@@ -192,7 +192,7 @@ export class MetadataStandard extends MySqlModel {
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'm.name';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
 
     // Specify the field we want to use for the count
     options.countField = 'm.id';

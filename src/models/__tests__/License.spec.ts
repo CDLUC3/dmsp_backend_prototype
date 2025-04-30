@@ -156,7 +156,7 @@ describe('findBy Queries', () => {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'l.name',
-      sortOrder: 'ASC',
+      sortDir: 'ASC',
       countField: 'l.id',
       cursorField: 'LOWER(REPLACE(CONCAT(l.name, l.id), \' \', \'_\'))',
     };

@@ -64,7 +64,7 @@ export class VersionedTemplateSearchResult {
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'vt.modified';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'DESC';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
 
     const sqlStatement = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, \
                             vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, \

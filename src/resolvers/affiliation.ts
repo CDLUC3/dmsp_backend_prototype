@@ -14,10 +14,10 @@ export const resolvers: Resolvers = {
     },
 
     // returns an array of Affiliations that match the search criteria
-    affiliations: async (_, { term, funderOnly, paginationOptions }, context: MyContext): Promise<AffiliationSearchResults> => {
+    affiliations: async (_, { name, funderOnly, paginationOptions }, context: MyContext): Promise<AffiliationSearchResults> => {
       const reference = 'affiliations resolver';
       try {
-        return await AffiliationSearch.search(reference, context, term, funderOnly, paginationOptions);
+        return await AffiliationSearch.search(reference, context, name, funderOnly, paginationOptions);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();

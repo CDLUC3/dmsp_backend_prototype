@@ -285,48 +285,80 @@ fetchTemplateCollaborators();
 
 ### Pagination
 
-Most queries that return multiple results can handle pagination. This means that the query can accept a `cursor` and a `limit` argument and will also return those values in the resultset.
+The system supports both offset and cursor based pagination. Offset pagination uses `offset` and `limit` to allow you to move forward and backward within the resultset. Cursor pagination uses a `cursor` and `limit` to allow you to move forward within the resultset.
 
-For example an initial query for the list of published templates:
+Cursor pagination is designed to support endless-scroll or "load more" scenarios. It is more efficent than Offset pagination, so is preferred.
+
+Offset pagination is designed to support traditional `First 2, 3, 4, 5 ... Last` style page navigation. It is slower though so not the preferred approach unless you truly need to provide users with the ability to move forward and backward or jump to a specific page.
+
+When calling one of the queries that supports pagination, you pass in a set of `paginationOptions`.
+- `limit` the number of records that should be returned (default is 20 with a max of 100)
+- Cursor specific:
+  - `cursor` either `null` (the start of the list) or a cursor id
+- Offset specific:
+  - `offset` either `0` (the start of the list) or a specific position within the list
+  - `sortField` the field you want to sort the results on
+  - `sortDir` the direction of the sort, either `ASC` (default) or `DESC`
+
+For example this query sends cursor information to get the first 20 affiliations matching the criteria:
 ```
-query PublishedTemplates($term: String) {
-  publishedTemplates(term: $term) {
-    cursor
+query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions, PaginationOptions){
+  affiliations(name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
+    limit
     totalCount
-    versionedTemplates {
-      id
-      name
-    }
-    error {
-      general
-    }
+    nextCursor
+    hasNextPage
+  }
+}
+
+variables: {
+  "name": "NSF",
+  "funderOnly": true,
+  "paginationOptions": {
+    cursor: null
   }
 }
 ```
 
-Might return something like this (assuming the default limit was 2):
+The `hasNextPage` flag in the response indicates whether there are more items available, and the `nextCursor` contains the cursor that should be sent to fetch the next 20 records.
+
+This query sends offset information to get the first 20 affiliations matching the criteria:
 ```
-{
-  "cursor": 342,
-  "limit": 2,
-  "totalCount": 5,
-  "versionedTemplates": [
-    { "id": 12, "name": "Template A" },
-    { "id": 286, "name": "Template B" },
-  ],
-  "error": {
-    "general": null
+query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions, PaginationOptions){
+  affiliations(name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
+    limit
+    totalCount
+    currentOffset
+    hasNextPage
+    hasPreviousPage
+    availableSortFields
+  }
+}
+
+variables: {
+  "name": "NSF",
+  "funderOnly": true,
+  "paginationOptions": {
+    offset: 0
   }
 }
 ```
 
-Then a subsequent request using the cursor would return the next 2 records.
+The response has:
+- `hasNextPage` a flag indicating whether or not there is a subsequent page of results
+- `hasPreviousPage` a flag indicating whether or not there is a prior page of results
+- `currentOffset` the current offset position of the first item in the results
+- `totalCount` the total number of possible results
+- `availableSortFields` a list of fields that can be used to sort the results
 
-The cursor is specific to the type of record. In most cases it will be the id of the next item, but in other cases it might be a URI or some other string value.
+To fetch the next set of results, you can use `currentOffset + limit`
 
-Note that the default limit and the maximum allowed limit are defined in `src/config/generalConfig` and can be overridden with environment variables.
+#### Making a query that supports pagination
 
-If the cursor specified does not exist the an error is returned (e.g. "Cursor 9999 not found") along with an empty array of results and a null cursor.
+Pagination queries use the `queryWithPagination` function on the `MySqlModel` class (as opposed to the `query` function).
+
+Refer to the `AffiliationSearchResult.search` or `User.search` functions for examples of how to structure your query.
+
 
 ### Errors
 

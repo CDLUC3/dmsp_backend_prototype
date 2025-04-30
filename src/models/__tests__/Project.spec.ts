@@ -138,7 +138,7 @@ describe('ProjectSearchResult', () => {
         cursor: null,
         limit: generalConfig.defaultSearchLimit,
         sortField: 'p.modified',
-        sortOrder: 'DESC',
+        sortDir: 'DESC',
         countField: 'p.id',
         cursorField: 'LOWER(REPLACE(CONCAT(p.modified, p.id), \' \', \'_\'))',
       };
