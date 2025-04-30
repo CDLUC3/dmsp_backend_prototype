@@ -1,6 +1,6 @@
 
 import { formatLogMessage } from '../logger';
-import { RepositorySearchResults, Resolvers } from "../types";
+import { Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_REPOSITORY_URL, Repository, RepositoryType } from "../models/Repository";
 import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
@@ -8,31 +8,17 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { ResearchDomain } from '../models/ResearchDomain';
 import { stringToEnumValue } from '../utils/helpers';
 import { GraphQLError } from 'graphql';
-import { paginateResults } from '../services/paginationService';
 
 export const resolvers: Resolvers = {
   Query: {
     // searches the repositories table or returns all repos if no criteria is specified
-    repositories: async (_, { input }, context: MyContext): Promise<RepositorySearchResults> => {
+    repositories: async (_, { input }, context: MyContext): Promise<Repository[]> => {
       const reference = 'repositories resolver';
       try {
         if (isAuthorized(context.token)) {
-          const { term, researchDomainId, repositoryType, cursor, limit } = input
+          const { term, researchDomainId, repositoryType } = input
           const repoType = stringToEnumValue(RepositoryType, repositoryType);
-          const results = await Repository.search(reference, context, term, researchDomainId, repoType);
-
-          if (results) {
-            const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-            return {
-              repositories: items,
-              totalCount: results.length,
-              cursor: nextCursor as number,
-              error: {
-                general: error,
-              }
-            }
-          }
+          return await Repository.search(reference, context, term, researchDomainId, repoType);
         }
         throw AuthenticationError();
       } catch (err) {

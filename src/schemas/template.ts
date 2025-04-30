@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get the Templates that belong to the current user's affiliation (user must be an Admin)"
-    myTemplates(cursor: Int, limit: Int): TemplateSearchResults
+    myTemplates: [TemplateSearchResult]
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
   }
@@ -62,18 +62,6 @@ export const typeDefs = gql`
     modifiedByName: String
     "The timestamp when the Template was last modified"
     modified: String
-  }
-
-   "Paginated results of a search for templates"
-   type TemplateSearchResults {
-    "The TemplateSearchResults that match the search criteria"
-    templateSearchResults: [TemplateSearchResult]
-    "The total number of results"
-    totalCount: Int
-    "The id of the last TemplateSearchResult in the results"
-    cursor: Int
-    "Any errors associated with the search"
-    error: PaginationError
   }
 
   "A Template used to create DMPs"

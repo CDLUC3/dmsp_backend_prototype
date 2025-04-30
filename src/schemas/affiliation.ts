@@ -9,7 +9,7 @@ export const typeDefs = gql`
     "Retrieve a specific Affiliation by its URI"
     affiliationByURI(uri: String!): Affiliation
     "Perform a search for Affiliations matching the specified name"
-    affiliations(name: String!, funderOnly: Boolean, cursor: Int, limit: Int): AffiliationSearchResults
+    affiliations(name: String!, funderOnly: Boolean): [AffiliationSearch]
     "Returns a list of the top 20 funders ranked by popularity (nbr of plans) for the past year"
     popularFunders: [FunderPopularityResult]
   }
@@ -37,17 +37,6 @@ export const typeDefs = gql`
     types: [AffiliationType!]
     "Has an API that be used to search for project/award information"
     apiTarget: String
-  }
-
-  type AffiliationSearchResults {
-    "The list of Affiliation search results"
-    affiliations: [AffiliationSearch]
-    "The id of the last Affiliation in the results"
-    cursor: Int
-    "The total number of Affiliation search results"
-    totalCount: Int
-    "Any errors associated with the search"
-    error: PaginationError
   }
 
   "A result of the most popular funders"
