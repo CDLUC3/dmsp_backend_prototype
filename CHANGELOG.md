@@ -132,6 +132,7 @@
 
 ### Fixed
 - Removed `Copy of` from in front of copied `Section` and `Template` names [#261]
+- Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required. 
 - Fixed an issue where adding `projectCollaborators` was failing due to the fact that the `userId` field was required. This should not be required to add a new collaborator [#260]
 - When calling `updatePlanContributors`, the resolver should set isPrimaryContact to `false` for all contributors other than the one marked as isPrimary.
 - Fixed an issue where Jest tests failed on Linux due to case-sensitive file paths. The tests passed on macOS because its file system is case-insensitive by default.
