@@ -92,7 +92,7 @@ export const cloneSection = (
   const sourceId = Object.keys(section).includes('sectionId') ? section['sectionId'] : section.id;
   const sectionCopy = new Section({
     sourceSectionId: sourceId,
-    name: `Copy of ${section.name}`,
+    name: section.name,
     introduction: section.introduction,
     requirements: section.requirements,
     guidance: section.guidance,
