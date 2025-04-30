@@ -133,6 +133,14 @@ export class MySqlModel {
     return results && results.length === 1;
   }
 
+  // Get the default pagination options
+  static getDefaultPaginationOptions(): PaginationOptionsForCursors {
+    return {
+      limit: generalConfig.defaultSearchLimit,
+      cursor: null,
+    };
+  }
+
   // Determine the pagination limit base on the provided limit or the default
   //    - limit:           The number of records to return
   static getPaginationLimit(limit: number | undefined): number {
@@ -163,9 +171,6 @@ export class MySqlModel {
 
     const countSql = `SELECT COUNT(${countField}) total FROM ${fromClause} ${whereClause} ${groupByClause}`;
     const countResponse = await MySqlModel.query(apolloContext, countSql, values, reference);
-
-    console.log(`countResponse`, countResponse)
-
     return Array.isArray(countResponse) && countResponse.length > 0 ? countResponse?.[0]?.total : 0;
   }
 

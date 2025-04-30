@@ -50,7 +50,7 @@ export class VersionedTemplateSearchResult {
     reference: string,
     context: MyContext,
     term: string,
-    options: PaginationOptions,
+    options: PaginationOptions = VersionedTemplate.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<VersionedTemplateSearchResult>> {
     const whereFilters = ['vt.active = 1 AND vt.versionType = ?'];
     const values = [TemplateVersionType.PUBLISHED.toString()];
@@ -58,13 +58,13 @@ export class VersionedTemplateSearchResult {
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
     if (searchTerm) {
-      whereFilters.push('(vt.name LIKE ? OR a.searchName LIKE ?)');
+      whereFilters.push('(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'vt.modified';
-    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
+    if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'DESC';
 
     const sqlStatement = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, \
                             vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, \
@@ -85,7 +85,7 @@ export class VersionedTemplateSearchResult {
       options.availableSortFields = ['vt.name', 'vt.created', 'vt.visibility', 'vt.bestPractice', 'vt.modified'];
     } else if ('cursor' in options) {
       // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(vs.modified, vs.id), \' \', \'_\'))';
+      options.cursorField = 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))';
     }
 
     const response: PaginatedQueryResults<VersionedTemplateSearchResult> = await VersionedTemplate.queryWithPagination(

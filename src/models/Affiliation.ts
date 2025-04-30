@@ -333,7 +333,7 @@ export class AffiliationSearch {
     context: MyContext,
     name: string,
     funderOnly: boolean,
-    options: PaginationOptions,
+    options: PaginationOptions = Affiliation.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<AffiliationSearch>> {
     const whereFilters = ['a.active = 1'];
     const values = [];

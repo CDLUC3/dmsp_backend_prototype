@@ -86,7 +86,7 @@ export class VersionedSection extends MySqlModel {
     reference: string,
     context: MyContext,
     term: string,
-    options: PaginationOptions,
+    options: PaginationOptions = VersionedSection.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<VersionedSection>> {
     const whereFilters = [];
     const values = [];
@@ -94,7 +94,7 @@ export class VersionedSection extends MySqlModel {
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
     if (searchTerm) {
-      whereFilters.push('LOWER(vs.name)');
+      whereFilters.push('LOWER(vs.name) LIKE ?');
       values.push(`%${searchTerm}%`);
     }
 
@@ -113,7 +113,7 @@ export class VersionedSection extends MySqlModel {
       options.availableSortFields = ['vs.name', 'vs.created'];
     } else if ('cursor' in options) {
       // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\')';
+      options.cursorField = 'LOWER(REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\'))';
     }
 
     const response: PaginatedQueryResults<VersionedSection> = await VersionedSection.queryWithPagination(

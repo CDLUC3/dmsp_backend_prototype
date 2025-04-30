@@ -174,7 +174,7 @@ export class MetadataStandard extends MySqlModel {
     context: MyContext,
     term: string,
     researchDomainId: number,
-    options: PaginationOptions
+    options: PaginationOptions = MetadataStandard.getDefaultPaginationOptions()
   ): Promise<PaginatedQueryResults<MetadataStandard>> {
     const whereFilters = [];
     const values = [];
@@ -182,12 +182,12 @@ export class MetadataStandard extends MySqlModel {
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
     if (searchTerm) {
-      whereFilters.push('(LOWER(m.name) LIKE ? OR m.keywords LIKE ?)');
+      whereFilters.push('(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
     if (researchDomainId) {
-      whereFilters.push('rrd.researchDomainId = ?');
-      values.push(researchDomainId);
+      whereFilters.push('msrd.researchDomainId = ?');
+      values.push(researchDomainId.toString());
     }
 
     // Set the default sort field and order if none was provided
@@ -197,8 +197,8 @@ export class MetadataStandard extends MySqlModel {
     // Specify the field we want to use for the count
     options.countField = 'm.id';
 
-    const sqlStatement = 'SELECT m.* FROM metadataStandards m \
-                          LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
+    const sqlStatement = 'SELECT m.* FROM metadataStandards m ' +
+                          'LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
 
     // if the options are of type PaginationOptionsForOffsets
     if ('offset' in options && !isNullOrUndefined(options.offset)) {

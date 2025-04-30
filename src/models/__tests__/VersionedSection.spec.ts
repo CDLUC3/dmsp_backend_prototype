@@ -2,6 +2,7 @@ import casual from "casual";
 import { VersionedSection } from "../VersionedSection";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
+import { generalConfig } from "../../config/generalConfig";
 
 jest.mock('../../context.ts');
 
@@ -87,6 +88,7 @@ describe('findByName', () => {
   const originalQuery = VersionedSection.query;
 
   let localQuery;
+  let localPaginationQuery
   let context;
   let versionedSection;
 
@@ -95,6 +97,9 @@ describe('findByName', () => {
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
+
+    localPaginationQuery = jest.fn();
+    (VersionedSection.queryWithPagination as jest.Mock) = localPaginationQuery;
 
     context = buildContext(logger, mockToken());
 
@@ -113,23 +118,34 @@ describe('findByName', () => {
   });
 
   it('should call query with correct params and return the section', async () => {
-    localQuery.mockResolvedValueOnce([versionedSection]);
+    localPaginationQuery.mockResolvedValueOnce([versionedSection]);
 
-    const result = await VersionedSection.findByName('VersionedSection query', context, versionedSection.name);
-    const expectedSql = 'SELECT * FROM versionedSections WHERE name LIKE ?';
-    const vals = [`%${versionedSection.name}%`];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'VersionedSection query')
+    const result = await VersionedSection.findByName('Test', context, versionedSection.name);
+    const sql = 'SELECT vs.* FROM versionedSections vs';
+    const vals = [`%${versionedSection.name.toLowerCase()}%`];
+    const whereFilters = ['LOWER(vs.name) LIKE ?'];
+
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'vs.name',
+      sortOrder: 'ASC',
+      countField: 'vs.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\'))',
+    };
+
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')
     /* As part of this unit test, all fields without a value default to 'undefined' for the mocked VersionedSection, but
 the getVersionedSectionsBySectionId method returns an empty array for tags, and not undefined*/
     expect(result).toEqual([versionedSection])
   });
 
-  it('should return null if it finds no VersionedSection', async () => {
-    localQuery.mockResolvedValueOnce([]);
+  it('should return an empty array if it finds no VersionedSection', async () => {
+    localPaginationQuery.mockResolvedValueOnce([]);
 
     const result = await VersionedSection.findByName('VersionedSection query', context, versionedSection.name);
-    expect(result).toEqual(null);
+    expect(result).toEqual([]);
   });
 });
 

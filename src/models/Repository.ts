@@ -184,7 +184,7 @@ export class Repository extends MySqlModel {
     term: string,
     researchDomainId: number,
     repositoryType: RepositoryType,
-    options: PaginationOptions
+    options: PaginationOptions = Repository.getDefaultPaginationOptions()
   ): Promise<PaginatedQueryResults<Repository>> {
     const whereFilters = [];
     const values = [];
@@ -192,7 +192,7 @@ export class Repository extends MySqlModel {
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
     if (searchTerm) {
-      whereFilters.push('(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR r.keywords LIKE ?)');
+      whereFilters.push('(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
     // Handle the incoming repository type
@@ -203,15 +203,15 @@ export class Repository extends MySqlModel {
     // Handle the incoming research domain
     if (researchDomainId) {
       whereFilters.push('rrd.researchDomainId = ?');
-      values.push(researchDomainId);
+      values.push(researchDomainId.toString());
     }
 
     // Set the default sort field and order if none was provided
     if (isNullOrUndefined(options.sortField)) options.sortField = 'r.name';
     if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'ASC';
 
-    const sqlStatement = 'SELECT r.* FROM repositories r \
-                          LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+    const sqlStatement = 'SELECT r.* FROM repositories r ' +
+                          'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
 
     // Specify the field we want to use for the count
     options.countField = 'r.id';

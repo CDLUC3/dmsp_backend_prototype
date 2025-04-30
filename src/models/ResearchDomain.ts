@@ -189,7 +189,7 @@ export class ResearchDomain extends MySqlModel {
     reference: string,
     context: MyContext,
     term: string,
-    options: PaginationOptions
+    options: PaginationOptions = ResearchDomain.getDefaultPaginationOptions()
   ): Promise<PaginatedQueryResults<ResearchDomain>> {
     const whereFilters = [];
     const values = [];

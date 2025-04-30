@@ -120,14 +120,11 @@ export const findEntriesInMockTableByFilter = (tableName, criteria) => {
   return store.filter(criteria);
 }
 
-// Paginate the results returned from a query
+// Simulate pagination of the results returned from a query
 export const paginate = (results, paginationOptions: PaginationOptions) => {
   let paginatedResults = [];
   const totalCount = results.length;
   const finalId = results.length > 0 ? results[results.length - 1].id : null;
-
-console.log(`totalCount: ${totalCount}, finalId: ${finalId}`)
-console.log(paginationOptions)
 
   if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
     paginatedResults = paginateByOffset(results, paginationOptions);
@@ -137,13 +134,10 @@ console.log(paginationOptions)
 
   const lastId = paginatedResults.length > 0 ? paginatedResults[paginatedResults.length - 1].id : null;
 
-console.log('lastId', lastId)
-
   let hasPreviousPage = false;
   if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
     hasPreviousPage = totalCount > paginationOptions.limit && paginationOptions.offset > 0;
-  } else {
-    hasPreviousPage = !isNullOrUndefined(lastId) && lastId !== results[paginationOptions.limit - 1].id;
+
   }
 
   return {

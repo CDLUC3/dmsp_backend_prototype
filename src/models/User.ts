@@ -182,7 +182,7 @@ export class User extends MySqlModel {
     context: MyContext,
     affiliationId: string,
     term: string,
-    options: PaginationOptions,
+    options: PaginationOptions = User.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<User>> {
     const whereFilters = ['u.affiliationId = ?'];
     const values = [affiliationId];
@@ -231,7 +231,7 @@ export class User extends MySqlModel {
     reference: string,
     context: MyContext,
     term: string,
-    options: PaginationOptions,
+    options: PaginationOptions = User.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<User>> {
     const whereFilters = [];
     const values = [];

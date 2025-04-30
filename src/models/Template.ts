@@ -54,7 +54,7 @@ export class TemplateSearchResult {
     context: MyContext,
     affiliationId: string,
     term: string,
-    options: PaginationOptions,
+    options: PaginationOptions = Template.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<TemplateSearchResult>> {
     const whereFilters = ['t.ownerId = ?'];
     const values: string[] = [affiliationId];
@@ -70,16 +70,14 @@ export class TemplateSearchResult {
     if (isNullOrUndefined(options.sortField)) options.sortField = 't.modified';
     if (isNullOrUndefined(options.sortOrder)) options.sortOrder = 'DESC';
 
-    const sqlStatement = `
-      SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty,
-             t.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName,
-             t.createdById, TRIM(CONCAT(cu.givenName, CONCAT(' ', cu.surName))) as createdByName, t.created,
-             t.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(' ', mu.surName))) as modifiedByName, t.modified
-      FROM templates t
-        INNER JOIN affiliations a ON a.uri = t.ownerId
-        INNER JOIN users cu ON cu.id = t.createdById
-        INNER JOIN users mu ON mu.id = t.modifiedById
-    `;
+    const sqlStatement = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
+                                't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
+                                't.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created, ' +
+                                't.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified ' +
+                          'FROM templates t ' +
+                            'INNER JOIN affiliations a ON a.uri = t.ownerId ' +
+                            'INNER JOIN users cu ON cu.id = t.createdById ' +
+                            'INNER JOIN users mu ON mu.id = t.modifiedById';
 
     // Specify the field we want to use for the count
     options.countField = 't.id';

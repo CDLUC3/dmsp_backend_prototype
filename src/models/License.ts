@@ -130,7 +130,7 @@ export class License extends MySqlModel {
     reference: string,
     context: MyContext,
     name: string,
-    options: PaginationOptions,
+    options: PaginationOptions = License.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<License>> {
     const whereFilters = [];
     const values = [];

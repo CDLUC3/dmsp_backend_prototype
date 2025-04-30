@@ -2,6 +2,7 @@ import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { License } from "../License";
+import { generalConfig } from "../../config/generalConfig";
 
 jest.mock('../../context.ts');
 
@@ -65,12 +66,16 @@ describe('findBy Queries', () => {
   const originalQuery = License.query;
 
   let localQuery;
+  let localPaginationQuery
   let context;
   let license;
 
   beforeEach(() => {
     localQuery = jest.fn();
     (License.query as jest.Mock) = localQuery;
+
+    localPaginationQuery = jest.fn();
+    (License.queryWithPagination as jest.Mock) = localPaginationQuery;
 
     context = buildContext(logger, mockToken());
 
@@ -141,18 +146,27 @@ describe('findBy Queries', () => {
   });
 
   it('search should call query with correct params and return the objects', async () => {
-    localQuery.mockResolvedValueOnce([license]);
+    localPaginationQuery.mockResolvedValueOnce([license]);
     const term = casual.company_name;
     const result = await License.search('testing', context, term);
-    const expectedSql = 'SELECT * FROM licenses WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ?';
+    const sql = 'SELECT l.* FROM licenses l';
+    const whereFilters = ['(LOWER(l.name) LIKE ? OR LOWER(l.description) LIKE ?)'];
     const vals = [`%${term.toLowerCase().trim()}%`, `%${term.toLowerCase().trim()}%`];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'l.name',
+      sortOrder: 'ASC',
+      countField: 'l.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(l.name, l.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')
     expect(result).toEqual([license]);
   });
 
   it('search should return an empty array if it finds no records', async () => {
-    localQuery.mockResolvedValueOnce([]);
+    localPaginationQuery.mockResolvedValueOnce([]);
     const term = casual.company_name;
     const result = await License.search('testing', context, term);
     expect(result).toEqual([]);

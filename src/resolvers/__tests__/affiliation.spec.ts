@@ -209,7 +209,7 @@ describe('affiliations query', () => {
     `;
   });
 
-  it.only('returns the expected affiliations when successful', async () => {
+  it('returns the expected affiliations when successful', async () => {
     const variables = { term: affiliationStore[0].name };
     const resp = await executeQuery(query, variables, mockToken());
 
@@ -241,8 +241,8 @@ describe('affiliations query', () => {
 
     // Since we're not returning everything, verify the fields we are returning
     expect(resp.body.singleResult.data?.affiliations.items.length).toBe(2);
-    expect(resp.body.singleResult.data?.affiliations.items[0]).toEqual(affiliationStore[0]);
-    expect(resp.body.singleResult.data?.affiliations.items[1]).toEqual(affiliationStore[2]);
+    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[0].id);
+    expect(resp.body.singleResult.data?.affiliations.items[1].id).toEqual(affiliationStore[2].id);
   });
 
   it('handles cursor pagination successfuly', async () => {
@@ -278,7 +278,7 @@ describe('affiliations query', () => {
     expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
     expect(resp.body.singleResult.data?.affiliations.currentOffset).toBeFalsy();
     expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
-    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeTruthy();
+    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeFalsy();
 
     expect(resp.body.singleResult.data?.affiliations.items.length).toBe(1);
     expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[2].id);

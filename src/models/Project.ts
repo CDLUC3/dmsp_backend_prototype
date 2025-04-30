@@ -51,7 +51,7 @@ export class ProjectSearchResult {
     context: MyContext,
     term: string,
     userId: number,
-    options: PaginationOptions
+    options: PaginationOptions = Project.getDefaultPaginationOptions()
   ): Promise<PaginatedQueryResults<ProjectSearchResult>> {
     const whereFilters = [];
     const values = [];
