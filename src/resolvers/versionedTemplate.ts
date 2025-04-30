@@ -1,4 +1,4 @@
-import { PublishedTemplateResults, Resolvers } from "../types";
+import { Resolvers } from "../types";
 import { VersionedTemplate, VersionedTemplateSearchResult } from "../models/VersionedTemplate";
 import { User } from '../models/User';
 import { MyContext } from "../context";
@@ -9,11 +9,10 @@ import { AuthenticationError, ForbiddenError, InternalServerError } from "../uti
 import { isAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
-import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
-    // Get all of the versions for the specified VersionedTemplate (a.k. the Template history)
+    // Get all of the PublishedTemplates for the specified Template (a.k. the Template history)
     //    - called from the Template history page
     templateVersions: async (_, { templateId }, context: MyContext): Promise<VersionedTemplate[]> => {
       const reference = 'templateVersions resolver';
@@ -33,22 +32,11 @@ export const resolvers: Resolvers = {
 
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
-    publishedTemplates: async (_, { term, cursor, limit }, context: MyContext): Promise<PublishedTemplateResults> => {
+    publishedTemplates: async (_, { term }, context: MyContext): Promise<VersionedTemplateSearchResult[]> => {
       const reference = 'publishedTemplates resolver';
-
       try {
         if (isAdmin(context.token)) {
-          const results = await VersionedTemplateSearchResult.search(reference, context, term);
-          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-          return {
-            versionedTemplates: items,
-            totalCount: results.length,
-            cursor: nextCursor as number,
-            error: {
-              general: error,
-            }
-          }
+          return await VersionedTemplateSearchResult.search(reference, context, term);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

@@ -411,18 +411,6 @@ export type AffiliationSearch = {
   uri: Scalars['String']['output'];
 };
 
-export type AffiliationSearchResults = {
-  __typename?: 'AffiliationSearchResults';
-  /** The list of Affiliation search results */
-  affiliations?: Maybe<Array<Maybe<AffiliationSearch>>>;
-  /** The id of the last Affiliation in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The total number of Affiliation search results */
-  totalCount?: Maybe<Scalars['Int']['output']>;
-};
-
 /** Categories for Affiliation */
 export type AffiliationType =
   | 'ARCHIVE'
@@ -654,18 +642,6 @@ export type LicenseErrors = {
   uri?: Maybe<Scalars['String']['output']>;
 };
 
-export type LicenseSearchResults = {
-  __typename?: 'LicenseSearchResults';
-  /** The id of the last License in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The list of licenses */
-  licenses?: Maybe<Array<Maybe<License>>>;
-  /** The total number of licenses */
-  totalCount?: Maybe<Scalars['Int']['output']>;
-};
-
 /** A metadata standard used when describing a research output */
 export type MetadataStandard = {
   __typename?: 'MetadataStandard';
@@ -703,18 +679,6 @@ export type MetadataStandardErrors = {
   name?: Maybe<Scalars['String']['output']>;
   researchDomainIds?: Maybe<Scalars['String']['output']>;
   uri?: Maybe<Scalars['String']['output']>;
-};
-
-export type MetadataStandardSearchResults = {
-  __typename?: 'MetadataStandardSearchResults';
-  /** The id of the last MetadataStandard in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The list of metadata standards */
-  metadataStandards?: Maybe<Array<Maybe<MetadataStandard>>>;
-  /** The total number of metadata standards */
-  totalCount?: Maybe<Scalars['Int']['output']>;
 };
 
 export type Mutation = {
@@ -1416,12 +1380,6 @@ export type OutputTypeErrors = {
   uri?: Maybe<Scalars['String']['output']>;
 };
 
-export type PaginationError = {
-  __typename?: 'PaginationError';
-  /** The error message */
-  general?: Maybe<Scalars['String']['output']>;
-};
-
 /** A Data Managament Plan (DMP) */
 export type Plan = {
   __typename?: 'Plan';
@@ -2062,44 +2020,6 @@ export type ProjectSearchResultFunder = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
-export type ProjectSearchResults = {
-  __typename?: 'ProjectSearchResults';
-  /** The id of the last ProjectSearchResult in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The list of projects */
-  projects?: Maybe<Array<Maybe<ProjectSearchResult>>>;
-  /** The total number of projects */
-  totalCount?: Maybe<Scalars['Int']['output']>;
-};
-
-/** Paginated results of a search for publishedTemplates query */
-export type PublishedSectionSearchResult = {
-  __typename?: 'PublishedSectionSearchResult';
-  /** The id of the last VersionedSection in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The total number of results */
-  totalCount?: Maybe<Scalars['Int']['output']>;
-  /** The versioned sections */
-  versionedSections?: Maybe<Array<Maybe<VersionedSection>>>;
-};
-
-/** Paginated results of a search for publishedTemplates query */
-export type PublishedTemplateResults = {
-  __typename?: 'PublishedTemplateResults';
-  /** The id of the last VersionedTemplate in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The total number of results */
-  totalCount?: Maybe<Scalars['Int']['output']>;
-  /** The versioned template results */
-  versionedTemplates?: Maybe<Array<Maybe<VersionedTemplateSearchResult>>>;
-};
-
 export type Query = {
   __typename?: 'Query';
   _empty?: Maybe<Scalars['String']['output']>;
@@ -2110,7 +2030,7 @@ export type Query = {
   /** Retrieve all of the valid Affiliation types */
   affiliationTypes?: Maybe<Array<Scalars['String']['output']>>;
   /** Perform a search for Affiliations matching the specified name */
-  affiliations?: Maybe<AffiliationSearchResults>;
+  affiliations?: Maybe<Array<Maybe<AffiliationSearch>>>;
   /** Get all of the comments associated with the round of admin feedback */
   answer?: Maybe<Answer>;
   /** Get all rounds of admin feedback for the plan */
@@ -2130,17 +2050,17 @@ export type Query = {
   /** Fetch a specific license */
   license?: Maybe<License>;
   /** Search for a license */
-  licenses?: Maybe<LicenseSearchResults>;
+  licenses?: Maybe<Array<Maybe<License>>>;
   /** Returns the currently logged in user's information */
   me?: Maybe<User>;
   /** Fetch a specific metadata standard */
   metadataStandard?: Maybe<MetadataStandard>;
   /** Search for a metadata standard */
-  metadataStandards?: Maybe<MetadataStandardSearchResults>;
+  metadataStandards?: Maybe<Array<Maybe<MetadataStandard>>>;
   /** Get all of the user's projects */
-  myProjects?: Maybe<ProjectSearchResults>;
+  myProjects?: Maybe<Array<Maybe<ProjectSearchResult>>>;
   /** Get the Templates that belong to the current user's affiliation (user must be an Admin) */
-  myTemplates?: Maybe<TemplateSearchResults>;
+  myTemplates?: Maybe<Array<Maybe<TemplateSearchResult>>>;
   /** Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin) */
   myVersionedTemplates?: Maybe<Array<Maybe<VersionedTemplateSearchResult>>>;
   /** Get all the research output types */
@@ -2159,7 +2079,7 @@ export type Query = {
   planOutputs?: Maybe<Array<Maybe<ProjectOutput>>>;
   /** Get all plans for the research project */
   plans?: Maybe<Array<PlanSearchResult>>;
-  /** Returns a list of the top 20 funders ranked by popularity (nbr of plans) for the past year */
+  /** Returns a list of funders ranked by popularity (nbr of plans) for the past year */
   popularFunders?: Maybe<Array<Maybe<FunderPopularityResult>>>;
   /** Get a specific project */
   project?: Maybe<Project>;
@@ -2182,9 +2102,9 @@ export type Query = {
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
   publishedQuestions?: Maybe<Array<Maybe<VersionedQuestion>>>;
   /** Search for VersionedSection whose name contains the search term */
-  publishedSections?: Maybe<PublishedSectionSearchResult>;
+  publishedSections?: Maybe<Array<Maybe<VersionedSection>>>;
   /** Search for VersionedTemplate whose name or owning Org's name contains the search term */
-  publishedTemplates?: Maybe<PublishedTemplateResults>;
+  publishedTemplates?: Maybe<Array<Maybe<VersionedTemplateSearchResult>>>;
   /** Get the specific Question based on questionId */
   question?: Maybe<Question>;
   /** Get the QuestionConditions that belong to a specific question */
@@ -2204,7 +2124,7 @@ export type Query = {
   /** Get all the realted works for the Project */
   relatedWorks?: Maybe<Array<Maybe<RelatedWork>>>;
   /** Search for a repository */
-  repositories?: Maybe<RepositorySearchResults>;
+  repositories?: Maybe<Array<Maybe<Repository>>>;
   /** Fetch a specific repository */
   repository?: Maybe<Repository>;
   /** Search for projects within external APIs */
@@ -2227,11 +2147,11 @@ export type Query = {
   /** Get all of the VersionedTemplate for the specified Template (a.k. the Template history) */
   templateVersions?: Maybe<Array<Maybe<VersionedTemplate>>>;
   /** Get all of the top level research domains (the most generic ones) */
-  topLevelResearchDomains?: Maybe<ResearchDomainResults>;
+  topLevelResearchDomains?: Maybe<Array<Maybe<ResearchDomain>>>;
   /** Returns the specified user (Admin only) */
   user?: Maybe<User>;
-  /** Returns all of the users associated with the current admin's affiliation (Super admins get everything) */
-  users?: Maybe<UserResults>;
+  /** Returns all of the users associated with the current user's affiliation (Admin only) */
+  users?: Maybe<Array<Maybe<User>>>;
 };
 
 
@@ -2246,9 +2166,7 @@ export type QueryAffiliationByUriArgs = {
 
 
 export type QueryAffiliationsArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
   funderOnly?: InputMaybe<Scalars['Boolean']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
   name: Scalars['String']['input'];
 };
 
@@ -2292,8 +2210,6 @@ export type QueryLicenseArgs = {
 
 
 export type QueryLicensesArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
   term?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2304,22 +2220,8 @@ export type QueryMetadataStandardArgs = {
 
 
 export type QueryMetadataStandardsArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
   researchDomainId?: InputMaybe<Scalars['Int']['input']>;
   term?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryMyProjectsArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type QueryMyTemplatesArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -2409,15 +2311,11 @@ export type QueryPublishedQuestionsArgs = {
 
 
 export type QueryPublishedSectionsArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
   term: Scalars['String']['input'];
 };
 
 
 export type QueryPublishedTemplatesArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
   term?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2522,21 +2420,8 @@ export type QueryTemplateVersionsArgs = {
 };
 
 
-export type QueryTopLevelResearchDomainsArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
 export type QueryUserArgs = {
   userId: Scalars['Int']['input'];
-};
-
-
-export type QueryUsersArgs = {
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  term?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Question always belongs to a Section, which always belongs to a Template */
@@ -2900,28 +2785,12 @@ export type RepositoryErrors = {
 };
 
 export type RepositorySearchInput = {
-  /** The cursor for pagination */
-  cursor?: InputMaybe<Scalars['Int']['input']>;
-  /** The number of results to return */
-  limit?: InputMaybe<Scalars['Int']['input']>;
   /** The repository category/type */
   repositoryType?: InputMaybe<Scalars['String']['input']>;
   /** The research domain associated with the repository */
   researchDomainId?: InputMaybe<Scalars['Int']['input']>;
   /** The search term */
   term?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type RepositorySearchResults = {
-  __typename?: 'RepositorySearchResults';
-  /** The id of the last Repository in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The list of repositories */
-  repositories?: Maybe<Array<Maybe<Repository>>>;
-  /** The total number of results */
-  totalCount?: Maybe<Scalars['Int']['output']>;
 };
 
 export type RepositoryType =
@@ -2971,18 +2840,6 @@ export type ResearchDomainErrors = {
   name?: Maybe<Scalars['String']['output']>;
   parentResearchDomainId?: Maybe<Scalars['String']['output']>;
   uri?: Maybe<Scalars['String']['output']>;
-};
-
-export type ResearchDomainResults = {
-  __typename?: 'ResearchDomainResults';
-  /** The id of the last ResearchDomain in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The list of research domains */
-  researchDomains?: Maybe<Array<Maybe<ResearchDomain>>>;
-  /** The total number of research domains */
-  totalCount?: Maybe<Scalars['Int']['output']>;
 };
 
 /** A Section that contains a list of questions in a template */
@@ -3214,19 +3071,6 @@ export type TemplateSearchResult = {
   ownerId?: Maybe<Scalars['String']['output']>;
   /** The template's availability setting: Public is available to everyone, Private only your affiliation */
   visibility?: Maybe<TemplateVisibility>;
-};
-
-/** Paginated results of a search for templates */
-export type TemplateSearchResults = {
-  __typename?: 'TemplateSearchResults';
-  /** The id of the last TemplateSearchResult in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The TemplateSearchResults that match the search criteria */
-  templateSearchResults?: Maybe<Array<Maybe<TemplateSearchResult>>>;
-  /** The total number of results */
-  totalCount?: Maybe<Scalars['Int']['output']>;
 };
 
 /** Template version type */
@@ -3566,19 +3410,6 @@ export type UserErrors = {
   surName?: Maybe<Scalars['String']['output']>;
 };
 
-/** Paginated results of a search for users */
-export type UserResults = {
-  __typename?: 'UserResults';
-  /** The id of the last VersionedTemplate in the results */
-  cursor?: Maybe<Scalars['Int']['output']>;
-  /** Any errors associated with the search */
-  error?: Maybe<PaginationError>;
-  /** The total number of results */
-  totalCount?: Maybe<Scalars['Int']['output']>;
-  /** The users that match the search criteria */
-  users?: Maybe<Array<Maybe<User>>>;
-};
-
 /** The types of roles supported by the DMPTool */
 export type UserRole =
   | 'ADMIN'
@@ -3816,8 +3647,6 @@ export type VersionedTemplateSearchResult = {
   __typename?: 'VersionedTemplateSearchResult';
   /** Whether or not this Template is designated as a 'Best Practice' template */
   bestPractice?: Maybe<Scalars['Boolean']['output']>;
-  /** The id of the last VersionedTemplate in the results */
-  cursor?: Maybe<Scalars['String']['output']>;
   /** A description of the purpose of the template */
   description?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
@@ -3937,7 +3766,6 @@ export type ResolversTypes = {
   AffiliationLinkInput: AffiliationLinkInput;
   AffiliationProvenance: AffiliationProvenance;
   AffiliationSearch: ResolverTypeWrapper<AffiliationSearch>;
-  AffiliationSearchResults: ResolverTypeWrapper<AffiliationSearchResults>;
   AffiliationType: AffiliationType;
   Answer: ResolverTypeWrapper<Answer>;
   AnswerComment: ResolverTypeWrapper<AnswerComment>;
@@ -3959,15 +3787,12 @@ export type ResolversTypes = {
   Language: ResolverTypeWrapper<Language>;
   License: ResolverTypeWrapper<License>;
   LicenseErrors: ResolverTypeWrapper<LicenseErrors>;
-  LicenseSearchResults: ResolverTypeWrapper<LicenseSearchResults>;
   MetadataStandard: ResolverTypeWrapper<MetadataStandard>;
   MetadataStandardErrors: ResolverTypeWrapper<MetadataStandardErrors>;
-  MetadataStandardSearchResults: ResolverTypeWrapper<MetadataStandardSearchResults>;
   Mutation: ResolverTypeWrapper<{}>;
   Orcid: ResolverTypeWrapper<Scalars['Orcid']['output']>;
   OutputType: ResolverTypeWrapper<OutputType>;
   OutputTypeErrors: ResolverTypeWrapper<OutputTypeErrors>;
-  PaginationError: ResolverTypeWrapper<PaginationError>;
   Plan: ResolverTypeWrapper<Plan>;
   PlanContributor: ResolverTypeWrapper<PlanContributor>;
   PlanContributorErrors: ResolverTypeWrapper<PlanContributorErrors>;
@@ -4003,9 +3828,6 @@ export type ResolversTypes = {
   ProjectSearchResultCollaborator: ResolverTypeWrapper<ProjectSearchResultCollaborator>;
   ProjectSearchResultContributor: ResolverTypeWrapper<ProjectSearchResultContributor>;
   ProjectSearchResultFunder: ResolverTypeWrapper<ProjectSearchResultFunder>;
-  ProjectSearchResults: ResolverTypeWrapper<ProjectSearchResults>;
-  PublishedSectionSearchResult: ResolverTypeWrapper<PublishedSectionSearchResult>;
-  PublishedTemplateResults: ResolverTypeWrapper<PublishedTemplateResults>;
   Query: ResolverTypeWrapper<{}>;
   Question: ResolverTypeWrapper<Question>;
   QuestionCondition: ResolverTypeWrapper<QuestionCondition>;
@@ -4025,11 +3847,9 @@ export type ResolversTypes = {
   Repository: ResolverTypeWrapper<Repository>;
   RepositoryErrors: ResolverTypeWrapper<RepositoryErrors>;
   RepositorySearchInput: RepositorySearchInput;
-  RepositorySearchResults: ResolverTypeWrapper<RepositorySearchResults>;
   RepositoryType: RepositoryType;
   ResearchDomain: ResolverTypeWrapper<ResearchDomain>;
   ResearchDomainErrors: ResolverTypeWrapper<ResearchDomainErrors>;
-  ResearchDomainResults: ResolverTypeWrapper<ResearchDomainResults>;
   Ror: ResolverTypeWrapper<Scalars['Ror']['output']>;
   Section: ResolverTypeWrapper<Section>;
   SectionErrors: ResolverTypeWrapper<SectionErrors>;
@@ -4043,7 +3863,6 @@ export type ResolversTypes = {
   TemplateCollaboratorErrors: ResolverTypeWrapper<TemplateCollaboratorErrors>;
   TemplateErrors: ResolverTypeWrapper<TemplateErrors>;
   TemplateSearchResult: ResolverTypeWrapper<TemplateSearchResult>;
-  TemplateSearchResults: ResolverTypeWrapper<TemplateSearchResults>;
   TemplateVersionType: TemplateVersionType;
   TemplateVisibility: TemplateVisibility;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
@@ -4064,7 +3883,6 @@ export type ResolversTypes = {
   UserEmail: ResolverTypeWrapper<UserEmail>;
   UserEmailErrors: ResolverTypeWrapper<UserEmailErrors>;
   UserErrors: ResolverTypeWrapper<UserErrors>;
-  UserResults: ResolverTypeWrapper<UserResults>;
   UserRole: UserRole;
   VersionedQuestion: ResolverTypeWrapper<VersionedQuestion>;
   VersionedQuestionCondition: ResolverTypeWrapper<VersionedQuestionCondition>;
@@ -4099,7 +3917,6 @@ export type ResolversParentTypes = {
   AffiliationLink: AffiliationLink;
   AffiliationLinkInput: AffiliationLinkInput;
   AffiliationSearch: AffiliationSearch;
-  AffiliationSearchResults: AffiliationSearchResults;
   Answer: Answer;
   AnswerComment: AnswerComment;
   AnswerCommentErrors: AnswerCommentErrors;
@@ -4119,15 +3936,12 @@ export type ResolversParentTypes = {
   Language: Language;
   License: License;
   LicenseErrors: LicenseErrors;
-  LicenseSearchResults: LicenseSearchResults;
   MetadataStandard: MetadataStandard;
   MetadataStandardErrors: MetadataStandardErrors;
-  MetadataStandardSearchResults: MetadataStandardSearchResults;
   Mutation: {};
   Orcid: Scalars['Orcid']['output'];
   OutputType: OutputType;
   OutputTypeErrors: OutputTypeErrors;
-  PaginationError: PaginationError;
   Plan: Plan;
   PlanContributor: PlanContributor;
   PlanContributorErrors: PlanContributorErrors;
@@ -4158,9 +3972,6 @@ export type ResolversParentTypes = {
   ProjectSearchResultCollaborator: ProjectSearchResultCollaborator;
   ProjectSearchResultContributor: ProjectSearchResultContributor;
   ProjectSearchResultFunder: ProjectSearchResultFunder;
-  ProjectSearchResults: ProjectSearchResults;
-  PublishedSectionSearchResult: PublishedSectionSearchResult;
-  PublishedTemplateResults: PublishedTemplateResults;
   Query: {};
   Question: Question;
   QuestionCondition: QuestionCondition;
@@ -4176,10 +3987,8 @@ export type ResolversParentTypes = {
   Repository: Repository;
   RepositoryErrors: RepositoryErrors;
   RepositorySearchInput: RepositorySearchInput;
-  RepositorySearchResults: RepositorySearchResults;
   ResearchDomain: ResearchDomain;
   ResearchDomainErrors: ResearchDomainErrors;
-  ResearchDomainResults: ResearchDomainResults;
   Ror: Scalars['Ror']['output'];
   Section: Section;
   SectionErrors: SectionErrors;
@@ -4192,7 +4001,6 @@ export type ResolversParentTypes = {
   TemplateCollaboratorErrors: TemplateCollaboratorErrors;
   TemplateErrors: TemplateErrors;
   TemplateSearchResult: TemplateSearchResult;
-  TemplateSearchResults: TemplateSearchResults;
   URL: Scalars['URL']['output'];
   UpdateMetadataStandardInput: UpdateMetadataStandardInput;
   UpdateProjectContributorInput: UpdateProjectContributorInput;
@@ -4211,7 +4019,6 @@ export type ResolversParentTypes = {
   UserEmail: UserEmail;
   UserEmailErrors: UserEmailErrors;
   UserErrors: UserErrors;
-  UserResults: UserResults;
   VersionedQuestion: VersionedQuestion;
   VersionedQuestionCondition: VersionedQuestionCondition;
   VersionedQuestionConditionErrors: VersionedQuestionConditionErrors;
@@ -4314,14 +4121,6 @@ export type AffiliationSearchResolvers<ContextType = MyContext, ParentType exten
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   types?: Resolver<Maybe<Array<ResolversTypes['AffiliationType']>>, ParentType, ContextType>;
   uri?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type AffiliationSearchResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['AffiliationSearchResults'] = ResolversParentTypes['AffiliationSearchResults']> = {
-  affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType>;
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4472,14 +4271,6 @@ export type LicenseErrorsResolvers<ContextType = MyContext, ParentType extends R
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type LicenseSearchResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['LicenseSearchResults'] = ResolversParentTypes['LicenseSearchResults']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  licenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type MetadataStandardResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['MetadataStandard'] = ResolversParentTypes['MetadataStandard']> = {
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -4502,14 +4293,6 @@ export type MetadataStandardErrorsResolvers<ContextType = MyContext, ParentType 
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   researchDomainIds?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   uri?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type MetadataStandardSearchResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['MetadataStandardSearchResults'] = ResolversParentTypes['MetadataStandardSearchResults']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  metadataStandards?: Resolver<Maybe<Array<Maybe<ResolversTypes['MetadataStandard']>>>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4627,11 +4410,6 @@ export type OutputTypeErrorsResolvers<ContextType = MyContext, ParentType extend
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   uri?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type PaginationErrorResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PaginationError'] = ResolversParentTypes['PaginationError']> = {
-  general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5004,36 +4782,12 @@ export type ProjectSearchResultFunderResolvers<ContextType = MyContext, ParentTy
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ProjectSearchResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ProjectSearchResults'] = ResolversParentTypes['ProjectSearchResults']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  projects?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectSearchResult']>>>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type PublishedSectionSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PublishedSectionSearchResult'] = ResolversParentTypes['PublishedSectionSearchResult']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  versionedSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type PublishedTemplateResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PublishedTemplateResults'] = ResolversParentTypes['PublishedTemplateResults']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  versionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplateSearchResult']>>>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type QueryResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
   _empty?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   affiliationById?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByIdArgs, 'affiliationId'>>;
   affiliationByURI?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByUriArgs, 'uri'>>;
   affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
-  affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
+  affiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['AffiliationSearch']>>>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;
   childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;
@@ -5043,12 +4797,12 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   findCollaborator?: Resolver<Maybe<Array<Maybe<ResolversTypes['CollaboratorSearchResult']>>>, ParentType, ContextType, Partial<QueryFindCollaboratorArgs>>;
   languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
   license?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<QueryLicenseArgs, 'uri'>>;
-  licenses?: Resolver<Maybe<ResolversTypes['LicenseSearchResults']>, ParentType, ContextType, Partial<QueryLicensesArgs>>;
+  licenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, Partial<QueryLicensesArgs>>;
   me?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   metadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<QueryMetadataStandardArgs, 'uri'>>;
-  metadataStandards?: Resolver<Maybe<ResolversTypes['MetadataStandardSearchResults']>, ParentType, ContextType, Partial<QueryMetadataStandardsArgs>>;
-  myProjects?: Resolver<Maybe<ResolversTypes['ProjectSearchResults']>, ParentType, ContextType, Partial<QueryMyProjectsArgs>>;
-  myTemplates?: Resolver<Maybe<ResolversTypes['TemplateSearchResults']>, ParentType, ContextType, Partial<QueryMyTemplatesArgs>>;
+  metadataStandards?: Resolver<Maybe<Array<Maybe<ResolversTypes['MetadataStandard']>>>, ParentType, ContextType, Partial<QueryMetadataStandardsArgs>>;
+  myProjects?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectSearchResult']>>>, ParentType, ContextType>;
+  myTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateSearchResult']>>>, ParentType, ContextType>;
   myVersionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplateSearchResult']>>>, ParentType, ContextType>;
   outputTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['OutputType']>>>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
@@ -5069,8 +4823,8 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   projectOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryProjectOutputsArgs, 'projectId'>>;
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
-  publishedSections?: Resolver<Maybe<ResolversTypes['PublishedSectionSearchResult']>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
-  publishedTemplates?: Resolver<Maybe<ResolversTypes['PublishedTemplateResults']>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
+  publishedSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
+  publishedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplateSearchResult']>>>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
   question?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<QueryQuestionArgs, 'questionId'>>;
   questionConditions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryQuestionConditionsArgs, 'questionId'>>;
   questionOption?: Resolver<Maybe<ResolversTypes['QuestionOption']>, ParentType, ContextType, RequireFields<QueryQuestionOptionArgs, 'id'>>;
@@ -5080,7 +4834,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   recommendedLicenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, RequireFields<QueryRecommendedLicensesArgs, 'recommended'>>;
   relatedWork?: Resolver<Maybe<ResolversTypes['RelatedWork']>, ParentType, ContextType, RequireFields<QueryRelatedWorkArgs, 'id'>>;
   relatedWorks?: Resolver<Maybe<Array<Maybe<ResolversTypes['RelatedWork']>>>, ParentType, ContextType, Partial<QueryRelatedWorksArgs>>;
-  repositories?: Resolver<Maybe<ResolversTypes['RepositorySearchResults']>, ParentType, ContextType, RequireFields<QueryRepositoriesArgs, 'input'>>;
+  repositories?: Resolver<Maybe<Array<Maybe<ResolversTypes['Repository']>>>, ParentType, ContextType, RequireFields<QueryRepositoriesArgs, 'input'>>;
   repository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, RequireFields<QueryRepositoryArgs, 'uri'>>;
   searchExternalProjects?: Resolver<Maybe<Array<Maybe<ResolversTypes['ExternalProject']>>>, ParentType, ContextType, RequireFields<QuerySearchExternalProjectsArgs, 'affiliationId'>>;
   section?: Resolver<Maybe<ResolversTypes['Section']>, ParentType, ContextType, RequireFields<QuerySectionArgs, 'sectionId'>>;
@@ -5092,9 +4846,9 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   template?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<QueryTemplateArgs, 'templateId'>>;
   templateCollaborators?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateCollaborator']>>>, ParentType, ContextType, RequireFields<QueryTemplateCollaboratorsArgs, 'templateId'>>;
   templateVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryTemplateVersionsArgs, 'templateId'>>;
-  topLevelResearchDomains?: Resolver<Maybe<ResolversTypes['ResearchDomainResults']>, ParentType, ContextType, Partial<QueryTopLevelResearchDomainsArgs>>;
+  topLevelResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
-  users?: Resolver<Maybe<ResolversTypes['UserResults']>, ParentType, ContextType, Partial<QueryUsersArgs>>;
+  users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
 };
 
 export type QuestionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Question'] = ResolversParentTypes['Question']> = {
@@ -5257,14 +5011,6 @@ export type RepositoryErrorsResolvers<ContextType = MyContext, ParentType extend
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type RepositorySearchResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['RepositorySearchResults'] = ResolversParentTypes['RepositorySearchResults']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  repositories?: Resolver<Maybe<Array<Maybe<ResolversTypes['Repository']>>>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type ResearchDomainResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ResearchDomain'] = ResolversParentTypes['ResearchDomain']> = {
   childResearchDomains?: Resolver<Maybe<Array<ResolversTypes['ResearchDomain']>>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -5288,14 +5034,6 @@ export type ResearchDomainErrorsResolvers<ContextType = MyContext, ParentType ex
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   parentResearchDomainId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   uri?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ResearchDomainResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ResearchDomainResults'] = ResolversParentTypes['ResearchDomainResults']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  researchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5435,14 +5173,6 @@ export type TemplateSearchResultResolvers<ContextType = MyContext, ParentType ex
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type TemplateSearchResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['TemplateSearchResults'] = ResolversParentTypes['TemplateSearchResults']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  templateSearchResults?: Resolver<Maybe<Array<Maybe<ResolversTypes['TemplateSearchResult']>>>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export interface UrlScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['URL'], any> {
   name: 'URL';
 }
@@ -5521,14 +5251,6 @@ export type UserErrorsResolvers<ContextType = MyContext, ParentType extends Reso
   role?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   ssoId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type UserResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['UserResults'] = ResolversParentTypes['UserResults']> = {
-  cursor?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  error?: Resolver<Maybe<ResolversTypes['PaginationError']>, ParentType, ContextType>;
-  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  users?: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5667,7 +5389,6 @@ export type VersionedTemplateErrorsResolvers<ContextType = MyContext, ParentType
 
 export type VersionedTemplateSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedTemplateSearchResult'] = ResolversParentTypes['VersionedTemplateSearchResult']> = {
   bestPractice?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
-  cursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -5691,7 +5412,6 @@ export type Resolvers<ContextType = MyContext> = {
   AffiliationErrors?: AffiliationErrorsResolvers<ContextType>;
   AffiliationLink?: AffiliationLinkResolvers<ContextType>;
   AffiliationSearch?: AffiliationSearchResolvers<ContextType>;
-  AffiliationSearchResults?: AffiliationSearchResultsResolvers<ContextType>;
   Answer?: AnswerResolvers<ContextType>;
   AnswerComment?: AnswerCommentResolvers<ContextType>;
   AnswerCommentErrors?: AnswerCommentErrorsResolvers<ContextType>;
@@ -5709,15 +5429,12 @@ export type Resolvers<ContextType = MyContext> = {
   Language?: LanguageResolvers<ContextType>;
   License?: LicenseResolvers<ContextType>;
   LicenseErrors?: LicenseErrorsResolvers<ContextType>;
-  LicenseSearchResults?: LicenseSearchResultsResolvers<ContextType>;
   MetadataStandard?: MetadataStandardResolvers<ContextType>;
   MetadataStandardErrors?: MetadataStandardErrorsResolvers<ContextType>;
-  MetadataStandardSearchResults?: MetadataStandardSearchResultsResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Orcid?: GraphQLScalarType;
   OutputType?: OutputTypeResolvers<ContextType>;
   OutputTypeErrors?: OutputTypeErrorsResolvers<ContextType>;
-  PaginationError?: PaginationErrorResolvers<ContextType>;
   Plan?: PlanResolvers<ContextType>;
   PlanContributor?: PlanContributorResolvers<ContextType>;
   PlanContributorErrors?: PlanContributorErrorsResolvers<ContextType>;
@@ -5747,9 +5464,6 @@ export type Resolvers<ContextType = MyContext> = {
   ProjectSearchResultCollaborator?: ProjectSearchResultCollaboratorResolvers<ContextType>;
   ProjectSearchResultContributor?: ProjectSearchResultContributorResolvers<ContextType>;
   ProjectSearchResultFunder?: ProjectSearchResultFunderResolvers<ContextType>;
-  ProjectSearchResults?: ProjectSearchResultsResolvers<ContextType>;
-  PublishedSectionSearchResult?: PublishedSectionSearchResultResolvers<ContextType>;
-  PublishedTemplateResults?: PublishedTemplateResultsResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   Question?: QuestionResolvers<ContextType>;
   QuestionCondition?: QuestionConditionResolvers<ContextType>;
@@ -5763,10 +5477,8 @@ export type Resolvers<ContextType = MyContext> = {
   RelatedWorkErrors?: RelatedWorkErrorsResolvers<ContextType>;
   Repository?: RepositoryResolvers<ContextType>;
   RepositoryErrors?: RepositoryErrorsResolvers<ContextType>;
-  RepositorySearchResults?: RepositorySearchResultsResolvers<ContextType>;
   ResearchDomain?: ResearchDomainResolvers<ContextType>;
   ResearchDomainErrors?: ResearchDomainErrorsResolvers<ContextType>;
-  ResearchDomainResults?: ResearchDomainResultsResolvers<ContextType>;
   Ror?: GraphQLScalarType;
   Section?: SectionResolvers<ContextType>;
   SectionErrors?: SectionErrorsResolvers<ContextType>;
@@ -5777,14 +5489,12 @@ export type Resolvers<ContextType = MyContext> = {
   TemplateCollaboratorErrors?: TemplateCollaboratorErrorsResolvers<ContextType>;
   TemplateErrors?: TemplateErrorsResolvers<ContextType>;
   TemplateSearchResult?: TemplateSearchResultResolvers<ContextType>;
-  TemplateSearchResults?: TemplateSearchResultsResolvers<ContextType>;
   URL?: GraphQLScalarType;
   UpdateRelatedWorkInput?: UpdateRelatedWorkInputResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   UserEmail?: UserEmailResolvers<ContextType>;
   UserEmailErrors?: UserEmailErrorsResolvers<ContextType>;
   UserErrors?: UserErrorsResolvers<ContextType>;
-  UserResults?: UserResultsResolvers<ContextType>;
   VersionedQuestion?: VersionedQuestionResolvers<ContextType>;
   VersionedQuestionCondition?: VersionedQuestionConditionResolvers<ContextType>;
   VersionedQuestionConditionErrors?: VersionedQuestionConditionErrorsResolvers<ContextType>;

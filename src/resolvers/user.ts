@@ -1,4 +1,4 @@
-import { Resolvers, UserResults } from "../types";
+import { Resolvers } from "../types";
 import { MyContext } from '../context';
 import { User } from '../models/User';
 import { UserEmail } from "../models/UserEmail";
@@ -10,7 +10,6 @@ import { anonymizeUser, mergeUsers } from "../services/userService";
 import { processOtherAffiliationName } from "../services/affiliationService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
-import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -32,31 +31,12 @@ export const resolvers: Resolvers = {
 
     // Should only be callable by an Admin. Super returns all users, Admin gets only
     // the users associated with their affiliationId
-    users: async (_, { term, cursor, limit }, context): Promise<UserResults> => {
+    users: async (_, __, context): Promise<User[]> => {
       const reference = 'users resolver';
       try {
-        let results;
-
-        if (isSuperAdmin(context.token)) {
-          results = await User.search(reference, context, term);
-
-        } else if (isAdmin(context.token)) {
-          results = await User.findByAffiliationId(reference, context, context.token.affiliationId, term);
+        if (isAdmin(context.token)) {
+          return await User.findByAffiliationId(reference, context, context.token.affiliationId);
         }
-
-        if (results) {
-          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-          return {
-            users: items,
-            totalCount: results.length,
-            cursor: nextCursor as number,
-            error: {
-              general: error,
-            }
-          }
-        }
-
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

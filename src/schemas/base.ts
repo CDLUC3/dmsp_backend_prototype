@@ -20,9 +20,4 @@ export const typeDefs = gql`
   type Mutation {
     _empty: String
   }
-
-  type PaginationError {
-    "The error message"
-    general: String
-  }
 `;

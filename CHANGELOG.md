@@ -1,6 +1,5 @@
 ### Added
 - Added `popularFunders` query to the `affiliations` resolver
-- Added `paginateResults` helper function to `MySQLModel`.
 - Added `accessLevel` to projectCollaborator and removed `userId`
 - Added new resolvers related to `projectCollaborators`. Also, when project is created, automatically add user as `projectCollaborator` with `access level`= `OWN`
 - Added dynamoDb to the docker-compose file and setup dev to use the local instance
@@ -77,7 +76,6 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
-- Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
 - Format ORCID identifiers consistently, in the `Contributor` and `User` models, the `projectImport` resolver and `orcid` scalar.
 - Changed a number of GraphQL definitions to PascalCase.
 - Fixed projectCollaborators table which had an FKey on the plans table instead of the projects table

@@ -1,34 +1,20 @@
 
 import { formatLogMessage } from '../logger';
-import { MetadataStandardSearchResults, Resolvers } from "../types";
+import { Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_METADATA_STANDARD_URL, MetadataStandard } from "../models/MetadataStandard";
 import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { GraphQLError } from 'graphql';
-import { paginateResults } from '../services/paginationService';
 
 export const resolvers: Resolvers = {
   Query: {
     // searches the metadata standards table or returns all standards if no critieria is specified
-    metadataStandards: async (_, { term, researchDomainId, cursor, limit }, context: MyContext): Promise<MetadataStandardSearchResults> => {
+    metadataStandards: async (_, { term, researchDomainId }, context: MyContext): Promise<MetadataStandard[]> => {
       const reference = 'metadataStandards resolver';
       try {
-        const results = await MetadataStandard.search(reference, context, term, researchDomainId);
-
-        if (results) {
-          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-          return {
-            metadataStandards: items,
-            totalCount: results.length,
-            cursor: nextCursor as number,
-            error: {
-              general: error,
-            }
-          }
-        }
+        return await MetadataStandard.search(reference, context, term, researchDomainId);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();

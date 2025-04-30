@@ -5,7 +5,7 @@ export const typeDefs = gql`
     "Get all of the VersionedSection for the specified Section ID"
     sectionVersions(sectionId: Int!): [VersionedSection]
     "Search for VersionedSection whose name contains the search term"
-    publishedSections(term: String!, cursor: Int, limit: Int): PublishedSectionSearchResult
+    publishedSections(term: String!): [VersionedSection]
   }
 
   "Section version type"
@@ -50,18 +50,6 @@ export const typeDefs = gql`
 
     "The questions associated with this VersionedSection"
     versionedQuestions: [VersionedQuestion!]
-  }
-
-  "Paginated results of a search for publishedTemplates query"
-  type PublishedSectionSearchResult {
-    "The versioned sections"
-    versionedSections: [VersionedSection]
-    "The total number of results"
-    totalCount: Int
-    "The id of the last VersionedSection in the results"
-    cursor: Int
-    "Any errors associated with the search"
-    error: PaginationError
   }
 
   "A collection of errors related to the VersionedSection"
