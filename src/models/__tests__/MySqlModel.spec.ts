@@ -4,6 +4,7 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 import { generalConfig } from '../../config/generalConfig';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
 
 jest.mock('../../dataSources/mysql', () => {
   return {
@@ -459,6 +460,7 @@ describe('queryWithPagination', () => {
     const groupByClause = 'GROUP BY field';
     const values = ['value'];
     const options = {
+      type: 'CURSOR',
       cursorField: 'id',
       limit: 10,
       cursor: '5',
@@ -614,7 +616,7 @@ describe('paginatedQueryByOffset', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      options as PaginationOptionsForOffsets,
       reference
     );
 
@@ -669,7 +671,7 @@ describe('paginatedQueryByOffset', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      options as PaginationOptionsForOffsets,
       reference
     );
 
@@ -708,7 +710,7 @@ describe('paginatedQueryByOffset', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      options as PaginationOptionsForOffsets,
       reference
     );
 
@@ -749,7 +751,7 @@ describe('paginatedQueryByOffset', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      options as PaginationOptionsForOffsets,
       reference
     );
 
@@ -819,7 +821,7 @@ describe('paginatedQueryByCursor', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      options as PaginationOptionsForCursors,
       reference
     );
 
@@ -874,7 +876,7 @@ describe('paginatedQueryByCursor', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      options as PaginationOptionsForCursors,
       reference
     );
 
@@ -913,7 +915,7 @@ describe('paginatedQueryByCursor', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      options as PaginationOptionsForCursors,
       reference
     );
 
@@ -953,7 +955,7 @@ describe('paginatedQueryByCursor', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      options as PaginationOptionsForCursors,
       reference
     );
 

@@ -302,7 +302,7 @@ When calling one of the queries that supports pagination, you pass in a set of `
 
 For example this query sends cursor information to get the first 20 affiliations matching the criteria:
 ```
-query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions, PaginationOptions){
+query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions: PaginationOptions){
   affiliations(name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
     limit
     totalCount
@@ -324,7 +324,7 @@ The `hasNextPage` flag in the response indicates whether there are more items av
 
 This query sends offset information to get the first 20 affiliations matching the criteria:
 ```
-query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions, PaginationOptions){
+query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions: PaginationOptions){
   affiliations(name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
     limit
     totalCount

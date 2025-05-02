@@ -9,6 +9,8 @@ import { hasPermissionOnSection } from "../services/sectionService";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -36,7 +38,11 @@ export const resolvers: Resolvers = {
     publishedSections: async (_, { term, paginationOptions }, context: MyContext): Promise<PublishedSectionSearchResults> => {
       const reference = 'publishedSections resolver';
       try {
-        return await VersionedSection.findByName(reference, context, term, paginationOptions);
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                    ? paginationOptions as PaginationOptionsForOffsets
+                    : paginationOptions as PaginationOptionsForCursors;
+
+        return await VersionedSection.findByName(reference, context, term, opts);
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 

@@ -10,6 +10,8 @@ import { anonymizeUser, mergeUsers } from "../services/userService";
 import { processOtherAffiliationName } from "../services/affiliationService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -34,11 +36,15 @@ export const resolvers: Resolvers = {
     users: async (_, { term, paginationOptions }, context): Promise<UserSearchResults> => {
       const reference = 'users resolver';
       try {
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                    ? paginationOptions as PaginationOptionsForOffsets
+                    : paginationOptions as PaginationOptionsForCursors;
+
         if (isSuperAdmin(context.token)) {
-          return await User.search(reference, context, term, paginationOptions);
+          return await User.search(reference, context, term, opts);
 
         } else if (isAdmin(context.token)) {
-          return await User.findByAffiliationId(reference, context, context.token.affiliationId, term, paginationOptions);
+          return await User.findByAffiliationId(reference, context, context.token.affiliationId, term, opts);
         }
 
         // Unauthorized!

@@ -16,6 +16,8 @@ import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTempl
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
 import { generalConfig } from "../config/generalConfig";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -24,12 +26,16 @@ export const resolvers: Resolvers = {
       const reference = 'myTemplates resolver';
       try {
         if (isAdmin(context.token)) {
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : paginationOptions as PaginationOptionsForCursors;
+
           return await TemplateSearchResult.findByAffiliationIdAndTerm(
             reference,
             context,
             context.token.affiliationId,
             term,
-            paginationOptions,
+            opts,
           );
         }
         // Unauthorized!
@@ -289,7 +295,7 @@ export const resolvers: Resolvers = {
     // Chained resolver to fetch the admins associated with the template's owner
     admins: async (parent: Template, _, context: MyContext): Promise<User[]> => {
       if (parent.ownerId) {
-        const opts = { cursor: null, limit: generalConfig.maximumSearchLimit };
+        const opts = { type: PaginationType.CURSOR, cursor: null, limit: generalConfig.maximumSearchLimit };
         const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId, null, opts);
         return Array.isArray(results.items) ? results.items.filter((user) => user.role === UserRole.ADMIN) : [];
       }

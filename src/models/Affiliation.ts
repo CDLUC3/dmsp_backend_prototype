@@ -1,7 +1,7 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
-import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { formatLogMessage } from "../logger";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
@@ -345,26 +345,33 @@ export class AffiliationSearch {
       values.push(`%${searchTerm}%`);
     }
     if (funderOnly) {
-      whereFilters.push('funder = 1');
+      whereFilters.push('a.funder = 1');
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['a.displayName', 'a.created'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
     }
 
     // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 'a.displayName';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
-
-    const sqlStatement = 'SELECT a.* FROM affiliations a';
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'a.displayName';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
 
     // Specify the field we want to use for the count
-    options.countField = 'a.id';
+    opts.countField = 'a.id';
 
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['a.displayName', 'a.created'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))';
-    }
+    const sqlStatement = 'SELECT a.* FROM affiliations a';
 
     const response: PaginatedQueryResults<AffiliationSearch> = await Affiliation.queryWithPagination(
       context,
@@ -372,7 +379,7 @@ export class AffiliationSearch {
       whereFilters,
       '',
       values,
-      options,
+      opts,
       reference,
     )
 

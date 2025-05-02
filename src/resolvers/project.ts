@@ -15,8 +15,9 @@ import { ContributorRole } from '../models/ContributorRole';
 import { GraphQLError } from 'graphql';
 import { Plan, PlanSearchResult } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
-import { normaliseDate } from '../utils/helpers';
+import { isNullOrUndefined, normaliseDate } from '../utils/helpers';
 import { parseContributor } from '../services/commonStandardService';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -25,7 +26,11 @@ export const resolvers: Resolvers = {
       const reference = 'myProjects resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await ProjectSearchResult.search(reference, context, term, context.token?.id, paginationOptions);
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : paginationOptions as PaginationOptionsForCursors;
+
+          return await ProjectSearchResult.search(reference, context, term, context.token?.id, opts);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

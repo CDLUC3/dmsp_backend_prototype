@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
@@ -142,23 +142,30 @@ export class License extends MySqlModel {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 'l.name';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['l.name', 'l.created', 'l.recommended'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(l.name, l.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
 
-    const sqlStatement = 'SELECT l.* FROM licenses l';
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'l.name';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
 
     // Specify the field we want to use for the count
-    options.countField = 'l.id';
+    opts.countField = 'l.id';
 
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['l.name', 'l.created', 'l.recommended'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(l.name, l.id), \' \', \'_\'))';
-    }
+    const sqlStatement = 'SELECT l.* FROM licenses l';
 
     const response: PaginatedQueryResults<License> = await License.queryWithPagination(
       context,
@@ -166,7 +173,7 @@ export class License extends MySqlModel {
       whereFilters,
       '',
       values,
-      options,
+      opts,
       reference,
     )
 

@@ -1,5 +1,5 @@
 import casual from "casual";
-import { getCurrentDate } from "../../utils/helpers";
+import { getCurrentDate, isNullOrUndefined } from "../../utils/helpers";
 import {
   addEntryToMockTable,
   addMockTableStore,
@@ -22,7 +22,7 @@ import {
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
 import { PaginationOptions } from "../../types";
-import { PaginatedQueryResults } from "../../types/general";
+import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../../types/general";
 
 export const getAffiliationStore = () => {
   return getMockTableStore('affiliations');
@@ -113,7 +113,7 @@ export const mockAffiliationSearch = async (
   __,
   name: string,
   funderOnly = false,
-  paginationOptions: PaginationOptions = { cursor: null, limit: 3 }
+  paginationOptions: PaginationOptions = { type: PaginationType.CURSOR, cursor: null, limit: 3 }
 ): Promise<PaginatedQueryResults<AffiliationSearch>> => {
   const affiliations = findEntriesInMockTableByFilter(
     'affiliations',
@@ -121,7 +121,10 @@ export const mockAffiliationSearch = async (
   );
   // If funderOnly is true, filter the affiliations to only include funders
   const results = funderOnly ? affiliations.filter((entry) => entry.funder) : affiliations;
-  const paginatedResults = paginate(results, paginationOptions);
+  const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+    ? paginationOptions as PaginationOptionsForOffsets
+    : paginationOptions as PaginationOptionsForCursors;
+  const paginatedResults = paginate(results, opts);
   return {
     ...paginatedResults,
     items: paginatedResults.items.map((entry) => { return new AffiliationSearch(entry) }),

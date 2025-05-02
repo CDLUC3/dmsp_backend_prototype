@@ -1,10 +1,11 @@
 import { formatLogMessage } from "../logger";
 import { MyContext } from '../context';
-import { isNullOrUndefined, validateDate } from "../utils/helpers";
+import { validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
 import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets } from "../types/general";
 import { generalConfig } from "../config/generalConfig";
+import { PaginationOptions } from "../types";
 
 type MixedArray<T> = T[];
 
@@ -144,7 +145,7 @@ export class MySqlModel {
     return {
       limit: generalConfig.defaultSearchLimit,
       cursor: null,
-    };
+    } as PaginationOptionsForCursors;
   }
 
   // Determine the pagination limit base on the provided limit or the default
@@ -239,12 +240,12 @@ export class MySqlModel {
     whereFilters: string[],
     groupByClause: string,
     values: string[],
-    options: PaginationOptionsForOffsets,
+    options: PaginationOptions,
     reference = 'undefined caller',
   ): Promise<PaginatedQueryResults<T>> {
     try {
       // If the options contain a cursorField then this is a cursor-based query
-      if ('cursorField' in options && !isNullOrUndefined(options.cursorField)) {
+      if (options.type === 'CURSOR') {
         return await this.paginatedQueryByCursor(
           apolloContext,
           sqlStatement,

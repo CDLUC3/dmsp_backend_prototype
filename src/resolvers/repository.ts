@@ -6,8 +6,9 @@ import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
-import { stringToEnumValue } from '../utils/helpers';
+import { isNullOrUndefined, stringToEnumValue } from '../utils/helpers';
 import { GraphQLError } from 'graphql';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -18,7 +19,12 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const { term, researchDomainId, repositoryType, paginationOptions } = input
           const repoType = stringToEnumValue(RepositoryType, repositoryType);
-          return await Repository.search(reference, context, term, researchDomainId, repoType, paginationOptions);
+
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : paginationOptions as PaginationOptionsForCursors;
+
+          return await Repository.search(reference, context, term, researchDomainId, repoType, opts);
         }
         // Unauthorized access
         throw context?.token ? ForbiddenError() : AuthenticationError();

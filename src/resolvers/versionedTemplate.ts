@@ -9,6 +9,8 @@ import { AuthenticationError, ForbiddenError, InternalServerError } from "../uti
 import { isAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -37,7 +39,11 @@ export const resolvers: Resolvers = {
 
       try {
         if (isAdmin(context.token)) {
-          return await VersionedTemplateSearchResult.search(reference, context, term, paginationOptions);
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : paginationOptions as PaginationOptionsForCursors;
+
+          return await VersionedTemplateSearchResult.search(reference, context, term, opts);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

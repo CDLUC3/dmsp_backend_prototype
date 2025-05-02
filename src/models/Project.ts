@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 export class ProjectSearchResult {
@@ -63,9 +63,28 @@ export class ProjectSearchResult {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['p.title', 'p.created', 'p.modified', 'p.startDate', 'p.endDate', 'p.isTestProject'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(p.modified, p.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
     // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 'p.modified';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'p.modified';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the totalCount
+    opts.countField = 'p.id';
 
     // If a userId was provided, add it to the filters
     if (userId) {
@@ -111,25 +130,13 @@ export class ProjectSearchResult {
     const groupByClause = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
                           'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description ';
 
-    // Specify the field we want to use for the totalCount
-    options.countField = 'p.id';
-
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['p.title', 'p.created', 'p.modified', 'p.startDate', 'p.endDate', 'p.isTestProject'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(p.modified, p.id), \' \', \'_\'))';
-    }
-
     const response: PaginatedQueryResults<ProjectSearchResult> = await Project.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,
       groupByClause,
       values,
-      options,
+      opts,
       reference,
     )
 

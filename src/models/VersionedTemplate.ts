@@ -2,7 +2,7 @@ import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
-import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { formatLogMessage } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 
@@ -62,9 +62,28 @@ export class VersionedTemplateSearchResult {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['vt.name', 'vt.created', 'vt.visibility', 'vt.bestPractice', 'vt.modified'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
     // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 'vt.modified';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'vt.modified';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'vt.id';
 
     const sqlStatement = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, \
                             vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, \
@@ -74,27 +93,13 @@ export class VersionedTemplateSearchResult {
                             LEFT JOIN users u ON u.id = vt.modifiedById \
                             LEFT JOIN affiliations a ON a.uri = vt.ownerId';
 
-    // Specify the field we want to use for the count
-    options.countField = 'vt.id';
-
-    // if the options are of type PaginationOptionsForCursors
-
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['vt.name', 'vt.created', 'vt.visibility', 'vt.bestPractice', 'vt.modified'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))';
-    }
-
     const response: PaginatedQueryResults<VersionedTemplateSearchResult> = await VersionedTemplate.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,
       '',
       values,
-      options,
+      opts,
       reference,
     )
 

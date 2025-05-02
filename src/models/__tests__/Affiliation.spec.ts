@@ -462,7 +462,7 @@ describe('search', () => {
     const term = 'Test';
     const result = await AffiliationSearch.search('Test', context, term, true);
     const sql = 'SELECT a.* FROM affiliations a';
-    const whereFilters = ['a.active = 1', '(LOWER(a.searchName) LIKE ?)', 'funder = 1'];
+    const whereFilters = ['a.active = 1', '(LOWER(a.searchName) LIKE ?)', 'a.funder = 1'];
     const vals = [`%${term.toLowerCase().trim()}%`];
     const opts = {
       cursor: null,

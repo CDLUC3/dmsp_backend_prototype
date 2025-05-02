@@ -1,6 +1,6 @@
 import casual from "casual";
 import { getCurrentDate, isNullOrUndefined } from "../../utils/helpers";
-import { PaginationOptions, PaginationOptionsForOffsets, PaginationOptionsForCursors } from '../../types/general';
+import { PaginationOptionsForOffsets, PaginationOptionsForCursors } from '../../types/general';
 
 const mockTableStores = {};
 
@@ -121,15 +121,15 @@ export const findEntriesInMockTableByFilter = (tableName, criteria) => {
 }
 
 // Simulate pagination of the results returned from a query
-export const paginate = (results, paginationOptions: PaginationOptions) => {
+export const paginate = (results, paginationOptions: PaginationOptionsForCursors | PaginationOptionsForOffsets) => {
   let paginatedResults = [];
   const totalCount = results.length;
   const finalId = results.length > 0 ? results[results.length - 1].id : null;
 
   if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
-    paginatedResults = paginateByOffset(results, paginationOptions);
+    paginatedResults = paginateByOffset(results, paginationOptions as PaginationOptionsForOffsets);
   } else {
-    paginatedResults = paginateByCursor(results, paginationOptions);
+    paginatedResults = paginateByCursor(results, paginationOptions as PaginationOptionsForCursors);
   }
 
   const lastId = paginatedResults.length > 0 ? paginatedResults[paginatedResults.length - 1].id : null;

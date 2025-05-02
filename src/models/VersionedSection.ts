@@ -2,7 +2,7 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
 import { Tag } from "../models/Tag";
-import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { formatLogMessage } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 
@@ -98,23 +98,30 @@ export class VersionedSection extends MySqlModel {
       values.push(`%${searchTerm}%`);
     }
 
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 'vs.name';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['vs.name', 'vs.created'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
 
-    const sqlStatement = 'SELECT vs.* FROM versionedSections vs';
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'vs.name';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
 
     // Specify the field we want to use for the count
-    options.countField = 'vs.id';
+    opts.countField = 'vs.id';
 
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['vs.name', 'vs.created'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\'))';
-    }
+    const sqlStatement = 'SELECT vs.* FROM versionedSections vs';
 
     const response: PaginatedQueryResults<VersionedSection> = await VersionedSection.queryWithPagination(
       context,
@@ -122,7 +129,7 @@ export class VersionedSection extends MySqlModel {
       whereFilters,
       '',
       values,
-      options,
+      opts,
       reference,
     )
 

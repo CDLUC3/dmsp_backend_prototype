@@ -7,7 +7,7 @@ import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
-import { PaginatedQueryResults, PaginationOptions } from '../types/general';
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -195,23 +195,30 @@ export class User extends MySqlModel {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
 
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 'u.created';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'CONCAT(u.email, u.id)',
+      } as PaginationOptionsForCursors;
+    }
 
-    const sqlStatement = 'SELECT u.* FROM users u';
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'u.created';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
 
     // Specify the field we want to use for the count
-    options.countField = 'u.id';
+    opts.countField = 'u.id';
 
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'CONCAT(u.email, u.id)';
-    }
+    const sqlStatement = 'SELECT u.* FROM users u';
 
     const response: PaginatedQueryResults<User> = await User.queryWithPagination(
       context,
@@ -219,7 +226,7 @@ export class User extends MySqlModel {
       whereFilters,
       '',
       values,
-      options,
+      opts,
       reference,
     )
 
@@ -244,23 +251,30 @@ export class User extends MySqlModel {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
 
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 'u.created';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'CONCAT(u.email, u.id)',
+      } as PaginationOptionsForCursors;
+    }
 
-    const sqlStatement = 'SELECT u.* FROM users u LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri';
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'u.created';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
 
     // Specify the field we want to use for the count
-    options.countField = 'u.id';
+    opts.countField = 'u.id';
 
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'CONCAT(u.email, u.id)';
-    }
+    const sqlStatement = 'SELECT u.* FROM users u LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri';
 
     const response: PaginatedQueryResults<User> = await User.queryWithPagination(
       context,
@@ -268,7 +282,7 @@ export class User extends MySqlModel {
       whereFilters,
       '',
       values,
-      options,
+      opts,
       reference,
     )
 

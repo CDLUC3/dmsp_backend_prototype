@@ -21,8 +21,17 @@ export const typeDefs = gql`
     _empty: String
   }
 
+  enum PaginationType {
+    "Standard pagination using offsets (first, next, previous, last)"
+    OFFSET
+    "Cursor-based pagination (infinite scroll/load more)"
+    CURSOR
+  }
+
   "Pagination options, either cursor-based (inifite-scroll) or offset-based pagination (standard first, next, etc.)"
   input PaginationOptions {
+    "The type of pagination to use (cursor or offset)"
+    type: String = "CURSOR"
     "The number of items to return"
     limit: Int
     "The cursor to start the pagination from (used for cursor infinite scroll/load more only!)"

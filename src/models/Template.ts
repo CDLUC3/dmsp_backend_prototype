@@ -1,5 +1,5 @@
 import { MyContext } from "../context";
-import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { defaultLanguageId, supportedLanguages } from "./Language";
 import { MySqlModel } from "./MySqlModel";
 import { formatLogMessage } from "../logger";
@@ -66,9 +66,28 @@ export class TemplateSearchResult {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['t.name', 't.created', 't.visibility', 't.bestPractice', 't.latestPublishDate'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(t.modified, t.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
     // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 't.modified';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 't.modified';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 't.id';
 
     const sqlStatement = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
                                 't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
@@ -79,25 +98,13 @@ export class TemplateSearchResult {
                             'INNER JOIN users cu ON cu.id = t.createdById ' +
                             'INNER JOIN users mu ON mu.id = t.modifiedById';
 
-    // Specify the field we want to use for the count
-    options.countField = 't.id';
-
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['t.name', 't.created', 't.visibility', 't.bestPractice', 't.latestPublishDate'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(t.modified, t.id), \' \', \'_\'))';
-    }
-
     const response: PaginatedQueryResults<TemplateSearchResult> = await Template.queryWithPagination(
       context,
       sqlStatement,
       whereFilters,
       '',
       values,
-      options,
+      opts,
       reference,
     )
 

@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { PaginatedQueryResults, PaginationOptions } from "../types/general";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { ResearchDomain } from "./ResearchDomain";
@@ -206,24 +206,31 @@ export class Repository extends MySqlModel {
       values.push(researchDomainId.toString());
     }
 
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['r.name', 'r.created'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
     // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(options.sortField)) options.sortField = 'r.name';
-    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'r.name';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'r.id';
 
     const sqlStatement = 'SELECT r.* FROM repositories r ' +
                           'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
-
-    // Specify the field we want to use for the count
-    options.countField = 'r.id';
-
-    // if the options are of type PaginationOptionsForOffsets
-    if ('offset' in options && !isNullOrUndefined(options.offset)) {
-      // Specify the fields available for sorting
-      options.availableSortFields = ['r.name', 'r.created'];
-    } else if ('cursor' in options) {
-      // Specify the field we want to use for the cursor (should typically match the sort field)
-      options.cursorField = 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))';
-    }
 
     const response: PaginatedQueryResults<Repository> = await Repository.queryWithPagination(
       context,
@@ -231,7 +238,7 @@ export class Repository extends MySqlModel {
       whereFilters,
       '',
       values,
-      options,
+      opts,
       reference,
     )
 

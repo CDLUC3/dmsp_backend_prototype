@@ -7,6 +7,8 @@ import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { GraphQLError } from 'graphql';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import { isNullOrUndefined } from '../utils/helpers';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -15,7 +17,11 @@ export const resolvers: Resolvers = {
       const reference = 'metadataStandards resolver';
       const { term, researchDomainId, paginationOptions } = params;
       try {
-        return await MetadataStandard.search(reference, context, term, researchDomainId, paginationOptions);
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                    ? paginationOptions as PaginationOptionsForOffsets
+                    : paginationOptions as PaginationOptionsForCursors;
+
+        return await MetadataStandard.search(reference, context, term, researchDomainId, opts);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();

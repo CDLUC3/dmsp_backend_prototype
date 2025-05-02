@@ -1469,7 +1469,15 @@ export type PaginationOptions = {
   sortDir?: InputMaybe<Scalars['String']['input']>;
   /** The sort field (used for standard offset pagination only!) */
   sortField?: InputMaybe<Scalars['String']['input']>;
+  /** The type of pagination to use (cursor or offset) */
+  type?: InputMaybe<Scalars['String']['input']>;
 };
+
+export type PaginationType =
+  /** Cursor-based pagination (infinite scroll/load more) */
+  | 'CURSOR'
+  /** Standard pagination using offsets (first, next, previous, last) */
+  | 'OFFSET';
 
 /** A Data Managament Plan (DMP) */
 export type Plan = {
@@ -4061,6 +4069,7 @@ export type ResolversTypes = {
   OutputTypeErrors: ResolverTypeWrapper<OutputTypeErrors>;
   PaginatedQueryResults: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['PaginatedQueryResults']>;
   PaginationOptions: PaginationOptions;
+  PaginationType: PaginationType;
   Plan: ResolverTypeWrapper<Plan>;
   PlanContributor: ResolverTypeWrapper<PlanContributor>;
   PlanContributorErrors: ResolverTypeWrapper<PlanContributorErrors>;

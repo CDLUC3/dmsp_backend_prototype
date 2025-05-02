@@ -1,24 +1,31 @@
 export type PaginationOptions = PaginationOptionsForOffsets | PaginationOptionsForCursors;
 
+export enum PaginationType {
+  OFFSET = 'OFFSET', // Standard pagination using offsets (first, next, previous, last)
+  CURSOR = 'CURSOR', // Cursor-based pagination (infinite scroll/load more)
+}
+
 // The options for a paginated query using offsets (useful when using: pages, next/previous buttons).
 export interface PaginationOptionsForOffsets {
+  type: PaginationType.OFFSET;    // Discriminator for offset-based pagination
   limit?: number;                 // The number of items to return (integer)
   offset?: number;                // Used for offset pagination for standard pagination (integer)
   countField?: string;            // The field to count for totalCount (string)
   sortField?: string;             // The field to sort by (string)
-  sortDir?: string;             // The order to sort by (must be 'ASC' or 'DESC')
+  sortDir?: string;               // The order to sort by (must be 'ASC' or 'DESC')
   availableSortFields?: string[]; // The available sort fields (string array)
 }
 
 // The options for a paginatated query using cursors (useful when using: infinite scroll / load more).
 // Note that cursor-base pagination cannot support sort options!
 export interface PaginationOptionsForCursors {
+  type: PaginationType.CURSOR;  // Discriminator for cursor-based pagination
   limit?: number;               // The number of items to return (integer)
   cursor?: string;              // Used for cursor-based pagination for endless scroll functionality (ISO string)
   cursorField?: string;         // The field to use for cursor-based pagination (string)
   countField?: string;          // The field to count for totalCount (string)
   sortField?: string;           // The field to sort by (string)
-  sortDir?: string;           // The order to sort by (must be 'ASC' or 'DESC')
+  sortDir?: string;             // The order to sort by (must be 'ASC' or 'DESC')
 }
 
 // The results of a query that supports pagination.
