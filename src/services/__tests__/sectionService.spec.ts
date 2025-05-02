@@ -123,7 +123,7 @@ describe('cloneSection', () => {
     expect(copy.id).toBeFalsy();
     expect(copy.sourceSectionId).toEqual(section.id);
     expect(copy.templateId).toEqual(templateId);
-    expect(copy.name).toEqual(`Copy of ${section.name}`);
+    expect(copy.name).toEqual(section.name);
     expect(copy.introduction).toEqual(introduction);
     expect(copy.requirements).toEqual(requirements);
     expect(copy.guidance).toEqual(guidance);
@@ -153,7 +153,7 @@ describe('cloneSection', () => {
     expect(copy).toBeInstanceOf(Section);
     expect(copy.id).toBeFalsy();
     expect(copy.sourceSectionId).toEqual(published.sectionId);
-    expect(copy.name).toEqual(`Copy of ${published.name}`);
+    expect(copy.name).toEqual(published.name);
     expect(copy.introduction).toEqual(published.introduction);
     expect(copy.requirements).toEqual(published.requirements);
     expect(copy.guidance).toEqual(published.guidance);

@@ -2,10 +2,10 @@ import gql from "graphql-tag";
 
 export const typeDefs = gql`
   extend type Query {
-    "Get all answers for the given project and plan and section"
+    "Get all rounds of admin feedback for the plan"
     answers(projectId: Int!, planId: Int!, versionedSectionId: Int!): [Answer]
 
-    "Get the sepecific answer"
+    "Get all of the comments associated with the round of admin feedback"
     answer(projectId: Int!, answerId: Int!): Answer
   }
 

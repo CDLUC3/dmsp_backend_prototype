@@ -1,33 +1,19 @@
 
 import { formatLogMessage } from '../logger';
-import { LicenseSearchResults, Resolvers } from "../types";
+import { Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_LICENSE_URL, License } from "../models/License";
 import { MyContext } from '../context';
 import { isAdmin, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { GraphQLError } from 'graphql';
-import { paginateResults } from '../services/paginationService';
 
 export const resolvers: Resolvers = {
   Query: {
     // searches the licenses table or returns all licenses if no critieria is specified
-    licenses: async (_, { term, cursor, limit }, context: MyContext): Promise<LicenseSearchResults> => {
+    licenses: async (_, { term }, context: MyContext): Promise<License[]> => {
       const reference = 'licenses resolver';
       try {
-        const results =  await License.search(reference, context, term);
-
-        if (results) {
-          const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
-
-          return {
-            licenses: items,
-            totalCount: results.length,
-            cursor: nextCursor as number,
-            error: {
-              general: error,
-            }
-          }
-        }
+        return await License.search(reference, context, term);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();

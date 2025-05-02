@@ -6,7 +6,7 @@ import {typeDefs as funderTypeDefs} from "./funder"
 export const projectTypeDefs = gql`
   extend type Query {
     "Get all of the user's projects"
-    myProjects(cursor: Int, limit: Int): ProjectSearchResults
+    myProjects: [ProjectSearchResult]
 
     "Get a specific project"
     project(projectId: Int!): Project
@@ -61,17 +61,6 @@ export const projectTypeDefs = gql`
     funders: [ProjectSearchResultFunder!]
     "Search results errors"
     errors: ProjectErrors
-  }
-
-  type ProjectSearchResults {
-    "The list of projects"
-    projects: [ProjectSearchResult]
-    "The id of the last ProjectSearchResult in the results"
-    cursor: Int
-    "The total number of projects"
-    totalCount: Int
-    "Any errors associated with the search"
-    error: PaginationError
   }
 
   "DMP Tool Project type"

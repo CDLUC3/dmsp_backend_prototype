@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Search for a repository"
-    repositories(input: RepositorySearchInput!): RepositorySearchResults
+    repositories(input: RepositorySearchInput!): [Repository]
     "Fetch a specific repository"
     repository(uri: String!): Repository
   }
@@ -60,17 +60,6 @@ export const typeDefs = gql`
     repositoryTypes: [RepositoryType!]
   }
 
-  type RepositorySearchResults {
-    "The list of repositories"
-    repositories: [Repository]
-    "The total number of results"
-    totalCount: Int
-    "The id of the last Repository in the results"
-    cursor: Int
-    "Any errors associated with the search"
-    error: PaginationError
-  }
-
   "A collection of errors related to the Repository"
   type RepositoryErrors {
     "General error messages such as the object already exists"
@@ -92,10 +81,6 @@ export const typeDefs = gql`
     repositoryType: String
     "The research domain associated with the repository"
     researchDomainId: Int
-    "The cursor for pagination"
-    cursor: Int
-    "The number of results to return"
-    limit: Int
   }
 
   input AddRepositoryInput {
