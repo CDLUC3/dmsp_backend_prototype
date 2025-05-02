@@ -1,0 +1,1 @@
+UPDATE plans SET status = 'COMPLETE' WHERE status = 'PUBLISHED';
