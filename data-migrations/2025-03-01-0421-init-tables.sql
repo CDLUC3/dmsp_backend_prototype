@@ -499,14 +499,13 @@ CREATE TABLE IF NOT EXISTS `templateCollaborators` (
   `templateId` INT NOT NULL,
   `email` VARCHAR(255) NOT NULL,
   `invitedById` INT NOT NULL,
-  `userId` INT NOT NULL,
+  `userId` INT,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById` int NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` int NOT NULL,
   CONSTRAINT unique_template_collaborator UNIQUE (`templateId`, `email`),
-  INDEX templateCollaborators_email_idx (`email`),
-  INDEX templateCollaborators_user_idx (`userId`)
+  INDEX templateCollaborators_email_idx (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
 
 CREATE TABLE IF NOT EXISTS `templates` (
