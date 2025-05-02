@@ -22,7 +22,7 @@ export const resolvers: Resolvers = {
 
           const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
                       ? paginationOptions as PaginationOptionsForOffsets
-                      : paginationOptions as PaginationOptionsForCursors;
+                      : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
           return await Repository.search(reference, context, term, researchDomainId, repoType, opts);
         }

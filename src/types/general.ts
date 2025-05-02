@@ -7,7 +7,7 @@ export enum PaginationType {
 
 // The options for a paginated query using offsets (useful when using: pages, next/previous buttons).
 export interface PaginationOptionsForOffsets {
-  type: PaginationType.OFFSET;    // Discriminator for offset-based pagination
+  type: PaginationType;           // Discriminator for offset-based pagination
   limit?: number;                 // The number of items to return (integer)
   offset?: number;                // Used for offset pagination for standard pagination (integer)
   countField?: string;            // The field to count for totalCount (string)
@@ -19,7 +19,7 @@ export interface PaginationOptionsForOffsets {
 // The options for a paginatated query using cursors (useful when using: infinite scroll / load more).
 // Note that cursor-base pagination cannot support sort options!
 export interface PaginationOptionsForCursors {
-  type: PaginationType.CURSOR;  // Discriminator for cursor-based pagination
+  type: PaginationType;         // Discriminator for cursor-based pagination
   limit?: number;               // The number of items to return (integer)
   cursor?: string;              // Used for cursor-based pagination for endless scroll functionality (ISO string)
   cursorField?: string;         // The field to use for cursor-based pagination (string)

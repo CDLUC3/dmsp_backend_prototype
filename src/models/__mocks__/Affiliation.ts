@@ -123,7 +123,7 @@ export const mockAffiliationSearch = async (
   const results = funderOnly ? affiliations.filter((entry) => entry.funder) : affiliations;
   const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
     ? paginationOptions as PaginationOptionsForOffsets
-    : paginationOptions as PaginationOptionsForCursors;
+    : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
   const paginatedResults = paginate(results, opts);
   return {
     ...paginatedResults,

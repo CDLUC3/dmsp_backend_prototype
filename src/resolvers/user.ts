@@ -38,7 +38,7 @@ export const resolvers: Resolvers = {
       try {
         const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
                     ? paginationOptions as PaginationOptionsForOffsets
-                    : paginationOptions as PaginationOptionsForCursors;
+                    : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
         if (isSuperAdmin(context.token)) {
           return await User.search(reference, context, term, opts);

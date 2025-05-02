@@ -28,7 +28,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
                       ? paginationOptions as PaginationOptionsForOffsets
-                      : paginationOptions as PaginationOptionsForCursors;
+                      : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
           return await ProjectSearchResult.search(reference, context, term, context.token?.id, opts);
         }

@@ -373,6 +373,11 @@ export class AffiliationSearch {
 
     const sqlStatement = 'SELECT a.* FROM affiliations a';
 
+console.log('sqlStatement', sqlStatement);
+console.log('whereFilters', whereFilters);
+console.log('values', values);
+console.log('opts', opts);
+
     const response: PaginatedQueryResults<AffiliationSearch> = await Affiliation.queryWithPagination(
       context,
       sqlStatement,
