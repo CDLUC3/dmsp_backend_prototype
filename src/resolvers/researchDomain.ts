@@ -1,19 +1,33 @@
-import { Resolvers } from "../types";
+import { ResearchDomainResults, Resolvers } from "../types";
 import { ResearchDomain } from "../models/ResearchDomain";
 import { MyContext } from '../context';
 import { AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
 import { isAuthorized } from "../services/authService";
 import { GraphQLError } from "graphql";
+import { paginateResults } from "../services/paginationService";
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the top level research domains
-    topLevelResearchDomains: async (_, __, context: MyContext): Promise<ResearchDomain[]> => {
+    topLevelResearchDomains: async (_, { cursor, limit }, context: MyContext): Promise<ResearchDomainResults> => {
       const reference = 'topLevelResearchDomains resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await ResearchDomain.topLevelDomains(reference, context);
+          const results = await ResearchDomain.topLevelDomains(reference, context);
+
+          if (results) {
+            const { items, nextCursor, error } = paginateResults(results, cursor, 'id', limit);
+
+            return {
+              researchDomains: items,
+              totalCount: results.length,
+              cursor: nextCursor as number,
+              error: {
+                general: error,
+              }
+            }
+          }
         }
         throw AuthenticationError();
       } catch (err) {
@@ -49,4 +63,3 @@ export const resolvers: Resolvers = {
     },
   },
 };
-

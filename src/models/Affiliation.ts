@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { randomHex, validateURL } from "../utils/helpers";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
@@ -114,7 +114,7 @@ export class Affiliation extends MySqlModel {
   // Convert the name, homepage, acronyms and aliases into a search string
   buildSearchName(): string {
     const parts = [this.name, this.getDomain(), this.acronyms, this.aliases];
-    return parts.flat().filter((item) => item).join(' | ').substring(0, 249);
+    return parts.flat().filter((item) => !isNullOrUndefined(item)).join(' | ').substring(0, 249);
   }
 
   // Get the domain from the homepage
@@ -348,6 +348,44 @@ export class AffiliationSearch {
       return results.map((entry) => { return AffiliationSearch.processResult(entry) });
     }
 
+    return [];
+  }
+}
+
+// Funder popularity result based on the number of plans associated with the funder over the past year
+export class PopularFunder {
+  public id: number;
+  public uri: string;
+  public displayName: string;
+  public nbrPlans: number;
+
+  constructor(options) {
+    this.id = options.id;
+    this.uri = options.uri;
+    this.displayName = options.displayName;
+    this.nbrPlans = options.nbrPlans;
+  }
+
+  static async top20(context: MyContext): Promise<PopularFunder[]> {
+    // Get the date range for the past year
+    const today = new Date();
+    const lastYear = new Date();
+    lastYear.setFullYear(today.getFullYear() - 1);
+    const startDate = lastYear.toISOString().split('T')[0];
+    const endDate = today.toISOString().split('T')[0];
+
+    // Get the top 20 funders based on the number of plans created in the past year
+    const sql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
+                'FROM affiliations a ' +
+                'LEFT JOIN projectFunders pf ON pf.affiliationId = a.uri ' +
+                'LEFT JOIN projects p ON p.id = pf.projectId ' +
+                'WHERE a.active = 1 AND a.funder = 1 AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? ' +
+                'GROUP BY a.id, a.uri, a.displayName ' +
+                'ORDER BY nbrPlans DESC LIMIT 20';
+    const results = await Affiliation.query(context, sql, [startDate, endDate], 'PopularFunder.top20');
+    if (Array.isArray(results) && results.length > 0) {
+      return results.map((entry) => { return new PopularFunder(entry) });
+    }
     return [];
   }
 }

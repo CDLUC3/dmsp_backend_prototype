@@ -5,6 +5,8 @@
 ### Added
 - Added `aws-process.sh` to allow migrations to be run in the AWS environment
 - Added `init-tables` and `init-seed` data migration files
+- Added `popularFunders` query to the `affiliations` resolver
+- Added `paginateResults` helper function to `MySQLModel`.
 - Added `accessLevel` to projectCollaborator and removed `userId`
 - Added new resolvers related to `projectCollaborators`. Also, when project is created, automatically add user as `projectCollaborator` with `access level`= `OWN`
 - Added dynamoDb to the docker-compose file and setup dev to use the local instance
@@ -83,6 +85,7 @@
 ### Updated
 - Renamed the `outputTypes` table to `projectOutputTypes`
 - Updated `buildspec` to allow for a "MODE" env variable to be set so that we can run migrations, tests and the build separately
+- Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
 - Format ORCID identifiers consistently, in the `Contributor` and `User` models, the `projectImport` resolver and `orcid` scalar.
 - Changed a number of GraphQL definitions to PascalCase.
 - Fixed projectCollaborators table which had an FKey on the plans table instead of the projects table
@@ -131,20 +134,15 @@
 - added bestPractice flag to the Section
 
 ### Removed
-<<<<<<< HEAD
 - Dropped all previous `data-migration` files in favor of the new `init-tables` and `init-seed` files
-=======
-<<<<<<< HEAD
 - Dropped the `PlanVersion` table
-=======
 - Removed `prepareAPITarget` function.
->>>>>>> development
->>>>>>> development
 - Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
 - Removed old `dmphubAPI` datasource and renamed `dmptoolAPI` to `dmpHubAPI`
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- Fixed an issue where adding `projectCollaborators` was failing due to the fact that the `userId` field was required. This should not be required to add a new collaborator [#260]
 - When calling `updatePlanContributors`, the resolver should set isPrimaryContact to `false` for all contributors other than the one marked as isPrimary.
 - Fixed an issue where Jest tests failed on Linux due to case-sensitive file paths. The tests passed on macOS because its file system is case-insensitive by default.
 - Fixed bugs related to addPlanContributor and updatePlanContributor since these were not working without missing contributorRoles

@@ -16,6 +16,7 @@ jest.mock('../../dataSources/mysql', () => {
 });
 
 class TestImplementation extends MySqlModel {
+  public name: string;
   public testA: string;
   public testB: number;
   public testC: string[];
@@ -26,6 +27,7 @@ class TestImplementation extends MySqlModel {
   constructor(opts) {
     super(opts.id, opts.created, opts.createdById, opts.modified, opts.modifiedById);
 
+    this.name = opts.name ?? casual.sentence;
     this.testA = opts.testA;
     this.testB = opts.testB;
     this.testC = opts.testC;
