@@ -12,7 +12,7 @@ export const typeDefs = gql`
     "Create a new Template. Leave the 'copyFromTemplateId' blank to create a new template from scratch"
     addTemplate(name: String!, copyFromTemplateId: Int): Template
     "Update a Template"
-    updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!, bestPractice: Boolean): Template
+    updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!, bestPractice: Boolean!): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
     archiveTemplate(templateId: Int!): Template
 

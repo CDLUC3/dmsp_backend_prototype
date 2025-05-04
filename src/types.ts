@@ -1324,7 +1324,7 @@ export type MutationUpdateTagArgs = {
 
 
 export type MutationUpdateTemplateArgs = {
-  bestPractice?: InputMaybe<Scalars['Boolean']['input']>;
+  bestPractice: Scalars['Boolean']['input'];
   name: Scalars['String']['input'];
   templateId: Scalars['Int']['input'];
   visibility: TemplateVisibility;
@@ -2079,7 +2079,7 @@ export type Query = {
   planOutputs?: Maybe<Array<Maybe<ProjectOutput>>>;
   /** Get all plans for the research project */
   plans?: Maybe<Array<PlanSearchResult>>;
-  /** Returns a list of funders ranked by popularity (nbr of plans) for the past year */
+  /** Returns a list of the top 20 funders ranked by popularity (nbr of plans) for the past year */
   popularFunders?: Maybe<Array<Maybe<FunderPopularityResult>>>;
   /** Get a specific project */
   project?: Maybe<Project>;
@@ -4382,7 +4382,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, Partial<MutationUpdateRepositoryArgs>>;
   updateSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationUpdateSectionArgs, 'input'>>;
   updateTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationUpdateTagArgs, 'name' | 'tagId'>>;
-  updateTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationUpdateTemplateArgs, 'name' | 'templateId' | 'visibility'>>;
+  updateTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationUpdateTemplateArgs, 'bestPractice' | 'name' | 'templateId' | 'visibility'>>;
   updateUserNotifications?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserNotificationsArgs, 'input'>>;
   updateUserProfile?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserProfileArgs, 'input'>>;
   uploadPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUploadPlanArgs, 'projectId'>>;
