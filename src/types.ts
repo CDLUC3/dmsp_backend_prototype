@@ -2079,7 +2079,7 @@ export type Query = {
   planOutputs?: Maybe<Array<Maybe<ProjectOutput>>>;
   /** Get all plans for the research project */
   plans?: Maybe<Array<PlanSearchResult>>;
-  /** Returns a list of funders ranked by popularity (nbr of plans) for the past year */
+  /** Returns a list of the top 20 funders ranked by popularity (nbr of plans) for the past year */
   popularFunders?: Maybe<Array<Maybe<FunderPopularityResult>>>;
   /** Get a specific project */
   project?: Maybe<Project>;
