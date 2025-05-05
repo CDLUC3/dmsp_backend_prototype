@@ -148,7 +148,9 @@ export const resolvers: Resolvers = {
           const templateInstance = new Template({ ...template });
 
           // Only allow the bestPractice flag to be changed if the user is a Super admin!
-          templateInstance.bestPractice = isSuperAdmin(context.token) ? bestPractice : template.bestPractice;
+          templateInstance.bestPractice = isSuperAdmin(context.token) && bestPractice !== undefined
+            ? bestPractice
+            : template.bestPractice;
 
           if (templateInstance) {
             if (await hasPermissionOnTemplate(context, template)) {
