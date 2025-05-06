@@ -2,6 +2,54 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
 import { Tag } from "../models/Tag";
+import { isNullOrUndefined } from "../utils/helpers";
+
+// Search result for VersionedTemplates
+export class VersionedSectionSearchResult {
+  public id: number;
+  public modified: string;
+  public created: string;
+  public name: string;
+  public introduction?: string;
+  public displayOrder: number;
+  public bestPractice: boolean;
+  public versionedTemplateId: number;
+  public versionedTemplateName: string;
+  public versionedQuestionCount: number;
+
+  constructor(options) {
+    this.id = options.id;
+    this.modified = options.modified;
+    this.created = options.created;
+    this.name = options.name;
+    this.introduction = options.introduction;
+    this.displayOrder = options.displayOrder ?? 0;
+    this.bestPractice = options.bestPractice ?? false;
+    this.versionedTemplateId = options.versionedTemplateId;
+    this.versionedTemplateName = options.versionedTemplateName;
+    this.versionedQuestionCount = options.versionedQuestionCount ?? 0;
+  }
+
+  // Find all of the high level details about the published templates matching the search term
+  static async search(reference: string, context: MyContext, term: string): Promise<VersionedSectionSearchResult[]> {
+    const sql = `
+      SELECT vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice,
+              vt.id as versionedTemplateId, vt.name as versionedTemplateName,
+              COUNT(vq.id) as versionedQuestionCount
+        FROM versionedSections vs
+          INNER JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
+          LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
+        WHERE vs.name LIKE ? AND (vt.ownerId = ? OR vt.bestPractice = 1)
+        GROUP BY vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice,
+              vt.id, vt.name
+        ORDER BY vs.modified DESC;
+    `;
+    const searchTerm = (isNullOrUndefined(term) ? '': term).toLowerCase().trim();
+    const vals = [`%${searchTerm}%`, context?.token?.affiliationId];
+    const results = await VersionedSection.query(context, sql, vals, reference);
+    return Array.isArray(results) ? results.map((entry) => new VersionedSectionSearchResult(entry)) : [];
+  }
+}
 
 export class VersionedSection extends MySqlModel {
   public versionedTemplateId: number;
