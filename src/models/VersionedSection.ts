@@ -2,6 +2,7 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
 import { Tag } from "../models/Tag";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export class VersionedSection extends MySqlModel {
   public versionedTemplateId: number;
@@ -84,5 +85,21 @@ export class VersionedSection extends MySqlModel {
     const vals = [`%${term}%`];
     const results = await VersionedSection.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : null;
+  }
+
+  // Find all VersionedSections by name and affiliation
+  static async findByNameAndAffiliation(reference: string, context: MyContext, term: string): Promise<VersionedSection[]> {
+    const affiliationId = context?.token?.affiliationId;
+    const searchTerm = (isNullOrUndefined(term) ? '' : term).toLowerCase().trim();
+    const sql = `
+      SELECT vs.*
+        FROM versionedSections vs
+          INNER JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
+        WHERE vs.name LIKE ? AND vt.ownerId = ?
+        ORDER BY vs.modified DESC;
+    `;
+    const vals = [`%${searchTerm}%`, affiliationId];
+    const results = await VersionedSection.query(context, sql, vals, reference);
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : [];
   }
 }

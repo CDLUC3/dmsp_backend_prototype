@@ -133,6 +133,61 @@ the getVersionedSectionsBySectionId method returns an empty array for tags, and 
   });
 });
 
+describe('findByNameAndAffiliation', () => {
+  const originalQuery = VersionedSection.query;
+
+  let localQuery;
+  let context;
+  let versionedSection;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (VersionedSection.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    versionedSection = new VersionedSection({
+      name: casual.sentence,
+      introduction: casual.sentence,
+      requirements: casual.sentence,
+      guidance: casual.sentence,
+      displayOrder: casual.integer(1, 20),
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    VersionedSection.query = originalQuery;
+  });
+
+  it('findByNameAndAffiliation should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([versionedSection]);
+    const affiliationId = context.token?.affiliationId;
+    const searchTerm = 'tesTIing';
+    const result = await VersionedSection.findByNameAndAffiliation('testing', context, searchTerm);
+    const expectedSql = `
+      SELECT vs.*
+        FROM versionedSections vs
+          INNER JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
+        WHERE vs.name LIKE ? AND vt.ownerId = ?
+        ORDER BY vs.modified DESC;
+    `;
+    const vals = [`%${searchTerm.toLowerCase()}%`, affiliationId];
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
+    expect(result).toEqual([versionedSection]);
+  });
+
+  it('findByNameAndAffiliation should return empty array if it finds no default', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const searchTerm = 'tesTIing';
+    const result = await VersionedSection.findByNameAndAffiliation('testing', context, searchTerm);
+    expect(result).toEqual([]);
+  });
+});
+
 describe('findByTemplateId', () => {
   const originalQuery = VersionedSection.query;
 

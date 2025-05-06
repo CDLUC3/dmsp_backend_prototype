@@ -36,8 +36,8 @@ export const resolvers: Resolvers = {
     publishedSections: async (_, { term }, context: MyContext): Promise<VersionedSection[]> => {
       const reference = 'publishedSections resolver';
       try {
-        // Find published versionedSections with similar names
-        return await VersionedSection.findByName(reference, context, term);
+        // Find published versionedSections with similar names for the current user
+        return await VersionedSection.findByNameAndAffiliation(reference, context, term);
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
