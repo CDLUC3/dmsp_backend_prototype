@@ -1,10 +1,10 @@
-import { Resolvers } from "../types";
+import { ReorderQuestionsResult, Resolvers } from "../types";
 import { MyContext } from "../context";
 import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
 import { Template } from "../models/Template";
-import { getQuestionOptionsToRemove } from "../services/questionService";
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
+import { getQuestionOptionsToRemove, updateDisplayOrders } from "../services/questionService";
+import { AuthenticationError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 import { formatLogMessage } from "../logger";
 import { isAdmin, isAuthorized } from "../services/authService";
@@ -268,6 +268,55 @@ export const resolvers: Resolvers = {
 
           // Refetch the question or the updated question with errors
           return updatedQuestion.hasErrors() ? updatedQuestion : await Question.findById(reference, context, questionId);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Change the section's display order
+    updateQuestionDisplayOrder: async (
+      _,
+      { questionId, newDisplayOrder },
+      context: MyContext
+    ): Promise<ReorderQuestionsResult> => {
+      const reference = 'updateQuestionDisplayOrder resolver';
+      try {
+        if (isAdmin(context.token)) {
+          // Find the question that is being repositioned
+          const question = await Question.findById(reference, context, questionId);
+
+          if (!question) {
+            throw NotFoundError();
+          }
+
+          // Check that the new display order has actually changed
+          if (question.displayOrder === newDisplayOrder) {
+            throw BadRequestError('The new display order is the same as the current one');
+          }
+
+          // Check that user has permission to update this question
+          if (!await hasPermissionOnSection(context, question.templateId)) {
+            try {
+              // Reorder the sections
+              const reordered = await updateDisplayOrders(
+                context,
+                question.sectionId,
+                questionId,
+                newDisplayOrder
+              );
+
+              return { questions: reordered ?? [] };
+
+            } catch (err) {
+              formatLogMessage(context).error(err, `${reference} failed: questionId: ${questionId}`);
+              return { questions: [], errors: { general: err.message } };
+            }
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

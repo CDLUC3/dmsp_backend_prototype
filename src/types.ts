@@ -842,6 +842,8 @@ export type Mutation = {
   updateQuestion: Question;
   /** Update a QuestionCondition for a specific QuestionCondition id */
   updateQuestionCondition?: Maybe<QuestionCondition>;
+  /** Change the question's display order */
+  updateQuestionDisplayOrder: ReorderQuestionsResult;
   /** Update a QuestionOption */
   updateQuestionOption: QuestionOption;
   /** Update a related work on the research project */
@@ -850,6 +852,8 @@ export type Mutation = {
   updateRepository?: Maybe<Repository>;
   /** Update a Section */
   updateSection: Section;
+  /** Change the section's display order */
+  updateSectionDisplayOrder: ReorderSectionsResult;
   /** Update a tag */
   updateTag?: Maybe<Tag>;
   /** Update a Template */
@@ -1296,6 +1300,12 @@ export type MutationUpdateQuestionConditionArgs = {
 };
 
 
+export type MutationUpdateQuestionDisplayOrderArgs = {
+  newDisplayOrder: Scalars['Int']['input'];
+  questionId: Scalars['Int']['input'];
+};
+
+
 export type MutationUpdateQuestionOptionArgs = {
   input: UpdateQuestionOptionInput;
 };
@@ -1313,6 +1323,12 @@ export type MutationUpdateRepositoryArgs = {
 
 export type MutationUpdateSectionArgs = {
   input: UpdateSectionInput;
+};
+
+
+export type MutationUpdateSectionDisplayOrderArgs = {
+  newDisplayOrder: Scalars['Int']['input'];
+  sectionId: Scalars['Int']['input'];
 };
 
 
@@ -2079,7 +2095,7 @@ export type Query = {
   planOutputs?: Maybe<Array<Maybe<ProjectOutput>>>;
   /** Get all plans for the research project */
   plans?: Maybe<Array<PlanSearchResult>>;
-  /** Returns a list of funders ranked by popularity (nbr of plans) for the past year */
+  /** Returns a list of the top 20 funders ranked by popularity (nbr of plans) for the past year */
   popularFunders?: Maybe<Array<Maybe<FunderPopularityResult>>>;
   /** Get a specific project */
   project?: Maybe<Project>;
@@ -2738,6 +2754,24 @@ export type RelatedWorkType =
   | 'STUDY_REGISTRATION'
   | 'TEXT'
   | 'WORKFLOW';
+
+/** The results of reordering the questions */
+export type ReorderQuestionsResult = {
+  __typename?: 'ReorderQuestionsResult';
+  /** Error messages */
+  errors?: Maybe<QuestionErrors>;
+  /** The reordered sections */
+  questions?: Maybe<Array<Question>>;
+};
+
+/** The results of reordering the sections */
+export type ReorderSectionsResult = {
+  __typename?: 'ReorderSectionsResult';
+  /** Error messages */
+  errors?: Maybe<SectionErrors>;
+  /** The reordered sections */
+  sections?: Maybe<Array<Section>>;
+};
 
 /** A repository where research outputs are preserved */
 export type Repository = {
@@ -3844,6 +3878,8 @@ export type ResolversTypes = {
   RelatedWorkDescriptor: RelatedWorkDescriptor;
   RelatedWorkErrors: ResolverTypeWrapper<RelatedWorkErrors>;
   RelatedWorkType: RelatedWorkType;
+  ReorderQuestionsResult: ResolverTypeWrapper<ReorderQuestionsResult>;
+  ReorderSectionsResult: ResolverTypeWrapper<ReorderSectionsResult>;
   Repository: ResolverTypeWrapper<Repository>;
   RepositoryErrors: ResolverTypeWrapper<RepositoryErrors>;
   RepositorySearchInput: RepositorySearchInput;
@@ -3984,6 +4020,8 @@ export type ResolversParentTypes = {
   QuestionTypeErrors: QuestionTypeErrors;
   RelatedWork: RelatedWork;
   RelatedWorkErrors: RelatedWorkErrors;
+  ReorderQuestionsResult: ReorderQuestionsResult;
+  ReorderSectionsResult: ReorderSectionsResult;
   Repository: Repository;
   RepositoryErrors: RepositoryErrors;
   RepositorySearchInput: RepositorySearchInput;
@@ -4377,10 +4415,12 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateProjectOutput?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationUpdateProjectOutputArgs, 'input'>>;
   updateQuestion?: Resolver<ResolversTypes['Question'], ParentType, ContextType, RequireFields<MutationUpdateQuestionArgs, 'input'>>;
   updateQuestionCondition?: Resolver<Maybe<ResolversTypes['QuestionCondition']>, ParentType, ContextType, RequireFields<MutationUpdateQuestionConditionArgs, 'input'>>;
+  updateQuestionDisplayOrder?: Resolver<ResolversTypes['ReorderQuestionsResult'], ParentType, ContextType, RequireFields<MutationUpdateQuestionDisplayOrderArgs, 'newDisplayOrder' | 'questionId'>>;
   updateQuestionOption?: Resolver<ResolversTypes['QuestionOption'], ParentType, ContextType, RequireFields<MutationUpdateQuestionOptionArgs, 'input'>>;
   updateRelatedWork?: Resolver<Maybe<ResolversTypes['RelatedWork']>, ParentType, ContextType, RequireFields<MutationUpdateRelatedWorkArgs, 'input'>>;
   updateRepository?: Resolver<Maybe<ResolversTypes['Repository']>, ParentType, ContextType, Partial<MutationUpdateRepositoryArgs>>;
   updateSection?: Resolver<ResolversTypes['Section'], ParentType, ContextType, RequireFields<MutationUpdateSectionArgs, 'input'>>;
+  updateSectionDisplayOrder?: Resolver<ResolversTypes['ReorderSectionsResult'], ParentType, ContextType, RequireFields<MutationUpdateSectionDisplayOrderArgs, 'newDisplayOrder' | 'sectionId'>>;
   updateTag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType, RequireFields<MutationUpdateTagArgs, 'name' | 'tagId'>>;
   updateTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationUpdateTemplateArgs, 'name' | 'templateId' | 'visibility'>>;
   updateUserNotifications?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdateUserNotificationsArgs, 'input'>>;
@@ -4982,6 +5022,18 @@ export type RelatedWorkErrorsResolvers<ContextType = MyContext, ParentType exten
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ReorderQuestionsResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ReorderQuestionsResult'] = ResolversParentTypes['ReorderQuestionsResult']> = {
+  errors?: Resolver<Maybe<ResolversTypes['QuestionErrors']>, ParentType, ContextType>;
+  questions?: Resolver<Maybe<Array<ResolversTypes['Question']>>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ReorderSectionsResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['ReorderSectionsResult'] = ResolversParentTypes['ReorderSectionsResult']> = {
+  errors?: Resolver<Maybe<ResolversTypes['SectionErrors']>, ParentType, ContextType>;
+  sections?: Resolver<Maybe<Array<ResolversTypes['Section']>>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type RepositoryResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Repository'] = ResolversParentTypes['Repository']> = {
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -5475,6 +5527,8 @@ export type Resolvers<ContextType = MyContext> = {
   QuestionTypeErrors?: QuestionTypeErrorsResolvers<ContextType>;
   RelatedWork?: RelatedWorkResolvers<ContextType>;
   RelatedWorkErrors?: RelatedWorkErrorsResolvers<ContextType>;
+  ReorderQuestionsResult?: ReorderQuestionsResultResolvers<ContextType>;
+  ReorderSectionsResult?: ReorderSectionsResultResolvers<ContextType>;
   Repository?: RepositoryResolvers<ContextType>;
   RepositoryErrors?: RepositoryErrorsResolvers<ContextType>;
   ResearchDomain?: ResearchDomainResolvers<ContextType>;

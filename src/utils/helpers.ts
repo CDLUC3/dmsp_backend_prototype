@@ -182,3 +182,41 @@ export function normaliseHttpProtocol(input: string | null) {
   return input.trim().replace(/^http:\/\//, 'https://');
 }
 
+// Reorder a list of objects that have a displayOrder property and an id property
+export function reorderDisplayOrder<T extends { id?: number, displayOrder?: number }>(
+  objectBeingMovedId: number,
+  newDisplayOrder: number,
+  list: T[],
+): T[] {
+  if (list.length === 0 || isNullOrUndefined(objectBeingMovedId) || isNullOrUndefined(newDisplayOrder)
+    || isNullOrUndefined(list.find((o) => o.id === objectBeingMovedId))) {
+    return list;
+  }
+
+  // Deep copy the list to avoid mutating the original
+  const clonedList = list.map(obj => ({ ...obj }));
+
+  // First remove the item we are moving and then sort the remaining sections by display order
+  const ordered = clonedList.filter((obj) => obj.id !== objectBeingMovedId)
+                            .sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const objectBeingMoved = clonedList.find((o) => o.id === objectBeingMovedId);
+  if (!objectBeingMoved) return clonedList;
+
+  // Splice the object being moved into the correct position
+  const index = ordered.findIndex((obj) => obj.displayOrder > newDisplayOrder);
+  if (index === -1) {
+    // If the new display order is greater than all existing orders, push it to the end
+    ordered.push(objectBeingMoved);
+  } else {
+    // Otherwise, insert it at the correct index
+    ordered.splice(index, 0, objectBeingMoved);
+  }
+
+  // Update displayOrder values
+  let displayOrder = 1;
+  for (const obj of ordered) {
+    obj.displayOrder = displayOrder++;
+  }
+  return ordered;
+}

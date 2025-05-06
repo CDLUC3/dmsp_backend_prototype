@@ -13,6 +13,8 @@ export const typeDefs = gql`
     addSection(input: AddSectionInput!): Section!
     "Update a Section"
     updateSection(input: UpdateSectionInput!): Section!
+    "Change the section's display order"
+    updateSectionDisplayOrder(sectionId: Int!, newDisplayOrder: Int!): ReorderSectionsResult!
     "Delete a section"
     removeSection(sectionId: Int!): Section!
   }
@@ -70,6 +72,14 @@ export const typeDefs = gql`
     questionIds: String
   }
 
+  "The results of reordering the sections"
+  type ReorderSectionsResult {
+    "The reordered sections"
+    sections: [Section!]
+    "Error messages"
+    errors: SectionErrors
+  }
+
   "Input for adding a new section"
   input AddSectionInput {
     "The id of the template that the section belongs to"
@@ -119,5 +129,4 @@ export const typeDefs = gql`
     "The description of the Tag"
     description: String
   }
-
 `;

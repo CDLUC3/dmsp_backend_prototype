@@ -3,7 +3,7 @@ import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
 import { mysql } from "../../datasources/mysql";
-import { cloneSection, generateSectionVersion, hasPermissionOnSection } from "../sectionService";
+import { cloneSection, generateSectionVersion, hasPermissionOnSection, updateDisplayOrders } from "../sectionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
 import { NotFoundError } from "../../utils/graphQLErrors";
@@ -350,5 +350,143 @@ describe('generateSectionVersion', () => {
     expect(updated.modifiedById).toEqual(section.modifiedById);
     expect(updated.modified).toEqual(section.modified);
     expect(updated.isDirty).toEqual(false);
+  });
+});
+
+describe('updateDisplayOrders', () => {
+  describe('updateDisplayOrders', () => {
+    let sectionStore;
+    let templateId;
+    let mockFindByTemplateId;
+    let mockUpdate;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+
+      const tstamp = getCurrentDate();
+
+      const templateId = casual.integer(1, 999);
+
+      // Setup the mock data store
+      sectionStore = [
+        new Section({
+          id: 1,
+          templateId: templateId,
+          name: casual.sentence,
+          introduction: casual.sentences(3),
+          requirements: casual.sentences(2),
+          guidance: casual.sentences(5),
+          displayOrder: 1,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+        new Section({
+          id: 2,
+          templateId: templateId,
+          name: casual.sentence,
+          introduction: casual.sentences(3),
+          requirements: casual.sentences(2),
+          guidance: casual.sentences(5),
+          displayOrder: 2,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+        new Section({
+          id: 3,
+          templateId: templateId,
+          name: casual.sentence,
+          introduction: casual.sentences(3),
+          requirements: casual.sentences(2),
+          guidance: casual.sentences(5),
+          displayOrder: 3,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+      ];
+
+      // Mock the findByTemplateId method
+      mockFindByTemplateId = jest.fn().mockResolvedValue(sectionStore);
+      (Section.findByTemplateId as jest.Mock) = mockFindByTemplateId;
+
+      // Mock the update method
+      mockUpdate = jest.fn().mockImplementation((context) => {
+        const tstamp = getCurrentDate();
+        const userId = context.token.id;
+        return new Section({
+          ...sectionStore[0],
+          modified: tstamp,
+          modifiedById: userId,
+        });
+      });
+      (Section.prototype.update as jest.Mock) = mockUpdate;
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('throws NotFoundError if no sections are found', async () => {
+      mockFindByTemplateId.mockResolvedValueOnce(null);
+
+      await expect(
+        updateDisplayOrders(context, templateId, casual.integer(1, 99), 1)
+      ).rejects.toThrow(NotFoundError());
+    });
+
+    it('reorders sections and updates them successfully', async () => {
+      const newDisplayOrder = 2;
+      const reorderedSections = await updateDisplayOrders(
+        context,
+        templateId,
+        sectionStore[0].id,
+        newDisplayOrder
+      );
+
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledTimes(2); // Should have updated the 1st and 2nd sections
+      expect(reorderedSections).toHaveLength(sectionStore.length);
+      expect(reorderedSections[0].displayOrder).toEqual(1);
+      expect(reorderedSections[0].id).toEqual(2);
+      expect(reorderedSections[1].displayOrder).toEqual(2);
+      expect(reorderedSections[1].id).toEqual(1);
+      expect(reorderedSections[2].displayOrder).toEqual(3);
+      expect(reorderedSections[2].id).toEqual(3);
+    });
+
+    it('skips updating sections with unchanged display order', async () => {
+      const newDisplayOrder = sectionStore[0].displayOrder;
+
+      const reorderedSections = await updateDisplayOrders(
+        context,
+        templateId,
+        sectionStore[0].id,
+        newDisplayOrder
+      );
+
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).not.toHaveBeenCalled(); // No updates should occur
+      expect(reorderedSections).toHaveLength(sectionStore.length);
+    });
+
+    it('throws an error if a section update fails', async () => {
+      mockUpdate.mockImplementationOnce(() => {
+        throw new Error('Update failed');
+      });
+
+      await expect(
+        updateDisplayOrders(context, templateId, sectionStore[0].id, 2)
+      ).rejects.toThrow('Update failed');
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledTimes(1);
+    });
   });
 });
