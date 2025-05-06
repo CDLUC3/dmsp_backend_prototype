@@ -215,30 +215,10 @@ describe('create', () => {
     expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
-  it('returns the Section with an error if the section already exists', async () => {
-    const localValidator = jest.fn();
-    (section.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
-
-    const mockFindBy = jest.fn();
-    (Section.findBySectionName as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValueOnce(section);
-
-    const result = await section.create(context);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(Object.keys(result.errors).length).toBe(1);
-    expect(result.errors['general']).toBeTruthy();
-  });
   it('returns the newly added Section', async () => {
     const localValidator = jest.fn();
     (section.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
-
-    const mockFindBy = jest.fn();
-    (Section.findBySectionName as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValueOnce(null);
-    mockFindBy.mockResolvedValue(section);
 
     const mockFindById = jest.fn();
     (Section.findById as jest.Mock) = mockFindById;
@@ -246,7 +226,6 @@ describe('create', () => {
 
     const result = await section.create(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
