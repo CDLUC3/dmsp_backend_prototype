@@ -1,6 +1,6 @@
 import { Resolvers } from "../types";
 import { MyContext } from "../context";
-import { VersionedSection } from "../models/VersionedSection";
+import { VersionedSection, VersionedSectionSearchResult } from "../models/VersionedSection";
 import { Section } from "../models/Section";
 import { Tag } from "../models/Tag";
 import { VersionedTemplate } from "../models/VersionedTemplate";
@@ -33,18 +33,18 @@ export const resolvers: Resolvers = {
       }
     },
     // Get all of the published versionedSections with the given name
-    publishedSections: async (_, { term }, context: MyContext): Promise<VersionedSection[]> => {
+    publishedSections: async (_, { term }, context: MyContext): Promise<VersionedSectionSearchResult[]> => {
       const reference = 'publishedSections resolver';
       try {
         // Find published versionedSections with similar names for the current user
-        return await VersionedSection.findByNameAndAffiliation(reference, context, term);
+        return await VersionedSectionSearchResult.search(reference, context, term);
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
-    }
+    },
   },
 
   VersionedSection: {
