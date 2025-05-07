@@ -1,5 +1,6 @@
 import casual from "casual";
-import { getCurrentDate } from "../../utils/helpers";
+import { getCurrentDate, isNullOrUndefined } from "../../utils/helpers";
+import { PaginationOptionsForOffsets, PaginationOptionsForCursors } from '../../types/general';
 
 const mockTableStores = {};
 
@@ -117,4 +118,57 @@ export const findEntriesInMockTableByFilter = (tableName, criteria) => {
     throw new Error(`Table ${tableName} does not exist.`);
   }
   return store.filter(criteria);
+}
+
+// Simulate pagination of the results returned from a query
+export const paginate = (results, paginationOptions: PaginationOptionsForCursors | PaginationOptionsForOffsets) => {
+  let paginatedResults = [];
+  const totalCount = results.length;
+  const finalId = results.length > 0 ? results[results.length - 1].id : null;
+
+  if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
+    paginatedResults = paginateByOffset(results, paginationOptions as PaginationOptionsForOffsets);
+  } else {
+    paginatedResults = paginateByCursor(results, paginationOptions as PaginationOptionsForCursors);
+  }
+
+  const lastId = paginatedResults.length > 0 ? paginatedResults[paginatedResults.length - 1].id : null;
+
+  let hasPreviousPage = false;
+  if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
+    hasPreviousPage = totalCount > paginationOptions.limit && paginationOptions.offset > 0;
+
+  }
+
+  return {
+    totalCount,
+    limit: paginationOptions.limit,
+    currentOffset: ('offset' in paginationOptions) ? paginationOptions.offset : null,
+    nextCursor: ('cursor' in paginationOptions) && finalId!== lastId ? lastId.toString() : null,
+    hasNextPage: paginatedResults.length === paginationOptions.limit,
+    hasPreviousPage,
+    availableSortFields: [],
+    items: paginatedResults,
+  }
+}
+
+// Paginate the results by offset
+const paginateByOffset = (results, paginationOptions: PaginationOptionsForOffsets) => {
+  if (Array.isArray(results)) {
+    const { offset, limit } = paginationOptions;
+    return results.slice(offset, offset + limit);
+  }
+}
+
+// Paginate the results by cursor
+const paginateByCursor = (results, paginationOptions: PaginationOptionsForCursors) => {
+  if (Array.isArray(results)) {
+    const { cursor, limit } = paginationOptions;
+    const index = results.findIndex((entry) => entry.id.toString() === cursor);
+    if (index === -1) {
+      return results.slice(0, limit);
+    }
+    return results.slice(index + 1, index + 1 + limit);
+  }
+  return [];
 }

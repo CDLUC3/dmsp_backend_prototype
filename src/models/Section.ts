@@ -56,24 +56,11 @@ export class Section extends MySqlModel {
 
     // First make sure the record is valid
     if (await this.isValid()) {
-      const current = await Section.findBySectionName(
-        'Section.create',
-        context,
-        this.name,
-        templateId
-      );
-
-      // Then make sure it doesn't already exist
-      if (current) {
-        this.addError('general', 'Section with this name already exists');
-      } else {
-        this.prepForSave();
-
-        // Save the record and then fetch it
-        const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
-        const response = await Section.findById('Section.create', context, newId);
-        return response;
-      }
+      this.templateId = templateId;
+      // Save the record and then fetch it
+      const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
+      const response = await Section.findById('Section.create', context, newId);
+      return response;
     }
     // Otherwise return as-is with all the errors
     return new Section(this);

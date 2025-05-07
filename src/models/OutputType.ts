@@ -28,21 +28,21 @@ export class OutputType extends MySqlModel {
 
   // Return all of the output types
   static async all(reference: string, context: MyContext): Promise<OutputType[]> {
-    const sql = 'SELECT * FROM outputTypes ORDER BY name';
+    const sql = 'SELECT * FROM projectOutputTypes ORDER BY name';
     const results = await OutputType.query(context, sql, [], reference);
     return Array.isArray(results) ? results : [];
   }
 
   // Fetch a output type by it's id
   static async findById(reference: string, context: MyContext, outputTypeId: number): Promise<OutputType> {
-    const sql = 'SELECT * FROM outputTypes WHERE id = ?';
+    const sql = 'SELECT * FROM projectOutputTypes WHERE id = ?';
     const results = await OutputType.query(context, sql, [outputTypeId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new OutputType(results[0]) : null;
   }
 
   // Fetch a contributor role by it's URL
   static async findByURL(reference: string, context: MyContext, outputTypeURL: string): Promise<OutputType> {
-    const sql = 'SELECT * FROM outputTypes WHERE url = ?';
+    const sql = 'SELECT * FROM projectOutputTypes WHERE url = ?';
     const results = await OutputType.query(context, sql, [outputTypeURL], reference);
     return Array.isArray(results) && results.length > 0 ? new OutputType(results[0]) : null;
   }

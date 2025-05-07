@@ -64,11 +64,17 @@ const startServer = async () => {
 const shutdown = async () => {
   console.log('Shutting down server...');
   const pool = mysql.getInstance();
+  pool.releaseConnection();
   await pool.close();
   process.exit(0);
 };
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+
+if (!process.listeners('SIGINT').includes(shutdown)) {
+  process.on('SIGINT', shutdown);
+}
+if (!process.listeners('SIGTERM').includes(shutdown)) {
+  process.on('SIGTERM', shutdown);
+}
 
 startServer().catch((error) => {
   console.log('Error starting server:', error)

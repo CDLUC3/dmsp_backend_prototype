@@ -1,4 +1,12 @@
+# DMP Tool Apollo Server Change Log
+
+## v0.2 - Initial deploy to the stage environment
+
 ### Added
+- Added `aws-process.sh` to allow migrations to be run in the AWS environment
+- Added `init-tables` and `init-seed` data migration files
+- Added `queryWithPagination` function to `MySQLModel`.
+- Added `VersionedSectionSearchResult` to optimize the query for displaying an org's published sections and the bestPractice sections
 - Added `popularFunders` query to the `affiliations` resolver
 - Added `accessLevel` to projectCollaborator and removed `userId`
 - Added new resolvers related to `projectCollaborators`. Also, when project is created, automatically add user as `projectCollaborator` with `access level`= `OWN`
@@ -76,6 +84,12 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Replaced all instances of `TemplateVisibility.PRIVATE` with `TemplateVisibility.ORGANIZATION` [#159]
+- Renamed the `outputTypes` table to `projectOutputTypes`
+- Updated `buildspec` to allow for a "MODE" env variable to be set so that we can run migrations, tests and the build separately
+- Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
+- Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
+- Updated `publishedSections` resolver to return the new `VersionedSectionSearchResult` array
 - Format ORCID identifiers consistently, in the `Contributor` and `User` models, the `projectImport` resolver and `orcid` scalar.
 - Changed a number of GraphQL definitions to PascalCase.
 - Fixed projectCollaborators table which had an FKey on the plans table instead of the projects table
@@ -124,6 +138,8 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Dropped all previous `data-migration` files in favor of the new `init-tables` and `init-seed` files
+- Removed duplicate section check from `Section.create` that was just going off of the "name"
 - Dropped the `PlanVersion` table
 - Removed `prepareAPITarget` function.
 - Removed `id` from `Project` model's constructor (already handled in base `MySQLModel`)
@@ -131,8 +147,10 @@
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
+-Was getting `undefined` bestPractice in `updateTemplate` when none was passed in because of the logic on how it was set. Added a check for whether `bestPractice` is defined before setting value. Also, added an update to `createTemplateVersion`, so that errors from the `generateTemplateVersion` will be caught and passed back in graphql response. Previously, when trying to save a DRAFT of a template, the mutation wouldn't return an error to the client, even though the `Save draft` did not successfully complete. [#265]
 - Removed `Copy of` from in front of copied `Section` and `Template` names [#261]
-- Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required. 
+- Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
 - Fixed an issue where adding `projectCollaborators` was failing due to the fact that the `userId` field was required. This should not be required to add a new collaborator [#260]
 - When calling `updatePlanContributors`, the resolver should set isPrimaryContact to `false` for all contributors other than the one marked as isPrimary.
 - Fixed an issue where Jest tests failed on Linux due to case-sensitive file paths. The tests passed on macOS because its file system is case-insensitive by default.

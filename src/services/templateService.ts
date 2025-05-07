@@ -44,7 +44,7 @@ export const generateTemplateVersion = async (
   versions: VersionedTemplate[],
   versionerId: number,
   comment = '',
-  visibility = TemplateVisibility.PRIVATE,
+  visibility = TemplateVisibility.ORGANIZATION,
   versionType = TemplateVersionType.DRAFT,
 ): Promise<VersionedTemplate> => {
   // If the template has no id then it has not yet been saved so throw an error

@@ -4,8 +4,8 @@ export const typeDefs = gql`
   extend type Query {
     "Returns the currently logged in user's information"
     me: User
-    "Returns all of the users associated with the current user's affiliation (Admin only)"
-    users: [User]
+    "Returns all of the users associated with the current admin's affiliation (Super admins get everything)"
+    users(term: String, paginationOptions: PaginationOptions): UserSearchResults
     "Returns the specified user (Admin only)"
     user(userId: Int!): User
   }
@@ -110,6 +110,25 @@ export const typeDefs = gql`
 
     "The user's email addresses"
     emails: [UserEmail]
+  }
+
+  type UserSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [User]
+    "The total number of possible items"
+    totalCount: Int
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
   }
 
   "A collection of errors related to the User"

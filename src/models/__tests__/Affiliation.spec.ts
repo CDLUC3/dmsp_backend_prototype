@@ -3,6 +3,7 @@ import { Affiliation, AffiliationSearch, PopularFunder } from "../Affiliation";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { DMPHubConfig } from "../../config/dmpHubConfig";
+import { generalConfig } from "../../config/generalConfig";
 
 let context;
 jest.mock('../../context.ts');
@@ -438,7 +439,7 @@ describe('search', () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
-    (Affiliation.query as jest.Mock) = localQuery;
+    (Affiliation.queryWithPagination as jest.Mock) = localQuery;
 
     context = buildContext(logger, mockToken());
 
@@ -458,25 +459,47 @@ describe('search', () => {
 
   it('should call query with correct params and return the affiliation', async () => {
     localQuery.mockResolvedValueOnce([affiliationSearch]);
-    const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
-    const expectedSql = 'SELECT * FROM affiliations WHERE active = 1 AND LOWER(searchName) LIKE ? AND funder = 1';
+    const term = 'Test';
+    const result = await AffiliationSearch.search('Test', context, term, true);
+    const sql = 'SELECT a.* FROM affiliations a';
+    const whereFilters = ['a.active = 1', '(LOWER(a.searchName) LIKE ?)', 'a.funder = 1'];
+    const vals = [`%${term.toLowerCase().trim()}%`];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'a.displayName',
+      sortDir: 'ASC',
+      countField: 'a.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
+    };
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%test%'], 'AffiliationSearch.search')
+    expect(localQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')
     expect(result).toEqual([affiliationSearch]);
   });
 
-  it('should set the hasAPI boolean to false if the Affiliation has no apiTarget', async () => {
+  it('should allow funderOnly to be false', async () => {
     localQuery.mockResolvedValueOnce([affiliationSearch]);
-    const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
-    const expectedSql = 'SELECT * FROM affiliations WHERE active = 1 AND LOWER(searchName) LIKE ? AND funder = 1';
+    const term = 'Test';
+    const result = await AffiliationSearch.search('Test', context, term, false);
+    const sql = 'SELECT a.* FROM affiliations a';
+    const whereFilters = ['a.active = 1', '(LOWER(a.searchName) LIKE ?)'];
+    const vals = [`%${term.toLowerCase().trim()}%`];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'a.displayName',
+      sortDir: 'ASC',
+      countField: 'a.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
+    };
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%test%'], 'AffiliationSearch.search')
+    expect(localQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')
     expect(result).toEqual([affiliationSearch]);
   });
 
   it('should return an empty array if it finds no affiliation', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const result = await AffiliationSearch.search(context, { name: 'test', funderOnly: true });
+    const result = await AffiliationSearch.search('Test', context, 'test', true);
     expect(result).toEqual([]);
   });
 });

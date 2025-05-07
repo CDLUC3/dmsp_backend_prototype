@@ -188,14 +188,22 @@ describe('affiliationById query', () => {
 describe('affiliations query', () => {
   beforeEach(() => {
     query = `
-      query Affiliations($name: String!) {
-        affiliations (name: $name) {
-          id
-          uri
-          displayName
-          funder
-          types
-          apiTarget
+      query Affiliations($name: String!, $funderOnly: Boolean, $paginationOptions: PaginationOptions) {
+        affiliations (name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
+          totalCount
+          limit
+          nextCursor
+          currentOffset
+          hasNextPage
+          hasPreviousPage
+          items {
+            id
+            uri
+            displayName
+            funder
+            types
+            apiTarget
+          }
         }
       }
     `;
@@ -208,13 +216,111 @@ describe('affiliations query', () => {
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
     // Since we're not returning everything, verify the fields we are returning
-    expect(resp.body.singleResult.data?.affiliations[0]?.id).toEqual(affiliationStore[0].id);
-    expect(resp.body.singleResult.data?.affiliations[0]?.displayName).toEqual(affiliationStore[0].displayName);
-    expect(resp.body.singleResult.data?.affiliations[0]?.uri).toEqual(affiliationStore[0].uri);
-    expect(resp.body.singleResult.data?.affiliations[0]?.funder).toEqual(affiliationStore[0].funder);
-    expect(resp.body.singleResult.data?.affiliations[0]?.types).toEqual(affiliationStore[0].types);
-    expect(resp.body.singleResult.data?.affiliations[0]?.apiTarget).toEqual(affiliationStore[0].apiTarget);
+    const affiliation = resp.body.singleResult.data?.affiliations.items[0];
+    expect(affiliation?.id).toEqual(affiliationStore[0].id);
+    expect(affiliation?.displayName).toEqual(affiliationStore[0].displayName);
+    expect(affiliation?.uri).toEqual(affiliationStore[0].uri);
+    expect(affiliation?.funder).toEqual(affiliationStore[0].funder);
+    expect(affiliation?.types).toEqual(affiliationStore[0].types);
+    expect(affiliation?.apiTarget).toEqual(affiliationStore[0].apiTarget);
+  });
+
+  it('obeys the funderOnly flag', async () => {
+    affiliationStore[0].funder = true;
+    affiliationStore[1].funder = false;
+    affiliationStore[2].funder = true;
+
+    const variables = { name: '', funderOnly: true };
+    const resp = await executeQuery(query, variables, mockToken());
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+    // Since we're not returning everything, verify the fields we are returning
+    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[0].id);
+    expect(resp.body.singleResult.data?.affiliations.items[1].id).toEqual(affiliationStore[2].id);
+  });
+
+  it('handles cursor pagination successfuly', async () => {
+    const variables = { name: '', paginationOptions: { cursor: null, limit: 2 } };
+    let resp = await executeQuery(query, variables, mockToken());
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+    expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
+    expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeTruthy();
+    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeTruthy();
+    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeFalsy();
+
+    const paginatedResults = resp.body.singleResult.data?.affiliations.items ?? [];
+    expect(paginatedResults.length).toBe(2);
+    expect(paginatedResults[0].id).toEqual(affiliationStore[0].id);
+    expect(paginatedResults[1].id).toEqual(affiliationStore[1].id);
+
+    // Bump the cursor and query again
+    variables.paginationOptions.cursor = resp.body.singleResult.data?.affiliations.nextCursor;
+    resp = await executeQuery(query, variables, mockToken());
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+    expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
+    expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeFalsy();
+
+    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(1);
+    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[2].id);
+  });
+
+  it('handles offset pagination successfuly', async () => {
+    const variables = { name: '', paginationOptions: { offset: 0, limit: 2 } };
+    let resp = await executeQuery(query, variables, mockToken());
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+    expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
+    expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBe(0);
+    expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeTruthy();
+    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeFalsy();
+
+    const paginatedResults = resp.body.singleResult.data?.affiliations.items ?? [];
+    expect(paginatedResults.length).toBe(2);
+    expect(paginatedResults[0].id).toEqual(affiliationStore[0].id);
+    expect(paginatedResults[1].id).toEqual(affiliationStore[1].id);
+
+    // Bump the cursor and query again
+    variables.paginationOptions.offset = resp.body.singleResult.data?.affiliations.currentOffset + 2;
+    resp = await executeQuery(query, variables, mockToken());
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+
+    expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
+    expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBe(2);
+    expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
+    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeTruthy();
+
+    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(1);
+    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[2].id);
   });
 
   it('returns an empty array when no matches are found', async () => {

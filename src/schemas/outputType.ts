@@ -3,7 +3,7 @@ import gql from 'graphql-tag';
 export const typeDefs = gql`
   extend type Query {
     "Get all the research output types"
-    outputTypes: [OutputType]
+    projectOutputTypes: [OutputType]
   }
 
   "An output collected/produced during or as a result of a research project"
