@@ -3309,8 +3309,8 @@ export type TemplateVersionType =
 
 /** Template visibility */
 export type TemplateVisibility =
-  /** Visible only to users of your institution */
-  | 'PRIVATE'
+  /** Visible only to users of your institution/affiliation */
+  | 'ORGANIZATION'
   /** Visible to all users */
   | 'PUBLIC';
 

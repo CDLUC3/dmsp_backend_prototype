@@ -126,7 +126,7 @@ describe('cloneTemplate', () => {
     expect(copy.sourceTemplateId).toEqual(tmplt.id);
     expect(copy.name).toEqual(tmplt.name);
     expect(copy.ownerId).toEqual(newOwnerId);
-    expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
+    expect(copy.visibility).toEqual(TemplateVisibility.ORGANIZATION);
     expect(copy.latestPublishVersion).toBeFalsy();
     expect(copy.errors).toEqual({});
     expect(copy.description).toEqual(description);
@@ -155,7 +155,7 @@ describe('cloneTemplate', () => {
     expect(copy.sourceTemplateId).toEqual(published.templateId);
     expect(copy.name).toEqual(published.name);
     expect(copy.ownerId).toEqual(newOwnerId);
-    expect(copy.visibility).toEqual(TemplateVisibility.PRIVATE);
+    expect(copy.visibility).toEqual(TemplateVisibility.ORGANIZATION);
     expect(copy.latestPublishVersion).toBeFalsy();
     expect(copy.errors).toEqual({});
     expect(copy.createdById).toEqual(clonedById);
@@ -323,7 +323,7 @@ describe('template versioning', () => {
   it('versions the Template when it has no prior versions', async () => {
     const tmplt = new Template(templateStore[0]);
     const comment = casual.sentences(3);
-    const visibility = TemplateVisibility.PRIVATE;
+    const visibility = TemplateVisibility.ORGANIZATION;
     const versionType = TemplateVersionType.PUBLISHED;
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
     (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindVersionedTemplatebyId;

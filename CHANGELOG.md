@@ -84,6 +84,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Replaced all instances of `TemplateVisibility.PRIVATE` with `TemplateVisibility.ORGANIZATION` [#159]
 - Renamed the `outputTypes` table to `projectOutputTypes`
 - Updated `buildspec` to allow for a "MODE" env variable to be set so that we can run migrations, tests and the build separately
 - Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
