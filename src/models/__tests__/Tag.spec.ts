@@ -308,6 +308,44 @@ describe('findBySectionId', () => {
   });
 });
 
+describe('findByVersionedSectionId', () => {
+  const originalQuery = Tag.query;
+
+  let localQuery;
+  let context;
+  let tag;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (Tag.query as jest.Mock) = localQuery;
+
+    context = buildContext(logger, mockToken());
+
+    tag = new Tag({
+      id: casual.integer(1, 9),
+      name: casual.sentence,
+      description: casual.sentence,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Tag.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the tag', async () => {
+    localQuery.mockResolvedValueOnce([tag]);
+    const versionedSectionId = 1;
+    const result = await Tag.findByVersionedSectionId('Tag query', context, versionedSectionId);
+    const expectedSql = `SELECT tags.* FROM versionedSectionTags vst JOIN tags ON vst.tagId = tags.id WHERE vst.versionedSectionId = ?;`;
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [versionedSectionId.toString()], 'Tag query')
+    expect(result).toEqual([tag]);
+  });
+});
+
 describe('findById', () => {
 
   let localQuery;

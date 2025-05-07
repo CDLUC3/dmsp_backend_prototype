@@ -3,6 +3,7 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added data migrations for new `versionedSectionTags` table
 - Added `aws-process.sh` to allow migrations to be run in the AWS environment
 - Added `init-tables` and `init-seed` data migration files
 - Added `queryWithPagination` function to `MySQLModel`.

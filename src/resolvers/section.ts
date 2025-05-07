@@ -61,7 +61,6 @@ export const resolvers: Resolvers = {
           copyFromVersionedSectionId,
           introduction,
           requirements,
-          tags,
           guidance,
           displayOrder
         }
@@ -74,8 +73,10 @@ export const resolvers: Resolvers = {
           let section = new Section({ name, templateId, introduction, requirements, guidance, displayOrder });
 
           // if a copyFromVersionedSectionId is provided, clone the section
+          let original: VersionedSection;
+
           if (copyFromVersionedSectionId) {
-            const original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
+            original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
             if (!original) {
               throw NotFoundError('Unable to copy the specified section');
             }
@@ -88,9 +89,6 @@ export const resolvers: Resolvers = {
 
           // create the new section
           const newSection = await section.create(context, templateId);
-
-console.log('newSection', newSection);
-
           // if the section was not created, return the errors
           if (!newSection?.id) {
             // A null was returned so add a generic error and return it
@@ -101,51 +99,49 @@ console.log('newSection', newSection);
           }
 
           // if a copyFromVersionedSectionId is provided, clone all the questions
-          if (copyFromVersionedSectionId) {
+          if (copyFromVersionedSectionId && original) {
             const versionedQuestions = await VersionedQuestion.findByVersionedSectionId(
               reference,
               context,
-              copyFromVersionedSectionId
+              original.id
             );
 
-console.log(copyFromVersionedSectionId, 'copyFromVersionedSectionId');
-console.log('newSection', newSection.id);
-console.log('questions', versionedQuestions);
-
+            // Add questions from the copied versionedSection to the section
             for (const versionedQuestion of versionedQuestions) {
               const newQuestion = new Question({
                 ...versionedQuestion,
-                sectionId: newSection.id
+                isDirty: true,
+                sourceQuestionId: versionedQuestion.questionId,
+                sectionId: newSection.id,
+                templateId: templateId,
+                id: undefined, // ensure the id is not set since we're creating a new question
               });
+
               const addedQuestion = await newQuestion.create(context);
               if (!addedQuestion?.id) {
-
-console.log('addedQuestion', addedQuestion.errors);
-
                 // A null was returned so add a generic error and return it
                 if (!newQuestion.errors['general']) {
                   newQuestion.addError('general', 'Unable to create the question');
                 }
               }
             }
-          }
 
-console.log(tags, 'tags');
-
-          // Add tags to the section
-          if (tags && Array.isArray(tags) && tags.length > 0) {
-            const addTagErrors = [];
-            for (const tagIn of tags) {
-              const tag = await Tag.findById(reference, context, tagIn.id);
-              if (tag) {
-                const wasAdded = tag.addToSection(context, newSection.id)
-                if (!wasAdded) {
-                  addTagErrors.push(tag.name);
+            const versionedTags = await Tag.findByVersionedSectionId(reference, context, original.sectionId);
+            // Add tags from the copied versionedSection to the section
+            if (versionedTags && Array.isArray(versionedTags) && versionedTags.length > 0) {
+              const addTagErrors = [];
+              for (const tagIn of versionedTags) {
+                const tag = await Tag.findById(reference, context, tagIn.id);
+                if (tag) {
+                  const wasAdded = tag.addToSection(context, newSection.id)
+                  if (!wasAdded) {
+                    addTagErrors.push(tag.name);
+                  }
                 }
               }
-            }
-            if (addTagErrors.length > 0) {
-              newSection.addError('tags', `Section created but we were unable to assign tags: ${addTagErrors.join(', ')}`);
+              if (addTagErrors.length > 0) {
+                newSection.addError('tags', `Section created but we were unable to assign tags: ${addTagErrors.join(', ')}`);
+              }
             }
           }
 
