@@ -10,6 +10,7 @@ import { Question } from "../models/Question";
 import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { VersionedQuestion } from "../models/VersionedQuestion";
 
 
 export const resolvers: Resolvers = {
@@ -81,10 +82,14 @@ export const resolvers: Resolvers = {
 
             section = cloneSection(context.token?.id, templateId, original);
             section.name = name;
+            const maxDisplayOrder = await Section.findMaxDisplayOrder(reference, context, templateId);
+            section.displayOrder = maxDisplayOrder + 1;
           }
 
           // create the new section
           const newSection = await section.create(context, templateId);
+
+console.log('newSection', newSection);
 
           // if the section was not created, return the errors
           if (!newSection?.id) {
@@ -94,6 +99,38 @@ export const resolvers: Resolvers = {
             }
             return section;
           }
+
+          // if a copyFromVersionedSectionId is provided, clone all the questions
+          if (copyFromVersionedSectionId) {
+            const versionedQuestions = await VersionedQuestion.findByVersionedSectionId(
+              reference,
+              context,
+              copyFromVersionedSectionId
+            );
+
+console.log(copyFromVersionedSectionId, 'copyFromVersionedSectionId');
+console.log('newSection', newSection.id);
+console.log('questions', versionedQuestions);
+
+            for (const versionedQuestion of versionedQuestions) {
+              const newQuestion = new Question({
+                ...versionedQuestion,
+                sectionId: newSection.id
+              });
+              const addedQuestion = await newQuestion.create(context);
+              if (!addedQuestion?.id) {
+
+console.log('addedQuestion', addedQuestion.errors);
+
+                // A null was returned so add a generic error and return it
+                if (!newQuestion.errors['general']) {
+                  newQuestion.addError('general', 'Unable to create the question');
+                }
+              }
+            }
+          }
+
+console.log(tags, 'tags');
 
           // Add tags to the section
           if (tags && Array.isArray(tags) && tags.length > 0) {
