@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 if [ ! -f .env ]; then
   if [ $# -ne 1 ]; then
@@ -28,22 +29,21 @@ else
   fi
 fi
 
-FK_OFF="SET FOREIGN_KEY_CHECKS = 0;"
+FKEY_OFF="SET FOREIGN_KEY_CHECKS = 0;"
 LIST_TABLES="SELECT table_name FROM information_schema.tables WHERE table_schema = '${MYSQL_DATABASE}';"
-FK_ON="SET FOREIGN_KEY_CHECKS = 1;"
+FKEY_ON="SET FOREIGN_KEY_CHECKS = 1;"
 
 echo "Purging all tables from database ${MYSQL_DATABASE} ..."
-mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< $FK_OFF
-declare -a TABLE_LIST=$(mysql ${MYSQL_ARGS} -N ${MYSQL_DATABASE} <<< ${LIST_TABLES})
+mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "$FKEY_OFF"
 
-while IFS=' ' read -ra TABLES; do
-  for i in "${TABLES[@]}"; do
-    echo "  Dropping: $i"
-    mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "${FK_OFF} DROP TABLE ${i}; ${FK_ON}"
-  done
+TABLE_LIST=$(mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "$LIST_TABLES")
+
+while read -r TABLE; do
+  echo "  Dropping: $TABLE"
+  mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "${FKEY_OFF} DROP TABLE \`${TABLE}\`; ${FKEY_ON}"
 done <<< "$TABLE_LIST"
 
-mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< $FK_ON
+mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "$FKEY_ON"
 
 CREATE_MIGRATIONS_TABLE="USE ${MYSQL_DATABASE}; CREATE TABLE dataMigrations (
     migrationFile varchar(255) NOT NULL,

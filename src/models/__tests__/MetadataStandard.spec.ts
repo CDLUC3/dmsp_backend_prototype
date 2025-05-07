@@ -2,6 +2,7 @@ import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { MetadataStandard } from "../MetadataStandard";
+import { generalConfig } from "../../config/generalConfig";
 
 jest.mock('../../context.ts');
 
@@ -69,12 +70,16 @@ describe('findBy Queries', () => {
   const originalQuery = MetadataStandard.query;
 
   let localQuery;
+  let localPaginationQuery;
   let context;
   let standard;
 
   beforeEach(() => {
     localQuery = jest.fn();
     (MetadataStandard.query as jest.Mock) = localQuery;
+
+    localPaginationQuery = jest.fn();
+    (MetadataStandard.queryWithPagination as jest.Mock) = localPaginationQuery;
 
     context = buildContext(logger, mockToken());
 
@@ -185,59 +190,90 @@ describe('findBy Queries', () => {
   });
 
   it('search should work when a Research Domain and a search term are specified', async () => {
-    localQuery.mockResolvedValueOnce([standard]);
-    const mockStandardQry = jest.fn();
-    (MetadataStandard.findByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([standard]);
+    localPaginationQuery.mockResolvedValueOnce([standard]);
     const term = casual.words(3);
     const researchDomainId = casual.integer(1, 9);
     const result = await MetadataStandard.search('testing', context, term, researchDomainId);
-    const sql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
-    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, vals, 'testing');
-    expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
+    const sql = 'SELECT m.* FROM metadataStandards m ' +
+                'LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
+    const whereFilters = ['(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)',
+                          'msrd.researchDomainId = ?'];
+    const vals = [`%${term.toLowerCase().trim()}%`, `%${term.toLowerCase().trim()}%`, researchDomainId.toString()];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'm.name',
+      sortDir: 'ASC',
+      countField: 'm.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
     expect(result).toEqual([standard]);
   });
 
   it('search should work when only a Research Domain is specified', async () => {
-    localQuery.mockResolvedValueOnce([standard]);
-    const mockStandardQry = jest.fn();
-    (MetadataStandard.findByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([standard]);
+    localPaginationQuery.mockResolvedValueOnce([standard]);
     const researchDomainId = casual.integer(1, 9);
     const result = await MetadataStandard.search('testing', context, null, researchDomainId);
-    const sql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, [`%%`, `%%`, '%%'], 'testing');
-    expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
+    const sql = 'SELECT m.* FROM metadataStandards m ' +
+                'LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
+    const whereFilters = ['msrd.researchDomainId = ?'];
+    const vals = [researchDomainId.toString()];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'm.name',
+      sortDir: 'ASC',
+      countField: 'm.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
     expect(result).toEqual([standard]);
   });
 
   it('search should work when only a search term is specified', async () => {
-    localQuery.mockResolvedValueOnce([standard]);
+    localPaginationQuery.mockResolvedValueOnce([standard]);
     const term = casual.words(3);
     const result = await MetadataStandard.search('testing', context, term, null);
-    const expectedSql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
-    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
+    const sql = 'SELECT m.* FROM metadataStandards m ' +
+                'LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
+    const whereFilters = ['(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)'];
+    const vals = [`%${term.toLowerCase().trim()}%`, `%${term.toLowerCase().trim()}%`];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'm.name',
+      sortDir: 'ASC',
+      countField: 'm.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')
     expect(result).toEqual([standard]);
   });
 
   it('search should work when no Research Domain or search term are specified', async () => {
-    localQuery.mockResolvedValueOnce([standard]);
+    localPaginationQuery.mockResolvedValueOnce([standard]);
     const result = await MetadataStandard.search('testing', context, null, null);
-    const expectedSql = 'SELECT * FROM metadataStandards WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%%', '%%', '%%'], 'testing')
+    const sql = 'SELECT m.* FROM metadataStandards m ' +
+                'LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'm.name',
+      sortDir: 'ASC',
+      countField: 'm.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, [], '', [], opts, 'testing')
     expect(result).toEqual([standard]);
   });
 
   it('search should return empty array if it finds no records', async () => {
-    localQuery.mockResolvedValueOnce([]);
+    localPaginationQuery.mockResolvedValueOnce([]);
     const term = casual.words(3);
     const researchDomainId = casual.integer(1, 9);
     const result = await MetadataStandard.search('testing', context, term, researchDomainId);

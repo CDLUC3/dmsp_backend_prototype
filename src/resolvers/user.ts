@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import { Resolvers, UserSearchResults } from "../types";
 import { MyContext } from '../context';
 import { User } from '../models/User';
 import { UserEmail } from "../models/UserEmail";
@@ -10,6 +10,8 @@ import { anonymizeUser, mergeUsers } from "../services/userService";
 import { processOtherAffiliationName } from "../services/affiliationService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -31,12 +33,20 @@ export const resolvers: Resolvers = {
 
     // Should only be callable by an Admin. Super returns all users, Admin gets only
     // the users associated with their affiliationId
-    users: async (_, __, context): Promise<User[]> => {
+    users: async (_, { term, paginationOptions }, context): Promise<UserSearchResults> => {
       const reference = 'users resolver';
       try {
-        if (isAdmin(context.token)) {
-          return await User.findByAffiliationId(reference, context, context.token.affiliationId);
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                    ? paginationOptions as PaginationOptionsForOffsets
+                    : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+        if (isSuperAdmin(context.token)) {
+          return await User.search(reference, context, term, opts);
+
+        } else if (isAdmin(context.token)) {
+          return await User.findByAffiliationId(reference, context, context.token.affiliationId, term, opts);
         }
+
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

@@ -76,7 +76,7 @@ describe('queries', () => {
     const querySpy = jest.spyOn(OutputType, 'query').mockResolvedValueOnce([mockType]);
     await OutputType.all('Testing', context);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'SELECT * FROM outputTypes ORDER BY name';
+    const expectedSql = 'SELECT * FROM projectOutputTypes ORDER BY name';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [], 'Testing')
   });
 
@@ -85,7 +85,7 @@ describe('queries', () => {
     const querySpy = jest.spyOn(OutputType, 'query').mockResolvedValueOnce([mockType]);
     await OutputType.findById('Testing', context, typeId);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'SELECT * FROM outputTypes WHERE id = ?';
+    const expectedSql = 'SELECT * FROM projectOutputTypes WHERE id = ?';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [typeId.toString()], 'Testing')
   });
 
@@ -94,7 +94,7 @@ describe('queries', () => {
     const querySpy = jest.spyOn(OutputType, 'query').mockResolvedValueOnce([mockType]);
     await OutputType.findByURL('Testing', context, uri);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'SELECT * FROM outputTypes WHERE url = ?';
+    const expectedSql = 'SELECT * FROM projectOutputTypes WHERE url = ?';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [uri], 'Testing')
   });
 });

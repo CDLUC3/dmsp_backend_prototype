@@ -1,20 +1,27 @@
 
 import { formatLogMessage } from '../logger';
-import { Resolvers } from "../types";
+import { MetadataStandardSearchResults, Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_METADATA_STANDARD_URL, MetadataStandard } from "../models/MetadataStandard";
 import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { GraphQLError } from 'graphql';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import { isNullOrUndefined } from '../utils/helpers';
 
 export const resolvers: Resolvers = {
   Query: {
     // searches the metadata standards table or returns all standards if no critieria is specified
-    metadataStandards: async (_, { term, researchDomainId }, context: MyContext): Promise<MetadataStandard[]> => {
+    metadataStandards: async (_, params, context: MyContext): Promise<MetadataStandardSearchResults> => {
       const reference = 'metadataStandards resolver';
+      const { term, researchDomainId, paginationOptions } = params;
       try {
-        return await MetadataStandard.search(reference, context, term, researchDomainId);
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                    ? paginationOptions as PaginationOptionsForOffsets
+                    : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+        return await MetadataStandard.search(reference, context, term, researchDomainId, opts);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
