@@ -105,8 +105,8 @@ async function processMetadataStandardUpdates(
 export const resolvers: Resolvers = {
   Query: {
     // Fetch all of the possible project output types
-    outputTypes: async (_, __, context: MyContext): Promise<OutputType[]> => {
-      const reference = 'outputTypes resolver';
+    projectOutputTypes: async (_, __, context: MyContext): Promise<OutputType[]> => {
+      const reference = 'projectOutputTypes resolver';
       try {
         if (isAuthorized(context.token)) {
           return await OutputType.all(reference, context);

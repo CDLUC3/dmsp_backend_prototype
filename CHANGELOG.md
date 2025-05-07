@@ -1,4 +1,10 @@
+# DMP Tool Apollo Server Change Log
+
+## v0.2 - Initial deploy to the stage environment
+
 ### Added
+- Added `aws-process.sh` to allow migrations to be run in the AWS environment
+- Added `init-tables` and `init-seed` data migration files
 - Added `queryWithPagination` function to `MySQLModel`.
 - Added `VersionedSectionSearchResult` to optimize the query for displaying an org's published sections and the bestPractice sections
 - Added `popularFunders` query to the `affiliations` resolver
@@ -78,6 +84,9 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Renamed the `outputTypes` table to `projectOutputTypes`
+- Updated `buildspec` to allow for a "MODE" env variable to be set so that we can run migrations, tests and the build separately
+- Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
 - Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
 - Updated `publishedSections` resolver to return the new `VersionedSectionSearchResult` array
 - Format ORCID identifiers consistently, in the `Contributor` and `User` models, the `projectImport` resolver and `orcid` scalar.
@@ -128,6 +137,7 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Dropped all previous `data-migration` files in favor of the new `init-tables` and `init-seed` files
 - Removed duplicate section check from `Section.create` that was just going off of the "name"
 - Dropped the `PlanVersion` table
 - Removed `prepareAPITarget` function.
