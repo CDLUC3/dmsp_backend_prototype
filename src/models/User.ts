@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import {capitalizeFirstLetter, formatORCID, getCurrentDate, validateEmail} from '../utils/helpers';
+import {capitalizeFirstLetter, formatORCID, getCurrentDate, isNullOrUndefined, validateEmail} from '../utils/helpers';
 import { buildContext } from '../context';
 import { logger, formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
@@ -7,7 +7,7 @@ import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
-
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -176,10 +176,118 @@ export class User extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
-  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
-    const sql = 'SELECT * FROM users WHERE affiliationId = ? ORDER BY created DESC';
-    const results = await User.query(context, sql, [affiliationId], reference);
-    return Array.isArray(results) ? results.map((item) => new User(item)) : [];
+  // Return all of the Users associated with the specified affiliationId that match the search term
+  static async findByAffiliationId(
+    reference: string,
+    context: MyContext,
+    affiliationId: string,
+    term: string,
+    options: PaginationOptions = User.getDefaultPaginationOptions(),
+  ): Promise<PaginatedQueryResults<User>> {
+    const whereFilters = ['u.affiliationId = ?'];
+    const values = [affiliationId];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('((LOWER(u.givenName) LIKE ? OR LOWER(u.surName) LIKE ? OR \
+                           LOWER(u.email) LIKE ? OR LOWER(u.orcid) LIKE ?))');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'CONCAT(u.email, u.id)',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'u.created';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'u.id';
+
+    const sqlStatement = 'SELECT u.* FROM users u';
+
+    const response: PaginatedQueryResults<User> = await User.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
+  }
+
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptions = User.getDefaultPaginationOptions(),
+  ): Promise<PaginatedQueryResults<User>> {
+    const whereFilters = [];
+    const values = [];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(u.givenName) LIKE ? OR LOWER(u.surName) LIKE ? OR LOWER(u.email) LIKE ? \
+                       OR LOWER(u.orcid) LIKE ? OR LOWER(a.searchName) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'CONCAT(u.email, u.id)',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'u.created';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'u.id';
+
+    const sqlStatement = 'SELECT u.* FROM users u LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri';
+
+    const response: PaginatedQueryResults<User> = await User.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 
   // Update the last_login fields

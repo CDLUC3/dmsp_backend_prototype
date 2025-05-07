@@ -2,6 +2,9 @@ import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { formatLogMessage } from "../logger";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export enum TemplateVersionType {
   DRAFT = 'DRAFT',
@@ -43,20 +46,65 @@ export class VersionedTemplateSearchResult {
   }
 
   // Find all of the high level details about the published templates matching the search term
-  static async search(reference: string, context: MyContext, term: string): Promise<VersionedTemplateSearchResult[]> {
-    const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-      'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-      'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-      'a.searchName as ownerSearchName ' +
-      'FROM versionedTemplates vt ' +
-      'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-      'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-      'WHERE (vt.name LIKE ? OR a.searchName LIKE ?) AND vt.active = 1 AND vt.versionType = ? '
-    'ORDER BY vt.modified DESC;';
-    const searchTerm = (term ?? '');
-    const vals = [`%${searchTerm}%`, `%${searchTerm}%`, TemplateVersionType.PUBLISHED];
-    const results = await VersionedTemplate.query(context, sql, vals, reference);
-    return Array.isArray(results) ? results.map((entry) => new VersionedTemplateSearchResult(entry)) : [];
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptions = VersionedTemplate.getDefaultPaginationOptions(),
+  ): Promise<PaginatedQueryResults<VersionedTemplateSearchResult>> {
+    const whereFilters = ['vt.active = 1 AND vt.versionType = ?'];
+    const values = [TemplateVersionType.PUBLISHED.toString()];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['vt.name', 'vt.created', 'vt.visibility', 'vt.bestPractice', 'vt.modified'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'vt.modified';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'vt.id';
+
+    const sqlStatement = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, \
+                            vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, \
+                            a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, \
+                            a.searchName as ownerSearchName \
+                          FROM versionedTemplates vt \
+                            LEFT JOIN users u ON u.id = vt.modifiedById \
+                            LEFT JOIN affiliations a ON a.uri = vt.ownerId';
+
+    const response: PaginatedQueryResults<VersionedTemplateSearchResult> = await VersionedTemplate.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 
   // Find all of the high level details about the published templates for a specific affiliation
@@ -66,14 +114,14 @@ export class VersionedTemplateSearchResult {
     affiliationId: string
   ): Promise<VersionedTemplateSearchResult[]> {
     const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-      'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-      'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-      'a.searchName as ownerSearchName ' +
-      'FROM versionedTemplates vt ' +
-      'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-      'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-      'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
-    'ORDER BY vt.modified DESC;';
+                'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
+                'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
+                'a.searchName as ownerSearchName ' +
+              'FROM versionedTemplates vt ' +
+                'LEFT JOIN users u ON u.id = vt.modifiedById ' +
+                'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
+              'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
+              'ORDER BY vt.modified DESC;';
     const vals = [affiliationId, TemplateVersionType.PUBLISHED];
     const results = await VersionedTemplate.query(context, sql, vals, reference);
     return Array.isArray(results) ? results.map((entry) => new VersionedTemplateSearchResult(entry)) : [];

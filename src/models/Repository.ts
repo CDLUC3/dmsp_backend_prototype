@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { formatLogMessage } from "../logger";
-import { randomHex, validateURL } from "../utils/helpers";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { ResearchDomain } from "./ResearchDomain";
 
@@ -182,40 +183,67 @@ export class Repository extends MySqlModel {
     context: MyContext,
     term: string,
     researchDomainId: number,
-    repositoryType: RepositoryType
-  ): Promise<Repository[]> {
-    const searchTerm = (term ?? '');
-    const qryVal = `%${searchTerm?.toLowerCase()?.trim()}%`;
+    repositoryType: RepositoryType,
+    options: PaginationOptions = Repository.getDefaultPaginationOptions()
+  ): Promise<PaginatedQueryResults<Repository>> {
+    const whereFilters = [];
+    const values = [];
 
-    let sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? ';
-    sql += 'OR keywords LIKE ?';
-
-    const vals = [qryVal, qryVal, qryVal];
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+    }
+    // Handle the incoming repository type
     if (repositoryType) {
-      sql = `${sql} AND JSON_CONTAINS(repositoryTypes, ?, '$')`;
-      vals.push(repositoryType);
+      whereFilters.push('JSON_CONTAINS(r.repositoryTypes, ?, \'$\')');
+      values.push(repositoryType);
+    }
+    // Handle the incoming research domain
+    if (researchDomainId) {
+      whereFilters.push('rrd.researchDomainId = ?');
+      values.push(researchDomainId.toString());
     }
 
-    const results = await Repository.query(context, `${sql} ORDER BY name`, vals, reference);
-
-    // Apply any filters
-    if (Array.isArray(results) && researchDomainId) {
-      const repos = await Repository.findByResearchDomainId(
-        reference,
-        context,
-        researchDomainId
-      );
-      if (repos) {
-        const repoIds = repos.map((repo) => repo.id);
-        return results.filter((repo) => repoIds.includes(repo.id))
-      }
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['r.name', 'r.created'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
     }
 
-    // No need to reinitialize all of the results to objects here because they're just search results
-    if (Array.isArray(results) && results.length !== 0){
-      return results.map((res) => Repository.processResult(res))
-    }
-    return [];
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'r.name';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'r.id';
+
+    const sqlStatement = 'SELECT r.* FROM repositories r ' +
+                          'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+
+    const response: PaginatedQueryResults<Repository> = await Repository.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 
   // Fetch a Repository by it's id

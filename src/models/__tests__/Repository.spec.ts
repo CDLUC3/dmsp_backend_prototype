@@ -3,6 +3,7 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { Repository, RepositoryType } from "../Repository";
 import { getRandomEnumValue } from "../../__tests__/helpers";
+import { generalConfig } from "../../config/generalConfig";
 
 jest.mock('../../context.ts');
 
@@ -81,6 +82,7 @@ describe('findBy Queries', () => {
   const originalQuery = Repository.query;
 
   let localQuery;
+  let localPaginationQuery
   let context;
   let repo;
 
@@ -89,6 +91,9 @@ describe('findBy Queries', () => {
 
     localQuery = jest.fn();
     (Repository.query as jest.Mock) = localQuery;
+
+    localPaginationQuery = jest.fn();
+    (Repository.queryWithPagination as jest.Mock) = localPaginationQuery;
 
     context = buildContext(logger, mockToken());
 
@@ -199,88 +204,117 @@ describe('findBy Queries', () => {
   });
 
   it('search should work when a Research Domain, search term and repositoryType are specified', async () => {
-    localQuery.mockResolvedValueOnce([repo]);
-    const mockStandardQry = jest.fn();
-    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo]);
+    localPaginationQuery.mockResolvedValueOnce([repo]);
     const term = casual.words(3);
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, term, researchDomainId, repositoryType);
-    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ?';
-    const sql2 = 'OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
-    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, repositoryType];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, `${sql} ${sql2}`, vals, 'testing');
-    expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
+    const sql = 'SELECT r.* FROM repositories r ' +
+                'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+    const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`,
+                  repositoryType, researchDomainId.toString()];
+    const whereFilters = ['(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)',
+                          'JSON_CONTAINS(r.repositoryTypes, ?, \'$\')', 'rrd.researchDomainId = ?'];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'r.name',
+      sortDir: 'ASC',
+      countField: 'r.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
     expect(result).toEqual([repo]);
   });
 
   it('search should work when only a Research Domain is specified', async () => {
-    localQuery.mockResolvedValueOnce([repo]);
-    const mockStandardQry = jest.fn();
-    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo]);
+    localPaginationQuery.mockResolvedValueOnce([repo]);
     const researchDomainId = casual.integer(1, 9);
     const result = await Repository.search('testing', context, null, researchDomainId, null);
-    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, ['%%', '%%', '%%'], 'testing');
-    expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
+    const sql = 'SELECT r.* FROM repositories r ' +
+                'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+    const vals = [researchDomainId.toString()];
+    const whereFilters = ['rrd.researchDomainId = ?'];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'r.name',
+      sortDir: 'ASC',
+      countField: 'r.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
     expect(result).toEqual([repo]);
   });
 
   it('search should work when only a Repository Type is specified', async () => {
-    localQuery.mockResolvedValueOnce([repo]);
+    localPaginationQuery.mockResolvedValueOnce([repo]);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, null, null, repositoryType);
-    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, sql, ['%%', '%%', '%%', repositoryType], 'testing')
+    const sql = 'SELECT r.* FROM repositories r ' +
+                'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+    const vals = [repositoryType];
+    const whereFilters = ['JSON_CONTAINS(r.repositoryTypes, ?, \'$\')'];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'r.name',
+      sortDir: 'ASC',
+      countField: 'r.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')
     expect(result).toEqual([repo]);
   });
 
   it('search should work when only a Research Domain and Repository Type are specified', async () => {
-    localQuery.mockResolvedValueOnce([repo]);
-    const mockStandardQry = jest.fn();
-    (Repository.findByResearchDomainId as jest.Mock) = mockStandardQry;
-    mockStandardQry.mockResolvedValueOnce([repo]);
+    localPaginationQuery.mockResolvedValueOnce([repo]);
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);
     const result = await Repository.search('testing', context, null, researchDomainId, repositoryType);
-    const sql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? AND JSON_CONTAINS(repositoryTypes, ?, \'$\') ORDER BY name';
-    const vals = ['%%', '%%', '%%', repositoryType];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(mockStandardQry).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, sql, vals, 'testing');
-    expect(mockStandardQry).toHaveBeenCalledWith('testing', context, researchDomainId);
+    const sql = 'SELECT r.* FROM repositories r ' +
+                'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+    const vals = [repositoryType, researchDomainId.toString()];
+    const whereFilters = ['JSON_CONTAINS(r.repositoryTypes, ?, \'$\')', 'rrd.researchDomainId = ?'];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'r.name',
+      sortDir: 'ASC',
+      countField: 'r.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
     expect(result).toEqual([repo]);
   });
 
   it('search should work when only a search term is specified', async () => {
-    localQuery.mockResolvedValueOnce([repo]);
+    localPaginationQuery.mockResolvedValueOnce([repo]);
     const term = casual.words(3);
     const result = await Repository.search('testing', context, term, null, null);
-    const expectedSql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
+    const sql = 'SELECT r.* FROM repositories r ' +
+                'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
     const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
-    expect(result).toEqual([repo]);
-  });
-
-  it('search should work when no Research Domain or search term are specified', async () => {
-    localQuery.mockResolvedValueOnce([repo]);
-    const result = await Repository.search('testing', context, null, null, null);
-    const expectedSql = 'SELECT * FROM repositories WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? OR keywords LIKE ? ORDER BY name';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, ['%%', '%%', '%%'], 'testing')
+    const whereFilters = ['(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)'];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'r.name',
+      sortDir: 'ASC',
+      countField: 'r.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')
     expect(result).toEqual([repo]);
   });
 
   it('search should return empty array if it finds no records', async () => {
-    localQuery.mockResolvedValueOnce([]);
+    localPaginationQuery.mockResolvedValueOnce([]);
     const term = casual.words(3);
     const researchDomainId = casual.integer(1, 9);
     const repositoryType = getRandomEnumValue(RepositoryType);

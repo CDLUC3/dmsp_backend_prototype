@@ -1,7 +1,7 @@
 import { Resolvers } from "../types";
 import { ResearchDomain } from "../models/ResearchDomain";
 import { MyContext } from '../context';
-import { AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
+import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { formatLogMessage } from "../logger";
 import { isAuthorized } from "../services/authService";
 import { GraphQLError } from "graphql";
@@ -15,7 +15,8 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           return await ResearchDomain.topLevelDomains(reference, context);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -31,7 +32,8 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           return await ResearchDomain.findByParentId(reference, context, parentResearchDomainId);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -49,4 +51,3 @@ export const resolvers: Resolvers = {
     },
   },
 };
-

@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import { PublishedTemplateSearchResults, Resolvers } from "../types";
 import { VersionedTemplate, VersionedTemplateSearchResult } from "../models/VersionedTemplate";
 import { User } from '../models/User';
 import { MyContext } from "../context";
@@ -9,10 +9,12 @@ import { AuthenticationError, ForbiddenError, InternalServerError } from "../uti
 import { isAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
-    // Get all of the PublishedTemplates for the specified Template (a.k. the Template history)
+    // Get all of the versions for the specified VersionedTemplate (a.k. the Template history)
     //    - called from the Template history page
     templateVersions: async (_, { templateId }, context: MyContext): Promise<VersionedTemplate[]> => {
       const reference = 'templateVersions resolver';
@@ -32,11 +34,16 @@ export const resolvers: Resolvers = {
 
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
-    publishedTemplates: async (_, { term }, context: MyContext): Promise<VersionedTemplateSearchResult[]> => {
+    publishedTemplates: async (_, { term, paginationOptions }, context: MyContext): Promise<PublishedTemplateSearchResults> => {
       const reference = 'publishedTemplates resolver';
+
       try {
         if (isAdmin(context.token)) {
-          return await VersionedTemplateSearchResult.search(reference, context, term);
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+          return await VersionedTemplateSearchResult.search(reference, context, term, opts);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

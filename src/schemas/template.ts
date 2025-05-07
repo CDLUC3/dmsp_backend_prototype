@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const typeDefs = gql`
   extend type Query {
     "Get the Templates that belong to the current user's affiliation (user must be an Admin)"
-    myTemplates: [TemplateSearchResult]
+    myTemplates(term: String, paginationOptions: PaginationOptions): TemplateSearchResults
     "Get the specified Template (user must be an Admin)"
     template(templateId: Int!): Template
   }
@@ -62,6 +62,26 @@ export const typeDefs = gql`
     modifiedByName: String
     "The timestamp when the Template was last modified"
     modified: String
+  }
+
+   "Paginated results of a search for templates"
+   type TemplateSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [TemplateSearchResult]
+    "The total number of possible items"
+    totalCount: Int
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
   }
 
   "A Template used to create DMPs"

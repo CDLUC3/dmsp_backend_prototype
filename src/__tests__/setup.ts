@@ -66,6 +66,8 @@ jest.mock('../config/generalConfig', () => ({
     domain: 'localhost:3000',
     applicationName: 'My test app',
     defaultAffiliatioURI: 'https://ror.org/1234abcd',
+    defaultSearchLimit: 5,
+    maximumSearchLimit: 10,
 
     dmpIdBaseURL: 'http://dmsp.com/',
     dmpIdShoulder: '11.22222/C3',

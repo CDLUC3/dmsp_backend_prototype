@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import { Resolvers, VersionedSectionSearchResults } from "../types";
 import { MyContext } from "../context";
 import { VersionedSection, VersionedSectionSearchResult } from "../models/VersionedSection";
 import { Section } from "../models/Section";
@@ -9,6 +9,8 @@ import { hasPermissionOnSection } from "../services/sectionService";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -33,11 +35,15 @@ export const resolvers: Resolvers = {
       }
     },
     // Get all of the published versionedSections with the given name
-    publishedSections: async (_, { term }, context: MyContext): Promise<VersionedSectionSearchResult[]> => {
+    publishedSections: async (_, { term, paginationOptions }, context: MyContext): Promise<VersionedSectionSearchResults> => {
       const reference = 'publishedSections resolver';
       try {
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                    ? paginationOptions as PaginationOptionsForOffsets
+                    : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
         // Find published versionedSections with similar names for the current user
-        return await VersionedSectionSearchResult.search(reference, context, term);
+        return await VersionedSectionSearchResult.search(reference, context, term, opts);
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
