@@ -5,6 +5,102 @@ import { Tag } from "../models/Tag";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { formatLogMessage } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
+import { TemplateVersionType } from "./VersionedTemplate";
+
+// Search result for VersionedTemplates
+export class VersionedSectionSearchResult {
+  public id: number;
+  public modified: string;
+  public created: string;
+  public name: string;
+  public introduction?: string;
+  public displayOrder: number;
+  public bestPractice: boolean;
+  public versionedTemplateId: number;
+  public versionedTemplateName: string;
+  public versionedQuestionCount: number;
+
+  constructor(options) {
+    this.id = options.id;
+    this.modified = options.modified;
+    this.created = options.created;
+    this.name = options.name;
+    this.introduction = options.introduction;
+    this.displayOrder = options.displayOrder ?? 0;
+    this.bestPractice = options.bestPractice ?? false;
+    this.versionedTemplateId = options.versionedTemplateId;
+    this.versionedTemplateName = options.versionedTemplateName;
+    this.versionedQuestionCount = options.versionedQuestionCount ?? 0;
+  }
+
+  // Find all of the high level details about the published templates matching the search term
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptions = VersionedSection.getDefaultPaginationOptions(),
+  ): Promise<PaginatedQueryResults<VersionedSectionSearchResult>> {
+    // Only include active published templates that are owned by the user's affiliation or marked as best practice
+    const whereFilters = ['vt.active = 1 AND vt.versionType = ? AND (vt.ownerId = ? OR vt.bestPractice = 1)'];
+    const values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('LOWER(vs.name) LIKE ?');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['vs.name', 'vs.created', 'vs.bestPractice', 'vt.name', 'vs.modified',
+                              'versionedQuestionCount'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(vs.modified, vs.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'vs.modified';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'vs.id';
+
+    const sql = `
+      SELECT vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice,
+              vt.id as versionedTemplateId, vt.name as versionedTemplateName,
+              COUNT(vq.id) as versionedQuestionCount
+        FROM versionedSections vs
+          INNER JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
+          LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
+        WHERE vs.name LIKE ? AND (vt.ownerId = ? OR vt.bestPractice = 1)
+        GROUP BY vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice,
+              vt.id, vt.name
+        ORDER BY vs.modified DESC;
+    `;
+    const response: PaginatedQueryResults<VersionedSectionSearchResult> = await VersionedSection.queryWithPagination(
+      context,
+      sql,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
+  }
+}
 
 export class VersionedSection extends MySqlModel {
   public versionedTemplateId: number;

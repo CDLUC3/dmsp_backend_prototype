@@ -1,5 +1,5 @@
 import casual from "casual";
-import { VersionedSection } from "../VersionedSection";
+import { VersionedSection, VersionedSectionSearchResult } from "../VersionedSection";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { generalConfig } from "../../config/generalConfig";
@@ -13,6 +13,95 @@ beforeEach(() => {
 
   context = buildContext(logger, mockToken());
 });
+
+describe('VersionedSectionSearchResult', () => {
+  let versionedSectionSearchResult;
+  const versionedSectionSearchResultData = {
+    name: casual.sentence,
+    introduction: casual.sentence,
+    displayOrder: casual.integer(1, 20),
+    bestPractice: casual.boolean,
+    versionedTemplateId: casual.integer(1, 20),
+    versionedTemplateName: casual.sentence,
+    versionedQuestionCount: casual.integer(1, 20),
+  }
+  beforeEach(() => {
+    versionedSectionSearchResult = new VersionedSectionSearchResult(versionedSectionSearchResultData);
+  });
+
+  it('should initialize options as expected', () => {
+    expect(versionedSectionSearchResult.name).toEqual(versionedSectionSearchResultData.name);
+    expect(versionedSectionSearchResult.introduction).toEqual(versionedSectionSearchResultData.introduction);
+    expect(versionedSectionSearchResult.displayOrder).toEqual(versionedSectionSearchResultData.displayOrder);
+    expect(versionedSectionSearchResult.bestPractice).toEqual(versionedSectionSearchResultData.bestPractice);
+    expect(versionedSectionSearchResult.versionedTemplateId).toEqual(versionedSectionSearchResultData.versionedTemplateId);
+    expect(versionedSectionSearchResult.versionedTemplateName).toEqual(versionedSectionSearchResultData.versionedTemplateName);
+    expect(versionedSectionSearchResult.versionedQuestionCount).toEqual(versionedSectionSearchResultData.versionedQuestionCount);
+  });
+
+  it('should initialize with default values', () => {
+    const defaultVersionedSectionSearchResult = new VersionedSectionSearchResult({});
+    expect(defaultVersionedSectionSearchResult.name).toEqual(undefined);
+    expect(defaultVersionedSectionSearchResult.introduction).toEqual(undefined);
+    expect(defaultVersionedSectionSearchResult.displayOrder).toEqual(0);
+    expect(defaultVersionedSectionSearchResult.bestPractice).toEqual(false);
+    expect(defaultVersionedSectionSearchResult.versionedTemplateId).toEqual(undefined);
+    expect(defaultVersionedSectionSearchResult.versionedTemplateName).toEqual(undefined);
+    expect(defaultVersionedSectionSearchResult.versionedQuestionCount).toEqual(0);
+  });
+
+  describe('search', () => {
+    const originalQuery = VersionedSection.query;
+
+    let localQuery;
+    let context;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+
+      localQuery = jest.fn();
+      (VersionedSection.query as jest.Mock) = localQuery;
+
+      context = buildContext(logger, mockToken());
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+      VersionedSection.query = originalQuery;
+    });
+
+    it('should call query with correct params and return the default', async () => {
+      localQuery.mockResolvedValueOnce([versionedSectionSearchResult]);
+      const affiliationId = context.token?.affiliationId;
+      const searchTerm = 'tesTIing';
+      const result = await VersionedSectionSearchResult.search('testing', context, searchTerm);
+      const expectedSql = `
+      SELECT vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice,
+              vt.id as versionedTemplateId, vt.name as versionedTemplateName,
+              COUNT(vq.id) as versionedQuestionCount
+        FROM versionedSections vs
+          INNER JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
+          LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
+        WHERE vs.name LIKE ? AND (vt.ownerId = ? OR vt.bestPractice = 1)
+        GROUP BY vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice,
+              vt.id, vt.name
+        ORDER BY vs.modified DESC;
+    `;
+      const vals = [`%${searchTerm.toLowerCase()}%`, affiliationId];
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
+      expect(result).toEqual([versionedSectionSearchResult]);
+    });
+
+    it('should return empty array if it finds no default', async () => {
+      localQuery.mockResolvedValueOnce([]);
+      const searchTerm = 'tesTIing';
+      const result = await VersionedSectionSearchResult.search('testing', context, searchTerm);
+      expect(result).toEqual([]);
+    });
+  });
+});
+
 
 describe('VersionedSection', () => {
   let versionedSection;

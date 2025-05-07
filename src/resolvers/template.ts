@@ -161,7 +161,9 @@ export const resolvers: Resolvers = {
           const templateInstance = new Template({ ...template });
 
           // Only allow the bestPractice flag to be changed if the user is a Super admin!
-          templateInstance.bestPractice = isSuperAdmin(context.token) ? bestPractice : template.bestPractice;
+          templateInstance.bestPractice = isSuperAdmin(context.token) && bestPractice !== undefined
+            ? bestPractice
+            : template.bestPractice;
 
           if (templateInstance) {
             if (await hasPermissionOnTemplate(context, template)) {
@@ -234,15 +236,21 @@ export const resolvers: Resolvers = {
             if (await hasPermissionOnTemplate(context, template)) {
               const versions = await VersionedTemplate.findByTemplateId(reference, context, templateId);
 
-              const versionedTemplate = await generateTemplateVersion(
-                context,
-                templateInstance,
-                versions,
-                context.token.id,
-                comment,
-                visibility as TemplateVisibility,
-                TemplateVersionType[versionType]
-              );
+              let versionedTemplate: VersionedTemplate | null = null;
+              try {
+                versionedTemplate = await generateTemplateVersion(
+                  context,
+                  templateInstance,
+                  versions,
+                  context.token.id,
+                  comment,
+                  visibility as TemplateVisibility,
+                  TemplateVersionType[versionType]
+                );
+              } catch (err) {
+                templateInstance.addError('general', err.message);
+                return templateInstance;
+              }
 
               // If the versionedTemplate is not null then the versioning process succeeded
               if (versionedTemplate && !versionedTemplate.hasErrors()) {
@@ -261,7 +269,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        formatLogMessage(context).error(err, `Failure in ${reference} `);
         throw InternalServerError();
       }
     },
