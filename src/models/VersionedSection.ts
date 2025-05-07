@@ -48,7 +48,7 @@ export class VersionedSectionSearchResult {
     const searchTerm = (term ?? '').toLowerCase().trim();
     if (searchTerm) {
       whereFilters.push('LOWER(vs.name) LIKE ?');
-      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+      values.push(`%${searchTerm}%`);
     }
 
     // Determine the type of pagination being used
@@ -75,23 +75,20 @@ export class VersionedSectionSearchResult {
     // Specify the field we want to use for the count
     opts.countField = 'vs.id';
 
-    const sql = `
-      SELECT vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice,
-              vt.id as versionedTemplateId, vt.name as versionedTemplateName,
-              COUNT(vq.id) as versionedQuestionCount
-        FROM versionedSections vs
-          INNER JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id
-          LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
-        WHERE vs.name LIKE ? AND (vt.ownerId = ? OR vt.bestPractice = 1)
-        GROUP BY vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice,
-              vt.id, vt.name
-        ORDER BY vs.modified DESC;
-    `;
+    const sql = 'SELECT vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice, ' +
+                      'vt.id as versionedTemplateId, vt.name as versionedTemplateName, ' +
+                      'COUNT(vq.id) as versionedQuestionCount ' +
+                'FROM versionedSections vs ' +
+                  'INNER JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id ' +
+                  'LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId';
+
+    const groupBy = 'GROUP BY vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, ' +
+                        'vt.bestPractice, vt.id, vt.name';
     const response: PaginatedQueryResults<VersionedSectionSearchResult> = await VersionedSection.queryWithPagination(
       context,
       sql,
       whereFilters,
-      '',
+      groupBy,
       values,
       opts,
       reference,
