@@ -3,7 +3,8 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
-- Added data migrations for new `versionedSectionTags` table
+- Added data migrations for new `versionedSectionTags` table and seed script
+- Added `maxDisplayOrder` queries to Section model
 - Added `aws-process.sh` to allow migrations to be run in the AWS environment
 - Added `init-tables` and `init-seed` data migration files
 - Added `queryWithPagination` function to `MySQLModel`.
@@ -85,6 +86,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated `addSection` resolver to properly copy questions and tags when creating a new section by copying one
 - Renamed the `outputTypes` table to `projectOutputTypes`
 - Updated `buildspec` to allow for a "MODE" env variable to be set so that we can run migrations, tests and the build separately
 - Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
