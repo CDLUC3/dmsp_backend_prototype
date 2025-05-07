@@ -77,6 +77,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Replaced all instances of `TemplateVisibility.PRIVATE` with `TemplateVisibility.ORGANIZATION` [#159]
 - Updated `publishedSections` resolver to return the new `VersionedSectionSearchResult` array
 - Format ORCID identifiers consistently, in the `Contributor` and `User` models, the `projectImport` resolver and `orcid` scalar.
 - Changed a number of GraphQL definitions to PascalCase.

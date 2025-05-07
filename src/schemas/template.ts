@@ -22,8 +22,8 @@ export const typeDefs = gql`
 
   "Template visibility"
   enum TemplateVisibility {
-    "Visible only to users of your institution"
-    PRIVATE
+    "Visible only to users of your institution/affiliation"
+    ORGANIZATION
     "Visible to all users"
     PUBLIC
   }

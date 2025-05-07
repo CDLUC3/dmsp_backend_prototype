@@ -3,7 +3,7 @@ import { defaultLanguageId, supportedLanguages } from "./Language";
 import { MySqlModel } from "./MySqlModel";
 
 export enum TemplateVisibility {
-  PRIVATE = 'PRIVATE', // Template is only available to Researchers that belong to the same affiliation
+  ORGANIZATION = 'ORGANIZATION', // Template is only available to Researchers that belong to the same affiliation
   PUBLIC = 'PUBLIC', // Template is available to everyone creating a DMP
 }
 
@@ -52,15 +52,15 @@ export class TemplateSearchResult {
     affiliationId: string
   ): Promise<TemplateSearchResult[]> {
     const sql = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
-                  't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
-                  't.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created, ' +
-                  't.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified ' +
-                'FROM templates t ' +
-                  'INNER JOIN affiliations a ON a.uri = t.ownerId ' +
-                  'INNER JOIN users cu ON cu.id = t.createdById ' +
-                  'INNER JOIN users mu ON mu.id = t.modifiedById ' +
-                'WHERE ownerId = ? ' +
-                'ORDER BY modified DESC';
+      't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
+      't.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created, ' +
+      't.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified ' +
+      'FROM templates t ' +
+      'INNER JOIN affiliations a ON a.uri = t.ownerId ' +
+      'INNER JOIN users cu ON cu.id = t.createdById ' +
+      'INNER JOIN users mu ON mu.id = t.modifiedById ' +
+      'WHERE ownerId = ? ' +
+      'ORDER BY modified DESC';
     const results = await Template.query(context, sql, [affiliationId], reference);
     return Array.isArray(results) ? results.map((item) => new TemplateSearchResult(item)) : [];
   }
@@ -88,7 +88,7 @@ export class Template extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
     this.sourceTemplateId = options.sourceTemplateId
-    this.visibility = options.visibility ?? TemplateVisibility.PRIVATE;
+    this.visibility = options.visibility ?? TemplateVisibility.ORGANIZATION;
     this.latestPublishVersion = options.latestPublishVersion ?? '';
     this.latestPublishDate = options.latestPublishDate ?? null;
     this.isDirty = options.isDirty ?? true;

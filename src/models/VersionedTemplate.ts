@@ -45,14 +45,14 @@ export class VersionedTemplateSearchResult {
   // Find all of the high level details about the published templates matching the search term
   static async search(reference: string, context: MyContext, term: string): Promise<VersionedTemplateSearchResult[]> {
     const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-                'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-                'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-                'a.searchName as ownerSearchName ' +
-              'FROM versionedTemplates vt ' +
-                'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-                'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-              'WHERE (vt.name LIKE ? OR a.searchName LIKE ?) AND vt.active = 1 AND vt.versionType = ? '
-              'ORDER BY vt.modified DESC;';
+      'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
+      'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
+      'a.searchName as ownerSearchName ' +
+      'FROM versionedTemplates vt ' +
+      'LEFT JOIN users u ON u.id = vt.modifiedById ' +
+      'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
+      'WHERE (vt.name LIKE ? OR a.searchName LIKE ?) AND vt.active = 1 AND vt.versionType = ? '
+    'ORDER BY vt.modified DESC;';
     const searchTerm = (term ?? '');
     const vals = [`%${searchTerm}%`, `%${searchTerm}%`, TemplateVersionType.PUBLISHED];
     const results = await VersionedTemplate.query(context, sql, vals, reference);
@@ -66,14 +66,14 @@ export class VersionedTemplateSearchResult {
     affiliationId: string
   ): Promise<VersionedTemplateSearchResult[]> {
     const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-                'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-                'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-                'a.searchName as ownerSearchName ' +
-              'FROM versionedTemplates vt ' +
-                'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-                'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-              'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
-              'ORDER BY vt.modified DESC;';
+      'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
+      'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
+      'a.searchName as ownerSearchName ' +
+      'FROM versionedTemplates vt ' +
+      'LEFT JOIN users u ON u.id = vt.modifiedById ' +
+      'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
+      'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
+    'ORDER BY vt.modified DESC;';
     const vals = [affiliationId, TemplateVersionType.PUBLISHED];
     const results = await VersionedTemplate.query(context, sql, vals, reference);
     return Array.isArray(results) ? results.map((entry) => new VersionedTemplateSearchResult(entry)) : [];
@@ -115,7 +115,7 @@ export class VersionedTemplate extends MySqlModel {
     this.comment = options.comment ?? '';
     this.active = options.active ?? false;
 
-    this.visibility = options.visibility ?? TemplateVisibility.PRIVATE;
+    this.visibility = options.visibility ?? TemplateVisibility.ORGANIZATION;
     this.bestPractice = options.bestPractice ?? false;
     this.languageId = options.languageId ?? defaultLanguageId;
   }

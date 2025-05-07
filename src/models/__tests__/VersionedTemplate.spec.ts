@@ -65,14 +65,14 @@ describe('VersionedTemplateSearchResult', () => {
       const term = versionedTemplateSearchResult.name.split(0, 5);
       const result = await VersionedTemplateSearchResult.search('Test', context, term);
       const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-                    'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-                    'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-                    'a.searchName as ownerSearchName ' +
-                  'FROM versionedTemplates vt ' +
-                    'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-                    'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-                  'WHERE (vt.name LIKE ? OR a.searchName LIKE ?) AND vt.active = 1 AND vt.versionType = ? '
-                  'ORDER BY vt.modified DESC;';
+        'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
+        'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
+        'a.searchName as ownerSearchName ' +
+        'FROM versionedTemplates vt ' +
+        'LEFT JOIN users u ON u.id = vt.modifiedById ' +
+        'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
+        'WHERE (vt.name LIKE ? OR a.searchName LIKE ?) AND vt.active = 1 AND vt.versionType = ? '
+      'ORDER BY vt.modified DESC;';
       const vals = [`%${term}%`, `%${term}%`, TemplateVersionType.PUBLISHED];
       expect(localQuery).toHaveBeenCalledTimes(1);
       expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
@@ -96,14 +96,14 @@ describe('VersionedTemplateSearchResult', () => {
       const affiliationId = versionedTemplateSearchResult.ownerURI;
       const result = await VersionedTemplateSearchResult.findByAffiliationId('Test', context, affiliationId);
       const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-                    'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-                    'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-                    'a.searchName as ownerSearchName ' +
-                  'FROM versionedTemplates vt ' +
-                    'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-                    'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-                  'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
-                  'ORDER BY vt.modified DESC;';
+        'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
+        'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
+        'a.searchName as ownerSearchName ' +
+        'FROM versionedTemplates vt ' +
+        'LEFT JOIN users u ON u.id = vt.modifiedById ' +
+        'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
+        'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
+      'ORDER BY vt.modified DESC;';
       const vals = [affiliationId, TemplateVersionType.PUBLISHED];
       expect(localQuery).toHaveBeenCalledTimes(1);
       expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
@@ -146,7 +146,7 @@ describe('VersionedTemplate', () => {
     expect(versioned.name).toEqual(name);
     expect(versioned.ownerId).toEqual(ownerId);
     expect(versioned.versionedById).toEqual(versionedById);
-    expect(versioned.visibility).toEqual(TemplateVisibility.PRIVATE);
+    expect(versioned.visibility).toEqual(TemplateVisibility.ORGANIZATION);
     expect(versioned.languageId).toEqual(defaultLanguageId);
     expect(versioned.created).toBeTruthy();
     expect(versioned.active).toBe(false);
