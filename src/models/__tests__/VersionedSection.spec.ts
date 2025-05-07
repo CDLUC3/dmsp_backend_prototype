@@ -1,7 +1,9 @@
 import casual from "casual";
-import { VersionedSection } from "../VersionedSection";
+import { VersionedSection, VersionedSectionSearchResult } from "../VersionedSection";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
+import { generalConfig } from "../../config/generalConfig";
+import { TemplateVersionType } from "../VersionedTemplate";
 
 jest.mock('../../context.ts');
 
@@ -12,6 +14,117 @@ beforeEach(() => {
 
   context = buildContext(logger, mockToken());
 });
+
+describe('VersionedSectionSearchResult', () => {
+  let versionedSectionSearchResult;
+  const versionedSectionSearchResultData = {
+    name: casual.sentence,
+    introduction: casual.sentence,
+    displayOrder: casual.integer(1, 20),
+    bestPractice: casual.boolean,
+    versionedTemplateId: casual.integer(1, 20),
+    versionedTemplateName: casual.sentence,
+    versionedQuestionCount: casual.integer(1, 20),
+  }
+  beforeEach(() => {
+    versionedSectionSearchResult = new VersionedSectionSearchResult(versionedSectionSearchResultData);
+  });
+
+  it('should initialize options as expected', () => {
+    expect(versionedSectionSearchResult.name).toEqual(versionedSectionSearchResultData.name);
+    expect(versionedSectionSearchResult.introduction).toEqual(versionedSectionSearchResultData.introduction);
+    expect(versionedSectionSearchResult.displayOrder).toEqual(versionedSectionSearchResultData.displayOrder);
+    expect(versionedSectionSearchResult.bestPractice).toEqual(versionedSectionSearchResultData.bestPractice);
+    expect(versionedSectionSearchResult.versionedTemplateId).toEqual(versionedSectionSearchResultData.versionedTemplateId);
+    expect(versionedSectionSearchResult.versionedTemplateName).toEqual(versionedSectionSearchResultData.versionedTemplateName);
+    expect(versionedSectionSearchResult.versionedQuestionCount).toEqual(versionedSectionSearchResultData.versionedQuestionCount);
+  });
+
+  it('should initialize with default values', () => {
+    const defaultVersionedSectionSearchResult = new VersionedSectionSearchResult({});
+    expect(defaultVersionedSectionSearchResult.name).toEqual(undefined);
+    expect(defaultVersionedSectionSearchResult.introduction).toEqual(undefined);
+    expect(defaultVersionedSectionSearchResult.displayOrder).toEqual(0);
+    expect(defaultVersionedSectionSearchResult.bestPractice).toEqual(false);
+    expect(defaultVersionedSectionSearchResult.versionedTemplateId).toEqual(undefined);
+    expect(defaultVersionedSectionSearchResult.versionedTemplateName).toEqual(undefined);
+    expect(defaultVersionedSectionSearchResult.versionedQuestionCount).toEqual(0);
+  });
+
+  describe('search', () => {
+    const originalQuery = VersionedSection.query;
+
+    let localPaginationQuery;
+    let versionedSectionSearchResult;
+    let context;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+
+      localPaginationQuery = jest.fn();
+      (VersionedSection.queryWithPagination as jest.Mock) = localPaginationQuery;
+
+      context = buildContext(logger, mockToken());
+
+      versionedSectionSearchResult = new VersionedSectionSearchResult({
+        id: casual.integer(1, 9),
+        modified: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
+        created: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
+        name: casual.sentence,
+        introduction: casual.sentences(5),
+        displayOrder: casual.integer(1, 20),
+        bestPractice: casual.boolean,
+        versionedTemplateId: casual.integer(1, 99),
+        versionedTemplateName: casual.sentence,
+        versionedQuestionCount: casual.integer(1, 20),
+      })
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+      VersionedSection.query = originalQuery;
+    });
+
+    it('should call query with correct params and return the default', async () => {
+      localPaginationQuery.mockResolvedValueOnce([versionedSectionSearchResult]);
+
+      const term = versionedSectionSearchResult.name.split(0, 5)[0];
+      const result = await VersionedSectionSearchResult.search('Test', context, term);
+      const sql = 'SELECT vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice, ' +
+                        'vt.id as versionedTemplateId, vt.name as versionedTemplateName, ' +
+                        'COUNT(vq.id) as versionedQuestionCount ' +
+                  'FROM versionedSections vs ' +
+                    'INNER JOIN versionedTemplates vt ON vs.versionedTemplateId = vt.id ' +
+                    'LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId';
+
+      const vals = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId, `%${term.toLowerCase()}%`];
+      const whereFilters = ['vt.active = 1 AND vt.versionType = ? AND (vt.ownerId = ? OR vt.bestPractice = 1)',
+                            'LOWER(vs.name) LIKE ?'];
+      const groupBy = 'GROUP BY vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, ' +
+                        'vt.bestPractice, vt.id, vt.name'
+
+      const opts = {
+        cursor: null,
+        limit: generalConfig.defaultSearchLimit,
+        sortField: 'vs.modified',
+        sortDir: 'DESC',
+        countField: 'vs.id',
+        cursorField: 'LOWER(REPLACE(CONCAT(vs.modified, vs.id), \' \', \'_\'))',
+      };
+      expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+      expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, groupBy, vals, opts, 'Test')
+      expect(result).toEqual([versionedSectionSearchResult]);
+    });
+
+    it('should return empty array if it finds no default', async () => {
+      localPaginationQuery.mockResolvedValueOnce([]);
+      const searchTerm = 'tesTIing';
+      const result = await VersionedSectionSearchResult.search('testing', context, searchTerm);
+      expect(result).toEqual([]);
+    });
+  });
+});
+
 
 describe('VersionedSection', () => {
   let versionedSection;
@@ -87,6 +200,7 @@ describe('findByName', () => {
   const originalQuery = VersionedSection.query;
 
   let localQuery;
+  let localPaginationQuery
   let context;
   let versionedSection;
 
@@ -95,6 +209,9 @@ describe('findByName', () => {
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
+
+    localPaginationQuery = jest.fn();
+    (VersionedSection.queryWithPagination as jest.Mock) = localPaginationQuery;
 
     context = buildContext(logger, mockToken());
 
@@ -113,23 +230,34 @@ describe('findByName', () => {
   });
 
   it('should call query with correct params and return the section', async () => {
-    localQuery.mockResolvedValueOnce([versionedSection]);
+    localPaginationQuery.mockResolvedValueOnce([versionedSection]);
 
-    const result = await VersionedSection.findByName('VersionedSection query', context, versionedSection.name);
-    const expectedSql = 'SELECT * FROM versionedSections WHERE name LIKE ?';
-    const vals = [`%${versionedSection.name}%`];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'VersionedSection query')
+    const result = await VersionedSection.findByName('Test', context, versionedSection.name);
+    const sql = 'SELECT vs.* FROM versionedSections vs';
+    const vals = [`%${versionedSection.name.toLowerCase()}%`];
+    const whereFilters = ['LOWER(vs.name) LIKE ?'];
+
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'vs.name',
+      sortDir: 'ASC',
+      countField: 'vs.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\'))',
+    };
+
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')
     /* As part of this unit test, all fields without a value default to 'undefined' for the mocked VersionedSection, but
 the getVersionedSectionsBySectionId method returns an empty array for tags, and not undefined*/
     expect(result).toEqual([versionedSection])
   });
 
-  it('should return null if it finds no VersionedSection', async () => {
-    localQuery.mockResolvedValueOnce([]);
+  it('should return an empty array if it finds no VersionedSection', async () => {
+    localPaginationQuery.mockResolvedValueOnce([]);
 
     const result = await VersionedSection.findByName('VersionedSection query', context, versionedSection.name);
-    expect(result).toEqual(null);
+    expect(result).toEqual([]);
   });
 });
 

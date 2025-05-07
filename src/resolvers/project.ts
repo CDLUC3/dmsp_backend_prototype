@@ -1,5 +1,5 @@
 import { formatLogMessage } from '../logger';
-import { ExternalProject, Resolvers } from "../types";
+import { ExternalProject, ProjectSearchResults, Resolvers } from "../types";
 import { Project, ProjectSearchResult } from "../models/Project";
 import { ProjectCollaborator } from '../models/Collaborator';
 import { MyContext } from '../context';
@@ -15,17 +15,22 @@ import { ContributorRole } from '../models/ContributorRole';
 import { GraphQLError } from 'graphql';
 import { Plan, PlanSearchResult } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
-import { normaliseDate } from '../utils/helpers';
+import { isNullOrUndefined, normaliseDate } from '../utils/helpers';
 import { parseContributor } from '../services/commonStandardService';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the projects that the current user owns or is a collaborator on
-    myProjects: async (_, __, context: MyContext): Promise<ProjectSearchResult[]> => {
+    myProjects: async (_, { term, paginationOptions }, context: MyContext): Promise<ProjectSearchResults> => {
       const reference = 'myProjects resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await ProjectSearchResult.findByUserId(reference, context, context.token?.id);
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+          return await ProjectSearchResult.search(reference, context, term, context.token?.id, opts);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

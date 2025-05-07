@@ -75,7 +75,6 @@ export const resolvers: Resolvers = {
           // if a copyFromVersionedSectionId is provided, clone the section
           if (copyFromVersionedSectionId) {
             const original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
-
             if (!original) {
               throw NotFoundError('Unable to copy the specified section');
             }

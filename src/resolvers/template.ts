@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import { Resolvers, TemplateSearchResults } from "../types";
 import { Template, TemplateSearchResult, TemplateVisibility } from "../models/Template";
 import { Affiliation } from "../models/Affiliation";
 import { TemplateCollaborator } from "../models/Collaborator";
@@ -15,15 +15,28 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { generalConfig } from "../config/generalConfig";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
     // Get the Templates that belong to the current user's affiliation (user must be an Admin)
-    myTemplates: async (_, __, context: MyContext): Promise<TemplateSearchResult[]> => {
+    myTemplates: async (_, { term, paginationOptions }, context: MyContext): Promise<TemplateSearchResults> => {
       const reference = 'myTemplates resolver';
       try {
         if (isAdmin(context.token)) {
-          return await TemplateSearchResult.findByAffiliationId(reference, context, context.token.affiliationId);
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+          return await TemplateSearchResult.findByAffiliationIdAndTerm(
+            reference,
+            context,
+            context.token.affiliationId,
+            term,
+            opts,
+          );
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -148,7 +161,9 @@ export const resolvers: Resolvers = {
           const templateInstance = new Template({ ...template });
 
           // Only allow the bestPractice flag to be changed if the user is a Super admin!
-          templateInstance.bestPractice = isSuperAdmin(context.token) ? bestPractice : template.bestPractice;
+          templateInstance.bestPractice = isSuperAdmin(context.token) && bestPractice !== undefined
+            ? bestPractice
+            : template.bestPractice;
 
           if (templateInstance) {
             if (await hasPermissionOnTemplate(context, template)) {
@@ -221,15 +236,21 @@ export const resolvers: Resolvers = {
             if (await hasPermissionOnTemplate(context, template)) {
               const versions = await VersionedTemplate.findByTemplateId(reference, context, templateId);
 
-              const versionedTemplate = await generateTemplateVersion(
-                context,
-                templateInstance,
-                versions,
-                context.token.id,
-                comment,
-                visibility as TemplateVisibility,
-                TemplateVersionType[versionType]
-              );
+              let versionedTemplate: VersionedTemplate | null = null;
+              try {
+                versionedTemplate = await generateTemplateVersion(
+                  context,
+                  templateInstance,
+                  versions,
+                  context.token.id,
+                  comment,
+                  visibility as TemplateVisibility,
+                  TemplateVersionType[versionType]
+                );
+              } catch (err) {
+                templateInstance.addError('general', err.message);
+                return templateInstance;
+              }
 
               // If the versionedTemplate is not null then the versioning process succeeded
               if (versionedTemplate && !versionedTemplate.hasErrors()) {
@@ -248,7 +269,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        formatLogMessage(context).error(err, `Failure in ${reference} `);
         throw InternalServerError();
       }
     },
@@ -257,24 +278,36 @@ export const resolvers: Resolvers = {
   Template: {
     // Chained resolver to fetch the Affiliation info for the user
     owner: async (parent: Template, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findByURI('Chained Template.owner', context, parent.ownerId);
+      if (parent.ownerId) {
+        return await Affiliation.findByURI('Chained Template.owner', context, parent.ownerId);
+      }
+      return null;
     },
 
     // Chained resolver to fetch the TemplateCollaborators
     collaborators: async (parent: Template, _, context: MyContext): Promise<TemplateCollaborator[]> => {
-      return await TemplateCollaborator.findByTemplateId('Chained Template.collaborators', context, parent.id);
+      if (parent.id) {
+        return await TemplateCollaborator.findByTemplateId('Chained Template.collaborators', context, parent.id);
+      }
+      return [];
     },
 
     // Allow the GraphQL client to fetch the template when querying for a Section
     sections: async (parent: Template, _, context: MyContext): Promise<Section[]> => {
-      return await Section.findByTemplateId('Chained Template.sections', context, parent.id);
+      if (parent.id) {
+        return await Section.findByTemplateId('Chained Template.sections', context, parent.id);
+      }
+      return [];
     },
 
     // Chained resolver to fetch the admins associated with the template's owner
     admins: async (parent: Template, _, context: MyContext): Promise<User[]> => {
-      const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId);
-      return results.filter((user) => user.role === UserRole.ADMIN);
-
+      if (parent.ownerId) {
+        const opts = { type: PaginationType.CURSOR, cursor: null, limit: generalConfig.maximumSearchLimit };
+        const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId, null, opts);
+        return Array.isArray(results.items) ? results.items.filter((user) => user.role === UserRole.ADMIN) : [];
+      }
+      return [];
     }
   },
 };

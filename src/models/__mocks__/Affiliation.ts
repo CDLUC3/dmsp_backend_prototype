@@ -1,5 +1,5 @@
 import casual from "casual";
-import { getCurrentDate } from "../../utils/helpers";
+import { getCurrentDate, isNullOrUndefined } from "../../utils/helpers";
 import {
   addEntryToMockTable,
   addMockTableStore,
@@ -9,6 +9,7 @@ import {
   findEntryInMockTableByFilter,
   findEntryInMockTableById,
   getMockTableStore,
+  paginate,
   updateEntryInMockTable
 } from "./MockStore";
 import {
@@ -20,6 +21,8 @@ import {
 } from "../Affiliation";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
+import { PaginationOptions } from "../../types";
+import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../../types/general";
 
 export const getAffiliationStore = () => {
   return getMockTableStore('affiliations');
@@ -107,15 +110,25 @@ export const mockFindAffiliationByName = async (_, __, name: string): Promise<Af
 
 export const mockAffiliationSearch = async (
   _,
-  { name, funderOnly = false }: { name: string, funderOnly: boolean}
-): Promise<AffiliationSearch[]> => {
+  __,
+  name: string,
+  funderOnly = false,
+  paginationOptions: PaginationOptions = { type: PaginationType.CURSOR, cursor: null, limit: 3 }
+): Promise<PaginatedQueryResults<AffiliationSearch>> => {
   const affiliations = findEntriesInMockTableByFilter(
     'affiliations',
-    (entry) => entry.name.toLowerCase().includes(name.toLowerCase())
+    (entry) => entry.name.toLowerCase().includes(name.toLowerCase()),
   );
   // If funderOnly is true, filter the affiliations to only include funders
   const results = funderOnly ? affiliations.filter((entry) => entry.funder) : affiliations;
-  return results ? results.map((entry) => { return new AffiliationSearch(entry) }) : [];
+  const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+    ? paginationOptions as PaginationOptionsForOffsets
+    : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+  const paginatedResults = paginate(results, opts);
+  return {
+    ...paginatedResults,
+    items: paginatedResults.items.map((entry) => { return new AffiliationSearch(entry) }),
+  };
 };
 
 // Mock the mutations

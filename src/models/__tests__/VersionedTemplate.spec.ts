@@ -5,6 +5,7 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { defaultLanguageId } from '../Language';
 import { getRandomEnumValue } from '../../__tests__/helpers';
+import { generalConfig } from '../../config/generalConfig';
 
 jest.mock('../../context.ts');
 
@@ -24,6 +25,7 @@ describe('VersionedTemplateSearchResult', () => {
   const originalQuery = VersionedTemplate.query;
 
   let localQuery;
+  let localPaginationQuery;
   let context;
   let versionedTemplateSearchResult;
 
@@ -32,6 +34,8 @@ describe('VersionedTemplateSearchResult', () => {
 
     localQuery = jest.fn();
     (VersionedTemplate.query as jest.Mock) = localQuery;
+    localPaginationQuery = jest.fn();
+    (VersionedTemplate.queryWithPagination as jest.Mock) = localPaginationQuery;
 
     context = buildContext(logger, mockToken());
 
@@ -60,31 +64,40 @@ describe('VersionedTemplateSearchResult', () => {
 
   describe('search', () => {
     it('returns the matching VersionedTemplateSearchResults', async () => {
-      localQuery.mockResolvedValueOnce([versionedTemplateSearchResult]);
+      localPaginationQuery.mockResolvedValueOnce([versionedTemplateSearchResult]);
 
-      const term = versionedTemplateSearchResult.name.split(0, 5);
+      const term = versionedTemplateSearchResult.name.split(0, 5)[0];
       const result = await VersionedTemplateSearchResult.search('Test', context, term);
-      const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-                    'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-                    'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-                    'a.searchName as ownerSearchName ' +
-                  'FROM versionedTemplates vt ' +
-                    'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-                    'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-                  'WHERE (vt.name LIKE ? OR a.searchName LIKE ?) AND vt.active = 1 AND vt.versionType = ? '
-                  'ORDER BY vt.modified DESC;';
-      const vals = [`%${term}%`, `%${term}%`, TemplateVersionType.PUBLISHED];
-      expect(localQuery).toHaveBeenCalledTimes(1);
-      expect(localQuery).toHaveBeenLastCalledWith(context, sql, vals, 'Test')
+      const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, \
+                            vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, \
+                            a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, \
+                            a.searchName as ownerSearchName \
+                          FROM versionedTemplates vt \
+                            LEFT JOIN users u ON u.id = vt.modifiedById \
+                            LEFT JOIN affiliations a ON a.uri = vt.ownerId';
+      const vals = [TemplateVersionType.PUBLISHED, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
+      const whereFilters = ['vt.active = 1 AND vt.versionType = ?',
+                            '(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)'];
+
+      const opts = {
+        cursor: null,
+        limit: generalConfig.defaultSearchLimit,
+        sortField: 'vt.modified',
+        sortDir: 'DESC',
+        countField: 'vt.id',
+        cursorField: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))',
+      };
+      expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+      expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')
       expect(result).toEqual([versionedTemplateSearchResult]);
     });
 
     it('returns an empty array if there are no matching VersionedTemplateSearchResults', async () => {
-      localQuery.mockResolvedValueOnce([]);
+      localPaginationQuery.mockResolvedValueOnce([]);
 
-      const term = versionedTemplateSearchResult.name.split(0, 5);
+      const term = versionedTemplateSearchResult.name.split(0, 5)[0];
       const result = await VersionedTemplateSearchResult.search('Test', context, term);
-      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localPaginationQuery).toHaveBeenCalledTimes(1);
       expect(result).toEqual([]);
     });
   });

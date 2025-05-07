@@ -1,5 +1,7 @@
 import { MyContext } from "../context";
-import { validateDate } from "../utils/helpers";
+import { formatLogMessage } from "../logger";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 export class ProjectSearchResult {
   public id: number;
@@ -15,8 +17,11 @@ export class ProjectSearchResult {
   public modified: string;
   public modifiedById: number;
   public modifiedByName: string;
+  public collaboratorsData: string;
   public collaborators: { name: string, accessLevel: string, orcid: string }[];
+  public contributorsData: string;
   public contributors: { name: string, role: string, orcid: string }[];
+  public fundersData: string;
   public funders: { name: string, grantId: string }[];
 
   constructor(options) {
@@ -33,57 +38,110 @@ export class ProjectSearchResult {
     this.modified = options.modified;
     this.modifiedById = options.modifiedById;
     this.modifiedByName = options.modifiedByName;
+    this.collaboratorsData = options.collaboratorsData;
     this.collaborators = options.collaborators;
+    this.contributorsData = options.contributorsData;
     this.contributors = options.contributors;
+    this.fundersData = options.fundersData;
     this.funders = options.funders;
   }
 
-  // Return all of the projects for the User
-  static async findByUserId(reference: string, context: MyContext, userId: number): Promise<ProjectSearchResult[]> {
-    const sql = 'SELECT p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
-                  'researchDomains.description as researchDomain, ' +
-	                'p.createdById, p.created, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, ' +
-                  'p.modifiedById, p.modified, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, ' +
-				  	      'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', ' +
-                    'CASE ' +
-                      'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(collab.givenName, CONCAT(\' \', collab.surName))) ' +
-                      'ELSE collab.email ' +
-                    'END, ' +
-				  	 	      'CONCAT(UPPER(SUBSTRING(pcol.accessLevel, 1, 1)), LOWER(SUBSTRING(pcol.accessLevel FROM 2))), ' +
-                    'collab.orcid ' +
-                  ') ORDER BY collab.created) collaboratorsData, ' +
-                  'GROUP_CONCAT(DISTINCT ' +
-               	  	'CONCAT_WS(\'|\', ' +
-               	  		'CASE ' +
-                        'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(pc.givenName, CONCAT(\' \', pc.surName))) ' +
-                        'ELSE pc.email ' +
-                      'END, ' +
-               	  		'r.label, ' +
-               	  	 	'pc.orcid ' +
-               	  ') ORDER BY pc.created) as contributorsData, ' +
-                  'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', funders.name, pf.grantId) ' +
-                    'ORDER BY funders.name SEPARATOR \',\') fundersData ' +
-                'FROM projects p ' +
-                  'LEFT JOIN researchDomains ON p.researchDomainId = researchDomains.id ' +
-                  'LEFT JOIN users cu ON cu.id = p.createdById ' +
-                  'LEFT JOIN users mu ON mu.id = p.modifiedById ' +
-                  'LEFT JOIN projectCollaborators pcol ON pcol.projectId = p.id ' +
-                    'LEFT JOIN users collab ON pcol.userId = collab.id ' +
-                  'LEFT JOIN projectContributors pc ON pc.projectId = p.id ' +
-                    'LEFT JOIN projectContributorRoles pcr ON pc.id = pcr.projectContributorId ' +
-                    'LEFT JOIN contributorRoles r ON pcr.contributorRoleId = r.id ' +
-                  'LEFT JOIN projectFunders pf ON pf.projectId = p.id ' +
-                    'LEFT JOIN affiliations funders ON pf.affiliationId = funders.uri ' +
-                'WHERE p.createdById = ? ' +
-                  'OR p.id IN (SELECT projectId FROM projectCollaborators WHERE userId = ?) ' +
-				        'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
-                  'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description ' +
-                'ORDER BY p.created DESC;';
-    const results = await Project.query(context, sql, [userId?.toString(), userId?.toString()], reference);
-    if (!Array.isArray(results)) return [];
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    userId: number,
+    options: PaginationOptions = Project.getDefaultPaginationOptions()
+  ): Promise<PaginatedQueryResults<ProjectSearchResult>> {
+    const whereFilters = [];
+    const values = [];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(p.title) LIKE ? OR LOWER(p.abstractText) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['p.title', 'p.created', 'p.modified', 'p.startDate', 'p.endDate', 'p.isTestProject'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(p.modified, p.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'p.modified';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the totalCount
+    opts.countField = 'p.id';
+
+    // If a userId was provided, add it to the filters
+    if (userId) {
+      whereFilters.push('(p.createdById = ? OR p.id IN (SELECT projectId FROM projectCollaborators WHERE userId = ?))');
+      values.push(userId.toString(), userId.toString());
+    }
+
+    const sqlStatement = 'SELECT p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
+                          'researchDomains.description as researchDomain, ' +
+                          'p.createdById, p.created, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, ' +
+                          'p.modifiedById, p.modified, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, ' +
+                          'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', ' +
+                            'CASE ' +
+                              'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(collab.givenName, CONCAT(\' \', collab.surName))) ' +
+                              'ELSE collab.email ' +
+                            'END, ' +
+                            'CONCAT(UPPER(SUBSTRING(pcol.accessLevel, 1, 1)), LOWER(SUBSTRING(pcol.accessLevel FROM 2))), ' +
+                            'collab.orcid ' +
+                          ') ORDER BY collab.created) collaboratorsData, ' +
+                          'GROUP_CONCAT(DISTINCT ' +
+                            'CONCAT_WS(\'|\', ' +
+                              'CASE ' +
+                                'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(pc.givenName, CONCAT(\' \', pc.surName))) ' +
+                                'ELSE pc.email ' +
+                              'END, ' +
+                              'r.label, ' +
+                              'pc.orcid ' +
+                          ') ORDER BY pc.created) as contributorsData, ' +
+                          'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', funders.name, pf.grantId) ' +
+                            'ORDER BY funders.name SEPARATOR \',\') fundersData ' +
+                        'FROM projects p ' +
+                          'LEFT JOIN researchDomains ON p.researchDomainId = researchDomains.id ' +
+                          'LEFT JOIN users cu ON cu.id = p.createdById ' +
+                          'LEFT JOIN users mu ON mu.id = p.modifiedById ' +
+                          'LEFT JOIN projectCollaborators pcol ON pcol.projectId = p.id ' +
+                            'LEFT JOIN users collab ON pcol.userId = collab.id ' +
+                          'LEFT JOIN projectContributors pc ON pc.projectId = p.id ' +
+                            'LEFT JOIN projectContributorRoles pcr ON pc.id = pcr.projectContributorId ' +
+                            'LEFT JOIN contributorRoles r ON pcr.contributorRoleId = r.id ' +
+                          'LEFT JOIN projectFunders pf ON pf.projectId = p.id ' +
+                            'LEFT JOIN affiliations funders ON pf.affiliationId = funders.uri ';
+
+    const groupByClause = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
+                          'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description ';
+
+    const response: PaginatedQueryResults<ProjectSearchResult> = await Project.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      opts,
+      reference,
+    )
 
     // Loop through each result and marshal the collaborators, contributors, and funders objects
-    return results.map((item) => {
+    response.items = response.items.map((item) => {
       const collabs = item.collaboratorsData?.split(',') ?? [];
       const contribs = item.contributorsData?.split(',') ?? [];
       const funds = item.fundersData?.split(',') ?? [];
@@ -117,6 +175,9 @@ export class ProjectSearchResult {
       });
       return new ProjectSearchResult(item)
     });
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 }
 
