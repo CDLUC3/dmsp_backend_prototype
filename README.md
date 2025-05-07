@@ -17,6 +17,7 @@
     - [Building for Production](#building-for-production)
     - [Managing the databases](#managing-the-database)
 - [Querying the Apollo Server](#querying-apollo-server)
+    - [Pagination](#pagination)
     - [Errors](#errors)
 - [Development](#development)
     - [Data Model](#data-model)
@@ -281,6 +282,83 @@ async function fetchTemplateCollaborators() {
 
 fetchTemplateCollaborators();
 ```
+
+### Pagination
+
+The system supports both offset and cursor based pagination. Offset pagination uses `offset` and `limit` to allow you to move forward and backward within the resultset. Cursor pagination uses a `cursor` and `limit` to allow you to move forward within the resultset.
+
+Cursor pagination is designed to support endless-scroll or "load more" scenarios. It is more efficent than Offset pagination, so is preferred.
+
+Offset pagination is designed to support traditional `First 2, 3, 4, 5 ... Last` style page navigation. It is slower though so not the preferred approach unless you truly need to provide users with the ability to move forward and backward or jump to a specific page.
+
+When calling one of the queries that supports pagination, you pass in a set of `paginationOptions`.
+- `limit` the number of records that should be returned (default is 20 with a max of 100)
+- Cursor specific:
+  - `cursor` either `null` (the start of the list) or a cursor id
+- Offset specific:
+  - `offset` either `0` (the start of the list) or a specific position within the list
+  - `sortField` the field you want to sort the results on
+  - `sortDir` the direction of the sort, either `ASC` (default) or `DESC`
+
+For example this query sends cursor information to get the first 20 affiliations matching the criteria:
+```
+query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions: PaginationOptions){
+  affiliations(name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
+    limit
+    totalCount
+    nextCursor
+    hasNextPage
+  }
+}
+
+variables: {
+  "name": "NSF",
+  "funderOnly": true,
+  "paginationOptions": {
+    cursor: null
+  }
+}
+```
+
+The `hasNextPage` flag in the response indicates whether there are more items available, and the `nextCursor` contains the cursor that should be sent to fetch the next 20 records.
+
+This query sends offset information to get the first 20 affiliations matching the criteria:
+```
+query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions: PaginationOptions){
+  affiliations(name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
+    limit
+    totalCount
+    currentOffset
+    hasNextPage
+    hasPreviousPage
+    availableSortFields
+  }
+}
+
+variables: {
+  "name": "NSF",
+  "funderOnly": true,
+  "paginationOptions": {
+    offset: 0
+  }
+}
+```
+
+The response has:
+- `hasNextPage` a flag indicating whether or not there is a subsequent page of results
+- `hasPreviousPage` a flag indicating whether or not there is a prior page of results
+- `currentOffset` the current offset position of the first item in the results
+- `totalCount` the total number of possible results
+- `availableSortFields` a list of fields that can be used to sort the results
+
+To fetch the next set of results, you can use `currentOffset + limit`
+
+#### Making a query that supports pagination
+
+Pagination queries use the `queryWithPagination` function on the `MySqlModel` class (as opposed to the `query` function).
+
+Refer to the `AffiliationSearchResult.search` or `User.search` functions for examples of how to structure your query.
+
 
 ### Errors
 

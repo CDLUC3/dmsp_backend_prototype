@@ -3,6 +3,8 @@ import { MySqlModel } from "../MySqlModel";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
+import { generalConfig } from '../../config/generalConfig';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
 
 jest.mock('../../dataSources/mysql', () => {
   return {
@@ -16,6 +18,7 @@ jest.mock('../../dataSources/mysql', () => {
 });
 
 class TestImplementation extends MySqlModel {
+  public name: string;
   public testA: string;
   public testB: number;
   public testC: string[];
@@ -26,6 +29,7 @@ class TestImplementation extends MySqlModel {
   constructor(opts) {
     super(opts.id, opts.created, opts.createdById, opts.modified, opts.modifiedById);
 
+    this.name = opts.name ?? casual.sentence;
     this.testA = opts.testA;
     this.testB = opts.testB;
     this.testC = opts.testC;
@@ -116,6 +120,178 @@ describe('MySqlModel abstract class', () => {
     model.id = null;
     expect(await model.isValid()).toBe(true);
   });
+
+  describe('getPaginationLimit', () => {
+    it('returns the provided limit if it is greater than or equal to 1 and less than the maximum limit', () => {
+      const limit = 10;
+      const result = MySqlModel.getPaginationLimit(limit);
+      expect(result).toEqual(limit);
+    });
+
+    it('returns the defaultSearchLimit if the provided limit is undefined', () => {
+      const result = MySqlModel.getPaginationLimit(undefined);
+      expect(result).toEqual(generalConfig.defaultSearchLimit);
+    });
+
+    it('returns the defaultSearchLimit if the provided limit is less than 1', () => {
+      const limit = 0;
+      const result = MySqlModel.getPaginationLimit(limit);
+      expect(result).toEqual(generalConfig.defaultSearchLimit);
+    });
+
+    it('returns the maximumSearchLimit if the provided limit exceeds the maximum limit', () => {
+      const limit = generalConfig.maximumSearchLimit + 10;
+      const result = MySqlModel.getPaginationLimit(limit);
+      expect(result).toEqual(generalConfig.maximumSearchLimit);
+    });
+
+    it('returns the defaultSearchLimit if the provided limit is null', () => {
+      const result = MySqlModel.getPaginationLimit(null as unknown as number);
+      expect(result).toEqual(generalConfig.defaultSearchLimit);
+    });
+  });
+
+  describe('getTotalCountForPagination', () => {
+    const originalQuery = MySqlModel.query;
+    let localQuery;
+    let context;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+
+      localQuery = jest.fn();
+      (MySqlModel.query as jest.Mock) = localQuery;
+
+      context = buildContext(logger, mockToken());
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+      MySqlModel.query = originalQuery;
+    });
+
+    it('returns the total count when the query succeeds', async () => {
+      const sqlStatement = 'SELECT * FROM tests';
+      const whereClause = 'WHERE field = ?';
+      const groupByClause = 'GROUP BY field';
+      const countField = 'id';
+      const values = ['value'];
+      const reference = 'Testing';
+      const mockResponse = [{ total: 42 }];
+
+      localQuery.mockResolvedValueOnce(mockResponse);
+
+      const result = await MySqlModel.getTotalCountForPagination(
+        context,
+        sqlStatement,
+        whereClause,
+        groupByClause,
+        countField,
+        values,
+        reference
+      );
+
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenCalledWith(
+        context,
+        'SELECT COUNT(id) total FROM tests WHERE field = ? GROUP BY field',
+        values,
+        reference
+      );
+      expect(result).toEqual(42);
+    });
+
+    it('returns 0 when the query returns an empty array', async () => {
+      const sqlStatement = 'SELECT * FROM tests';
+      const whereClause = 'WHERE field = ?';
+      const groupByClause = 'GROUP BY field';
+      const countField = 'id';
+      const values = ['value'];
+      const reference = 'Testing';
+
+      localQuery.mockResolvedValueOnce([]);
+
+      const result = await MySqlModel.getTotalCountForPagination(
+        context,
+        sqlStatement,
+        whereClause,
+        groupByClause,
+        countField,
+        values,
+        reference
+      );
+
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenCalledWith(
+        context,
+        'SELECT COUNT(id) total FROM tests WHERE field = ? GROUP BY field',
+        values,
+        reference
+      );
+      expect(result).toEqual(0);
+    });
+
+    it('returns 0 when the query fails', async () => {
+      const sqlStatement = 'SELECT * FROM tests';
+      const whereClause = 'WHERE field = ?';
+      const groupByClause = 'GROUP BY field';
+      const countField = 'id';
+      const values = ['value'];
+      const reference = 'Testing';
+
+      localQuery.mockRejectedValueOnce(new Error('Query failed'));
+
+      const result = await MySqlModel.getTotalCountForPagination(
+        context,
+        sqlStatement,
+        whereClause,
+        groupByClause,
+        countField,
+        values,
+        reference
+      );
+
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenCalledWith(
+        context,
+        'SELECT COUNT(id) total FROM tests WHERE field = ? GROUP BY field',
+        values,
+        reference
+      );
+      expect(result).toEqual(0);
+    });
+
+    it('handles SQL statements with multiple FROM clauses correctly', async () => {
+      const sqlStatement = 'SELECT t1.id, t2.name FROM table1 t1 JOIN table2 t2 ON t1.id = t2.id';
+      const whereClause = 'WHERE t1.field = ?';
+      const groupByClause = 'GROUP BY t1.field';
+      const countField = 't1.id';
+      const values = ['value'];
+      const reference = 'Testing';
+      const mockResponse = [{ total: 10 }];
+
+      localQuery.mockResolvedValueOnce(mockResponse);
+
+      const result = await MySqlModel.getTotalCountForPagination(
+        context,
+        sqlStatement,
+        whereClause,
+        groupByClause,
+        countField,
+        values,
+        reference
+      );
+
+      expect(localQuery).toHaveBeenCalledTimes(1);
+      expect(localQuery).toHaveBeenCalledWith(
+        context,
+        'SELECT COUNT(t1.id) total FROM table1 t1 JOIN table2 t2 ON t1.id = t2.id WHERE t1.field = ? GROUP BY t1.field',
+        values,
+        reference
+      );
+      expect(result).toEqual(10);
+    });
+  });
 });
 
 describe('prepareValue', () => {
@@ -189,6 +365,7 @@ describe('propertyInfo', () => {
 });
 
 describe('query function', () => {
+  const originalQuery = MySqlModel.query;
   let mockQuery;
   let context;
 
@@ -204,6 +381,7 @@ describe('query function', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    MySqlModel.query = originalQuery;
   });
 
   it('query returns an array and logs the event', async () => {
@@ -248,6 +426,549 @@ describe('query function', () => {
     expect(context.logger.error).toHaveBeenCalledTimes(1);
     expect(context.logger.error).toHaveBeenCalledWith(`testing failure, ERROR: apolloContext and sqlStatement are required.`);
     expect(result).toEqual([]);
+  });
+});
+
+describe('queryWithPagination', () => {
+  const originalByOffset = MySqlModel.paginatedQueryByOffset;
+  const originalByCursor = MySqlModel.paginatedQueryByCursor;
+  let context;
+  let localPaginatedQueryByCursor;
+  let localPaginatedQueryByOffset;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    localPaginatedQueryByCursor = jest.fn();
+    localPaginatedQueryByOffset = jest.fn();
+
+    (MySqlModel.paginatedQueryByCursor as jest.Mock) = localPaginatedQueryByCursor;
+    (MySqlModel.paginatedQueryByOffset as jest.Mock) = localPaginatedQueryByOffset;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    MySqlModel.paginatedQueryByOffset = originalByOffset;
+    MySqlModel.paginatedQueryByCursor = originalByCursor;
+  });
+
+  it('calls paginatedQueryByCursor when cursorField is present in options', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      type: 'CURSOR',
+      cursorField: 'id',
+      limit: 10,
+      cursor: '5',
+      sortField: 'id',
+      sortDir: 'ASC',
+    };
+    const reference = 'Testing';
+    const mockResponse = { items: [], totalCount: 0 };
+
+    localPaginatedQueryByCursor.mockResolvedValueOnce(mockResponse);
+
+    const result = await MySqlModel.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options,
+      reference
+    );
+
+    expect(localPaginatedQueryByCursor).toHaveBeenCalledTimes(1);
+    expect(localPaginatedQueryByCursor).toHaveBeenCalledWith(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options,
+      reference
+    );
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('calls paginatedQueryByOffset when cursorField is not present in options', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      limit: 10,
+      offset: 0,
+      sortField: 'id',
+      sortDir: 'ASC',
+    };
+    const reference = 'Testing';
+    const mockResponse = { items: [], totalCount: 0 };
+
+    localPaginatedQueryByOffset.mockResolvedValueOnce(mockResponse);
+
+    const result = await MySqlModel.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options,
+      reference
+    );
+
+    expect(localPaginatedQueryByOffset).toHaveBeenCalledTimes(1);
+    expect(localPaginatedQueryByOffset).toHaveBeenCalledWith(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options,
+      reference
+    );
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('returns an empty result if both paginatedQueryByCursor and paginatedQueryByOffset fail', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      limit: 10,
+      offset: 0,
+      sortField: 'id',
+      sortDir: 'ASC',
+    };
+    const reference = 'Testing';
+
+    localPaginatedQueryByCursor.mockRejectedValueOnce(new Error('Cursor query failed'));
+    localPaginatedQueryByOffset.mockRejectedValueOnce(new Error('Offset query failed'));
+
+    const result = await MySqlModel.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options,
+      reference
+    );
+
+    expect(localPaginatedQueryByCursor).not.toHaveBeenCalled();
+    expect(localPaginatedQueryByOffset).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ "hasNextPage": false, "items": [], "limit": 5, "totalCount": 0 });
+  });
+});
+
+describe('paginatedQueryByOffset', () => {
+  const originalQuery = MySqlModel.query;
+  const originalGetTotalCountForPagination = MySqlModel.getTotalCountForPagination;
+  let context;
+  let localQuery;
+  let localGetTotalCountForPagination;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    localQuery = jest.fn();
+    localGetTotalCountForPagination = jest.fn();
+
+    (MySqlModel.query as jest.Mock) = localQuery;
+    (MySqlModel.getTotalCountForPagination as jest.Mock) = localGetTotalCountForPagination;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    MySqlModel.query = originalQuery;
+    MySqlModel.getTotalCountForPagination = originalGetTotalCountForPagination;
+  });
+
+  it('returns paginated results with correct metadata', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      limit: 10,
+      offset: 0,
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+    const mockRows = [{ id: 1 }, { id: 2 }];
+    const mockTotalCount = 20;
+
+    localQuery.mockResolvedValueOnce(mockRows);
+    localGetTotalCountForPagination.mockResolvedValueOnce(mockTotalCount);
+
+    const result = await MySqlModel.paginatedQueryByOffset(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForOffsets,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenCalledWith(
+      context,
+      'SELECT * FROM tests WHERE field = ? GROUP BY field ORDER BY id ASC LIMIT ? OFFSET ?',
+      ['value', '10', '0'],
+      reference
+    );
+    expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
+    expect(localGetTotalCountForPagination).toHaveBeenCalledWith(
+      context,
+      sqlStatement,
+      'WHERE field = ?',
+      groupByClause,
+      'id',
+      values,
+      reference
+    );
+    expect(result).toEqual({
+      items: mockRows,
+      limit: 10,
+      totalCount: mockTotalCount,
+      currentOffset: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      availableSortFields: [],
+    });
+  });
+
+  it('handles empty results gracefully', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      limit: 10,
+      offset: 0,
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+
+    localQuery.mockResolvedValueOnce([]);
+    localGetTotalCountForPagination.mockResolvedValueOnce(0);
+
+    const result = await MySqlModel.paginatedQueryByOffset(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForOffsets,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: [],
+      limit: 10,
+      totalCount: 0,
+      currentOffset: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      availableSortFields: [],
+    });
+  });
+
+  it('handles errors during query execution', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      limit: 10,
+      offset: 0,
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+
+    localQuery.mockRejectedValueOnce(new Error('Query failed'));
+
+    const result = await MySqlModel.paginatedQueryByOffset(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForOffsets,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: [],
+      limit: generalConfig.defaultSearchLimit,
+      totalCount: 0,
+      currentOffset: null,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      availableSortFields: [],
+    });
+  });
+
+  it('handles errors during total count retrieval', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      limit: 10,
+      offset: 0,
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+    const mockRows = [{ id: 1 }, { id: 2 }];
+
+    localQuery.mockResolvedValueOnce(mockRows);
+    localGetTotalCountForPagination.mockRejectedValueOnce(new Error('Count query failed'));
+
+    const result = await MySqlModel.paginatedQueryByOffset(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForOffsets,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: [],
+      limit: generalConfig.defaultSearchLimit,
+      totalCount: 0,
+      currentOffset: null,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      availableSortFields: [],
+    });
+  });
+});
+
+describe('paginatedQueryByCursor', () => {
+  const originalQuery = MySqlModel.query;
+  const originalGetTotalCountForPagination = MySqlModel.getTotalCountForPagination;
+  let context;
+  let localQuery;
+  let localGetTotalCountForPagination;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+
+    context = buildContext(logger, mockToken());
+
+    localQuery = jest.fn();
+    localGetTotalCountForPagination = jest.fn();
+
+    (MySqlModel.query as jest.Mock) = localQuery;
+    (MySqlModel.getTotalCountForPagination as jest.Mock) = localGetTotalCountForPagination;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    MySqlModel.query = originalQuery;
+    MySqlModel.getTotalCountForPagination = originalGetTotalCountForPagination;
+  });
+
+  it('returns paginated results with correct metadata', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      cursorField: 'id',
+      limit: 10,
+      cursor: '5',
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+    const mockRows = [{ id: 6, cursorId: 6 }, { id: 7, cursorId: 7 }];
+    const mockTotalCount = 20;
+
+    localQuery.mockResolvedValueOnce(mockRows);
+    localGetTotalCountForPagination.mockResolvedValueOnce(mockTotalCount);
+
+    const result = await MySqlModel.paginatedQueryByCursor(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForCursors,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenCalledWith(
+      context,
+      'SELECT id cursorId, * FROM tests WHERE field = ? AND id > ? GROUP BY field ORDER BY id ASC LIMIT ?',
+      ['value', '5', '10'],
+      reference
+    );
+    expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
+    expect(localGetTotalCountForPagination).toHaveBeenCalledWith(
+      context,
+      sqlStatement,
+      'WHERE field = ?',
+      groupByClause,
+      'id',
+      values,
+      reference
+    );
+    expect(result).toEqual({
+      items: mockRows,
+      limit: 10,
+      totalCount: mockTotalCount,
+      nextCursor: 7,
+      hasNextPage: true,
+      availableSortFields: [],
+    });
+  });
+
+  it('handles empty results gracefully', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      cursorField: 'id',
+      limit: 10,
+      cursor: '5',
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+
+    localQuery.mockResolvedValueOnce([]);
+    localGetTotalCountForPagination.mockResolvedValueOnce(0);
+
+    const result = await MySqlModel.paginatedQueryByCursor(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForCursors,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: [],
+      limit: 10,
+      totalCount: 0,
+      nextCursor: undefined,
+      hasNextPage: false,
+      availableSortFields: []
+    });
+  });
+
+  it('handles errors during query execution', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      cursorField: 'id',
+      limit: 10,
+      cursor: '5',
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+
+    localQuery.mockRejectedValueOnce(new Error('Query failed'));
+
+    const result = await MySqlModel.paginatedQueryByCursor(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForCursors,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: [],
+      limit: generalConfig.defaultSearchLimit,
+      totalCount: 0,
+      nextCursor: null,
+      hasNextPage: false,
+    });
+  });
+
+  it('handles errors during total count retrieval', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      cursorField: 'id',
+      limit: 10,
+      cursor: '5',
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+    const mockRows = [{ id: 6, cursorId: 6 }, { id: 7, cursorId: 7 }];
+
+    localQuery.mockResolvedValueOnce(mockRows);
+    localGetTotalCountForPagination.mockRejectedValueOnce(new Error('Count query failed'));
+
+    const result = await MySqlModel.paginatedQueryByCursor(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForCursors,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
+    expect(context.logger.error).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: [],
+      limit: generalConfig.defaultSearchLimit,
+      totalCount: 0,
+      nextCursor: null,
+      hasNextPage: false,
+    });
   });
 });
 

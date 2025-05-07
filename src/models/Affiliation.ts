@@ -1,6 +1,8 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { randomHex, validateURL } from "../utils/helpers";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { formatLogMessage } from "../logger";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
@@ -286,11 +288,6 @@ export class Affiliation extends MySqlModel {
   }
 }
 
-export interface AffiliationSearchCriteria {
-  name: string;
-  funderOnly: boolean;
-}
-
 // A pared down version of the full Affiliation object. This type is returned by
 // our index searches
 export class AffiliationSearch {
@@ -331,24 +328,63 @@ export class AffiliationSearch {
   }
 
   // Search for Affiliations that match the term and the funder flag
-  static async search(context: MyContext, options: AffiliationSearchCriteria): Promise<AffiliationSearch[]> {
-    let sql = 'SELECT * FROM affiliations WHERE active = 1';
-    const vals = [];
+  static async search(
+    reference: string,
+    context: MyContext,
+    name: string,
+    funderOnly: boolean,
+    options: PaginationOptions = Affiliation.getDefaultPaginationOptions(),
+  ): Promise<PaginatedQueryResults<AffiliationSearch>> {
+    const whereFilters = ['a.active = 1'];
+    const values = [];
 
-    if (options.name) {
-      sql += ' AND LOWER(searchName) LIKE ?'
-      vals.push(`%${options.name.toLowerCase()}%`);
+    // Handle the incoming search term
+    const searchTerm = (name ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(a.searchName) LIKE ?)');
+      values.push(`%${searchTerm}%`);
     }
-    if (options.funderOnly) {
-      sql += ' AND funder = 1';
-    }
-
-    const results = await Affiliation.query(context, sql, vals, 'AffiliationSearch.search');
-    if (Array.isArray(results) && results.length > 0) {
-      return results.map((entry) => { return AffiliationSearch.processResult(entry) });
+    if (funderOnly) {
+      whereFilters.push('a.funder = 1');
     }
 
-    return [];
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['a.displayName', 'a.created'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'a.displayName';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'a.id';
+
+    const sqlStatement = 'SELECT a.* FROM affiliations a';
+
+    const response: PaginatedQueryResults<AffiliationSearch> = await Affiliation.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    formatLogMessage(context).debug({ options, response }, reference);
+    return response;
   }
 }
 
