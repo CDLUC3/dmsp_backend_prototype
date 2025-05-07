@@ -196,12 +196,12 @@ export function reorderDisplayOrder<T extends { id?: number, displayOrder?: numb
   // Deep copy the list to avoid mutating the original
   const clonedList = list.map(obj => ({ ...obj }));
 
+  const objectBeingMoved = clonedList.find((o) => o.id === objectBeingMovedId);
+  if (!objectBeingMoved) return clonedList;
+
   // First remove the item we are moving and then sort the remaining sections by display order
   const ordered = clonedList.filter((obj) => obj.id !== objectBeingMovedId)
                             .sort((a, b) => a.displayOrder - b.displayOrder);
-
-  const objectBeingMoved = clonedList.find((o) => o.id === objectBeingMovedId);
-  if (!objectBeingMoved) return clonedList;
 
   // Splice the object being moved into the correct position
   const index = ordered.findIndex((obj) => obj.displayOrder > newDisplayOrder);
