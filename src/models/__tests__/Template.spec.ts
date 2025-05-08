@@ -119,7 +119,7 @@ describe('Template', () => {
     expect(template.id).toBeFalsy();
     expect(template.name).toEqual(name);
     expect(template.ownerId).toEqual(ownerId);
-    expect(template.visibility).toEqual(TemplateVisibility.PRIVATE);
+    expect(template.visibility).toEqual(TemplateVisibility.ORGANIZATION);
     expect(template.created).toBeTruthy();
     expect(template.modified).toBeTruthy();
     expect(template.latestPublishVersion).toBeFalsy();

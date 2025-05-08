@@ -6,7 +6,7 @@ import { formatLogMessage } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 
 export enum TemplateVisibility {
-  PRIVATE = 'PRIVATE', // Template is only available to Researchers that belong to the same affiliation
+  ORGANIZATION = 'ORGANIZATION', // Template is only available to Researchers that belong to the same affiliation
   PUBLIC = 'PUBLIC', // Template is available to everyone creating a DMP
 }
 
@@ -135,7 +135,7 @@ export class Template extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
     this.sourceTemplateId = options.sourceTemplateId
-    this.visibility = options.visibility ?? TemplateVisibility.PRIVATE;
+    this.visibility = options.visibility ?? TemplateVisibility.ORGANIZATION;
     this.latestPublishVersion = options.latestPublishVersion ?? '';
     this.latestPublishDate = options.latestPublishDate ?? null;
     this.isDirty = options.isDirty ?? true;

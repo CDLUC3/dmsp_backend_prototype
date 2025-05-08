@@ -163,7 +163,7 @@ export class VersionedTemplate extends MySqlModel {
     this.comment = options.comment ?? '';
     this.active = options.active ?? false;
 
-    this.visibility = options.visibility ?? TemplateVisibility.PRIVATE;
+    this.visibility = options.visibility ?? TemplateVisibility.ORGANIZATION;
     this.bestPractice = options.bestPractice ?? false;
     this.languageId = options.languageId ?? defaultLanguageId;
   }
