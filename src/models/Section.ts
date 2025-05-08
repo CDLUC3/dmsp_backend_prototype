@@ -100,6 +100,17 @@ export class Section extends MySqlModel {
     return null;
   }
 
+  // Find the current max section displayOrder for the specified templateId
+  static async findMaxDisplayOrder(reference: string, context: MyContext, templateId: number): Promise<number> {
+    const sql = 'SELECT MAX(displayOrder) as maxDisplayOrder FROM sections WHERE templateId = ?';
+    const results = await Section.query(context, sql, [templateId?.toString()], reference);
+    if (Array.isArray(results) && results.length > 0) {
+      const maxDisplayOrder = results[0].maxDisplayOrder;
+      return maxDisplayOrder ? parseInt(maxDisplayOrder) : 0;
+    }
+    return 0;
+  }
+
   // Find section by section name
   static async findBySectionName(
     reference: string,

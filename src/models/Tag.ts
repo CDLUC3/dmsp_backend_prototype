@@ -111,6 +111,12 @@ export class Tag extends MySqlModel {
     return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
   }
 
+  static async findByVersionedSectionId(reference: string, context: MyContext, versionedSectionId: number): Promise<Tag[]> {
+    const sql = `SELECT tags.* FROM versionedSectionTags vst JOIN tags ON vst.tagId = tags.id WHERE vst.versionedSectionId = ?;`;
+    const result = await Tag.query(context, sql, [versionedSectionId?.toString()], reference);
+    return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
+  }
+
   static async findById(reference: string, context: MyContext, tagId: number): Promise<Tag> {
     const sql = 'SELECT * FROM tags where id = ?';
     const result = await Tag.query(context, sql, [tagId?.toString()], reference);
