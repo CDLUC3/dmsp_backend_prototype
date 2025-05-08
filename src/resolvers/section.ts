@@ -292,7 +292,7 @@ export const resolvers: Resolvers = {
           }
 
           // Check that user has permission to update this section
-          if (!await hasPermissionOnSection(context, section.templateId)) {
+          if (await hasPermissionOnSection(context, section.templateId)) {
             try {
               // Reorder the sections
               const reorderedSections = await updateDisplayOrders(
