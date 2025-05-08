@@ -204,15 +204,8 @@ export function reorderDisplayOrder<T extends { id?: number, displayOrder?: numb
                             .sort((a, b) => a.displayOrder - b.displayOrder);
 
   // Splice the object being moved into the correct position
-  // const index = ordered.findIndex((obj) => obj.displayOrder >= newDisplayOrder);
   const index = Math.max(0, Math.min(newDisplayOrder - 1, ordered.length));
-  if (index === -1) {
-    // If the new display order is greater than all existing orders, push it to the end
-    ordered.push(objectBeingMoved);
-  } else {
-    // Otherwise, insert it at the correct index
-    ordered.splice(index, 0, objectBeingMoved);
-  }
+  ordered.splice(index, 0, objectBeingMoved);
 
   // Update displayOrder values
   let displayOrder = 1;
