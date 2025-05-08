@@ -10,6 +10,7 @@ import { Question } from "../models/Question";
 import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import { VersionedQuestion } from "../models/VersionedQuestion";
 
 
 export const resolvers: Resolvers = {
@@ -60,7 +61,6 @@ export const resolvers: Resolvers = {
           copyFromVersionedSectionId,
           introduction,
           requirements,
-          tags,
           guidance,
           displayOrder
         }
@@ -73,19 +73,22 @@ export const resolvers: Resolvers = {
           let section = new Section({ name, templateId, introduction, requirements, guidance, displayOrder });
 
           // if a copyFromVersionedSectionId is provided, clone the section
+          let original: VersionedSection;
+
           if (copyFromVersionedSectionId) {
-            const original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
+            original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
             if (!original) {
               throw NotFoundError('Unable to copy the specified section');
             }
 
             section = cloneSection(context.token?.id, templateId, original);
             section.name = name;
+            const maxDisplayOrder = await Section.findMaxDisplayOrder(reference, context, templateId);
+            section.displayOrder = maxDisplayOrder + 1;
           }
 
           // create the new section
           const newSection = await section.create(context, templateId);
-
           // if the section was not created, return the errors
           if (!newSection?.id) {
             // A null was returned so add a generic error and return it
@@ -95,20 +98,50 @@ export const resolvers: Resolvers = {
             return section;
           }
 
-          // Add tags to the section
-          if (tags && Array.isArray(tags) && tags.length > 0) {
-            const addTagErrors = [];
-            for (const tagIn of tags) {
-              const tag = await Tag.findById(reference, context, tagIn.id);
-              if (tag) {
-                const wasAdded = tag.addToSection(context, newSection.id)
-                if (!wasAdded) {
-                  addTagErrors.push(tag.name);
+          // if a copyFromVersionedSectionId is provided, clone all the questions
+          if (copyFromVersionedSectionId && original) {
+            const versionedQuestions = await VersionedQuestion.findByVersionedSectionId(
+              reference,
+              context,
+              original.id
+            );
+
+            // Add questions from the copied versionedSection to the section
+            for (const versionedQuestion of versionedQuestions) {
+              const newQuestion = new Question({
+                ...versionedQuestion,
+                isDirty: true,
+                sourceQuestionId: versionedQuestion.questionId,
+                sectionId: newSection.id,
+                templateId: templateId,
+                id: undefined, // ensure the id is not set since we're creating a new question
+              });
+
+              const addedQuestion = await newQuestion.create(context);
+              if (!addedQuestion?.id) {
+                // A null was returned so add a generic error and return it
+                if (!newQuestion.errors['general']) {
+                  newQuestion.addError('general', 'Unable to create the question');
                 }
               }
             }
-            if (addTagErrors.length > 0) {
-              newSection.addError('tags', `Section created but we were unable to assign tags: ${addTagErrors.join(', ')}`);
+
+            const versionedTags = await Tag.findByVersionedSectionId(reference, context, original.sectionId);
+            // Add tags from the copied versionedSection to the section
+            if (versionedTags && Array.isArray(versionedTags) && versionedTags.length > 0) {
+              const addTagErrors = [];
+              for (const tagIn of versionedTags) {
+                const tag = await Tag.findById(reference, context, tagIn.id);
+                if (tag) {
+                  const wasAdded = tag.addToSection(context, newSection.id)
+                  if (!wasAdded) {
+                    addTagErrors.push(tag.name);
+                  }
+                }
+              }
+              if (addTagErrors.length > 0) {
+                newSection.addError('tags', `Section created but we were unable to assign tags: ${addTagErrors.join(', ')}`);
+              }
             }
           }
 
