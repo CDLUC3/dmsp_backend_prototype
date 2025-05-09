@@ -8,6 +8,7 @@ import { QuestionCondition } from "../models/QuestionCondition";
 import { QuestionOption } from "../models/QuestionOption";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
 import { formatLogMessage } from "../logger";
+import { reorderDisplayOrder } from "../utils/helpers";
 
 // Determine whether the specified user has permission to access the Section
 export const hasPermissionOnQuestion = async (context: MyContext, templateId: number): Promise<boolean> => {
@@ -183,4 +184,44 @@ export const getQuestionOptionsToRemove = async (questionOptions: QuestionOption
   const optionsToRemove = existingOptions.filter(existing => !questionOptionIds.has(existing.id))
 
   return Array.isArray(optionsToRemove) ? optionsToRemove : [];
+}
+
+// Update the display order of the specified Section
+export const updateDisplayOrders = async (
+  context: MyContext,
+  sectionId: number,
+  questionId: number,
+  newDisplayOrder: number
+): Promise<Question[] | []> => {
+  // Load all of the questions that belong to the section
+  const questions = await Question.findBySectionId('questionService.updateDisplayOrders', context, sectionId);
+  if (!questions) {
+    throw NotFoundError();
+  }
+
+  // Retain the original display orders
+  const originals = questions ? questions.map(section => ({ ...section })) : [];
+  // reorder the questions
+  const reorderedQuestions = reorderDisplayOrder(questionId, newDisplayOrder, questions);
+
+  // Save the reordered questions
+  for (const reorderedQuestion of reorderedQuestions) {
+    const oldDisplayOrder = originals.find((s) => s.id === reorderedQuestion.id)?.displayOrder;
+
+    // If the display order is the same as the original display order, then skip it
+    if (reorderedQuestion.displayOrder === oldDisplayOrder) {
+      continue;
+
+    } else {
+      const toUpdate = new Question({ ...reorderedQuestion });
+      const updatedSection = await toUpdate.update(context);
+      if (updatedSection && updatedSection.hasErrors()) {
+        // If one of them fais, throw an error
+        const msg = `Unable to update the display order for section: ${reorderedQuestion.id}`;
+        formatLogMessage(context).error(updatedSection.errors, msg);
+        throw new Error(msg);
+      }
+    }
+  }
+  return  reorderedQuestions;
 }

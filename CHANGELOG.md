@@ -3,6 +3,9 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `reorderDisplayOrder` herlper function to help maintain the `displayOrder` field on a set of objects
+- Added `updateDisplayOrders` to both the `sectionService` and `questionService`
+- Added `updateSectionsDisplayOrder` and `updateQuestionsDisplayOrder` schema and resolvers
 - Added data migrations for new `versionedSectionTags` table and seed script
 - Added `maxDisplayOrder` queries to Section model
 - Added `aws-process.sh` to allow migrations to be run in the AWS environment

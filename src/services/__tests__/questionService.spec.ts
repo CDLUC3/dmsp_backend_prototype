@@ -3,7 +3,7 @@ import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
 import { mysql } from "../../datasources/mysql";
-import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion } from "../questionService";
+import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion, updateDisplayOrders } from "../questionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
 import { NotFoundError } from "../../utils/graphQLErrors";
@@ -511,5 +511,134 @@ describe('generateQuestionConditionVersion', () => {
     expect(newVersion.conditionType).toEqual(questionCondition.conditionType);
     expect(newVersion.conditionMatch).toEqual(questionCondition.conditionMatch);
     expect(newVersion.target).toEqual(questionCondition.target);
+  });
+});
+
+describe('updateDisplayOrders', () => {
+  describe('updateDisplayOrders', () => {
+    let questionStore;
+    let sectionId;
+    let mockFindByTemplateId;
+    let mockUpdate;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+
+      const tstamp = getCurrentDate();
+
+      const sectionId = casual.integer(1, 999);
+
+      // Setup the mock data store
+      questionStore = [
+        new Question({
+          id: 1,
+          sectionId: sectionId,
+          text: casual.sentence,
+          displayOrder: 1,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+        new Question({
+          id: 2,
+          sectionId: sectionId,
+          text: casual.sentence,
+          displayOrder: 2,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+        new Question({
+          id: 3,
+          sectionId: sectionId,
+          text: casual.sentence,
+          displayOrder: 3,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+      ];
+
+      // Mock the findByTemplateId method
+      mockFindByTemplateId = jest.fn().mockResolvedValue(questionStore);
+      (Question.findBySectionId as jest.Mock) = mockFindByTemplateId;
+
+      // Mock the update method
+      mockUpdate = jest.fn().mockImplementation((context) => {
+        const tstamp = getCurrentDate();
+        const userId = context.token.id;
+        return new Question({
+          ...questionStore[0],
+          modified: tstamp,
+          modifiedById: userId,
+        });
+      });
+      (Question.prototype.update as jest.Mock) = mockUpdate;
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('throws NotFoundError if no sections are found', async () => {
+      mockFindByTemplateId.mockResolvedValueOnce(null);
+
+      await expect(
+        updateDisplayOrders(context, sectionId, casual.integer(1, 99), 1)
+      ).rejects.toThrow(NotFoundError());
+    });
+
+    it('reorders sections and updates them successfully', async () => {
+      const newDisplayOrder = 2;
+      const reorderedSections = await updateDisplayOrders(
+        context,
+        sectionId,
+        questionStore[0].id,
+        newDisplayOrder
+      );
+
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledTimes(2); // Should have updated the 1st and 2nd sections
+      expect(reorderedSections).toHaveLength(questionStore.length);
+      expect(reorderedSections[0].displayOrder).toEqual(1);
+      expect(reorderedSections[0].id).toEqual(2);
+      expect(reorderedSections[1].displayOrder).toEqual(2);
+      expect(reorderedSections[1].id).toEqual(1);
+      expect(reorderedSections[2].displayOrder).toEqual(3);
+      expect(reorderedSections[2].id).toEqual(3);
+    });
+
+    it('skips updating sections with unchanged display order', async () => {
+      const newDisplayOrder = questionStore[0].displayOrder;
+
+      const reorderedSections = await updateDisplayOrders(
+        context,
+        sectionId,
+        questionStore[0].id,
+        newDisplayOrder
+      );
+
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).not.toHaveBeenCalled(); // No updates should occur
+      expect(reorderedSections).toHaveLength(questionStore.length);
+    });
+
+    it('throws an error if a section update fails', async () => {
+      mockUpdate.mockImplementationOnce(() => {
+        throw new Error('Update failed');
+      });
+
+      await expect(
+        updateDisplayOrders(context, sectionId, questionStore[0].id, 2)
+      ).rejects.toThrow('Update failed');
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledTimes(1);
+    });
   });
 });

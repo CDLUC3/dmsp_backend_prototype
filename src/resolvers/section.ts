@@ -1,11 +1,11 @@
-import { Resolvers } from "../types";
+import { ReorderSectionsResult, Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { VersionedSection } from "../models/VersionedSection";
 import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
-import { cloneSection, hasPermissionOnSection } from "../services/sectionService";
-import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
+import { cloneSection, hasPermissionOnSection, updateDisplayOrders } from "../services/sectionService";
+import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError, BadRequestError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
 import { formatLogMessage } from "../logger";
@@ -260,6 +260,55 @@ export const resolvers: Resolvers = {
 
           // Return newly updated section with tags
           return updatedSection.hasErrors() ? updatedSection : await Section.findById(reference, context, updatedSection.id);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Change the section's display order
+    updateSectionDisplayOrder: async (
+      _,
+      { sectionId, newDisplayOrder },
+      context: MyContext
+    ): Promise<ReorderSectionsResult> => {
+      const reference = 'updateSectionDisplayOrder resolver';
+      try {
+        if (isAdmin(context.token)) {
+          // Find the section that is being repositioned
+          const section = await Section.findById(reference, context, sectionId);
+
+          if (!section) {
+            throw NotFoundError();
+          }
+
+          // Check that the new display order has actually changed
+          if (section.displayOrder === newDisplayOrder) {
+            throw BadRequestError('The new display order is the same as the current one');
+          }
+
+          // Check that user has permission to update this section
+          if (await hasPermissionOnSection(context, section.templateId)) {
+            try {
+              // Reorder the sections
+              const reorderedSections = await updateDisplayOrders(
+                context,
+                section.templateId,
+                sectionId,
+                newDisplayOrder
+              );
+
+              return { sections: reorderedSections ?? [] };
+
+            } catch (err) {
+              formatLogMessage(context).error(err, `${reference} failed: sectionId: ${sectionId}`);
+              return { sections: [], errors: { general: err.message } };
+            }
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

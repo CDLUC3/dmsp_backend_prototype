@@ -13,6 +13,7 @@ import {
   stringToEnumValue,
   formatORCID,
   normaliseHttpProtocol,
+  reorderDisplayOrder,
 } from '../helpers';
 
 describe('Date validation', () => {
@@ -224,5 +225,134 @@ describe('formatORCID', () => {
   it('should convert http to https for valid ORCID URLs', () => {
     expect(formatORCID(`http://orcid.org/0000-0000-0000-000X`)).toEqual(`https://orcid.org/0000-0000-0000-000X`);
     expect(formatORCID('http://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
+  });
+});
+
+describe('reorderDisplayOrder', () => {
+  it('should reorder the display order of sections', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 1, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is the same as the current one', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 2, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is greater than the current one', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(1, 3, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is less than the current one', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(3, 1, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the list is empty', () => {
+    const sections: { id: number, displayOrder: number }[] = [];
+    const reorderedSections = reorderDisplayOrder(1, 1, sections);
+    expect(reorderedSections).toEqual([]);
+  });
+
+  it('should handle the case where the list has only one item', () => {
+    const sections = [{ id: 1, displayOrder: 1 }];
+    const reorderedSections = reorderDisplayOrder(1, 1, sections);
+    expect(reorderedSections).toEqual(sections);
+  });
+
+  it('should handle the case where the object being moved is not in the list', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(4, 1, sections);
+    expect(reorderedSections).toEqual(sections);
+  });
+
+  it('should handle the case where the new display order is out of bounds', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 5, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is negative', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, -1, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is zero', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 0, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is the same as the last one', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 3, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
   });
 });

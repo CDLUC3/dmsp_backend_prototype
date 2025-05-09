@@ -7,6 +7,7 @@ import { NotFoundError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { generateQuestionVersion } from "./questionService";
 import { formatLogMessage } from "../logger";
+import { reorderDisplayOrder } from "../utils/helpers";
 
 // Creates a new Version/Snapshot the specified Section (as a point in time snapshot)
 //    - Creates a new VersionedSection including all of the related Questions
@@ -117,4 +118,45 @@ export const hasPermissionOnSection = async (context: MyContext, templateId: num
 
   // Offload permission checks to the Template
   return await hasPermissionOnTemplate(context, template);
+}
+
+
+// Update the display order of the specified Section
+export const updateDisplayOrders = async (
+  context: MyContext,
+  templateId: number,
+  sectionId: number,
+  newDisplayOrder: number
+): Promise<Section[] | []> => {
+  // Load all of the sections that belong to the template
+  const sections = await Section.findByTemplateId('sectionService.updateDisplayOrders', context, templateId);
+  if (!sections) {
+    throw NotFoundError();
+  }
+
+  // Retain the original display orders
+  const originals = sections ? sections.map(section => ({ ...section })) : [];
+  // reorder the sections
+  const reorderedSections = reorderDisplayOrder(sectionId, newDisplayOrder, sections);
+
+  // Save the reordered sections
+  for (const reorderedSection of reorderedSections) {
+    const oldDisplayOrder = originals.find((s) => s.id === reorderedSection.id)?.displayOrder;
+
+    // If the display order is the same as the original display order, then skip it
+    if (reorderedSection.displayOrder === oldDisplayOrder) {
+      continue;
+
+    } else {
+      const toUpdate = new Section({ ...reorderedSection });
+      const updatedSection = await toUpdate.update(context);
+      if (updatedSection && updatedSection.hasErrors()) {
+        // If one of them fais, throw an error
+        const msg = `Unable to update the display order for section: ${reorderedSection.id}`;
+        formatLogMessage(context).error(updatedSection.errors, msg);
+        throw new Error(msg);
+      }
+    }
+  }
+  return  reorderedSections;
 }
