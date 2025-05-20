@@ -11,11 +11,5 @@ DROP TABLE `questionTypes`;
 # Drop the old questionOptions table
 DROP TABLE `questionOptions`;
 
-# Drop the old versionedQuestionConditions table
-DROP TABLE `versionedQuestionConditions`;
-
-# Drop the old questionConditions table
-DROP TABLE `questionConditions`;
-
 # Drop the old answerText column from the answers table
 ALTER TABLE `answers` DROP COLUMN `answerText`;

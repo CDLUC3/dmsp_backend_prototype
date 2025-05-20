@@ -24,7 +24,7 @@ export class VersionedQuestion extends MySqlModel {
     this.versionedTemplateId = options.versionedTemplateId;
     this.versionedSectionId = options.versionedSectionId;
     this.questionId = options.questionId;
-    this.questionType = options.questionType;
+    this.questionType = (typeof options.questionType === 'string') ? JSON.parse(options.questionType) : options.questionType;
     this.questionText = options.questionText;
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;

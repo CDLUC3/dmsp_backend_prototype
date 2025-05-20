@@ -80,8 +80,6 @@ export class MySqlModel {
       return null;
     }
 
-console.log('prepareValue', val, type)
-
     switch (type) {
       case 'number':
         return Number(val);
