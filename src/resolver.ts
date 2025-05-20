@@ -18,8 +18,6 @@ import { resolvers as questionResolvers } from './resolvers/question';
 import { resolvers as planResolvers } from './resolvers/plan';
 import { resolvers as projectResolvers } from './resolvers/project';
 import { resolvers as questionConditionResolvers } from './resolvers/questionCondition';
-import { resolvers as questionOptionResolvers } from './resolvers/questionOption';
-import { resolvers as questionTypeResolvers } from './resolvers/questionType';
 import { resolvers as templateResolvers } from './resolvers/template';
 import { resolvers as repositoryResolvers } from './resolvers/repository';
 import { resolvers as researchDomainResolvers } from './resolvers/researchDomain';
@@ -54,8 +52,6 @@ export const resolvers: IResolvers = mergeResolvers([
   projectResolvers,
   questionResolvers,
   questionConditionResolvers,
-  questionOptionResolvers,
-  questionTypeResolvers,
   repositoryResolvers,
   researchDomainResolvers,
   templateResolvers,

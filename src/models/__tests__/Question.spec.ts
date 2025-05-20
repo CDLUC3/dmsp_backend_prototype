@@ -2,6 +2,7 @@ import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { Question } from "../Question";
+import { CURRENT_SCHEMA_VERSION, QuestionTypesEnum } from "@dmptool/types";
 
 jest.mock('../../context.ts');
 
@@ -24,6 +25,7 @@ describe('Question', () => {
     templateId: casual.integer(1, 9),
     sectionId: casual.integer(1, 9),
     questionTypeId: casual.integer(1, 9),
+    questionJSON: `{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
     questionText: casual.sentences(5),
     requirementText: casual.sentences(3),
     guidanceText: casual.sentences(10),
@@ -36,7 +38,7 @@ describe('Question', () => {
   });
 
   it('should initialize options as expected', () => {
-    expect(question.questionTypeId).toEqual(questionData.questionTypeId);
+    expect(question.questionJSON).toEqual(questionData.questionJSON);
     expect(question.questionText).toEqual(questionData.questionText);
     expect(question.requirementText).toEqual(questionData.requirementText);
     expect(question.guidanceText).toEqual(questionData.guidanceText);
@@ -46,7 +48,57 @@ describe('Question', () => {
     expect(question.required).toEqual(false);
   });
 
-  it('should return true when calling isValid with a name field', async () => {
+  it('should set questionType to the parsed JSON if valid', () => {
+    expect(question.questionType).toEqual({
+      type: QuestionTypesEnum.Enum.textArea,
+      meta: {
+        asRichText: true,
+        schemaVersion: CURRENT_SCHEMA_VERSION
+      }
+    });
+  });
+
+  it('should set questionJSON to the stringified JSON in the questionType if valid', () => {
+    const originalQuestionJSON = questionData.questionJSON;
+    questionData['questionType'] = {
+      type: QuestionTypesEnum.Enum.textArea,
+      meta: {
+        asRichText: true,
+        schemaVersion: CURRENT_SCHEMA_VERSION
+      }
+    }
+    questionData.questionJSON = null;
+    question = new Question(questionData);
+    expect(question.questionJSON).toEqual(originalQuestionJSON);
+    questionData.questionJSON = originalQuestionJSON;
+  });
+
+  it('should add an error if the questionJSON is not valid JSON', () => {
+    const originalQuestionJSON = questionData.questionJSON;
+    questionData.questionJSON = `{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}`;
+    question = new Question(questionData);
+    expect(question.errors['questionJSON']).toBeTruthy();
+    questionData.questionJSON = originalQuestionJSON;
+  });
+
+  it('should add an error if the questionType is not in the schema map', () => {
+    const originalQuestionJSON = questionData.questionJSON;
+    questionData.questionJSON = `{"type":"unknownType","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`;
+    question = new Question(questionData);
+    expect(question.errors['questionJSON']).toBeTruthy();
+    expect(question.errors['questionJSON'].includes('Unknown question type')).toBe(true);
+    questionData.questionJSON = originalQuestionJSON;
+  });
+
+  it('should add the Zod error to the errors object if the questionType is not valid', () => {
+    const originalQuestionJSON = questionData.questionJSON;
+    questionData.questionJSON = `{"type":"textArea"}`;
+    question = new Question(questionData);
+    expect(question.errors['questionJSON']).toBeTruthy();
+    questionData.questionJSON = originalQuestionJSON;
+  });
+
+  it('should return true when calling isValid', async () => {
     expect(await question.isValid()).toBe(true);
   });
 });
@@ -187,6 +239,12 @@ describe('create', () => {
       templateId: casual.integer(1, 999),
       sectionId: casual.integer(1, 999),
       id: casual.integer(1, 9),
+      questionType: {
+        type: 'number',
+        meta: {
+          schemaVersion: CURRENT_SCHEMA_VERSION
+        }
+      },
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
     })

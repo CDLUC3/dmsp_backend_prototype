@@ -5,7 +5,6 @@ import { Question } from "../models/Question";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
-import { QuestionOption } from "../models/QuestionOption";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
 import { formatLogMessage } from "../logger";
 import { reorderDisplayOrder } from "../utils/helpers";
@@ -44,7 +43,7 @@ export const generateQuestionVersion = async (
     versionedTemplateId,
     versionedSectionId,
     questionId: question.id,
-    questionTypeId: question.questionTypeId,
+    questionType: question.questionType,
     questionText: question.questionText,
     requirementText: question.requirementText,
     guidanceText: question.guidanceText,
@@ -119,7 +118,7 @@ export const cloneQuestion = (
     templateId,
     sectionId,
     sourceQuestionId: sourceId,
-    questionTypeId: question.questionTypeId,
+    questionType: question.questionType,
     questionText: question.questionText,
     requirementText: question.requirementText,
     guidanceText: question.guidanceText,
@@ -168,22 +167,6 @@ export const generateQuestionConditionVersion = async (
   const msg = `Unable to generate a new version for questionCondition: ${questionCondition.id}`;
   formatLogMessage(context).error(created.errors, msg);
   throw new Error(msg);
-}
-
-
-export const getQuestionOptionsToRemove = async (questionOptions: QuestionOption[], context: MyContext, questionId: number): Promise<QuestionOption[]> => {
-  //Get all the existing question options associated with this question
-  const existingOptions = await QuestionOption.findByQuestionId('questionService', context, questionId);
-
-  // Create a Set of question option ids
-  const questionOptionIds = new Set(
-    questionOptions.map(option => option.id)
-  );
-
-  // Get options that exist in questionOptions table, but are not included in updated questionOptions
-  const optionsToRemove = existingOptions.filter(existing => !questionOptionIds.has(existing.id))
-
-  return Array.isArray(optionsToRemove) ? optionsToRemove : [];
 }
 
 // Update the display order of the specified Section

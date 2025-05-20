@@ -2,6 +2,7 @@ import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { VersionedQuestion } from "../VersionedQuestion";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 
 jest.mock('../../context.ts');
 
@@ -24,7 +25,12 @@ describe('VersionedQuestion', () => {
     versionedTemplateId: casual.integer(1, 999),
     versionedSectionId: casual.integer(1, 999),
     questionId: casual.integer(1, 999),
-    questionTypeId: casual.integer(1, 9),
+    questionType: {
+      type: 'boolean',
+      meta: {
+        schemaVersion: CURRENT_SCHEMA_VERSION
+      }
+    },
     questionText: casual.sentences(5),
     requirementText: casual.sentences(3),
     guidanceText: casual.sentences(10),
@@ -39,7 +45,7 @@ describe('VersionedQuestion', () => {
     expect(versionedQuestion.versionedTemplateId).toEqual(versionedQuestionData.versionedTemplateId);
     expect(versionedQuestion.versionedSectionId).toEqual(versionedQuestionData.versionedSectionId);
     expect(versionedQuestion.questionId).toEqual(versionedQuestionData.questionId);
-    expect(versionedQuestion.questionTypeId).toEqual(versionedQuestionData.questionTypeId);
+    expect(versionedQuestion.questionType).toEqual(versionedQuestionData.questionType);
     expect(versionedQuestion.questionText).toEqual(versionedQuestionData.questionText);
     expect(versionedQuestion.requirementText).toEqual(versionedQuestionData.requirementText);
     expect(versionedQuestion.guidanceText).toEqual(versionedQuestionData.guidanceText);
@@ -73,11 +79,11 @@ describe('VersionedQuestion', () => {
     expect(versionedQuestion.errors['questionId'].includes('Question')).toBe(true);
   });
 
-  it('isValid returns false if the questionTypeId is null', async () => {
-    versionedQuestion.questionTypeId = null;
+  it('isValid returns false if the questionType is null', async () => {
+    versionedQuestion.questionType = null;
     expect(await versionedQuestion.isValid()).toBe(false);
     expect(Object.keys(versionedQuestion.errors).length).toBe(1);
-    expect(versionedQuestion.errors['questionTypeId'].includes('Question type')).toBe(true);
+    expect(versionedQuestion.errors['questionType'].includes('Question type')).toBe(true);
   });
 
   it('isValid returns false if the questionText is null', async () => {
@@ -147,7 +153,24 @@ describe('create', () => {
       versionedTemplateId: casual.integer(1, 999),
       versionedSectionId: casual.integer(1, 999),
       questionId: casual.integer(1, 999),
-      questionTypeId: casual.integer(1, 9),
+      questionType: {
+        type: 'checkBoxes',
+        options: [
+          {
+            label: casual.word,
+            value: casual.word,
+            checked: casual.boolean,
+          },
+          {
+            label: casual.word,
+            value: casual.word,
+            checked: casual.boolean,
+          }
+        ],
+        meta: {
+          schemaVersion: CURRENT_SCHEMA_VERSION
+        }
+      },
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 20),
     })

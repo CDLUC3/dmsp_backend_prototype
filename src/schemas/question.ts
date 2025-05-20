@@ -44,10 +44,10 @@ export const typeDefs = gql`
     displayOrder: Int
     "Whether or not the Question has had any changes since the related template was last published"
     isDirty: Boolean
-    "The type of question, such as text field, select box, radio buttons, etc"
-    questionTypeId: Int
     "This will be used as a sort of title for the Question"
     questionText: String
+    "The JSON representation of the question type"
+    questionJSON: String
     "Requirements associated with the Question"
     requirementText: String
     "Guidance to complete the question"
@@ -61,8 +61,6 @@ export const typeDefs = gql`
 
     "The conditional logic triggered by this question"
     questionConditions: [QuestionCondition!]
-    "The question options associated with this question"
-    questionOptions: [QuestionOption!]
   }
 
   "A collection of errors related to the Question"
@@ -74,13 +72,12 @@ export const typeDefs = gql`
     sectionId: String
     sourceQestionId: String
     displayOrder: String
-    questionTypeId: String
     questionText: String
+    questionJSON: String
     requirementText: String
     guidanceText: String
     sampleText: String
     questionConditionIds: String
-    questionOptionIds: String
   }
 
   "The results of reordering the questions"
@@ -100,8 +97,8 @@ export const typeDefs = gql`
     displayOrder: Int
     "Whether or not the Question has had any changes since it was last published"
     isDirty: Boolean
-    "The type of question, such as text field, select box, radio buttons, etc"
-    questionTypeId: Int
+    "The JSON representation of the question type"
+    questionJSON: String
     "This will be used as a sort of title for the Question"
     questionText: String
     "Requirements associated with the Question"
@@ -114,17 +111,15 @@ export const typeDefs = gql`
     useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
-    "Add options for a question type, like radio buttons"
-    questionOptions: [QuestionOptionInput]
   }
 
   input UpdateQuestionInput {
     "The unique identifier for the Question"
     questionId: Int!
-    "The type of question, such as text field, select box, radio buttons, etc"
-    questionTypeId: Int
     "The display order of the Question"
     displayOrder: Int
+    "The JSON representation of the question type"
+    questionJSON: String
     "This will be used as a sort of title for the Question"
     questionText: String
     "Requirements associated with the Question"
@@ -137,7 +132,5 @@ export const typeDefs = gql`
     useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
-    "Update options for a question type like radio buttons"
-    questionOptions: [UpdateQuestionOptionInput]
   }
 `
