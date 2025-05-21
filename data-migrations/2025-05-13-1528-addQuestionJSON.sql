@@ -1,4 +1,4 @@
-# Add the questionJSON column to the questions table
+# Add the questionType column to the questions table
 ALTER TABLE `questions`
   ADD COLUMN `questionType` JSON AFTER `questionText`;
 
