@@ -1,23 +1,23 @@
 import { MyContext } from "../context";
-import { ContributorRole } from "../models/ContributorRole";
+import { MemberRole } from "../models/MemberRole";
 
-export async function updateContributorRoles(
+export async function updateMemberRoles(
   reference: string,
   context: MyContext,
-  contributorId: number,
+  memberId: number,
   currentRoleIds: number[],
   newRoleIds: number[]
 ): Promise<{ updatedRoleIds: number[], errors: string[] }> {
 
   const associationErrors = [];
-  const { idsToBeRemoved, idsToBeSaved } = ContributorRole.reconcileAssociationIds(currentRoleIds, newRoleIds);
+  const { idsToBeRemoved, idsToBeSaved } = MemberRole.reconcileAssociationIds(currentRoleIds, newRoleIds);
 
   // Remove roles
   const removeErrors = [];
   for (const id of idsToBeRemoved) {
-    const role = await ContributorRole.findById(reference, context, id);
+    const role = await MemberRole.findById(reference, context, id);
     if (role) {
-      const wasRemoved = await role.removeFromPlanContributor(context, contributorId);
+      const wasRemoved = await role.removeFromPlanMember(context, memberId);
       if (!wasRemoved) {
         removeErrors.push(role.label);
       }
@@ -30,9 +30,9 @@ export async function updateContributorRoles(
   // Add roles
   const addErrors = [];
   for (const id of idsToBeSaved) {
-    const role = await ContributorRole.findById(reference, context, id);
+    const role = await MemberRole.findById(reference, context, id);
     if (role) {
-      const wasAdded = await role.addToPlanContributor(context, contributorId);
+      const wasAdded = await role.addToPlanMember(context, memberId);
       if (!wasAdded) {
         addErrors.push(role.label);
         // Remove the role from idsToBeSaved if it couldn't be added

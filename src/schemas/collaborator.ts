@@ -88,8 +88,8 @@ export const typeDefs = gql`
 
     "The project the collaborator may edit"
     project: Project
-    "The ProjectContributor id"
-    projectContributorId: Int
+    "The project member id"
+    projectMemberId: Int
     "The collaborator's email"
     email: String!
     "The collaborator (if they have an account)"

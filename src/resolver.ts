@@ -7,9 +7,9 @@ import { rorScalar } from './resolvers/scalars/ror';
 
 import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as collaboratorResolvers } from './resolvers/collaborator';
-import { resolvers as contributorResolvers } from './resolvers/contributor';
-import { resolvers as contributorRoleResolvers } from './resolvers/contributorRole';
-import { resolvers as funderResolvers } from './resolvers/funder';
+import { resolvers as memberResolvers } from './resolvers/member';
+import { resolvers as memberRoleResolvers } from './resolvers/memberRole';
+import { resolvers as fundingResolvers } from './resolvers/funding';
 import { resolvers as languageResolvers } from './resolvers/language';
 import { resolvers as licenseResolvers } from './resolvers/license';
 import { resolvers as metadataStandardResolvers } from './resolvers/metadataStandard';
@@ -43,9 +43,9 @@ export const resolvers: IResolvers = mergeResolvers([
 
   affiliationResolvers,
   collaboratorResolvers,
-  contributorResolvers,
-  contributorRoleResolvers,
-  funderResolvers,
+  memberResolvers,
+  memberRoleResolvers,
+  fundingResolvers,
   languageResolvers,
   licenseResolvers,
   metadataStandardResolvers,

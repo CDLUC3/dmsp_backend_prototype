@@ -63,8 +63,8 @@ const planToPlanSearchResult = (plan: Plan): PlanSearchResult => {
     registeredBy: casual.full_name,
     registered: plan.registered,
     featured: plan.featured,
-    funder: casual.company_name,
-    contributors: casual.full_name,
+    funding: casual.company_name,
+    members: casual.full_name,
     templateTitle: casual.title,
   }
 }

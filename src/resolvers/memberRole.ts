@@ -1,7 +1,7 @@
 
 import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
-import { ContributorRole } from "../models/ContributorRole";
+import { MemberRole } from "../models/MemberRole";
 import { MyContext } from '../context';
 import { isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError } from '../utils/graphQLErrors';
@@ -9,33 +9,33 @@ import { GraphQLError } from 'graphql';
 
 export const resolvers: Resolvers = {
   Query: {
-    // returns an array of all contributor roles
-    contributorRoles: async (_, __, context: MyContext): Promise<ContributorRole[]> => {
-      const reference = 'contributorRoles resolver';
+    // returns an array of all member roles
+    memberRoles: async (_, __, context: MyContext): Promise<MemberRole[]> => {
+      const reference = 'memberRoles resolver';
       try {
-        return await ContributorRole.all(reference, context);
+        return await MemberRole.all(reference, context);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
-    // returns a contributor role that matches the specified ID
-    contributorRoleById: async (_, { contributorRoleId }, context: MyContext): Promise<ContributorRole> => {
-      const reference = 'contributorRoleById resolver';
+    // returns a member role that matches the specified ID
+    memberRoleById: async (_, { memberRoleId }, context: MyContext): Promise<MemberRole> => {
+      const reference = 'memberRoleById resolver';
       try {
-        return await ContributorRole.findById(reference, context, contributorRoleId);
+        return await MemberRole.findById(reference, context, memberRoleId);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
-    // returns the contributor role that matches the specified URL
-    contributorRoleByURL: async (_, { contributorRoleURL }, context: MyContext): Promise<ContributorRole> => {
-      const reference = 'contributorRoleByURL resolver';
+    // returns the member role that matches the specified URL
+    memberRoleByURL: async (_, { memberRoleURL }, context: MyContext): Promise<MemberRole> => {
+      const reference = 'memberRoleByURL resolver';
       try {
-        return await ContributorRole.findByURL(reference, context, contributorRoleURL);
+        return await MemberRole.findByURL(reference, context, memberRoleURL);
       } catch (err) {
         formatLogMessage(context).error(err, `Failure in ${reference}`);
         throw InternalServerError();
@@ -44,24 +44,24 @@ export const resolvers: Resolvers = {
   },
 
   Mutation: {
-    // add a new ContributorRole
-    addContributorRole: async (_, { url, label, displayOrder, description }, context) => {
-      const reference = 'addContributorRole resolver';
+    // add a new MemberRole
+    addMemberRole: async (_, { url, label, displayOrder, description }, context) => {
+      const reference = 'addMemberRole resolver';
       try {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
-          const sql = 'INSERT INTO contributorRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
+          const sql = 'INSERT INTO memberRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
           const resp = await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder]);
-          const created = await ContributorRole.findById(reference, context, resp.insertId);
+          const created = await MemberRole.findById(reference, context, resp.insertId);
 
           if (created?.id) {
             return created;
           }
 
           // A null was returned so add a generic error and return it
-          const newRole = new ContributorRole({ url, label, description, displayOrder });
+          const newRole = new MemberRole({ url, label, description, displayOrder });
           if (!newRole.errors['general']) {
-            newRole.addError('general', 'Unable to create Affiliation');
+            newRole.addError('general', 'Unable to create MemberRole');
           }
           return newRole;
         }
@@ -74,15 +74,15 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // update an existing ContributorRole
-    updateContributorRole: async (_, { id, url, label, displayOrder, description }, context) => {
-      const reference = 'updateContributorRole resolver';
+    // update an existing MemberRole
+    updateMemberRole: async (_, { id, url, label, displayOrder, description }, context) => {
+      const reference = 'updateMemberRole resolver';
       try {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
-          const sql = 'UPDATE contributorRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
+          const sql = 'UPDATE memberRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
           await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder, id.toString()]);
-          return await ContributorRole.findById(reference, context, id);
+          return await MemberRole.findById(reference, context, id);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -93,14 +93,14 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // remove a ContributorRole
-    removeContributorRole: async (_, { id }, context) => {
-      const reference = 'removeContributorRole resolver';
-      const original = await ContributorRole.findById(reference, context, id);
+    // remove a MemberRole
+    removeMemberRole: async (_, { id }, context) => {
+      const reference = 'removeMemberRole resolver';
+      const original = await MemberRole.findById(reference, context, id);
       try {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
-          const sql = 'DELETE FROM contributorRoles WHERE id = ?';
+          const sql = 'DELETE FROM memberRoles WHERE id = ?';
           await context.dataSources.sqlDataSource.query(context, sql, [id.toString()]);
           return original;
         }

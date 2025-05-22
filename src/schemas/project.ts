@@ -1,7 +1,7 @@
 import gql from "graphql-tag";
 import {mergeTypeDefs} from "@graphql-tools/merge";
-import {typeDefs as contributorTypeDefs} from "./contributor"
-import {typeDefs as funderTypeDefs} from "./funder"
+import {typeDefs as memberTypeDefs} from "./member"
+import {typeDefs as funderTypeDefs} from "./funding"
 
 export const projectTypeDefs = gql`
   extend type Query {
@@ -55,10 +55,10 @@ export const projectTypeDefs = gql`
     modified: String
     "The names and access levels of the collaborators"
     collaborators: [ProjectSearchResultCollaborator!]
-    "The names and roles of the contributors"
-    contributors: [ProjectSearchResultContributor!]
+    "The names and roles of the members"
+    members: [ProjectSearchResultMember!]
     "The names of the funders"
-    funders: [ProjectSearchResultFunder!]
+    fundings: [ProjectSearchResultFunding!]
     "Search results errors"
     errors: ProjectErrors
   }
@@ -111,9 +111,9 @@ export const projectTypeDefs = gql`
     isTestProject: Boolean
 
     "People who are contributing to the research project (not just the DMP)"
-    contributors: [ProjectContributor!]
+    members: [ProjectMember!]
     "The funders who are supporting the research project"
-    funders: [ProjectFunder!]
+    fundings: [ProjectFunding!]
     "The outputs that will be/were created as a reult of the research project"
     outputs: [ProjectOutput!]
     "The plans that are associated with the research project"
@@ -130,8 +130,8 @@ export const projectTypeDefs = gql`
     startDate: String
     endDate: String
     researchDomainId: String
-    contributorIds: String
-    funderIds: String
+    memberIds: String
+    fundingIds: String
     outputIds: String
   }
 
@@ -144,16 +144,16 @@ export const projectTypeDefs = gql`
     orcid: String
   }
 
-  type ProjectSearchResultContributor {
-    "The name of the contributor"
+  type ProjectSearchResultMember {
+    "The name of the member"
     name: String
-    "The role of the contributor"
+    "The role of the member"
     role: String
     "The ORCiD ID"
     orcid: String
   }
 
-  type ProjectSearchResultFunder {
+  type ProjectSearchResultFunding {
     "The name of the funder"
     name: String
     "The grant id/url"
@@ -188,9 +188,9 @@ export const projectTypeDefs = gql`
     "The project end date"
     endDate: String
     "Funding information for this project"
-    funders: [ExternalFunding!]
-    "Contributor information for this project"
-    contributors: [ExternalContributor!]
+    fundings: [ExternalFunding!]
+    "Member information for this project"
+    members: [ExternalMember!]
   }
 
   type ExternalFunding {
@@ -202,16 +202,16 @@ export const projectTypeDefs = gql`
     funderOpportunityNumber: String
   }
 
-  type ExternalContributor {
-    "The ROR ID of the contributor's institution"
+  type ExternalMember {
+    "The ROR ID of the member's institution"
     affiliationId: String
-    "The contributor's first/given name"
+    "The member's first/given name"
     givenName: String
-    "The contributor's last/sur name"
+    "The member's last/sur name"
     surName: String
-    "The contributor's ORCID"
+    "The member's ORCID"
     orcid: String
-    "The contributor's email address"
+    "The member's email address"
     email: String
   }
 
@@ -219,10 +219,10 @@ export const projectTypeDefs = gql`
     "The external project data"
     project: UpdateProjectInput!
     "The external funding data"
-    funding: [AddProjectFunderInput!]
-    "The external contributor data"
-    contributors: [AddProjectContributorInput!]
+    funding: [AddProjectFundingInput!]
+    "The external member data"
+    members: [AddProjectMemberInput!]
   }
 `;
 
-export const typeDefs = mergeTypeDefs([projectTypeDefs, funderTypeDefs, contributorTypeDefs]);
+export const typeDefs = mergeTypeDefs([projectTypeDefs, funderTypeDefs, memberTypeDefs]);
