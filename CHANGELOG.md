@@ -89,6 +89,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Rename all occurrences of `Contributor` to `Member` and `Funder` to `Funding` to match newer terminology
 - Updated `addSection` resolver to properly copy questions and tags when creating a new section by copying one
 - Replaced all instances of `TemplateVisibility.PRIVATE` with `TemplateVisibility.ORGANIZATION` [#159]
 - Renamed the `outputTypes` table to `projectOutputTypes`
