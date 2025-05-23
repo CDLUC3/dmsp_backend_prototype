@@ -7,7 +7,7 @@ export class Question extends MySqlModel {
   public templateId: number;
   public sectionId: number;
   public sourceQuestionId?: number;
-  public questionJSON: string;
+  public json: string;
   public questionType: AnyQuestionType;
   public questionText: string;
   public requirementText?: string;
@@ -26,7 +26,7 @@ export class Question extends MySqlModel {
     this.templateId = options.templateId;
     this.sectionId = options.sectionId;
     this.sourceQuestionId = options.sourceQuestionId;
-    this.questionJSON = options.questionJSON;
+    this.json = options.json;
     // if the questionType is a string (loaded from the database), parse it
     this.questionType = (typeof options.questionType === 'string') ? JSON.parse(options.questionType) : options.questionType;
     this.questionText = options.questionText;
@@ -38,24 +38,24 @@ export class Question extends MySqlModel {
     this.displayOrder = options.displayOrder;
     this.isDirty = options.isDirty ?? false;
 
-    // If questionJSON is not null or undefined and the type is in the schema map
-    if (!isNullOrUndefined(this.questionJSON)) {
+    // If json is not null or undefined and the type is in the schema map
+    if (!isNullOrUndefined(this.json)) {
       try {
-        const parsedJSON = JSON.parse(this.questionJSON);
+        const parsedJSON = JSON.parse(this.json);
         if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
-          // Validate the questionJSON against the Zod schema and if valid, set the questionType
+          // Validate the json against the Zod schema and if valid, set the questionType
           this.questionType = QuestionSchemaMap[parsedJSON['type']]?.parse(parsedJSON);
         } else {
           // If the type is not in the schema map, add an error
-          this.addError('questionJSON', `Unknown question type "${parsedJSON['type']}"`);
+          this.addError('json', `Unknown question type "${parsedJSON['type']}"`);
         }
       } catch (e) {
         // Add the Zod schema error to the errors object
-        this.addError('questionJSON', e.message);
+        this.addError('json', e.message);
       }
     } else {
-      // stringify the questionType and set it to the questionJSON
-      this.questionJSON = this.questionType ? JSON.stringify(this.questionType) : null;
+      // stringify the questionType and set it to the json
+      this.json = this.questionType ? JSON.stringify(this.questionType) : null;
     }
   }
 
@@ -67,7 +67,7 @@ export class Question extends MySqlModel {
     if (isNullOrUndefined(this.sectionId)) this.addError('sectionId', 'Section can\'t be blank');
     if (isNullOrUndefined(this.questionText)) this.addError('questionText', 'Question text can\'t be blank');
     if (isNullOrUndefined(this.displayOrder)) this.addError('displayOrder', 'Order number can\'t be blank');
-    if (isNullOrUndefined(this.questionType)) this.addError('questionJSON', 'Question Type JSON can\'t be blank');
+    if (isNullOrUndefined(this.questionType)) this.addError('json', 'Question Type JSON can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
   }
@@ -90,7 +90,7 @@ export class Question extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionJSON']);
+      const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['json']);
       const response = await Question.findById('Question.create', context, newId);
       return response;
 
@@ -105,7 +105,7 @@ export class Question extends MySqlModel {
       this.prepForSave();
 
       if (await this.isValid()) {
-        await Question.update(context, this.tableName, this, 'Question.update', ['questionJSON'], noTouch);
+        await Question.update(context, this.tableName, this, 'Question.update', ['json'], noTouch);
         return await Question.findById('Question.update', context, this.id);
       }
     }

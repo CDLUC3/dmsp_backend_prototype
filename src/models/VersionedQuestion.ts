@@ -7,7 +7,7 @@ export class VersionedQuestion extends MySqlModel {
   public versionedTemplateId: number;
   public versionedSectionId: number;
   public questionId: number;
-  public questionJSON: string;
+  public json: string;
   public questionType: AnyQuestionType;
   public questionText: string;
   public requirementText?: string;
@@ -32,9 +32,9 @@ export class VersionedQuestion extends MySqlModel {
     this.required = options.required ?? false;
     this.displayOrder = options.displayOrder;
 
-    // stringify the questionType and set it to the questionJSON
+    // stringify the questionType and set it to the json
     try {
-      this.questionJSON = JSON.stringify(this.questionType);
+      this.json = JSON.stringify(this.questionType);
     } catch (e) {
       // Add the Zod schema error to the errors object
       this.addError('questionType', e.message);
@@ -59,7 +59,7 @@ export class VersionedQuestion extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create', ['questionJSON']);
+      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create', ['json']);
       return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
     }
     // Otherwise return as-is with all the errors

@@ -57,7 +57,7 @@ export const resolvers: Resolvers = {
 
   Mutation: {
     // Create a new answer
-    addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, answerText }, context: MyContext): Promise<Answer> => {
+    addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, json }, context: MyContext): Promise<Answer> => {
       const reference = 'addAnswer resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -71,7 +71,7 @@ export const resolvers: Resolvers = {
           }
 
           if (await hasPermissionOnProject(context, project)) {
-            const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, answerText });
+            const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, json });
             const newAnswer = await answer.create(context);
             if (newAnswer && !newAnswer.hasErrors()) {
               // Version the plan
@@ -90,7 +90,7 @@ export const resolvers: Resolvers = {
     },
 
     // Delete an answer
-    updateAnswer: async (_, { answerId, answerText }, context: MyContext): Promise<Answer> => {
+    updateAnswer: async (_, { answerId, json }, context: MyContext): Promise<Answer> => {
       const reference = 'updateAnswer resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -104,7 +104,7 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
-            answer.answerText = answerText;
+            answer.json = json;
             const updatedAnswer = await answer.update(context);
 
             if (updatedAnswer && !updatedAnswer.hasErrors()) {

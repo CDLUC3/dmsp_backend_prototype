@@ -235,7 +235,7 @@ const planNarrativeToDMPCommonStandard = (narrative): DMPCommonStandardNarrative
         },
 
         answer_id: question?.answerId,
-        answer_text: question?.answerText,
+        answer_text: question?.json,
       })) : [],
     })) : [],
   };
@@ -396,7 +396,7 @@ interface LoadNarrativeQuestionResult {
   questionTypeId: number;
   questionTypeName: string;
   answerId: number;
-  answerText: string;
+  json: string;
 }
 
 // Functions to fetch all of the data necessary to build the DMP
@@ -484,7 +484,7 @@ export const loadNarrativeTemplateInfo = async (
                         's.id sectionId, s.name sectionTitle, s.introduction sectionDescription, s.displayOrder sectionOrder, ' +
                         'q.id questionId, q.questionText questionText, q.displayOrder questionOrder, ' +
                         'q.questionTypeId questionTypeId, qt.name questionTypeName, ' +
-                        'a.id answerId, a.answerText answerText ' +
+                        'a.id answerId, a.json json ' +
                       'FROM plans p ' +
                         `LEFT JOIN answers a ON p.id = a.planId ` +
                           'LEFT JOIN versionedQuestions q ON a.versionedQuestionId = q.id ' +
@@ -533,7 +533,7 @@ export const loadNarrativeTemplateInfo = async (
         questionTypeId: row.questionTypeId,
         questionTypeName: row.questionTypeName,
         answerId: row.answerId,
-        answerText: row.answerText,
+        json: row.json,
       });
     }
     return acc;

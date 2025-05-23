@@ -193,7 +193,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
     const planId = casual.integer(1, 99);
     const sql = 'SELECT vs.id sectionId, vs.displayOrder, vs.name sectionTitle, ' +
                   'COUNT(DISTINCT vq.id) totalQuestions, ' +
-                  'COUNT(DISTINCT CASE WHEN a.answerText IS NOT NULL THEN vs.id END) answeredQuestions ' +
+                  'COUNT(DISTINCT CASE WHEN a.json IS NOT NULL THEN vs.id END) answeredQuestions ' +
                 'FROM plans p ' +
                   'INNER JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id ' +
                   'INNER JOIN versionedSections vs ON vt.id = vs.versionedTemplateId ' +

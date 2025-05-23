@@ -51,7 +51,7 @@ export const resolvers: Resolvers = {
       sectionId,
       displayOrder,
       isDirty,
-      questionJSON,
+      json,
       questionText,
       requirementText,
       guidanceText,
@@ -69,7 +69,7 @@ export const resolvers: Resolvers = {
             sectionId,
             displayOrder,
             isDirty,
-            questionJSON,
+            json,
             questionText,
             requirementText,
             guidanceText,
@@ -113,7 +113,7 @@ export const resolvers: Resolvers = {
     updateQuestion: async (_, { input: {
       questionId,
       displayOrder,
-      questionJSON,
+      json,
       questionText,
       requirementText,
       guidanceText,
@@ -140,7 +140,7 @@ export const resolvers: Resolvers = {
             templateId: questionData.templateId,
             createdById: questionData.createdById,
             displayOrder: displayOrder ?? questionData.displayOrder,
-            questionJSON: questionJSON ?? questionData.questionJSON,
+            json: json ?? questionData.json,
             questionText: questionText,
             requirementText: requirementText,
             guidanceText: guidanceText,
@@ -159,8 +159,8 @@ export const resolvers: Resolvers = {
              const final = await Question.findById(reference, context, questionId);
 
 console.log(final);
-console.log(final.questionJSON)
-console.log(typeof final.questionJSON)
+console.log(final.json)
+console.log(typeof final.json)
 
              return final;
           }

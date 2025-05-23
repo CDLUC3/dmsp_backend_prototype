@@ -89,7 +89,7 @@ const mockNarrativeResult = [
     questionTypeId: 1,
     questionTypeName: 'Text',
     answerId: 1,
-    answerText: 'Answer 1',
+    json: 'Answer 1',
   },
   {
     templateId: 1,
@@ -105,7 +105,7 @@ const mockNarrativeResult = [
     questionTypeId: 2,
     questionTypeName: 'Multiple choice',
     answerId: 2,
-    answerText: 'Answer 2',
+    json: 'Answer 2',
   },
   {
     templateId: 1,
@@ -121,7 +121,7 @@ const mockNarrativeResult = [
     questionTypeId: 1,
     questionTypeName: 'Text',
     answerId: 3,
-    answerText: 'Answer 3',
+    json: 'Answer 3',
   }
 ];
 

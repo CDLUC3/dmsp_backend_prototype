@@ -47,7 +47,7 @@ export const typeDefs = gql`
     "This will be used as a sort of title for the Question"
     questionText: String
     "The JSON representation of the question type"
-    questionJSON: String
+    json: String
     "Requirements associated with the Question"
     requirementText: String
     "Guidance to complete the question"
@@ -73,7 +73,7 @@ export const typeDefs = gql`
     sourceQestionId: String
     displayOrder: String
     questionText: String
-    questionJSON: String
+    json: String
     requirementText: String
     guidanceText: String
     sampleText: String
@@ -98,7 +98,7 @@ export const typeDefs = gql`
     "Whether or not the Question has had any changes since it was last published"
     isDirty: Boolean
     "The JSON representation of the question type"
-    questionJSON: String
+    json: String
     "This will be used as a sort of title for the Question"
     questionText: String
     "Requirements associated with the Question"
@@ -119,7 +119,7 @@ export const typeDefs = gql`
     "The display order of the Question"
     displayOrder: Int
     "The JSON representation of the question type"
-    questionJSON: String
+    json: String
     "This will be used as a sort of title for the Question"
     questionText: String
     "Requirements associated with the Question"
