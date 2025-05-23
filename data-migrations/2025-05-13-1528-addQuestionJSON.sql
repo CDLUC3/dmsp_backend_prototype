@@ -1,10 +1,14 @@
-# Add the questionType column to the questions table
+# Add the json column to the questionTypes table
+ALTER TABLE `questionTypes`
+  ADD COLUMN `json` JSON AFTER `isDefault`;
+
+# Add the json column to the questions table
 ALTER TABLE `questions`
-  ADD COLUMN `questionType` JSON AFTER `questionText`;
+  ADD COLUMN `json` JSON AFTER `questionText`;
 
 ALTER TABLE `versionedQuestions`
-  ADD COLUMN `questionType` JSON AFTER `questionText`;
+  ADD COLUMN `json` JSON AFTER `questionText`;
 
-# Add the answerJSON column to the answers table
+# Add the json column to the answers table
 ALTER TABLE `answers`
   ADD COLUMN `json` JSON AFTER `answerText`;

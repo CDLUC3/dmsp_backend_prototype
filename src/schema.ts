@@ -17,6 +17,7 @@ import { typeDefs as funderTypeDefs } from './schemas/funder';
 import { typeDefs as projectOutputTypeDefs } from './schemas/output';
 import { typeDefs as questionTypeDefs } from './schemas/question';
 import { typeDefs as questionConditionTypeDefs } from './schemas/questionCondition';
+import { typeDefs as questionTypeTypeDefs } from './schemas/questionType';
 import { typeDefs as repositoryTypeDefs } from './schemas/repository';
 import { typeDefs as researchDomainTypeDefs } from './schemas/researchDomain';
 import { typeDefs as sectionTypeDefs } from './schemas/section';
@@ -48,6 +49,7 @@ export const typeDefs = mergeTypeDefs([
   projectOutputTypeDefs,
   questionTypeDefs,
   questionConditionTypeDefs,
+  questionTypeTypeDefs,
   repositoryTypeDefs,
   researchDomainTypeDefs,
   sectionTypeDefs,
