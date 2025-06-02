@@ -275,6 +275,17 @@ export const resolvers: Resolvers = {
     },
   },
 
+  TemplateSearchResult: {
+    // Resolver for ownerDisplayName based on owner.displayName
+    ownerDisplayName: async (parent: TemplateSearchResult, _, context: MyContext): Promise<string | null> => {
+      if (parent.ownerId) {
+        const owner = await Affiliation.findByURI('TemplateSearchResult.owner', context, parent.ownerId);
+        return owner?.displayName || null;
+      }
+      return null;
+    },
+  },
+
   Template: {
     // Chained resolver to fetch the Affiliation info for the user
     owner: async (parent: Template, _, context: MyContext): Promise<Affiliation> => {

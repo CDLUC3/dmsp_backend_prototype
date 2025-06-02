@@ -159,7 +159,7 @@ describe('VersionedTemplate', () => {
     expect(versioned.name).toEqual(name);
     expect(versioned.ownerId).toEqual(ownerId);
     expect(versioned.versionedById).toEqual(versionedById);
-    expect(versioned.visibility).toEqual(TemplateVisibility.PRIVATE);
+    expect(versioned.visibility).toEqual(TemplateVisibility.ORGANIZATION);
     expect(versioned.languageId).toEqual(defaultLanguageId);
     expect(versioned.created).toBeTruthy();
     expect(versioned.active).toBe(false);

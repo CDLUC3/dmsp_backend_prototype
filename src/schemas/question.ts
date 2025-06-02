@@ -8,17 +8,19 @@ export const typeDefs = gql`
     question(questionId: Int!): Question
   }
 
-extend type Mutation {
+  extend type Mutation {
     "Create a new Question"
     addQuestion(input: AddQuestionInput!): Question!
     "Update a Question"
     updateQuestion(input: UpdateQuestionInput!): Question!
+    "Change the question's display order"
+    updateQuestionDisplayOrder(questionId: Int!, newDisplayOrder: Int!): ReorderQuestionsResult!
     "Delete a Question"
     removeQuestion(questionId: Int!): Question
   }
 
-"Question always belongs to a Section, which always belongs to a Template"
-type Question {
+  "Question always belongs to a Section, which always belongs to a Template"
+  type Question {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"
@@ -61,10 +63,10 @@ type Question {
     questionConditions: [QuestionCondition!]
     "The question options associated with this question"
     questionOptions: [QuestionOption!]
-}
+  }
 
-"A collection of errors related to the Question"
-type QuestionErrors {
+  "A collection of errors related to the Question"
+  type QuestionErrors {
     "General error messages such as the object already exists"
     general: String
 
@@ -81,7 +83,15 @@ type QuestionErrors {
     questionOptionIds: String
   }
 
-input AddQuestionInput {
+  "The results of reordering the questions"
+  type ReorderQuestionsResult {
+    "The reordered sections"
+    questions: [Question!]
+    "Error messages"
+    errors: QuestionErrors
+  }
+
+  input AddQuestionInput {
     "The unique id of the Template that the question belongs to"
     templateId: Int!
     "The unique id of the Section that the question belongs to"
@@ -106,9 +116,9 @@ input AddQuestionInput {
     required: Boolean
     "Add options for a question type, like radio buttons"
     questionOptions: [QuestionOptionInput]
-}
+  }
 
-input UpdateQuestionInput {
+  input UpdateQuestionInput {
     "The unique identifier for the Question"
     questionId: Int!
     "The type of question, such as text field, select box, radio buttons, etc"
@@ -129,5 +139,5 @@ input UpdateQuestionInput {
     required: Boolean
     "Update options for a question type like radio buttons"
     questionOptions: [UpdateQuestionOptionInput]
-}
+  }
 `

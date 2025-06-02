@@ -3,6 +3,11 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `reorderDisplayOrder` herlper function to help maintain the `displayOrder` field on a set of objects
+- Added `updateDisplayOrders` to both the `sectionService` and `questionService`
+- Added `updateSectionsDisplayOrder` and `updateQuestionsDisplayOrder` schema and resolvers
+- Added data migrations for new `versionedSectionTags` table and seed script
+- Added `maxDisplayOrder` queries to Section model
 - Added `aws-process.sh` to allow migrations to be run in the AWS environment
 - Added `init-tables` and `init-seed` data migration files
 - Added `queryWithPagination` function to `MySQLModel`.
@@ -84,6 +89,8 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated `addSection` resolver to properly copy questions and tags when creating a new section by copying one
+- Replaced all instances of `TemplateVisibility.PRIVATE` with `TemplateVisibility.ORGANIZATION` [#159]
 - Renamed the `outputTypes` table to `projectOutputTypes`
 - Updated `buildspec` to allow for a "MODE" env variable to be set so that we can run migrations, tests and the build separately
 - Updated `publishedTemplates`, `users`, `myTemplates`, `topLevelResearchDomains`, `repositories`, `myProjects`, `metadataStandards`, `licenses`, `affiliations` queries to use the new `paginationService`
@@ -146,6 +153,8 @@
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- Update profile was not working due to missing `createdById` and `modifiedById` values in db. Added data migration script to populate those fields [#278]
+- Fixed myTemplates query so that `TemplateSearchResult` returns the `ownerDisplayName` specified in schema.
 - Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
 -Was getting `undefined` bestPractice in `updateTemplate` when none was passed in because of the logic on how it was set. Added a check for whether `bestPractice` is defined before setting value. Also, added an update to `createTemplateVersion`, so that errors from the `generateTemplateVersion` will be caught and passed back in graphql response. Previously, when trying to save a DRAFT of a template, the mutation wouldn't return an error to the client, even though the `Save draft` did not successfully complete. [#265]
 - Removed `Copy of` from in front of copied `Section` and `Template` names [#261]
