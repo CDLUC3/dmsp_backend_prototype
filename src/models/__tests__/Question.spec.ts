@@ -24,7 +24,6 @@ describe('Question', () => {
   const questionData = {
     templateId: casual.integer(1, 9),
     sectionId: casual.integer(1, 9),
-    questionTypeId: casual.integer(1, 9),
     json: `{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
     questionText: casual.sentences(5),
     requirementText: casual.sentences(3),

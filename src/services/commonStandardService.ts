@@ -228,14 +228,10 @@ const planNarrativeToDMPCommonStandard = (narrative): DMPCommonStandardNarrative
         question_id: question?.questionId,
         question_text: question?.questionText,
         question_order: question?.questionOrder,
-
-        question_type: {
-          id: question?.questionTypeId,
-          name: question?.questionTypeName,
-        },
+        question_json: question?.questionJSON,
 
         answer_id: question?.answerId,
-        answer_text: question?.json,
+        answer_json: question?.answerJSON,
       })) : [],
     })) : [],
   };
@@ -393,10 +389,9 @@ interface LoadNarrativeQuestionResult {
   questionId: number;
   questionText: string;
   questionOrder: number;
-  questionTypeId: number;
-  questionTypeName: string;
+  questionJSON: string;
   answerId: number;
-  json: string;
+  answerJSON: string;
 }
 
 // Functions to fetch all of the data necessary to build the DMP
@@ -483,12 +478,11 @@ export const loadNarrativeTemplateInfo = async (
   const sql = 'SELECT t.id templateId, t.name templateTitle, t.version templateVersion, ' +
                         's.id sectionId, s.name sectionTitle, s.introduction sectionDescription, s.displayOrder sectionOrder, ' +
                         'q.id questionId, q.questionText questionText, q.displayOrder questionOrder, ' +
-                        'q.questionTypeId questionTypeId, qt.name questionTypeName, ' +
-                        'a.id answerId, a.json json ' +
+                        'q.json questionJSON, ' +
+                        'a.id answerId, a.json answerJSON ' +
                       'FROM plans p ' +
                         `LEFT JOIN answers a ON p.id = a.planId ` +
                           'LEFT JOIN versionedQuestions q ON a.versionedQuestionId = q.id ' +
-                            'LEFT JOIN questionTypes qt ON q.questionTypeId = qt.id ' +
                             'LEFT JOIN versionedSections s ON q.versionedSectionId = s.id ' +
                               'LEFT JOIN versionedTemplates t ON s.versionedTemplateId = t.id ' +
                         'WHERE p.id = ? '
@@ -530,10 +524,9 @@ export const loadNarrativeTemplateInfo = async (
         questionId: row.questionId,
         questionText: row.questionText,
         questionOrder: row.questionOrder,
-        questionTypeId: row.questionTypeId,
-        questionTypeName: row.questionTypeName,
+        questionJSON: row.questionJSON,
         answerId: row.answerId,
-        json: row.json,
+        answerJSON: row.answerJSON,
       });
     }
     return acc;

@@ -223,7 +223,6 @@ describe('findByVersionedSectionId', () => {
       versionedTemplateId: casual.integer(1, 999),
       versionedSectionId: casual.integer(1, 999),
       questionId: casual.integer(1, 999),
-      questionTypeId: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 20),
     })
