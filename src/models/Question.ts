@@ -90,7 +90,7 @@ export class Question extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['json']);
+      const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionType']);
       const response = await Question.findById('Question.create', context, newId);
       return response;
 
@@ -105,7 +105,7 @@ export class Question extends MySqlModel {
       this.prepForSave();
 
       if (await this.isValid()) {
-        await Question.update(context, this.tableName, this, 'Question.update', ['json'], noTouch);
+        await Question.update(context, this.tableName, this, 'Question.update', ['questionType'], noTouch);
         return await Question.findById('Question.update', context, this.id);
       }
     }
