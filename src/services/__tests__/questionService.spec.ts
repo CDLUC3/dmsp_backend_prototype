@@ -94,7 +94,7 @@ describe('cloneQuestion', () => {
   let id;
   let templateId;
   let sectionId;
-  let questionType;
+  let json;
   let questionText;
   let sampleText;
   let requirementText;
@@ -108,12 +108,7 @@ describe('cloneQuestion', () => {
     templateId = casual.integer(1, 999);
     sectionId = casual.integer(1, 999);
     id = casual.integer(1, 999);
-    questionType = {
-      type: 'url',
-      meta: {
-        schemaVersion: CURRENT_SCHEMA_VERSION
-      }
-    };
+    json = '{"type":"url","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}';
     questionText = casual.sentence;
     sampleText = casual.sentences(3);
     requirementText = casual.sentences(5);
@@ -124,7 +119,7 @@ describe('cloneQuestion', () => {
     createdById = casual.integer(1, 999);
 
     question = new Question({
-      id, templateId, sectionId, questionType: questionType, questionText, requirementText, guidanceText,
+      id, templateId, sectionId, json: json, questionText, requirementText, guidanceText,
       sampleText, displayOrder, required, isDirty, createdById
     });
   });
@@ -138,7 +133,7 @@ describe('cloneQuestion', () => {
     expect(copy.templateId).toEqual(templateId);
     expect(copy.sectionId).toEqual(sectionId);
     expect(copy.sourceQuestionId).toEqual(question.id);
-    expect(copy.questionType).toEqual(questionType);
+    expect(copy.json).toEqual(json);
     expect(copy.questionText).toEqual(questionText);
     expect(copy.sampleText).toEqual(sampleText);
     expect(copy.requirementText).toEqual(requirementText);
@@ -158,7 +153,7 @@ describe('cloneQuestion', () => {
       versionedTemplateId: templateId,
       versionedSectionId: sectionId,
       questionId: question.id,
-      questionType: questionType,
+      json: json,
       questionText: casual.sentence,
       sampleText: casual.sentences(3),
       requirementText: casual.sentences(5),
@@ -173,7 +168,7 @@ describe('cloneQuestion', () => {
     expect(copy).toBeInstanceOf(Question);
     expect(copy.id).toBeFalsy();
     expect(copy.sourceQuestionId).toEqual(published.questionId);
-    expect(copy.questionType).toEqual(questionType);
+    expect(copy.json).toEqual(json);
     expect(copy.questionText).toEqual(published.questionText);
     expect(copy.sampleText).toEqual(published.sampleText);
     expect(copy.requirementText).toEqual(published.requirementText);
@@ -209,7 +204,7 @@ describe('generateQuestionVersion', () => {
         id: casual.integer(1, 99),
         templateId: casual.integer(1, 99),
         sectionId: casual.integer(1, 999),
-        questionType: JSON.stringify({
+        json: JSON.stringify({
           type: 'filteredSearch',
           attributes: {
             multiple: casual.boolean
@@ -379,7 +374,7 @@ describe('generateQuestionVersion', () => {
     expect(newVersion.versionedTemplateId).toEqual(versionedTemplateId);
     expect(newVersion.versionedSectionId).toEqual(versionedSectionId);
     expect(newVersion.questionId).toEqual(question.id);
-    expect(newVersion.questionType).toEqual(question.questionType);
+    expect(newVersion.json).toEqual(question.json);
     expect(newVersion.questionText).toEqual(question.questionText);
     expect(newVersion.requirementText).toEqual(question.requirementText);
     expect(newVersion.guidanceText).toEqual(question.guidanceText);
@@ -563,12 +558,7 @@ describe('updateDisplayOrders', () => {
           id: 1,
           templateId: templateId,
           sectionId: sectionId,
-          questionType: {
-            type: 'text',
-            meta: {
-              schemaVersion: CURRENT_SCHEMA_VERSION
-            }
-          },
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
           questionText: casual.sentence,
           displayOrder: 1,
           isDirty: false,
@@ -581,12 +571,7 @@ describe('updateDisplayOrders', () => {
           id: 2,
           templateId: templateId,
           sectionId: sectionId,
-          questionType: {
-            type: 'text',
-            meta: {
-              schemaVersion: CURRENT_SCHEMA_VERSION
-            }
-          },
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
           questionText: casual.sentence,
           displayOrder: 2,
           isDirty: false,
@@ -599,12 +584,7 @@ describe('updateDisplayOrders', () => {
           id: 3,
           templateId: templateId,
           sectionId: sectionId,
-          questionType: {
-            type: 'text',
-            meta: {
-              schemaVersion: CURRENT_SCHEMA_VERSION
-            }
-          },
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
           questionText: casual.sentence,
           displayOrder: 3,
           isDirty: false,

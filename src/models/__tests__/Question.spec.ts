@@ -2,7 +2,7 @@ import casual from "casual";
 import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { Question } from "../Question";
-import { CURRENT_SCHEMA_VERSION, QuestionTypesEnum } from "@dmptool/types";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 
 jest.mock('../../context.ts');
 
@@ -47,54 +47,60 @@ describe('Question', () => {
     expect(question.required).toEqual(false);
   });
 
-  it('should set questionType to the parsed JSON if valid', () => {
-    expect(question.questionType).toEqual({
-      type: QuestionTypesEnum.Enum.textArea,
-      meta: {
-        asRichText: true,
-        schemaVersion: CURRENT_SCHEMA_VERSION
-      }
-    });
-  });
-
-  it('should set json to the stringified JSON in the questionType if valid', () => {
-    const originaljson = questionData.json;
-    questionData['questionType'] = {
-      type: QuestionTypesEnum.Enum.textArea,
-      meta: {
-        asRichText: true,
-        schemaVersion: CURRENT_SCHEMA_VERSION
-      }
-    }
-    questionData.json = null;
-    question = new Question(questionData);
-    expect(question.json).toEqual(originaljson);
-    questionData.json = originaljson;
-  });
-
-  it('should add an error if the json is not valid JSON', () => {
-    const originaljson = questionData.json;
-    questionData.json = `{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}`;
-    question = new Question(questionData);
+  it('should not be valid if the JSON is missing', async () => {
+    question.json = null;
+    expect(await question.isValid()).toBe(false);
     expect(question.errors['json']).toBeTruthy();
-    questionData.json = originaljson;
+    expect(question.errors['json']).toEqual('Question type JSON can\'t be blank');
+    question.json = questionData.json; // Reset to valid JSON
   });
 
-  it('should add an error if the questionType is not in the schema map', () => {
-    const originaljson = questionData.json;
-    questionData.json = `{"type":"unknownType","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`;
-    question = new Question(questionData);
+  it('should not be valid if the JSON is for an unknown question type', async () => {
+    question.json = `{"type":"unknownType","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`;
+    expect(await question.isValid()).toBe(false);
     expect(question.errors['json']).toBeTruthy();
     expect(question.errors['json'].includes('Unknown question type')).toBe(true);
-    questionData.json = originaljson;
+    question.json = questionData.json; // Reset to valid JSON
   });
 
-  it('should add the Zod error to the errors object if the questionType is not valid', () => {
-    const originaljson = questionData.json;
-    questionData.json = `{"type":"textArea"}`;
-    question = new Question(questionData);
+  it('should not be valid if Zod parse fails', async () => {
+    question.json = `{"type":"textArea"}`; // Missing meta
+    expect(await question.isValid()).toBe(false);
     expect(question.errors['json']).toBeTruthy();
-    questionData.json = originaljson;
+    expect(question.errors['json'].includes('meta')).toBe(true);
+    question.json = questionData.json; // Reset to valid JSON
+  });
+
+  it('should not be valid if the questionText is missing', async () => {
+    question.questionText = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['questionText']).toBeTruthy();
+    expect(question.errors['questionText']).toEqual('Question text can\'t be blank');
+    question.questionText = questionData.questionText; // Reset to valid questionText
+  });
+
+  it('should not be valid if the displayOrder is missing', async () => {
+    question.displayOrder = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['displayOrder']).toBeTruthy();
+    expect(question.errors['displayOrder']).toEqual('Order number can\'t be blank');
+    question.displayOrder = questionData.displayOrder; // Reset to valid displayOrder
+  });
+
+  it('should not be valid if the templateId is missing', async () => {
+    question.templateId = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['templateId']).toBeTruthy();
+    expect(question.errors['templateId']).toEqual('Template can\'t be blank');
+    question.templateId = questionData.templateId; // Reset to valid templateId
+  });
+
+  it('should not be valid if the sectionId is missing', async () => {
+    question.sectionId = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['sectionId']).toBeTruthy();
+    expect(question.errors['sectionId']).toEqual('Section can\'t be blank');
+    question.sectionId = questionData.sectionId; // Reset to valid sectionId
   });
 
   it('should return true when calling isValid', async () => {
@@ -123,6 +129,7 @@ describe('findBy Queries', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
+      json: '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     })
   });
 
@@ -180,6 +187,7 @@ describe('update', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
+      json: '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     })
   });
 
@@ -246,6 +254,7 @@ describe('create', () => {
       },
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
+      json: '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     })
   });
 

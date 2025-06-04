@@ -1,4 +1,4 @@
-import { AnyQuestionType, QuestionSchemaMap } from "@dmptool/types";
+import { QuestionSchemaMap } from "@dmptool/types";
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { isNullOrUndefined } from "../utils/helpers";
@@ -8,7 +8,6 @@ export class Question extends MySqlModel {
   public sectionId: number;
   public sourceQuestionId?: number;
   public json: string;
-  public questionType: AnyQuestionType;
   public questionText: string;
   public requirementText?: string;
   public guidanceText?: string;
@@ -27,8 +26,8 @@ export class Question extends MySqlModel {
     this.sectionId = options.sectionId;
     this.sourceQuestionId = options.sourceQuestionId;
     this.json = options.json;
-    // if the questionType is a string (loaded from the database), parse it
-    this.questionType = (typeof options.questionType === 'string') ? JSON.parse(options.questionType) : options.questionType;
+    // Ensure json is stored as a string
+    this.json = typeof options.json === 'string' ? options.json : JSON.stringify(options.json);
     this.questionText = options.questionText;
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
@@ -37,26 +36,6 @@ export class Question extends MySqlModel {
     this.required = options.required ?? false;
     this.displayOrder = options.displayOrder;
     this.isDirty = options.isDirty ?? false;
-
-    // If json is not null or undefined and the type is in the schema map
-    if (!isNullOrUndefined(this.json)) {
-      try {
-        const parsedJSON = JSON.parse(this.json);
-        if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
-          // Validate the json against the Zod schema and if valid, set the questionType
-          this.questionType = QuestionSchemaMap[parsedJSON['type']]?.parse(parsedJSON);
-        } else {
-          // If the type is not in the schema map, add an error
-          this.addError('json', `Unknown question type "${parsedJSON['type']}"`);
-        }
-      } catch (e) {
-        // Add the Zod schema error to the errors object
-        this.addError('json', e.message);
-      }
-    } else {
-      // stringify the questionType and set it to the json
-      this.json = this.questionType ? JSON.stringify(this.questionType) : null;
-    }
   }
 
   // Validation to be used prior to saving the record
@@ -67,7 +46,28 @@ export class Question extends MySqlModel {
     if (isNullOrUndefined(this.sectionId)) this.addError('sectionId', 'Section can\'t be blank');
     if (isNullOrUndefined(this.questionText)) this.addError('questionText', 'Question text can\'t be blank');
     if (isNullOrUndefined(this.displayOrder)) this.addError('displayOrder', 'Order number can\'t be blank');
-    if (isNullOrUndefined(this.questionType)) this.addError('json', 'Question Type JSON can\'t be blank');
+
+    // If json is not null or undefined and the type is in the schema map
+    if (!isNullOrUndefined(this.json)) {
+      const parsedJSON = JSON.parse(this.json);
+      if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
+        // Validate the json against the Zod schema and if valid, set the questionType
+        try {
+          const result = QuestionSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+          if (result && !result.success) {
+            // If there are validation errors, add them to the errors object
+            this.addError('json', result.error.errors.map(e => `${JSON.stringify(e.path)} - ${e.message}`).join('; '));
+          }
+        } catch (e) {
+          this.addError('json', e.message);
+        }
+      } else {
+        // If the type is not in the schema map, add an error
+        this.addError('json', `Unknown question type "${parsedJSON['type']}"`);
+      }
+    } else {
+      this.addError('json', 'Question type JSON can\'t be blank');
+    }
 
     return Object.keys(this.errors).length === 0;
   }
