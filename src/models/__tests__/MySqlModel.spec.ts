@@ -828,7 +828,7 @@ describe('paginatedQueryByCursor', () => {
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenCalledWith(
       context,
-      'SELECT id cursorId, * FROM tests WHERE field = ? AND id >= ? GROUP BY field ORDER BY id ASC LIMIT ?',
+      'SELECT id cursorId, * FROM tests WHERE field = ? AND id >= ? GROUP BY field ORDER BY cursorId ASC LIMIT ?',
       ['value', '5', '3'],
       reference
     );

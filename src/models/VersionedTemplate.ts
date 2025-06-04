@@ -2,7 +2,7 @@ import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
-import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType, SortDirection } from "../types/general";
 import { formatLogMessage } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 
@@ -71,12 +71,11 @@ export class VersionedTemplateSearchResult {
         availableSortFields: ['vt.name', 'vt.created', 'vt.visibility', 'vt.bestPractice', 'vt.modified'],
       } as PaginationOptionsForOffsets;
     } else {
-      const cursorField = 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))';
       opts = {
         ...options,
         // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField,
-        cursorWhereClause: `${cursorField} <= ?`,
+        cursorField: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))',
+        cursorSortDir: SortDirection.DESC,
       } as PaginationOptionsForCursors;
     }
 

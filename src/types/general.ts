@@ -5,6 +5,11 @@ export enum PaginationType {
   CURSOR = 'CURSOR', // Cursor-based pagination (infinite scroll/load more)
 }
 
+export enum SortDirection {
+  ASC = 'ASC',   // Ascending sort order
+  DESC = 'DESC', // Descending sort order
+}
+
 // The options for a paginated query using offsets (useful when using: pages, next/previous buttons).
 export interface PaginationOptionsForOffsets {
   type: PaginationType;           // Discriminator for offset-based pagination
@@ -23,7 +28,7 @@ export interface PaginationOptionsForCursors {
   limit?: number;               // The number of items to return (integer)
   cursor?: string;              // Used for cursor-based pagination for endless scroll functionality (ISO string)
   cursorField?: string;         // The field to use for cursor-based pagination (string)
-  cursorWhereClause?: string;   // The where clause to use for cursor-based pagination (string)
+  cursorSortDir?: SortDirection; // The sort direction for the cursor (default is 'ASC')
   countField?: string;          // The field to count for totalCount (string)
   sortField?: string;           // The field to sort by (string)
   sortDir?: string;             // The order to sort by (must be 'ASC' or 'DESC')

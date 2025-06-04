@@ -86,7 +86,7 @@ describe('VersionedTemplateSearchResult', () => {
         sortDir: 'DESC',
         countField: 'vt.id',
         cursorField: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))',
-        cursorWhereClause: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\')) <= ?'
+        cursorSortDir: "DESC",
       };
       expect(localPaginationQuery).toHaveBeenCalledTimes(1);
       expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')

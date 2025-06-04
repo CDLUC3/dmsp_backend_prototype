@@ -3,7 +3,7 @@ import { MyContext } from '../context';
 import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
-import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets } from "../types/general";
+import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets, SortDirection } from "../types/general";
 import { generalConfig } from "../config/generalConfig";
 import { PaginationOptions } from "../types";
 
@@ -375,9 +375,10 @@ export class MySqlModel {
       const filters = [...whereFilters];
       const vals = [...values];
 
-      // Add the cursor to the where clause
+      // Add the cursor to the where clause if one is provided
+      const cursorSortDir = options.cursorSortDir ?? SortDirection.ASC;
       if (!isNullOrUndefined(options.cursor)) {
-        filters.push(options.cursorWhereClause ? options.cursorWhereClause : `${options.cursorField} >= ?`);
+        filters.push(`${options.cursorField} ${cursorSortDir === SortDirection.DESC ? '<=' : '>='} ?`);
         vals.push(options.cursor ?? '');
       }
       const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
@@ -387,7 +388,7 @@ export class MySqlModel {
       // Add 1 to the limit so that we can determine if there is a next page
       vals.push((limit + 1).toString());
 
-      const orderByClause = `ORDER BY ${options.sortField} ${options.sortDir}`;
+      const orderByClause = `ORDER BY cursorId ${cursorSortDir.toString()}`;
       let sql = `${sqlStatement.replace('SELECT ', `SELECT ${options.cursorField} cursorId, `)} `
       sql += `${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
 
