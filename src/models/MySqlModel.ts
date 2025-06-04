@@ -382,7 +382,8 @@ export class MySqlModel {
 
       // Add the limit
       const limitClause = 'LIMIT ?';
-      vals.push(limit.toString());
+      // Add 1 to the limit so that we can determine if there is a next page
+      vals.push((limit + 1).toString());
 
       const orderByClause = `ORDER BY ${options.sortField} ${options.sortDir}`;
       let sql = `${sqlStatement.replace('SELECT ', `SELECT ${options.cursorField} cursorId, `)} `
@@ -401,13 +402,16 @@ export class MySqlModel {
       );
 
       const nextCursor = items.length > 0 ? items[items.length - 1]?.cursorId : undefined;
-      const hasNextPage = nextCursor !== undefined && options.cursor !== nextCursor;
+      const hasNextPage = nextCursor !== undefined && options.cursor !== nextCursor && items.length > limit;
+
+console.log(`paginatedQueryByCursor: nextCursor: ${nextCursor}, hasNextPage: ${hasNextPage}`);
+console.log(`items.length: ${items.length}, limit: ${limit}, totalCount: ${totalCount}`);
 
       return {
-        items,
+        items: items.slice(0, limit), // Return only the first 'limit' items
         limit,
         totalCount,
-        nextCursor,
+        nextCursor: hasNextPage ? nextCursor : null,
         hasNextPage,
         availableSortFields: [],
       };
