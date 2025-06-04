@@ -1,6 +1,6 @@
 import { formatLogMessage } from "../logger";
 import { MyContext } from '../context';
-import { validateDate } from "../utils/helpers";
+import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
 import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets } from "../types/general";
@@ -376,8 +376,10 @@ export class MySqlModel {
       const vals = [...values];
 
       // Add the cursor to the where clause
-      filters.push(`${options.cursorField} > ?`);
-      vals.push(options.cursor ?? '');
+      if (!isNullOrUndefined(options.cursor)) {
+        filters.push(options.cursorWhereClause ? options.cursorWhereClause : `${options.cursorField} >= ?`);
+        vals.push(options.cursor ?? '');
+      }
       const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
       // Add the limit
@@ -388,6 +390,7 @@ export class MySqlModel {
       const orderByClause = `ORDER BY ${options.sortField} ${options.sortDir}`;
       let sql = `${sqlStatement.replace('SELECT ', `SELECT ${options.cursorField} cursorId, `)} `
       sql += `${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
+
       const rows = await MySqlModel.query(apolloContext, sql, vals, reference);
       const items = Array.isArray(rows) ? rows : [];
 
@@ -403,9 +406,6 @@ export class MySqlModel {
 
       const nextCursor = items.length > 0 ? items[items.length - 1]?.cursorId : undefined;
       const hasNextPage = nextCursor !== undefined && options.cursor !== nextCursor && items.length > limit;
-
-console.log(`paginatedQueryByCursor: nextCursor: ${nextCursor}, hasNextPage: ${hasNextPage}`);
-console.log(`items.length: ${items.length}, limit: ${limit}, totalCount: ${totalCount}`);
 
       return {
         items: items.slice(0, limit), // Return only the first 'limit' items

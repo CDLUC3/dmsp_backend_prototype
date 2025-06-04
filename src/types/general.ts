@@ -23,6 +23,7 @@ export interface PaginationOptionsForCursors {
   limit?: number;               // The number of items to return (integer)
   cursor?: string;              // Used for cursor-based pagination for endless scroll functionality (ISO string)
   cursorField?: string;         // The field to use for cursor-based pagination (string)
+  cursorWhereClause?: string;   // The where clause to use for cursor-based pagination (string)
   countField?: string;          // The field to count for totalCount (string)
   sortField?: string;           // The field to sort by (string)
   sortDir?: string;             // The order to sort by (must be 'ASC' or 'DESC')

@@ -71,10 +71,12 @@ export class VersionedTemplateSearchResult {
         availableSortFields: ['vt.name', 'vt.created', 'vt.visibility', 'vt.bestPractice', 'vt.modified'],
       } as PaginationOptionsForOffsets;
     } else {
+      const cursorField = 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))';
       opts = {
         ...options,
         // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))',
+        cursorField,
+        cursorWhereClause: `${cursorField} <= ?`,
       } as PaginationOptionsForCursors;
     }
 
