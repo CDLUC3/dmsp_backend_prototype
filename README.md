@@ -364,7 +364,7 @@ To fetch the next set of results, you can use `currentOffset + limit`
 
 Pagination queries use the `queryWithPagination` function on the `MySqlModel` class (as opposed to the `query` function).
 
-Refer to the `AffiliationSearchResult.search` or `User.search` functions for examples of how to structure your query.
+Refer to the `AffiliationSearchResult.search` or `VersionedTemplateSearchResult.search` functions for examples of how to structure your query.
 
 
 ### Errors
