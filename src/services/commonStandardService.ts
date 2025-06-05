@@ -18,8 +18,8 @@ import {
   DMPYesNoUnknown,
 } from "../types/DMP";
 import { ROR_REGEX } from "../models/Affiliation";
-import { ContributorRole } from "../models/ContributorRole";
-import { PlanFunder, ProjectFunderStatus } from "../models/Funder";
+import { MemberRole } from "../models/MemberRole";
+import { PlanFunding, ProjectFundingStatus } from "../models/Funding";
 import { defaultLanguageId } from "../models/Language";
 import { Plan, PlanVisibility } from "../models/Plan"
 import { Project } from "../models/Project";
@@ -29,8 +29,8 @@ import { VersionedTemplate } from "../models/VersionedTemplate";
 import { isNullOrUndefined, valueIsEmpty, formatORCID, ORCID_REGEX } from "../utils/helpers";
 import { ResearchDomain } from "../models/ResearchDomain";
 import { Answer } from "../models/Answer";
-import { PlanContributor } from "../models/Contributor";
-import { ExternalContributor } from "../types";
+import { PlanMember } from "../models/Member";
+import { ExternalMember } from "../types";
 
 // eslint-disable-next-line no-useless-escape
 export const DOI_REGEX = /^(https?:\/\/)?(doi\.org\/)?(doi:)?(10\.\d{4,9}\/[-._;()/:\w]+)$/;
@@ -62,9 +62,9 @@ export async function planToDMPCommonStandard(
     return null;
   }
 
-  // Get all of the contributors and the primary contact
-  const contributors = plan.id ? await loadContributorInfo(context, reference, plan.id) : [];
-  const contact = await buildContact(context, plan, contributors, reference);
+  // Get all of the members and the primary contact
+  const members = plan.id ? await loadMemberInfo(context, reference, plan.id) : [];
+  const contact = await buildContact(context, plan, members, reference);
   if (!contact) {
     return null;
   }
@@ -85,11 +85,11 @@ export async function planToDMPCommonStandard(
     });
   }
 
-  // Get all of the funders and narrative info
-  const fundings = plan.id ? await loadFunderInfo(context, reference, plan.id) : [];
+  // Get all of the fundings and narrative info
+  const fundings = plan.id ? await loadFundingInfo(context, reference, plan.id) : [];
   const narrative = plan.id ? await loadNarrativeTemplateInfo(context, reference, plan.id) : [];
   const works = await RelatedWork.findByProjectId(reference, context, plan.projectId);
-  const defaultRole = await ContributorRole.defaultRole(context, reference);
+  const defaultRole = await MemberRole.defaultRole(context, reference);
 
   // Build the DMP with all the required properties (and any that we have defaults for)
   const commonStandard: DMPCommonStandard = {
@@ -128,31 +128,31 @@ export async function planToDMPCommonStandard(
   if (project?.endDate) commonStandard.project[0].end = convertMySQLDateTimeToRFC3339(project.endDate);
   if (project?.dmptool_research_domain) commonStandard.project[0].dmptool_research_domain = project.dmptool_research_domain;
 
-  // Add the contributors if there are any
-  if (Array.isArray(contributors) && contributors.length > 0) {
-    commonStandard.contributor = contributors.map((contributor) => {
+  // Add the members if there are any
+  if (Array.isArray(members) && members.length > 0) {
+    commonStandard.contributor = members.map((member) => {
       // Make sure that we always have roles as an array
-      const roles = contributor.roles && contributor.roles.includes('[') ? JSON.parse(contributor.roles) : [defaultRole?.uri];
+      const roles = member.roles && member.roles.includes('[') ? JSON.parse(member.roles) : [defaultRole?.uri];
       const contrib = {
-        name: [contributor.givenName, contributor.surName].filter((n) => n).join(' ').trim(),
+        name: [member.givenName, member.surName].filter((n) => n).join(' ').trim(),
         role: roles,
       } as DMPCommonStandardContributor;
 
       // Only add the rest if they have values
-      if (!valueIsEmpty(contributor.orcid)) {
+      if (!valueIsEmpty(member.orcid)) {
         contrib.contributor_id = {
-          identifier: contributor.orcid ?? contributor.email,
-          type: determineIdentifierType(contributor.orcid),
+          identifier: member.orcid ?? member.email,
+          type: determineIdentifierType(member.orcid),
         };
       }
 
-      if (!valueIsEmpty(contributor.email)) contrib.mbox = contributor.email;
-      if (!valueIsEmpty(contributor.name)) contrib.dmproadmap_affiliation = { name: contributor.name };
+      if (!valueIsEmpty(member.email)) contrib.mbox = member.email;
+      if (!valueIsEmpty(member.name)) contrib.dmproadmap_affiliation = { name: member.name };
 
-      if (!valueIsEmpty(contributor.name) && !valueIsEmpty(contributor.uri)) {
+      if (!valueIsEmpty(member.name) && !valueIsEmpty(member.uri)) {
         contrib.dmproadmap_affiliation.affiliation_id = {
-          identifier: contributor.uri,
-          type: determineIdentifierType(contributor.uri),
+          identifier: member.uri,
+          type: determineIdentifierType(member.uri),
         };
       }
 
@@ -162,28 +162,28 @@ export async function planToDMPCommonStandard(
 
   // Add the funding information if there is any
   if (Array.isArray(fundings) && fundings.length > 0) {
-    commonStandard.project[0].funding = fundings.map((funder) => {
-      const funding = {
-        funding_status: planFunderStatusToDMPFundingStatus(funder.status),
+    commonStandard.project[0].funding = fundings.map((funding) => {
+      const fundingData = {
+        funding_status: planFundingStatusToDMPFundingStatus(funding.status),
       } as DMPCommonStandardFunding;
 
-      if (!valueIsEmpty(funder.name)) funding.name = funder.name;
-      if (!valueIsEmpty(funder.funderProjectNumber)) funding.dmproadmap_project_number = funder.funderProjectNumber;
-      if (!valueIsEmpty(funder.funderOpportunityNumber)) funding.dmproadmap_opportunity_number = funder.funderOpportunityNumber;
-      if (!valueIsEmpty(funder.uri)) {
-        funding.funder_id = {
-          identifier: funder.uri,
-          type: determineIdentifierType(funder.uri),
+      if (!valueIsEmpty(funding.name)) fundingData.name = funding.name;
+      if (!valueIsEmpty(funding.funderProjectNumber)) fundingData.dmproadmap_project_number = funding.funderProjectNumber;
+      if (!valueIsEmpty(funding.funderOpportunityNumber)) fundingData.dmproadmap_opportunity_number = funding.funderOpportunityNumber;
+      if (!valueIsEmpty(funding.uri)) {
+        fundingData.funder_id = {
+          identifier: funding.uri,
+          type: determineIdentifierType(funding.uri),
         };
       }
-      if (!valueIsEmpty(funder.grantId)) {
-        funding.grant_id = {
-          identifier: funder.grantId,
-          type: determineIdentifierType(funder.grantId),
+      if (!valueIsEmpty(funding.grantId)) {
+        fundingData.grant_id = {
+          identifier: funding.grantId,
+          type: determineIdentifierType(funding.grantId),
         };
       }
 
-      return funding;
+      return fundingData;
     });
   }
 
@@ -256,11 +256,11 @@ export function convertMySQLDateTimeToRFC3339(dateTime: string | Date): string {
 const buildContact = async (
   context: MyContext,
   plan: Plan,
-  contributors: LoadContributorResult[],
+  members: LoadMemberResult[],
   reference = 'commonStandardService.buildContact'
 ): Promise<DMPCommonStandardContact> => {
-  // Extract the primary contact from the contributors
-  let contact = contributors.find((c) => c?.isPrimaryContact);
+  // Extract the primary contact from the members
+  let contact = members.find((c) => c?.isPrimaryContact);
   // If no primary contact is available, use the plan owner
   const ownerId = plan.createdById ? plan.createdById : context.token?.id;
   contact = !isNullOrUndefined(contact) ? contact : await loadContactFromPlanOwner(context, reference, ownerId);
@@ -331,12 +331,12 @@ export function convertThreeCharToFiveChar(language: string): string {
   }
 }
 
-// Helper function to convert a ProjectFunderStatus to a DMPFundingStatus
-function planFunderStatusToDMPFundingStatus(status: string): DMPFundingStatus {
+// Helper function to convert a ProjectFundingStatus to a DMPFundingStatus
+function planFundingStatusToDMPFundingStatus(status: string): DMPFundingStatus {
   switch (status) {
-    case ProjectFunderStatus.DENIED:
+    case ProjectFundingStatus.DENIED:
       return DMPFundingStatus.REJECTED;
-    case ProjectFunderStatus.GRANTED:
+    case ProjectFundingStatus.GRANTED:
       return DMPFundingStatus.GRANTED;
     default:
       return DMPFundingStatus.PLANNED;
@@ -354,16 +354,16 @@ interface LoadProjectResult {
   dmptool_research_domain: string;
 }
 
-interface LoadFunderResult {
+interface LoadFundingResult {
   uri: string;
   name: string;
-  status: ProjectFunderStatus;
+  status: ProjectFundingStatus;
   grantId: string;
   funderProjectNumber: string;
   funderOpportunityNumber: string;
 }
 
-interface LoadContributorResult {
+interface LoadMemberResult {
   uri: string;
   name: string;
   email: string;
@@ -422,39 +422,39 @@ const loadProjectAndTemplateInfo = async (
   }
 }
 
-// Fetch the funder info needed to construct the DMP Common Standard
-export const loadFunderInfo = async (
+// Fetch the funding info needed to construct the DMP Common Standard
+export const loadFundingInfo = async (
   context: MyContext,
   reference: string,
   planId: number
-): Promise<LoadFunderResult[]> => {
+): Promise<LoadFundingResult[]> => {
   const sql = 'SELECT a.uri, a.name, prf.status, prf.grantId, prf.funderProjectNumber, prf.funderOpportunityNumber ' +
-                    'FROM planFunders pf ' +
-                      'LEFT JOIN projectFunders prf ON pf.projectFunderId = prf.id ' +
+                    'FROM planFundings pf ' +
+                      'LEFT JOIN projectFundings prf ON pf.projectFundingId = prf.id ' +
                         'LEFT JOIN affiliations a ON prf.affiliationId = a.uri WHERE pf.planId = ?';
-  let fundings = await PlanFunder.query(context, sql, [planId.toString()], reference);
+  let fundings = await PlanFunding.query(context, sql, [planId.toString()], reference);
   fundings = fundings.filter((row) => !isNullOrUndefined(row));
   return Array.isArray(fundings) ? fundings : [];
 }
 
-// Fetch the contributor info needed to construct the DMP Common Standard
-export const loadContributorInfo = async (
+// Fetch the member info needed to construct the DMP Common Standard
+export const loadMemberInfo = async (
   context: MyContext,
   reference: string,
   planId: number
-): Promise<LoadContributorResult[]> => {
+): Promise<LoadMemberResult[]> => {
   const sql = 'SELECT a.uri, a.name, pctr.email, pctr.givenName, pctr.surName, pctr.orcid, ' +
                         'pc.isPrimaryContact, GROUP_CONCAT(r.uri) as roles ' +
-                      'FROM planContributors pc ' +
-                        'LEFT JOIN planContributorRoles pcr ON pc.id = pcr.planContributorId ' +
-                          'LEFT JOIN contributorRoles r ON pcr.contributorRoleId = r.id ' +
-                        'LEFT JOIN projectContributors pctr ON pc.projectContributorId = pctr.id ' +
+                      'FROM planMembers pc ' +
+                        'LEFT JOIN planMemberRoles pcr ON pc.id = pcr.planMemberId ' +
+                          'LEFT JOIN memberRoles r ON pcr.memberRoleId = r.id ' +
+                        'LEFT JOIN projectMembers pctr ON pc.projectMemberId = pctr.id ' +
                           'LEFT JOIN affiliations a ON pctr.affiliationId = a.uri ' +
                         'WHERE pc.planId = ? ' +
                         'GROUP BY a.uri, a.name, pctr.email, pctr.givenName, pctr.surName, pctr.orcid, pc.isPrimaryContact;';
-  let contributors = await PlanContributor.query(context, sql, [planId.toString()], reference);
-  contributors = contributors.filter((row) => !isNullOrUndefined(row));
-  return Array.isArray(contributors) ? contributors : [];
+  let members = await PlanMember.query(context, sql, [planId.toString()], reference);
+  members = members.filter((row) => !isNullOrUndefined(row));
+  return Array.isArray(members) ? members : [];
 }
 
 // Fetch the plan owner information need to construct the Contact if the primary contact is not available
@@ -463,7 +463,7 @@ export async function loadContactFromPlanOwner(
   context: MyContext,
   reference: string,
   ownerId: number
-): Promise<LoadContributorResult> {
+): Promise<LoadMemberResult> {
   const sql = 'SELECT u.givenName, u.surName, u.email, u.orcid, a.uri, a.name ' +
                       'FROM users u ' +
                         'LEFT JOIN affiliations a ON u.affiliationId = a.id ' +
@@ -548,10 +548,10 @@ export const loadNarrativeTemplateInfo = async (
   return narrative;
 }
 
-// Parses a contributor into a standard format
-export function parseContributor(
+// Parses a member into a standard format
+export function parseMember(
   input: DMPCommonStandardContact | DMPCommonStandardContributor | null,
-): ExternalContributor | null {
+): ExternalMember | null {
   if (isNullOrUndefined(input)) {
     return null;
   }

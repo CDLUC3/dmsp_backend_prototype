@@ -46,10 +46,10 @@ export const typeDefs = gql`
     registeredBy: String
     "The timestamp for when the Plan was registered/published"
     registered: String
-    "The name of the funder"
-    funder: String
-    "The names of the contributors"
-    contributors: String
+    "The funding information for the plan"
+    funding: String
+    "The names of the members"
+    members: String
     "The name of the template the plan is based on"
     templateTitle: String
     "The section search results"
@@ -135,10 +135,10 @@ export const typeDefs = gql`
     "The section search results"
     sections: [PlanSectionProgress!]
 
-    "The contributors for the plan"
-    contributors: [PlanContributor!]
-    "The funders for the plan"
-    funders: [PlanFunder!]
+    "The members for the plan"
+    members: [PlanMember!]
+    "The funding for the plan"
+    fundings: [PlanFunding!]
     "Anticipated research outputs"
     outputs: [PlanOutput!]
 

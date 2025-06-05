@@ -39,8 +39,8 @@ describe('PlanSearchResult', () => {
     dmpId: casual.uuid,
     registeredBy: casual.full_name,
     registered: casual.date('YYYY-MM-DD'),
-    funder: casual.company_name,
-    contributors: [casual.full_name, casual.full_name],
+    funding: casual.company_name,
+    members: [casual.full_name, casual.full_name],
     createdBy: casual.full_name,
     created: casual.date('YYYY-MM-DD'),
     modifiedBy: casual.full_name,
@@ -56,13 +56,13 @@ describe('PlanSearchResult', () => {
     expect(searchResult.dmpId).toEqual(searchResultData.dmpId);
     expect(searchResult.registered).toEqual(searchResultData.registered);
     expect(searchResult.registeredBy).toEqual(searchResultData.registeredBy);
-    expect(searchResult.funder).toEqual(searchResultData.funder);
+    expect(searchResult.funding).toEqual(searchResultData.funding);
     expect(searchResult.createdBy).toEqual(searchResultData.createdBy);
     expect(searchResult.created).toEqual(searchResultData.created);
     expect(searchResult.modifiedBy).toEqual(searchResultData.modifiedBy);
     expect(searchResult.modified).toEqual(searchResultData.modified);
     expect(searchResult.featured).toBe(false);
-    expect(searchResult.contributors).toEqual(searchResultData.contributors);
+    expect(searchResult.members).toEqual(searchResultData.members);
     expect(searchResult.status).toEqual(PlanStatus.DRAFT);
     expect(searchResult.visibility).toEqual(PlanVisibility.PRIVATE);
   });
@@ -84,13 +84,13 @@ describe('PlanSearchResult.findByProjectId', () => {
       dmpId: casual.uuid,
       registeredBy: casual.full_name,
       registered: casual.date('YYYY-MM-DD'),
-      funder: casual.company_name,
+      funding: casual.company_name,
       createdBy: casual.full_name,
       created: casual.date('YYYY-MM-DD'),
       modifiedBy: casual.full_name,
       modified: casual.date('YYYY-MM-DD'),
       featured: casual.boolean,
-      contributors: [casual.full_name, casual.full_name],
+      members: [casual.full_name, casual.full_name],
       status: getRandomEnumValue(PlanStatus),
       visibility: getRandomEnumValue(PlanVisibility),
     });
@@ -109,25 +109,26 @@ describe('PlanSearchResult.findByProjectId', () => {
                 'p.versionedTemplateId, vt.name title, p.status, p.visibility, p.dmpId, ' +
                 'CONCAT(cr.givenName, CONCAT(\' \', cr.surName)) registeredBy, p.registered, p.featured, ' +
                 'GROUP_CONCAT(DISTINCT CONCAT(prc.givenName, CONCAT(\' \', prc.surName, ' +
-                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) contributors, ' +
-                'GROUP_CONCAT(DISTINCT funders.name) funder ' +
+                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) members, ' +
+                'GROUP_CONCAT(DISTINCT fundings.name) funding ' +
               'FROM plans p ' +
                 'LEFT JOIN users cu ON cu.id = p.createdById ' +
                 'LEFT JOIN users cm ON cm.id = p.modifiedById ' +
                 'LEFT JOIN users cr ON cr.id = p.registeredById ' +
                 'LEFT JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId ' +
-                'LEFT JOIN planContributors plc ON plc.planId = p.id ' +
-                  'LEFT JOIN projectContributors prc ON prc.id = plc.projectContributorId ' +
-                  'LEFT JOIN planContributorRoles plcr ON plc.id = plcr.planContributorId ' +
-                    'LEFT JOIN contributorRoles r ON plcr.contributorRoleId = r.id ' +
-                'LEFT JOIN planFunders ON planFunders.planId = p.id ' +
-                  'LEFT JOIN projectFunders ON projectFunders.id = planFunders.projectFunderId ' +
-                    'LEFT JOIN affiliations funders ON projectFunders.affiliationId = funders.uri ' +
+                'LEFT JOIN planMembers plc ON plc.planId = p.id ' +
+                  'LEFT JOIN projectMembers prc ON prc.id = plc.projectMemberId ' +
+                  'LEFT JOIN planMemberRoles plcr ON plc.id = plcr.planMemberId ' +
+                    'LEFT JOIN memberRoles r ON plcr.memberRoleId = r.id ' +
+                'LEFT JOIN planFundings ON planFundings.planId = p.id ' +
+                  'LEFT JOIN projectFundings ON projectFundings.id = planFundings.projectFundingId ' +
+                    'LEFT JOIN affiliations fundings ON projectFundings.affiliationId = fundings.uri ' +
               'WHERE p.projectId = ? ' +
               'GROUP BY p.id, cu.givenName, cu.surName, cm.givenName, cm.surName, ' +
                 'vt.id, vt.name, p.status, p.visibility, ' +
                 'p.dmpId, cr.givenName, cr.surName, p.registered, p.featured ' +
               'ORDER BY p.created DESC;';
+
     const result = await PlanSearchResult.findByProjectId('testing', context, projectId);
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, sql, [projectId.toString()], 'testing')

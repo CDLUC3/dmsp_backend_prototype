@@ -4,8 +4,8 @@ import { typeDefs as baseTypeDefs } from './schemas/base';
 import { typeDefs as affiliationTypeDefs } from './schemas/affiliation';
 import { typeDefs as answerTypeDefs } from './schemas/answer';
 import { typeDefs as collaboratorTypeDefs } from './schemas/collaborator';
-import { typeDefs as contributorTypeDefs } from './schemas/contributor';
-import { typeDefs as contributorRoleTypeDefs } from './schemas/contributorRole';
+import { typeDefs as memberTypeDefs } from './schemas/member';
+import { typeDefs as memberRoleTypeDefs } from './schemas/memberRole';
 import { typeDefs as feedbackTypeDefs } from './schemas/feedback';
 import { typeDefs as languageTypeDefs } from './schemas/language';
 import { typeDefs as licenseTypeDefs } from './schemas/license'
@@ -13,7 +13,7 @@ import { typeDefs as metadataStandardTypeDefs } from './schemas/metadataStandard
 import { typeDefs as outputTypeDefs } from './schemas/outputType';
 import { typeDefs as planTypeDefs } from './schemas/plan';
 import { typeDefs as projectTypeDefs } from './schemas/project';
-import { typeDefs as funderTypeDefs } from './schemas/funder';
+import { typeDefs as fundingTypeDefs } from './schemas/funding';
 import { typeDefs as projectOutputTypeDefs } from './schemas/output';
 import { typeDefs as questionTypeDefs } from './schemas/question';
 import { typeDefs as questionConditionTypeDefs } from './schemas/questionCondition';
@@ -37,10 +37,10 @@ export const typeDefs = mergeTypeDefs([
   affiliationTypeDefs,
   answerTypeDefs,
   collaboratorTypeDefs,
-  contributorRoleTypeDefs,
-  contributorTypeDefs,
+  memberRoleTypeDefs,
+  memberTypeDefs,
   feedbackTypeDefs,
-  funderTypeDefs,
+  fundingTypeDefs,
   languageTypeDefs,
   licenseTypeDefs,
   metadataStandardTypeDefs,
