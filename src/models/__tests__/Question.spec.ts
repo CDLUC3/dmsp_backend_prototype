@@ -3,6 +3,7 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { Question } from "../Question";
 import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
+import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
 
 jest.mock('../../context.ts');
 
@@ -45,6 +46,20 @@ describe('Question', () => {
     expect(question.useSampleTextAsDefault).toEqual(questionData.useSampleTextAsDefault);
     expect(question.displayOrder).toEqual(questionData.displayOrder);
     expect(question.required).toEqual(false);
+  });
+
+  it('should call removeNullAndUndefinedFromJSON and set json as a string', () => {
+    const parsedJSON = removeNullAndUndefinedFromJSON(questionData.json);
+    expect(parsedJSON).toEqual(questionData.json);
+    expect(question.json).toEqual(parsedJSON);
+    expect(typeof question.json).toBe('string');
+  });
+
+  it('should add an error if removeNullAndUndefinedFromJSON fails', () => {
+    const invalidJSON = '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"invalidVersion"';
+    const q = new Question({ ...questionData, json: invalidJSON });
+    expect(q.errors['json']).toBeTruthy();
+    expect(q.errors['json'].includes('Invalid JSON format')).toBe(true);
   });
 
   it('should not be valid if the JSON is missing', async () => {
@@ -314,6 +329,7 @@ describe('delete', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
+      json: '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     })
   })
 

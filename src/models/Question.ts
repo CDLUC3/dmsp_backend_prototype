@@ -1,7 +1,7 @@
 import { QuestionSchemaMap } from "@dmptool/types";
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { isNullOrUndefined } from "../utils/helpers";
+import { isNullOrUndefined, removeNullAndUndefinedFromJSON } from "../utils/helpers";
 
 export class Question extends MySqlModel {
   public templateId: number;
@@ -27,7 +27,11 @@ export class Question extends MySqlModel {
     this.sourceQuestionId = options.sourceQuestionId;
     this.json = options.json;
     // Ensure json is stored as a string
-    this.json = typeof options.json === 'string' ? options.json : JSON.stringify(options.json);
+    try {
+      this.json = removeNullAndUndefinedFromJSON(options.json);
+    } catch (e) {
+      this.addError('json', e.message);
+    }
     this.questionText = options.questionText;
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
@@ -48,7 +52,7 @@ export class Question extends MySqlModel {
     if (isNullOrUndefined(this.displayOrder)) this.addError('displayOrder', 'Order number can\'t be blank');
 
     // If json is not null or undefined and the type is in the schema map
-    if (!isNullOrUndefined(this.json)) {
+    if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
       const parsedJSON = JSON.parse(this.json);
       if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
         // Validate the json against the Zod schema and if valid, set the questionType
@@ -66,7 +70,9 @@ export class Question extends MySqlModel {
         this.addError('json', `Unknown question type "${parsedJSON['type']}"`);
       }
     } else {
-      this.addError('json', 'Question type JSON can\'t be blank');
+      if (this.errors['json'] === undefined) {
+        this.addError('json', 'Question type JSON can\'t be blank');
+      }
     }
 
     return Object.keys(this.errors).length === 0;

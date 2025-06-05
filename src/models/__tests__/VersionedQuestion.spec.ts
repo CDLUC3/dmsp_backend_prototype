@@ -3,6 +3,7 @@ import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { VersionedQuestion } from "../VersionedQuestion";
 import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
+import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
 
 jest.mock('../../context.ts');
 
@@ -47,6 +48,20 @@ describe('VersionedQuestion', () => {
     expect(versionedQuestion.sampleText).toEqual(versionedQuestionData.sampleText);
     expect(versionedQuestion.displayOrder).toEqual(versionedQuestionData.displayOrder);
     expect(versionedQuestion.required).toEqual(false);
+  });
+
+  it('should call removeNullAndUndefinedFromJSON and set json as a string', () => {
+    const parsedJSON = removeNullAndUndefinedFromJSON(versionedQuestionData.json);
+    expect(parsedJSON).toEqual(versionedQuestionData.json);
+    expect(versionedQuestion.json).toEqual(parsedJSON);
+    expect(typeof versionedQuestion.json).toBe('string');
+  });
+
+  it('should return null if removeNullAndUndefinedFromJSON fails', () => {
+    const invalidJSON = '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"invalidVersion"';
+    const q = new VersionedQuestion({ ...versionedQuestionData, json: invalidJSON });
+    expect(q.errors['json']).toBeTruthy();
+    expect(q.errors['json'].includes('Invalid JSON format')).toBe(true);
   });
 
   it('isValid returns true when the record is valid', async () => {
@@ -165,7 +180,7 @@ describe('create', () => {
       versionedTemplateId: casual.integer(1, 999),
       versionedSectionId: casual.integer(1, 999),
       questionId: casual.integer(1, 999),
-      questionType: {
+      json: {
         type: 'checkBoxes',
         options: [
           {
