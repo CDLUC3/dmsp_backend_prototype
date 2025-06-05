@@ -386,7 +386,8 @@ export class MySqlModel {
       // Add the limit
       const limitClause = 'LIMIT ?';
       // Add 1 to the limit so that we can determine if there is a next page
-      vals.push((limit + 1).toString());
+      const extendedLimit = limit + 1;
+      vals.push(extendedLimit.toString());
 
       const orderByClause = `ORDER BY cursorId ${cursorSortDir.toString()}`;
       let sql = `${sqlStatement.replace('SELECT ', `SELECT ${options.cursorField} cursorId, `)} `
