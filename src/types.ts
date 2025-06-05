@@ -3864,8 +3864,6 @@ export type VersionedTemplateSearchResult = {
   __typename?: 'VersionedTemplateSearchResult';
   /** Whether or not this Template is designated as a 'Best Practice' template */
   bestPractice?: Maybe<Scalars['Boolean']['output']>;
-  /** The id of the last VersionedTemplate in the results */
-  cursor?: Maybe<Scalars['String']['output']>;
   /** A description of the purpose of the template */
   description?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
@@ -5766,7 +5764,6 @@ export type VersionedTemplateErrorsResolvers<ContextType = MyContext, ParentType
 
 export type VersionedTemplateSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedTemplateSearchResult'] = ResolversParentTypes['VersionedTemplateSearchResult']> = {
   bestPractice?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
-  cursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;

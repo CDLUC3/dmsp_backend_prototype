@@ -802,14 +802,14 @@ describe('paginatedQueryByCursor', () => {
     const values = ['value'];
     const options = {
       cursorField: 'id',
-      limit: 10,
+      limit: 2,
       cursor: '5',
       sortField: 'id',
       sortDir: 'ASC',
       countField: 'id',
     };
     const reference = 'Testing';
-    const mockRows = [{ id: 6, cursorId: 6 }, { id: 7, cursorId: 7 }];
+    const mockRows = [{ id: 6, cursorId: 6 }, { id: 7, cursorId: 7 }, { id: 8, cursorId: 8 }];
     const mockTotalCount = 20;
 
     localQuery.mockResolvedValueOnce(mockRows);
@@ -828,8 +828,8 @@ describe('paginatedQueryByCursor', () => {
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenCalledWith(
       context,
-      'SELECT id cursorId, * FROM tests WHERE field = ? AND id > ? GROUP BY field ORDER BY id ASC LIMIT ?',
-      ['value', '5', '10'],
+      'SELECT id cursorId, * FROM tests WHERE field = ? AND id >= ? GROUP BY field ORDER BY cursorId ASC LIMIT ?',
+      ['value', '5', '3'],
       reference
     );
     expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
@@ -843,10 +843,10 @@ describe('paginatedQueryByCursor', () => {
       reference
     );
     expect(result).toEqual({
-      items: mockRows,
-      limit: 10,
+      items: mockRows.slice(0, 2), // Only return the first 2 items
+      limit: 2,
       totalCount: mockTotalCount,
-      nextCursor: 7,
+      nextCursor: 8,
       hasNextPage: true,
       availableSortFields: [],
     });
@@ -886,7 +886,49 @@ describe('paginatedQueryByCursor', () => {
       items: [],
       limit: 10,
       totalCount: 0,
-      nextCursor: undefined,
+      nextCursor: null,
+      hasNextPage: false,
+      availableSortFields: []
+    });
+  });
+
+  it('returns a null nextCursor if there are no further results', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      cursorField: 'id',
+      limit: 10,
+      cursor: null,
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+    const mockRows = [{ id: 6, cursorId: 6 }, { id: 7, cursorId: 7 }];
+    const mockTotalCount = 2;
+
+    localQuery.mockResolvedValueOnce(mockRows);
+    localGetTotalCountForPagination.mockResolvedValueOnce(mockTotalCount);
+
+    const result = await MySqlModel.paginatedQueryByCursor(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForCursors,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: mockRows,
+      limit: 10,
+      totalCount: mockTotalCount,
+      nextCursor: null,
       hasNextPage: false,
       availableSortFields: []
     });
