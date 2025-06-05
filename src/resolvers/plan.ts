@@ -6,8 +6,8 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
-import { PlanContributor } from "../models/Contributor";
-import { PlanFunder } from "../models/Funder";
+import { PlanMember } from "../models/Member";
+import { PlanFunding } from "../models/Funding";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
@@ -228,17 +228,17 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
-    // The contributors to the plan
-    contributors: async (parent: Plan, _, context: MyContext): Promise<PlanContributor[]> => {
+    // The members to the plan
+    members: async (parent: Plan, _, context: MyContext): Promise<PlanMember[]> => {
       if (parent?.id) {
-        return await PlanContributor.findByPlanId('plan contributors resolver', context, parent.id);
+        return await PlanMember.findByPlanId('plan members resolver', context, parent.id);
       }
       return [];
     },
     // The funding sources for the plan
-    funders: async (parent: Plan, _, context: MyContext): Promise<PlanFunder[]> => {
+    fundings: async (parent: Plan, _, context: MyContext): Promise<PlanFunding[]> => {
       if (parent?.id) {
-        return await PlanFunder.findByPlanId('plan funders resolver', context, parent.id);
+        return await PlanFunding.findByPlanId('plan fundings resolver', context, parent.id);
       }
       return [];
     },

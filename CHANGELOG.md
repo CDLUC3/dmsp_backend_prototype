@@ -90,6 +90,7 @@
 
 ### Updated
 - Updated cursor pagination to always return `null` for `nextCursor` if we are at the end of the results
+- Rename all occurrences of `Contributor` to `Member` and `Funder` to `Funding` to match newer terminology
 - Updated `addSection` resolver to properly copy questions and tags when creating a new section by copying one
 - Replaced all instances of `TemplateVisibility.PRIVATE` with `TemplateVisibility.ORGANIZATION` [#159]
 - Renamed the `outputTypes` table to `projectOutputTypes`

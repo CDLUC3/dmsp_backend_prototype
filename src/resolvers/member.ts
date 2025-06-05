@@ -2,28 +2,28 @@
 import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 import { Affiliation } from '../models/Affiliation';
-import { ContributorRole } from '../models/ContributorRole';
+import { MemberRole } from '../models/MemberRole';
 import { Project } from '../models/Project';
-import { PlanContributor, ProjectContributor } from "../models/Contributor";
+import { PlanMember, ProjectMember } from "../models/Member";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
-import { updateContributorRoles } from '../services/planService';
+import { updateMemberRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all of the contributors for the specified project
-    projectContributors: async (_, { projectId }, context: MyContext): Promise<ProjectContributor[]> => {
-      const reference = 'projectContributors resolver';
+    // return all of the members for the specified project
+    projectMembers: async (_, { projectId }, context: MyContext): Promise<ProjectMember[]> => {
+      const reference = 'projectMembers resolver';
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
           if (project && await hasPermissionOnProject(context, project)) {
-            return await ProjectContributor.findByProjectId(reference, context, projectId);
+            return await ProjectMember.findByProjectId(reference, context, projectId);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -34,16 +34,16 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // return a specific contributor
-    projectContributor: async (_, { projectContributorId }, context: MyContext): Promise<ProjectContributor> => {
-      const reference = 'projectContributor resolver';
+    // return a specific member
+    projectMember: async (_, { projectMemberId }, context: MyContext): Promise<ProjectMember> => {
+      const reference = 'projectMember resolver';
       try {
         if (isAuthorized(context.token)) {
-          const contributor = await ProjectContributor.findById(reference, context, projectContributorId);
-          const project = await Project.findById(reference, context, contributor.projectId);
+          const member = await ProjectMember.findById(reference, context, projectMemberId);
+          const project = await Project.findById(reference, context, member.projectId);
 
           if (project && await hasPermissionOnProject(context, project)) {
-            return contributor;
+            return member;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -55,14 +55,14 @@ export const resolvers: Resolvers = {
       }
     },
 
-    planContributors: async (_, { planId }, context: MyContext): Promise<PlanContributor[]> => {
-      const reference = 'planContributors resolver';
+    planMembers: async (_, { planId }, context: MyContext): Promise<PlanMember[]> => {
+      const reference = 'planMembers resolver';
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           const project = await Project.findById(reference, context, plan.projectId);
           if (plan && await hasPermissionOnProject(context, project)) {
-            return await PlanContributor.findByPlanId(reference, context, plan.id);
+            return await PlanMember.findByPlanId(reference, context, plan.id);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -76,9 +76,9 @@ export const resolvers: Resolvers = {
   },
 
   Mutation: {
-    // add a new ProjectContributor
-    addProjectContributor: async (_, { input }, context: MyContext) => {
-      const reference = 'addProjectContributor resolver';
+    // add a new ProjectMember
+    addProjectMember: async (_, { input }, context: MyContext) => {
+      const reference = 'addProjectMember resolver';
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
@@ -86,34 +86,34 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          const newContributor = new ProjectContributor(input);
-          const created = await newContributor.create(context, project.id);
+          const newMember = new ProjectMember(input);
+          const created = await newMember.create(context, project.id);
 
           if (!created?.id) {
             // A null was returned so add a generic error and return it
-            if (!newContributor.errors['general']) {
-              newContributor.addError('general', 'Unable to create Contributor');
+            if (!newMember.errors['general']) {
+              newMember.addError('general', 'Unable to create Member');
             }
-            return newContributor;
+            return newMember;
           }
 
-          // If any ContributorRole were specified and there were no errors creating the record
-          if (Array.isArray(input.contributorRoleIds)) {
+          // If any MemberRole were specified and there were no errors creating the record
+          if (Array.isArray(input.memberRoleIds)) {
             if (created && !created.hasErrors()) {
               const addErrors = [];
-              // Add any ContributorRole associations
-              for (const id of input.contributorRoleIds) {
-                const role = await ContributorRole.findById(reference, context, id);
+              // Add any memberRole associations
+              for (const id of input.memberRoleIds) {
+                const role = await MemberRole.findById(reference, context, id);
                 if (role) {
-                  const wasAdded = await role.addToProjectContributor(context, created.id);
+                  const wasAdded = await role.addToProjectMember(context, created.id);
                   if (!wasAdded) {
                     addErrors.push(role.label);
                   }
                 }
               }
-              // If any failed to be added, then add an error to the ProjectContributor
+              // If any failed to be added, then add an error to the ProjectMember
               if (addErrors.length > 0) {
-                created.addError('contributorRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
+                created.addError('memberRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
               }
             }
           }
@@ -128,51 +128,51 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // update an existing ProjectContributor
-    updateProjectContributor: async (_, { input }, context) => {
-      const reference = 'updateProjectContributor resolver';
+    // update an existing ProjectMember
+    updateProjectMember: async (_, { input }, context) => {
+      const reference = 'updateProjectMember resolver';
       try {
         if (isAuthorized(context.token)) {
-          const contributor = await ProjectContributor.findById(reference, context, input.projectContributorId);
-          if (!contributor) {
+          const member = await ProjectMember.findById(reference, context, input.projectMemberId);
+          if (!member) {
             throw NotFoundError();
           }
 
           // Fetch the project and run a permission check
-          const project = await Project.findById(reference, context, contributor.projectId);
+          const project = await Project.findById(reference, context, member.projectId);
           if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          const toUpdate = new ProjectContributor(input);
-          toUpdate.projectId = contributor?.projectId;
-          toUpdate.id = contributor?.id;
+          const toUpdate = new ProjectMember(input);
+          toUpdate.projectId = member?.projectId;
+          toUpdate.id = member?.id;
           const updated = await toUpdate.update(context);
 
           if (updated && !updated.hasErrors()) {
             const associationErrors = [];
             // Fetch all of the current Roles associated with this Contirbutor
-            const roles = await ContributorRole.findByProjectContributorId(reference, context, contributor.id);
+            const roles = await MemberRole.findByProjectMemberId(reference, context, member.id);
             const currentRoleids = roles ? roles.map((d) => d.id) : [];
 
             // Use the helper function to determine which Roles to keep
-            const { idsToBeRemoved, idsToBeSaved } = ContributorRole.reconcileAssociationIds(
+            const { idsToBeRemoved, idsToBeSaved } = MemberRole.reconcileAssociationIds(
               currentRoleids,
-              input.contributorRoleIds
+              input.memberRoleIds
             );
 
             const removeErrors = [];
             // Delete any Role associations that were removed
             for (const id of idsToBeRemoved) {
-              const role = await ContributorRole.findById(reference, context, id);
+              const role = await MemberRole.findById(reference, context, id);
               if (role) {
-                const wasRemoved = role.removeFromProjectContributor(context, updated.id);
+                const wasRemoved = role.removeFromProjectMember(context, updated.id);
                 if (!wasRemoved) {
                   removeErrors.push(role.label);
                 }
               }
             }
-            // If any failed to be removed, then add an error to the ProjectContributor
+            // If any failed to be removed, then add an error to the ProjectMember
             if (removeErrors.length > 0) {
               associationErrors.push(`unable to remove roles: ${removeErrors.join(', ')}`);
             }
@@ -180,25 +180,25 @@ export const resolvers: Resolvers = {
             const addErrors = [];
             // Add any new Role associations
             for (const id of idsToBeSaved) {
-              const role = await ContributorRole.findById(reference, context, id);
+              const role = await MemberRole.findById(reference, context, id);
               if (role) {
-                const wasAdded = role.addToProjectContributor(context, updated.id);
+                const wasAdded = role.addToProjectMember(context, updated.id);
                 if (!wasAdded) {
                   addErrors.push(role.label);
                 }
               }
             }
-            // If any failed to be added, then add an error to the ProjectContributor
+            // If any failed to be added, then add an error to the ProjectMember
             if (addErrors.length > 0) {
               associationErrors.push(`unable to assign roles: ${addErrors.join(', ')}`);
             }
 
             if (associationErrors.length > 0) {
-              updated.addError('contributorRoles', `Updated but ${associationErrors.join(', ')}`);
+              updated.addError('memberRoles', `Updated but ${associationErrors.join(', ')}`);
             }
 
             if (!updated.hasErrors()) {
-              const plans = await Plan.findByProjectId(reference, context, contributor.projectId);
+              const plans = await Plan.findByProjectId(reference, context, member.projectId);
               for (const plan of plans) {
                 // Version all of the plans (if any) and sync with the DMPHub
                 await addVersion(context, plan, reference);
@@ -206,7 +206,7 @@ export const resolvers: Resolvers = {
             }
 
             // Reload since the roles may have changed
-            return updated.hasErrors() ? updated : await ProjectContributor.findById(reference, context, contributor.id);
+            return updated.hasErrors() ? updated : await ProjectMember.findById(reference, context, member.id);
           }
           // Otherwise there were errors so return the object with errors
           return updated;
@@ -220,26 +220,26 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // delete an existing ProjectContributor
-    removeProjectContributor: async (_, { projectContributorId }, context) => {
-      const reference = 'removeProjectContributor resolver';
+    // delete an existing ProjectMember
+    removeProjectMember: async (_, { projectMemberId }, context) => {
+      const reference = 'removeProjectMember resolver';
       try {
         if (isAuthorized(context.token)) {
-          const contributor = await ProjectContributor.findById(reference, context, projectContributorId);
-          if (!contributor) {
+          const member = await ProjectMember.findById(reference, context, projectMemberId);
+          if (!member) {
             throw NotFoundError();
           }
 
           // Fetch the project and run a permission check
-          const project = await Project.findById(reference, context, contributor.projectId);
+          const project = await Project.findById(reference, context, member.projectId);
           if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          // Any related contributorRoles will be automatically deleted within the DB
-          const removed = await contributor.delete(context);
+          // Any related memberRoles will be automatically deleted within the DB
+          const removed = await member.delete(context);
           if (removed && !removed.hasErrors()) {
-            const plans = await Plan.findByProjectId(reference, context, contributor.projectId);
+            const plans = await Plan.findByProjectId(reference, context, member.projectId);
             for (const plan of plans) {
               // Version all of the plans (if any) and sync with the DMPHub
               await addVersion(context, plan, reference);
@@ -256,52 +256,52 @@ export const resolvers: Resolvers = {
       }
     },
 
-    //Add a Contributor to a Plan
-    addPlanContributor: async (_, { planId, projectContributorId, roleIds }, context: MyContext): Promise<PlanContributor> => {
-      const reference = 'addPlanContributor resolver';
+    //Add a Member to a Plan
+    addPlanMember: async (_, { planId, projectMemberId, roleIds }, context: MyContext): Promise<PlanMember> => {
+      const reference = 'addPlanMember resolver';
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
-          const projectContributor = await ProjectContributor.findById(reference, context, projectContributorId);
+          const projectMember = await ProjectMember.findById(reference, context, projectMemberId);
 
-          // For now, planContributor roles will match the projectContributor roles
-          const roles = await ContributorRole.findByProjectContributorId(reference, context, projectContributorId);
+          // For now, planMember roles will match the projectMember roles
+          const roles = await MemberRole.findByProjectMemberId(reference, context, projectMemberId);
           const currentProjectRoleIds = roles ? roles.map((d) => d.id) : [];
 
-          if (!plan || !projectContributor) {
+          if (!plan || !projectMember) {
             throw NotFoundError();
           }
 
-          const project = await Project.findById(reference, context, projectContributor.projectId);
+          const project = await Project.findById(reference, context, projectMember.projectId);
           if (await hasPermissionOnProject(context, project)) {
-            const newPlanContributor = new PlanContributor({ planId, projectContributorId, contributorRoleIds: currentProjectRoleIds });
-            const created = await newPlanContributor.create(context);
+            const newPlanMember = new PlanMember({ planId, projectMemberId, memberRoleIds: currentProjectRoleIds });
+            const created = await newPlanMember.create(context);
 
             if (!created?.id) {
               // A null was returned so add a generic error and return it
-              if (!newPlanContributor.errors['general']) {
-                newPlanContributor.addError('general', 'Unable to create PlanContributor');
+              if (!newPlanMember.errors['general']) {
+                newPlanMember.addError('general', 'Unable to create PlanMember');
               }
-              return newPlanContributor;
+              return newPlanMember;
             }
 
-            // If any ContributorRole were specified and there were no errors creating the record
+            // If any memberRole were specified and there were no errors creating the record
             if (Array.isArray(roleIds)) {
               if (created && !created.hasErrors()) {
                 const addErrors = [];
-                // Add any ContributorRole associations
+                // Add any MemberRole associations
                 for (const id of roleIds) {
-                  const role = await ContributorRole.findById(reference, context, id);
+                  const role = await MemberRole.findById(reference, context, id);
                   if (role) {
-                    const wasAdded = await role.addToPlanContributor(context, created.id);
+                    const wasAdded = await role.addToPlanMember(context, created.id);
                     if (!wasAdded) {
                       addErrors.push(role.label);
                     }
                   }
                 }
-                // If any failed to be added, then add an error to the PlanContributor
+                // If any failed to be added, then add an error to the PlanMember
                 if (addErrors.length > 0) {
-                  created.addError('contributorRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
+                  created.addError('memberRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
                 }
               }
             }
@@ -321,65 +321,65 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // update an existing PlanContributor
-    updatePlanContributor: async (_, { planId, planContributorId, contributorRoleIds, isPrimaryContact }, context) => {
-      const reference = 'updatePlanContributor resolver';
+    // update an existing PlanMember
+    updatePlanMember: async (_, { planId, planMemberId, memberRoleIds, isPrimaryContact }, context) => {
+      const reference = 'updatePlanMember resolver';
       try {
         if (isAuthorized(context.token)) {
-          const contributor = await PlanContributor.findById(reference, context, planContributorId);
-          if (!contributor) {
+          const member = await PlanMember.findById(reference, context, planMemberId);
+          if (!member) {
             throw NotFoundError();
           }
 
-          const projectContributor = await ProjectContributor.findById(reference, context, contributor.projectContributorId);
-          const project = await Project.findById(reference, context, projectContributor.projectId);
+          const projectMember = await ProjectMember.findById(reference, context, member.projectMemberId);
+          const project = await Project.findById(reference, context, projectMember.projectId);
           const hasPermission = await hasPermissionOnProject(context, project);
 
           if (hasPermission) {
             // Fetch current roles
-            const roles = await ContributorRole.findByPlanContributorId(reference, context, planContributorId);
+            const roles = await MemberRole.findByPlanMemberId(reference, context, planMemberId);
             const currentRoleIds = roles ? roles.map((d) => d.id) : [];
 
             // Update roles using the helper function
-            const { updatedRoleIds, errors } = await updateContributorRoles(
+            const { updatedRoleIds, errors } = await updateMemberRoles(
               reference,
               context,
-              contributor.id,
+              member.id,
               currentRoleIds,
-              contributorRoleIds
+              memberRoleIds
             );
 
             if (errors.length > 0) {
-              contributor.addError('contributorRoles', `Updated but ${errors.join(', ')}`);
+              member.addError('memberRoles', `Updated but ${errors.join(', ')}`);
             }
 
-            // Create a new instance of PlanContributor and set the updated values
-            const toUpdate = new PlanContributor({
-              id: planContributorId,
+            // Create a new instance of PlanMember and set the updated values
+            const toUpdate = new PlanMember({
+              id: planMemberId,
               planId: planId,
-              projectContributorId: projectContributor.id,
+              projectMemberId: projectMember.id,
               isPrimaryContact,
-              contributorRoleIds: updatedRoleIds ?? currentRoleIds,
+              memberRoleIds: updatedRoleIds ?? currentRoleIds,
             });
 
-            //update the PlanContributor with new instance
+            //update the PlanMember with new instance
             const updatedPlan = await toUpdate.update(context);
 
             // Make updates for isPrimaryContact
             if (updatedPlan && !updatedPlan.hasErrors()) {
               if (isPrimaryContact === true) {
-                // Get all contributors for the plan
-                const allContributors = await PlanContributor.findByPlanId(reference, context, planId);
+                // Get all members for the plan
+                const allMembers = await PlanMember.findByPlanId(reference, context, planId);
 
-                // Set isPrimaryContact to false for all other contributors
-                for (const contributor of allContributors) {
-                  if (contributor.id !== planContributorId) {
-                    contributor.isPrimaryContact = false;
+                // Set isPrimaryContact to false for all other members
+                for (const member of allMembers) {
+                  if (member.id !== planMemberId) {
+                    member.isPrimaryContact = false;
                     // Fetch current roles
-                    const roles = await ContributorRole.findByPlanContributorId(reference, context, contributor.id);
+                    const roles = await MemberRole.findByPlanMemberId(reference, context, member.id);
                     const roleIds = roles ? roles.map((d) => d.id) : [];
-                    contributor.contributorRoleIds = roleIds;
-                    await contributor.update(context);
+                    member.memberRoleIds = roleIds;
+                    await member.update(context);
                   }
                 }
               }
@@ -391,7 +391,7 @@ export const resolvers: Resolvers = {
               }
             }
 
-            return await PlanContributor.findById(reference, context, contributor.id);
+            return await PlanMember.findById(reference, context, member.id);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -403,32 +403,32 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // delete an existing PlanContributor
-    removePlanContributor: async (_, { planContributorId }, context) => {
-      const reference = 'removePlanContributor resolver';
+    // delete an existing PlanMember
+    removePlanMember: async (_, { planMemberId }, context) => {
+      const reference = 'removePlanMember resolver';
       try {
         if (isAuthorized(context.token)) {
-          const contributor = await PlanContributor.findById(reference, context, planContributorId);
-          if (!contributor) {
+          const member = await PlanMember.findById(reference, context, planMemberId);
+          if (!member) {
             throw NotFoundError();
           }
 
           // Fetch the project and run a permission check
-          const projectContributor = await ProjectContributor.findById(
+          const projectMember = await ProjectMember.findById(
             reference,
             context,
-            contributor.projectContributorId
+            member.projectMemberId
           );
-          const project = await Project.findById(reference, context, projectContributor.projectId);
+          const project = await Project.findById(reference, context, projectMember.projectId);
           if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          // Any related contributorRoles will be automatically deleted within the DB
-          const removed = await contributor.delete(context);
+          // Any related MemberRoles will be automatically deleted within the DB
+          const removed = await member.delete(context);
 
           if (removed && !removed.hasErrors()) {
-            const plan = await Plan.findById(reference, context, contributor.planId);
+            const plan = await Plan.findById(reference, context, member.planId);
             if (plan) {
               // Version all of the plans (if any) and sync with the DMPHub
               addVersion(context, plan, reference);
@@ -446,23 +446,23 @@ export const resolvers: Resolvers = {
     },
   },
 
-  ProjectContributor: {
-    project: async (parent: ProjectContributor, _, context: MyContext): Promise<Project> => {
+  ProjectMember: {
+    project: async (parent: ProjectMember, _, context: MyContext): Promise<Project> => {
       if (parent?.projectId) {
-        return await Project.findById('Chained ProjectContributor.project', context, parent.projectId);
+        return await Project.findById('Chained ProjectMember.project', context, parent.projectId);
       }
       return null;
     },
-    affiliation: async (parent: ProjectContributor, _, context: MyContext): Promise<Affiliation> => {
+    affiliation: async (parent: ProjectMember, _, context: MyContext): Promise<Affiliation> => {
       if (parent?.affiliationId) {
-        return await Affiliation.findByURI('Chained ProjectContributor.affiliation', context, parent.affiliationId);
+        return await Affiliation.findByURI('Chained ProjectMember.affiliation', context, parent.affiliationId);
       }
       return null;
     },
-    contributorRoles: async (parent: ProjectContributor, _, context: MyContext): Promise<ContributorRole[]> => {
+    memberRoles: async (parent: ProjectMember, _, context: MyContext): Promise<MemberRole[]> => {
       if (parent?.id) {
-        return await ContributorRole.findByProjectContributorId(
-          'Chained ProjectContributor.contributorRoles',
+        return await MemberRole.findByProjectMemberId(
+          'Chained ProjectMember.memberRoles',
           context,
           parent.id
         );
@@ -471,26 +471,26 @@ export const resolvers: Resolvers = {
     }
   },
 
-  PlanContributor: {
-    plan: async (parent: PlanContributor, _, context: MyContext): Promise<Plan> => {
+  PlanMember: {
+    plan: async (parent: PlanMember, _, context: MyContext): Promise<Plan> => {
       if (parent?.planId) {
-        return await Plan.findById('Chained PlanContributor.plan', context, parent.planId);
+        return await Plan.findById('Chained PlanMember.plan', context, parent.planId);
       }
       return null;
     },
-    projectContributor: async (parent: PlanContributor, _, context: MyContext): Promise<ProjectContributor> => {
-      if (parent?.projectContributorId) {
-        return await ProjectContributor.findById(
-          'Chained PlanContributor.projectContributor',
-          context, parent.projectContributorId
+    projectMember: async (parent: PlanMember, _, context: MyContext): Promise<ProjectMember> => {
+      if (parent?.projectMemberId) {
+        return await ProjectMember.findById(
+          'Chained PlanMember.projectMember',
+          context, parent.projectMemberId
         );
       }
       return null;
     },
-    contributorRoles: async (parent: ProjectContributor, _, context: MyContext): Promise<ContributorRole[]> => {
+    memberRoles: async (parent: ProjectMember, _, context: MyContext): Promise<MemberRole[]> => {
       if (parent?.id) {
-        return await ContributorRole.findByPlanContributorId(
-          'Chained ProjectContributor.contributorRoles',
+        return await MemberRole.findByPlanMemberId(
+          'Chained ProjectMember.memberRoles',
           context,
           parent.id
         );
