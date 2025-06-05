@@ -1,9 +1,9 @@
 import { formatLogMessage } from "../logger";
 import { MyContext } from '../context';
-import { validateDate } from "../utils/helpers";
+import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
-import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets } from "../types/general";
+import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets, SortDirection } from "../types/general";
 import { generalConfig } from "../config/generalConfig";
 import { PaginationOptions } from "../types";
 
@@ -375,18 +375,24 @@ export class MySqlModel {
       const filters = [...whereFilters];
       const vals = [...values];
 
-      // Add the cursor to the where clause
-      filters.push(`${options.cursorField} > ?`);
-      vals.push(options.cursor ?? '');
+      // Add the cursor to the where clause if one is provided
+      const cursorSortDir = options.cursorSortDir ?? SortDirection.ASC;
+      if (!isNullOrUndefined(options.cursor)) {
+        filters.push(`${options.cursorField} ${cursorSortDir === SortDirection.DESC ? '<=' : '>='} ?`);
+        vals.push(options.cursor ?? '');
+      }
       const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
       // Add the limit
       const limitClause = 'LIMIT ?';
-      vals.push(limit.toString());
+      // Add 1 to the limit so that we can determine if there is a next page
+      const extendedLimit = limit + 1;
+      vals.push(extendedLimit.toString());
 
-      const orderByClause = `ORDER BY ${options.sortField} ${options.sortDir}`;
+      const orderByClause = `ORDER BY cursorId ${cursorSortDir.toString()}`;
       let sql = `${sqlStatement.replace('SELECT ', `SELECT ${options.cursorField} cursorId, `)} `
       sql += `${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
+
       const rows = await MySqlModel.query(apolloContext, sql, vals, reference);
       const items = Array.isArray(rows) ? rows : [];
 
@@ -401,13 +407,13 @@ export class MySqlModel {
       );
 
       const nextCursor = items.length > 0 ? items[items.length - 1]?.cursorId : undefined;
-      const hasNextPage = nextCursor !== undefined && options.cursor !== nextCursor;
+      const hasNextPage = nextCursor !== undefined && options.cursor !== nextCursor && items.length > limit;
 
       return {
-        items,
+        items: items.slice(0, limit), // Return only the first 'limit' items
         limit,
         totalCount,
-        nextCursor,
+        nextCursor: hasNextPage ? nextCursor : null,
         hasNextPage,
         availableSortFields: [],
       };

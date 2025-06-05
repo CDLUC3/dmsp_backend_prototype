@@ -67,9 +67,6 @@ export const typeDefs = gql`
     modifiedByName: String
     "The timestamp when the Template was last modified"
     modified: String
-
-    "The id of the last VersionedTemplate in the results"
-    cursor: String
   }
 
   "A snapshot of a Template when it became published. DMPs are created from published templates"
