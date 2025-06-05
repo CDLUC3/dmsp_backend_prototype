@@ -14,12 +14,12 @@ import { MyContext } from '../../context';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';
 import { RelatedWork } from '../../models/RelatedWork';
-import { ContributorRole } from '../../models/ContributorRole';
+import { MemberRole } from '../../models/MemberRole';
 import { User } from '../../models/User';
 import { Project } from '../../models/Project';
 import { VersionedTemplate } from '../../models/VersionedTemplate';
-import { PlanContributor } from '../../models/Contributor';
-import { PlanFunder } from '../../models/Funder';
+import { PlanMember } from '../../models/Member';
+import { PlanFunding } from '../../models/Funding';
 import { Answer } from '../../models/Answer';
 import { ResearchDomain } from '../../models/ResearchDomain';
 import casual from 'casual';
@@ -30,7 +30,7 @@ let project: Project;
 let template: VersionedTemplate;
 
 // Mock query results
-const mockFunderResult = [
+const mockFundingResult = [
   {
     name: 'Funder name',
     uri: 'http://funder.example.com',
@@ -41,7 +41,7 @@ const mockFunderResult = [
   }
 ];
 
-const mockContributorResult = [
+const mockMemberResult = [
   {
     isPrimaryContact: true,
     givenName: 'John',
@@ -142,8 +142,8 @@ const mockRelatedWorkResult = [
 ];
 
 // Mock the call to fetch the default role
-jest.spyOn(ContributorRole, 'defaultRole').mockResolvedValue(
-  new ContributorRole({ id: 1, uri: 'http://example.com/roles/tester', label: 'Tester' })
+jest.spyOn(MemberRole, 'defaultRole').mockResolvedValue(
+  new MemberRole({ id: 1, uri: 'http://example.com/roles/tester', label: 'Tester' })
 );
 
 beforeEach(() => {
@@ -259,12 +259,12 @@ describe('commonStandardService', () => {
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
     // Return the the ResearchDomain
     jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: casual.uuid }));
-    // Return the Contributor information 3rd
-    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
+    // Return the Member information 3rd
+    jest.spyOn(PlanMember, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
-    // Return the Funder information 2nd
-    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
+    // Return the Funding information 2nd
+    jest.spyOn(PlanFunding, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
     jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
@@ -293,12 +293,12 @@ describe('commonStandardService', () => {
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
     // Return the the ResearchDomain
     jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: casual.uuid }));
-    // Return the Contributor information 3rd
-    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
+    // Return the Member information 3rd
+    jest.spyOn(PlanMember, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
-    // Return the Funder information 2nd
-    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
+    // Return the Funding information 2nd
+    jest.spyOn(PlanFunding, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
     jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
@@ -334,12 +334,12 @@ describe('commonStandardService', () => {
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
     // Return the the ResearchDomain
     jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: researchDomainURI }));
-    // Return the Contributor information 3rd
-    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce([]);
+    // Return the Member information 3rd
+    jest.spyOn(PlanMember, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
-    // Return the Funder information 2nd
-    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce([]);
+    // Return the Funding information 2nd
+    jest.spyOn(PlanFunding, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
     jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
@@ -406,12 +406,12 @@ describe('commonStandardService', () => {
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
     // Return the the ResearchDomain
     jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: researchDomainURI }));
-    // Return the Contributor information 3rd
-    jest.spyOn(PlanContributor, 'query').mockResolvedValueOnce(mockContributorResult);
+    // Return the Member information 3rd
+    jest.spyOn(PlanMember, 'query').mockResolvedValueOnce(mockMemberResult);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
-    // Return the Funder information 2nd
-    jest.spyOn(PlanFunder, 'query').mockResolvedValueOnce(mockFunderResult);
+    // Return the Funding information 2nd
+    jest.spyOn(PlanFunding, 'query').mockResolvedValueOnce(mockFundingResult);
     // Return the Narrative information
     jest.spyOn(Answer, 'query').mockResolvedValueOnce(mockNarrativeResult);
     // Return the Related Identifiers information

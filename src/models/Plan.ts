@@ -31,8 +31,8 @@ export class PlanSearchResult {
   public status: PlanStatus;
   public visibility: PlanVisibility;
   public featured: boolean;
-  public funder: string;
-  public contributors: string;
+  public funding: string;
+  public members: string;
   public templateTitle: string;
 
   // The following fields will only be set when the plan is published!
@@ -50,8 +50,8 @@ export class PlanSearchResult {
     this.status = options.status ?? PlanStatus.DRAFT;
     this.visibility = options.visibility ?? PlanVisibility.PRIVATE;
     this.featured = options.featured ?? false;
-    this.funder = options.funder;
-    this.contributors = options.contributors;
+    this.funding = options.funding;
+    this.members = options.members;
     this.templateTitle = options.title;
 
     this.dmpId = options.dmpId;
@@ -67,20 +67,20 @@ export class PlanSearchResult {
                 'p.versionedTemplateId, vt.name title, p.status, p.visibility, p.dmpId, ' +
                 'CONCAT(cr.givenName, CONCAT(\' \', cr.surName)) registeredBy, p.registered, p.featured, ' +
                 'GROUP_CONCAT(DISTINCT CONCAT(prc.givenName, CONCAT(\' \', prc.surName, ' +
-                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) contributors, ' +
-                'GROUP_CONCAT(DISTINCT funders.name) funder ' +
+                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) members, ' +
+                'GROUP_CONCAT(DISTINCT fundings.name) funding ' +
               'FROM plans p ' +
                 'LEFT JOIN users cu ON cu.id = p.createdById ' +
                 'LEFT JOIN users cm ON cm.id = p.modifiedById ' +
                 'LEFT JOIN users cr ON cr.id = p.registeredById ' +
                 'LEFT JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId ' +
-                'LEFT JOIN planContributors plc ON plc.planId = p.id ' +
-                  'LEFT JOIN projectContributors prc ON prc.id = plc.projectContributorId ' +
-                  'LEFT JOIN planContributorRoles plcr ON plc.id = plcr.planContributorId ' +
-                    'LEFT JOIN contributorRoles r ON plcr.contributorRoleId = r.id ' +
-                'LEFT JOIN planFunders ON planFunders.planId = p.id ' +
-                  'LEFT JOIN projectFunders ON projectFunders.id = planFunders.projectFunderId ' +
-                    'LEFT JOIN affiliations funders ON projectFunders.affiliationId = funders.uri ' +
+                'LEFT JOIN planMembers plc ON plc.planId = p.id ' +
+                  'LEFT JOIN projectMembers prc ON prc.id = plc.projectMemberId ' +
+                  'LEFT JOIN planMemberRoles plcr ON plc.id = plcr.planMemberId ' +
+                    'LEFT JOIN memberRoles r ON plcr.memberRoleId = r.id ' +
+                'LEFT JOIN planFundings ON planFundings.planId = p.id ' +
+                  'LEFT JOIN projectFundings ON projectFundings.id = planFundings.projectFundingId ' +
+                    'LEFT JOIN affiliations fundings ON projectFundings.affiliationId = fundings.uri ' +
               'WHERE p.projectId = ? ' +
               'GROUP BY p.id, cu.givenName, cu.surName, cm.givenName, cm.surName, ' +
                 'vt.id, vt.name, p.status, p.visibility, ' +

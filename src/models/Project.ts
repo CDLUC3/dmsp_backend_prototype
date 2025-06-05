@@ -19,10 +19,10 @@ export class ProjectSearchResult {
   public modifiedByName: string;
   public collaboratorsData: string;
   public collaborators: { name: string, accessLevel: string, orcid: string }[];
-  public contributorsData: string;
-  public contributors: { name: string, role: string, orcid: string }[];
-  public fundersData: string;
-  public funders: { name: string, grantId: string }[];
+  public membersData: string;
+  public members: { name: string, role: string, orcid: string }[];
+  public fundingsData: string;
+  public fundings: { name: string, grantId: string }[];
 
   constructor(options) {
     this.id = options.id;
@@ -40,10 +40,10 @@ export class ProjectSearchResult {
     this.modifiedByName = options.modifiedByName;
     this.collaboratorsData = options.collaboratorsData;
     this.collaborators = options.collaborators;
-    this.contributorsData = options.contributorsData;
-    this.contributors = options.contributors;
-    this.fundersData = options.fundersData;
-    this.funders = options.funders;
+    this.membersData = options.membersData;
+    this.members = options.members;
+    this.fundingsData = options.fundingsData;
+    this.fundings = options.fundings;
   }
 
   static async search(
@@ -112,20 +112,20 @@ export class ProjectSearchResult {
                               'END, ' +
                               'r.label, ' +
                               'pc.orcid ' +
-                          ') ORDER BY pc.created) as contributorsData, ' +
-                          'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', funders.name, pf.grantId) ' +
-                            'ORDER BY funders.name SEPARATOR \',\') fundersData ' +
+                          ') ORDER BY pc.created) as membersData, ' +
+                          'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', fundings.name, pf.grantId) ' +
+                            'ORDER BY fundings.name SEPARATOR \',\') fundingsData ' +
                         'FROM projects p ' +
                           'LEFT JOIN researchDomains ON p.researchDomainId = researchDomains.id ' +
                           'LEFT JOIN users cu ON cu.id = p.createdById ' +
                           'LEFT JOIN users mu ON mu.id = p.modifiedById ' +
                           'LEFT JOIN projectCollaborators pcol ON pcol.projectId = p.id ' +
                             'LEFT JOIN users collab ON pcol.userId = collab.id ' +
-                          'LEFT JOIN projectContributors pc ON pc.projectId = p.id ' +
-                            'LEFT JOIN projectContributorRoles pcr ON pc.id = pcr.projectContributorId ' +
-                            'LEFT JOIN contributorRoles r ON pcr.contributorRoleId = r.id ' +
-                          'LEFT JOIN projectFunders pf ON pf.projectId = p.id ' +
-                            'LEFT JOIN affiliations funders ON pf.affiliationId = funders.uri ';
+                          'LEFT JOIN projectMembers pc ON pc.projectId = p.id ' +
+                            'LEFT JOIN projectMemberRoles pcr ON pc.id = pcr.projectMemberId ' +
+                            'LEFT JOIN memberRoles r ON pcr.memberRoleId = r.id ' +
+                          'LEFT JOIN projectFundings pf ON pf.projectId = p.id ' +
+                            'LEFT JOIN affiliations fundings ON pf.affiliationId = fundings.uri ';
 
     const groupByClause = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
                           'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description ';
@@ -140,25 +140,25 @@ export class ProjectSearchResult {
       reference,
     )
 
-    // Loop through each result and marshal the collaborators, contributors, and funders objects
+    // Loop through each result and marshal the collaborators, members, and fundings objects
     response.items = response.items.map((item) => {
       const collabs = item.collaboratorsData?.split(',') ?? [];
-      const contribs = item.contributorsData?.split(',') ?? [];
-      const funds = item.fundersData?.split(',') ?? [];
+      const contribs = item.membersData?.split(',') ?? [];
+      const funds = item.fundingsData?.split(',') ?? [];
 
       // Translate the string data into collaborator objects
       item.collaborators = collabs.map((collab) => {
         const [name, accessLevel, orcid] = collab.split('|');
         return { name, accessLevel, orcid };
       });
-      // Translate the string data into contributor objects.
-      item.contributors = contribs.map((contrib) => {
+      // Translate the string data into member objects.
+      item.members = contribs.map((contrib) => {
         const [name, role, orcid] = contrib.split('|');
         return { name, role, orcid };
       });
-      // There can be multiple contributor entries (one per role) so we want to deduplicate them
+      // There can be multiple member entries (one per role) so we want to deduplicate them
       // and have a single entry with all the roles listed
-      item.contributors = item.contributors.reduce((acc, curr) => {
+      item.members = item.members.reduce((acc, curr) => {
         const existing = acc.find((entry) => entry.name === curr.name);
         if (existing) {
           existing.role += `, ${curr.role}`;
@@ -168,9 +168,9 @@ export class ProjectSearchResult {
         return acc;
       }, []);
 
-      // Translate the string data into funder objects
-      item.funders = funds.map((funder) => {
-        const [name, grantId] = funder.split('|');
+      // Translate the string data into Funding objects
+      item.fundings = funds.map((funding) => {
+        const [name, grantId] = funding.split('|');
         return { name, grantId };
       });
       return new ProjectSearchResult(item)
@@ -323,9 +323,9 @@ export class Project extends MySqlModel {
   }
 
   // Fetch a Project by it's id
-  static async findById(reference: string, context: MyContext, projectFunderId: number): Promise<Project> {
+  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<Project> {
     const sql = 'SELECT * FROM projects WHERE id = ?';
-    const results = await Project.query(context, sql, [projectFunderId?.toString()], reference);
+    const results = await Project.query(context, sql, [projectFundingId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Project(results[0]) : null;
   }
 };

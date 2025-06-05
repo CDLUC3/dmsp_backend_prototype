@@ -6,7 +6,7 @@ import { Template } from "../models/Template";
 import { Affiliation } from "../models/Affiliation";
 import { VersionedSection } from "../models/VersionedSection";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
-import { isAdmin } from "../services/authService";
+import { isAdmin, isAuthorized } from "../services/authService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
@@ -38,7 +38,7 @@ export const resolvers: Resolvers = {
       const reference = 'publishedTemplates resolver';
 
       try {
-        if (isAdmin(context.token)) {
+        if (isAuthorized(context.token)) {
           const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
                       ? paginationOptions as PaginationOptionsForOffsets
                       : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;

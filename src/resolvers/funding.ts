@@ -3,7 +3,7 @@ import { formatLogMessage } from '../logger';
 import { Resolvers } from "../types";
 import { Affiliation } from '../models/Affiliation';
 import { Project } from '../models/Project';
-import { PlanFunder, ProjectFunder } from "../models/Funder";
+import { PlanFunding, ProjectFunding } from "../models/Funding";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
@@ -14,15 +14,15 @@ import { addVersion } from '../models/PlanVersion';
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all of the funders for the project
-    projectFunders: async (_, { projectId }, context: MyContext): Promise<ProjectFunder[]> => {
-      const reference = 'projectFunders resolver';
+    // return all of the fundings for the project
+    projectFundings: async (_, { projectId }, context: MyContext): Promise<ProjectFunding[]> => {
+      const reference = 'projectFundings resolver';
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
 
           if (project && await hasPermissionOnProject(context, project)) {
-            return await ProjectFunder.findByProjectId(reference, context, projectId);
+            return await ProjectFunding.findByProjectId(reference, context, projectId);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -34,16 +34,16 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // return a single project funder
-    projectFunder: async (_, { projectFunderId }, context: MyContext): Promise<ProjectFunder> => {
-      const reference = 'projectFunder resolver';
+    // return a single project funding
+    projectFunding: async (_, { projectFundingId }, context: MyContext): Promise<ProjectFunding> => {
+      const reference = 'projectFunding resolver';
       try {
         if (isAuthorized(context.token)) {
-          const projectFunder = await ProjectFunder.findById(reference, context, projectFunderId);
-          const project = await Project.findById(reference, context, projectFunder.projectId);
+          const projectFunding = await ProjectFunding.findById(reference, context, projectFundingId);
+          const project = await Project.findById(reference, context, projectFunding.projectId);
 
           if (project && await hasPermissionOnProject(context, project)) {
-            return projectFunder;
+            return projectFunding;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -55,14 +55,14 @@ export const resolvers: Resolvers = {
       }
     },
 
-    planFunders: async (_, { planId }, context: MyContext): Promise<PlanFunder[]> => {
-      const reference = 'planFunders resolver';
+    planFundings: async (_, { planId }, context: MyContext): Promise<PlanFunding[]> => {
+      const reference = 'planFundings resolver';
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           const project = await Project.findById(reference, context, plan.projectId);
           if (plan && await hasPermissionOnProject(context, project)) {
-            return await PlanFunder.findByPlanId(reference, context, plan.id);
+            return await PlanFunding.findByPlanId(reference, context, plan.id);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -76,9 +76,9 @@ export const resolvers: Resolvers = {
   },
 
   Mutation: {
-    // add a new project funder
-    addProjectFunder: async (_, { input }, context: MyContext) => {
-      const reference = 'addprojectFunder resolver';
+    // add a new project funding
+    addProjectFunding: async (_, { input }, context: MyContext) => {
+      const reference = 'addprojectFunding resolver';
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
@@ -86,18 +86,18 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          const newFunder = new ProjectFunder(input);
-          const created = await newFunder.create(context, project.id);
+          const newFunding = new ProjectFunding(input);
+          const created = await newFunding.create(context, project.id);
 
           if (created?.id) {
             return created;
           }
 
           // A null was returned so add a generic error and return it
-          if (!newFunder.errors['general']) {
-            newFunder.addError('general', 'Unable to create Funder');
+          if (!newFunding.errors['general']) {
+            newFunding.addError('general', 'Unable to create funding');
           }
-          return newFunder;
+          return newFunding;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -108,30 +108,30 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // update an existing project funder
-    updateProjectFunder: async (_, { input }, context) => {
-      const reference = 'updateProjectFunder resolver';
+    // update an existing project funding
+    updateProjectFunding: async (_, { input }, context) => {
+      const reference = 'updateProjectFunding resolver';
       try {
         if (isAuthorized(context.token)) {
-          const funder = await ProjectFunder.findById(reference, context, input.projectFunderId);
-          if (!funder) {
+          const funding = await ProjectFunding.findById(reference, context, input.projectFundingId);
+          if (!funding) {
             throw NotFoundError();
           }
 
           // Only allow the owner of the project to edit it
-          const project = await Project.findById(reference, context, funder.projectId);
+          const project = await Project.findById(reference, context, funding.projectId);
           if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          const toUpdate = new ProjectFunder(input);
-          toUpdate.projectId = funder?.projectId;
-          toUpdate.id = funder?.id;
-          toUpdate.affiliationId = funder.affiliationId;
+          const toUpdate = new ProjectFunding(input);
+          toUpdate.projectId = funding?.projectId;
+          toUpdate.id = funding?.id;
+          toUpdate.affiliationId = funding.affiliationId;
 
           const updated = await toUpdate.update(context);
           if (updated && !updated.hasErrors()) {
-            const plans = await Plan.findByProjectId(reference, context, funder.projectId);
+            const plans = await Plan.findByProjectId(reference, context, funding.projectId);
             for (const plan of plans) {
               // Version all of the plans (if any) and sync with the DMPHub
               await addVersion(context, plan, reference);
@@ -148,25 +148,25 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // delete an existing project funder
-    removeProjectFunder: async (_, { projectFunderId }, context) => {
-      const reference = 'removeProjectFunder resolver';
+    // delete an existing project funding
+    removeProjectFunding: async (_, { projectFundingId }, context) => {
+      const reference = 'removeProjectFunding resolver';
       try {
         if (isAuthorized(context.token)) {
-          const funder = await ProjectFunder.findById(reference, context, projectFunderId);
-          if (!funder) {
+          const funding = await ProjectFunding.findById(reference, context, projectFundingId);
+          if (!funding) {
             throw NotFoundError();
           }
 
           // Only allow the owner of the project to delete it
-          const project = await Project.findById(reference, context, funder.projectId);
+          const project = await Project.findById(reference, context, funding.projectId);
           if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          const removed = await funder.delete(context);
+          const removed = await funding.delete(context);
           if (removed && !removed.hasErrors()) {
-            const plans = await Plan.findByProjectId(reference, context, funder.projectId);
+            const plans = await Plan.findByProjectId(reference, context, funding.projectId);
             for (const plan of plans) {
               // Version all of the plans (if any) and sync with the DMPHub
               addVersion(context, plan, reference);
@@ -183,9 +183,9 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // add a new plan funder
-    addPlanFunder: async (_, { planId, projectFunderId }, context: MyContext): Promise<PlanFunder> => {
-      const reference = 'addPlanFunder resolver';
+    // add a new plan funding
+    addPlanFunding: async (_, { planId, projectFundingId }, context: MyContext): Promise<PlanFunding> => {
+      const reference = 'addPlanFunding resolver';
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
@@ -194,14 +194,14 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          const newFunder = new PlanFunder({ planId, projectFunderId });
+          const newFunding = new PlanFunding({ planId, projectFundingId });
 
-          if (newFunder && !newFunder.hasErrors()) {
+          if (newFunding && !newFunding.hasErrors()) {
             // Version all of the plans (if any) and sync with the DMPHub
             await addVersion(context, plan, reference);
           }
 
-          return await newFunder.create(context);
+          return await newFunding.create(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -212,30 +212,30 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // remove a plan funder
-    removePlanFunder: async (_, { planFunderId }, context: MyContext): Promise<PlanFunder> => {
-      const reference = 'removePlanFunder resolver';
+    // remove a plan funding
+    removePlanFunding: async (_, { planFundingId }, context: MyContext): Promise<PlanFunding> => {
+      const reference = 'removePlanFunding resolver';
       try {
         if (isAuthorized(context.token)) {
-          const funder = await PlanFunder.findById(reference, context, planFunderId);
-          if (!funder) {
+          const funding = await PlanFunding.findById(reference, context, planFundingId);
+          if (!funding) {
             throw NotFoundError();
           }
 
-          const plan = await Plan.findById(reference, context, funder.planId);
+          const plan = await Plan.findById(reference, context, funding.planId);
           const project = await Project.findById(reference, context, plan.projectId);
           if (!plan || !project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
-          const deletedFunder = await funder.delete(context);
+          const deletedFunding = await funding.delete(context);
 
-          if (deletedFunder && !deletedFunder.hasErrors()) {
+          if (deletedFunding && !deletedFunding.hasErrors()) {
             // Version the plan
             await addVersion(context, plan, reference);
           }
 
-          return deletedFunder;
+          return deletedFunding;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -248,25 +248,25 @@ export const resolvers: Resolvers = {
 
   },
 
-  ProjectFunder: {
-    project: async (parent: ProjectFunder, _, context: MyContext): Promise<Project> => {
+  ProjectFunding: {
+    project: async (parent: ProjectFunding, _, context: MyContext): Promise<Project> => {
       if (parent?.projectId) {
-        return await Project.findById('Chained ProjectFunder.project', context, parent.projectId);
+        return await Project.findById('Chained ProjectFunding.project', context, parent.projectId);
       }
       return null;
     },
-    affiliation: async (parent: ProjectFunder, _, context: MyContext): Promise<Affiliation> => {
+    affiliation: async (parent: ProjectFunding, _, context: MyContext): Promise<Affiliation> => {
       if (parent?.affiliationId) {
-        return await Affiliation.findByURI('Chained ProjectFunder.affiliation', context, parent.affiliationId);
+        return await Affiliation.findByURI('Chained ProjectFunding.affiliation', context, parent.affiliationId);
       }
       return null;
     },
   },
 
-  PlanFunder: {
-    projectFunder: async (parent: PlanFunder, _, context: MyContext): Promise<ProjectFunder> => {
-      if (parent?.projectFunderId) {
-        return await ProjectFunder.findById('Chained PlanFunder.projectFunder', context, parent.projectFunderId);
+  PlanFunding: {
+    projectFunding: async (parent: PlanFunding, _, context: MyContext): Promise<ProjectFunding> => {
+      if (parent?.projectFundingId) {
+        return await ProjectFunding.findById('Chained PlanFunding.projectFunding', context, parent.projectFundingId);
       }
       return null;
     }
