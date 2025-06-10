@@ -79,6 +79,7 @@ export class MySqlModel {
     if (val === null || val === undefined) {
       return null;
     }
+
     switch (type) {
       case 'number':
         return Number(val);
@@ -95,6 +96,9 @@ export class MySqlModel {
           return formatISO9075(date);
 
         } else if (Array.isArray(val)) {
+          return JSON.stringify(val);
+
+        } else if (type === 'object') {
           return JSON.stringify(val);
 
         } else {

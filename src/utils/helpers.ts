@@ -93,6 +93,25 @@ export function valueIsEmpty(value: string | number | boolean): boolean {
   return false;
 }
 
+// Parse the JSON string and handle null values
+export function removeNullAndUndefinedFromJSON(json: string): string {
+  try {
+    const jsonString = typeof json === 'string' ? json : JSON.stringify(json);
+    const parsedJSON = JSON.parse(jsonString, (_key, value) => {
+      if (Array.isArray(value)) {
+        // Filter out null values from arrays
+        return value.filter(item => !isNullOrUndefined(item));
+      } else {
+        // Keep the value if it's not null or undefined{
+        return isNullOrUndefined(value) ? undefined : value;
+      }
+    });
+    return  JSON.stringify(parsedJSON);
+  } catch (e) {
+    throw new Error(`Invalid JSON format: ${e.message}`);
+  }
+}
+
 // Date validation
 export function validateDate(date: string): boolean {
   return date !== null && !isNaN(new Date(date).getTime());

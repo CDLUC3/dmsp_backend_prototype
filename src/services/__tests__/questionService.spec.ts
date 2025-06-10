@@ -9,11 +9,11 @@ import { hasPermissionOnTemplate } from "../templateService";
 import { NotFoundError } from "../../utils/graphQLErrors";
 import { Question } from "../../models/Question";
 import { VersionedQuestion } from "../../models/VersionedQuestion";
-import { QuestionType } from "../../models/QuestionType";
 import { QuestionCondition, QuestionConditionActionType, QuestionConditionCondition } from "../../models/QuestionCondition";
 import { VersionedQuestionCondition } from "../../models/VersionedQuestionCondition";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { getCurrentDate } from "../../utils/helpers";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 
 // Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
@@ -94,7 +94,7 @@ describe('cloneQuestion', () => {
   let id;
   let templateId;
   let sectionId;
-  let questionType;
+  let json;
   let questionText;
   let sampleText;
   let requirementText;
@@ -105,10 +105,10 @@ describe('cloneQuestion', () => {
   let createdById;
 
   beforeEach(() => {
-    questionType = new QuestionType({ id: casual.integer(1, 9), name: casual.words });
     templateId = casual.integer(1, 999);
     sectionId = casual.integer(1, 999);
     id = casual.integer(1, 999);
+    json = '{"type":"url","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}';
     questionText = casual.sentence;
     sampleText = casual.sentences(3);
     requirementText = casual.sentences(5);
@@ -119,7 +119,7 @@ describe('cloneQuestion', () => {
     createdById = casual.integer(1, 999);
 
     question = new Question({
-      id, templateId, sectionId, questionTypeId: questionType.id, questionText, requirementText, guidanceText,
+      id, templateId, sectionId, json: json, questionText, requirementText, guidanceText,
       sampleText, displayOrder, required, isDirty, createdById
     });
   });
@@ -133,7 +133,7 @@ describe('cloneQuestion', () => {
     expect(copy.templateId).toEqual(templateId);
     expect(copy.sectionId).toEqual(sectionId);
     expect(copy.sourceQuestionId).toEqual(question.id);
-    expect(copy.questionTypeId).toEqual(questionType.id);
+    expect(copy.json).toEqual(json);
     expect(copy.questionText).toEqual(questionText);
     expect(copy.sampleText).toEqual(sampleText);
     expect(copy.requirementText).toEqual(requirementText);
@@ -153,7 +153,7 @@ describe('cloneQuestion', () => {
       versionedTemplateId: templateId,
       versionedSectionId: sectionId,
       questionId: question.id,
-      questionTypeId: questionType.id,
+      json: json,
       questionText: casual.sentence,
       sampleText: casual.sentences(3),
       requirementText: casual.sentences(5),
@@ -168,7 +168,7 @@ describe('cloneQuestion', () => {
     expect(copy).toBeInstanceOf(Question);
     expect(copy.id).toBeFalsy();
     expect(copy.sourceQuestionId).toEqual(published.questionId);
-    expect(copy.questionTypeId).toEqual(questionType.id);
+    expect(copy.json).toEqual(json);
     expect(copy.questionText).toEqual(published.questionText);
     expect(copy.sampleText).toEqual(published.sampleText);
     expect(copy.requirementText).toEqual(published.requirementText);
@@ -204,7 +204,30 @@ describe('generateQuestionVersion', () => {
         id: casual.integer(1, 99),
         templateId: casual.integer(1, 99),
         sectionId: casual.integer(1, 999),
-        questionTypeId: casual.integer(1, 9),
+        json: JSON.stringify({
+          type: 'filteredSearch',
+          attributes: {
+            multiple: casual.boolean
+          },
+          graphQL: {
+            displayFields: [
+              {
+                propertyName: casual.word,
+                label: casual.words(2),
+              },
+              {
+                propertyName: casual.word,
+                label: casual.words(2),
+              },
+            ],
+            localQueryId: casual.word,
+            responseField: casual.word
+          },
+          meta: {
+            multiple: casual.boolean,
+            schemaVersion: CURRENT_SCHEMA_VERSION
+          }
+        }),
         questionText: casual.sentences(2),
         requirementText: casual.sentences(3),
         guidanceText: casual.sentences(2),
@@ -351,7 +374,7 @@ describe('generateQuestionVersion', () => {
     expect(newVersion.versionedTemplateId).toEqual(versionedTemplateId);
     expect(newVersion.versionedSectionId).toEqual(versionedSectionId);
     expect(newVersion.questionId).toEqual(question.id);
-    expect(newVersion.questionTypeId).toEqual(question.questionTypeId);
+    expect(newVersion.json).toEqual(question.json);
     expect(newVersion.questionText).toEqual(question.questionText);
     expect(newVersion.requirementText).toEqual(question.requirementText);
     expect(newVersion.guidanceText).toEqual(question.guidanceText);
@@ -526,14 +549,17 @@ describe('updateDisplayOrders', () => {
 
       const tstamp = getCurrentDate();
 
+      const templateId = casual.integer(1, 999);
       const sectionId = casual.integer(1, 999);
 
       // Setup the mock data store
       questionStore = [
         new Question({
           id: 1,
+          templateId: templateId,
           sectionId: sectionId,
-          text: casual.sentence,
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
+          questionText: casual.sentence,
           displayOrder: 1,
           isDirty: false,
           createdById: casual.integer(1, 999),
@@ -543,8 +569,10 @@ describe('updateDisplayOrders', () => {
         }),
         new Question({
           id: 2,
+          templateId: templateId,
           sectionId: sectionId,
-          text: casual.sentence,
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
+          questionText: casual.sentence,
           displayOrder: 2,
           isDirty: false,
           createdById: casual.integer(1, 999),
@@ -554,8 +582,10 @@ describe('updateDisplayOrders', () => {
         }),
         new Question({
           id: 3,
+          templateId: templateId,
           sectionId: sectionId,
-          text: casual.sentence,
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
+          questionText: casual.sentence,
           displayOrder: 3,
           isDirty: false,
           createdById: casual.integer(1, 999),

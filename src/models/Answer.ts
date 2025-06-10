@@ -5,7 +5,7 @@ export class Answer extends MySqlModel {
   public planId: number;
   public versionedSectionId: number;
   public versionedQuestionId: number;
-  public answerText: string;
+  public json: string;
 
   private static tableName = 'answers';
 
@@ -15,7 +15,7 @@ export class Answer extends MySqlModel {
     this.planId = options.planId;
     this.versionedSectionId = options.versionedSectionId;
     this.versionedQuestionId = options.versionedQuestionId;
-    this.answerText = options.answerText;
+    this.json = options.json;
   }
 
   // Validation to be used prior to saving the record
@@ -32,7 +32,7 @@ export class Answer extends MySqlModel {
   // Ensure data integrity
   prepForSave(): void {
     // Remove leading/trailing blank spaces
-    this.answerText = this.answerText?.trim();
+    this.json = this.json?.trim();
   }
 
   //Create a new Answer

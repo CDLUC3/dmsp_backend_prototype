@@ -27,6 +27,8 @@ export const typeDefs = gql`
       name: String!
       "The description of the QuestionType"
       usageDescription: String!
+      "The default JSON for the QuestionType"
+      json: String!
       "Whether or not this is the default question type"
       isDefault: Boolean!
   }
@@ -38,5 +40,6 @@ export const typeDefs = gql`
 
     name: String
     usageDescription: String
+    json: String
   }
 `

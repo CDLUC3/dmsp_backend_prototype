@@ -3,6 +3,9 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added JSON column `questionType` to `questions` and `versionedQuestions` tables
+- Added JSON column `json` to the `answers` table
+- Added the new [@dmptool/types](https://github.com/CDLUC3/dmptool-types) package 
 - Added `reorderDisplayOrder` herlper function to help maintain the `displayOrder` field on a set of objects
 - Added `updateDisplayOrders` to both the `sectionService` and `questionService`
 - Added `updateSectionsDisplayOrder` and `updateQuestionsDisplayOrder` schema and resolvers
@@ -89,6 +92,8 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated the `Question` schema to allow `questionJSON: String` to be used in GraphQL query
+- Updated `Question` model to access `questionJSON` input, parse the JSON using the Zod schemas provided by `@dmptool/types`, and populate the `questionType` with the parsed JSON.
 - Updated cursor pagination to always return `null` for `nextCursor` if we are at the end of the results
 - Rename all occurrences of `Contributor` to `Member` and `Funder` to `Funding` to match newer terminology
 - Updated `addSection` resolver to properly copy questions and tags when creating a new section by copying one
@@ -146,6 +151,11 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Dropped `questionTypes` and `questionOptions` tables
+- Dropped the `questionTypeId` field from the `questions` and `versionedQuestions` tables
+- Dropped the `answerText` field from `answers`
+- Removed the old `QuestionType` and `QuestionOptions` schema and resolvers
+- Removed the `getQuestionOptionsToRemove` from `questionService`.
 - Dropped all previous `data-migration` files in favor of the new `init-tables` and `init-seed` files
 - Removed duplicate section check from `Section.create` that was just going off of the "name"
 - Dropped the `PlanVersion` table

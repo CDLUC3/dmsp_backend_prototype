@@ -15,6 +15,7 @@ import { MySqlModel } from "../../models/MySqlModel";
 import { VersionedQuestion } from "../../models/VersionedQuestion";
 import { QuestionCondition, QuestionConditionActionType, QuestionConditionCondition } from "../../models/QuestionCondition";
 import { VersionedQuestionCondition } from "../../models/VersionedQuestionCondition";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 
 // Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
@@ -281,7 +282,7 @@ describe('Integration test: Template Versioning', () => {
         id: casual.integer(1, 49),
         templateId: templateStore[0].id,
         sectionId: sectionStore[0].id,
-        questionTypeId: casual.integer(1, 9),
+        json: `{"type":"boolean","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
         questionText: casual.sentences(2),
         requirementText: casual.sentences(3),
         guidanceText: casual.sentences(2),
@@ -298,7 +299,7 @@ describe('Integration test: Template Versioning', () => {
         id: casual.integer(50, 99),
         templateId: templateStore[0].id,
         sectionId: sectionStore[1].id,
-        questionTypeId: casual.integer(1, 9),
+        json: `{"type":"text","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
         questionText: casual.sentences(2),
         requirementText: casual.sentences(3),
         guidanceText: casual.sentences(2),
@@ -315,7 +316,7 @@ describe('Integration test: Template Versioning', () => {
         id: casual.integer(100, 149),
         templateId: templateStore[0].id,
         sectionId: sectionStore[1].id,
-        questionTypeId: casual.integer(1, 9),
+        json: `{"type":"email","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
         questionText: casual.sentences(2),
         requirementText: casual.sentences(3),
         guidanceText: casual.sentences(2),

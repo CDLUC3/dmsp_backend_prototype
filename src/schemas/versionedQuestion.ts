@@ -29,8 +29,8 @@ type VersionedQuestion {
     questionId: Int!
     "The display order of the VersionedQuestion"
     displayOrder: Int
-    "The type of question, such as text field, select box, radio buttons, etc"
-    questionTypeId: Int
+    "The JSON representation of the question type"
+    json: String
     "This will be used as a sort of title for the Question"
     questionText: String
     "Requirements associated with the Question"
@@ -55,7 +55,7 @@ type VersionedQuestionErrors {
     versionedSectionId: String
     questionId: String
     displayOrder: String
-    questionTypeId: String
+    json: String
     questionText: String
     requirementText: String
     guidanceText: String

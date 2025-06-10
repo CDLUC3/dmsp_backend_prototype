@@ -11,9 +11,9 @@ export const typeDefs = gql`
 
   extend type Mutation {
     "Answer a question"
-    addAnswer(planId: Int!, versionedSectionId: Int!, versionedQuestionId: Int!, answerText: String): Answer
+    addAnswer(planId: Int!, versionedSectionId: Int!, versionedQuestionId: Int!, json: String): Answer
     "Edit an answer"
-    updateAnswer(answerId: Int!, answerText: String): Answer
+    updateAnswer(answerId: Int!, json: String): Answer
   }
 
   "An answer to a question on a Data Managament Plan (DMP)"
@@ -38,7 +38,7 @@ export const typeDefs = gql`
     "The DMP that the answer belongs to"
     plan: Plan
     "The answer to the question"
-    answerText: String
+    json: String
 
     "The comments associated with the answer"
     comments: [AnswerComment!]
@@ -52,7 +52,7 @@ export const typeDefs = gql`
     versionedSectionId: String
     versionedQuestionId: String
     planId: String
-    answerText: String
+    json: String
   }
 
   type AnswerComment {

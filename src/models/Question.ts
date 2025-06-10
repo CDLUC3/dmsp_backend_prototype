@@ -1,12 +1,13 @@
+import { QuestionSchemaMap } from "@dmptool/types";
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { QuestionOption } from "../types";
+import { isNullOrUndefined, removeNullAndUndefinedFromJSON } from "../utils/helpers";
 
 export class Question extends MySqlModel {
   public templateId: number;
   public sectionId: number;
   public sourceQuestionId?: number;
-  public questionTypeId: number;
+  public json: string;
   public questionText: string;
   public requirementText?: string;
   public guidanceText?: string;
@@ -15,7 +16,6 @@ export class Question extends MySqlModel {
   public required: boolean;
   public displayOrder: number;
   public isDirty: boolean;
-  public questionOptions: QuestionOption[];
 
   private tableName = 'questions';
 
@@ -25,7 +25,13 @@ export class Question extends MySqlModel {
     this.templateId = options.templateId;
     this.sectionId = options.sectionId;
     this.sourceQuestionId = options.sourceQuestionId;
-    this.questionTypeId = options.questionTypeId;
+    this.json = options.json;
+    // Ensure json is stored as a string
+    try {
+      this.json = removeNullAndUndefinedFromJSON(options.json);
+    } catch (e) {
+      this.addError('json', e.message);
+    }
     this.questionText = options.questionText;
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
@@ -34,17 +40,40 @@ export class Question extends MySqlModel {
     this.required = options.required ?? false;
     this.displayOrder = options.displayOrder;
     this.isDirty = options.isDirty ?? false;
-    this.questionOptions = options.questionOptions;
   }
 
   // Validation to be used prior to saving the record
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.templateId) this.addError('templateId', 'Template can\'t be blank');
-    if (!this.sectionId) this.addError('sectionId', 'Section can\'t be blank');
-    if (!this.questionText) this.addError('questionText', 'Question text can\'t be blank');
-    if (!this.displayOrder) this.addError('displayOrder', 'Order number can\'t be blank');
+    if (isNullOrUndefined(this.templateId)) this.addError('templateId', 'Template can\'t be blank');
+    if (isNullOrUndefined(this.sectionId)) this.addError('sectionId', 'Section can\'t be blank');
+    if (isNullOrUndefined(this.questionText)) this.addError('questionText', 'Question text can\'t be blank');
+    if (isNullOrUndefined(this.displayOrder)) this.addError('displayOrder', 'Order number can\'t be blank');
+
+    // If json is not null or undefined and the type is in the schema map
+    if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
+      const parsedJSON = JSON.parse(this.json);
+      if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
+        // Validate the json against the Zod schema and if valid, set the questionType
+        try {
+          const result = QuestionSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+          if (result && !result.success) {
+            // If there are validation errors, add them to the errors object
+            this.addError('json', result.error.errors.map(e => `${JSON.stringify(e.path)} - ${e.message}`).join('; '));
+          }
+        } catch (e) {
+          this.addError('json', e.message);
+        }
+      } else {
+        // If the type is not in the schema map, add an error
+        this.addError('json', `Unknown question type "${parsedJSON['type']}"`);
+      }
+    } else {
+      if (this.errors['json'] === undefined) {
+        this.addError('json', 'Question type JSON can\'t be blank');
+      }
+    }
 
     return Object.keys(this.errors).length === 0;
   }
@@ -62,13 +91,12 @@ export class Question extends MySqlModel {
   async create(
     context: MyContext
   ): Promise<Question> {
+    this.prepForSave();
+
     // First make sure the record is valid
     if (await this.isValid()) {
-
-      this.prepForSave();
-
       // Save the record and then fetch it
-      const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionOptions']);
+      const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionType']);
       const response = await Question.findById('Question.create', context, newId);
       return response;
 
@@ -79,18 +107,15 @@ export class Question extends MySqlModel {
 
   //Update an existing Section
   async update(context: MyContext, noTouch = false): Promise<Question> {
-    const id = this.id;
+    if (this.id) {
+      this.prepForSave();
 
-    if (await this.isValid()) {
-      if (id) {
-        this.prepForSave();
-
-        await Question.update(context, this.tableName, this, 'Question.update', ['questionOptions'], noTouch);
-        return await Question.findById('Question.update', context, id);
+      if (await this.isValid()) {
+        await Question.update(context, this.tableName, this, 'Question.update', ['questionType'], noTouch);
+        return await Question.findById('Question.update', context, this.id);
       }
-      // This template has never been saved before so we cannot update it!
-      this.addError('general', 'Question has never been saved');
     }
+    this.addError('general', 'Question has never been saved');
     return new Question(this);
   }
 
