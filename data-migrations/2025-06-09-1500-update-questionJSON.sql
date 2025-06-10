@@ -11,13 +11,13 @@ SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"radioButtons","options":[{
 WHERE `name` = 'Radio Buttons';
 
 UPDATE `questionTypes`
-SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"radioButtons","options":[{"attributes":{"label":"Option 1","value":"1","checked":false}}]}'
+SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"checkBoxes","options":[{"attributes":{"label":"Option 1","value":"1","checked":false}}]}'
 WHERE `name` = 'Check Boxes';
 
 UPDATE `questionTypes`
-SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"radioButtons","options":[{"attributes":{"label":"Option 1","value":"1","selected":false}}]}'
+SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"selectBox","attributes":{"multiple":false},"options":[{"attributes":{"label":"Option 1","value":"1","selected":false}}]}'
 WHERE `name` = 'Select Box';
 
 UPDATE `questionTypes`
-SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"radioButtons","options":[{"attributes":{"label":"Option 1","value":"1","selected":false}}]}'
+SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"selectBox","attributes":{"multiple":true},"options":[{"attributes":{"label":"Option 1","value":"1","selected":false}}]}'
 WHERE `name` = 'Multi-select Box';
