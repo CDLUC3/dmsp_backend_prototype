@@ -520,7 +520,7 @@ describe('addAffiliation mutation', () => {
 
     const variables = {
       input: {
-        name: casual.company_name,
+        name: 'Error Affiliation',
       },
     };
     const resp = await executeQuery(query, variables, mockToken());
