@@ -3,7 +3,7 @@ SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"table","attributes":{"canA
 WHERE `name` = 'Table';
 
 UPDATE `questionTypes`
-SET `json` = '{"meta":{"schemaVersion":"1.0"},"type": "numberRange", "columns": [{"meta": {"schemaVersion": "1.0"}, "type": "number", "attributes": {"max": null, "min": 0, "step": 1, "label": "From"}}, {"meta": {"schemaVersion": "1.0"}, "type": "number", "attributes": {"max": null, "min": 0, "step": 1, "label": "To"}}]}'
+SET `json` = '{"meta":{"schemaVersion":"1.0"},"type": "numberRange", "columns": {"start":{"meta": {"schemaVersion": "1.0"}, "type": "number", "attributes": {"max": null, "min": 0, "step": 1, "label": "From"}}, "end":{"meta": {"schemaVersion": "1.0"}, "type": "number", "attributes": {"max": null, "min": 0, "step": 1, "label": "To"}}}}'
 WHERE `name` = 'Number Range';
 
 UPDATE `questionTypes`
@@ -21,3 +21,7 @@ WHERE `name` = 'Select Box';
 UPDATE `questionTypes`
 SET `json` = '{"meta":{"schemaVersion":"1.0"},"type":"selectBox","attributes":{"multiple":true},"options":[{"attributes":{"label":"Option 1","value":"1","selected":false}}]}'
 WHERE `name` = 'Multi-select Box';
+
+UPDATE `questionTypes`
+SET `json` = '{"meta": {"schemaVersion": "1.0"},"type": "dateRange","columns": {"start":{"meta": {"schemaVersion": "1.0"},"type": "date","attributes": {"max": null,"min": null,"step": 1,"label": "From"}},"end":{"meta": {"schemaVersion": "1.0"},"type": "date","attributes": {"max": null,"min": null,"step": 1,"label": "To"}}}}'
+WHERE `name` = 'Date Range';

@@ -78,6 +78,8 @@ export const resolvers: Resolvers = {
             required
           });
 
+console.log(question.json);
+
           // create the new question
           const newQuestion = await question.create(context);
 
