@@ -24,6 +24,22 @@ services:
     volumes:
       - ./docker/mysql:/var/lib/mysql
 
+  mysql-test:
+    image: mysql:latest
+    container_name: test-mysql
+    command: --port=3308
+    ports:
+      - "3308:3308"
+    expose:
+      - 3308
+    environment:
+      - MYSQL_ROOT_PASSWORD=testing123
+      - MYSQL_DATABASE=dmsp_test
+    networks:
+      - apollo-network
+    volumes:
+      - ./docker/mysql:/var/lib/mysql-test
+
   dynamodb:
     image: "amazon/dynamodb-local:latest"
     container_name: dynamodb
@@ -53,6 +69,7 @@ services:
       - mysql
       - dynamodb
       - redis
+      - mysql-test
     build:
       context: .
       dockerfile: Dockerfile
@@ -69,16 +86,25 @@ services:
       - "AWS_SECRET_ACCESS_KEY=DUMMYEXAMPLEKEY"
       - "REGION=us-west-2"
       - "NODE_ENV=development"
+
       - "MYSQL_CONNECTION_LIMIT=5"
       - "MYSQL_HOST=apollo-mysql"
       - "MYSQL_PORT=3306"
       - "MYSQL_DATABASE=dmsp"
       - "MYSQL_USER=root"
       - "MYSQL_PASSWORD=d0ckerSecr3t"
+
       - "DYNAMO_TABLE_NAME=localDMPTable"
       - "DYNAMO_ENDPOINT=http://dynamodb:8000"
+
       - "CACHE_HOST=apollo-redis"
       - "CACHE_PORT=6379"
       - "CACHE_CONNECT_TIMEOUT=10000"
+
+      - "MYSQL_TEST_HOST=test-mysql"
+      - "MYSQL_TEST_PORT=3308"
+      - "MYSQL_TEST_DATABASE=dmsp_test"
+      - "MYSQL_TEST_USER=root"
+      - "MYSQL_TEST_PASSWORD=testing123"
     volumes:
       - ".:/app"
