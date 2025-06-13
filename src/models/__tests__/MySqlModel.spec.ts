@@ -5,7 +5,6 @@ import { buildContext, mockToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 import { generalConfig } from '../../config/generalConfig';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
-import {MySQLConnection} from "../../datasources/mysql";
 
 jest.mock('../../dataSources/mysql', () => {
   return {

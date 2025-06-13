@@ -1,8 +1,7 @@
 import { Request } from 'express-jwt';
 import { Response } from 'express';
-import { Cache } from "../datasources/cache";
 import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../services/tokenService';
-import { formatLogMessage, logger } from '../logger';
+import { formatLogMessage } from '../logger';
 import { buildContext } from '../context';
 
 export const signoutController = async (req: Request, res: Response) => {

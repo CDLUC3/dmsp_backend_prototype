@@ -163,14 +163,14 @@ describe('generateCSRFToken', () => {
 
   it('should generate a CSRF token and store the hashed version in the cache', async () => {
     jest.spyOn(mockCache.adapter, 'set');
-    expect(await generateCSRFToken(mockCache)).toBeTruthy();
+    expect(await generateCSRFToken(mockCache.adapter)).toBeTruthy();
   });
 
   it('should return null if it is unable to store the CSRF token in the cache', async () => {
     const mockError = new Error('test CSRF failure');
     jest.spyOn(mockCache.adapter, 'set').mockImplementation(() => { throw mockError; });
 
-    expect(await generateCSRFToken(mockCache)).toEqual(null);
+    expect(await generateCSRFToken(mockCache.adapter)).toEqual(null);
     expect(logger.error).toHaveBeenLastCalledWith(mockError, 'generateCSRFToken error!');
   });
 });
@@ -180,7 +180,7 @@ describe('generateAuthTokens', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache.adapter);
   });
 
   it('should generate access and refresh tokens', async () => {
@@ -218,7 +218,7 @@ describe('verifyCSRFToken', () => {
 
     jest.spyOn(mockCache.adapter, 'get').mockResolvedValue(hashed);
 
-    expect(await verifyCSRFToken(mockCache, token)).toBe(true);
+    expect(await verifyCSRFToken(mockCache.adapter, token)).toBe(true);
   });
 
   it('returns false when the CSRF token does NOT match the hashed token in the cache', async () => {
@@ -289,7 +289,7 @@ describe('refreshAccessToken', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache.adapter);
   });
 
   it('should refresh the access token if refresh token is valid', async () => {
@@ -367,7 +367,7 @@ describe('revokeRefreshToken', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache.adapter);
   });
 
   it('should delete the token from the cache', async () => {
@@ -396,7 +396,7 @@ describe('revokeAccessToken', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache.adapter);
   });
 
   it('should add the token to the cache black list', async () => {

@@ -75,7 +75,8 @@ describe('signinController', () => {
       body: {
         email: casual.email,
         password: casual.uuid,
-      }
+      },
+      logger: logger
     };
     mockResponse = {
       status: jest.fn().mockReturnThis(),

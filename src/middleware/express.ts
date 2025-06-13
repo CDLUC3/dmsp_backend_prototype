@@ -4,13 +4,13 @@ import { buildContext } from '../context';
 import { ApolloServer } from '@apollo/server';
 import { Request } from 'express-jwt';
 import { formatLogMessage } from '../logger';
-import { Cache } from '../datasources/cache';
 import {Logger} from "pino";
 import {MySQLConnection} from "../datasources/mysql";
 import {DMPHubAPI} from "../datasources/dmphubAPI";
 
 export async function attachApolloServer(
   apolloServer: ApolloServer,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cache: any,
   logger: Logger,
   sqlDataSource: MySQLConnection ,

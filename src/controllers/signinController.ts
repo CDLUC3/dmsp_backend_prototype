@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import { logger, formatLogMessage } from '../logger';
+import { formatLogMessage } from '../logger';
 import { User } from '../models/User';
 import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
-import { Cache } from '../datasources/cache';
 import { generalConfig } from '../config/generalConfig';
 import { buildContext } from '../context';
 
@@ -15,8 +14,6 @@ export const signinController = async (req: Request, res: Response) => {
     req.sqlDataSource,
     req.dmphubAPIDataSource,
   );
-
-  console.log(context.cache)
 
   try {
     const user = await userIn.login(context) || null;

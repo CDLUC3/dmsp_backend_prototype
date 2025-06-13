@@ -46,20 +46,6 @@ jest.mock('../config/dmpHubConfig', () => ({
   }
 }));
 
-jest.mock('../config/mysqlConfig', () => ({
-  mysqlPoolConfig: {
-    host: 'localhost',
-    port: 3306,
-    database: 'testdb',
-    user: 'root',
-    password: 'testpassword',
-  },
-  mysqlGeneralConfig: {
-    queueLimit: 100,
-    connectTimeout: 60000,
-  }
-}));
-
 jest.mock('../config/generalConfig', () => ({
   generalConfig: {
     env: 'test',

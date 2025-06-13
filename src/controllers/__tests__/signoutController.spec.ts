@@ -27,6 +27,7 @@ describe('signoutController', () => {
     context = buildContext(logger, mockToken(), null);
 
     mockRequest = {
+      logger: logger,
       auth: { jti: casual.integer(1, 99999).toString() },
       cookies: { dmspt: casual.uuid },
     };

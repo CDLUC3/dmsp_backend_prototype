@@ -1,5 +1,4 @@
-import express, {Response, Router} from 'express';
-import { Request } from 'express-jwt';
+import express, { Response, Router, Request } from 'express';
 import { authMiddleware } from './middleware/auth';
 import { signinController } from './controllers/signinController';
 import { signupController } from './controllers/signupController';
@@ -13,15 +12,13 @@ import {KeyvAdapter} from "@apollo/utils.keyvadapter";
 
 const router = express.Router();
 
-// Add our logger, cache and dataSources to the Express Request
-declare global {
-  namespace Express {
-    interface Request {
-      logger: Logger | null;
-      cache: KeyvAdapter | null;
-      sqlDataSource: MySQLConnection | null;
-      dmphubAPIDataSource: DMPHubAPI | null;
-    }
+// Modify the express Request to allow it to include our context resources:
+declare module 'express-serve-static-core' {
+  interface Request {
+    logger: Logger | null;
+    cache: KeyvAdapter | null;
+    sqlDataSource: MySQLConnection | null;
+    dmphubAPIDataSource: DMPHubAPI | null;
   }
 }
 
@@ -32,7 +29,7 @@ export function setupRouter(
   sqlDataSource: MySQLConnection | null,
   dmphubAPIDataSource: DMPHubAPI | null,
 ): Router {
-  router.use((req, res, next) => {
+  router.use((req: Request, res: Response, next) => {
     req.logger = logger;
     req.cache = cache;
     req.sqlDataSource = sqlDataSource;
@@ -74,4 +71,3 @@ export function setupRouter(
 
   return router;
 }
-

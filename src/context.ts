@@ -3,7 +3,6 @@ import { DMPHubAPI } from './datasources/dmphubAPI'
 import { MySQLConnection } from './datasources/mysql';
 import { JWTAccessToken } from './services/tokenService';
 import { randomHex } from './utils/helpers';
-import { Cache } from './datasources/cache';
 import {BaseContext} from "@apollo/server";
 import {KeyvAdapter} from "@apollo/utils.keyvadapter";
 
@@ -26,9 +25,9 @@ export interface MyContext extends BaseContext {
 
 // This function should only be used when the caller is running a query from outside the
 // Apollo Server GraphQL context. e.g. when calling signup or register
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildContext(
   logger: Logger,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cache: any | null = null,
   token: JWTAccessToken | null = null,
   sqlDataSource: MySQLConnection | null = null ,

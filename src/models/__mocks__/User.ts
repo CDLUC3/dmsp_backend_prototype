@@ -1,20 +1,9 @@
 
 import casual from "casual";
-import {
-  addEntryToMockTable,
-  addMockTableStore,
-  clearMockTableStore,
-  deleteEntryFromMockTable,
-  findEntriesInMockTableByFilter,
-  findEntryInMockTableByFilter,
-  findEntryInMockTableById,
-  getMockTableStore,
-  updateEntryInMockTable
-} from "./MockStore";
-import {getCurrentDate, isNullOrUndefined} from "../../utils/helpers";
+import { isNullOrUndefined } from "../../utils/helpers";
 import { User, UserRole } from "../User";
 import { MyContext } from "../../context";
-import { getMockORCID, getMockROR, getRandomEnumValue } from "../../__tests__/helpers";
+import { getMockROR, getRandomEnumValue } from "../../__tests__/helpers";
 
 // Store for all mock/test Users that were persisted to the DB
 const addedUserIds: number[] = [];
