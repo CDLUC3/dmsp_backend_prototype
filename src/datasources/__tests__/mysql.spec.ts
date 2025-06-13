@@ -1,4 +1,4 @@
-import { mysql } from '../mysql';
+import {MySQLConnection} from '../mysql';
 import * as mysql2 from 'mysql2/promise';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
@@ -7,7 +7,7 @@ import { MyContext } from '../../context';
 jest.mock('mysql2/promise');
 jest.mock('../../context');
 
-describe('mysql', () => {
+describe('MySQLConnection', () => {
   let context: MyContext
   let mockPool: mysql2.Pool;
   let mockConnection: mysql2.PoolConnection;
@@ -38,12 +38,12 @@ describe('mysql', () => {
 
   describe('getInstance', () => {
     it('should create a singleton instance', async () => {
-      const instance1 = mysql.getInstance();
-      const instance2 = mysql.getInstance();
+      const instance1 = MySQLConnection.getInstance();
+      const instance2 = MySQLConnection.getInstance();
 
       expect(instance1).toBe(instance2);
       expect(mysql2.createPool).toHaveBeenCalledTimes(1);
-      await mysql.removeInstance();
+      await MySQLConnection.removeInstance();
     });
 
     it('should log an error and throw if pool creation fails', async () => {
@@ -52,7 +52,7 @@ describe('mysql', () => {
         throw new Error('Failed to create pool');
       });
 
-      expect(() => mysql.getInstance()).toThrow('Failed to create pool');
+      expect(() => MySQLConnection.getInstance()).toThrow('Failed to create pool');
       expect(formatLogMessage(context).error).toHaveBeenCalledWith(
         'Unable to establish the MySQL connection pool.'
       );
@@ -61,30 +61,30 @@ describe('mysql', () => {
 
   describe('getConnection', () => {
     it('should retrieve a connection from the pool', async () => {
-      const instance = mysql.getInstance();
+      const instance = MySQLConnection.getInstance();
       const connection = await instance.getConnection();
 
       expect(connection).toBe(mockConnection);
       expect(mockPool.getConnection).toHaveBeenCalled();
-      await mysql.removeInstance();
+      await MySQLConnection.removeInstance();
     });
   });
 
   describe('releaseConnection', () => {
     it('should release the connection', async () => {
-      const instance = mysql.getInstance();
+      const instance = MySQLConnection.getInstance();
       await instance.getConnection();
       await instance.releaseConnection();
 
       expect(mockConnection.release).toHaveBeenCalled();
       expect(instance['connection']).toBeNull();
-      await mysql.removeInstance();
+      await MySQLConnection.removeInstance();
     });
   });
 
   describe('query', () => {
     it('should execute a SQL query and return rows', async () => {
-      const instance = mysql.getInstance();
+      const instance = MySQLConnection.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = [' 1 ']; // Simulate a value that needs trimming
 
@@ -92,11 +92,11 @@ describe('mysql', () => {
 
       expect(mockPool.execute).toHaveBeenCalledWith(sql, ['1']); // Trimmed value
       expect(result).toEqual([{ id: 1, name: 'Test' }]);
-      await mysql.removeInstance();
+      await MySQLConnection.removeInstance();
     });
 
     it('should log an error and throw if query execution fails', async () => {
-      const instance = mysql.getInstance();
+      const instance = MySQLConnection.getInstance();
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = ['1'];
 
@@ -104,31 +104,31 @@ describe('mysql', () => {
 
       await expect(instance.query(context, sql, values)).rejects.toThrow('Database query failed');
       expect(formatLogMessage(context).error).toHaveBeenCalled();
-      await mysql.removeInstance();
+      await MySQLConnection.removeInstance();
     });
   });
 
   describe('close', () => {
     it('should close the MySQL connection pool', async () => {
-      const instance = mysql.getInstance();
+      const instance = MySQLConnection.getInstance();
 
       await instance.close();
 
       expect(mockPool.end).toHaveBeenCalled();
-      await mysql.removeInstance();
+      await MySQLConnection.removeInstance();
     });
   });
 
   describe('removeInstance', () => {
     it('should remove and close the singleton instance', async () => {
-      const instance = mysql.getInstance();
+      const instance = MySQLConnection.getInstance();
       const closeSpy = jest.spyOn(instance, 'close');
 
-      await mysql.removeInstance();
+      await MySQLConnection.removeInstance();
 
       expect(closeSpy).toHaveBeenCalled();
-      expect(mysql.getInstance()).not.toBe(instance);
-      await mysql.removeInstance();
+      expect(MySQLConnection.getInstance()).not.toBe(instance);
+      await MySQLConnection.removeInstance();
     });
   });
 });

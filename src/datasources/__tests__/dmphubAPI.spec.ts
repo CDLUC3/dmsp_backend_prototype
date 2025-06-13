@@ -3,12 +3,12 @@ import { DMPHubAPI, Authorizer } from '../dmphubAPI';
 import { DMPIdentifierType, DMPPrivacy, DMPStatus, DMPYesNoUnknown } from '../../types/DMP';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { logger, formatLogMessage } from '../../__mocks__/logger';
-import { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { JWTAccessToken } from '../../services/tokenService';
 import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
 import { DMPHubConfig } from '../../config/dmpHubConfig';
 import casual from 'casual';
 import { getRandomEnumValue } from '../../__tests__/helpers';
+import {KeyvAdapter} from "@apollo/utils.keyvadapter";
 
 jest.mock('../../context.ts');
 
@@ -124,7 +124,7 @@ describe('DMPToolAPI', () => {
 
     // Initialize DMPToolAPI
     dmphubAPI = new DMPHubAPI({
-      cache: {} as KeyValueCache,
+      cache: {} as KeyvAdapter,
       token: {} as JWTAccessToken,
     });
   });

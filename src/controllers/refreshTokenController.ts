@@ -9,8 +9,13 @@ export const refreshTokenController = async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.dmspr?.toString();
 
   if (refreshToken) {
-    const cache = Cache.getInstance();
-    const context = buildContext(logger, cache);
+    const context = buildContext(
+      req.logger,
+      req.cache,
+      null,
+      req.sqlDataSource,
+      req.dmphubAPIDataSource,
+    );
 
     try {
       const newAccessToken = await refreshAccessToken(context, refreshToken);

@@ -1,6 +1,5 @@
 import { Buffer } from "buffer";
 import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
-import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { formatLogMessage, logger } from '../logger';
 import { DMPHubConfig } from '../config/dmpHubConfig';
 import { JWTAccessToken } from '../services/tokenService';
@@ -8,6 +7,7 @@ import { MyContext } from "../context";
 import { GraphQLError } from "graphql";
 import { DMPCommonStandard, DMPCommonStandardContact, DMPCommonStandardContributor, DMPCommonStandardProject } from "../types/DMP";
 import { isNullOrUndefined } from "../utils/helpers";
+import {KeyvAdapter} from "@apollo/utils.keyvadapter";
 
 // Singleton class that retrieves an Auth token from the API
 export class Authorizer extends RESTDataSource {
@@ -72,11 +72,11 @@ export class DMPHubAPI extends RESTDataSource {
   override baseURL = DMPHubConfig.dmpHubURL;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private cache: KeyValueCache;
+  private cache: KeyvAdapter;
   private token: JWTAccessToken;
   private authorizer: Authorizer;
 
-  constructor(options: { cache: KeyValueCache, token: JWTAccessToken }) {
+  constructor(options: { cache: KeyvAdapter, token: JWTAccessToken }) {
     super(options);
 
     this.token = options.token;

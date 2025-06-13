@@ -2,7 +2,7 @@ import casual from "casual";
 import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
-import { mysql } from "../../datasources/mysql";
+import {MySQLConnection} from "../../datasources/mysql";
 import { cloneSection, generateSectionVersion, hasPermissionOnSection, updateDisplayOrders } from "../sectionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
@@ -39,7 +39,7 @@ describe('hasPermissionOnSection', () => {
     jest.resetAllMocks();
 
     // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (mysql.getInstance as jest.Mock).mockReturnValue({
+    (MySQLConnection.getInstance as jest.Mock).mockReturnValue({
       query: jest.fn(), // Initialize the query mock function here
     });
 

@@ -5,11 +5,12 @@ import { buildContext, mockToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 import { generalConfig } from '../../config/generalConfig';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
+import {MySQLConnection} from "../../datasources/mysql";
 
 jest.mock('../../dataSources/mysql', () => {
   return {
     __esModule: true,
-    mysql: {
+    MySQLConnection: {
       getInstance: jest.fn().mockReturnValue({
         query: jest.fn(), // Initialize the query mock function
       }),

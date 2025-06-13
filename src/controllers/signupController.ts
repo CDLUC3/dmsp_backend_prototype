@@ -8,8 +8,13 @@ import { buildContext } from '../context';
 import { processOtherAffiliationName } from '../services/affiliationService';
 
 export const signupController = async (req: Request, res: Response) => {
-  const cache = Cache.getInstance();
-  const context = buildContext(logger, cache);
+  const context = buildContext(
+    req.logger,
+    req.cache,
+    null,
+    req.sqlDataSource,
+    req.dmphubAPIDataSource,
+  );
 
   const props = req.body;
 

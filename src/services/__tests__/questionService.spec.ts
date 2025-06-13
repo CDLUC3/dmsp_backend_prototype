@@ -2,7 +2,7 @@ import casual from "casual";
 import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
-import { mysql } from "../../datasources/mysql";
+import {MySQLConnection} from "../../datasources/mysql";
 import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion, updateDisplayOrders } from "../questionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
@@ -14,12 +14,13 @@ import { VersionedQuestionCondition } from "../../models/VersionedQuestionCondit
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { getCurrentDate } from "../../utils/helpers";
 import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
+import {MyContext} from "../../context";
 
 // Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-let context;
+let context: MyContext;
 
 beforeEach(() => {
   jest.resetAllMocks();
@@ -41,7 +42,7 @@ describe('hasPermissionOnQuestion', () => {
     jest.resetAllMocks();
 
     // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (mysql.getInstance as jest.Mock).mockReturnValue({
+    (MySQLConnection.getInstance as jest.Mock).mockReturnValue({
       query: jest.fn(), // Initialize the query mock function here
     });
 

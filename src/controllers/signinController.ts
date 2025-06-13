@@ -8,8 +8,15 @@ import { buildContext } from '../context';
 
 export const signinController = async (req: Request, res: Response) => {
   const userIn = new User(req.body);
-  const cache = Cache.getInstance();
-  const context = buildContext(logger, cache);
+  const context = buildContext(
+    req.logger,
+    req.cache,
+    null,
+    req.sqlDataSource,
+    req.dmphubAPIDataSource,
+  );
+
+  console.log(context.cache)
 
   try {
     const user = await userIn.login(context) || null;
