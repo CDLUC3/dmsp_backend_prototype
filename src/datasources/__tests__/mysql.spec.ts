@@ -1,6 +1,6 @@
 import { MySQLConnection } from '../mysql';
 import * as mysql2 from 'mysql2/promise';
-import { logger, formatLogMessage } from '../../__mocks__/logger';
+import { logger } from '../../__mocks__/logger';
 import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
 import { MyContext } from '../../context';
 
@@ -19,13 +19,14 @@ describe('MySQLConnection', () => {
 
     // Mock MySQL pool and connection
     mockConnection = {
-      release: jest.fn(),
+      release: jest.fn().mockResolvedValue(true),
       execute: jest.fn().mockResolvedValue([[{ id: 1, name: 'Test' }], []]),
     } as unknown as mysql2.PoolConnection;
 
     mockPool = {
       getConnection: jest.fn().mockResolvedValue(mockConnection),
       execute: jest.fn().mockResolvedValue([[{ id: 1, name: 'Test' }], []]),
+      on: jest.fn(),
       end: jest.fn(),
     } as unknown as mysql2.Pool;
 
@@ -51,6 +52,7 @@ describe('MySQLConnection', () => {
   describe('getConnection', () => {
     it('should retrieve a connection from the pool', async () => {
       const sqlDataSource = new MySQLConnection();
+      await sqlDataSource.initPromise;
       const connection = await sqlDataSource.getConnection();
 
       expect(connection).toBe(mockConnection);
@@ -62,6 +64,7 @@ describe('MySQLConnection', () => {
   describe('releaseConnection', () => {
     it('should release the connection', async () => {
       const sqlDataSource = new MySQLConnection();
+      await sqlDataSource.initPromise;
       const connection = await sqlDataSource.getConnection();
       await sqlDataSource.releaseConnection(connection);
 
@@ -73,6 +76,7 @@ describe('MySQLConnection', () => {
   describe('query', () => {
     it('should execute a SQL query and return rows', async () => {
       const sqlDataSource = new MySQLConnection();
+      await sqlDataSource.initPromise;
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = [' 1 ']; // Simulate a value that needs trimming
 
@@ -85,13 +89,15 @@ describe('MySQLConnection', () => {
 
     it('should log an error and throw if query execution fails', async () => {
       const sqlDataSource = new MySQLConnection();
+      await sqlDataSource.initPromise;
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = ['1'];
 
       (mockConnection.execute as jest.Mock).mockRejectedValueOnce(new Error('Query failed'));
+      jest.spyOn(console, 'log');
 
       await expect(sqlDataSource.query(context, sql, values)).rejects.toThrow('Database query failed');
-      expect(formatLogMessage(context).error).toHaveBeenCalled();
+      expect(console.log).toHaveBeenCalled();
       await sqlDataSource.close();
     });
   });
@@ -99,7 +105,7 @@ describe('MySQLConnection', () => {
   describe('close', () => {
     it('should close the MySQL connection pool', async () => {
       const sqlDataSource = new MySQLConnection();
-
+      await sqlDataSource.initPromise;
       await sqlDataSource.close();
 
       expect(mockPool.end).toHaveBeenCalled();

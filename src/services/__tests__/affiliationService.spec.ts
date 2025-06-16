@@ -79,6 +79,6 @@ describe('processOtherAffiliationName', () => {
     expect(result.uri.includes(DEFAULT_DMPTOOL_AFFILIATION_URL)).toBe(true);
     expect(result.types).toEqual([AffiliationType.OTHER]);
     expect(result.active).toBe(true);
-    expect(result.uneditableProperties).toEqual(['uri', 'provenance', 'searchName']);
+    expect(result.uneditableProperties).toEqual(['uri', 'provenance']);
   });
 });

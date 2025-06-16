@@ -1,12 +1,28 @@
-import { AffiliationSearchResults, Resolvers } from "../types";
-import { MyContext } from '../context';
-import { Affiliation, AffiliationSearch, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL, PopularFunder } from '../models/Affiliation';
-import { isAdmin, isSuperAdmin } from "../services/authService";
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
-import { formatLogMessage } from "../logger";
-import { GraphQLError } from "graphql";
-import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { isNullOrUndefined } from "../utils/helpers";
+import {AffiliationSearchResults, Resolvers} from "../types";
+import {MyContext} from '../context';
+import {
+  Affiliation,
+  AffiliationProvenance,
+  AffiliationSearch,
+  AffiliationType,
+  PopularFunder
+} from '../models/Affiliation';
+import {isAdmin, isSuperAdmin} from "../services/authService";
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from "../utils/graphQLErrors";
+import {formatLogMessage} from "../logger";
+import {GraphQLError} from "graphql";
+import {
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType
+} from "../types/general";
+import {isNullOrUndefined} from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -135,7 +151,7 @@ export const resolvers: Resolvers = {
           }
 
           // If the affiliation is managed by the DMP Tool then we can delete it
-          if (affiliation.uri.startsWith(DEFAULT_DMPTOOL_AFFILIATION_URL)) {
+          if (affiliation.provenance === AffiliationProvenance.DMPTOOL) {
             return await affiliation.delete(context);
           }
         }
@@ -147,5 +163,15 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+  },
+
+  Affiliation: {
+    created: (parent: Affiliation) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Affiliation) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
+
 }

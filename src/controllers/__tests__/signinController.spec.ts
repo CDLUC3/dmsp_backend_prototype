@@ -41,7 +41,6 @@ const mockedUser: UserModel.User = {
   last_sign_in_via: getRandomEnumValue(UserModel.LogInType),
   failed_sign_in_attemps: 0,
   created: new Date().toISOString(),
-  tableName: 'testUsers',
   errors: {},
 
   getName: jest.fn(),

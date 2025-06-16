@@ -1,34 +1,28 @@
-
-it('passes', () => {
-  expect(true).toBe(true);
-});
-
-/*
-import { ApolloServer } from "@apollo/server";
+import casual from "casual";
+import {ApolloServer} from "@apollo/server";
 import assert from "assert";
-import { buildContext } from "../../context";
-import { logger } from "../../__mocks__/logger";
-import { JWTAccessToken } from "../../services/tokenService";
-import { User, UserRole } from "../../models/User";
-import { MyContext } from "../../context";
+import {buildContext, MyContext} from "../../context";
+import {logger} from "../../__mocks__/logger";
+import {JWTAccessToken} from "../../services/tokenService";
+import {User, UserRole} from "../../models/User";
 import {
   Affiliation,
-  // AffiliationProvenance,
-  // AffiliationSearch,
+  AffiliationProvenance,
+  AffiliationSearch,
   AffiliationType,
-  // DEFAULT_DMPTOOL_AFFILIATION_URL,
-  // DEFAULT_ROR_AFFILIATION_URL
+  DEFAULT_DMPTOOL_AFFILIATION_URL,
 } from "../../models/Affiliation";
 import {
   cleanUpAddedAffiliations,
   mockAffiliation,
-  persistAffiliation, randomAffiliation
+  persistAffiliation,
+  randomAffiliation
 } from "../../models/__mocks__/Affiliation";
 import {
   executeQuery,
+  initErrorMessage,
   initTestServer,
-  mockToken,
-  // shutdownTestServer
+  mockToken
 } from "./resolverTest";
 import {
   cleanUpAddedUsers,
@@ -36,6 +30,8 @@ import {
   persistUser
 } from "../../models/__mocks__/User";
 import {MySQLConnection} from "../../datasources/mysql";
+import {getRandomEnumValue} from "../../__tests__/helpers";
+import {formatISO9075} from "date-fns";
 
 jest.mock("../../datasources/dmphubAPI");
 
@@ -48,20 +44,25 @@ let affiliations: Affiliation[];
 
 let query: string;
 
-beforeAll(async () => {
-  // Initialize the mysql connection pool
-  mysqlInstance = new MySQLConnection();
-
-  // Initialize the Apollo server
-  testServer = initTestServer();
-  await testServer.start();
-});
-
 beforeEach(async () => {
-  jest.resetAllMocks();
+  jest.clearAllMocks();
+
+  try {
+    // Initialize the mysql connection pool
+    mysqlInstance = new MySQLConnection();
+    // Ensure the pool has finished initializing
+    await mysqlInstance.initPromise;
+
+    // Initialize the Apollo server
+    testServer = initTestServer();
+    await testServer.start();
+  } catch (err) {
+    console.error(initErrorMessage, err);
+    process.exit(1);
+  }
 
   // Build out the Apollo context
-  context = buildContext(logger, null, null);
+  context = buildContext(logger, null, null, mysqlInstance, null);
 
   // Get a random affiliation because a User needs one
   const initialAffiliation = await randomAffiliation(context);
@@ -76,39 +77,44 @@ beforeEach(async () => {
 
   // Attach the researcher token to the Apollo context
   context.token = researcherToken;
-
-  // Persist some test Affiliations
-  for (let i = 0; i < 3; i++) {
-    const affiliation = mockAffiliation({});
-    const persistedAffiliation = await persistAffiliation(context, affiliation);
-    affiliations.push(persistedAffiliation);
-  }
 });
 
 afterEach(async () => {
-  jest.clearAllMocks();
+  try {
+    // Delete all the DB records that were persisted during the tests
+    await cleanUpAddedUsers(context);
 
-  // Delete all the DB records that were persisted during the tests
-  await cleanUpAddedAffiliations(context);
-  await cleanUpAddedUsers(context);
+    // Close the mysql connection pool
+    await mysqlInstance.close();
+
+    // Shutdown the test server
+    await testServer.stop();
+  } catch (err) {
+    console.error('Error cleaning up after tests', err);
+    process.exit(1);
+  }
 });
 
-afterAll(async () => {
-  // Close the mysql connection pool
-  await mysqlInstance.close();
-
-  // Shutdown the test server
-  await testServer.stop();
-})
-
 describe('affiliationTypes query', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Persist some test Affiliations
+    affiliations = [];
+    for (let i = 0; i < 3; i++) {
+      const affiliation = mockAffiliation({});
+      const persistedAffiliation = await persistAffiliation(context, affiliation);
+      affiliations.push(persistedAffiliation);
+    }
+
     query = `
       query AffiliationTypes {
         affiliationTypes
       }
     `;
   });
+
+  afterEach(async () => {
+    await cleanUpAddedAffiliations(context);
+  })
 
   it('returns the expected affiliation types', async () => {
     const resp = await executeQuery(testServer, context, query, {});
@@ -120,10 +126,18 @@ describe('affiliationTypes query', () => {
     expect(resp.body.singleResult.data?.affiliationTypes).toContain(AffiliationType.EDUCATION);
   });
 });
-*/
-/*
+
+
 describe('affiliationById query', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Persist some test Affiliations
+    affiliations = [];
+    for (let i = 0; i < 3; i++) {
+      const affiliation = mockAffiliation({});
+      const persistedAffiliation = await persistAffiliation(context, affiliation);
+      affiliations.push(persistedAffiliation);
+    }
+
     query = `
       query AffiliationById($affiliationId: Int!) {
         affiliationById (affiliationId: $affiliationId) {
@@ -161,43 +175,48 @@ describe('affiliationById query', () => {
     `;
   });
 
+  afterEach(async () => {
+    await cleanUpAddedAffiliations(context);
+  })
+
   it('returns the affiliation when successful', async () => {
-    const variables = { affiliationId: affiliationStore[1].id };
-    const resp = await executeQuery(query, variables, mockToken());
+    const variables = { affiliationId: affiliations[1].id };
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
-    // verify all the properties are returned
-    expect(resp.body.singleResult.data?.affiliationById?.id).toEqual(affiliationStore[1].id);
-    expect(resp.body.singleResult.data?.affiliationById?.name).toEqual(affiliationStore[1].name);
-    expect(resp.body.singleResult.data?.affiliationById?.uri).toEqual(affiliationStore[1].uri);
-    expect(resp.body.singleResult.data?.affiliationById?.funder).toEqual(affiliationStore[1].funder);
-    expect(resp.body.singleResult.data?.affiliationById?.types).toEqual(affiliationStore[1].types);
-    expect(resp.body.singleResult.data?.affiliationById?.displayName).toEqual(affiliationStore[1].displayName);
-    expect(resp.body.singleResult.data?.affiliationById?.searchName).toEqual(affiliationStore[1].searchName);
-    expect(resp.body.singleResult.data?.affiliationById?.provenance).toEqual(affiliationStore[1].provenance);
-    expect(resp.body.singleResult.data?.affiliationById?.homepage).toEqual(affiliationStore[1].homepage);
-    expect(resp.body.singleResult.data?.affiliationById?.acronyms).toEqual(affiliationStore[1].acronyms);
-    expect(resp.body.singleResult.data?.affiliationById?.aliases).toEqual(affiliationStore[1].aliases);
-    expect(resp.body.singleResult.data?.affiliationById?.fundrefId).toEqual(affiliationStore[1].fundrefId);
-    expect(resp.body.singleResult.data?.affiliationById?.active).toEqual(affiliationStore[1].active);
 
-    expect(resp.body.singleResult.data?.affiliationById?.managed).toEqual(affiliationStore[1].managed);
-    expect(resp.body.singleResult.data?.affiliationById?.logoURI).toEqual(affiliationStore[1].logoURI);
-    expect(resp.body.singleResult.data?.affiliationById?.logoName).toEqual(affiliationStore[1].logoName);
-    expect(resp.body.singleResult.data?.affiliationById?.contactEmail).toEqual(affiliationStore[1].contactEmail);
-    expect(resp.body.singleResult.data?.affiliationById?.contactName).toEqual(affiliationStore[1].contactName);
-    expect(resp.body.singleResult.data?.affiliationById?.ssoEntityId).toEqual(affiliationStore[1].ssoEntityId);
-    expect(resp.body.singleResult.data?.affiliationById?.feedbackEnabled).toEqual(affiliationStore[1].feedbackEnabled);
-    expect(resp.body.singleResult.data?.affiliationById?.feedbackMessage).toEqual(affiliationStore[1].feedbackMessage);
-    expect(resp.body.singleResult.data?.affiliationById?.feedbackEmails).toEqual(affiliationStore[1].feedbackEmails);
-    expect(resp.body.singleResult.data?.affiliationById?.apiTarget).toEqual(affiliationStore[1].apiTarget);
+    // verify all the properties are returned
+    expect(resp.body.singleResult.data?.affiliationById?.id).toEqual(affiliations[1].id);
+    expect(resp.body.singleResult.data?.affiliationById?.name).toEqual(affiliations[1].name);
+    expect(resp.body.singleResult.data?.affiliationById?.uri).toEqual(affiliations[1].uri);
+    expect(resp.body.singleResult.data?.affiliationById?.funder).toEqual(Boolean(affiliations[1].funder));
+    expect(resp.body.singleResult.data?.affiliationById?.types).toEqual(affiliations[1].types);
+    expect(resp.body.singleResult.data?.affiliationById?.displayName).toEqual(affiliations[1].displayName);
+    expect(resp.body.singleResult.data?.affiliationById?.searchName).toEqual(affiliations[1].searchName);
+    expect(resp.body.singleResult.data?.affiliationById?.provenance).toEqual(affiliations[1].provenance);
+    expect(resp.body.singleResult.data?.affiliationById?.homepage).toEqual(affiliations[1].homepage);
+    expect(resp.body.singleResult.data?.affiliationById?.acronyms).toEqual(affiliations[1].acronyms);
+    expect(resp.body.singleResult.data?.affiliationById?.aliases).toEqual(affiliations[1].aliases);
+    expect(resp.body.singleResult.data?.affiliationById?.fundrefId).toEqual(affiliations[1].fundrefId);
+    expect(resp.body.singleResult.data?.affiliationById?.active).toEqual(Boolean(affiliations[1].active));
+
+    expect(resp.body.singleResult.data?.affiliationById?.managed).toEqual(Boolean(affiliations[1].managed));
+    expect(resp.body.singleResult.data?.affiliationById?.logoURI).toEqual(affiliations[1].logoURI);
+    expect(resp.body.singleResult.data?.affiliationById?.logoName).toEqual(affiliations[1].logoName);
+    expect(resp.body.singleResult.data?.affiliationById?.contactEmail).toEqual(affiliations[1].contactEmail);
+    expect(resp.body.singleResult.data?.affiliationById?.contactName).toEqual(affiliations[1].contactName);
+    expect(resp.body.singleResult.data?.affiliationById?.ssoEntityId).toEqual(affiliations[1].ssoEntityId);
+    expect(resp.body.singleResult.data?.affiliationById?.feedbackEnabled).toEqual(Boolean(affiliations[1].feedbackEnabled));
+    expect(resp.body.singleResult.data?.affiliationById?.feedbackMessage).toEqual(affiliations[1].feedbackMessage);
+    expect(resp.body.singleResult.data?.affiliationById?.feedbackEmails).toEqual(affiliations[1].feedbackEmails);
+    expect(resp.body.singleResult.data?.affiliationById?.apiTarget).toEqual(affiliations[1].apiTarget);
   });
 
   it('returns null when no matching record is found', async () => {
     // Use an id that will not match any records
     const variables = { affiliationId: 99999 };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -205,20 +224,36 @@ describe('affiliationById query', () => {
   });
 
   it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Affiliation, 'findById').mockImplementation(() => { throw new Error('Error!') });
+    const originalFindById = Affiliation.findById;
+    jest.spyOn(Affiliation, 'findById').mockImplementation(() => {
+      throw new Error('Error!')
+    });
 
     const variables = { affiliationId: casual.integer(1, 9999) };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
     expect(resp.body.singleResult.data?.affiliationById).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
+    Affiliation.findById = originalFindById;
   });
 });
 
 describe('affiliations query', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Persist some test Affiliations
+    affiliations = [];
+    for (let i = 0; i < 3; i++) {
+      const affiliation = mockAffiliation({
+        name: `Affiliation Query Test ${i}`,
+        active: true,
+        funder: i === 1
+      });
+      const persistedAffiliation = await persistAffiliation(context, affiliation);
+      affiliations.push(persistedAffiliation);
+    }
+
     query = `
       query Affiliations($name: String!, $funderOnly: Boolean, $paginationOptions: PaginationOptions) {
         affiliations (name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
@@ -241,9 +276,13 @@ describe('affiliations query', () => {
     `;
   });
 
+  afterEach(async () => {
+    await cleanUpAddedAffiliations(context);
+  });
+
   it('returns the expected affiliations when successful', async () => {
-    const variables = { name: affiliationStore[0].name };
-    const resp = await executeQuery(query, variables, mockToken());
+    const variables = { name: affiliations[0].name };
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -251,35 +290,30 @@ describe('affiliations query', () => {
 
     // Since we're not returning everything, verify the fields we are returning
     const affiliation = resp.body.singleResult.data?.affiliations.items[0];
-    expect(affiliation?.id).toEqual(affiliationStore[0].id);
-    expect(affiliation?.displayName).toEqual(affiliationStore[0].displayName);
-    expect(affiliation?.uri).toEqual(affiliationStore[0].uri);
-    expect(affiliation?.funder).toEqual(affiliationStore[0].funder);
-    expect(affiliation?.types).toEqual(affiliationStore[0].types);
-    expect(affiliation?.apiTarget).toEqual(affiliationStore[0].apiTarget);
+    expect(affiliation?.id).toEqual(affiliations[0].id);
+    expect(affiliation?.displayName).toEqual(affiliations[0].displayName);
+    expect(affiliation?.uri).toEqual(affiliations[0].uri);
+    expect(affiliation?.funder).toEqual(Boolean(affiliations[0].funder));
+    expect(affiliation?.types).toEqual(affiliations[0].types);
+    expect(affiliation?.apiTarget).toEqual(affiliations[0].apiTarget);
   });
 
   it('obeys the funderOnly flag', async () => {
-    affiliationStore[0].funder = true;
-    affiliationStore[1].funder = false;
-    affiliationStore[2].funder = true;
-
-    const variables = { name: '', funderOnly: true };
-    const resp = await executeQuery(query, variables, mockToken());
+    const variables = { name: 'affiliation query test', funderOnly: true };
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.affiliations).toBeDefined();
 
     // Since we're not returning everything, verify the fields we are returning
-    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(2);
-    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[0].id);
-    expect(resp.body.singleResult.data?.affiliations.items[1].id).toEqual(affiliationStore[2].id);
+    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(1);
+    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliations[1].id);
   });
 
   it('handles cursor pagination successfuly', async () => {
-    const variables = { name: '', paginationOptions: { cursor: null, limit: 2 } };
-    let resp = await executeQuery(query, variables, mockToken());
+    const variables = { name: 'Affiliation Query Test', paginationOptions: { cursor: null, limit: 2 } };
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -294,36 +328,38 @@ describe('affiliations query', () => {
 
     const paginatedResults = resp.body.singleResult.data?.affiliations.items ?? [];
     expect(paginatedResults.length).toBe(2);
-    expect(paginatedResults[0].id).toEqual(affiliationStore[0].id);
-    expect(paginatedResults[1].id).toEqual(affiliationStore[1].id);
+    expect(paginatedResults[0].id).toEqual(affiliations[0].id);
+    expect(paginatedResults[1].id).toEqual(affiliations[1].id);
 
     // Bump the cursor and query again
     variables.paginationOptions.cursor = resp.body.singleResult.data?.affiliations.nextCursor;
-    resp = await executeQuery(query, variables, mockToken());
+    const resp2 = await executeQuery(testServer, context, query, variables);
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+    assert(resp2.body.kind === 'single');
+    expect(resp2.body.singleResult.errors).toBeUndefined();
+    expect(resp2.body.singleResult.data?.affiliations).toBeDefined();
 
-    expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
-    expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
-    expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
-    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBeFalsy();
-    expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
-    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeFalsy();
+    expect(resp2.body.singleResult.data?.affiliations.totalCount).toBe(3);
+    expect(resp2.body.singleResult.data?.affiliations.limit).toBe(2);
+    expect(resp2.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
+    expect(resp2.body.singleResult.data?.affiliations.currentOffset).toBeFalsy();
+    expect(resp2.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
+    expect(resp2.body.singleResult.data?.affiliations.hasPreviousPage).toBeFalsy();
 
-    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(1);
-    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[2].id);
+    expect(resp2.body.singleResult.data?.affiliations.items.length).toBe(1);
+    expect(resp2.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliations[2].id);
   });
 
   it('handles offset pagination successfuly', async () => {
-    const variables = { name: '', paginationOptions: { offset: 0, limit: 2 } };
-    let resp = await executeQuery(query, variables, mockToken());
+    const variables = {
+      name: 'Affiliation Query Test',
+      paginationOptions: { offset: 0, limit: 2, type: 'OFFSET' }
+    };
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.affiliations).toBeDefined();
-
     expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
     expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
     expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
@@ -333,32 +369,32 @@ describe('affiliations query', () => {
 
     const paginatedResults = resp.body.singleResult.data?.affiliations.items ?? [];
     expect(paginatedResults.length).toBe(2);
-    expect(paginatedResults[0].id).toEqual(affiliationStore[0].id);
-    expect(paginatedResults[1].id).toEqual(affiliationStore[1].id);
+    expect(paginatedResults[0].id).toEqual(affiliations[0].id);
+    expect(paginatedResults[1].id).toEqual(affiliations[1].id);
 
     // Bump the cursor and query again
     variables.paginationOptions.offset = resp.body.singleResult.data?.affiliations.currentOffset + 2;
-    resp = await executeQuery(query, variables, mockToken());
+    const resp2 = await executeQuery(testServer, context, query, variables);
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.affiliations).toBeDefined();
+    assert(resp2.body.kind === 'single');
+    expect(resp2.body.singleResult.errors).toBeUndefined();
+    expect(resp2.body.singleResult.data?.affiliations).toBeDefined();
 
-    expect(resp.body.singleResult.data?.affiliations.totalCount).toBe(3);
-    expect(resp.body.singleResult.data?.affiliations.limit).toBe(2);
-    expect(resp.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
-    expect(resp.body.singleResult.data?.affiliations.currentOffset).toBe(2);
-    expect(resp.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
-    expect(resp.body.singleResult.data?.affiliations.hasPreviousPage).toBeTruthy();
+    expect(resp2.body.singleResult.data?.affiliations.totalCount).toBe(3);
+    expect(resp2.body.singleResult.data?.affiliations.limit).toBe(2);
+    expect(resp2.body.singleResult.data?.affiliations.nextCursor).toBeFalsy();
+    expect(resp2.body.singleResult.data?.affiliations.currentOffset).toBe(2);
+    expect(resp2.body.singleResult.data?.affiliations.hasNextPage).toBeFalsy();
+    expect(resp2.body.singleResult.data?.affiliations.hasPreviousPage).toBeTruthy();
 
-    expect(resp.body.singleResult.data?.affiliations.items.length).toBe(1);
-    expect(resp.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliationStore[2].id);
+    expect(resp2.body.singleResult.data?.affiliations.items.length).toBe(1);
+    expect(resp2.body.singleResult.data?.affiliations.items[0].id).toEqual(affiliations[2].id);
   });
 
   it('returns an empty array when no matches are found', async () => {
     // Use a series of number since it will never match one of the names
     const variables = { name: '1234567890' };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -367,21 +403,30 @@ describe('affiliations query', () => {
   });
 
   it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(AffiliationSearch, 'search').mockImplementation(() => { throw new Error('Error!') });
+    const originalSearch = AffiliationSearch.search;
+    jest.spyOn(AffiliationSearch, 'search').mockImplementation(() => {
+      throw new Error('Error!')
+    });
 
     const variables = { name: casual.company_name };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
     expect(resp.body.singleResult.data).toBeDefined();
     expect(resp.body.singleResult.data.affiliations).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
+    AffiliationSearch.search = originalSearch;
   });
 });
 
 describe('affiliationByURI query', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Persist a test Affiliation
+    affiliations = [];
+    const persistedAffiliation = await persistAffiliation(context,  mockAffiliation({}));
+    affiliations.push(persistedAffiliation);
+
     query = `
       query affiliationByURI($uri: String!) {
         affiliationByURI (uri: $uri) {
@@ -393,22 +438,27 @@ describe('affiliationByURI query', () => {
     `;
   });
 
+  afterEach(async () => {
+    await cleanUpAddedAffiliations(context);
+  });
+
   it('returns the affiliation when successful', async () => {
-    const variables = { uri: affiliationStore[2].uri };
-    const resp = await executeQuery(query, variables, mockToken());
+    const variables = { uri: affiliations[0].uri };
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
+
     // Since we're not returning everything, verify the fields we are returning
-    expect(resp.body.singleResult.data?.affiliationByURI?.id).toEqual(affiliationStore[2].id);
-    expect(resp.body.singleResult.data?.affiliationByURI?.name).toEqual(affiliationStore[2].name);
-    expect(resp.body.singleResult.data?.affiliationByURI?.uri).toEqual(affiliationStore[2].uri);
+    expect(resp.body.singleResult.data?.affiliationByURI?.id).toEqual(affiliations[0].id);
+    expect(resp.body.singleResult.data?.affiliationByURI?.name).toEqual(affiliations[0].name);
+    expect(resp.body.singleResult.data?.affiliationByURI?.uri).toEqual(affiliations[0].uri);
   });
 
   it('returns null when no matching record is found', async () => {
     // Use a word since it will never match one of the URLs
     const variables = { uri: casual.word };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -416,20 +466,29 @@ describe('affiliationByURI query', () => {
   });
 
   it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Affiliation, 'findByURI').mockImplementation(() => { throw new Error('Error!') });
+    const originalfindURI = Affiliation.findByURI;
+    jest.spyOn(Affiliation, 'findByURI').mockImplementation(() => {
+      throw new Error('Error!')
+    });
 
     const variables = { uri: casual.url };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
     expect(resp.body.singleResult.data?.affiliationByURI).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
+    Affiliation.findByURI = originalfindURI;
   });
 });
 
 describe('addAffiliation mutation', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Persist a test Affiliation
+    affiliations = [];
+    const persistedAffiliation = await persistAffiliation(context,  mockAffiliation({}));
+    affiliations.push(persistedAffiliation);
+
     query = `
       mutation AddAffiliation($input: AffiliationInput!) {
         addAffiliation (input: $input) {
@@ -459,21 +518,26 @@ describe('addAffiliation mutation', () => {
     `;
   });
 
+  afterEach(async () => {
+    await cleanUpAddedAffiliations(context);
+  });
+
   it('creates a new affiliation when input is valid', async () => {
     const variables = {
       input: {
-        name: casual.company_name,
+        name: `TEST - ${casual.company_name} - ${casual.integer(1, 9999)}`,
       },
     };
 
-    const originalRecordCount = affiliationStore.length;
-    const token = mockToken();
-    const resp = await executeQuery(query, variables, token);
+    const originalRecordCount = affiliations.length;
+    const resp = await executeQuery(testServer, context, query, variables);
+    // Put the newly added record into the array so we can clean it up afterward!
+    affiliations.push(resp.body.singleResult.data?.addAffiliation);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.addAffiliation).toBeDefined();
-    expect(affiliationStore.length).toEqual(originalRecordCount + 1);
+    expect(affiliations.length).toEqual(originalRecordCount + 1);
     expect(resp.body.singleResult.data?.addAffiliation?.id).toBeDefined();
     expect(resp.body.singleResult.data?.addAffiliation?.name).toEqual(variables.input.name);
     expect(resp.body.singleResult.data?.addAffiliation?.uri).toBeDefined();
@@ -486,9 +550,9 @@ describe('addAffiliation mutation', () => {
     expect(resp.body.singleResult.data?.addAffiliation?.managed).toBeFalsy();
     expect(resp.body.singleResult.data?.addAffiliation?.feedbackEnabled).toBeFalsy();
     expect(resp.body.singleResult.data?.addAffiliation?.feedbackEmails).toEqual([]);
-    expect(resp.body.singleResult.data?.addAffiliation?.createdById).toEqual(token.id);
+    expect(resp.body.singleResult.data?.addAffiliation?.createdById).toEqual(researcherToken.id);
     expect(resp.body.singleResult.data?.addAffiliation?.created).toBeDefined();
-    expect(resp.body.singleResult.data?.addAffiliation?.modifiedById).toEqual(token.id);
+    expect(resp.body.singleResult.data?.addAffiliation?.modifiedById).toEqual(researcherToken.id);
     expect(resp.body.singleResult.data?.addAffiliation?.modified).toBeDefined();
     expect(resp.body.singleResult.data?.addAffiliation?.errors?.general).toBeNull();
   });
@@ -497,16 +561,16 @@ describe('addAffiliation mutation', () => {
     const variables = {
       input: {
         name: casual.company_name,
-        uri: affiliationStore[0].uri,
+        uri: affiliations[0].uri,
       },
     };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.addAffiliation).toBeDefined();
-    expect(resp.body.singleResult.data?.addAffiliation?.id).toEqual(affiliationStore[0].id);
-    expect(resp.body.singleResult.data?.addAffiliation?.name).toEqual(affiliationStore[0].name);
+    expect(resp.body.singleResult.data?.addAffiliation?.id).toEqual(affiliations[0].id);
+    expect(resp.body.singleResult.data?.addAffiliation?.name).toEqual(affiliations[0].name);
     expect(resp.body.singleResult.data?.addAffiliation?.modified).toBeDefined();
     // Verify the errors
     expect(resp.body.singleResult.data?.addAffiliation?.errors?.general).toBeDefined();
@@ -515,16 +579,16 @@ describe('addAffiliation mutation', () => {
   it('returns the existing affiliation with field level errors if it\'s a duplicate by the name', async () => {
     const variables = {
       input: {
-        name: affiliationStore[0].name.toUpperCase(),
+        name: affiliations[0].name.toUpperCase(),
       },
     };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.addAffiliation).toBeDefined();
-    expect(resp.body.singleResult.data?.addAffiliation?.id).toEqual(affiliationStore[0].id);
-    expect(resp.body.singleResult.data?.addAffiliation?.name).toEqual(affiliationStore[0].name);
+    expect(resp.body.singleResult.data?.addAffiliation?.id).toEqual(affiliations[0].id);
+    expect(resp.body.singleResult.data?.addAffiliation?.name).toEqual(affiliations[0].name);
     // Verify the errors
     expect(resp.body.singleResult.data?.addAffiliation?.errors?.general).toBeDefined();
   });
@@ -536,7 +600,7 @@ describe('addAffiliation mutation', () => {
         uri: '1234567890',
       },
     };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -548,24 +612,33 @@ describe('addAffiliation mutation', () => {
   });
 
   it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Affiliation, 'insert').mockImplementation(() => { throw new Error('Error!') });
+    const originalInsert = Affiliation.insert;
+    jest.spyOn(Affiliation, 'insert').mockImplementation(() => {
+      throw new Error('Error!')
+    });
 
     const variables = {
       input: {
         name: 'Error Affiliation',
       },
     };
-    const resp = await executeQuery(query, variables, mockToken());
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
     expect(resp.body.singleResult.data?.addAffiliation).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
+    Affiliation.insert = originalInsert;
   });
 });
 
 describe('updateAffiliation mutation', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Persist a test Affiliation
+    affiliations = [];
+    const persistedAffiliation = await persistAffiliation(context,  mockAffiliation({}));
+    affiliations.push(persistedAffiliation);
+
     query = `
       mutation UpdateAffiliation($input: AffiliationInput!) {
         updateAffiliation (input: $input) {
@@ -605,62 +678,70 @@ describe('updateAffiliation mutation', () => {
     `;
   });
 
-  it('allows a Super Admin to update other affiliations', async () => {
-    // Store the original record count and first record for comparison after the mutation occurs
-    const originalRecordCount = affiliationStore.length;
+  afterEach(async () => {
+    await cleanUpAddedAffiliations(context);
+  });
 
+  it('allows a Super Admin to update other affiliations', async () => {
     // Make sure it's a DMP Tool managed affiliation
-    affiliationStore[0].uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`;
-    affiliationStore[0].provenance = AffiliationProvenance.DMPTOOL;
-    const originalRecord = { ...affiliationStore[0] };
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.ROR
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
+    const originalRecord = { ...affiliations[1] };
+    // Store the original record count and first record for comparison after the mutation occurs
+    const originalRecordCount = affiliations.length;
 
     // Update a couple of fields and ensure the rest remain unchanged
     const variables = {
       input: {
-        id: affiliationStore[0].id,
-        name: affiliationStore[0].name,
+        id: affiliations[1].id,
+        name: `TEST - ${affiliations[1].name} - ${casual.integer(1, 9999)}`,
 
-        uri: casual.url,
-        displayName: casual.company_name,
+        uri: `${affiliations[1].uri}/TEST`,
+        displayName: `TEST - ${casual.company_name} - ${casual.integer(1, 9999)}`,
         managed: true
       },
     };
-    const token = mockToken();
-    token.role = UserRole.SUPERADMIN;
-    token.affiliationId = casual.url;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.SUPERADMIN;
+    context.token.affiliationId = casual.url;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.updateAffiliation).toBeDefined();
-    expect(affiliationStore.length).toEqual(originalRecordCount);
+    expect(affiliations.length).toEqual(originalRecordCount);
     // Verify fields that should not have changed
     expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(originalRecord.id);
+    expect(resp.body.singleResult.data?.updateAffiliation?.uri).toEqual(originalRecord.uri);
     expect(resp.body.singleResult.data?.updateAffiliation?.name).toEqual(originalRecord.name);
 
     // Verify fields that should have changed
-    expect(resp.body.singleResult.data?.updateAffiliation?.uri).toEqual(variables.input.uri);
     expect(resp.body.singleResult.data?.updateAffiliation?.displayName).toEqual(variables.input.displayName);
     expect(resp.body.singleResult.data?.updateAffiliation?.managed).toEqual(variables.input.managed);
-    expect(resp.body.singleResult.data?.updateAffiliation?.modifiedById).toEqual(token.id);
+    expect(resp.body.singleResult.data?.updateAffiliation?.modifiedById).toEqual(context.token.id);
     expect(resp.body.singleResult.data?.updateAffiliation?.modified).toBeDefined();
     expect(resp.body.singleResult.data?.updateAffiliation?.errors?.general).toBeNull();
   });
 
   it('allows an Admin to update most fields when the affiliation is managed by the DMP Tool', async () => {
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.DMPTOOL
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
+
     // Store the original record count and first record for comparison after the mutation occurs
-    const originalRecordCount = affiliationStore.length;
-
-    // Make sure it's a DMP Tool managed affiliation
-    affiliationStore[0].uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`;
-    affiliationStore[0].provenance = AffiliationProvenance.DMPTOOL;
-
-    const originalRecord = { ...affiliationStore[0] };
+    const originalRecordCount = affiliations.length;
+    const originalRecord = { ...persistedAffiliation };
 
     // Update a couple of fields and ensure the rest remain unchanged
     const variables = {
       input: {
-        id: affiliationStore[0].id,
+        id: persistedAffiliation.id,
 
         uri: casual.url,
         name: casual.company_name,
@@ -683,23 +764,23 @@ describe('updateAffiliation mutation', () => {
         active: true,
       },
     };
-    const token = mockToken();
-    token.role = UserRole.ADMIN;
-    token.affiliationId = affiliationStore[0].uri;
-    const resp = await executeQuery(query, variables, token);
+
+    context.token.role = UserRole.ADMIN;
+    context.token.affiliationId = persistedAffiliation.uri;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.updateAffiliation).toBeDefined();
-    expect(affiliationStore.length).toEqual(originalRecordCount);
+    expect(affiliations.length).toEqual(originalRecordCount);
     // Verify fields that should not have changed
     expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(originalRecord.id);
+    expect(resp.body.singleResult.data?.updateAffiliation?.uri).toEqual(originalRecord.uri);
     expect(resp.body.singleResult.data?.updateAffiliation?.provenance).toEqual(originalRecord.provenance);
     expect(resp.body.singleResult.data?.updateAffiliation?.createdById).toEqual(originalRecord.createdById);
-    expect(resp.body.singleResult.data?.updateAffiliation?.created).toEqual(originalRecord.created);
+    expect(resp.body.singleResult.data?.updateAffiliation?.created).toEqual(formatISO9075(originalRecord.created));
 
     // Verify fields that should have changed
-    expect(resp.body.singleResult.data?.updateAffiliation?.uri).toEqual(variables.input.uri);
     expect(resp.body.singleResult.data?.updateAffiliation?.name).toEqual(variables.input.name);
     expect(resp.body.singleResult.data?.updateAffiliation?.displayName).toEqual(variables.input.displayName);
     expect(resp.body.singleResult.data?.updateAffiliation?.searchName).toBeDefined();
@@ -719,24 +800,27 @@ describe('updateAffiliation mutation', () => {
     expect(resp.body.singleResult.data?.updateAffiliation?.feedbackEmails).toEqual(variables.input.feedbackEmails);
     expect(resp.body.singleResult.data?.updateAffiliation?.managed).toBe(true);
     expect(resp.body.singleResult.data?.updateAffiliation?.active).toBe(true);
-    expect(resp.body.singleResult.data?.updateAffiliation?.modifiedById).toEqual(token.id);
+    expect(resp.body.singleResult.data?.updateAffiliation?.modifiedById).toEqual(context.token.id);
     expect(resp.body.singleResult.data?.updateAffiliation?.modified).toBeDefined();
     expect(resp.body.singleResult.data?.updateAffiliation?.errors?.general).toBeNull();
   });
 
   it('does not allow some fields to be modified when the affiliation is NOT managed by the DMP Tool', async () => {
-    // Store the original record count and first record for comparison after the mutation occurs
-    const originalRecordCount = affiliationStore.length;
-
     // Make sure it's NOT a DMP Tool managed affiliation
-    affiliationStore[0].uri = `${DEFAULT_ROR_AFFILIATION_URL}${casual.integer(1, 1000000)}`;
-    affiliationStore[0].provenance = AffiliationProvenance.ROR;
-    const originalRecord = { ...affiliationStore[0] };
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.ROR
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
+    const originalRecord = { ...affiliations[1] };
+    // Store the original record count and first record for comparison after the mutation occurs
+    const originalRecordCount = affiliations.length;
 
     // Update a couple of fields and ensure the rest remain unchanged
     const variables = {
       input: {
-        id: affiliationStore[0].id,
+        id: affiliations[1].id,
 
         uri: casual.url,
         name: casual.company_name,
@@ -759,24 +843,24 @@ describe('updateAffiliation mutation', () => {
         active: true,
       },
     };
-    const token = mockToken();
-    token.role = UserRole.ADMIN;
-    token.affiliationId = affiliationStore[0].uri;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.ADMIN;
+    context.token.affiliationId = affiliations[1].uri;
+
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.updateAffiliation).toBeDefined();
-    expect(affiliationStore.length).toEqual(originalRecordCount);
+    expect(affiliations.length).toEqual(originalRecordCount);
     // Verify fields that should not have changed
     expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(originalRecord.id);
     expect(resp.body.singleResult.data?.updateAffiliation?.provenance).toEqual(originalRecord.provenance);
     expect(resp.body.singleResult.data?.updateAffiliation?.createdById).toEqual(originalRecord.createdById);
-    expect(resp.body.singleResult.data?.updateAffiliation?.created).toEqual(originalRecord.created);
+    expect(resp.body.singleResult.data?.updateAffiliation?.created).toEqual(formatISO9075(originalRecord.created));
     expect(resp.body.singleResult.data?.updateAffiliation?.uri).toEqual(originalRecord.uri);
     expect(resp.body.singleResult.data?.updateAffiliation?.name).toEqual(originalRecord.name);
     expect(resp.body.singleResult.data?.updateAffiliation?.searchName).toEqual(originalRecord.searchName);
-    expect(resp.body.singleResult.data?.updateAffiliation?.funder).toEqual(originalRecord.funder);
+    expect(resp.body.singleResult.data?.updateAffiliation?.funder).toEqual(Boolean(originalRecord.funder));
     expect(resp.body.singleResult.data?.updateAffiliation?.fundrefId).toEqual(originalRecord.fundrefId);
     expect(resp.body.singleResult.data?.updateAffiliation?.homepage).toEqual(originalRecord.homepage);
     expect(resp.body.singleResult.data?.updateAffiliation?.acronyms).toEqual(originalRecord.acronyms);
@@ -790,54 +874,66 @@ describe('updateAffiliation mutation', () => {
     expect(resp.body.singleResult.data?.updateAffiliation?.contactEmail).toEqual(variables.input.contactEmail);
     expect(resp.body.singleResult.data?.updateAffiliation?.contactName).toEqual(variables.input.contactName);
     expect(resp.body.singleResult.data?.updateAffiliation?.ssoEntityId).toEqual(variables.input.ssoEntityId);
-    expect(resp.body.singleResult.data?.updateAffiliation?.feedbackEnabled).toEqual(variables.input.feedbackEnabled);
+    expect(resp.body.singleResult.data?.updateAffiliation?.feedbackEnabled).toEqual(Boolean(variables.input.feedbackEnabled));
     expect(resp.body.singleResult.data?.updateAffiliation?.feedbackMessage).toEqual(variables.input.feedbackMessage);
     expect(resp.body.singleResult.data?.updateAffiliation?.feedbackEmails).toEqual(variables.input.feedbackEmails);
     expect(resp.body.singleResult.data?.updateAffiliation?.managed).toBe(true);
     expect(resp.body.singleResult.data?.updateAffiliation?.active).toBe(true);
-    expect(resp.body.singleResult.data?.updateAffiliation?.modifiedById).toEqual(token.id);
+    expect(resp.body.singleResult.data?.updateAffiliation?.modifiedById).toEqual(context.token.id);
     expect(resp.body.singleResult.data?.updateAffiliation?.modified).toBeDefined();
     expect(resp.body.singleResult.data?.updateAffiliation?.errors?.general).toBeNull();
   });
 
   it('returns the existing affiliation with field level errors if it\'s a duplicate by the URI', async () => {
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.DMPTOOL
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
+
     const variables = {
       input: {
-        id: affiliationStore[0].id,
-        uri: affiliationStore[1].uri,
-        name: affiliationStore[0].name,
+        id: affiliations[1].id,
+        uri: affiliations[0].uri,
+        name: affiliations[1].name,
       },
     };
 
-    const token = mockToken();
-    token.role = UserRole.ADMIN;
-    token.affiliationId = affiliationStore[0].uri;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.ADMIN;
+    context.token.affiliationId = affiliations[1].uri;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.updateAffiliation).toBeDefined();
-    expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(affiliationStore[0].id);
+    expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(affiliations[1].id);
     // Verify the errors
     expect(resp.body.singleResult.data?.updateAffiliation?.errors?.general).toBeDefined();
   });
 
   it('returns the existing affiliation with field level errors if it\'s a duplicate by the name', async () => {
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.DMPTOOL
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
+
     const variables = {
       input: {
-        id: affiliationStore[0].id,
-        name: affiliationStore[1].name,
+        id: affiliations[1].id,
+        name: affiliations[0].name,
       },
     };
-    const token = mockToken();
-    token.role = UserRole.ADMIN;
-    token.affiliationId = affiliationStore[0].uri;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.ADMIN;
+    context.token.affiliationId = affiliations[1].uri;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.updateAffiliation).toBeDefined();
-    expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(affiliationStore[0].id);
+    expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(affiliations[1].id);
     // Verify the errors
     expect(resp.body.singleResult.data?.updateAffiliation?.errors?.general).toBeDefined();
   });
@@ -845,20 +941,18 @@ describe('updateAffiliation mutation', () => {
   it('returns the affiliation with field level errors if it\'s invalid', async () => {
     const variables = {
       input: {
-        id: affiliationStore[0].id,
-        uri: '123',
-        name: affiliationStore[0].name
+        id: affiliations[0].id,
+        name: '',
       },
     };
-    const token = mockToken();
-    token.role = UserRole.ADMIN;
-    token.affiliationId = affiliationStore[0].uri;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.ADMIN;
+    context.token.affiliationId = affiliations[0].uri;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.updateAffiliation).toBeDefined();
-    expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(affiliationStore[0].id);
+    expect(resp.body.singleResult.data?.updateAffiliation?.id).toEqual(affiliations[0].id);
     // Verify the errors
     expect(resp.body.singleResult.data?.updateAffiliation?.errors?.uri).toBeDefined();
   });
@@ -866,15 +960,14 @@ describe('updateAffiliation mutation', () => {
   it('returns a 404 when the affiliation does not exist', async () => {
     const variables = {
       input: {
-        id: affiliationStore[0].id + 999,
+        id: affiliations[0].id + 999,
         uri: '123',
         name: casual.company_name,
       },
     };
-    const token = mockToken();
-    token.role = UserRole.ADMIN;
-    token.affiliationId = affiliationStore[0].uri;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.ADMIN;
+    context.token.affiliationId = affiliations[0].uri;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
@@ -883,28 +976,35 @@ describe('updateAffiliation mutation', () => {
   });
 
   it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Affiliation, 'update').mockImplementation(() => { throw new Error('Error!') });
+    const originalUpdate = Affiliation.update;
+    jest.spyOn(Affiliation, 'update').mockImplementation(() => {
+      throw new Error('Error!')
+    });
 
     const variables = {
       input: {
-        id: affiliationStore[0].id,
+        id: affiliations[0].id,
         name: casual.company_name,
       },
     };
-    const token = mockToken();
-    token.role = UserRole.ADMIN;
-    token.affiliationId = affiliationStore[0].uri;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.ADMIN;
+    context.token.affiliationId = affiliations[0].uri;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
     expect(resp.body.singleResult.data?.updateAffiliation).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
+    Affiliation.update = originalUpdate;
   });
 });
 
 describe('deleteAffiliation mutation', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    affiliations = [];
+    const persistedAffiliation = await persistAffiliation(context, mockAffiliation({}));
+    affiliations.push(persistedAffiliation);
+
     query = `
       mutation RemoveAffiliation($affiliationId: Int!) {
         removeAffiliation (affiliationId: $affiliationId) {
@@ -914,32 +1014,38 @@ describe('deleteAffiliation mutation', () => {
     `;
   });
 
+  afterEach(async () => {
+    await cleanUpAddedAffiliations(context);
+  });
+
   it('deletes an affiliation when the user is a SuperAdmin and the affiliation is managed by the DMP Tool', async () => {
-    const affiliationId = affiliationStore[0].id;
-    affiliationStore[0].uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`;
-    affiliationStore[0].provenance = AffiliationProvenance.DMPTOOL;
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.DMPTOOL
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
 
-    const variables = { affiliationId: affiliationId };
-    const token = mockToken();
-    token.role = UserRole.SUPERADMIN;
-    const resp = await executeQuery(query, variables, token);
-
-
+    const variables = { affiliationId: affiliations[1].id };
+    context.token.role = UserRole.SUPERADMIN;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.removeAffiliation?.id).toEqual(affiliationId);
+    expect(resp.body.singleResult.data?.removeAffiliation?.id).toEqual(affiliations[1].id);
   });
 
   it('does not allow an affiliation that is NOT managed by the DMP Tool to be deleted', async () => {
-    const affiliationId = affiliationStore[0].id;
-    affiliationStore[0].uri = `${DEFAULT_ROR_AFFILIATION_URL}${casual.integer(1, 1000000)}`;
-    affiliationStore[0].provenance = AffiliationProvenance.ROR;
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.ROR
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
 
-    const variables = { affiliationId: affiliationId };
-    const token = mockToken();
-    token.role = UserRole.SUPERADMIN;
-    const resp = await executeQuery(query, variables, token);
+    const variables = { affiliationId: affiliations[1].id };
+    context.token.role = UserRole.SUPERADMIN;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
@@ -949,13 +1055,16 @@ describe('deleteAffiliation mutation', () => {
 
 
   it('does not allow a non-SuperAdmin to delete an affiliation', async () => {
-    const variables = { affiliationId: affiliationStore[0].id };
-    affiliationStore[0].uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`;
-    affiliationStore[0].provenance = AffiliationProvenance.DMPTOOL;
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.DMPTOOL
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
+    const variables = { affiliationId: affiliations[1].id };
 
-    const token = mockToken();
-    token.role = UserRole.ADMIN;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.ADMIN;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
@@ -964,13 +1073,16 @@ describe('deleteAffiliation mutation', () => {
   });
 
   it('returns a 404 when the affiliation does not exist', async () => {
-    const variables = { affiliationId: affiliationStore[0].id + 999 };
-    affiliationStore[0].uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`;
-    affiliationStore[0].provenance = AffiliationProvenance.DMPTOOL;
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.DMPTOOL
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
+    const variables = { affiliationId: affiliations[1].id + 999 };
 
-    const token = mockToken();
-    token.role = UserRole.SUPERADMIN;
-    const resp = await executeQuery(query, variables, token);
+    context.token.role = UserRole.SUPERADMIN;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
@@ -979,20 +1091,25 @@ describe('deleteAffiliation mutation', () => {
   });
 
   it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Affiliation, 'delete').mockImplementation(() => { throw new Error('Error!') });
-    affiliationStore[0].uri = `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`;
-    affiliationStore[0].provenance = AffiliationProvenance.DMPTOOL;
+    const originalDelete = Affiliation.delete;
+    jest.spyOn(Affiliation, 'delete').mockImplementation(() => {
+      throw new Error('Error!')
+    });
+    const managedAffiliation = mockAffiliation({
+      uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+      provenance: AffiliationProvenance.DMPTOOL
+    });
+    const persistedAffiliation = await persistAffiliation(context,  managedAffiliation);
+    affiliations.push(persistedAffiliation);
 
-    const variables = { affiliationId: affiliationStore[0].id };
-    const token = mockToken();
-    token.role = UserRole.SUPERADMIN;
-    const resp = await executeQuery(query, variables, token);
+    const variables = { affiliationId: affiliations[1].id };
+    context.token.role = UserRole.SUPERADMIN;
+    const resp = await executeQuery(testServer, context, query, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeDefined();
     expect(resp.body.singleResult.data?.removeAffiliation).toBeNull();
     expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
+    Affiliation.delete = originalDelete;
   });
 });
-
- */

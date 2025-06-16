@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import {capitalizeFirstLetter, formatORCID, getCurrentDate, isNullOrUndefined, validateEmail} from '../utils/helpers';
-import { buildContext } from '../context';
-import { logger, formatLogMessage } from '../logger';
+import { formatLogMessage } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
@@ -45,7 +44,7 @@ export class User extends MySqlModel {
   public locked?: boolean;
   public active?: boolean;
 
-  public tableName = 'users';
+  public static tableName = 'users';
 
   // Initialize a new User
   constructor(options) {
@@ -143,7 +142,7 @@ export class User extends MySqlModel {
     email: string,
     password: string,
   ): Promise<number> {
-    const sql = 'SELECT id, email, password FROM users WHERE email = ?';
+    const sql = `SELECT id, email, password FROM ${User.tableName} WHERE email = ?`;
     const users = await User.query(context, sql, [email], reference);
 
     // If the user was found, check the password
@@ -163,7 +162,7 @@ export class User extends MySqlModel {
 
   // Find the User by their Id
   static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
-    const sql = 'SELECT * FROM users WHERE id = ?';
+    const sql = `SELECT * FROM ${User.tableName} WHERE id = ?`;
 
     const results = await User.query(context, sql, [userId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
@@ -171,7 +170,7 @@ export class User extends MySqlModel {
 
   // Find the User by their email address
   static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
-    const sql = 'SELECT * FROM users WHERE email = ?';
+    const sql = `SELECT * FROM ${User.tableName} WHERE email = ?`;
     const results = await User.query(context, sql, [email], reference);
     return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
@@ -218,7 +217,7 @@ export class User extends MySqlModel {
     // Specify the field we want to use for the count
     opts.countField = 'u.id';
 
-    const sqlStatement = 'SELECT u.* FROM users u';
+    const sqlStatement = `SELECT u.* FROM ${User.tableName} u`;
 
     const response: PaginatedQueryResults<User> = await User.queryWithPagination(
       context,
@@ -274,7 +273,7 @@ export class User extends MySqlModel {
     // Specify the field we want to use for the count
     opts.countField = 'u.id';
 
-    const sqlStatement = 'SELECT u.* FROM users u LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri';
+    const sqlStatement = `SELECT u.* FROM ${User.tableName} u LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri`;
 
     const response: PaginatedQueryResults<User> = await User.queryWithPagination(
       context,
@@ -296,7 +295,7 @@ export class User extends MySqlModel {
       this.last_sign_in = getCurrentDate();
       this.last_sign_in_via = loginType;
 
-      if (await User.update(context, this.tableName, this, 'User.recordLogIn', ['password'], true)) {
+      if (await User.update(context, User.tableName, this, 'User.recordLogIn', ['password'], true)) {
         return true;
       }
     }
@@ -356,11 +355,10 @@ export class User extends MySqlModel {
       this.password = passwordHash
 
       try {
-        const sql = `INSERT INTO users \
+        const sql = `INSERT INTO ${User.tableName} \
                       (email, password, role, givenName, surName, affiliationId, acceptedTerms) \
                      VALUES(?, ?, ?, ?, ?, ?, ?)`;
         const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
-        const context = buildContext(logger);
         formatLogMessage(context)?.debug({ email: this.email }, 'User.register');
         const result = await User.query(context, sql, vals, 'User.register');
 
@@ -376,7 +374,7 @@ export class User extends MySqlModel {
         const user = await User.findById('User.register', context, result[0].insertId);
 
         // Update the user's createdById and modifiedById to indicate themselves
-        const sqlUpdate = `UPDATE users SET createdById = ?, modifiedById = ? WHERE id = ?`;
+        const sqlUpdate = `UPDATE ${User.tableName} SET createdById = ?, modifiedById = ? WHERE id = ?`;
         const valsUpdate = [user.id.toString(), user.id.toString(), user.id.toString()];
         await User.query(context, sqlUpdate, valsUpdate, 'User.register');
 
@@ -421,7 +419,7 @@ export class User extends MySqlModel {
         }
 
         // Don't allow password changes here
-        await User.update(context, this.tableName, this, 'User.update', ['password']);
+        await User.update(context, User.tableName, this, 'User.update', ['password']);
         return await User.findById('User.update', context, this.id);
       }
       // This user has never been saved before so we cannot update it!
@@ -444,7 +442,7 @@ export class User extends MySqlModel {
       if (this.validatePassword()) {
         this.password = await this.hashPassword(newPassword);
 
-        const updated = await User.update(context, this.tableName, this, 'User.updatePassword');
+        const updated = await User.update(context, User.tableName, this, 'User.updatePassword');
         if (updated) {
           return await User.findById('updatePassword resolver', context, this.id);
         }

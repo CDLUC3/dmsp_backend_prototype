@@ -67,8 +67,6 @@ const mockedUser: UserModel.User = {
   modified: getCurrentDate(),
   errors: {},
 
-  tableName: 'testUsers',
-
   getName: jest.fn(),
   recordLogIn: jest.fn(),
   isValid: jest.fn(),

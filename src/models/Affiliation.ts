@@ -56,7 +56,7 @@ export class Affiliation extends MySqlModel {
 
   public uneditableProperties: string[];
 
-  private tableName = 'affiliations';
+  public static tableName = 'affiliations';
 
   // Initialize a new Affiliation
   constructor(options) {
@@ -90,7 +90,7 @@ export class Affiliation extends MySqlModel {
     // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
     this.apiTarget = options.apiTarget;
 
-    this.uneditableProperties = ['uri', 'provenance', 'searchName'];
+    this.uneditableProperties = ['uri', 'provenance'];
 
     // Records owned by the DMPTool can edit these additional properties
     if (this.provenance === AffiliationProvenance.ROR) {
@@ -170,11 +170,12 @@ export class Affiliation extends MySqlModel {
       if (await this.isValid()) {
         const newId = await Affiliation.insert(
           context,
-          this.tableName,
+          Affiliation.tableName,
           this,
           'Affiliation.create',
           ['uneditableProperties']
         );
+
         return await Affiliation.findById('Affiliation.create', context, newId);
       }
     }
@@ -210,7 +211,7 @@ export class Affiliation extends MySqlModel {
 
         const updated = await Affiliation.update(
           context,
-          this.tableName,
+          Affiliation.tableName,
           this,
           reference,
           ['uneditableProperties', this.uneditableProperties].flat()
@@ -231,7 +232,12 @@ export class Affiliation extends MySqlModel {
   // Delete this record (will cascade delate all associated AffiliationLinks and AffiliaitonEmailDomains)
   async delete(context: MyContext): Promise<Affiliation> {
     if (this.uri) {
-      const result = await Affiliation.delete(context, this.tableName, this.id, 'Affiliation.delete');
+      const result = await Affiliation.delete(
+        context,
+        Affiliation.tableName,
+        this.id,
+        'Affiliation.delete'
+      );
       if (result) {
         return this;
       }
@@ -268,21 +274,21 @@ export class Affiliation extends MySqlModel {
 
   // Return the specified Affiliation  based on the DB id
   static async findById(reference: string, context: MyContext, id: number): Promise<Affiliation> {
-    const sql = 'SELECT * FROM affiliations WHERE id = ?';
+    const sql = `SELECT * FROM ${Affiliation.tableName} WHERE id = ?`;
     const results = await Affiliation.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 
   // Return the specified Affiliation based on the URI
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<Affiliation> {
-    const sql = 'SELECT * FROM affiliations WHERE uri = ?';
+    const sql = `SELECT * FROM ${Affiliation.tableName} WHERE uri = ?`;
     const results = await Affiliation.query(context, sql, [uri], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 
   // Return the specified Affiliation based on it's name
   static async findByName(reference: string, context: MyContext, name: string): Promise<Affiliation> {
-    const sql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(name)) = ?';
+    const sql = `SELECT * FROM ${Affiliation.tableName} WHERE TRIM(LOWER(name)) = ?`;
     const results = await Affiliation.query(context, sql, [name?.toLowerCase()?.trim()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
@@ -371,7 +377,7 @@ export class AffiliationSearch {
     // Specify the field we want to use for the count
     opts.countField = 'a.id';
 
-    const sqlStatement = 'SELECT a.* FROM affiliations a';
+    const sqlStatement = `SELECT a.* FROM ${Affiliation.tableName} a`;
 
     const response: PaginatedQueryResults<AffiliationSearch> = await Affiliation.queryWithPagination(
       context,
@@ -412,13 +418,14 @@ export class PopularFunder {
 
     // Get the top 20 funders based on the number of plans created in the past year
     const sql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
-                'FROM affiliations a ' +
+                `FROM ${Affiliation.tableName} a ` +
                 'LEFT JOIN projectFunders pf ON pf.affiliationId = a.uri ' +
                 'LEFT JOIN projects p ON p.id = pf.projectId ' +
                 'WHERE a.active = 1 AND a.funder = 1 AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? ' +
                 'GROUP BY a.id, a.uri, a.displayName ' +
-                'ORDER BY nbrPlans DESC LIMIT 20';
+                'ORDER BY nbrPlans DESC, displayName ASC LIMIT 20';
     const results = await Affiliation.query(context, sql, [startDate, endDate], 'PopularFunder.top20');
+
     if (Array.isArray(results) && results.length > 0) {
       return results.map((entry) => { return new PopularFunder(entry) });
     }

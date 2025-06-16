@@ -60,7 +60,7 @@ describe('Affiliation', () => {
   });
 
   it('should add additional properties to uneditableProperties if provenance is ROR', async () => {
-    expect(await affiliation.uneditableProperties).toEqual(['uri', 'provenance', 'searchName', 'name', 'funder', 'fundrefId', 'homepage', 'acronyms', 'aliases', 'types']);
+    expect(await affiliation.uneditableProperties).toEqual(['uri', 'provenance', 'name', 'funder', 'fundrefId', 'homepage', 'acronyms', 'aliases', 'types']);
   });
 });
 
@@ -543,7 +543,7 @@ describe('top20', () => {
                         'FROM affiliations a LEFT JOIN projectFunders pf ON pf.affiliationId = a.uri ' +
                         'LEFT JOIN projects p ON p.id = pf.projectId WHERE a.active = 1 AND a.funder = 1 ' +
                         'AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? GROUP BY a.id, a.uri, ' +
-                        'a.displayName ORDER BY nbrPlans DESC LIMIT 20';
+                        'a.displayName ORDER BY nbrPlans DESC, displayName ASC LIMIT 20';
     // Get the date range for the past year
     const today = new Date();
     const lastYear = new Date();

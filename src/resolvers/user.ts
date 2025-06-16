@@ -301,7 +301,7 @@ export const resolvers: Resolvers = {
               await new UserEmail(oldPrimary).update(context);
             }
             user.email = email;
-            if (await User.update(context, new User(user).tableName, user, ref, ['password'])) {
+            if (await User.update(context, User.tableName, user, ref, ['password'])) {
               return await UserEmail.findByUserId(ref, context, user.id);
             }
           } else {
@@ -366,7 +366,7 @@ export const resolvers: Resolvers = {
           // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
           if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
             user.active = false;
-            const updated = await User.update(context, new User(user).tableName, user, reference, ['password']);
+            const updated = await User.update(context, User.tableName, user, reference, ['password']);
 
             if (!updated || updated.hasErrors()) {
               user.addError('general', 'Unable to deactivate the user at this time');
@@ -399,7 +399,7 @@ export const resolvers: Resolvers = {
           // Only continue if the current user's affiliation matches the user OR they are SuperAdmin
           if (context.token.affiliationId === user.affiliationId || isSuperAdmin(context.token)) {
             user.active = true;
-            const updated = await User.update(context, user.tableName, user, reference, ['password']);
+            const updated = await User.update(context, User.tableName, user, reference, ['password']);
 
             if (!updated || updated.hasErrors()) {
               user.addError('general', 'Unable to activate the user at this time');

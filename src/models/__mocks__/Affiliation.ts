@@ -29,13 +29,13 @@ export interface MockAffiliationOptions {
 export const mockAffiliation = (
   options: MockAffiliationOptions
 ): Affiliation => {
-  const name = casual.company_name;
-  const homepage = casual.url;
+  const name = options.name ?? `${casual.company_name} - ${casual.integer(1, 9999)}`;
+  const homepage = options.homepage ?? casual.url;
   const domain = homepage.replace(/http(s)?:\/\//, '')
                                 .replace('/', '')
                                 .toLowerCase();
-  const acronyms = casual.array_of_words(2);
-  const aliases = casual.array_of_words(2);
+  const acronyms = options.acronyms ?? casual.array_of_words(2);
+  const aliases = options.aliases ?? casual.array_of_words(2);
   const searchName = [
     name,
     domain,
@@ -45,7 +45,7 @@ export const mockAffiliation = (
 
   // Use the options provided or default a value
   return new Affiliation({
-    name: options.name ?? name,
+    name: options.name ?? `TEST - ${name}`,
     uri: options.uri ?? `${DEFAULT_ROR_AFFILIATION_URL}/${casual.uuid}`,
     funder: options.funder ?? casual.boolean,
     types: options.types ?? [getRandomEnumValue(AffiliationType)],
@@ -65,17 +65,20 @@ export const persistAffiliation = async (
   context: MyContext,
   affiliation: Affiliation
 ): Promise<Affiliation | null> => {
-  try {
-    const created = await affiliation.create(context);
-    if (!isNullOrUndefined(created)) {
-      // Keep track of the id so we can clean up afterward
-      addedAffiliationIds.push(created.id);
-      return created;
-    }
-    console.error(`Unable to persist affiliation: ${affiliation.uri}`);
-  } catch (e) {
-    console.error(`Error persisting affiliation ${affiliation.uri}: ${e.message}`);
+  // Ensure the createdById and modifiedId are set
+  if (isNullOrUndefined(affiliation.createdById) || isNullOrUndefined(affiliation.modifiedById)) {
+    affiliation.createdById = context.token.id;
+    affiliation.modifiedById = context.token.id;
   }
+
+  const created = await affiliation.create(context);
+
+  if (!isNullOrUndefined(created)) {
+    // Keep track of the id so we can clean up afterward
+    addedAffiliationIds.push(created.id);
+    return created;
+  }
+
   return null;
 }
 
@@ -86,12 +89,11 @@ export const cleanUpAddedAffiliations = async (
   const reference = 'cleanUpAddedAffiliations';
   for (const id of addedAffiliationIds) {
     try {
-      const affiliation = await Affiliation.findById(reference, context, id);
-      if (!isNullOrUndefined(affiliation)) {
-        await affiliation.delete(context);
-      }
+      // Do a direct delete on the MySQL model because the tests might be mocking the Affiliation functions
+      await Affiliation.delete(context, Affiliation.tableName, id, reference);
     } catch (e) {
       console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
+      if (e.originalError) console.log(e.originalError);
     }
   }
 }
@@ -100,9 +102,9 @@ export const cleanUpAddedAffiliations = async (
 export const randomAffiliation = async (
   context: MyContext
 ): Promise<Affiliation | null> => {
-  const sql = 'SELECT * FROM affiliations WHERE active = 1 ORDER BY RAND() LIMIT 1';
+  const sql = `SELECT * FROM ${Affiliation.tableName} WHERE active = 1 ORDER BY RAND() LIMIT 1`;
   try {
-    const results = Affiliation.query(context, sql, [], 'randomAffiliation');
+    const results = await Affiliation.query(context, sql, [], 'randomAffiliation');
     if (Array.isArray(results) && results.length > 0) {
       return new Affiliation([0]);
     }

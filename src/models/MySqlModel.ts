@@ -215,7 +215,7 @@ export class MySqlModel {
         const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
-        const msg = `${reference}, ERROR: ${err.message}`;
+        const msg = `${reference}, ERROR: ${err.originalError ? err.originalError.message : err.message}`;
         formatLogMessage(apolloContext).error(err, msg);
         return [];
       }
@@ -314,7 +314,6 @@ export class MySqlModel {
       const limitClause = 'LIMIT ? OFFSET ?';
       const sql = `${sqlStatement} ${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
       const rows = await MySqlModel.query(apolloContext, sql, vals, reference);
-
       const items = Array.isArray(rows) ? rows : [];
 
       const totalCount = await this.getTotalCountForPagination(
@@ -466,7 +465,6 @@ export class MySqlModel {
                   (${props.map((entry) => entry.name).join(', ')}) \
                  VALUES (${Array(props.length).fill('?').join(', ')})`
     const vals = props.map((entry) => this.prepareValue(entry.value, typeof (entry.value)));
-
     // Send the calcuated INSERT statement to the query function
     const result = await this.query(apolloContext, sql, vals, reference);
     return Array.isArray(result) ? result[0]?.insertId : null;
