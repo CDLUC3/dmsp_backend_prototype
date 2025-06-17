@@ -54,7 +54,9 @@ export const anonymizeUser = async (context: MyContext, user: User): Promise<Use
   const userBefore = await User.findById(ref, context, user.id);
 
   // Anonymize the user's information
-  user.email = `${randomHex(6)}@deleted-account.${generalConfig.domain}`;
+  await UserEmail.createOrUpdatePrimary(context,
+    user.id,
+    `${randomHex(6)}@deleted-account.${generalConfig.domain}`);
   user.password = await user.hashPassword(generateRandomPassword());
   user.givenName = 'Deleted';
   user.surName = 'Account';
