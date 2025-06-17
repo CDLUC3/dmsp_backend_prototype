@@ -47,7 +47,7 @@ export const generateNewUser = (options) => {
 
     last_sign_in: options.last_sign_in ?? casual.date('YYYY-MM-DDTHH:mm:ss.SSSZ'),
     last_sign_in_via: options.last_sign_in_via ?? getRandomEnumValue(['email', 'sso']),
-    failed_sign_in_attemps: options.failed_sign_in_attemps ?? 0,
+    failed_sign_in_attempts: options.failed_sign_in_attempts ?? 0,
 
     notify_on_comment_added: options.notify_on_comment_added ?? true,
     notify_on_template_shared: options.notify_on_template_shared ?? true,

@@ -59,7 +59,7 @@ describe('constructor', () => {
     expect(user.languageId).toEqual(defaultLanguageId);
     expect(user.last_sign_in).toBeFalsy();
     expect(user.last_sign_in_via).toBeFalsy();
-    expect(user.failed_sign_in_attemps).toEqual(0);
+    expect(user.failed_sign_in_attempts).toEqual(0);
     expect(user.notify_on_comment_added).toEqual(true);
     expect(user.notify_on_template_shared).toEqual(true);
     expect(user.notify_on_feedback_complete).toEqual(true);

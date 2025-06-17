@@ -459,5 +459,10 @@ export const resolvers: Resolvers = {
     emails: async (parent: User, _, context): Promise<UserEmail[]> => {
       return await UserEmail.findByUserId('Chained User.emails', context, parent.id);
     },
+    // Chained resolver to fetch the primary email address
+    email: async (parent: User, _, context): Promise<string | null> => {
+      const primaryEmail = await UserEmail.findPrimaryByUserId('Chained User.email', context, parent.id);
+      return primaryEmail ? primaryEmail.email : null;
+    },
   },
 };

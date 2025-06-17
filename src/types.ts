@@ -3474,7 +3474,7 @@ export type User = {
   /** Errors associated with the Object */
   errors?: Maybe<UserErrors>;
   /** The number of failed login attempts */
-  failed_sign_in_attemps?: Maybe<Scalars['Int']['output']>;
+  failed_sign_in_attempts?: Maybe<Scalars['Int']['output']>;
   /** The user's first/given name */
   givenName?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the Object */
@@ -5532,7 +5532,7 @@ export type UserResolvers<ContextType = MyContext, ParentType extends ResolversP
   email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
   emails?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['UserErrors']>, ParentType, ContextType>;
-  failed_sign_in_attemps?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  failed_sign_in_attempts?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   languageId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

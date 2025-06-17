@@ -62,7 +62,7 @@ const mockedUser: UserModel.User = {
   notify_on_plan_visibility_change: casual.boolean,
   last_sign_in: getCurrentDate(),
   last_sign_in_via: getRandomEnumValue(UserModel.LogInType),
-  failed_sign_in_attemps: 0,
+  failed_sign_in_attempts: 0,
   created: getCurrentDate(),
   modified: getCurrentDate(),
   errors: {},

@@ -240,7 +240,7 @@ describe('anonymizeUser', () => {
     expect(result.locked).toEqual(original.locked);
     expect(result.last_sign_in).toEqual(original.last_sign_in);
     expect(result.last_sign_in_via).toEqual(original.last_sign_in_via);
-    expect(result.failed_sign_in_attemps).toEqual(original.failed_sign_in_attemps);
+    expect(result.failed_sign_in_attempts).toEqual(original.failed_sign_in_attempts);
 
     // Should record the modifier's info
     expect(result.modifiedById).toEqual(context.token.id);

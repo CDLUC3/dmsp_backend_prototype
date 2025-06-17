@@ -106,7 +106,7 @@ export const typeDefs = gql`
     "The method user for the last login: PASSWORD or SSO"
     last_sign_in_via: String
     "The number of failed login attempts"
-    failed_sign_in_attemps: Int
+    failed_sign_in_attempts: Int
 
     "The user's email addresses"
     emails: [UserEmail]
