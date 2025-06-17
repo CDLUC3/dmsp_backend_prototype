@@ -13,6 +13,7 @@ import { updateMemberRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -468,6 +469,12 @@ export const resolvers: Resolvers = {
         );
       }
       return null;
+    },
+    created: (parent: ProjectMember) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ProjectMember) => {
+      return formatISO9075(new Date(parent.modified));
     }
   },
 
@@ -497,5 +504,11 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
+    created: (parent: PlanMember) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: PlanMember) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

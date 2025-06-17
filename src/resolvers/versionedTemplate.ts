@@ -11,6 +11,7 @@ import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined } from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -97,5 +98,11 @@ export const resolvers: Resolvers = {
     versionedSections: async (parent: VersionedTemplate, _, context: MyContext): Promise<VersionedSection[]> => {
       return await VersionedSection.findByTemplateId('Chained VersionedTemplate.versionedSection', context, parent.id);
     },
+    created: (parent: VersionedTemplate) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: VersionedTemplate) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

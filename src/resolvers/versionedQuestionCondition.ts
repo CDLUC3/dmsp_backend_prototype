@@ -8,12 +8,13 @@ import { AuthenticationError, ForbiddenError, InternalServerError } from "../uti
 import { formatLogMessage } from "../logger";
 import { isAdmin } from "../services/authService";
 import { GraphQLError } from "graphql";
+import {formatISO9075} from "date-fns";
 
 
 export const resolvers: Resolvers = {
   Query: {
     // return all forcibly published conditions for the specified versioned question
-    publishedConditionsForQuestion: async (_, { versionedQuestionId }, context: MyContext): Promise<VersionedQuestionCondition[]> => {
+    publishedConditionsForQuestion: async (_, {versionedQuestionId}, context: MyContext): Promise<VersionedQuestionCondition[]> => {
       const reference = 'publishedConditionsForQuestion resolver';
       try {
         if (isAdmin(context.token)) {
@@ -33,5 +34,14 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+  },
+
+  VersionedQuestionCondition: {
+    created: (parent: VersionedQuestionCondition) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: VersionedQuestionCondition) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

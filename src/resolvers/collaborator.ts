@@ -10,6 +10,7 @@ import { hasPermissionOnTemplate } from "../services/templateService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { formatLogMessage } from "../logger";
 import { GraphQLError } from "graphql";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -245,6 +246,12 @@ export const resolvers: Resolvers = {
     user: async (parent: ProjectCollaborator, _, context: MyContext): Promise<User> => {
       return await User.findById('Chained TemplateController.user', context, parent.userId);
     },
+    created: (parent: ProjectCollaborator) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ProjectCollaborator) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
   TemplateCollaborator: {
     // Chained resolver to fetch the Template info
@@ -261,5 +268,11 @@ export const resolvers: Resolvers = {
     user: async (parent: TemplateCollaborator, _, context: MyContext): Promise<User> => {
       return await User.findById('Chained TemplateController.user', context, parent.userId);
     },
+    created: (parent: TemplateCollaborator) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: TemplateCollaborator) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

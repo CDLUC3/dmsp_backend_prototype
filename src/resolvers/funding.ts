@@ -11,6 +11,7 @@ import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -261,6 +262,12 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
+    created: (parent: ProjectFunding) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ProjectFunding) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 
   PlanFunding: {
@@ -269,6 +276,12 @@ export const resolvers: Resolvers = {
         return await ProjectFunding.findById('Chained PlanFunding.projectFunding', context, parent.projectFundingId);
       }
       return null;
+    },
+    created: (parent: PlanFunding) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: PlanFunding) => {
+      return formatISO9075(new Date(parent.modified));
     }
   }
 };

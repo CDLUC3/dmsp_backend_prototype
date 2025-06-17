@@ -9,6 +9,7 @@ import { ResearchDomain } from '../models/ResearchDomain';
 import { isNullOrUndefined, stringToEnumValue } from '../utils/helpers';
 import { GraphQLError } from 'graphql';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -285,5 +286,11 @@ export const resolvers: Resolvers = {
         parent.id
       );
     },
+    created: (parent: Repository) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Repository) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

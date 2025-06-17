@@ -12,6 +12,7 @@ import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -253,6 +254,15 @@ export const resolvers: Resolvers = {
         return await PlanSectionProgress.findByPlanId('plan sections resolver', context, parent.id);
       }
       return [];
+    },
+    registered: (parent: Plan) => {
+      return formatISO9075(new Date(parent.registered));
+    },
+    created: (parent: Plan) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Plan) => {
+      return formatISO9075(new Date(parent.modified));
     }
   },
 

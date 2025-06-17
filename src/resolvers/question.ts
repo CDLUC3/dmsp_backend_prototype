@@ -9,6 +9,7 @@ import { formatLogMessage } from "../logger";
 import { isAdmin, isAuthorized } from "../services/authService";
 import { hasPermissionOnSection } from "../services/sectionService";
 import { GraphQLError } from "graphql";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -270,5 +271,11 @@ console.log(typeof final.json)
         parent.id
       );
     },
+    created: (parent: Question) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Question) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
 };
