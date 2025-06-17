@@ -73,6 +73,12 @@ export class User extends MySqlModel {
     this.prepForSave();
   }
 
+  // Async getter for primary email
+  public async getEmail(context: MyContext): Promise<string | null> {
+    const primaryEmail = await UserEmail.findPrimaryByUserId('User.getEmail', context, this.id);
+    return primaryEmail ? primaryEmail.email : null;
+  }
+
 
   // Ensure data integrity
   prepForSave() {
