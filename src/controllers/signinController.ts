@@ -7,12 +7,13 @@ import { generalConfig } from '../config/generalConfig';
 import { buildContext } from '../context';
 
 export const signinController = async (req: Request, res: Response) => {
-  const userIn = new User(req.body);
+  const { email, ...userData } = req.body;
+  const userIn = new User(userData);
   const cache = Cache.getInstance();
   const context = buildContext(logger, cache);
 
   try {
-    const user = await userIn.login(context) || null;
+    const user = await userIn.login(context, email) || null;
 
     if (user) {
       const { accessToken, refreshToken } = await generateAuthTokens(context, user);
