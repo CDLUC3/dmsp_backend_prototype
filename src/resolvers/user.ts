@@ -300,7 +300,8 @@ export const resolvers: Resolvers = {
               oldPrimary.isPrimary = false;
               await new UserEmail(oldPrimary).update(context);
             }
-            user.email = email;
+            // The user object doesn't contain the email anymore
+            // user.email = email;
             if (await User.update(context, new User(user).tableName, user, ref, ['password'])) {
               return await UserEmail.findByUserId(ref, context, user.id);
             }
