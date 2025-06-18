@@ -4,7 +4,7 @@ import { Request } from 'express-jwt';
 import { refreshAccessToken, setTokenCookie } from '../../services/tokenService';
 import { refreshTokenController } from '../refreshTokenController';
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 
 jest.mock('../../context.ts');
 
@@ -20,10 +20,10 @@ describe('refreshTokenController', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let context
 
-  beforeEach(() => {
+  beforeEach(async() => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken(), null);
+    context = await buildMockContextWithToken(logger);
 
     mockRequest = {
       auth: { jti: casual.integer(1, 99999).toString(), id: casual.integer(1, 999) },

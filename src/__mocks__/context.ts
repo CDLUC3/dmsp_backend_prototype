@@ -89,20 +89,23 @@ const mockedMysqlInstance = mysql.getInstance();
 // Generate a mock user
 export const mockUser = (
   id = casual.integer(1, 9999),
-  email = casual.email,
   givenName = casual.first_name,
   surName = casual.last_name,
   affiliationId = casual.url,
   userRole = UserRole.RESEARCHER,
 ): User => {
-  return new User({ id, email, givenName, surName, affiliationId, role: userRole });
+  return new User({ id, givenName, surName, affiliationId, role: userRole });
 }
 
 // Generate a mock JWToken
-export const mockToken = (user = mockUser()): JWTAccessToken => {
+export const mockToken = async (
+  user = mockUser(),
+  context: MyContext
+): Promise<JWTAccessToken> => {
+  const email = await user.getEmail(context);
   return {
     id: user.id,
-    email: user.email,
+    email,
     givenName: user.givenName,
     surName: user.surName,
     affiliationId: user.affiliationId,
@@ -128,3 +131,18 @@ export function buildContext(logger: Logger, token: JWTAccessToken = null, cache
     dataSources: mockDataSources,
   }
 }
+
+export const buildMockContextWithToken = async (
+  logger: Logger,
+  user: User = mockUser(),
+  cache: any = null
+): Promise<MyContext> => {
+  // Ensure getEmail is mocked
+  if (!jest.isMockFunction(User.prototype.getEmail)) {
+    jest.spyOn(User.prototype, 'getEmail').mockImplementation(async () => casual.email);
+  }
+  const context = buildContext(logger, null, cache);
+  const token = await mockToken(user, context);
+  context.token = token;
+  return context;
+};

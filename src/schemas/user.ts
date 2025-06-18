@@ -53,7 +53,7 @@ export const typeDefs = gql`
 
   "A user of the DMPTool"
   type User {
-    "The unique identifer for the Object"
+    "The unique identifier for the Object"
     id: Int
     "The user who created the Object"
     createdById: Int
@@ -61,7 +61,7 @@ export const typeDefs = gql`
     created: String
     "The user who last modified the Object"
     modifiedById: Int
-    "The timestamp when the Object was last modifed"
+    "The timestamp when the Object was last modified"
     modified: String
     "Errors associated with the Object"
     errors: UserErrors
@@ -152,7 +152,7 @@ export const typeDefs = gql`
   }
 
   type UserEmail {
-    "The unique identifer for the Object"
+    "The unique identifier for the Object"
     id: Int
     "The user who created the Object"
     createdById: Int
@@ -160,7 +160,7 @@ export const typeDefs = gql`
     created: String
     "The user who last modified the Object"
     modifiedById: Int
-    "The timestamp when the Object was last modifed"
+    "The timestamp when the Object was last modified"
     modified: String
     "Errors associated with the Object"
     errors: UserEmailErrors
