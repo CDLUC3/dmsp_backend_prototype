@@ -94,7 +94,12 @@ export const mockUser = (
   affiliationId = casual.url,
   userRole = UserRole.RESEARCHER,
 ): User => {
-  return new User({ id, givenName, surName, affiliationId, role: userRole });
+  const user = new User({ id, givenName, surName, affiliationId, role: userRole });
+  // Mock getEmail to avoid real DB calls
+  user.getEmail = jest.fn().mockResolvedValue(casual.email);
+  user.register = jest.fn()
+  return user;
+  // return new User({ id, givenName, surName, affiliationId, role: userRole });
 }
 
 // Generate a mock JWToken
@@ -137,8 +142,8 @@ export const buildMockContextWithToken = async (
   user: User = mockUser(),
   cache: any = null
 ): Promise<MyContext> => {
-  // Ensure getEmail is mocked
-  if (!jest.isMockFunction(User.prototype.getEmail)) {
+  // Only spy on the prototype if user.getEmail is not defined
+  if (!user.getEmail && !jest.isMockFunction(User.prototype.getEmail)) {
     jest.spyOn(User.prototype, 'getEmail').mockImplementation(async () => casual.email);
   }
   const context = buildContext(logger, null, cache);

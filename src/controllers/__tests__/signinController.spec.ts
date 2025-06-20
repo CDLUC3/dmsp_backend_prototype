@@ -9,7 +9,7 @@ import { defaultLanguageId } from '../../models/Language';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { getCurrentDate } from '../../utils/helpers';
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 
 jest.mock('../../context.ts');
 
@@ -20,7 +20,7 @@ jest.mock('../../config/generalConfig');
 
 const mockedUser: UserModel.User = {
   id: casual.integer(1, 999),
-  email: casual.email,
+  getEmail: jest.fn().mockResolvedValue(casual.email),
   givenName: casual.first_name,
   surName: casual.last_name,
   affiliationId: casual.url,
@@ -66,10 +66,10 @@ describe('signinController', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let context;
 
-  beforeEach(() => {
+  beforeEach(async() => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken(), null);
+    context = await buildMockContextWithToken(logger);
 
     mockRequest = {
       body: {

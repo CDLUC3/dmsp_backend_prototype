@@ -9,7 +9,8 @@ import { defaultLanguageId } from '../../models/Language';
 import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { mockUser as mockUserFn } from '../../__mocks__/context';
 
 jest.mock('../../context.ts');
 
@@ -23,7 +24,7 @@ jest.mock('../../config/generalConfig');
 
 const mockedUser: UserModel.User = {
   id: casual.integer(1, 999),
-  email: casual.email,
+  getEmail: jest.fn().mockResolvedValue(casual.email),
   givenName: casual.first_name,
   surName: casual.last_name,
   affiliationId: casual.url,
@@ -67,10 +68,12 @@ describe('signupController', () => {
   let mockCache: jest.Mocked<Cache>;
   let mockUser;
 
-  beforeEach(() => {
+  beforeEach(async() => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken(), null);
+    mockUser = mockUserFn();
+
+    context = await buildMockContextWithToken(logger, mockUser);
 
     mockRequest = {
       body: {
@@ -89,7 +92,7 @@ describe('signupController', () => {
     mockCache = Cache.getInstance() as jest.Mocked<Cache>;
     (Cache.getInstance as jest.Mock).mockReturnValue(mockCache);
 
-    mockUser = mockedUser;
+    // testUser = mockedUser;
     jest.spyOn(UserModel, 'User').mockReturnValue(mockUser);
   });
 
@@ -98,7 +101,7 @@ describe('signupController', () => {
   });
 
   it('should sign the user in and set the access and refresh tokens successfully', async () => {
-    jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockedUser);
+    jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockUser);
     (generateAuthTokens as jest.Mock).mockResolvedValue({
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token'
@@ -115,14 +118,14 @@ describe('signupController', () => {
 
   it('should return 400 if user is invalid', async () => {
     mockUser.errors = { 'email': 'Invalid email' };
-    jest.spyOn(mockedUser, 'hasErrors').mockReturnValue(true);
-    jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockedUser);
+    mockUser.hasErrors = jest.fn().mockReturnValue(true)
+    jest.spyOn(mockUser, 'register').mockResolvedValueOnce(mockUser);
 
     await signupController(mockRequest as Request, mockResponse as Response);
 
     expect(mockResponse.status).toHaveBeenCalledWith(400);
     expect(mockResponse.json)
-      .toHaveBeenCalledWith({ success: false, message: Object.values(mockedUser.errors).join(' | ') });
+      .toHaveBeenCalledWith({ success: false, message: Object.values(mockUser.errors).join(' | ') });
     mockUser.errors = [];
   });
 

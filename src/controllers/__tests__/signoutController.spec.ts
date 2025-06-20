@@ -5,7 +5,7 @@ import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../../
 import casual from 'casual';
 import { signoutController } from '../signoutController';
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { MyContext } from '../../context';
 
 jest.mock('../../context.ts');
@@ -21,10 +21,10 @@ describe('signoutController', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let context: MyContext;
 
-  beforeEach(() => {
+  beforeEach(async() => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken(), null);
+    context = await buildMockContextWithToken(logger);
 
     mockRequest = {
       auth: { jti: casual.integer(1, 99999).toString() },
