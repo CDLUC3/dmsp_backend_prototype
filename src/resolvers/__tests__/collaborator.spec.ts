@@ -1,8 +1,8 @@
-import {ApolloServer} from "@apollo/server";
+import { ApolloServer } from "@apollo/server";
 import casual from "casual";
-import {buildContext, MyContext} from "../../context";
-import {logger} from "../../__mocks__/logger";
-import {User, UserRole} from "../../models/User";
+import { buildContext, MyContext } from "../../context";
+import { logger } from "../../__mocks__/logger";
+import { User, UserRole } from "../../models/User";
 import { Project } from "../../models/Project";
 import {
   ProjectCollaborator,
@@ -16,7 +16,7 @@ import {
   initTestServer,
   mockToken, testNotFound, testStandardErrors,
 } from "./resolverTestHelper";
-import {randomAffiliation} from "../../models/__mocks__/Affiliation";
+import { randomAffiliation } from "../../models/__mocks__/Affiliation";
 import {
   cleanUpAddedUser,
   mockUser,
@@ -27,7 +27,7 @@ import {
   mockProject,
   persistProject
 } from "../../models/__mocks__/Project";
-import {Affiliation} from "../../models/Affiliation";
+import { Affiliation } from "../../models/Affiliation";
 import assert from "assert";
 import {
   cleanUpAddedProjectCollaborator, cleanUpAddedTemplateCollaborator,
@@ -785,7 +785,7 @@ describe('projectCollaborators', () => {
     )
   });
 
-  it('Throws a 404 if the template does not exist', async () => {
+  it('Throws a 404 if the project does not exist', async () => {
     context.token = mockToken(superAdmin);
 
     await testNotFound(testServer, context, query, { projectId: 99999999 });

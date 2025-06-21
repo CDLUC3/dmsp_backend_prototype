@@ -1,656 +1,615 @@
-
-it('passes', () => {
-  expect(true).toBe(true);
-});
-
-/*
 import { ApolloServer } from "@apollo/server";
-
-import { typeDefs } from "../../schema";
-import { resolvers } from "../../resolver";
-import assert from "assert";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import casual from "casual";
+import { buildContext, MyContext } from "../../context";
 import { logger } from "../../__mocks__/logger";
-import { JWTAccessToken } from "../../services/tokenService";
-
 import { User, UserRole } from "../../models/User";
-import { Affiliation } from "../../models/Affiliation";
 import { Project } from "../../models/Project";
-import { Plan } from "../../models/Plan";
-import { MemberRole } from "../../models/MemberRole";
-import { ProjectCollaborator, ProjectCollaboratorAccessLevel } from "../../models/Collaborator";
-import { PlanMember, ProjectMember } from "../../models/Member";
-import { MyContext } from "../../context";
+import { PlanMember, ProjectMember } from '../../models/Member';
+import { randomMemberRole } from '../../models/__mocks__/MemberRole';
+import { MySQLConnection } from "../../datasources/mysql";
 import {
-  clearProjectCollaboratorsStore,
-  initProjectCollaboratorsStore,
-  mockFindProjectCollaboratorByProjectId
-} from "../../models/__mocks__/Collaborator";
-import { clearProjectStore, initProjectStore, mockFindProjectById } from "../../models/__mocks__/Project";
+  executeQuery,
+  initErrorMessage,
+  initTestServer,
+  mockToken, testNotFound, testStandardErrors,
+} from "./resolverTestHelper";
+import { randomAffiliation } from "../../models/__mocks__/Affiliation";
 import {
-  clearPlanStore,
-  initPlanStore,
-  mockFindPlanById,
-  mockFindPlansByProjectId,
-} from "../../models/__mocks__/Plan";
+  cleanUpAddedUser,
+  mockUser,
+  persistUser, randomUser
+} from "../../models/__mocks__/User";
 import {
-  clearMemberRoles,
-  initMemberRoles,
-  mockAddMemberRoleToPlanMember,
-  mockAddMemberRoleToProjectMember,
-  mockFindByPlanMemberId,
-  mockFindByProjectMemberId,
-  mockFindMemberRoleById,
-  mockRemoveMemberRoleFromPlanMember,
-  mockRemoveMemberRoleFromProjectMember
-} from "../../models/__mocks__/MemberRole";
+  cleanUpAddedProject,
+  mockProject,
+  persistProject
+} from "../../models/__mocks__/Project";
+import { Affiliation } from "../../models/Affiliation";
+import assert from "assert";
 import {
-  clearPlanMemberStore,
-  clearProjectMemberStore,
-  initPlanMemberStore,
-  initProjectMemberStore,
-  mockDeletePlanMember,
-  mockDeleteProjectMember,
-  mockFindPlanMemberById,
-  mockFindPlanMembersByPlanId,
-  mockFindProjectMemberById,
-  mockFindProjectMembersByProjectId,
-  mockInsertPlanMember,
-  mockInsertProjectMember,
-  mockUpdatePlanMember,
-  mockUpdateProjectMember
+  cleanUpAddedPlanMember,
+  cleanUpAddedProjectMember,
+  mockPlanMember,
+  mockProjectMember, persistProjectMember,
 } from "../../models/__mocks__/Member";
-import { clearAffiliationStore, initAffiliationStore, mockFindAffiliationByURI } from "../../models/__mocks__/Affiliation";
-import { clearUserStore, initUserStore, mockFindUserById } from "../../models/__mocks__/User";
+import {getMockORCID} from "../../__tests__/helpers";
+import {
+  cleanUpAddedProjectCollaborator,
+  mockProjectCollaborator,
+  persistProjectCollaborator
+} from "../../models/__mocks__/Collaborator";
+import {ProjectCollaboratorAccessLevel} from "../../models/Collaborator";
 
-jest.mock('../../context.ts');
-jest.mock('../../services/emailService');
+jest.mock("../../datasources/dmphubAPI");
 
-let context: MyContext;
+let mysqlInstance: MySQLConnection;
 let testServer: ApolloServer;
+let context: MyContext;
 
-let userStore: User[];
-let affiliationStore: Affiliation[];
-let memberRoleStore: MemberRole[];
-let projectStore: Project[];
-let planStore: Plan[];
-let projectCollaboratorStore: ProjectCollaborator[];
-let projectMemberStore: ProjectMember[];
-let planMemberStore: PlanMember[];
-
-let researcherToken: JWTAccessToken;
-let adminToken: JWTAccessToken;
-let superAdminToken: JWTAccessToken;
-
-let query: string;
-
-// Proxy call to the Apollo server test server
-async function executeQuery (
-  query: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  variables: any,
-  context: MyContext
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any> {
-  return await testServer.executeOperation(
-    { query, variables },
-    { contextValue: context },
-  );
-}
+let affiliation: Affiliation;
+let sameAffiliationAdmin: User;
+let otherAffiliationAdmin: User;
+let superAdmin: User;
 
 beforeEach(async () => {
-  affiliationStore = initAffiliationStore(1);
-  userStore = initUserStore(3);
-
-  // Assign the roles and affiliations to the users
-  userStore[0].role = UserRole.RESEARCHER;
-  userStore[0].affiliationId = affiliationStore[0].uri;
-  userStore[1].role = UserRole.ADMIN;
-  userStore[1].affiliationId = affiliationStore[0].uri;
-  userStore[2].role = UserRole.SUPERADMIN;
-
-  // Generate tokens for each user type
-  researcherToken = mockToken(new User(userStore[0]));
-  adminToken = mockToken(new User(userStore[1]));
-  superAdminToken = mockToken(new User(userStore[2]));
-
-  // Build the mock Apollo context
-  context = buildContext(logger, researcherToken, researcherToken);
-
-  // Initialize the Apollo server
-  testServer = new ApolloServer({
-    typeDefs, resolvers
-  });
-
-  // Add initial data to the mock database tables
-  projectStore = initProjectStore(1);
-  planStore = initPlanStore(1);
-  projectCollaboratorStore = initProjectCollaboratorsStore(1);
-  memberRoleStore = initMemberRoles(3);
-  projectMemberStore = initProjectMemberStore(3);
-  planMemberStore = initPlanMemberStore(3);
-
-  // Make sure the plan is associated with the first project
-  planStore[0].projectId = projectStore[0].id;
-
-  // Make sure the first plan is associated with the first project
-  projectMemberStore[0].projectId = projectStore[0].id;
-
-  // Make sure the researcher is the creator of the project and plan
-  projectStore[0].createdById = researcherToken.id;
-  projectStore[0].createdById = researcherToken.id;
-
-  // Attach the members to the projects and plans
-  projectMemberStore.forEach(member => {
-    member.affiliationId = affiliationStore[0].uri; // Set the affiliation for the member
-    member.projectId = projectStore[0].id; // Attach to the first project
-    member.createdById = researcherToken.id; // Set the creator to the researcher
-    member.modifiedById = researcherToken.id; // Set the modifier to the researcher
-  });
-  planMemberStore.forEach((member, idx) => {
-    member.planId = planStore[0].id; // Attach to the first plan
-    member.createdById = researcherToken.id; // Set the creator to the researcher
-    member.modifiedById = researcherToken.id; // Set the modifier to the researcher
-    member.projectMemberId = projectMemberStore[idx].id;
-  });
-
-  // Mock affiliation, User and ProjectCollaborator lookups
-  jest.spyOn(Affiliation, 'findByURI').mockImplementation(mockFindAffiliationByURI);
-  jest.spyOn(User, 'findById').mockImplementation(mockFindUserById);
-  jest.spyOn(ProjectCollaborator, 'findByProjectId').mockImplementation(mockFindProjectCollaboratorByProjectId);
-
-  // Use spys to mock the database queries for Project and Plan
-  jest.spyOn(Project, 'findById').mockImplementation(mockFindProjectById);
-  jest.spyOn(Plan, 'findById').mockImplementation(mockFindPlanById);
-  jest.spyOn(Plan, 'findByProjectId').mockImplementation(mockFindPlansByProjectId);
-
-  // Use spys to monitor the database queries for ProjectMember
-  jest.spyOn(ProjectMember, 'findById').mockImplementation(mockFindProjectMemberById);
-  jest.spyOn(ProjectMember, 'findByProjectId').mockImplementation(mockFindProjectMembersByProjectId);
-  jest.spyOn(PlanMember, 'findById').mockImplementation(mockFindPlanMemberById);
-  jest.spyOn(PlanMember, 'findByPlanId').mockImplementation(mockFindPlanMembersByPlanId);
-
-  // Use spys to monitor the database queries for MemberRole
-  jest.spyOn(MemberRole, 'findById').mockImplementation(mockFindMemberRoleById);
-  jest.spyOn(MemberRole, 'findByProjectMemberId').mockImplementation(mockFindByProjectMemberId);
-  jest.spyOn(MemberRole, 'findByPlanMemberId').mockImplementation(mockFindByPlanMemberId);
-  jest.spyOn(MemberRole, 'defaultRole').mockResolvedValue(memberRoleStore[0]);
-
-  // Spy on the association methods for MemberRole
-  jest.spyOn(MemberRole.prototype, 'addToProjectMember')
-      .mockImplementation(async function (this: MemberRole, context, projectMemberId) {
-    if (this) {
-      return await mockAddMemberRoleToProjectMember(context, this.id, projectMemberId);
-    }
-    return false;
-  });
-  jest.spyOn(MemberRole.prototype, 'removeFromProjectMember')
-      .mockImplementation(async function (this: MemberRole, context, projectMemberId) {
-    if (this) {
-      return await mockRemoveMemberRoleFromProjectMember(context, this.id, projectMemberId);
-    }
-    return false;
-  });
-  jest.spyOn(MemberRole.prototype, 'addToPlanMember')
-      .mockImplementation(async function (this: MemberRole, context, planMemberId) {
-    if (this) {
-      return await mockAddMemberRoleToPlanMember(context, this.id, planMemberId);
-    }
-    return false;
-  });
-  jest.spyOn(MemberRole.prototype, 'removeFromPlanMember')
-      .mockImplementation(async function (this: MemberRole, context, planMemberId) {
-    if (this) {
-      return await mockRemoveMemberRoleFromPlanMember(context, this.id, planMemberId);
-    }
-    return false;
-  });
-
-  // Use spys to mock the database mutations for a Project and Plan Members
-  jest.spyOn(ProjectMember, 'insert').mockImplementation(mockInsertProjectMember);
-  jest.spyOn(ProjectMember, 'update').mockImplementation(mockUpdateProjectMember);
-  jest.spyOn(ProjectMember, 'delete').mockImplementation(mockDeleteProjectMember);
-  jest.spyOn(PlanMember, 'insert').mockImplementation(mockInsertPlanMember);
-  jest.spyOn(PlanMember, 'update').mockImplementation(mockUpdatePlanMember);
-  jest.spyOn(PlanMember, 'delete').mockImplementation(mockDeletePlanMember);
-
-  // Attach the members to roles
-  memberRoleStore.forEach((role, idx) => {
-    const memberRole = new MemberRole(role);
-    memberRole.addToProjectMember(context, projectMemberStore[idx].id);
-    memberRole.addToPlanMember(context, planMemberStore[idx].id);
-  });
-});
-
-afterEach(() => {
   jest.clearAllMocks();
 
-  // Reset the mock database
-  clearAffiliationStore();
-  clearUserStore();
-  clearProjectStore();
-  clearPlanStore();
-  clearProjectCollaboratorsStore();
-  clearMemberRoles();
-  clearProjectMemberStore();
-  clearPlanMemberStore();
+  try {
+    // Initialize the mysql connection pool
+    mysqlInstance = new MySQLConnection();
+    // Ensure the pool has finished initializing
+    await mysqlInstance.initPromise;
+
+    // Initialize the Apollo server
+    testServer = initTestServer();
+    await testServer.start();
+  } catch (err) {
+    console.error(initErrorMessage, err);
+    process.exit(1);
+  }
+
+  // Build out the Apollo context
+  context = buildContext(logger, null, null, mysqlInstance, null);
+
+  // Get a random affiliation because a User needs one
+  affiliation = await randomAffiliation(context);
+
+  // Generate the test admin users
+  sameAffiliationAdmin = await persistUser(
+    context,
+    mockUser({
+      affiliationId: affiliation.uri,
+      role: UserRole.ADMIN
+    })
+  );
+  otherAffiliationAdmin = await persistUser(
+    context,
+    mockUser({
+      affiliationId: 'https://test.example.com',
+      role: UserRole.ADMIN
+    })
+  );
+  superAdmin = await persistUser(
+    context,
+    mockUser({
+      role: UserRole.SUPERADMIN
+    })
+  );
 });
 
-describe.skip('projectMembers query', () => {
-  beforeEach(() => {
-    query = `
-      query projectMembersQuery($projectId: Int!) {
-        projectMembers (projectId: $projectId) {
+afterEach(async () => {
+  try {
+    // Delete all the DB records that were persisted during the tests
+    await cleanUpAddedUser(context, sameAffiliationAdmin.id);
+    await cleanUpAddedUser(context, otherAffiliationAdmin.id);
+    await cleanUpAddedUser(context, superAdmin.id);
+
+    // Close the mysql connection pool
+    await mysqlInstance.close();
+
+    // Shutdown the test server
+    await testServer.stop();
+  } catch (err) {
+    console.error('Error cleaning up after tests', err);
+    process.exit(1);
+  }
+});
+
+
+describe('projectMembers', () => {
+  let project: Project;
+  let emailer: jest.Mock;
+
+  let creator: User;
+  let existingMember: ProjectMember;
+
+  const query = `
+    query projectMembersQuery($projectId: Int!) {
+      projectMembers (projectId: $projectId) {
+        id
+        createdById
+        created
+        modifiedById
+        modified
+        project {
           id
-          createdById
-          created
-          modifiedById
-          modified
-          project {
-            id
-            title
-          }
-          affiliation {
-            uri
-            name
-          }
-          givenName
-          surName
-          orcid
-          email
-          memberRoles {
-            id
-            uri
-            label
-            description
-            displayOrder
-          }
+          title
+        }
+        affiliation {
+          uri
+          name
+        }
+        givenName
+        surName
+        orcid
+        email
+        memberRoles {
+          id
+          uri
+          label
+          description
+          displayOrder
         }
       }
-    `;
-  });
+    }
+  `;
 
-  it('returns the projectMembers for the project when the current user is the creator of the project', async () => {
-    const variables = { projectId: projectStore[0].id };
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.projectMembers.length).toBe(3);
-    // verify all the properties are returned
-    expect(resp.body.singleResult.data?.projectMembers[0]?.id).toEqual(projectMemberStore[0].id);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.givenName).toEqual(projectMemberStore[0].givenName);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.surName).toEqual(projectMemberStore[0].surName);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.orcid).toEqual(projectMemberStore[0].orcid);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.email).toEqual(projectMemberStore[0].email);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.project.id).toEqual(projectStore[0].id);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.project.title).toEqual(projectStore[0].title);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.affiliation.uri).toEqual(affiliationStore[0].uri);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.affiliation.name).toEqual(affiliationStore[0].name);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.memberRoles.length).toBeGreaterThan(0);
-
-    expect(resp.body.singleResult.data?.projectMembers[0]?.created).toEqual(projectMemberStore[0].created);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.createdById).toEqual(context.token.id);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.modified).toEqual(projectMemberStore[0].modified);
-    expect(resp.body.singleResult.data?.projectMembers[0]?.modifiedById).toEqual(context.token.id);
-  });
-
-  it('returns the projectMembers for the project when the current user is a collaborator on the project', async () => {
-    const variables = { projectId: projectStore[0].id };
-    context.token = mockToken();
-    // Make the last user in the userStore a collaborator on the project
-    projectCollaboratorStore[0].projectId = projectStore[0].id;
-    projectCollaboratorStore[0].userId = context.token.id
-    projectCollaboratorStore[0].accessLevel = ProjectCollaboratorAccessLevel.EDIT;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.projectMembers.length).toBe(3);
-  });
-
-  it('returns the projectMembers for the project when the current user is the an admin for the org that created the project', async () => {
-    const variables = { projectId: projectStore[0].id };
-    context.token = adminToken;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.projectMembers.length).toBe(3);
-  });
-
-  it('returns the projectMembers for the project when the current user is a super admin', async () => {
-    const variables = { projectId: projectStore[0].id };
-    context.token = superAdminToken;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.projectMembers.length).toBe(3);
-  });
-
-  it('returns a 403 when the current user is not a collaborator on the project', async () => {
-    const variables = { projectId: projectStore[0].id };
-    context.token = mockToken(new User({ id: 999999, affiliationId: 'fake-org', role: UserRole.RESEARCHER }));
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.projectMembers).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
-  });
-
-  it('returns a 403 when the current user is an Admin but not for the affiliation of the project creator', async () => {
-    const variables = { projectId: projectStore[0].id };
-    adminToken.affiliationId = 'fake-org.edu';
-    context.token = adminToken;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.projectMembers).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
-  });
-
-  it('returns a 401 when the current user is not authenticated', async () => {
-    const variables = { projectId: projectStore[0].id };
-    context.token = null;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.projectMembers).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('UNAUTHENTICATED');
-  });
-
-  it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Project, 'findById').mockImplementation(() => { throw new Error('Error!') });
-
-    const variables = { projectId: projectStore[0].id };
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.projectMembers).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
-  });
-});
-
-describe.skip('projectMember query', () => {
-  beforeEach(() => {
-    query = `
-      query projectMemberQuery($projectMemberId: Int!) {
-        projectMember (projectMemberId: $projectMemberId) {
+  const querySingle = `
+    query projectMemberQuery($projectMemberId: Int!) {
+      projectMember (projectMemberId: $projectMemberId) {
+        id
+        createdById
+        created
+        modifiedById
+        modified
+        project {
           id
-          createdById
-          created
-          modifiedById
-          modified
-          project {
-            id
-            title
-          }
-          affiliation {
-            uri
-            name
-          }
-          givenName
-          surName
-          orcid
-          email
-          memberRoles {
-            id
-            uri
-            label
-            description
-            displayOrder
-          }
+          title
+        }
+        affiliation {
+          uri
+          name
+        }
+        givenName
+        surName
+        orcid
+        email
+        memberRoles {
+          id
+          uri
+          label
+          description
+          displayOrder
         }
       }
-    `;
-  });
+    }
+  `;
 
-  it('returns the projectMember for the project when the current user is the creator of the project', async () => {
-    const variables = { projectMemberId: projectMemberStore[0].id };
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.projectMember).toBeTruthy();
-    // verify all the properties are returned
-    expect(resp.body.singleResult.data?.projectMember?.id).toEqual(projectMemberStore[0].id);
-    expect(resp.body.singleResult.data?.projectMember?.givenName).toEqual(projectMemberStore[0].givenName);
-    expect(resp.body.singleResult.data?.projectMember?.surName).toEqual(projectMemberStore[0].surName);
-    expect(resp.body.singleResult.data?.projectMember?.orcid).toEqual(projectMemberStore[0].orcid);
-    expect(resp.body.singleResult.data?.projectMember?.email).toEqual(projectMemberStore[0].email);
-    expect(resp.body.singleResult.data?.projectMember?.project.id).toEqual(projectStore[0].id);
-    expect(resp.body.singleResult.data?.projectMember?.project.title).toEqual(projectStore[0].title);
-    expect(resp.body.singleResult.data?.projectMember?.affiliation.uri).toEqual(affiliationStore[0].uri);
-    expect(resp.body.singleResult.data?.projectMember?.affiliation.name).toEqual(affiliationStore[0].name);
-    expect(resp.body.singleResult.data?.projectMember?.memberRoles.length).toBeGreaterThan(0);
-
-    expect(resp.body.singleResult.data?.projectMember?.created).toEqual(projectMemberStore[0].created);
-    expect(resp.body.singleResult.data?.projectMember?.createdById).toEqual(context.token.id);
-    expect(resp.body.singleResult.data?.projectMember?.modified).toEqual(projectMemberStore[0].modified);
-    expect(resp.body.singleResult.data?.projectMember?.modifiedById).toEqual(context.token.id);
-  });
-
-  it('returns the projectMember for the project when the current user is a collaborator on the project', async () => {
-    const variables = { projectMemberId: projectMemberStore[0].id };
-    context.token = mockToken();
-    // Make the last user in the userStore a collaborator on the project
-    projectCollaboratorStore[0].projectId = projectStore[0].id;
-    projectCollaboratorStore[0].userId = context.token.id
-    projectCollaboratorStore[0].accessLevel = ProjectCollaboratorAccessLevel.EDIT;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.projectMember).toBeTruthy();
-    expect(resp.body.singleResult.data?.projectMember.id).toEqual(projectMemberStore[0].id);
-  });
-
-  it('returns the projectMember for the project when the current user is the an admin for the org that created the project', async () => {
-    const variables = { projectMemberId: projectMemberStore[0].id };
-    context.token = adminToken;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.projectMember).toBeTruthy();
-    expect(resp.body.singleResult.data?.projectMember.id).toEqual(projectMemberStore[0].id);
-  });
-
-  it('returns the projectMember for the project when the current user is a super admin', async () => {
-    const variables = { projectMemberId: projectMemberStore[0].id };
-    context.token = superAdminToken;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.projectMember).toBeTruthy();
-    expect(resp.body.singleResult.data?.projectMember.id).toEqual(projectMemberStore[0].id);
-  });
-
-  it('returns a 403 when the current user is not a collaborator on the project', async () => {
-    const variables = { projectMemberId: projectMemberStore[0].id };
-    context.token = mockToken(new User({ id: 999999, affiliationId: 'fake-org', role: UserRole.RESEARCHER }));
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.projectMember).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
-  });
-
-  it('returns a 403 when the current user is an Admin but not for the affiliation of the project creator', async () => {
-    const variables = { projectMemberId: projectMemberStore[0].id };
-    adminToken.affiliationId = 'fake-org.edu';
-    context.token = adminToken;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.projectMember).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
-  });
-
-  it('returns a 401 when the current user is not authenticated', async () => {
-    const variables = { projectMemberId: projectMemberStore[0].id };
-    context.token = null;
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.projectMember).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('UNAUTHENTICATED');
-  });
-
-  it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Project, 'findById').mockImplementation(() => { throw new Error('Error!') });
-
-    const variables = { projectMemberId: projectMemberStore[0].id };
-    const resp = await executeQuery(query, variables, context);
-
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.projectMember).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
-  });
-});
-
-
-describe.skip('planMembers query', () => {
-  beforeEach(() => {
-    query = `
-      query planMembersQuery($planId: Int!) {
-        planMembers (planId: $planId) {
+  const addMutation = `
+    mutation AddProjectMember($projectId: Int!, $affiliationId: String,
+                              $givenName: String, $surName: String, $orcid: String,
+                              $email: String, $memberRoleIds: [Int!]) {
+      addProjectMember (projectId: $projectId, affiliationId: $affiliationId,
+                        givenName: $givenName, surName: $surName, orcid: $orcid,
+                        email: $email, memberRoleId: $memberRoleIds) {}
+        id
+        createdById
+        modifiedById
+        project {
           id
-          createdById
-          created
-          modifiedById
-          modified
-          plan {
-            id
-          }
-          projectMember {
-            id
-            givenName
-            surName
-          }
-          isPrimaryContact
-          memberRoles {
-            id
-            uri
-            label
-            description
-            displayOrder
-          }
+        }
+        affiliation {
+          uri
+        }
+        givenName
+        surName
+        orcid
+        email
+        memberRoles {
+          id
+        }
+        errors {
+          general
         }
       }
-    `;
+    }
+  `;
+
+  const updateMutation = `
+    mutation UpdateProjectMember($projectMemberId: Int!, $affiliationId: String,
+                                 $givenName: String, $surName: String, $orcid: String,
+                                 $email: String, $memberRoleIds: [Int!]) {
+      updateProjectMember (projectMemberId: $projectMemberId, affiliationId: $affiliationId,
+                           givenName: $givenName, surName: $surName, orcid: $orcid,
+                           email: $email, memberRoleId: $memberRoleIds) {}
+        id
+        modifiedById
+        project {
+          id
+        }
+        affiliation {
+          uri
+        }
+        givenName
+        surName
+        orcid
+        email
+        memberRoles {
+          id
+        }
+        errors {
+          general
+        }
+      }
+    }
+  `;
+
+  const removeMutation = `
+    mutation RemoveProjectMember($projectMemberId: Int!) {
+      removeProjectMember (projectMemberId: $projectMemberId) {
+        id
+      }
+    }
+  `;
+
+  // Test that the specified user/token is able to perform all actions
+  async function testAddQueryRemoveAccess(
+    contextIn: MyContext,
+    errContext: string,
+    canQuery = true,
+    canAddAndRemove = true,
+  ): Promise<void> {
+    const msg = `Testing user ${errContext}`;
+
+    const queryVariables = { projectId: project.id };
+
+    const qryResp = await executeQuery(testServer, contextIn, query, queryVariables);
+    if (canQuery) {
+      assert(qryResp.body.kind === 'single');
+      expect(qryResp.body.singleResult.errors, msg).toBeUndefined();
+    } else {
+      assert(qryResp.body.kind === 'single');
+      expect(qryResp.body.singleResult.errors, msg).toBeDefined();
+      expect(qryResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
+    }
+
+    const addVariables = {
+      projectId: project.id,
+      affiliationId: otherAffiliationAdmin.affiliationId,
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      email: `test.addMember.${casual.integer(1, 9999)}.${casual.email}`,
+      orcid: getMockORCID(),
+      memberRoleIds: [(await randomMemberRole(context)).id]
+    }
+
+    const updateVariables = {
+      projectMemberId: existingMember.id,
+      affiliationId: otherAffiliationAdmin.affiliationId,
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      email: `test.addMember.${casual.integer(1, 9999)}.${casual.email}`,
+      orcid: getMockORCID(),
+      memberRoleIds: [(await randomMemberRole(context)).id]
+    }
+
+    if (canAddAndRemove) {
+      const userId = contextIn.token.id;
+
+      // Should be able to add
+      const addResp = await executeQuery(testServer, contextIn, addMutation, addVariables);
+      assert(addResp.body.kind === 'single');
+      expect(addResp.body.singleResult.errors, msg).toBeUndefined();
+
+      const id = addResp.body.singleResult.data.addProjectMember.id;
+      const roleIds = addResp.body.singleResult.data.addProjectMember.memberRoles.map(r => r.id);
+      expect(id, msg).toBeDefined();
+      expect(addResp.body.singleResult.data.addProjectMember.affiliation.uri, msg).toEqual(addVariables.affiliationId);
+      expect(addResp.body.singleResult.data.addProjectMember.email, msg).toEqual(addVariables.email);
+      expect(addResp.body.singleResult.data.addProjectMember.givenName, msg).toEqual(addVariables.givenName);
+      expect(addResp.body.singleResult.data.addProjectMember.surName, msg).toEqual(addVariables.surName);
+      expect(addResp.body.singleResult.data.addProjectMember.orcid, msg).toEqual(addVariables.orcid);
+      expect(roleIds, msg).toContain(addVariables.memberRoleIds[0]);
+      expect(addResp.body.singleResult.data.addProjectMember.createdById, msg).toEqual(userId);
+      expect(addResp.body.singleResult.data.addProjectMember.modifiedById, msg).toEqual(userId);
+
+      // Should see the new record
+      const qry2Variables = { projectMemberId: id }
+      const qry2Resp = await executeQuery(testServer, contextIn, querySingle, qry2Variables);
+      assert(qry2Resp.body.kind === 'single');
+      expect(qry2Resp.body.singleResult.errors, msg).toBeUndefined();
+      expect(qry2Resp.body.singleResult.data.projectMember.id, msg).toContain(id);
+
+      // Should be able to update
+      const updResp = await executeQuery(testServer, contextIn, updateMutation, updateVariables);
+      const newRoleIds = addResp.body.singleResult.data.updateProjectMember.memberRoles.map(r => r.id);
+      assert(updResp.body.kind === 'single');
+      expect(updResp.body.singleResult.errors, msg).toBeUndefined();
+      expect(updResp.body.singleResult.data.updateProjectMember.id, msg).toEqual(existingMember.id);
+      expect(addResp.body.singleResult.data.updateProjectMember.affiliation.uri, msg).toEqual(updateVariables.affiliationId);
+      expect(addResp.body.singleResult.data.updateProjectMember.email, msg).toEqual(updateVariables.email);
+      expect(addResp.body.singleResult.data.updateProjectMember.givenName, msg).toEqual(updateVariables.givenName);
+      expect(addResp.body.singleResult.data.updateProjectMember.surName, msg).toEqual(updateVariables.surName);
+      expect(addResp.body.singleResult.data.updateProjectMember.orcid, msg).toEqual(updateVariables.orcid);
+      expect(newRoleIds, msg).toContain(updateVariables.memberRoleIds[0]);
+      expect(updResp.body.singleResult.data.updateProjectMember.createdById, msg).toEqual(existingMember.createdById);
+
+      // Should be able to remove
+      const removeVariables = { projectCollaboratorId: id }
+
+      const remResp = await executeQuery(testServer, contextIn, removeMutation, removeVariables);
+      assert(remResp.body.kind === 'single');
+      expect(remResp.body.singleResult.errors, msg).toBeUndefined();
+      expect(remResp.body.singleResult.data.removeProjectMember.id, msg).toEqual(id);
+
+      // Should no longer be able to see new record
+      const qry3Resp = await executeQuery(testServer, contextIn, query, queryVariables);
+      assert(qry3Resp.body.kind === 'single');
+      expect(qry3Resp.body.singleResult.errors, msg).toBeUndefined();
+      expect(qry3Resp.body.singleResult.data.projectMembers.map(c => c.id), msg).not.toContain(id);
+    } else {
+      // Should not be able to fetch a single record
+      const qry2Variables = { projectMemberId: existingMember.id };
+      const qry2Resp = await executeQuery(testServer, contextIn, querySingle, qry2Variables);
+      assert(qry2Resp.body.kind === 'single');
+      expect(qry2Resp.body.singleResult.errors, msg).toBeDefined();
+      expect(qry2Resp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
+
+      // Should NOT be able to add
+      const addResp = await executeQuery(testServer, contextIn, addMutation, addVariables);
+      assert(addResp.body.kind === 'single');
+      expect(addResp.body.singleResult.errors, msg).toBeDefined();
+      expect(addResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
+
+      // Should NOT be able to update
+      const updResp = await executeQuery(testServer, contextIn, updateMutation, updateVariables);
+      assert(updResp.body.kind === 'single');
+      expect(updResp.body.singleResult.errors, msg).toBeDefined();
+      expect(updResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
+
+      // Should NOT be able to remove
+      const removeVariables = { projectCollaboratorId: existingMember.id }
+      const remResp = await executeQuery(testServer, contextIn, removeMutation, removeVariables);
+      assert(remResp.body.kind === 'single');
+      expect(remResp.body.singleResult.errors, msg).toBeDefined();
+      expect(remResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
+    }
+  }
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    // Generate the creator of the project
+    creator = await persistUser(context, mockUser({
+      affiliationId: sameAffiliationAdmin.affiliationId,
+      role: UserRole.RESEARCHER
+    }));
+    // Make sure the token belongs to the creator
+    context.token = mockToken(creator);
+    project = await persistProject(context, mockProject({}));
+
+    // Note that this triggers the emailer above so count it in tests above/below
+    const mockMember = await mockProjectMember(context, { projectId: project.id });
+    existingMember = await persistProjectMember(context, mockMember);
   });
 
-  it('returns the planMembers for the project when the current user is the creator of the project', async () => {
-    const variables = { planId: projectStore[0].id };
-    const resp = await executeQuery(query, variables, context);
+  afterEach(async () => {
+    jest.clearAllMocks();
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.planMembers.length).toBe(3);
-    // verify all the properties are returned
-    expect(resp.body.singleResult.data?.planMembers[0]?.id).toEqual(planMemberStore[0].id);
-    expect(resp.body.singleResult.data?.planMembers[0]?.isPrimaryContact).toEqual(planMemberStore[0].isPrimaryContact);
-    expect(resp.body.singleResult.data?.planMembers[0]?.plan.id).toEqual(planStore[0].id);
-    expect(resp.body.singleResult.data?.planMembers[0]?.projectMember.id).toEqual(projectMemberStore[0].id);
-    expect(resp.body.singleResult.data?.planMembers[0]?.projectMember.givenName).toEqual(projectMemberStore[0].givenName);
-    expect(resp.body.singleResult.data?.planMembers[0]?.projectMember.surName).toEqual(projectMemberStore[0].surName);
-    expect(resp.body.singleResult.data?.planMembers[0]?.memberRoles.length).toBeGreaterThan(0);
-
-    expect(resp.body.singleResult.data?.planMembers[0]?.created).toEqual(planMemberStore[0].created);
-    expect(resp.body.singleResult.data?.planMembers[0]?.createdById).toEqual(context.token.id);
-    expect(resp.body.singleResult.data?.planMembers[0]?.modified).toEqual(planMemberStore[0].modified);
-    expect(resp.body.singleResult.data?.planMembers[0]?.modifiedById).toEqual(context.token.id);
+    // Clean up the project, user and collaborator records we generated
+    await cleanUpAddedProjectMember(context, existingMember.id);
+    await cleanUpAddedProject(context, project.id);
+    await cleanUpAddedUser(context, creator.id);
   });
 
-  it('returns the planMembers for the plan when the current user is a collaborator on the project', async () => {
-    const variables = { planId: planStore[0].id };
-    context.token = mockToken();
-    // Make the last user in the userStore a collaborator on the project
-    projectCollaboratorStore[0].projectId = projectStore[0].id;
-    projectCollaboratorStore[0].userId = context.token.id
-    projectCollaboratorStore[0].accessLevel = ProjectCollaboratorAccessLevel.EDIT;
-    const resp = await executeQuery(query, variables, context);
+  it('Super Admin flow', async () => {
+    context.token = mockToken(superAdmin);
+    await testAddQueryRemoveAccess(context, 'SuperAdmin', true, true);
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.planMembers.length).toBe(3);
+    // Should have emailed for the existingMember and the one being added
+    expect(emailer).toHaveBeenCalledTimes(2);
   });
 
-  it('returns the planMembers for the plan when the current user is the an admin for the org that created the project', async () => {
-    const variables = { planId: planStore[0].id };
-    context.token = adminToken;
-    const resp = await executeQuery(query, variables, context);
+  it('Admin of same affiliation flow', async () => {
+    context.token = mockToken(sameAffiliationAdmin);
+    await testAddQueryRemoveAccess(context, 'Admin, same affiliation', true, true);
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.planMembers.length).toBe(3);
+    // Should have emailed for the existingMember and the one being added
+    expect(emailer).toHaveBeenCalledTimes(2);
   });
 
-  it('returns the planMembers for the plan when the current user is a super admin', async () => {
-    const variables = { planId: planStore[0].id };
-    context.token = superAdminToken;
-    const resp = await executeQuery(query, variables, context);
+  it('Admin of other affiliation flow', async () => {
+    context.token = mockToken(otherAffiliationAdmin);
+    await testAddQueryRemoveAccess(context, 'Admin. other affiliation', false, false);
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.planMembers.length).toBe(3);
+    // Generating the existingMember caused the emailer to fire once
+    expect(emailer).toHaveBeenCalledTimes(1);
   });
 
-  it('returns a 403 when the current user is not a collaborator on the project', async () => {
-    const variables = { planId: planStore[0].id };
-    context.token = mockToken(new User({ id: 999999, affiliationId: 'fake-org', role: UserRole.RESEARCHER }));
-    const resp = await executeQuery(query, variables, context);
+  it('Project creator flow', async () => {
+    context.token = mockToken(creator);
+    await testAddQueryRemoveAccess(context, 'creator', true, true);
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.planMembers).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
+    // Should have emailed for the existingMember and the one being added
+    expect(emailer).toHaveBeenCalledTimes(2);
   });
 
-  it('returns a 403 when the current user is an Admin but not for the affiliation of the project creator', async () => {
-    const variables = { planId: planStore[0].id };
-    adminToken.affiliationId = 'fake-org.edu';
-    context.token = adminToken;
-    const resp = await executeQuery(query, variables, context);
+  it('Research who is not the creator or a collaborator flow', async () => {
+    const researcher = await persistUser(context, mockUser({
+      affiliationId: sameAffiliationAdmin.affiliationId,
+      role: UserRole.RESEARCHER
+    }))
+    context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess(context, 'researcher, random', false, false);
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.planMembers).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('FORBIDDEN');
+    // Generating the existingMember caused the emailer to fire once
+    expect(emailer).toHaveBeenCalledTimes(1);
   });
 
-  it('returns a 401 when the current user is not authenticated', async () => {
-    const variables = { planId: planStore[0].id };
-    context.token = null;
-    const resp = await executeQuery(query, variables, context);
+  it('Research with comment level access flow', async () => {
+    const researcher = await persistUser(context, mockUser({
+      affiliationId: otherAffiliationAdmin.affiliationId,
+      role: UserRole.RESEARCHER
+    }))
+    const collab = await persistProjectCollaborator(
+      context,
+      mockProjectCollaborator({
+        projectId: project.id,
+        email: researcher.email,
+        accessLevel: ProjectCollaboratorAccessLevel.COMMENT
+      })
+    )
+    context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false);
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.planMembers).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('UNAUTHENTICATED');
+    await cleanUpAddedProjectCollaborator(context, collab.id);
   });
 
-  it('returns a 500 when a fatal error occurs', async () => {
-    jest.spyOn(Project, 'findById').mockImplementation(() => { throw new Error('Error!') });
+  it('Research with edit level access flow', async () => {
+    const researcher = await persistUser(context, mockUser({
+      affiliationId: otherAffiliationAdmin.affiliationId,
+      role: UserRole.RESEARCHER
+    }))
+    const collab = await persistProjectCollaborator(
+      context,
+      mockProjectCollaborator({
+        projectId: project.id,
+        email: researcher.email,
+        accessLevel: ProjectCollaboratorAccessLevel.EDIT
+      })
+    )
+    context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess(context, 'researcher, editor', true, true);
 
-    const variables = { planId: planStore[0].id };
-    const resp = await executeQuery(query, variables, context);
+    await cleanUpAddedProjectCollaborator(context, collab.id);
+  });
 
-    assert(resp.body.kind === 'single');
-    expect(resp.body.singleResult.errors).toBeDefined();
-    expect(resp.body.singleResult.data?.planMembers).toBeNull();
-    expect(resp.body.singleResult.errors[0].extensions.code).toEqual('INTERNAL_SERVER');
+  it('Research with owner level access flow', async () => {
+    const researcher = await persistUser(context, mockUser({
+      affiliationId: otherAffiliationAdmin.affiliationId,
+      role: UserRole.RESEARCHER
+    }))
+    const collab = await persistProjectCollaborator(
+      context,
+      mockProjectCollaborator({
+        projectId: project.id,
+        email: researcher.email,
+        accessLevel: ProjectCollaboratorAccessLevel.OWN
+      })
+    )
+    context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess(context, 'researcher, owner', true, true);
+
+    await cleanUpAddedProjectCollaborator(context, collab.id);
+  });
+
+  it('returns the member with errors if it is a duplicate', async () => {
+    context.token = mockToken(superAdmin);
+
+    // Existing Email
+    const emailVariables = { projectId: project.id, email: existingMember.email };
+    const emailResp = await executeQuery(testServer, context, addMutation, emailVariables);
+
+    assert(emailResp.body.kind === 'single');
+    expect(emailResp.body.singleResult.errors).toBeUndefined();
+    expect(emailResp.body.singleResult.data.addProjectMember.errors['general']).toBeDefined();
+
+    // Existing ORCID
+    const orcidVariables = { projectId: project.id, orcid: existingMember.orcid };
+    const orcidResp = await executeQuery(testServer, context, addMutation, orcidVariables);
+
+    assert(orcidResp.body.kind === 'single');
+    expect(orcidResp.body.singleResult.errors).toBeUndefined();
+    expect(orcidResp.body.singleResult.data.addProjectMember.errors['general']).toBeDefined();
+
+    // Existing name
+    const nameVariables = {
+      projectId: project.id,
+      givenName: existingMember.givenName,
+      surName: existingMember.surName
+    };
+    const nameResp = await executeQuery(testServer, context, addMutation, nameVariables);
+
+    assert(nameResp.body.kind === 'single');
+    expect(nameResp.body.singleResult.errors).toBeUndefined();
+    expect(nameResp.body.singleResult.data.addProjectMember.errors['general']).toBeDefined();
+  });
+
+  it('Throws a 404 if the project does not exist', async () => {
+    context.token = mockToken(superAdmin);
+
+    await testNotFound(testServer, context, query, { projectId: 99999999 });
+    await testNotFound(testServer, context, querySingle, { projectMemberId: 99999999 });
+    await testNotFound(testServer, context, addMutation, { projectId: 99999999, email: 'test' });
+    await testNotFound(testServer, context, updateMutation, {
+      projectMemberId: 99999999,
+      accessLevel: ProjectCollaboratorAccessLevel.EDIT
+    });
+    await testNotFound(testServer, context, removeMutation, { projectMemberId: 99999999 });
+  });
+
+  it('handles missing tokens and internal server errors', async () => {
+    context.token = mockToken(superAdmin);
+
+    // Test standard error handling for query
+    await testStandardErrors({
+      server: testServer,
+      context,
+      graphQL: query,
+      variables: { projectId: project.id },
+      spyOnClass: ProjectMember,
+      spyOnFunction: 'query',
+      mustBeAuthenticated: true
+    });
+
+    // Test standard error handling for query
+    await testStandardErrors({
+      server: testServer,
+      context,
+      graphQL: querySingle,
+      variables: { projectMemberId: existingMember.id },
+      spyOnClass: ProjectMember,
+      spyOnFunction: 'query',
+      mustBeAuthenticated: true
+    });
+
+    // Test standard error handling for add
+    await testStandardErrors({
+      server: testServer,
+      context,
+      graphQL: addMutation,
+      variables: {
+        projectId: project.id,
+        email: casual.email,
+      },
+      spyOnClass: ProjectMember,
+      spyOnFunction: 'insert',
+      mustBeAuthenticated: true
+    });
+
+    // Test standard error handling for update
+    await testStandardErrors({
+      server: testServer,
+      context,
+      graphQL: updateMutation,
+      variables: {
+        projectMemberId: existingMember.id,
+        email: casual.email,
+      },
+      spyOnClass: ProjectMember,
+      spyOnFunction: 'update',
+      mustBeAuthenticated: true
+    });
+
+    // Test standard error handling for remove
+    await testStandardErrors({
+      server: testServer,
+      context,
+      graphQL: removeMutation,
+      variables: { projectMemberId: existingMember.id },
+      spyOnClass: ProjectMember,
+      spyOnFunction: 'delete',
+      mustBeAuthenticated: true
+    });
   });
 });
- */
