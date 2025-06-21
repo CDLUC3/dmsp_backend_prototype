@@ -290,6 +290,7 @@ export const resolvers: Resolvers = {
       return formatISO9075(new Date(parent.modified));
     }
   },
+
   TemplateCollaborator: {
     // Chained resolver to fetch the Template info
     template: async (parent: TemplateCollaborator, _, context: MyContext): Promise<Template> => {

@@ -20,7 +20,7 @@ import {randomAffiliation} from "../../models/__mocks__/Affiliation";
 import {
   cleanUpAddedUser,
   mockUser,
-  persistUser
+  persistUser, randomUser
 } from "../../models/__mocks__/User";
 import {
   cleanUpAddedProject,
@@ -40,6 +40,10 @@ import {
   mockTemplate,
   persistTemplate
 } from "../../models/__mocks__/Template";
+import {
+  sendProjectCollaborationEmail,
+  sendTemplateCollaborationEmail
+} from "../../services/emailService";
 
 jest.mock("../../datasources/dmphubAPI");
 
@@ -118,6 +122,7 @@ afterEach(async () => {
 
 describe('templateCollaborators', () => {
   let template: Template;
+  let emailer: jest.Mock;
 
   let creator: User;
   let existingCollaborator: TemplateCollaborator;
@@ -152,6 +157,9 @@ describe('templateCollaborators', () => {
         modifiedById
         modified
         invitedBy {
+          id
+        }
+        user {
           id
         }
         errors {
@@ -210,6 +218,14 @@ describe('templateCollaborators', () => {
       expect(addResp.body.singleResult.data.addTemplateCollaborator.createdById, msg).toEqual(userId);
       expect(addResp.body.singleResult.data.addTemplateCollaborator.modifiedById, msg).toEqual(userId);
 
+      expect(emailer).toHaveBeenCalledWith(
+        context,
+        template.name,
+        [context.token.givenName, context.token.surName].join(' '),
+        addVariables.email,
+        undefined,
+      )
+
       // Should see the new record
       const qry2Resp = await executeQuery(testServer, contextIn, query, queryVariables);
       assert(qry2Resp.body.kind === 'single');
@@ -246,6 +262,11 @@ describe('templateCollaborators', () => {
   }
 
   beforeEach(async () => {
+    jest.resetAllMocks();
+
+    emailer = jest.fn();
+    (sendTemplateCollaborationEmail as jest.Mock) = emailer;
+
     // Generate the creator of the project
     creator = await persistUser(context, mockUser({
       affiliationId: sameAffiliationAdmin.affiliationId,
@@ -261,6 +282,8 @@ describe('templateCollaborators', () => {
   });
 
   afterEach(async () => {
+    jest.clearAllMocks();
+
     // Clean up the project, user and collaborator records we generated
     await cleanUpAddedTemplate(context, template.id);
     await cleanUpAddedUser(context, creator.id);
@@ -269,16 +292,25 @@ describe('templateCollaborators', () => {
   it('Super Admin flow', async () => {
     context.token = mockToken(superAdmin);
     await testAddQueryRemoveAccess(context, 'SuperAdmin', true, true);
+
+    // Emailer should have been called for existingCollaborator and one we added
+    expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Admin of same affiliation flow', async () => {
     context.token = mockToken(sameAffiliationAdmin);
     await testAddQueryRemoveAccess(context, 'Admin, same affiliation', true, true);
+
+    // Emailer should have been called for existingCollaborator and one we added
+    expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Admin of other affiliation flow', async () => {
     context.token = mockToken(otherAffiliationAdmin);
     await testAddQueryRemoveAccess(context, 'Admin. other affiliation', false, false);
+
+    // Emailer should have been called for existingCollaborator only
+    expect(emailer).toHaveBeenCalledTimes(1);
   });
 
   it('Admin who is a collaborator flow', async () => {
@@ -298,6 +330,45 @@ describe('templateCollaborators', () => {
     await testAddQueryRemoveAccess(context, 'researcher, random', true, true);
 
     await cleanUpAddedTemplateCollaborator(context, collab.id);
+
+    // Emailer should have been called for existingCollaborator, this collaborator and one we added
+    expect(emailer).toHaveBeenCalledTimes(3);
+  });
+
+  it('returns the collaborator with errors if it is a duplicate', async () => {
+    context.token = mockToken(superAdmin);
+    const variables = { templateId: template.id, email: existingCollaborator.email };
+
+    const resp = await executeQuery(testServer, context, addMutation, variables);
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data.addTemplateCollaborator.errors['general']).toBeDefined();
+
+    // Emailer should have been called for existingCollaborator only
+    expect(emailer).toHaveBeenCalledTimes(1);
+  });
+
+  it('finds the userId for an existing User', async () => {
+    context.token = mockToken(superAdmin);
+    const existingUser = await randomUser(context);
+    const variables = { templateId: template.id, email: existingUser.email};
+
+    const resp = await executeQuery(testServer, context, addMutation, variables);
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data.addTemplateCollaborator.errors['general']).toBeNull();
+    expect(resp.body.singleResult.data.addTemplateCollaborator.user.id).toEqual(existingUser.id);
+
+    // Make sure an email was sent
+    expect(emailer).toHaveBeenCalledWith(
+      context,
+      template.name,
+      [context.token.givenName, context.token.surName].join(' '),
+      variables.email,
+      existingUser.id,
+    )
   });
 
   it('Throws a 404 if the template does not exist', async () => {
@@ -349,6 +420,7 @@ describe('templateCollaborators', () => {
 
 describe('projectCollaborators', () => {
   let project: Project;
+  let emailer: jest.Mock;
 
   let creator: User;
   let existingCollaborator: ProjectCollaborator;
@@ -390,6 +462,9 @@ describe('projectCollaborators', () => {
         modifiedById
         modified
         invitedBy {
+          id
+        }
+        user {
           id
         }
         errors {
@@ -475,6 +550,15 @@ describe('projectCollaborators', () => {
       expect(addResp.body.singleResult.data.addProjectCollaborator.createdById, msg).toEqual(userId);
       expect(addResp.body.singleResult.data.addProjectCollaborator.modifiedById, msg).toEqual(userId);
 
+      // Make sure an email was sent
+      expect(emailer).toHaveBeenCalledWith(
+        context,
+        project.title,
+        [context.token.givenName, context.token.surName].join(' '),
+        addVariables.email,
+        undefined,
+      )
+
       // Should see the new record
       const qry2Resp = await executeQuery(testServer, contextIn, query, queryVariables);
       assert(qry2Resp.body.kind === 'single');
@@ -527,6 +611,11 @@ describe('projectCollaborators', () => {
   }
 
   beforeEach(async () => {
+    jest.resetAllMocks();
+
+    emailer = jest.fn();
+    (sendProjectCollaborationEmail as jest.Mock) = emailer;
+
     // Generate the creator of the project
     creator = await persistUser(context, mockUser({
       affiliationId: sameAffiliationAdmin.affiliationId,
@@ -536,12 +625,15 @@ describe('projectCollaborators', () => {
     context.token = mockToken(creator);
     project = await persistProject(context, mockProject({}));
 
+    // Note that this triggers the emailer above so count it in tests above/below
     existingCollaborator = await persistProjectCollaborator(context, mockProjectCollaborator({
       projectId: project.id,
     }));
   });
 
   afterEach(async () => {
+    jest.clearAllMocks();
+
     // Clean up the project, user and collaborator records we generated
     await cleanUpAddedProjectCollaborator(context, existingCollaborator.id);
     await cleanUpAddedProject(context, project.id);
@@ -551,21 +643,33 @@ describe('projectCollaborators', () => {
   it('Super Admin flow', async () => {
     context.token = mockToken(superAdmin);
     await testAddQueryRemoveAccess(context, 'SuperAdmin', true, true);
+
+    // Should have emailed for the existingCollaborator and the one being added
+    expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Admin of same affiliation flow', async () => {
     context.token = mockToken(sameAffiliationAdmin);
     await testAddQueryRemoveAccess(context, 'Admin, same affiliation', true, true);
+
+    // Should have emailed for the existingCollaborator and the one being added
+    expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Admin of other affiliation flow', async () => {
     context.token = mockToken(otherAffiliationAdmin);
     await testAddQueryRemoveAccess(context, 'Admin. other affiliation', false, false);
+
+    // Generating the existingCollaborator caused the emailer to fire once
+    expect(emailer).toHaveBeenCalledTimes(1);
   });
 
   it('Project creator flow', async () => {
     context.token = mockToken(creator);
     await testAddQueryRemoveAccess(context, 'creator', true, true);
+
+    // Should have emailed for the existingCollaborator and the one being added
+    expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Research who is not the creator or a collaborator flow', async () => {
@@ -575,6 +679,9 @@ describe('projectCollaborators', () => {
     }))
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, random', false, false);
+
+    // Generating the existingCollaborator caused the emailer to fire once
+    expect(emailer).toHaveBeenCalledTimes(1);
   });
 
   it('Research with comment level access flow', async () => {
@@ -592,6 +699,9 @@ describe('projectCollaborators', () => {
     )
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false);
+
+    // Generating the existingCollaborator and the commenter caused the emailer to fire twice
+    expect(emailer).toHaveBeenCalledTimes(2);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
   });
@@ -612,6 +722,9 @@ describe('projectCollaborators', () => {
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, editor', true, true);
 
+    // Should have emailed for the existingCollaborator the editor and the one being added
+    expect(emailer).toHaveBeenCalledTimes(3);
+
     await cleanUpAddedProjectCollaborator(context, collab.id);
   });
 
@@ -631,7 +744,45 @@ describe('projectCollaborators', () => {
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, owner', true, true);
 
+    // Should have emailed for the existingCollaborator the owner and the one being added
+    expect(emailer).toHaveBeenCalledTimes(3);
+
     await cleanUpAddedProjectCollaborator(context, collab.id);
+  });
+
+  it('returns the collaborator with errors if it is a duplicate', async () => {
+    context.token = mockToken(superAdmin);
+    const variables = { projectId: project.id, email: existingCollaborator.email };
+    const resp = await executeQuery(testServer, context, addMutation, variables);
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data.addProjectCollaborator.errors['general']).toBeDefined();
+
+    // Generating the existingCollaborator caused the emailer to fire once
+    expect(emailer).toHaveBeenCalledTimes(1);
+  });
+
+  it('finds the userId for an existing User', async () => {
+    context.token = mockToken(superAdmin);
+    const existingUser = await randomUser(context);
+    const variables = { projectId: project.id, email: existingUser.email};
+
+    const resp = await executeQuery(testServer, context, addMutation, variables);
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+    expect(resp.body.singleResult.data.addProjectCollaborator.errors['general']).toBeNull();
+    expect(resp.body.singleResult.data.addProjectCollaborator.user.id).toEqual(existingUser.id);
+
+    // Make sure an email was sent
+    expect(emailer).toHaveBeenCalledWith(
+      context,
+      project.title,
+      [context.token.givenName, context.token.surName].join(' '),
+      variables.email,
+      existingUser.id,
+    )
   });
 
   it('Throws a 404 if the template does not exist', async () => {
