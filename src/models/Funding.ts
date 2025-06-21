@@ -15,7 +15,7 @@ export class ProjectFunding extends MySqlModel {
   public grantId?: string;
   public funderOpportunityNumber?: string;
 
-  private static tableName = 'projectFundings';
+  public static tableName = 'projectFundings';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -137,7 +137,7 @@ export class PlanFunding extends MySqlModel {
   public planId: number;
   public projectFundingId: number;
 
-  private static tableName = 'planFundings';
+  public static tableName = 'planFundings';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);

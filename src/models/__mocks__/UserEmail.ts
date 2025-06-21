@@ -4,9 +4,6 @@ import { isNullOrUndefined } from "../../utils/helpers";
 import { UserEmail } from "../UserEmail";
 import { MyContext } from "../../context";
 
-// Store for all mock/test Users that were persisted to the DB
-const addedUserEmailIds: number[] = [];
-
 export interface MockUserEmailOptions {
   userId: number;
   email: string;
@@ -21,7 +18,7 @@ export const mockUser = (
   // Use the options provided or default a value
   return new UserEmail({
     userId: options.userId,
-    email: options.email ?? `test.${casual.email}`,
+    email: options.email ?? `test.${casual.integer(1, 999)}.${casual.email}`,
     isPrimary: options.isPrimary ?? false,
     isConfirmed: options.isConfirmed ?? false,
   });
@@ -34,30 +31,24 @@ export const persistUserEmail = async (
 ): Promise<UserEmail | null> => {
   try {
     const created = await userEmail.create(context);
-    if (!isNullOrUndefined(created)) {
-      // Keep track of the id so we can clean up afterward
-      addedUserEmailIds.push(created.id);
-      return created;
-    }
-    console.error(`Unable to persist user email: ${userEmail.email}`, created?.errors);
+    return isNullOrUndefined(created) ? null : created;
   } catch (e) {
     console.error(`Error persisting user email ${userEmail.email}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
+    return null;
   }
-  return null;
 }
 
 // Clean up all mock/test UserEmails
-export const cleanUpAddedUserEmails = async (
+export const cleanUpAddedUserEmail = async (
   context: MyContext,
+  id?: number,
 ) : Promise<void> => {
   const reference = 'cleanUpUserEmails';
-  for (const id of addedUserEmailIds) {
-    try {
-      // Do a direct delete on the MySQL model because the tests might be mocking the UserEmail functions
-      await UserEmail.delete(context, UserEmail.tableName, id, reference);
-    } catch (e) {
-      console.error(`Error cleaning up user email id ${id}: ${e.message}`);
-    }
+  try {
+    // Do a direct delete on the MySQL model because the tests might be mocking the UserEmail functions
+    await UserEmail.delete(context, UserEmail.tableName, id, reference);
+  } catch (e) {
+    console.error(`Error cleaning up user email id ${id}: ${e.message}`);
   }
 }

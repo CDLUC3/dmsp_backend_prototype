@@ -13,7 +13,7 @@ export class ResearchDomain extends MySqlModel {
   public parentResearchDomainId?: number;
   public parentResearchDomain: ResearchDomain;
 
-  private tableName = 'researchDomains';
+  public static tableName = 'researchDomains';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -72,7 +72,12 @@ export class ResearchDomain extends MySqlModel {
         this.addError('general', 'ResearchDomain already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await ResearchDomain.insert(context, this.tableName, this, reference);
+        const newId = await ResearchDomain.insert(
+          context,
+          ResearchDomain.tableName,
+          this,
+          reference
+        );
         const response = await ResearchDomain.findById(reference, context, newId);
         return response;
       }
@@ -87,7 +92,14 @@ export class ResearchDomain extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await ResearchDomain.update(context, this.tableName, this, 'ResearchDomain.update', [], noTouch);
+        await ResearchDomain.update(
+          context,
+          ResearchDomain.tableName,
+          this,
+          'ResearchDomain.update',
+          [],
+          noTouch
+        );
         return await ResearchDomain.findById('ResearchDomain.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -103,7 +115,7 @@ export class ResearchDomain extends MySqlModel {
 
       const successfullyDeleted = await ResearchDomain.delete(
         context,
-        this.tableName,
+        ResearchDomain.tableName,
         this.id,
         'ResearchDomain.delete'
       );
@@ -224,7 +236,7 @@ export class ResearchDomain extends MySqlModel {
     // Specify the field we want to use for the count
     opts.countField = 'rd.id';
 
-    const sqlStatement = 'SELECT rd.* FROM researchDomains rd';
+    const sqlStatement = `SELECT rd.* FROM ${ResearchDomain.tableName} rd`;
 
     const response: PaginatedQueryResults<ResearchDomain> = await ResearchDomain.queryWithPagination(
       context,
@@ -242,7 +254,7 @@ export class ResearchDomain extends MySqlModel {
 
   // Return all of the top level Research Domains (meaning they have no parent)
   static async topLevelDomains(reference: string, context: MyContext): Promise<ResearchDomain[]> {
-    const sql = 'SELECT * FROM researchDomains WHERE parentResearchDomainId IS NULL ORDER BY name';
+    const sql = `SELECT * FROM ${ResearchDomain.tableName} WHERE parentResearchDomainId IS NULL ORDER BY name`;
     const results = await ResearchDomain.query(context, sql, [], reference);
     // No need to reinitialize all of the results to objects here because they're just search results
     return Array.isArray(results) ? results : [];
@@ -250,7 +262,7 @@ export class ResearchDomain extends MySqlModel {
 
   // Return all of the ResearchDomains for the specified parent Research Domain
   static async findByParentId(reference: string, context: MyContext, parentResearchDomainId: number): Promise<ResearchDomain[]> {
-    const sql = 'SELECT * FROM researchDomains WHERE parentResearchDomainId = ? ORDER BY name';
+    const sql = `SELECT * FROM ${ResearchDomain.tableName} WHERE parentResearchDomainId = ? ORDER BY name`;
     const results = await ResearchDomain.query(context, sql, [parentResearchDomainId?.toString()], reference);
     // No need to reinitialize all of the results to objects here because they're just search results
     return Array.isArray(results) ? results : [];
@@ -263,7 +275,7 @@ export class ResearchDomain extends MySqlModel {
     metadataStandardId: number
   ): Promise<ResearchDomain[]> {
     const sql = 'SELECT rd.* FROM metadataStandardResearchDomains jt';
-    const joinClause = 'INNER JOIN researchDomains rd ON jt.researchDomainId = rd.id';
+    const joinClause = `INNER JOIN ${ResearchDomain.tableName} rd ON jt.researchDomainId = rd.id`;
     const whereClause = 'WHERE jt.metadataStandardId = ?';
     const vals = [metadataStandardId?.toString()];
     const results = await ResearchDomain.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
@@ -277,7 +289,7 @@ export class ResearchDomain extends MySqlModel {
     repositoryId: number
   ): Promise<ResearchDomain[]> {
     const sql = 'SELECT rd.* FROM repositoryResearchDomains jt';
-    const joinClause = 'INNER JOIN researchDomains rd ON jt.researchDomainId = rd.id';
+    const joinClause = `INNER JOIN ${ResearchDomain.tableName} rd ON jt.researchDomainId = rd.id`;
     const whereClause = 'WHERE jt.repositoryId = ?';
     const vals = [repositoryId?.toString()];
     const results = await ResearchDomain.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
@@ -286,19 +298,19 @@ export class ResearchDomain extends MySqlModel {
 
   // Fetch a ResearchDomain by it's id
   static async findById(reference: string, context: MyContext, researchDomainId: number): Promise<ResearchDomain | null> {
-    const sql = `SELECT * FROM researchDomains WHERE id = ?`;
+    const sql = `SELECT * FROM ${ResearchDomain.tableName} WHERE id = ?`;
     const results = await ResearchDomain.query(context, sql, [researchDomainId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;
   }
 
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<ResearchDomain> {
-    const sql = `SELECT * FROM researchDomains WHERE uri = ?`;
+    const sql = `SELECT * FROM ${ResearchDomain.tableName} WHERE uri = ?`;
     const results = await ResearchDomain.query(context, sql, [uri], reference);
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;
   }
 
   static async findByName(reference: string, context: MyContext, name: string): Promise<ResearchDomain> {
-    const sql = `SELECT * FROM researchDomains WHERE LOWER(name) = ?`;
+    const sql = `SELECT * FROM ${ResearchDomain.tableName} WHERE LOWER(name) = ?`;
     const searchTerm = (name ?? '');
     const results = await ResearchDomain.query(context, sql, [searchTerm?.toLowerCase()?.trim()], reference);
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;

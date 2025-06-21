@@ -1,53 +1,45 @@
 
 import casual from "casual";
 import { isNullOrUndefined } from "../../utils/helpers";
-import { VersionedTemplate } from "../VersionedTemplate";
 import { MyContext } from "../../context";
 import { getMockROR, getRandomEnumValue } from "../../__tests__/helpers";
-import { TemplateVersionType } from "../VersionedTemplate";
-import { TemplateVisibility } from "../Template";
+import { Template, TemplateVisibility } from "../Template";
 
-export interface MockVersionedTemplateOptions {
-  templateId?: number;
-  version?: string;
-  versionedById?: number;
+export interface MockTemplateOptions {
+  sourceTemplateId?: number;
   name?: string;
   description?: string;
-  ownerId?: number;
-  versionType?: TemplateVersionType;
-  comment?: string;
-  active?: boolean;
+  ownerId?: string;
   visibility?: TemplateVisibility;
+  latestPublishVersion?: string;
+  latestPublishDate?: string;
   bestPractice?: boolean;
   languageId?: string;
 }
 
-// Generate a mock/test VersionedTemplate
-export const mockVersionedTemplate = (
-  options: MockVersionedTemplateOptions
-): VersionedTemplate => {
+// Generate a mock/test Template
+export const mockTemplate = (
+  options: MockTemplateOptions
+): Template => {
   // Use the options provided or default a value
-  return new VersionedTemplate({
-    templateId: options.templateId ?? casual.integer(1, 9999),
-    version: options.version ?? `v${casual.integer(1, 10)}`,
-    versionedById: options.versionedById ?? casual.integer(1, 9999),
+  return new Template({
+    sourceTemplateId: options.sourceTemplateId,
     name: options.name ?? `TEST - ${casual.sentence} ${casual.integer(1, 9999)}`,
     description: options.description ?? casual.sentences(2),
     ownerId: options.ownerId ?? getMockROR(),
-    versionType: options.versionType ?? getRandomEnumValue(TemplateVersionType),
-    comment: options.comment ?? casual.sentence,
-    active: options.active ?? casual.boolean,
     visibility: options.visibility ?? getRandomEnumValue(TemplateVisibility),
+    latestPublishVersion: options.latestPublishVersion,
+    latestPublishDate: options.latestPublishDate,
     bestPractice: options.bestPractice ?? casual.boolean,
     languageId: options.languageId ?? 'en-US',
   });
 }
 
-// Save a mock/test VersionedTemplate in the DB for integration tests
-export const persistVersionedTemplate = async (
+// Save a mock/test Template in the DB for integration tests
+export const persistTemplate = async (
   context: MyContext,
-  template: VersionedTemplate
-): Promise<VersionedTemplate | null> => {
+  template: Template
+): Promise<Template | null> => {
   // Ensure the createdById and modifiedId are set
   if (isNullOrUndefined(template.createdById) || isNullOrUndefined(template.modifiedById)) {
     template.createdById = context.token.id;
@@ -58,24 +50,41 @@ export const persistVersionedTemplate = async (
     const created = await template.create(context);
     return isNullOrUndefined(created) ? null : created;
   } catch (e) {
-    console.error(`Error persisting versioned template ${template.name}: ${e.message}`);
+    console.error(`Error persisting template ${template.name}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
     return null;
   }
 }
 
-// Clean up all mock/test VersionedTemplate
-export const cleanUpAddedVersionedTemplate = async (
+// Clean up all mock/test Template
+export const cleanUpAddedTemplate = async (
   context: MyContext,
-  id?: number,
+  id: number,
 ) : Promise<void> => {
-  const reference = 'cleanUpAddedVersionedTemplates';
+  const reference = 'cleanUpAddedTemplates';
   try {
     // Do a direct delete on the MySQL model because the tests might be mocking the
-    // VersionedTemplate functions
-    await VersionedTemplate.delete(context, VersionedTemplate.tableName, id, reference);
+    // Template functions
+    await Template.delete(context, Template.tableName, id, reference);
   } catch (e) {
     console.error(`Error cleaning up plan member id ${id}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
   }
+}
+
+// Fetch a random persisted Template
+export const randomTemplate = async (
+  context: MyContext
+): Promise<Template | null> => {
+  const sql = `SELECT * FROM ${Template.tableName} ORDER BY RAND() LIMIT 1`;
+  try {
+    const results = await Template.query(context, sql, [], 'randomTemplate');
+
+    if (Array.isArray(results) && results.length > 0) {
+      return new Template(results[0]);
+    }
+  } catch (e) {
+    console.error(`Error getting random Template: ${e.message}`);
+  }
+  return null;
 }

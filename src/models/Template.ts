@@ -126,7 +126,7 @@ export class Template extends MySqlModel {
   public bestPractice: boolean;
   public languageId: string;
 
-  private tableName = 'templates';
+  public static tableName = 'templates';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -179,7 +179,12 @@ export class Template extends MySqlModel {
       } else {
         this.prepForSave();
         // Save the record and then fetch it
-        const newId = await Template.insert(context, this.tableName, this, 'Template.create');
+        const newId = await Template.insert(
+          context,
+          Template.tableName,
+          this,
+          'Template.create'
+        );
         return await Template.findById('Template.create', context, newId);
       }
     }
@@ -211,7 +216,14 @@ export class Template extends MySqlModel {
         }
         So, we have to make a call to findById to get the updated data to return to user
         */
-        await Template.update(context, this.tableName, this, 'Template.update', [], noTouch);
+        await Template.update(
+          context,
+          Template.tableName,
+          this,
+          'Template.update',
+          [],
+          noTouch
+        );
         return await Template.findById('Template.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -225,7 +237,12 @@ export class Template extends MySqlModel {
     if (this.id) {
       const original = await Template.findById('Template.delete', context, this.id);
       // Associated TemplateCollaborators and VersionedTemplates will be deletd automatically by MySQL
-      const result = await Template.delete(context, this.tableName, this.id, 'Template.delete');
+      const result = await Template.delete(
+        context,
+        Template.tableName,
+        this.id,
+        'Template.delete'
+      );
       if (result) {
         return original;
       }
@@ -235,7 +252,7 @@ export class Template extends MySqlModel {
 
   // Return the specified Template
   static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
-    const sql = 'SELECT * FROM templates WHERE id = ?';
+    const sql = `SELECT * FROM ${Template.tableName} WHERE id = ?`;
     const results = await Template.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Template(results[0]) : null;
   }
@@ -246,7 +263,7 @@ export class Template extends MySqlModel {
     context: MyContext,
     name: string
   ): Promise<Template> {
-    const sql = 'SELECT * FROM templates WHERE LOWER(name) = ? AND ownerId = ?';
+    const sql = `SELECT * FROM ${Template.tableName} WHERE LOWER(name) = ? AND ownerId = ?`;
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim(), context.token?.affiliationId];
     const results = await Template.query(context, sql, vals, reference);
@@ -259,7 +276,7 @@ export class Template extends MySqlModel {
     context: MyContext,
     affiliationId: string
   ): Promise<Template[]> {
-    const sql = 'SELECT * FROM templates WHERE ownerId = ? ORDER BY modified DESC';
+    const sql = `SELECT * FROM ${Template.tableName} WHERE ownerId = ? ORDER BY modified DESC`;
     const results = await Template.query(context, sql, [affiliationId], reference);
     return Array.isArray(results) ? results.map((item) => new Template(item)) : [];
   }

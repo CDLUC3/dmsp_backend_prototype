@@ -13,7 +13,7 @@ import {
   DEFAULT_DMPTOOL_AFFILIATION_URL,
 } from "../../models/Affiliation";
 import {
-  cleanUpAddedAffiliations,
+  cleanUpAddedAffiliation,
   mockAffiliation,
   persistAffiliation,
   randomAffiliation
@@ -23,12 +23,8 @@ import {
   initErrorMessage,
   initTestServer,
   mockToken
-} from "./resolverTest";
-import {
-  cleanUpAddedUsers,
-  mockUser,
-  persistUser
-} from "../../models/__mocks__/User";
+} from "./resolverTestHelper";
+import { cleanUpAddedUser, mockUser, persistUser } from "../../models/__mocks__/User";
 import {MySQLConnection} from "../../datasources/mysql";
 import {getRandomEnumValue} from "../../__tests__/helpers";
 import {formatISO9075} from "date-fns";
@@ -82,7 +78,7 @@ beforeEach(async () => {
 afterEach(async () => {
   try {
     // Delete all the DB records that were persisted during the tests
-    await cleanUpAddedUsers(context);
+    await cleanUpAddedUser(context, researcher.id);
 
     // Close the mysql connection pool
     await mysqlInstance.close();
@@ -113,8 +109,10 @@ describe('affiliationTypes query', () => {
   });
 
   afterEach(async () => {
-    await cleanUpAddedAffiliations(context);
-  })
+    for (const affiliation of affiliations) {
+      await cleanUpAddedAffiliation(context, affiliation.id);
+    }
+  });
 
   it('returns the expected affiliation types', async () => {
     const resp = await executeQuery(testServer, context, query, {});
@@ -176,7 +174,9 @@ describe('affiliationById query', () => {
   });
 
   afterEach(async () => {
-    await cleanUpAddedAffiliations(context);
+    for (const affiliation of affiliations) {
+      await cleanUpAddedAffiliation(context, affiliation.id);
+    }
   })
 
   it('returns the affiliation when successful', async () => {
@@ -277,7 +277,9 @@ describe('affiliations query', () => {
   });
 
   afterEach(async () => {
-    await cleanUpAddedAffiliations(context);
+    for (const affiliation of affiliations) {
+      await cleanUpAddedAffiliation(context, affiliation.id);
+    }
   });
 
   it('returns the expected affiliations when successful', async () => {
@@ -439,7 +441,9 @@ describe('affiliationByURI query', () => {
   });
 
   afterEach(async () => {
-    await cleanUpAddedAffiliations(context);
+    for (const affiliation of affiliations) {
+      await cleanUpAddedAffiliation(context, affiliation.id);
+    }
   });
 
   it('returns the affiliation when successful', async () => {
@@ -519,7 +523,9 @@ describe('addAffiliation mutation', () => {
   });
 
   afterEach(async () => {
-    await cleanUpAddedAffiliations(context);
+    for (const affiliation of affiliations) {
+      await cleanUpAddedAffiliation(context, affiliation.id);
+    }
   });
 
   it('creates a new affiliation when input is valid', async () => {
@@ -679,7 +685,9 @@ describe('updateAffiliation mutation', () => {
   });
 
   afterEach(async () => {
-    await cleanUpAddedAffiliations(context);
+    for (const affiliation of affiliations) {
+      await cleanUpAddedAffiliation(context, affiliation.id);
+    }
   });
 
   it('allows a Super Admin to update other affiliations', async () => {
@@ -1015,7 +1023,9 @@ describe('deleteAffiliation mutation', () => {
   });
 
   afterEach(async () => {
-    await cleanUpAddedAffiliations(context);
+    for (const affiliation of affiliations) {
+      await cleanUpAddedAffiliation(context, affiliation.id);
+    }
   });
 
   it('deletes an affiliation when the user is a SuperAdmin and the affiliation is managed by the DMP Tool', async () => {

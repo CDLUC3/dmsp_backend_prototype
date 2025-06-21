@@ -86,7 +86,7 @@ export class RelatedWork extends MySqlModel {
   public identifier: string;
   public citation: string;
 
-  private static tableName = 'relatedWorks';
+  public static tableName = 'relatedWorks';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);

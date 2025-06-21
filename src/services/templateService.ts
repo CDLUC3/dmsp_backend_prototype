@@ -13,6 +13,8 @@ import { formatLogMessage } from "../logger";
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
   if (!context || !context.token) return false;
 
+  if (isSuperAdmin(context.token)) return true;
+
   // If the current user belongs to the same affiliation OR the user is a super admin
   if (context.token?.affiliationId === template?.ownerId || await isSuperAdmin(context.token)) {
     return true;

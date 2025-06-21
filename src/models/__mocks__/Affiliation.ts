@@ -9,9 +9,6 @@ import {
   DEFAULT_ROR_AFFILIATION_URL
 } from "../Affiliation";
 
-// Store for all mock/test Affiliations that were persisted to the DB
-const addedAffiliationIds: number[] = [];
-
 export interface MockAffiliationOptions {
   name?: string;
   uri?: string;
@@ -73,28 +70,21 @@ export const persistAffiliation = async (
 
   const created = await affiliation.create(context);
 
-  if (!isNullOrUndefined(created)) {
-    // Keep track of the id so we can clean up afterward
-    addedAffiliationIds.push(created.id);
-    return created;
-  }
-
-  return null;
+  return isNullOrUndefined(created) ? null : created;
 }
 
 // Clean up all mock/test Affiliations
-export const cleanUpAddedAffiliations = async (
+export const cleanUpAddedAffiliation = async (
   context: MyContext,
+  id: number,
 ) : Promise<void> => {
   const reference = 'cleanUpAddedAffiliations';
-  for (const id of addedAffiliationIds) {
-    try {
-      // Do a direct delete on the MySQL model because the tests might be mocking the Affiliation functions
-      await Affiliation.delete(context, Affiliation.tableName, id, reference);
-    } catch (e) {
-      console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
-      if (e.originalError) console.log(e.originalError);
-    }
+  try {
+    // Do a direct delete on the MySQL model because the tests might be mocking the Affiliation functions
+    await Affiliation.delete(context, Affiliation.tableName, id, reference);
+  } catch (e) {
+    console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
   }
 }
 
@@ -106,7 +96,7 @@ export const randomAffiliation = async (
   try {
     const results = await Affiliation.query(context, sql, [], 'randomAffiliation');
     if (Array.isArray(results) && results.length > 0) {
-      return new Affiliation([0]);
+      return new Affiliation(results[0]);
     }
   } catch (e) {
     console.error(`Error getting random affiliation: ${e.message}`);

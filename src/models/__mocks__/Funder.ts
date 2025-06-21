@@ -1,202 +1,119 @@
 import casual from "casual";
-import { getCurrentDate } from "../../utils/helpers";
-import {
-  addEntryToMockTable,
-  addMockTableStore,
-  clearMockTableStore,
-  deleteEntryFromMockTable,
-  findEntriesInMockTableByFilter,
-  findEntryInMockTableByFilter,
-  findEntryInMockTableById,
-  getMockTableStore,
-  updateEntryInMockTable
-} from "./MockStore";
+import { isNullOrUndefined } from "../../utils/helpers";
 import { MyContext } from "../../context";
 import { PlanFunding, ProjectFunding, ProjectFundingStatus } from "../Funding";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 
-// Project fundings
-// ---------------------------------------------------
-export const getProjectFundingStore = () => {
-  return getMockTableStore('projectFundings');
+export interface MockProjectFundingOptions {
+  projectId?: number;
+  affiliationId?: string;
+  status?: number;
+  funderOpportunityNumber?: number;
+  funderProjectNumber?: number;
+  grantId?: string;
 }
 
-export const getRandomProjectFunding = (): ProjectFunding => {
-  const store = getMockTableStore('projectFundings');
-  if (!store || store.length === 0) {
-    return null;
-  }
-  return store[Math.floor(Math.random() * store.length)];
+export interface MockPlanFundingOptions {
+  planId?: number;
+  projectFundingId?: number;
 }
 
-export const clearProjectFundingStore = () => {
-  clearMockTableStore('projectFundings');
-}
-
-export const generateNewProjectFunding = (options) => {
-  return {
+// Generate a mock/test ProjectFunding
+export const mockProjectFunding = (
+  options: MockProjectFundingOptions
+): ProjectFunding => {
+  // Use the options provided or default a value
+  return new ProjectFunding({
     projectId: options.projectId ?? casual.integer(1, 9999),
-    affiliationId: options.affiliationId ?? casual.url,
+    affiliationId: options.affiliationId ?? `${casual.url}/TEST/${casual.integer(1, 9999)}`,
     status: options.status ?? getRandomEnumValue(ProjectFundingStatus),
     funderOpportunityNumber: options.funderOpportunityNumber ?? casual.uuid,
     funderProjectNumber: options.funderProjectNumber ?? casual.uuid,
     grantId: options.grantId ?? casual.url,
-  }
-}
-
-// Initialize the table
-export const initProjectFundingStore = (count = 10): ProjectFunding[] => {
-  addMockTableStore('projectFundings', []);
-
-  for (let i = 0; i < count; i++) {
-    addEntryToMockTable('projectFundings', generateNewProjectFunding({}));
-  }
-
-  return getProjectFundingStore();
-}
-
-// Mock the queries
-export const mockFindProjectFundingById = async (_, __, id: number): Promise<ProjectFunding> => {
-  const result = findEntryInMockTableById('projectFundings', id);
-  return result ? new ProjectFunding(result) : null;
-};
-
-export const mockFindProjectFundingsByProjectId = async (_, __, projectId: number): Promise<ProjectFunding[]> => {
-  const results = findEntriesInMockTableByFilter(
-    'projectFundings',
-    (entry) => { return entry.projectId === projectId }
-  );
-  return results ? results.map((entry) => { return new ProjectFunding(entry) }) : [];
-};
-
-export const mockFindProjectFundingsByAffiliation = async (_, __, affiliationId: string): Promise<ProjectFunding[]> => {
-  const results = findEntriesInMockTableByFilter(
-    'projectFundings',
-    (entry) => { return entry.affiliationId === affiliationId }
-  );
-  return results ? results.map((entry) => { return new ProjectFunding(entry) }) : [];
-};
-
-export const mockFindProjectFundingsByProjectAndAffiliation = async (
-  _,
-  __,
-  projectId: number,
-  affiliationId: string
-): Promise<ProjectFunding> => {
-  const result = findEntryInMockTableByFilter(
-    'projectFundings',
-    (entry) => { return entry.projectId === projectId && entry.affiliationId === affiliationId }
-  );
-  return result ? new ProjectFunding(result) : null;
-};
-
-// Mock the mutations
-export const mockInsertProjectFunding = async (context: MyContext, _, obj: ProjectFunding): Promise<number> => {
-  const { insertId } = addEntryToMockTable('projectFundings', {
-    ...obj,
-    createdById: context.token.id,
-    created: getCurrentDate(),
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
   });
-  return insertId;
-};
-
-export const mockUpdateProjectFunding = async (context: MyContext, _, obj: ProjectFunding): Promise<ProjectFunding> => {
-  const result = updateEntryInMockTable('projectFundings', {
-    ...obj,
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return result ? new ProjectFunding(result) : null;
-};
-
-export const mockDeleteProjectFunding = async (_, __, id: number): Promise<boolean> => {
-  const result = deleteEntryFromMockTable('projectFundings', id);
-  return result ? true : false;
-};
-
-
-// Plan fundings
-// ---------------------------------------------------
-export const getPlanFundingStore = () => {
-  return getMockTableStore('planFundings');
 }
 
-export const getRandomPlanFunding = (): PlanFunding => {
-  const store = getMockTableStore('planFundings');
-  if (!store || store.length === 0) {
-    return null;
-  }
-  return store[Math.floor(Math.random() * store.length)];
-}
-
-export const clearPlanFundingStore = () => {
-  clearMockTableStore('planFundings');
-}
-
-export const generateNewPlanFunding = (options) => {
-  return {
+// Generate a mock/test PlanFunding
+export const mockPlanFunding = (
+  options: MockPlanFundingOptions
+): PlanFunding => {
+  // Use the options provided or default a value
+  return new PlanFunding({
     planId: options.planId ?? casual.integer(1, 9999),
     projectFundingId: options.projectFundingId ?? casual.integer(1, 9999),
+  });
+}
+
+// Save a mock/test ProjectFunding in the DB for integration tests
+export const persistProjectFunding = async (
+  context: MyContext,
+  funding: ProjectFunding
+): Promise<ProjectFunding | null> => {
+  // Ensure the createdById and modifiedId are set
+  if (isNullOrUndefined(funding.createdById) || isNullOrUndefined(funding.modifiedById)) {
+    funding.createdById = context.token.id;
+    funding.modifiedById = context.token.id;
+  }
+
+  try {
+    const created = await funding.create(context, funding.projectId);
+    return isNullOrUndefined(created) ? null : created;
+  } catch (e) {
+    console.error(`Error persisting project funding ${funding.affiliationId}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+    return null;
   }
 }
 
-// Initialize the table
-export const initPlanFundingStore = (count = 10): PlanFunding[] => {
-  addMockTableStore('planFundings', []);
-
-  for (let i = 0; i < count; i++) {
-    addEntryToMockTable('planFundings', generateNewPlanFunding({}));
+// Save a mock/test PlanFunding in the DB for integration tests
+export const persistPlanFunding = async (
+  context: MyContext,
+  funding: PlanFunding
+): Promise<PlanFunding | null> => {
+  // Ensure the createdById and modifiedId are set
+  if (isNullOrUndefined(funding.createdById) || isNullOrUndefined(funding.modifiedById)) {
+    funding.createdById = context.token.id;
+    funding.modifiedById = context.token.id;
   }
 
-  return getPlanFundingStore();
+  try {
+    const created = await funding.create(context);
+    return isNullOrUndefined(created) ? null : created;
+  } catch (e) {
+    console.error(`Error persisting plan funding ${funding.projectFundingId}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+    return null;
+  }
 }
 
-// Mock the queries
-export const mockFindPlanFundingById = async (_, __, id: number): Promise<PlanFunding> => {
-  const result = findEntryInMockTableById('planFundings', id);
-  return result ? new PlanFunding(result) : null;
-};
+// Clean up all mock/test ProjectFunding
+export const cleanUpAddedProjectFunding = async (
+  context: MyContext,
+  id?: number,
+) : Promise<void> => {
+  const reference = 'cleanUpAddedProjectFunding';
+  try {
+    // Do a direct delete on the MySQL model because the tests might be mocking the
+    // ProjectFunding functions
+    await ProjectFunding.delete(context, ProjectFunding.tableName, id, reference);
+  } catch (e) {
+    console.error(`Error cleaning up project funding id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+  }
+}
 
-export const mockFindPlanFundingsByProjectFundingId = async (_, __, projectFundingId: number): Promise<PlanFunding> => {
-  const result = findEntriesInMockTableByFilter(
-    'planFundings',
-    (entry) => { return entry.projectFundingId === projectFundingId }
-  );
-  return result ? new PlanFunding(result) : null;
-};
-
-export const mockFindPlanFundingsByPlanId = async (_, __, planId: number): Promise<PlanFunding> => {
-  const result = findEntriesInMockTableByFilter(
-    'planFundings',
-    (entry) => { return entry.planId === planId }
-  );
-  return result ? new PlanFunding(result) : null;
-};
-
-// Mock the mutations
-export const mockInsertPlanFunding = async (context: MyContext, _, obj: PlanFunding): Promise<number> => {
-  const { insertId } = addEntryToMockTable('planFundings', {
-    ...obj,
-    createdById: context.token.id,
-    created: getCurrentDate(),
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return insertId;
-};
-
-export const mockUpdatePlanFunding = async (context: MyContext, _, obj: PlanFunding): Promise<PlanFunding> => {
-  const result = updateEntryInMockTable('planFundings', {
-    ...obj,
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return result ? new PlanFunding(result) : null;
-};
-
-export const mockDeletePlanFunding = async (_, __, id: number): Promise<boolean> => {
-  const result = deleteEntryFromMockTable('planFundings', id);
-  return result ? true : false;
-};
+// Clean up all mock/test PlanFunding
+export const cleanUpAddedPlanFunding = async (
+  context: MyContext,
+  id?: number,
+) : Promise<void> => {
+  const reference = 'cleanUpAddedPlanFunding';
+  try {
+    // Do a direct delete on the MySQL model because the tests might be mocking the
+    // ProjectFunding functions
+    await PlanFunding.delete(context, PlanFunding.tableName, id, reference);
+  } catch (e) {
+    console.error(`Error cleaning up plan funding id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+  }
+}

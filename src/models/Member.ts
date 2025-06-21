@@ -13,7 +13,7 @@ export class ProjectMember extends MySqlModel {
   public email?: string;
   public memberRoles: MemberRole[];
 
-  private static tableName = 'projectMembers';
+  public static tableName = 'projectMembers';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -246,7 +246,7 @@ export class PlanMember extends MySqlModel {
   public isPrimaryContact: boolean;
   public memberRoleIds: number[];
 
-  private static tableName = 'planMembers';
+  public static tableName = 'planMembers';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);

@@ -1,273 +1,132 @@
 import casual from "casual";
-import { getCurrentDate } from "../../utils/helpers";
-import {
-  addEntryToMockTable,
-  addMockTableStore,
-  clearMockTableStore,
-  deleteEntryFromMockTable,
-  findEntriesInMockTableByFilter,
-  findEntryInMockTableByFilter,
-  findEntryInMockTableById,
-  getMockTableStore,
-  updateEntryInMockTable
-} from "./MockStore";
-import { getMemberRoleStore, getRandomMemberRole, initMemberRoles } from "./MemberRole";
+import { isNullOrUndefined } from "../../utils/helpers";
+import { randomMemberRole } from "./MemberRole";
 import { getMockORCID } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
 import { PlanMember, ProjectMember } from "../Member";
 
-// Project members
-// ---------------------------------------------------
-export const getProjectMemberStore = () => {
-  return getMockTableStore('projectMembers');
+// NOTE: associations to memberRoles will be deleted automatically when cleanup
+// is called on these records due to cascading deletes enforced by the DB.
+
+export interface MockProjectMemberOptions {
+  projectId?: number;
+  givenName?: string;
+  surName?: string;
+  affiliationId?: string;
+  orcid?: string;
+  email?: string;
+  memberRoles?: number[];
+}
+export interface MockPlanMemberOptions {
+  planId?: number;
+  projectMemberId?: number;
+  memberRoles?: number[];
+  isPrimaryContact?: boolean;
 }
 
-export const getRandomProjectMember = (): ProjectMember => {
-  const store = getMockTableStore('projectMembers');
-  if (!store || store.length === 0) {
-    return null;
-  }
-  return store[Math.floor(Math.random() * store.length)];
-}
-
-export const clearProjectMemberStore = () => {
-  clearMockTableStore('projectMembers');
-}
-
-export const generateNewProjectMember = (options) => {
-  return {
+// Generate a mock/test ProjectMember
+export const mockProjectMember = async (
+  context: MyContext,
+  options: MockProjectMemberOptions
+): Promise<ProjectMember> => {
+  const randoRole = await randomMemberRole(context);
+  // Use the options provided or default a value
+  return new ProjectMember({
     projectId: options.projectId ?? casual.integer(1, 9999),
     givenName: options.givenName ?? casual.first_name,
     surName: options.surName ?? casual.last_name,
     affiliationId: options.affiliationId ?? casual.url,
     orcid: options.orcid ?? getMockORCID(),
-    email: options.email ?? casual.email,
-    memberRoles: [getRandomMemberRole().id],
-  }
-}
-
-// Initialize the table
-export const initProjectMemberStore = (count = 10): ProjectMember[] => {
-  addMockTableStore('projectMembers', []);
-
-  // Since the member has an association with MemberRole, we need to make sure the MemberRole
-  // table is initialized first
-  const memberRoleStore = getMemberRoleStore();
-  if (!memberRoleStore || memberRoleStore.length === 0) {
-    initMemberRoles();
-  }
-
-  for (let i = 0; i < count; i++) {
-    addEntryToMockTable('projectMembers', generateNewProjectMember({}));
-  }
-
-  return getProjectMemberStore();
-}
-
-// Mock the queries
-export const mockFindProjectMemberById = async (_, __, id: number): Promise<ProjectMember> => {
-  const result = findEntryInMockTableById('projectMembers', id);
-  return result ? new ProjectMember(result) : null;
-};
-
-export const mockFindProjectMembersByProjectId = async (_, __, projectId: number): Promise<ProjectMember[]> => {
-  const results = findEntriesInMockTableByFilter(
-    'projectMembers',
-    (entry) => { return entry.projectId === projectId }
-  );
-  return results ? results.map((entry) => { return new ProjectMember(entry) }) : [];
-};
-
-export const mockFindProjectMembersByAffiliation = async (_, __, affiliationId: string): Promise<ProjectMember[]> => {
-  const results = findEntriesInMockTableByFilter(
-    'projectMembers',
-    (entry) => { return entry.affiliationId === affiliationId }
-  );
-  return results ? results.map((entry) => { return new ProjectMember(entry) }) : [];
-};
-
-export const mockFindProjectMembersByProjectAndEmail = async (
-  _,
-  __,
-  projectId: number,
-  email: string
-): Promise<ProjectMember> => {
-  const result = findEntryInMockTableByFilter(
-    'projectMembers',
-    (entry) => { return entry.projectId === projectId && entry.email.toLowerCase().trim() === email.toLowerCase().trim() }
-  );
-  return result ? new ProjectMember(result) : null;
-};
-
-export const mockFindProjectMembersByProjectAndORCID = async (
-  _,
-  __,
-  projectId: number,
-  orcid: string
-): Promise<ProjectMember> => {
-  const result = findEntryInMockTableByFilter(
-    'projectMembers',
-    (entry) => { return entry.projectId === projectId && entry.orcid.toLowerCase().trim() === orcid.toLowerCase().trim() }
-  );
-  return result ? new ProjectMember(result) : null;
-};
-
-export const mockFindProjectMembersByProjectAndName = async (
-  _,
-  __,
-  projectId: number,
-  givenName: string,
-  surName: string
-): Promise<ProjectMember> => {
-  const result = findEntryInMockTableByFilter(
-    'projectMembers',
-    (entry) => {
-      return entry.projectId === projectId &&
-        entry.givenName.toLowerCase().trim() === givenName.toLowerCase().trim() &&
-        entry.surName.toLowerCase().trim() === surName.toLowerCase().trim();
-    }
-  );
-  return result ? new ProjectMember(result) : null;
-};
-
-export const mockFindProjectMembersByProjectAndNameOrORCIDOrEmail = async (
-  _,
-  __,
-  projectId: number,
-  givenName: string,
-  surName: string,
-  orcid: string,
-  email: string
-): Promise<ProjectMember> => {
-  const result = findEntriesInMockTableByFilter(
-    'projectMembers',
-    (entry) => {
-      return entry.projectId === projectId &&
-        ((entry.givenName.toLowerCase().trim() === givenName.toLowerCase().trim() &&
-          entry.surName.toLowerCase().trim() === surName.toLowerCase().trim()) ||
-          entry.orcid.toLowerCase().trim() === orcid.toLowerCase().trim() ||
-          entry.email.toLowerCase().trim() === email.toLowerCase().trim());
-    }
-  );
-  return result ? new ProjectMember(result) : null;
-};
-
-// Mock the mutations
-export const mockInsertProjectMember = async (context: MyContext, _, obj: ProjectMember): Promise<number> => {
-  const { insertId } = addEntryToMockTable('projectMembers', {
-    ...obj,
-    createdById: context.token.id,
-    created: getCurrentDate(),
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
+    email: options.email ?? `test.${casual.integer(1, 999)}.${casual.email}`,
+    memberRoles: options.memberRoles ?? [randoRole.id],
   });
-  return insertId;
-};
-
-export const mockUpdateProjectMember = async (context: MyContext, _, obj: ProjectMember): Promise<ProjectMember> => {
-  const result = updateEntryInMockTable('projectMembers', {
-    ...obj,
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return result ? new ProjectMember(result) : null;
-};
-
-export const mockDeleteProjectMember = async (_, __, id: number): Promise<boolean> => {
-  const result = deleteEntryFromMockTable('projectMembers', id);
-  return result ? true : false;
-};
-
-
-// Plan members
-// ---------------------------------------------------
-export const getPlanMemberStore = () => {
-  return getMockTableStore('planMembers');
 }
 
-export const getRandomPlanMember = (): PlanMember => {
-  const store = getMockTableStore('planMembers');
-  if (!store || store.length === 0) {
+// Generate a mock/test PlanMember
+export const mockPlanMember = async (
+  context: MyContext,
+  options: MockPlanMemberOptions
+): Promise<PlanMember> => {
+  const randoRole = await randomMemberRole(context);
+  // Use the options provided or default a value
+  return new PlanMember({
+    planId: options.planId ?? casual.integer(1, 9999),
+    projectMemberId: options.projectMemberId ?? casual.integer(1, 9999),
+    memberRoles: options.memberRoles ?? [randoRole.id],
+    isPrimaryContact: options.isPrimaryContact ?? false,
+  });
+}
+
+// Save a mock/test ProjectMember in the DB for integration tests
+export const persistProjectMember = async (
+  context: MyContext,
+  member: ProjectMember
+): Promise<ProjectMember | null> => {
+  // Ensure the createdById and modifiedId are set
+  if (isNullOrUndefined(member.createdById) || isNullOrUndefined(member.modifiedById)) {
+    member.createdById = context.token.id;
+    member.modifiedById = context.token.id;
+  }
+
+  try {
+    const created = await member.create(context, member.projectId);
+    return isNullOrUndefined(created) ? null : created;
+  } catch (e) {
+    console.error(`Error persisting project member ${member.email}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
     return null;
   }
-  return store[Math.floor(Math.random() * store.length)];
 }
 
-export const clearPlanMemberStore = () => {
-  clearMockTableStore('planMembers');
-}
+// Save a mock/test PlanMember in the DB for integration tests
+export const persistPlanMember = async (
+  context: MyContext,
+  member: PlanMember
+): Promise<PlanMember | null> => {
+  // Ensure the createdById and modifiedId are set
+  if (isNullOrUndefined(member.createdById) || isNullOrUndefined(member.modifiedById)) {
+    member.createdById = context.token.id;
+    member.modifiedById = context.token.id;
+  }
 
-export const generateNewPlanMember = (options) => {
-  return {
-    planId: options.projectId ?? casual.integer(1, 9999),
-    projectMemberId: options.projectMemberId ?? casual.integer(1, 9999),
-    memberRoles: [getRandomMemberRole().id],
-    isPrimaryContact: options.isPrimaryContact ?? false,
+  try {
+    const created = await member.create(context);
+    return isNullOrUndefined(created) ? null : created;
+  } catch (e) {
+    console.error(`Error persisting plan member ${member.projectMemberId}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+    return null;
   }
 }
 
-// Initialize the table
-export const initPlanMemberStore = (count = 10): PlanMember[] => {
-  addMockTableStore('planMembers', []);
-
-  // Since the member has an association with MemberRole, we need to make sure the MemberRole
-  // table is initialized first
-  const memberRoleStore = getMemberRoleStore();
-  if (!memberRoleStore || memberRoleStore.length === 0) {
-    initMemberRoles();
+// Clean up all mock/test ProjectMember
+export const cleanUpAddedProjectMember = async (
+  context: MyContext,
+  id?: number,
+) : Promise<void> => {
+  const reference = 'cleanUpAddedProjectMember';
+  try {
+    // Do a direct delete on the MySQL model because the tests might be mocking the
+    // ProjectMember functions
+    await ProjectMember.delete(context, ProjectMember.tableName, id, reference);
+  } catch (e) {
+    console.error(`Error cleaning up project member id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
   }
-
-  for (let i = 0; i < count; i++) {
-    addEntryToMockTable('planMembers', generateNewPlanMember({}));
-  }
-
-  return getPlanMemberStore();
 }
 
-// Mock the queries
-export const mockFindPlanMemberById = async (_, __, id: number): Promise<PlanMember> => {
-  const result = findEntryInMockTableById('planMembers', id);
-  return result ? new PlanMember(result) : null;
-};
-
-export const mockFindPlanMembersByProjectMemberId = async (_, __, projectMemberId: number): Promise<PlanMember[]> => {
-  const results = findEntriesInMockTableByFilter(
-    'planMembers',
-    (entry) => { return entry.projectMemberId === projectMemberId }
-  );
-  return Array.isArray(results) ? results.map((result) => new PlanMember(result)) : [];
-};
-
-export const mockFindPlanMembersByPlanId = async (_, __, planId: number): Promise<PlanMember[]> => {
-  const results = findEntriesInMockTableByFilter(
-    'planMembers',
-    (entry) => { return entry.planId === planId }
-  );
-  return Array.isArray(results) ? results.map((result) => new PlanMember(result)) : [];
-};
-
-// Mock the mutations
-export const mockInsertPlanMember = async (context: MyContext, _, obj: PlanMember): Promise<number> => {
-  const { insertId } = addEntryToMockTable('planMembers', {
-    ...obj,
-    createdById: context.token.id,
-    created: getCurrentDate(),
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return insertId;
-};
-
-export const mockUpdatePlanMember = async (context: MyContext, _, obj: PlanMember): Promise<PlanMember> => {
-  const result = updateEntryInMockTable('planMembers', {
-    ...obj,
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return result ? new PlanMember(result) : null;
-};
-
-export const mockDeletePlanMember = async (_, __, id: number): Promise<boolean> => {
-  const result = deleteEntryFromMockTable('planMembers', id);
-  return result ? true : false;
-};
+// Clean up all mock/test PlanMember
+export const cleanUpAddedPlanMember = async (
+  context: MyContext,
+  id?: number,
+) : Promise<void> => {
+  const reference = 'cleanUpAddedPlanMember';
+  try {
+    // Do a direct delete on the MySQL model because the tests might be mocking the
+    // ProjectMember functions
+    await PlanMember.delete(context, PlanMember.tableName, id, reference);
+  } catch (e) {
+    console.error(`Error cleaning up plan member id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+  }
+}

@@ -39,7 +39,7 @@ export class Collaborator extends MySqlModel {
 export class TemplateCollaborator extends Collaborator {
   public templateId: number;
 
-  private tableName = 'templateCollaborators';
+  public static tableName = 'templateCollaborators';
 
   constructor(options) {
     super(options);
@@ -80,7 +80,12 @@ export class TemplateCollaborator extends Collaborator {
         this.invitedById = context.token?.id;
 
         // Save the record and then fetch it
-        const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
+        const newId = await TemplateCollaborator.insert(
+          context,
+          TemplateCollaborator.tableName,
+          this,
+          reference
+        );
         if (newId) {
           const inviter = await User.findById(reference, context, this.invitedById);
           const template = await Template.findById(reference, context, this.templateId);
@@ -113,7 +118,12 @@ export class TemplateCollaborator extends Collaborator {
         if (!templateExists) {
           this.addError('general', 'Template does not exist');
         } else {
-          const result = await TemplateCollaborator.update(context, this.tableName, this, 'TemplateCollaborator.update');
+          const result = await TemplateCollaborator.update(
+            context,
+            TemplateCollaborator.tableName,
+            this,
+            'TemplateCollaborator.update'
+          );
           if (!result) {
             this.addError('general', 'Unable to update the collaborator');
           }
@@ -131,8 +141,14 @@ export class TemplateCollaborator extends Collaborator {
   // Remove this record
   async delete(context: MyContext): Promise<TemplateCollaborator> {
     const existing = await TemplateCollaborator.findById('TemplateCollaborator.delete', context, this.id);
+
     if (existing) {
-      const result = await TemplateCollaborator.delete(context, this.tableName, this.id, 'TemplateCollaborator.delete');
+      const result = await TemplateCollaborator.delete(
+        context,
+        TemplateCollaborator.tableName,
+        this.id,
+        'TemplateCollaborator.delete'
+      );
       if (!result) {
         existing.addError('general', 'Unable to delete the collaborator');
       }
@@ -147,7 +163,7 @@ export class TemplateCollaborator extends Collaborator {
     context: MyContext,
     templateId: number
   ): Promise<TemplateCollaborator[]> {
-    const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? ORDER BY email ASC';
+    const sql = `SELECT * FROM ${TemplateCollaborator.tableName} WHERE templateId = ? ORDER BY email ASC`;
     const results = await TemplateCollaborator.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
@@ -158,7 +174,7 @@ export class TemplateCollaborator extends Collaborator {
     context: MyContext,
     id: number,
   ): Promise<TemplateCollaborator> {
-    const sql = 'SELECT * FROM templateCollaborators WHERE id = ?';
+    const sql = `SELECT * FROM ${TemplateCollaborator.tableName} WHERE id = ?`;
     const results = await TemplateCollaborator.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
   }
@@ -168,7 +184,7 @@ export class TemplateCollaborator extends Collaborator {
     context: MyContext,
     invitedById: number,
   ): Promise<TemplateCollaborator[]> {
-    const sql = 'SELECT * FROM templateCollaborators WHERE invitedById = ?';
+    const sql = `SELECT * FROM ${TemplateCollaborator.tableName} WHERE invitedById = ?`;
     const results = await TemplateCollaborator.query(context, sql, [invitedById?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
@@ -179,7 +195,7 @@ export class TemplateCollaborator extends Collaborator {
     context: MyContext,
     email: string,
   ): Promise<TemplateCollaborator[]> {
-    const sql = 'SELECT * FROM templateCollaborators WHERE email = ?';
+    const sql = `SELECT * FROM ${TemplateCollaborator.tableName} WHERE email = ?`;
     const results = await TemplateCollaborator.query(context, sql, [email], reference);
     return Array.isArray(results) ? results.map((entry) => new TemplateCollaborator(entry)) : [];
   }
@@ -191,7 +207,7 @@ export class TemplateCollaborator extends Collaborator {
     templateId: number,
     email: string,
   ): Promise<TemplateCollaborator> {
-    const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
+    const sql = `SELECT * FROM ${TemplateCollaborator.tableName} WHERE templateId = ? AND email = ?`;
     const vals = [templateId?.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
@@ -213,7 +229,7 @@ export class ProjectCollaborator extends Collaborator {
   public projectId: number;
   public accessLevel: ProjectCollaboratorAccessLevel;
 
-  private tableName = 'projectCollaborators';
+  public static tableName = 'projectCollaborators';
 
   constructor(options) {
     super(options);
@@ -256,7 +272,12 @@ export class ProjectCollaborator extends Collaborator {
         this.invitedById = context.token?.id;
 
         // Save the record and then fetch it
-        const newId = await ProjectCollaborator.insert(context, this.tableName, this, reference);
+        const newId = await ProjectCollaborator.insert(
+          context,
+          ProjectCollaborator.tableName,
+          this,
+          reference
+        );
         if (newId) {
           const inviter = await User.findById(reference, context, this.invitedById);
           const project = await Project.findById(reference, context, this.projectId);
@@ -268,7 +289,6 @@ export class ProjectCollaborator extends Collaborator {
         }
       }
     }
-
     // Otherwise return as-is with all the errors
     return new ProjectCollaborator(this);
   }
@@ -289,7 +309,12 @@ export class ProjectCollaborator extends Collaborator {
         if (!projectExists) {
           this.addError('general', 'Project does not exist');
         } else {
-          const result = await ProjectCollaborator.update(context, this.tableName, this, 'ProjectCollaborator.update');
+          const result = await ProjectCollaborator.update(
+            context,
+            ProjectCollaborator.tableName,
+            this,
+            'ProjectCollaborator.update'
+          );
           if (!result) {
             this.addError('general', 'Unable to update the collaborator');
           }
@@ -307,8 +332,14 @@ export class ProjectCollaborator extends Collaborator {
   // Remove this record
   async delete(context: MyContext): Promise<ProjectCollaborator> {
     const existing = await ProjectCollaborator.findById('ProjectCollaborator.delete', context, this.id);
+
     if (existing) {
-      const result = await ProjectCollaborator.delete(context, this.tableName, this.id, 'ProjectCollaborator.delete');
+      const result = await ProjectCollaborator.delete(
+        context,
+        ProjectCollaborator.tableName,
+        this.id,
+        'ProjectCollaborator.delete'
+      );
       if (!result) {
         existing.addError('general', 'Unable to delete the collaborator');
       }
@@ -323,7 +354,7 @@ export class ProjectCollaborator extends Collaborator {
     context: MyContext,
     projectId: number
   ): Promise<ProjectCollaborator[]> {
-    const sql = 'SELECT * FROM projectCollaborators WHERE projectId = ? ORDER BY email ASC';
+    const sql = `SELECT * FROM ${ProjectCollaborator.tableName} WHERE projectId = ? ORDER BY email ASC`;
     const results = await ProjectCollaborator.query(context, sql, [projectId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
   }
@@ -334,7 +365,7 @@ export class ProjectCollaborator extends Collaborator {
     context: MyContext,
     id: number,
   ): Promise<ProjectCollaborator> {
-    const sql = 'SELECT * FROM projectCollaborators WHERE id = ?';
+    const sql = `SELECT * FROM ${ProjectCollaborator.tableName} WHERE id = ?`;
     const results = await ProjectCollaborator.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;
   }
@@ -344,7 +375,7 @@ export class ProjectCollaborator extends Collaborator {
     context: MyContext,
     invitedById: number,
   ): Promise<ProjectCollaborator[]> {
-    const sql = 'SELECT * FROM projectCollaborators WHERE invitedById = ?';
+    const sql = `SELECT * FROM ${ProjectCollaborator.tableName} WHERE invitedById = ?`;
     const results = await ProjectCollaborator.query(context, sql, [invitedById?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
   }
@@ -355,7 +386,7 @@ export class ProjectCollaborator extends Collaborator {
     context: MyContext,
     email: string,
   ): Promise<ProjectCollaborator[]> {
-    const sql = 'SELECT * FROM projectCollaborators WHERE email = ?';
+    const sql = `SELECT * FROM ${ProjectCollaborator.tableName} WHERE email = ?`;
     const results = await ProjectCollaborator.query(context, sql, [email], reference);
     return Array.isArray(results) ? results.map((entry) => new ProjectCollaborator(entry)) : [];
   }
@@ -367,7 +398,7 @@ export class ProjectCollaborator extends Collaborator {
     projectId: number,
     email: string,
   ): Promise<ProjectCollaborator> {
-    const sql = 'SELECT * FROM projectCollaborators WHERE projectId = ? AND email = ?';
+    const sql = `SELECT * FROM ${ProjectCollaborator.tableName} WHERE projectId = ? AND email = ?`;
     const vals = [projectId?.toString(), email];
     const results = await ProjectCollaborator.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;

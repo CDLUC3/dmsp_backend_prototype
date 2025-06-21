@@ -147,7 +147,7 @@ export class VersionedTemplate extends MySqlModel {
   public bestPractice: boolean;
   public languageId: string;
 
-  private tableName = 'versionedTemplates';
+  public static tableName = 'versionedTemplates';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -187,7 +187,12 @@ export class VersionedTemplate extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await VersionedTemplate.insert(context, this.tableName, this, 'VersionedTemplate.create');
+      const newId = await VersionedTemplate.insert(
+        context,
+        VersionedTemplate.tableName,
+        this,
+        'VersionedTemplate.create'
+      );
       return await VersionedTemplate.findVersionedTemplateById('VersionedTemplate.create', context, newId);
     }
     // Otherwise return as-is with all the errors
@@ -199,7 +204,12 @@ export class VersionedTemplate extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       if (this.id) {
-        const result = await VersionedTemplate.update(context, this.tableName, this, 'VersionedTemplate.update');
+        const result = await VersionedTemplate.update(
+          context,
+          VersionedTemplate.tableName,
+          this,
+          'VersionedTemplate.update'
+        );
         return result as VersionedTemplate;
       }
       // This template has never been saved before so we cannot update it!
@@ -210,14 +220,14 @@ export class VersionedTemplate extends MySqlModel {
 
   // Fetch the Versioned template by its id
   static async findById(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedTemplate> {
-    const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+    const sql = `SELECT * FROM ${VersionedTemplate.tableName} WHERE id = ?`;
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : null;
   }
 
   // Return all of the versions for the specified Template
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<VersionedTemplate[]> {
-    const sql = 'SELECT * FROM versionedTemplates WHERE templateId = ? ORDER BY version DESC';
+    const sql = `SELECT * FROM ${VersionedTemplate.tableName} WHERE templateId = ? ORDER BY version DESC`;
     const results = await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new VersionedTemplate(entry)) : [];
   }
@@ -228,14 +238,14 @@ export class VersionedTemplate extends MySqlModel {
     context: MyContext,
     versionedTemplateId: number
   ): Promise<VersionedTemplate> {
-    const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
+    const sql = `SELECT * FROM ${VersionedTemplate.tableName} WHERE id = ?`;
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : null;
   }
 
   // Find all of the templates associated with the context's User's affiliation
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<VersionedTemplate[]> {
-    const sql = 'SELECT * FROM versionedTemplates WHERE ownerId = ? ORDER BY modified DESC';
+    const sql = `SELECT * FROM ${VersionedTemplate.tableName} WHERE ownerId = ? ORDER BY modified DESC`;
     const results = await VersionedTemplate.query(context, sql, [affiliationId], reference);
     // No need to instantiate the objects here
     return Array.isArray(results) ? results : [];

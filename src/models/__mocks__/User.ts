@@ -6,10 +6,8 @@ import { MyContext } from "../../context";
 import { getMockROR, getRandomEnumValue } from "../../__tests__/helpers";
 import {UserEmail} from "../UserEmail";
 
-// Store for all mock/test Users that were persisted to the DB
-const addedUserIds: number[] = [];
-
 export interface MockUserOptions {
+  id?: number;
   email?: string;
   password?: string;
   givenName?: string;
@@ -27,7 +25,8 @@ export const mockUser = (
 ): User => {
   // Use the options provided or default a value
   return new User({
-    email: options.email ?? `test.${casual.email}`,
+    id: options.id,
+    email: options.email ?? `test.${casual.integer(1, 999)}.${casual.email}`,
     password: options.password ?? 'Testing123$9',
     role: options.role ?? getRandomEnumValue(UserRole),
     givenName: options.givenName ?? casual.first_name,
@@ -44,12 +43,7 @@ export const persistUser = async (
 ): Promise<User | null> => {
   try {
     const created = await user.register(context);
-    if (!isNullOrUndefined(created)) {
-      // Keep track of the id so we can clean up afterward
-      addedUserIds.push(created.id);
-      return created;
-    }
-    console.error(`Unable to persist user: ${user.email}`, created?.errors);
+    return isNullOrUndefined(created) ? null : created;
   } catch (e) {
     console.error(`Error persisting user ${user.email}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
@@ -58,24 +52,23 @@ export const persistUser = async (
 }
 
 // Clean up all mock/test Users
-export const cleanUpAddedUsers = async (
+export const cleanUpAddedUser = async (
   context: MyContext,
+  id?: number,
 ) : Promise<void> => {
   const reference = 'cleanUpAddedUsers';
-  for (const id of addedUserIds) {
-    try {
-      // User auto-creates UserEmail records so we need to delete those first
-      const userEmails = await UserEmail.findByUserId(reference, context, id);
-      for (const userEmail of userEmails) {
-        await userEmail.delete(context);
-      }
-
-      // Do a direct delete on the MySQL model because the tests might be mocking the User functions
-      await User.delete(context, User.tableName, id, reference);
-    } catch (e) {
-      console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
-      if (e.originalError) console.log(e.originalError);
+  try {
+    // User auto-creates UserEmail records so we need to delete those first
+    const userEmails = await UserEmail.findByUserId(reference, context, id);
+    for (const userEmail of userEmails) {
+      await userEmail.delete(context);
     }
+
+    // Do a direct delete on the MySQL model because the tests might be mocking the User functions
+    await User.delete(context, User.tableName, id, reference);
+  } catch (e) {
+    console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
   }
 }
 
@@ -87,7 +80,7 @@ export const randomUser = async (
   try {
     const results = await User.query(context, sql, [], 'randomUser');
     if (Array.isArray(results) && results.length > 0) {
-      return new User([0]);
+      return new User(results[0]);
     }
   } catch (e) {
     console.error(`Error getting random user: ${e.message}`);

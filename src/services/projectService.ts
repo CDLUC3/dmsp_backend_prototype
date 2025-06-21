@@ -35,8 +35,10 @@ export const hasPermissionOnProject = async (
 
     // Otherwise check to see if the user is a collaborator on the project
     const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+
     if (Array.isArray(collaborators) && collaborators.length > 0) {
       const collab = collaborators.find((collaborator) => collaborator.userId === context.token.id);
+
       if (collab) {
         switch (requiredAccessLevel) {
           case ProjectCollaboratorAccessLevel.COMMENT:

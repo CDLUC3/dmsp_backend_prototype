@@ -139,7 +139,7 @@ export class Plan extends MySqlModel {
   public registeredById: number;
   public registered: string;
 
-  private static tableName = 'plans';
+  public static tableName = 'plans';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);

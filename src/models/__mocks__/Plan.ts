@@ -1,150 +1,81 @@
 
 import casual from "casual";
-import {
-  addEntryToMockTable,
-  addMockTableStore,
-  clearMockTableStore,
-  deleteEntryFromMockTable,
-  findEntriesInMockTableByFilter,
-  findEntryInMockTableByFilter,
-  findEntryInMockTableById,
-  getMockTableStore,
-  updateEntryInMockTable
-} from "./MockStore";
-import { getCurrentDate } from "../../utils/helpers";
+import { isNullOrUndefined } from "../../utils/helpers";
 import { getMockDMPId, getRandomEnumValue } from "../../__tests__/helpers";
-import { Plan, PlanSearchResult, PlanStatus, PlanVisibility } from "../Plan";
-import { supportedLanguages } from "../Language";
 import { MyContext } from "../../context";
+import { Plan, PlanStatus, PlanVisibility } from "../Plan";
+import { supportedLanguages } from "../Language";
+import { deleteDMP } from "../../datasources/dynamo";
 
-export const getPlanStore = () => {
-  return getMockTableStore('plans');
+export interface MockPlanOptions {
+  projectId?: number;
+  versionedTemplateId?: number;
+  status?: PlanStatus;
+  visibility?: PlanVisibility;
+  dmpId?: string;
+  registered?: string;
+  registeredById?: number;
+  languageId?: number;
+  featured?: boolean;
 }
 
-export const getRandomPlan = (): Plan => {
-  const store = getMockTableStore('plans');
-  if (!store || store.length === 0) {
-    return null;
-  }
-  return store[Math.floor(Math.random() * store.length)];
-}
-
-export const clearPlanStore = () => {
-  clearMockTableStore('plans');
-}
-
-export const generateNewPlan = (options) => {
-  return {
+// Generate a mock/test Plan
+export const mockPlan = (
+  options: MockPlanOptions
+): Plan => {
+  // Use the options provided or default a value
+  return new Plan({
     projectId: options.projectId ?? casual.integer(1, 9999),
     versionedTemplateId: options.versionedTemplateId ?? casual.integer(1, 9999),
     status: options.status ?? getRandomEnumValue(PlanStatus),
     visibility: options.visibility ?? getRandomEnumValue(PlanVisibility),
     dmpId: options.dmpId ?? getMockDMPId(),
-    registered: options.registered ?? casual.date('YYYY-MM-DD'),
-    registeredById: options.registeredById ?? casual.integer(1, 9999),
+    registered: options.registered,
+    registeredById: options.registeredById,
     languageId: options.languageId ?? supportedLanguages[Math.floor(Math.random() * supportedLanguages.length)].id,
     featured: options.featured ?? casual.boolean,
-  }
-}
-
-// Converts a Mock Store Plan into a PlanSearchResult. Note that some data is mocked
-// because we do not have access to the other stores here
-const planToPlanSearchResult = (plan: Plan): PlanSearchResult => {
-  return {
-    id: plan.id,
-    createdBy: casual.full_name,
-    created: plan.created,
-    modifiedBy: casual.full_name,
-    modified: plan.modified,
-    title: casual.sentence,
-    status: plan.status,
-    visibility: plan.visibility,
-    dmpId: plan.dmpId,
-    registeredBy: casual.full_name,
-    registered: plan.registered,
-    featured: plan.featured,
-    funding: casual.company_name,
-    members: casual.full_name,
-    templateTitle: casual.title,
-  }
-}
-
-// Initialize the table
-export const initPlanStore = (count = 10): Plan[] => {
-  addMockTableStore('plans', []);
-
-  for (let i = 0; i < count; i++) {
-    addEntryToMockTable('plans', generateNewPlan({}));
-  }
-
-  return getPlanStore();
-}
-
-// Mock the queries
-export const mockFindPlanById = async (_, __, id: number): Promise<Plan> => {
-  const result = findEntryInMockTableById('plans', id);
-  return result ? new Plan(result) : null;
-};
-
-export const mockFindPlanByDMPId = async (_, __, dmpId: string): Promise<Plan> => {
-  const result = findEntryInMockTableByFilter(
-    'plans',
-    (entry) => { return entry.dmpId.toLowerCase().trim() === dmpId.toLowerCase().trim() }
-  );
-  return result ? new Plan(result) : null;
-};
-
-// Mock the PlanSearchResult query
-export const mockFindPlanSearchResultsByProjectId = async (_, __, projectId: number): Promise<PlanSearchResult[]> => {
-  // Filter the plans based on the search term
-  const results = findEntriesInMockTableByFilter(
-    'plans',
-    (entry) => { return entry.projectId === projectId }
-  );
-  return results ? results.map((entry) => { return planToPlanSearchResult(new Plan(entry)) }) : [];
-};
-
-export const mockFindPlansByProjectId = async (_, __, projectId: number): Promise<Plan[]> => {
-  // Filter the plans based on the search term
-  const results = findEntriesInMockTableByFilter(
-    'plans',
-    (entry) => { return entry.projectId === projectId }
-  );
-  return results ? results.map((entry) => { return new Plan(entry) }) : [];
-};
-
-// Mock the PlanSearchResult query
-export const mockPlanSearchResultFindByProjectId = async (_, __, projectId: number): Promise<Plan[]> => {
-  // Filter the plans based on the search term
-  const results = findEntriesInMockTableByFilter(
-    'plans',
-    (entry) => { return entry.projectId === projectId }
-  );
-  return results ? results.map((entry) => { return new PlanSearchResult(entry) }) : [];
-};
-
-// Mock the mutations
-export const mockInsertPlan = async (context: MyContext, _, obj: Plan): Promise<number> => {
-  const { insertId } = addEntryToMockTable('plans', {
-    ...obj,
-    createdById: context.token.id,
-    created: getCurrentDate(),
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
   });
-  return insertId;
-};
+}
 
-export const mockUpdatePlan = async (context: MyContext, _, obj: Plan): Promise<Plan> => {
-  const result = updateEntryInMockTable('plans', {
-    ...obj,
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return result ? new Plan(result) : null;
-};
+// Save a mock/test Plan in the DB for integration tests
+export const persistPlan = async (
+  context: MyContext,
+  plan: Plan
+): Promise<Plan | null> => {
+  // Ensure the createdById and modifiedId are set
+  if (isNullOrUndefined(plan.createdById) || isNullOrUndefined(plan.modifiedById)) {
+    plan.createdById = context.token.id;
+    plan.modifiedById = context.token.id;
+  }
 
-export const mockDeletePlan = async (_, __, id: number): Promise<boolean> => {
-  const result = deleteEntryFromMockTable('plans', id);
-  return result ? true : false;
-};
+  try {
+    const created = await plan.create(context);
+    return isNullOrUndefined(created) ? null : created;
+  } catch (e) {
+    console.error(`Error persisting plan: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+    return null;
+  }
+}
+
+// Clean up all mock/test Plan
+export const cleanUpAddedPlan = async (
+  context: MyContext,
+  id?: number,
+) : Promise<void> => {
+  const reference = 'cleanUpAddedPlans';
+  try {
+    // Fetch the Plan from the DB
+    const plan = await Plan.findById(reference, context, id);
+
+    // Do a direct delete on the MySQL model because the tests might be mocking the
+    // Plan functions
+    await Plan.delete(context, Plan.tableName, plan.id, reference);
+
+    // Delete any Dynamo version records that were persisted
+    await deleteDMP(context, plan.dmpId);
+  } catch (e) {
+    console.error(`Error cleaning up plan id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+  }
+}

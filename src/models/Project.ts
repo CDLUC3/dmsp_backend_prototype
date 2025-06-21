@@ -189,7 +189,7 @@ export class Project extends MySqlModel {
   public researchDomainId?: number;
   public isTestProject: boolean;
 
-  private tableName = 'projects';
+  public static tableName = 'projects';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -253,7 +253,7 @@ export class Project extends MySqlModel {
         this.prepForSave();
 
         // Save the record and then fetch it
-        const newId = await Project.insert(context, this.tableName, this, reference);
+        const newId = await Project.insert(context, Project.tableName, this, reference);
         const response = await Project.findById(reference, context, newId);
         return response;
       }
@@ -270,7 +270,7 @@ export class Project extends MySqlModel {
       if (id) {
         this.prepForSave();
 
-        await Project.update(context, this.tableName, this, 'Project.update', [], noTouch);
+        await Project.update(context, Project.tableName, this, 'Project.update', [], noTouch);
         return await Project.findById('Project.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -286,7 +286,7 @@ export class Project extends MySqlModel {
 
       const successfullyDeleted = await Project.delete(
         context,
-        this.tableName,
+        Project.tableName,
         this.id,
         'Project.delete'
       );
@@ -301,21 +301,21 @@ export class Project extends MySqlModel {
 
   // Return all of projects for the User
   static async findByUserId(reference: string, context: MyContext, userId: number): Promise<Project[]> {
-    const sql = 'SELECT * FROM projects WHERE createdById = ? ORDER BY created DESC';
+    const sql = `SELECT * FROM ${Project.tableName} WHERE createdById = ? ORDER BY created DESC`;
     const results = await Project.query(context, sql, [userId?.toString()], reference);
     return Array.isArray(results) ? results.map((item) => new Project(item)) : [];
   }
 
   // Return all of the projects for the Affiliation
   static async findByAffiliation(reference: string, context: MyContext, affiliationId: string): Promise<Project[]> {
-    const sql = 'SELECT projects.* FROM projects INNER JOIN users ON projects.createdById = users.id';
+    const sql = `SELECT projects.* FROM ${Project.tableName} INNER JOIN users ON projects.createdById = users.id`;
     const whereClause = 'WHERE users.affiliationId = ? ORDER BY created DESC';
     const results = await Project.query(context, `${sql} ${whereClause}`, [affiliationId], reference);
     return Array.isArray(results) ? results.map((item) => new Project(item)) : [];
   }
 
   static async findByOwnerAndTitle(reference: string, context: MyContext, title: string, userId: number): Promise<Project> {
-    const sql = 'SELECT * FROM projects WHERE createdById = ? AND LOWER(title) LIKE ?';
+    const sql = `SELECT * FROM ${Project.tableName} WHERE createdById = ? AND LOWER(title) LIKE ?`;
     const searchTerm = (title ?? '');
     const vals = [userId?.toString(), `%${searchTerm?.toLowerCase()?.trim()}%`]
     const results = await Project.query(context, sql, vals, reference);
@@ -324,7 +324,7 @@ export class Project extends MySqlModel {
 
   // Fetch a Project by it's id
   static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<Project> {
-    const sql = 'SELECT * FROM projects WHERE id = ?';
+    const sql = `SELECT * FROM ${Project.tableName} WHERE id = ?`;
     const results = await Project.query(context, sql, [projectFundingId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Project(results[0]) : null;
   }

@@ -11,6 +11,8 @@ export class MemberRole extends MySqlModel {
   public description?: string;
   public isDefault: boolean
 
+  public static tableName = 'memberRoles';
+
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
@@ -35,7 +37,7 @@ export class MemberRole extends MySqlModel {
 
   // Return the default role
   static async defaultRole(context: MyContext, reference = 'MemberRole.defaultRole'): Promise<MemberRole> {
-    const sql = 'SELECT * FROM memberRoles WHERE isDefault = 1';
+    const sql = `SELECT * FROM ${MemberRole.tableName} WHERE isDefault = 1`;
     const results = await MemberRole.query(context, sql, [], reference);
     return Array.isArray(results) ? new MemberRole(results[0]) : null;
   }
@@ -43,7 +45,7 @@ export class MemberRole extends MySqlModel {
   // Add an association for a MemberRole with a ProjectMember
   async addToProjectMember(context: MyContext, projectMemberId: number): Promise<boolean> {
     const reference = 'MemberRole.addToProjectMember';
-    let sql = 'INSERT INTO projectMemberRoles (memberRoleId, projectMemberId, createdById, ';
+    let sql = `INSERT INTO projectMemberRoles (memberRoleId, projectMemberId, createdById, `;
     sql += 'modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token?.id?.toString();
     const vals = [this.id?.toString(), projectMemberId?.toString(), userId, userId];
@@ -61,7 +63,7 @@ export class MemberRole extends MySqlModel {
   // Add an association for a MemberRole with a PlanMember
   async addToPlanMember(context: MyContext, planMemberId: number): Promise<boolean> {
     const reference = 'MemberRole.addToPlanMember';
-    let sql = 'INSERT INTO planMemberRoles (memberRoleId, planMemberId, createdById, ';
+    let sql = `INSERT INTO planMemberRoles (memberRoleId, planMemberId, createdById, `;
     sql += 'modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token?.id?.toString();
     const vals = [this.id?.toString(), planMemberId?.toString(), userId, userId];
@@ -95,7 +97,7 @@ export class MemberRole extends MySqlModel {
   // Remove an association of a MemberRole from a PlanMember
   async removeFromPlanMember(context: MyContext, planMemberId: number): Promise<boolean> {
     const reference = 'MemberRole.removeFromPlanMember';
-    const sql = 'DELETE FROM planMemberRoles WHERE memberRoleId = ? AND planMemberId = ?';
+    const sql = `DELETE FROM planMemberRoles WHERE memberRoleId = ? AND planMemberId = ?`;
     const vals = [this.id?.toString(), planMemberId?.toString()];
     const results = await MemberRole.query(context, sql, vals, reference);
 
@@ -108,39 +110,39 @@ export class MemberRole extends MySqlModel {
     return true;
   }
 
-  // Return all of the member roles
+  // Return all the member roles
   static async all(reference: string, context: MyContext): Promise<MemberRole[]> {
-    const sql = 'SELECT * FROM memberRoles ORDER BY label';
+    const sql = `SELECT * FROM ${MemberRole.tableName} ORDER BY label`;
     const results = await MemberRole.query(context, sql, [], reference);
     return Array.isArray(results) ? results.map((entry) => new MemberRole(entry)) : [];
   }
 
-  // Fetch a member role by it's id
+  // Fetch a member role by its id
   static async findById(reference: string, context: MyContext, memberRoleById: number): Promise<MemberRole> {
-    const sql = 'SELECT * FROM memberRoles WHERE id = ?';
+    const sql = `SELECT * FROM ${MemberRole.tableName} WHERE id = ?`;
     const results = await MemberRole.query(context, sql, [memberRoleById?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new MemberRole(results[0]) : null;
   }
 
-  // Fetch a member role by it's URL
+  // Fetch a member role by its URL
   static async findByURL(reference: string, context: MyContext, memberRoleByURL: string): Promise<MemberRole> {
-    const sql = 'SELECT * FROM memberRoles WHERE uri = ?';
+    const sql = `SELECT * FROM ${MemberRole.tableName} WHERE uri = ?`;
     const results = await MemberRole.query(context, sql, [memberRoleByURL], reference);
     return Array.isArray(results) && results.length > 0 ? new MemberRole(results[0]) : null;
   }
 
-  // Fetch all of the MemberRoles associated with a ProjectMember
+  // Fetch all the MemberRoles associated with a ProjectMember
   static async findByProjectMemberId(reference: string, context: MyContext, projectMemberId: number): Promise<MemberRole[]> {
-    const sql = 'SELECT cr.* FROM projectMemberRoles pcr INNER JOIN memberRoles cr ON pcr.memberRoleId = cr.id';
+    const sql = `SELECT cr.* FROM ${MemberRole.tableName} pcr INNER JOIN memberRoles cr ON pcr.memberRoleId = cr.id`;
     const whereClause = 'WHERE pcr.projectMemberId = ?';
     const vals = [projectMemberId?.toString()];
     const results = await MemberRole.query(context, `${sql} ${whereClause}`, vals, reference);
     return Array.isArray(results) ? results.map((entry) => new MemberRole(entry)) : [];
   }
 
-  // Fetch all of the MemberRoles associated with a ProjectMember
+  // Fetch all the MemberRoles associated with a ProjectMember
   static async findByPlanMemberId(reference: string, context: MyContext, planMemberId: number): Promise<MemberRole[]> {
-    const sql = 'SELECT cr.* FROM planMemberRoles pcr INNER JOIN memberRoles cr ON pcr.memberRoleId = cr.id';
+    const sql = `SELECT cr.* FROM ${MemberRole.tableName} pcr INNER JOIN memberRoles cr ON pcr.memberRoleId = cr.id`;
     const whereClause = 'WHERE pcr.planMemberId = ?';
     const vals = [planMemberId?.toString()];
     const results = await MemberRole.query(context, `${sql} ${whereClause}`, vals, reference);

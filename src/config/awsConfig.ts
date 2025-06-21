@@ -3,6 +3,8 @@ import { verifyCriticalEnvVariable } from '../utils/helpers';
 
 dotenv.config();
 
+const isTest = process.env.NODE_ENV === 'test';
+
 if (!['development', 'test'].includes(process.env.NODE_ENV)) {
   verifyCriticalEnvVariable('SES_ENDPOINT');
   verifyCriticalEnvVariable('SES_ACCESS_ID');
@@ -25,7 +27,7 @@ export const awsConfig = {
   sesBouncedEmailBucket: process.env.SES_BOUNCED_EMAIL_BUCKET,
 
   // DynamoDB configuration
-  dynamoTableName: process.env.DYNAMO_TABLE_NAME,
+  dynamoTableName: isTest ? process.env.DYNAMO_TEST_TABLE_NAME : process.env.DYNAMO_TABLE_NAME,
   dynamoEndpoint: process.env.DYNAMO_ENDPOINT,
   dynamoMaxQueryAttempts: process.env.DYNAMO_MAX_ATTEMPTS ? parseInt(process.env.DYNAMO_MAX_ATTEMPTS) : 3,
 }
