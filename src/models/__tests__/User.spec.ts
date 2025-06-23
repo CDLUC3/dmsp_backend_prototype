@@ -6,17 +6,21 @@ import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { logger } from '../../__mocks__/logger';
 import { defaultLanguageId, supportedLanguages } from '../Language';
-import { buildMockContextWithToken } from '../../__mocks__/context';
+import { buildContext, mockToken, buildMockContextWithToken } from '../../__mocks__/context';
 import { getRandomEnumValue } from '../../__tests__/helpers';
+import { UserEmail } from '../UserEmail';
 
 jest.mock('../../context.ts');
+jest.mock('../UserEmail');
+// jest.mock('../User');
 
 let mockQuery;
 let mockUser;
 let mockContext;
+let mockUserEmail;
 
 describe('constructor', () => {
-  it.only('should set the expected properties', () => {
+  it('should set the expected properties', () => {
     const lang = supportedLanguages.find((entry) => { return entry.id !== defaultLanguageId });
 
     const props = {
@@ -44,10 +48,9 @@ describe('constructor', () => {
   });
 
   it('should set the defaults properly', () => {
-    const props = { email: casual.email, password: casual.password, affiliationId: casual.url };
+    const props = { password: casual.password, affiliationId: casual.url };
     const user = new User(props);
     expect(user.id).toBeFalsy();
-    expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
     expect(user.affiliationId).toEqual(props.affiliationId);
     expect(user.givenName).toBeFalsy();
@@ -68,9 +71,8 @@ describe('constructor', () => {
   });
 
   it('should ignore unexpected properties', () => {
-    const props = { email: casual.email, password: casual.password };
+    const props = { password: casual.password };
     const user = new User({ ...props, test: 'blah' });
-    expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
     expect(user['test']).toBeUndefined();
   });
@@ -79,14 +81,12 @@ describe('constructor', () => {
 describe('prepForSave standardizes the format of properties', () => {
   it('should properly format the properties', () => {
     const user = new User({
-      email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
       orcid: `${generalConfig.orcidBaseURL}0000-0000-0000-000X`,
     });
     user.prepForSave();
-    expect(user.email).toEqual('TESTer@exaMPle.cOm');
     expect(user.givenName).toEqual('Test');
     expect(user.surName).toEqual('User');
     expect(user.role).toEqual(UserRole.RESEARCHER);
@@ -98,7 +98,6 @@ describe('prepForSave standardizes the format of properties', () => {
 describe('prepForSave properly handles ORCIDs', () => {
   it('should null out invalid ORCIDs', () => {
     const user = new User({
-      email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
@@ -110,7 +109,6 @@ describe('prepForSave properly handles ORCIDs', () => {
 
   it('should handle the ORCID URL with no protocol', () => {
     const user = new User({
-      email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
@@ -122,7 +120,6 @@ describe('prepForSave properly handles ORCIDs', () => {
 
   it('should handle the ORCID ID without base URL', () => {
     const user = new User({
-      email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
@@ -138,7 +135,6 @@ describe('validate a new User', () => {
     jest.resetAllMocks();
 
     mockUser = new User({
-      email: casual.email,
       password: 'abcd3Fgh!JklM_m0$',
       givenName: casual.first_name,
       surName: casual.last_name,
@@ -168,14 +164,6 @@ describe('validate a new User', () => {
     expect(await mockUser.isValid()).toBe(false);
     expect(Object.keys(mockUser.errors).length).toBe(1);
     expect(mockUser.errors['password']).toBeTruthy();
-  });
-
-  it('should return false when we have a new user without a valid email format', async () => {
-    mockQuery.mockResolvedValueOnce(null);
-    mockUser.email = 'abcde';
-    expect(await mockUser.isValid()).toBe(false);
-    expect(Object.keys(mockUser.errors).length).toBe(1);
-    expect(mockUser.errors['email']).toBeTruthy();
   });
 
   it('should return false when we have a new user without an createdById', async () => {
@@ -213,7 +201,7 @@ describe('Password validation', () => {
   });
 
   it('should fail for a new user with a password that is too short', async () => {
-    const user = new User({ email: 'test.user@example.com', password: 'abcde' });
+    const user = new User({ password: 'abcde' });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
@@ -228,28 +216,28 @@ describe('Password validation', () => {
 
 
   it('should return error if password is missing', async () => {
-    const user = new User({ email: 'test.user@example.com', password: null });
+    const user = new User({ password: null });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 lowercase letter', async () => {
-    const user = new User({ email: 'test.user@example.com', password: 'ABCD3FGH1JKL' });
+    const user = new User({ password: 'ABCD3FGH1JKL' });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 number letter', async () => {
-    const user = new User({ email: 'test.user@example.com', password: 'Abcd$Fgh#jkL' });
+    const user = new User({ password: 'Abcd$Fgh#jkL' });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 special character', async () => {
-    const user = new User({ email: 'test.user@example.com', password: 'Abcd3Fgh1jkL' });
+    const user = new User({ password: 'Abcd3Fgh1jkL' });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
@@ -269,6 +257,22 @@ describe('authCheck', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockUserEmail = new UserEmail({
+      userId: 12345,
+      isPrimary: true,
+      isConfirmed: true,
+      email: 'test.email@example.com',
+    });
+
+    mockUser = new User({
+      password: 'abcd3Fgh!JklM_m0$',
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      affiliationId: casual.url,
+      role: UserRole.RESEARCHER,
+      createdById: casual.integer(1, 999),
+      acceptedTerms: true,
+    });
 
     mockContext = buildContext(logger, null, null);
     const mockSqlDataSource = mockContext.dataSources.sqlDataSource;
@@ -300,10 +304,15 @@ describe('authCheck', () => {
   });
 
   it('it returns the user\'s id if the password matched', async () => {
-    const email = casual.email;
+    const email = 'test.email@example.com'
     const password = 'Abcd3Fgh1jkL$';
     mockUser.id = 12345;
-    mockQuery.mockResolvedValueOnce([mockUser]);
+    // mockQuery.mockResolvedValueOnce([mockUser]);
+
+    (UserEmail.findByEmail as jest.Mock).mockResolvedValue([mockUserEmail]);
+    jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+    (User.findById as jest.Mock).mockResolvedValue(mockUser);
+    // (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
     bcryptCompare = jest.fn().mockResolvedValue(true);
     (bcrypt.compare as jest.Mock) = bcryptCompare;
@@ -344,7 +353,6 @@ describe('recordLogIn', () => {
     user = new User({
       id: casual.integer(1, 9),
       createdById: casual.integer(1, 999),
-      email: casual.sentence,
       affiliationId: casual.url,
       password: casual.password,
       givenName: casual.first_name,
@@ -395,14 +403,14 @@ describe('login()', () => {
   });
 
   it('should succeed if user exists and its password matches with encrypted one', async () => {
+    const email = 'test.user@example.com';
     const user = new User({
-      email: casual.email,
       password: 'abcd3Fgh!JklM_m0$',
     });
     mockAuthCheck.mockReturnValue(123);
-    mockQuery.mockResolvedValue([{ id: 123, email: user.email, password: user.password }]);
+    mockQuery.mockResolvedValue([{ id: 123, password: user.password }]);
 
-    const response = await user.login(context);
+    const response = await user.login(context, email);
     expect(response).not.toBeNull();
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(context.logger.debug).toHaveBeenCalledTimes(2);
@@ -411,8 +419,9 @@ describe('login()', () => {
 
   it('should return an error when authCheck does not return a userId', async () => {
     mockAuthCheck.mockReturnValue(null);
-    const user = new User({ email: 'example.com', password: '@bcd3fGhijklmnop' });
-    const response = await user.login(context);
+    const email = 'test.user@example.com';
+    const user = new User({ password: '@bcd3fGhijklmnop' });
+    const response = await user.login(context, email);
     expect(response).toBe(null);
   });
 
@@ -421,7 +430,8 @@ describe('login()', () => {
       throw new Error('Testing error handler');
     });
     const user = new User({ email: 'test.user@example.com', password: 'AbcdefgH1!' });
-    const response = await user.login(context);
+    const email = 'test.user@example.com';
+    const response = await user.login(context, email);
     expect(response).toBeNull();
     expect(context.logger.error).toHaveBeenCalledTimes(1);
   });
@@ -450,7 +460,8 @@ describe('register()', () => {
   })
 
   it('should not return null if user exists and its password matches with encrypted one', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
+    const email = 'test.user@example.com'
+    const mockedUser = { id: 1, name: '@bcd3fGhijklmnop' };
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
     // Second call to Mock mysql query from register()
@@ -459,7 +470,6 @@ describe('register()', () => {
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
 
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
@@ -468,27 +478,27 @@ describe('register()', () => {
     });
     jest.spyOn(user, 'validatePassword').mockReturnValue(true);
 
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).not.toBeNull();
     expect(user.validatePassword).toHaveBeenCalledTimes(1);
   });
 
   it('should return user object with an error if they did not accept the terms', async () => {
+    const email = 'test.user@example.com'
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
       affiliationId: casual.url,
     });
     mockQuery.mockResolvedValueOnce(user);
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).toBe(user);
     expect(response.errors['acceptedTerms']).toBeTruthy();
   });
 
   it('should return user object if there was an error creating user', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
+    const mockedUser = { id: 1, name: '@bcd3fGhijklmnop' };
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
     // Second call to Mock mysql query from register()
@@ -496,8 +506,8 @@ describe('register()', () => {
     // Third call to Mock mysql query from findById()
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
 
+    const email = 'test.user@example.com'
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
@@ -505,13 +515,13 @@ describe('register()', () => {
       acceptedTerms: true
     });
 
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).toBeInstanceOf(User);
     expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
   it('should return the user with errors if there are errors validating the user', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
+    const mockedUser = { id: 1, name: '@bcd3fGhijklmnop' };
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([{}, []]);
     // Second call to Mock mysql query from register()
@@ -519,22 +529,22 @@ describe('register()', () => {
     // Third call to Mock mysql query from findById()
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
 
+    const email = 'test.user@example.com'
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
       acceptedTerms: true,
     });
 
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).toBeInstanceOf(User);
     expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
   it('should return the user with errors if the terms were not accepted', async () => {
+    const email = 'test.user@example.com'
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
@@ -543,7 +553,7 @@ describe('register()', () => {
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([{}, []]);
 
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).toBeInstanceOf(User);
     expect(Object.keys(response.errors).length > 0).toBe(true);
   });
