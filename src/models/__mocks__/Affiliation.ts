@@ -90,9 +90,12 @@ export const cleanUpAddedAffiliation = async (
 
 // Fetch a random persisted Affiliation
 export const randomAffiliation = async (
-  context: MyContext
+  context: MyContext,
+  funderOnly = false
 ): Promise<Affiliation | null> => {
-  const sql = `SELECT * FROM ${Affiliation.tableName} WHERE active = 1 ORDER BY RAND() LIMIT 1`;
+  let whereClause = 'WHERE active = 1'
+  whereClause += funderOnly ? ' AND funder = 1' : '';
+  const sql = `SELECT * FROM ${Affiliation.tableName} ${whereClause} ORDER BY RAND() LIMIT 1`;
   try {
     const results = await Affiliation.query(context, sql, [], 'randomAffiliation');
     if (Array.isArray(results) && results.length > 0) {

@@ -2,7 +2,12 @@
 
 import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
-import { getCurrentDate, randomHex, valueIsEmpty } from "../utils/helpers";
+import {
+  getCurrentDate,
+  isNullOrUndefined,
+  randomHex,
+  valueIsEmpty
+} from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { addVersion, removeVersions, updateVersion } from "./PlanVersion";
 
@@ -182,7 +187,7 @@ export class Plan extends MySqlModel {
 
   // Helper function to determine if the plan has been published
   isPublished(): boolean {
-    return !valueIsEmpty(this.registered) || !valueIsEmpty(this.registeredById);
+    return !isNullOrUndefined(this.registered) || !isNullOrUndefined(this.registeredById);
   }
 
   // Make sure the plan is valid

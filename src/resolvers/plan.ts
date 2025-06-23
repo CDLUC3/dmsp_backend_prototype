@@ -1,17 +1,28 @@
-import { GraphQLError } from "graphql";
-import { MyContext } from "../context";
-import { Plan, PlanSearchResult, PlanSectionProgress, PlanStatus, PlanVisibility } from "../models/Plan";
-import { formatLogMessage } from "../logger";
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
-import { Project } from "../models/Project";
-import { isAuthorized } from "../services/authService";
-import { hasPermissionOnProject } from "../services/projectService";
-import { PlanMember } from "../models/Member";
-import { PlanFunding } from "../models/Funding";
-import { Resolvers } from "../types";
-import { VersionedTemplate } from "../models/VersionedTemplate";
-import { Answer } from "../models/Answer";
-import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
+import {GraphQLError} from "graphql";
+import {MyContext} from "../context";
+import {
+  Plan,
+  PlanSearchResult,
+  PlanSectionProgress,
+  PlanStatus,
+  PlanVisibility
+} from "../models/Plan";
+import {formatLogMessage} from "../logger";
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from "../utils/graphQLErrors";
+import {Project} from "../models/Project";
+import {isAuthorized} from "../services/authService";
+import {hasPermissionOnProject} from "../services/projectService";
+import {PlanMember} from "../models/Member";
+import {PlanFunding} from "../models/Funding";
+import {Resolvers} from "../types";
+import {VersionedTemplate} from "../models/VersionedTemplate";
+import {Answer} from "../models/Answer";
+import {ProjectCollaboratorAccessLevel} from "../models/Collaborator";
 import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
@@ -26,7 +37,7 @@ export const resolvers: Resolvers = {
           if (!project) {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanSearchResult.findByProjectId(reference, context, projectId);
           }
         }
@@ -49,7 +60,7 @@ export const resolvers: Resolvers = {
         }
 
         const project = await Project.findById(reference, context, plan.projectId);
-        if (project && await hasPermissionOnProject(context, project)) {
+        if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
           return plan;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -78,9 +89,9 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Template with ID ${versionedTemplateId} not found`);
           }
 
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
             const plan = new Plan({ projectId, versionedTemplateId });
-            return plan.create(context);
+            return await plan.create(context);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -107,7 +118,7 @@ export const resolvers: Resolvers = {
             plan.addError('general', 'Plan is already published and cannot be archived');
           }
 
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
             if (!plan.hasErrors()) {
               return await plan.delete(context);
             } else {
@@ -133,7 +144,7 @@ export const resolvers: Resolvers = {
           if (!project) {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
             const plan = new Plan({ projectId, fileName, fileContent });
 
             // TODO: Figure out what would be passed in from the client and how we'd get the actual
@@ -160,6 +171,7 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
+
           if (plan.isPublished()) {
             plan.addError('general', 'Plan is already published');
           }
@@ -169,8 +181,6 @@ export const resolvers: Resolvers = {
             if (!plan.hasErrors()) {
               if (project.isTestProject) {
                 plan.addError('general', 'Test projects cannot be published');
-              } else if (plan.isPublished()) {
-                plan.addError('general', 'Plan is already published');
               }
 
               if (!plan.hasErrors()) {
