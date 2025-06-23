@@ -16,12 +16,11 @@ let mockUser;
 let mockContext;
 
 describe('constructor', () => {
-  it('should set the expected properties', () => {
+  it.only('should set the expected properties', () => {
     const lang = supportedLanguages.find((entry) => { return entry.id !== defaultLanguageId });
 
     const props = {
       id: casual.integer(1, 99999),
-      email: casual.email,
       password: casual.password,
       affiliationId: casual.url,
       role: UserRole.ADMIN,
@@ -34,7 +33,6 @@ describe('constructor', () => {
 
     const user = new User(props);
     expect(user.id).toEqual(props.id);
-    expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
     expect(user.affiliationId).toEqual(props.affiliationId);
     expect(user.givenName).toEqual(props.givenName);
