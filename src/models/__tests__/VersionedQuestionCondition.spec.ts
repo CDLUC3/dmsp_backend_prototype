@@ -1,6 +1,6 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { QuestionConditionActionType, QuestionConditionCondition } from "../QuestionCondition";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { VersionedQuestionCondition } from "../VersionedQuestionCondition";
@@ -9,10 +9,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -90,13 +90,13 @@ describe('findBy Queries', () => {
   let context;
   let versionedQuestionCondition;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedQuestionCondition.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedQuestionCondition = new VersionedQuestionCondition({
       id: casual.integer(1, 9),
@@ -185,13 +185,13 @@ describe('findByVersionedQuestionId', () => {
   let context;
   let versionedQuestionCondition;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedQuestionCondition.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedQuestionCondition = new VersionedQuestionCondition({
       versionedQuestionId: casual.integer(1, 999),

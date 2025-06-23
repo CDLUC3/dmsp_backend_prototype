@@ -1,7 +1,7 @@
 import casual from "casual";
 import { VersionedSection, VersionedSectionSearchResult } from "../VersionedSection";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { generalConfig } from "../../config/generalConfig";
 import { TemplateVersionType } from "../VersionedTemplate";
 
@@ -9,10 +9,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 describe('VersionedSectionSearchResult', () => {
@@ -58,13 +58,13 @@ describe('VersionedSectionSearchResult', () => {
     let versionedSectionSearchResult;
     let context;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localPaginationQuery = jest.fn();
       (VersionedSection.queryWithPagination as jest.Mock) = localPaginationQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       versionedSectionSearchResult = new VersionedSectionSearchResult({
         id: casual.integer(1, 9),
@@ -156,13 +156,13 @@ describe('findBySectionId', () => {
   let context;
   let versionedSection;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedSection = new VersionedSection({
       name: casual.sentence,
@@ -204,7 +204,7 @@ describe('findByName', () => {
   let context;
   let versionedSection;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
@@ -213,7 +213,7 @@ describe('findByName', () => {
     localPaginationQuery = jest.fn();
     (VersionedSection.queryWithPagination as jest.Mock) = localPaginationQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedSection = new VersionedSection({
       name: casual.sentence,
@@ -268,13 +268,13 @@ describe('findByTemplateId', () => {
   let context;
   let versionedSection;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedSection = new VersionedSection({
       name: casual.sentence,
@@ -391,13 +391,13 @@ describe('findById', () => {
   let context;
   let versionedSection;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedSection.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedSection = new VersionedSection({
       name: casual.sentence,

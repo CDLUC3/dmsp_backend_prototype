@@ -1,6 +1,6 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { VersionedQuestion } from "../VersionedQuestion";
 import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
@@ -9,10 +9,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -128,13 +128,13 @@ describe('findBy Queries', () => {
   let context;
   let versionedQuestion;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedQuestion.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedQuestion = new VersionedQuestion({
       templateId: casual.integer(1, 999),
@@ -238,13 +238,13 @@ describe('findByVersionedSectionId', () => {
   let context;
   let versionedQuestion;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedQuestion.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedQuestion = new VersionedQuestion({
       versionedTemplateId: casual.integer(1, 999),

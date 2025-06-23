@@ -1,6 +1,6 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import {
   addVersion,
   findVersionByTimestamp,
@@ -21,10 +21,10 @@ let context;
 let plan;
 let mockCommonStandard;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 
   plan = new Plan({
     projectId: casual.integer(1, 100),

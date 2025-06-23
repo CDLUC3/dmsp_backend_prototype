@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
 import { getMockDMPId, getRandomEnumValue } from "../../__tests__/helpers";
 import {
@@ -19,10 +19,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {

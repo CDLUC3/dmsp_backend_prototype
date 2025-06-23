@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { logger } from '../../__mocks__/logger';
 import { defaultLanguageId, supportedLanguages } from '../Language';
-import { mockToken, buildContext } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 
 jest.mock('../../context.ts');
@@ -338,10 +338,10 @@ describe('recordLogIn', () => {
 
   let user;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     user = new User({
       id: casual.integer(1, 9),
@@ -376,10 +376,10 @@ describe('login()', () => {
   let mockAuthCheck;
   let mockUpdate;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockAuthCheck = jest.fn();
     (User.authCheck as jest.Mock) = mockAuthCheck;
@@ -438,10 +438,10 @@ describe('register()', () => {
   const bcryptPassword = jest.fn().mockReturnValue('test.user@example.com');
   (bcrypt.hash as jest.Mock) = bcryptPassword;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -556,8 +556,8 @@ describe('update', () => {
   let updateQuery;
   let user;
 
-  beforeEach(() => {
-    context = buildContext(logger, mockToken());
+  beforeEach(async () => {
+    context = await buildMockContextWithToken(logger);
 
     updateQuery = jest.fn();
     (User.update as jest.Mock) = updateQuery;
@@ -637,10 +637,10 @@ describe('updatePassword', () => {
   let mockValidator;
   let mockAuthCheck;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     oldPassword = 'Test0ldP@ssw1';
     oldPassword = 'TestN3wP@ssw2';

@@ -1,7 +1,7 @@
 import casual from "casual";
 import { Section } from "../Section";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 
 let context;
 jest.mock('../../context.ts');
@@ -51,13 +51,13 @@ describe('findBySectionName', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -97,13 +97,13 @@ describe('findByTemplateId', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -143,13 +143,13 @@ describe('findById', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),

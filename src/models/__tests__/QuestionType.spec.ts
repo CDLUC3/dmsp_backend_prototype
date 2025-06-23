@@ -1,6 +1,6 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { QuestionType } from "../QuestionType";
 import { Question } from "../Question";
 
@@ -31,13 +31,13 @@ describe('default', () => {
   let context;
   let questionType;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (QuestionType.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     questionType = new QuestionType({
       id: casual.integer(1, 9),

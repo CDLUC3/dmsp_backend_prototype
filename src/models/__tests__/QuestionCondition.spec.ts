@@ -1,6 +1,6 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { QuestionCondition, QuestionConditionActionType, QuestionConditionCondition } from "../QuestionCondition";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 
@@ -38,13 +38,13 @@ describe('findBy Queries', () => {
   let context;
   let questionCondition;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (QuestionCondition.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     questionCondition = new QuestionCondition({
       id: casual.integer(1, 9),
@@ -103,7 +103,7 @@ describe('create', () => {
   let context
   let questionCondition;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     insertQuery = jest.fn();
@@ -111,7 +111,7 @@ describe('create', () => {
     findByIdQuery = jest.fn();
     (QuestionCondition.findById as jest.Mock) = findByIdQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     questionCondition = new QuestionCondition({
       questionId: casual.integer(1, 999),
@@ -187,13 +187,13 @@ describe('update', () => {
   let context;
   let questionCondition;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     updateQuery = jest.fn();
     (QuestionCondition.update as jest.Mock) = updateQuery;
     findByIdQuery = jest.fn();
     (QuestionCondition.findById as jest.Mock) = findByIdQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     questionCondition = new QuestionCondition({
       id: casual.integer(1, 9),
@@ -244,8 +244,8 @@ describe('delete', () => {
   let questionCondition;
   let context;
 
-  beforeEach(() => {
-    context = buildContext(logger, mockToken());
+  beforeEach(async () => {
+    context = await buildMockContextWithToken(logger);
 
     questionCondition = new QuestionCondition({
       id: casual.integer(1, 9),

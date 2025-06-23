@@ -1,6 +1,6 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildContext, mockToken, buildMockContextWithToken } from "../../__mocks__/context";
 import { PlanFunding, ProjectFunding, ProjectFundingStatus } from "../Funding";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 
@@ -8,10 +8,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -75,11 +75,11 @@ describe('findBy Queries', () => {
   let context;
   let projectFunding;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (ProjectFunding.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     projectFunding = new ProjectFunding({
       projectId: casual.integer(1, 999),
@@ -380,11 +380,11 @@ describe('findBy Queries', () => {
   let context;
   let planFunding;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (PlanFunding.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     planFunding = new PlanFunding({
       planId: casual.integer(1, 999),

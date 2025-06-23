@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../__mocks__/logger";
 import { User } from "../User";
 import { UserEmail } from "../UserEmail";
@@ -10,7 +10,7 @@ import { sendEmailConfirmationNotification } from "../../services/emailService";
 let context;
 let mockUser;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
   mockUser = new User({
@@ -22,7 +22,7 @@ beforeEach(() => {
     acceptedTerms: true,
   });
 
-  context = buildContext(logger, mockToken(mockUser));
+  context = buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -206,8 +206,8 @@ describe('confirmEmail', () => {
   let mockUpdateTemplateCollaborator;
   let mockDelete;
 
-  beforeEach(() => {
-    context = buildContext(logger);
+  beforeEach(async () => {
+    context = buildMockContextWithToken(logger);
 
     mockUserEmail = new UserEmail({ id: casual.integer(1, 99), email: mockUser.email, userId: mockUser.id });
 

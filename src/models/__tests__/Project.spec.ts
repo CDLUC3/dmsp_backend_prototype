@@ -1,6 +1,6 @@
 import casual from "casual";
 import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Project, ProjectSearchResult } from "../Project";
 import { generalConfig } from "../../config/generalConfig";
 
@@ -8,10 +8,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -23,13 +23,13 @@ describe('ProjectSearchResult', () => {
   let originalQuery;
   let projectSearchResult;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Project.queryWithPagination as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     projectSearchResult = new ProjectSearchResult({
       id: casual.integer(1, 9),
@@ -228,11 +228,11 @@ describe('Project', () => {
     let context;
     let project;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       localQuery = jest.fn();
       (Project.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       project = new Project({
         id: casual.integer(1, 999),

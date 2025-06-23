@@ -1,6 +1,6 @@
 import casual from 'casual';
 import { MemberRole } from '../MemberRole';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';
 
 describe('MemberRole', () => {
@@ -67,10 +67,10 @@ describe('addToProjectMember', () => {
   let context;
   let mockRole;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockRole = new MemberRole({
       id: casual.integer(1, 99),
@@ -109,10 +109,10 @@ describe('addToPlanMember', () => {
   let context;
   let mockRole;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockRole = new MemberRole({
       id: casual.integer(1, 99),
@@ -151,10 +151,10 @@ describe('removeFromProjectMember', () => {
   let context;
   let mockRole;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockRole = new MemberRole({
       id: casual.integer(1, 99),
@@ -191,10 +191,10 @@ describe('removeFromPlanMember', () => {
   let context;
   let mockRole;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockRole = new MemberRole({
       id: casual.integer(1, 99),
@@ -233,13 +233,13 @@ describe('queries', () => {
   let context;
   let mockRole;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockQuery = jest.fn();
     (MemberRole.insert as jest.Mock) = mockQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockRole = {
       id: casual.integer(1, 99),

@@ -2,7 +2,7 @@ import casual from 'casual';
 import { Collaborator, ProjectCollaborator, ProjectCollaboratorAccessLevel, TemplateCollaborator } from "../Collaborator";
 import { Template } from '../Template';
 import { User } from '../User';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { logger } from '../../__mocks__/logger';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../../services/emailService';
@@ -13,10 +13,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -115,13 +115,13 @@ describe('TemplateCollaborator', () => {
     let context;
     let templateCollaborator;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (TemplateCollaborator.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       templateCollaborator = new TemplateCollaborator({
         id: casual.integer(1, 9),
@@ -505,13 +505,13 @@ describe('ProjectCollaborator', () => {
     let context;
     let projectCollaborator;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (ProjectCollaborator.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       projectCollaborator = new ProjectCollaborator({
         id: casual.integer(1, 9),
