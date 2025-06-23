@@ -282,8 +282,8 @@ describe('queries', () => {
     const querySpy = jest.spyOn(MemberRole, 'query').mockResolvedValueOnce([mockRole]);
     const memberId = casual.integer(1, 999);
     await MemberRole.findByProjectMemberId('testing', context, memberId);
-    let sql = 'SELECT cr.* FROM projectMemberRoles pcr INNER JOIN memberRoles cr ON pcr.memberRoleId = cr.id';
-    sql = `${sql} WHERE pcr.projectMemberId = ?`;
+    let sql = 'SELECT mr.* FROM memberRoles mr INNER JOIN projectMemberRoles pmr ON pmr.memberRoleId = mr.id';
+    sql = `${sql} WHERE pmr.projectMemberId = ?`;
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(querySpy).toHaveBeenCalledWith(context, sql, [memberId.toString()], 'testing');
   });
@@ -292,8 +292,8 @@ describe('queries', () => {
     const querySpy = jest.spyOn(MemberRole, 'query').mockResolvedValueOnce([mockRole]);
     const memberId = casual.integer(1, 999);
     await MemberRole.findByPlanMemberId('testing', context, memberId);
-    let sql = 'SELECT cr.* FROM planMemberRoles pcr INNER JOIN memberRoles cr ON pcr.memberRoleId = cr.id';
-    sql = `${sql} WHERE pcr.planMemberId = ?`;
+    let sql = 'SELECT mr.* FROM memberRoles mr INNER JOIN planMemberRoles pmr ON pmr.memberRoleId = mr.id';
+    sql = `${sql} WHERE pmr.planMemberId = ?`;
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(querySpy).toHaveBeenCalledWith(context, sql, [memberId.toString()], 'testing');
   });

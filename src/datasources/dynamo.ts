@@ -30,7 +30,7 @@ const dynamoConfigParams: DynamoDBClientConfig = {
   logger: logger,
 }
 
-if (process.env.NODE_ENV === 'development') {
+if (['development', 'test'].includes(process.env.NODE_ENV)) {
   dynamoConfigParams.endpoint = awsConfig.dynamoEndpoint;
 }
 
@@ -145,6 +145,7 @@ export const createDMP = async (
 
   try {
     const marshalled = marshall(dmp, { removeUndefinedValues: true });
+
     const response = await putItem(context, awsConfig.dynamoTableName, marshalled);
     if (response) {
       // If the create was successful, fetch the new entry and return it

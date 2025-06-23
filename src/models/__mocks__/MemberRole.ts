@@ -27,7 +27,7 @@ export const mockMemberRole = (
 export const randomMemberRole = async (
   context: MyContext
 ): Promise<MemberRole | null> => {
-  const sql = `SELECT * FROM ${MemberRole.tableName} WHERE active = 1 ORDER BY RAND() LIMIT 1`;
+  const sql = `SELECT * FROM ${MemberRole.tableName} ORDER BY RAND() LIMIT 1`;
   try {
     const results = await MemberRole.query(context, sql, [], 'randomMemberRole');
     if (Array.isArray(results) && results.length > 0) {

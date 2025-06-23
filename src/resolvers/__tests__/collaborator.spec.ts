@@ -40,12 +40,11 @@ import {
   mockTemplate,
   persistTemplate
 } from "../../models/__mocks__/Template";
-import {
-  sendProjectCollaborationEmail,
-  sendTemplateCollaborationEmail
-} from "../../services/emailService";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from "../../services/emailService";
 
 jest.mock("../../datasources/dmphubAPI");
+jest.mock("../../services/emailService");
 
 let mysqlInstance: MySQLConnection;
 let testServer: ApolloServer;

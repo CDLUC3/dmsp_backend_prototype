@@ -1,4 +1,7 @@
 import { logger } from '../__mocks__/logger';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 // Mock the Pino logger
 jest.mock('pino', () => () => logger);
@@ -13,7 +16,7 @@ jest.mock('../config/awsConfig', () => ({
     sesAccessSecret: '98765',
     sesBounceAddress: 'bounce@example.com',
     sesBouncedEmailBucket: 'my-test-bucket',
-    dynamoTableName: 'test-table',
+    dynamoTableName: process.env.DYNAMO_TABLE_NAME ?? 'my-test-table',
     dynamoMaxQueryAttempts: 3,
     dynamoEndpoint: 'http://localhost:8000',
   }
@@ -60,8 +63,8 @@ jest.mock('../config/generalConfig', () => ({
 
     versionPlanAfter: 1,
 
-    orcidBaseURL: 'http://sandbox.orcid.org/',
-    rorBaseURL: 'http://ror.example.com/',
+    orcidBaseURL: 'https://sandbox.orcid.org/',
+    rorBaseURL: 'https://ror.example.com/',
 
     jwtSecret: 'testJwtSecret',
     jwtTTL: 30,

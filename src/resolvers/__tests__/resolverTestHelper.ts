@@ -6,9 +6,6 @@ import { MyContext } from '../../context';
 import { JWTAccessToken } from '../../services/tokenService';
 import { User } from '../../models/User';
 import assert from "assert";
-import {MySqlModel} from "../../models/MySqlModel";
-import {isNullOrUndefined} from "../../utils/helpers";
-import {ProjectCollaborator} from "../../models/Collaborator";
 
 export const initErrorMessage = 'Failed to initialize test. You need to ' +
   'run docker-compose in another window to make the test DB available!'
@@ -48,8 +45,10 @@ export interface standardErrorTestInput {
   server: ApolloServer,
   context: MyContext,
   graphQL: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   variables: any,
   mustBeAuthenticated: boolean,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   spyOnClass: any,
   spyOnFunction: string
 }
@@ -60,6 +59,7 @@ export interface tokenTestInput {
   graphQL: string,
   candidates: {
     user: User,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     variables?: any,
     shouldPass: boolean,
     context?: string,
@@ -71,6 +71,7 @@ export async function testNotFound (
   server: ApolloServer,
   context: MyContext,
   graphQL: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   variables: any
 ): Promise<void> {
   const resp = await executeQuery(server, context, graphQL, variables);

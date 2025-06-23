@@ -48,6 +48,8 @@ services:
       - apollo-network
     ports:
       - "8000:8000"
+    expose:
+      - 8000
     volumes:
       - "./docker/dynamodb/data:/home/dynamodblocal/data"
     working_dir: /home/dynamodblocal

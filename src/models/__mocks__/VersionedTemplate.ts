@@ -79,3 +79,20 @@ export const cleanUpAddedVersionedTemplate = async (
     if (e.originalError) console.log(e.originalError);
   }
 }
+
+// Fetch a random persisted VersionedTemplate
+export const randomVersionedTemplate = async (
+  context: MyContext
+): Promise<VersionedTemplate | null> => {
+  const sql = `SELECT * FROM ${VersionedTemplate.tableName} WHERE active = 1 ORDER BY RAND() LIMIT 1`;
+  try {
+    const results = await VersionedTemplate.query(context, sql, [], 'randomVersionedTemplate');
+
+    if (Array.isArray(results) && results.length > 0) {
+      return new VersionedTemplate(results[0]);
+    }
+  } catch (e) {
+    console.error(`Error getting random VersionedTemplate: ${e.message}`);
+  }
+  return null;
+}

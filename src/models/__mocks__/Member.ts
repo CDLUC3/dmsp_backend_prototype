@@ -4,6 +4,7 @@ import { randomMemberRole } from "./MemberRole";
 import { getMockORCID } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
 import { PlanMember, ProjectMember } from "../Member";
+import {MemberRole} from "../MemberRole";
 
 // NOTE: associations to memberRoles will be deleted automatically when cleanup
 // is called on these records due to cascading deletes enforced by the DB.
@@ -20,7 +21,7 @@ export interface MockProjectMemberOptions {
 export interface MockPlanMemberOptions {
   planId?: number;
   projectMemberId?: number;
-  memberRoles?: number[];
+  memberRoleIds?: number[];
   isPrimaryContact?: boolean;
 }
 
@@ -52,7 +53,7 @@ export const mockPlanMember = async (
   return new PlanMember({
     planId: options.planId ?? casual.integer(1, 9999),
     projectMemberId: options.projectMemberId ?? casual.integer(1, 9999),
-    memberRoles: options.memberRoles ?? [randoRole.id],
+    memberRoleIds: options.memberRoleIds ?? [randoRole.id],
     isPrimaryContact: options.isPrimaryContact ?? false,
   });
 }
@@ -70,6 +71,22 @@ export const persistProjectMember = async (
 
   try {
     const created = await member.create(context, member.projectId);
+
+    // Attachment of the roles to the member currently happens in the resolver
+    // so we need to do it manually here
+    if (!isNullOrUndefined(created)) {
+      for (const role of member.memberRoles) {
+        const memberRole = await MemberRole.findById(
+          'persistProjectMember',
+          context,
+          role.id
+        );
+
+        if (!isNullOrUndefined(memberRole)) {
+          await memberRole.addToProjectMember(context, created.id);
+        }
+      }
+    }
     return isNullOrUndefined(created) ? null : created;
   } catch (e) {
     console.error(`Error persisting project member ${member.email}: ${e.message}`);
@@ -91,6 +108,23 @@ export const persistPlanMember = async (
 
   try {
     const created = await member.create(context);
+
+    // Attachment of the roles to the member currently happens in the resolver
+    // so we need to do it manually here
+    if (!isNullOrUndefined(created)) {
+      for (const roleId of member.memberRoleIds) {
+        const memberRole = await MemberRole.findById(
+          'persistPlanMember',
+          context,
+          roleId
+        );
+
+        if (!isNullOrUndefined(memberRole)) {
+          await memberRole.addToPlanMember(context, created.id);
+        }
+      }
+    }
+
     return isNullOrUndefined(created) ? null : created;
   } catch (e) {
     console.error(`Error persisting plan member ${member.projectMemberId}: ${e.message}`);

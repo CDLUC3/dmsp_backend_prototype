@@ -16,7 +16,7 @@ export const hasPermissionOnTemplate = async (context: MyContext, template: Temp
   if (isSuperAdmin(context.token)) return true;
 
   // If the current user belongs to the same affiliation OR the user is a super admin
-  if (context.token?.affiliationId === template?.ownerId || await isSuperAdmin(context.token)) {
+  if (context.token?.affiliationId === template?.ownerId) {
     return true;
   }
 
