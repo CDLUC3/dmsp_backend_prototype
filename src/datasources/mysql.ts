@@ -104,7 +104,8 @@ export class MySQLConnection implements DatabaseConnection {
       const [rows] = await connection.execute(sql, sanitizedValues);
       return rows as T;
     } catch (err) {
-      // If we are running tests and this fails send it to the console
+      // If we are running tests and this fails send it to the console because
+      // it can be really painful to debug if we don't
       if (process.env.NODE_ENV === 'test') {
         console.log(err);
       }

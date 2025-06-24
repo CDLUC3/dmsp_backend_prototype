@@ -93,7 +93,9 @@ describe('MySQLConnection', () => {
       const sql = 'SELECT * FROM users WHERE id = ?';
       const values = ['1'];
 
-      (mockConnection.execute as jest.Mock).mockRejectedValueOnce(new Error('Query failed'));
+      (mockConnection.execute as jest.Mock).mockRejectedValueOnce(
+        new Error('Testing query failure - this is ok. We expect to see this in the test output!')
+      );
       jest.spyOn(console, 'log');
 
       await expect(sqlDataSource.query(context, sql, values)).rejects.toThrow('Database query failed');
