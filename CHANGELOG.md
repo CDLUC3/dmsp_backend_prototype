@@ -3,7 +3,10 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `initPromise` to the `mysql` datasource that can be used to determine if the connection pool has finished setup and updated resolver tests and root index.ts to use it
+- Added new `DYNAMO_TEST_TABLE_NAME` to `.env-example`
 - Added a new MySQL container to host the test DB to the docker compose stack
+- Added `src/resolvers/__tests__/resolverTestHelper.ts` with functions to help with boilerplate testing of 404 NOT_FOUND and 401 UNAUTHENTICATED and 500 INTERNAL_SERVER_ERROR GraphQL errors
 - Added JSON column `questionType` to `questions` and `versionedQuestions` tables
 - Added JSON column `json` to the `answers` table
 - Added the new [@dmptool/types](https://github.com/CDLUC3/dmptool-types) package 
@@ -93,6 +96,19 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Refactored all resolver tests to use the new test DBs
+- Update all schema files with resolvers for `created` and `modified` dates so they are formatted in the same way
+- Fixed an issue with the `PlanFunding` schema that referenced `project` instead of `plan`
+- Updated `dynamo-init.sh` script to build the test DynamoDB table
+- Exposed port 8000 in `docker-compose.yaml` so that the resolver tests can access the test DynamoDB table
+- Updated `MySQLModel` to throw the original error instead of a generic error message
+- Updated `Affiliation`, `Collaborator`, `Funding`, `Member`, `MemberRole`, `Plan`, `Project`, `RelatedWork`, `ResearchDomain`, `Template`, `User`, `UserEmail` and `VersionedTemplate` so that the `tableName` is `static public`
+- Fixed sort on the top 20 funders query on `Affiliation` so that it is by number of plans descending and display name ascending
+- Fixed issue with `VersionedSection.findByTemplateId` where it was returning `null` instead of an empty array when no sections are found
+- Fixed an issue with the `MemberRole` model where it was still using the old "contributor" nomenclature in SQL aliases (e.g. changed `memberRoles AS cr` to `memberRoles AS mr`)
+- Updated member, collaborator and funding resolvers so that collaborators with the appropriate access level can perform queries and mutations
+- Fixed a bug in `ProjectMember` that was causing the role ids to not be saved
+- Updated `templateService` permission check function to give super admins access
 - Refactored the existing resolver tests to work with the new test DBs
 - Consolidated handling of the Cache, so that we always pass the `adapter`
 - Updated `mysqlConfig` to use the new test DB when running in `test` mode
@@ -158,6 +174,7 @@
 
 ### Removed
 - Dropped FKeys on `users` and `affiliations`
+- Removed old `src/models/__mocks__/MockStore.ts`
 - Dropped `questionTypes` and `questionOptions` tables
 - Dropped the `questionTypeId` field from the `questions` and `versionedQuestions` tables
 - Dropped the `answerText` field from `answers`

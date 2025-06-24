@@ -3,6 +3,8 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+const isTest = process.env.NODE_ENV === 'test';
+
 // Mock the Pino logger
 jest.mock('pino', () => () => logger);
 
@@ -16,7 +18,7 @@ jest.mock('../config/awsConfig', () => ({
     sesAccessSecret: '98765',
     sesBounceAddress: 'bounce@example.com',
     sesBouncedEmailBucket: 'my-test-bucket',
-    dynamoTableName: process.env.DYNAMO_TABLE_NAME ?? 'my-test-table',
+    dynamoTableName: isTest ? process.env.DYNAMO_TEST_TABLE_NAME : process.env.DYNAMO_TABLE_NAME,
     dynamoMaxQueryAttempts: 3,
     dynamoEndpoint: 'http://localhost:8000',
   }
