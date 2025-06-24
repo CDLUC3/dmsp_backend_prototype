@@ -543,14 +543,6 @@ They are also used to normalize data from the data sources before returning it t
 
 There are abstract base classes available to help offload some of the redundant code. For example the MySqlModel provides standardized fields common to every DB record as well as `query`, `insert`, `update` and `delete` functions that handle calls to the DB.
 
-### Mocks
-
-In some situations, the data source will not be ready. In this scenario you can create a mock for use during development. Mocks live in `src/mocks/` and there is an example for affiliations there.
-
-To use a mock, simply import it into your resolver and then setup your Query and Mutation handlers to interact with the canned mock data.
-
-Note that mocks will refresh each time the server is restarted!
-
 ### Languages
 
 The languages supported by the system can be found in the `src/models/language.ts` file.
@@ -559,11 +551,46 @@ TODO: update with documentation on how to provide translation support for DB bas
 
 ### Tests
 
-You should try to add unit tests any time you add or modify a file! To do so, find the corresponding file (or add a new one) in the `src/models/__tests_/` directory. We appreciate unit tests everywhere else too!
+We use Jest to run our tests. There is a Jest config file in the root of the directory and a `src/__tests__/setup.ts` file that is used in every test. The `setup.ts` is used to mock the values loaded and used by the various `src/config/` files.
 
-Resolver tests make use of mocks to simulate interaction with datasources. These mocks can be found in `src/models/__mocks__`. By using these mocks we are able to perform end-to-end integration testing.
+#### Unit tests
 
-To run the unit tests `npm run test`
+You should, at minimum, add unit tests any time you add or modify a file! To do so, find the corresponding file (or add a new one) in the `src/[dir]/__tests_/` directory. When you write a unit test, please use Jest mock to mock interactions with other files. We like to isolate unit tests to the file in question.
+
+### Integration tests
+
+The system makes use of an Apollo server helper to mimic GraphQL requests. We use this along with test instances of the data sources to run end-to-end integration tests. When you add a new resolver, please add corresponding tests. Refer to one of the other `src/resolvers/__tests__/` files for examples. 
+
+We have provided a `resolverTestHelper.ts` file with functions to help remove the need for boilerplate code in your tests. The `resolverTestHelper` file provides:
+- `mockToken` to generate a mock token for the Apollo context
+- `initTestServer` to initialize the Apollo server for testing
+- `executeQuery` to invoke a GraphQL query or mutation against the test Apollo server
+- `testNotFound` to verify that a resolver returns a `404 NOT FOUND` when expected
+- `testStandardErrors` to verify that the resolver is properly handling unexpected `401 UNAUTHORIZED` and `500 INTERNAL SERVER ERROR`
+
+The basic pattern you should follow in your resolver tests are to:
+- Use the `src/models/__mocks__/` files to persist and cleanup test database records
+- Use `beforeEach` to create records for dependencies of the object you're testing. For example `Plan` requires a `projectId` and a `versionedTemplateId`, so you would create those in a before each
+- Use `afterEach` to clean up any dependency records you create within your tests
+- Use the `testNotFound` and `testStandardErrors` on each resolver endpoint
+- Make sure you include all fields in your GraphQL queries to ensure that the resolver actually returns all fields and handles any chaining to get at associated objects
+- Create a function that follows a standard workflow. For example:
+  - query for all the plans associated with a project
+  - add a plan to the project
+  - fetch the newly created plan
+  - change the plan's status
+  - archive the plan
+- Use the function against various user/token types to verify who has access and who should receive a `403 FORBIDDEN` error 
+
+#### Mocks
+
+If you create a new model, please add a corresponding mock to `src/models/__mocks__` directory so that it can be used in future resolver tests.
+Mocks are intended to provide quick ways to create, delete and fetch random records from one of the test datasources. 
+
+Note that when possible, your should use resolvers to add/remove test records. For example if you're testing `Plan` resolvers, use the various GraphQL mutations to create, update and remove plans. Use the mocks to create and delete dependencies needed to execute the Plan mutations (e.g. use the `src/models/__mocks__/Plan.spec.ts` to create a plan and delete it afterward)
+
+#### Running tests
+To run the tests `npm run test`
 
 ### Connect to ECS instance
 
