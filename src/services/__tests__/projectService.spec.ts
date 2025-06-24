@@ -1,7 +1,10 @@
 import casual from "casual";
 import { logger } from "../../__mocks__/logger";
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { mysql } from "../../datasources/mysql";
+import {
+  buildContext,
+  mockedMysqlInstance,
+  mockToken
+} from "../../__mocks__/context";
 import { Project } from "../../models/Project";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isAdmin, isSuperAdmin } from "../authService";
@@ -38,12 +41,7 @@ describe('hasPermissionOnProject', () => {
   let mockCollaboratorQuery;
 
   beforeEach(() => {
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (mysql.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = mysql.getInstance();
+    const instance = mockedMysqlInstance;
     mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
     context = buildContext(logger, mockToken());
 

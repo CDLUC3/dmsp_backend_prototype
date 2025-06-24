@@ -73,6 +73,7 @@ describe('signupController', () => {
     context = buildContext(logger, mockToken(), null);
 
     mockRequest = {
+      logger: logger,
       body: {
         email: casual.email,
         givenName: casual.first_name,

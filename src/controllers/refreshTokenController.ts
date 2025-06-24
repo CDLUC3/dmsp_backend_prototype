@@ -1,16 +1,20 @@
 import { Response } from 'express';
 import { Request } from 'express-jwt';
-import { Cache } from "../datasources/cache";
 import { refreshAccessToken, setTokenCookie } from '../services/tokenService';
 import { buildContext } from '../context';
-import { formatLogMessage, logger } from '../logger';
+import { formatLogMessage } from '../logger';
 
 export const refreshTokenController = async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.dmspr?.toString();
 
   if (refreshToken) {
-    const cache = Cache.getInstance();
-    const context = buildContext(logger, cache);
+    const context = buildContext(
+      req.logger,
+      req.cache,
+      null,
+      req.sqlDataSource,
+      req.dmphubAPIDataSource,
+    );
 
     try {
       const newAccessToken = await refreshAccessToken(context, refreshToken);

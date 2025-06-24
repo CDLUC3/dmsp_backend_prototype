@@ -9,7 +9,7 @@ import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../
 jest.mock('../../dataSources/mysql', () => {
   return {
     __esModule: true,
-    mysql: {
+    MySQLConnection: {
       getInstance: jest.fn().mockReturnValue({
         query: jest.fn(), // Initialize the query mock function
       }),

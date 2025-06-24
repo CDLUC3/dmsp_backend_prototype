@@ -1,14 +1,15 @@
 import { Logger } from 'pino';
 import { DMPHubAPI } from './datasources/dmphubAPI'
-import { mysql } from './datasources/mysql';
+import { MySQLConnection } from './datasources/mysql';
 import { JWTAccessToken } from './services/tokenService';
 import { randomHex } from './utils/helpers';
-import { Cache } from './datasources/cache';
+import {BaseContext} from "@apollo/server";
+import {KeyvAdapter} from "@apollo/utils.keyvadapter";
 
 // The Apollo Server Context object passed in to the Resolver on each request
-export interface MyContext {
+export interface MyContext extends BaseContext {
   // The cache
-  cache: Cache;
+  cache: KeyvAdapter;
   // The caller's JSON Web Token
   token: JWTAccessToken;
   // An instance of he Logger
@@ -18,14 +19,20 @@ export interface MyContext {
   // Instances of the data sources the system uses to access information
   dataSources: {
     dmphubAPIDataSource: DMPHubAPI;
-    sqlDataSource: mysql;
+    sqlDataSource: MySQLConnection;
   };
 }
 
 // This function should only be used when the caller is running a query from outside the
 // Apollo Server GraphQL context. e.g. when calling signup or register
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildContext(logger: Logger, cache: any = null, token: JWTAccessToken = null): MyContext {
+export function buildContext(
+  logger: Logger,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cache: any | null = null,
+  token: JWTAccessToken | null = null,
+  sqlDataSource: MySQLConnection | null = null ,
+  dmphubAPIDataSource: DMPHubAPI | null = null,
+): MyContext {
   if (!cache) {
     // If calling from outside the Apollo server context setup an HttpCache.
     cache = { skipCache: true };
@@ -38,14 +45,25 @@ export function buildContext(logger: Logger, cache: any = null, token: JWTAccess
       logger,
       requestId: randomHex(32),
       dataSources: {
-        dmphubAPIDataSource: new DMPHubAPI({ cache, token }),
-        sqlDataSource: mysql.getInstance(),
+        dmphubAPIDataSource: dmphubAPIDataSource,
+        sqlDataSource: sqlDataSource,
+
       }
     }
   } catch(err) {
     const msg = `Unable to buildContext - ${err.message}`;
     if (logger) {
-      logger.error({ err, logger, cache, token }, msg);
+      logger.error(
+        {
+          err,
+          sqlDataSource,
+          dmphubAPIDataSource,
+          logger,
+          cache,
+          token
+        },
+        msg
+      );
     } else {
       console.log(msg);
     }

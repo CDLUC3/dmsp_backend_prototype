@@ -1,158 +1,113 @@
 import casual from "casual";
-import { getCurrentDate, isNullOrUndefined } from "../../utils/helpers";
-import {
-  addEntryToMockTable,
-  addMockTableStore,
-  clearMockTableStore,
-  deleteEntryFromMockTable,
-  findEntriesInMockTableByFilter,
-  findEntryInMockTableByFilter,
-  findEntryInMockTableById,
-  getMockTableStore,
-  paginate,
-  updateEntryInMockTable
-} from "./MockStore";
+import { isNullOrUndefined } from "../../utils/helpers";
+import { getRandomEnumValue } from "../../__tests__/helpers";
+import { MyContext } from "../../context";
 import {
   Affiliation,
   AffiliationProvenance,
-  AffiliationSearch,
   AffiliationType,
   DEFAULT_ROR_AFFILIATION_URL
 } from "../Affiliation";
-import { getRandomEnumValue } from "../../__tests__/helpers";
-import { MyContext } from "../../context";
-import { PaginationOptions } from "../../types";
-import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../../types/general";
 
-export const getAffiliationStore = () => {
-  return getMockTableStore('affiliations');
+// Store for all mock/test Affiliations that were persisted to the DB
+const addedAffiliationIds: number[] = [];
+
+export interface MockAffiliationOptions {
+  name?: string;
+  uri?: string;
+  funder?: boolean;
+  types?: AffiliationType[];
+  provenance?: AffiliationProvenance;
+  homepage?: string;
+  acronyms?: string[];
+  aliases?: string[];
+  fundrefId?: string;
+  active?: boolean;
 }
 
-export const getRandomAffiliation = (): Affiliation => {
-  const store = getMockTableStore('affiliations');
-  if (!store || store.length === 0) {
-    return null;
-  }
-  return store[Math.floor(Math.random() * store.length)];
-}
-
-export const clearAffiliationStore = () => {
-  clearMockTableStore('affiliations');
-}
-
-export const generateNewAffiliation = (options) => {
+// Generate a mock/test Affiliation
+export const mockAffiliation = (
+  options: MockAffiliationOptions
+): Affiliation => {
   const name = casual.company_name;
   const homepage = casual.url;
-  const domain = homepage.replace(/http(s)?:\/\//, '').replace('/', '').toLowerCase();
+  const domain = homepage.replace(/http(s)?:\/\//, '')
+                                .replace('/', '')
+                                .toLowerCase();
   const acronyms = casual.array_of_words(2);
   const aliases = casual.array_of_words(2);
+  const searchName = [
+    name,
+    domain,
+    acronyms.join(' | '),
+    aliases.join(' | ')
+  ].filter((s) => s.length > 0);
 
-  return {
+  // Use the options provided or default a value
+  return new Affiliation({
     name: options.name ?? name,
     uri: options.uri ?? `${DEFAULT_ROR_AFFILIATION_URL}/${casual.uuid}`,
     funder: options.funder ?? casual.boolean,
     types: options.types ?? [getRandomEnumValue(AffiliationType)],
-    displayName: options.displayName ?? `${name} (${domain})`,
-    searchName: options.searchName ?? [name, domain, acronyms.join(' | '), aliases.join(' | ')].join(' | '),
+    displayName: `${name} (${domain})`,
+    searchName,
     provenance: options.provenance ?? AffiliationProvenance.ROR,
     homepage: options.homepage ?? homepage,
     acronyms: options.acronyms ?? acronyms,
     aliases: options.aliases ?? aliases,
     fundrefId: options.fundrefId ?? casual.uuid,
     active: options.active ?? casual.boolean,
+  });
+}
 
-    managed: options.managed ?? casual.boolean,
-    logoURI: options.logoURI ?? casual.url,
-    logoName: options.logoName ?? casual.words(2),
-    contactEmail: options.contactEmail ?? casual.email,
-    contactName: options.contactName ?? casual.name,
-    ssoEntityId: options.ssoEntityId ?? casual.uuid,
+// Save a mock/test Affiliation in the DB for integration tests
+export const persistAffiliation = async (
+  context: MyContext,
+  affiliation: Affiliation
+): Promise<Affiliation | null> => {
+  try {
+    const created = await affiliation.create(context);
+    if (!isNullOrUndefined(created)) {
+      // Keep track of the id so we can clean up afterward
+      addedAffiliationIds.push(created.id);
+      return created;
+    }
+    console.error(`Unable to persist affiliation: ${affiliation.uri}`);
+  } catch (e) {
+    console.error(`Error persisting affiliation ${affiliation.uri}: ${e.message}`);
+  }
+  return null;
+}
 
-    feedbackEnabled: options.feedbackEnabled ?? casual.boolean,
-    feedbackMessage: options.feedbackMessage ?? casual.sentence,
-    feedbackEmails: options.feedbackEmails ?? [casual.email, casual.email],
-    apiTarget: options.apiTarget ?? `/${casual.word}/${casual.word}`,
+// Clean up all mock/test Affiliations
+export const cleanUpAddedAffiliations = async (
+  context: MyContext,
+) : Promise<void> => {
+  const reference = 'cleanUpAddedAffiliations';
+  for (const id of addedAffiliationIds) {
+    try {
+      const affiliation = await Affiliation.findById(reference, context, id);
+      if (!isNullOrUndefined(affiliation)) {
+        await affiliation.delete(context);
+      }
+    } catch (e) {
+      console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
+    }
   }
 }
 
-// Initialize the table
-export const initAffiliationStore = (count = 10): Affiliation[] => {
-  addMockTableStore('affiliations', []);
-
-  for (let i = 0; i < count; i++) {
-    addEntryToMockTable('affiliations', generateNewAffiliation({}));
+// Fetch a random persisted Affiliation
+export const randomAffiliation = async (
+  context: MyContext
+): Promise<Affiliation | null> => {
+  const sql = 'SELECT * FROM affiliations WHERE active = 1 ORDER BY RAND() LIMIT 1';
+  try {
+    const results = Affiliation.query(context, sql, [], 'randomAffiliation');
+    if (Array.isArray(results) && results.length > 0) {
+      return new Affiliation([0]);
+    }
+  } catch (e) {
+    console.error(`Error getting random affiliation: ${e.message}`);
   }
-
-  return getAffiliationStore();
+  return null;
 }
-
-// Mock the queries
-export const mockFindAffiliationById = async (_, __, id: number): Promise<Affiliation> => {
-  const result = findEntryInMockTableById('affiliations', id);
-  return result ? new Affiliation(result) : null;
-};
-
-export const mockFindAffiliationByURI = async (_, __, uri: string): Promise<Affiliation> => {
-  const result = findEntryInMockTableByFilter(
-    'affiliations',
-    (entry) => { return entry.uri.toLowerCase().trim() === uri.toLowerCase().trim() }
-  );
-  return result ? new Affiliation(result) : null;
-};
-
-export const mockFindAffiliationByName = async (_, __, name: string): Promise<Affiliation> => {
-  const result = findEntryInMockTableByFilter(
-    'affiliations',
-    (entry) => { return entry.name.toLowerCase().trim() === name.toLowerCase().trim() }
-  );
-  return result ? new Affiliation(result) : null;
-};
-
-export const mockAffiliationSearch = async (
-  _,
-  __,
-  name: string,
-  funderOnly = false,
-  paginationOptions: PaginationOptions = { type: PaginationType.CURSOR, cursor: null, limit: 3 }
-): Promise<PaginatedQueryResults<AffiliationSearch>> => {
-  const affiliations = findEntriesInMockTableByFilter(
-    'affiliations',
-    (entry) => entry.name.toLowerCase().includes(name.toLowerCase()),
-  );
-  // If funderOnly is true, filter the affiliations to only include funders
-  const results = funderOnly ? affiliations.filter((entry) => entry.funder) : affiliations;
-  const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
-    ? paginationOptions as PaginationOptionsForOffsets
-    : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
-  const paginatedResults = paginate(results, opts);
-  return {
-    ...paginatedResults,
-    items: paginatedResults.items.map((entry) => { return new AffiliationSearch(entry) }),
-  };
-};
-
-// Mock the mutations
-export const mockInsertAffiliation = async (context: MyContext, _, obj: Affiliation): Promise<number> => {
-  const { insertId } = addEntryToMockTable('affiliations', {
-    ...obj,
-    createdById: context.token.id,
-    created: getCurrentDate(),
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return insertId;
-};
-
-export const mockUpdateAffiliation = async (context: MyContext, _, obj: Affiliation): Promise<Affiliation> => {
-  const result = updateEntryInMockTable('affiliations', {
-    ...obj,
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return result ? new Affiliation(result) : null;
-};
-
-export const mockDeleteAffiliation = async (_, __, id: number): Promise<boolean> => {
-  const result = deleteEntryFromMockTable('affiliations', id);
-  return result ? true : false;
-};
