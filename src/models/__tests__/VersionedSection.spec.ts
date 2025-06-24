@@ -302,11 +302,11 @@ the getVersionedSectionsBySectionId method returns an empty array for tags, and 
     expect(result).toEqual([versionedSection])
   });
 
-  it('should return null if it finds no VersionedSection', async () => {
+  it('should return an empty array if it finds no VersionedSections', async () => {
     localQuery.mockResolvedValueOnce([]);
     const versionedTemplateId = 1;
     const result = await VersionedSection.findByTemplateId('VersionedSection query', context, versionedTemplateId);
-    expect(result).toEqual(null);
+    expect(result).toEqual([]);
   });
 });
 

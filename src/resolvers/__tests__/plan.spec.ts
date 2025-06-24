@@ -518,13 +518,7 @@ describe('plan', () => {
   afterEach(async () => {
     jest.clearAllMocks();
 
-    // Clean up the plan, project, user and member and funding records we generated
-    for (const member of existingProjectMembers) {
-      await cleanUpAddedProjectMember(context, member.id);
-    }
-    for (const funding of existingProjectFundings) {
-      await cleanUpAddedProjectFunding(context, funding.id);
-    }
+    // Clean up the plan and its associated entities
     for (const planMember of existingPlanMembers) {
       await cleanUpAddedPlanMember(context, planMember.id);
     }
@@ -532,7 +526,16 @@ describe('plan', () => {
       await cleanUpAddedPlanFunding(context, planFunding.id);
     }
     await cleanUpAddedPlan(context, existingPlan.id);
+
+    // Clean up the project and its associated entities
+    for (const member of existingProjectMembers) {
+      await cleanUpAddedProjectMember(context, member.id);
+    }
+    for (const funding of existingProjectFundings) {
+      await cleanUpAddedProjectFunding(context, funding.id);
+    }
     await cleanUpAddedProject(context, project.id);
+
     await cleanUpAddedUser(context, creator.id);
   });
 
