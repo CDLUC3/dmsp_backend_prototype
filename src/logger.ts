@@ -1,6 +1,7 @@
 import pino, { Logger } from 'pino';
 import { ecsFormat } from '@elastic/ecs-pino-format';
 import { MyContext } from './context';
+import {generalConfig} from "./config/generalConfig";
 
 const logLevel = process.env.LOG_LEVEL || 'info';
 
@@ -9,7 +10,7 @@ const logLevel = process.env.LOG_LEVEL || 'info';
  * standardization across all log messaging. This format will allow us
  * to more easily debug and track requests in OpenSearch.
  */
-export const logger: Logger = pino({ level: logLevel, ...ecsFormat })
+export const logger: Logger = pino({ level: logLevel, ...ecsFormat() })
 
 // Format a log message with information from the Apollo server context.
 // Attaches the unique Request Id, and the user's JTI and UserId from the token.
@@ -20,19 +21,20 @@ export const logger: Logger = pino({ level: logLevel, ...ecsFormat })
 // The log messages will include a numeric `level` that corresponds to the log level.
 //    For example: 10 = trace, 20 = debug, 30 = info, 40 = debug, 50 = error, 60 = fatal
 //
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 export function formatLogMessage(context: MyContext): Logger {
-  const args = {
+  const contextFields = {
+    app: generalConfig.applicationName,
+    env: generalConfig.env,
     requestId: context?.requestId,
     jti: context?.token?.jti,
     userId: context?.token?.id,
-  }
+  };
 
-  // Append the Apollo context args
-  if (args.requestId || args.userId || args.jti) {
-    return context.logger.child({ ...args });
-  }
+  // Filter out undefined fields for cleaner logs
+  const metadata = Object.fromEntries(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    Object.entries(contextFields).filter(([_, v]) => v !== undefined)
+  );
 
-  // Otherwise there were no additional arfs, so return the logger as-is
-  return context.logger;
+  return logger.child(metadata);
 }
