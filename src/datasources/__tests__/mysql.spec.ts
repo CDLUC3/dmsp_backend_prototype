@@ -1,8 +1,8 @@
 import { MySQLConnection } from '../mysql';
 import * as mysql2 from 'mysql2/promise';
-import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
 import { MyContext } from '../../context';
+import { logger } from "../../logger";
 
 jest.mock('mysql2/promise');
 jest.mock('../../context');
@@ -91,7 +91,7 @@ describe('MySQLConnection', () => {
       (mockConnection.execute as jest.Mock).mockRejectedValueOnce(new Error('Query failed'));
 
       await expect(sqlDataSource.query(context, sql, values)).rejects.toThrow('Database query failed');
-      expect(formatLogMessage(context).error).toHaveBeenCalled();
+      expect(context.logger.error).toHaveBeenCalled();
       await sqlDataSource.close();
     });
   });

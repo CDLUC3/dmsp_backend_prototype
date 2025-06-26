@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { User } from '../models/User';
 import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
 import { generalConfig } from '../config/generalConfig';
@@ -35,7 +35,7 @@ export const signinController = async (req: Request, res: Response) => {
       res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
   } catch (err) {
-    formatLogMessage(context)?.error(err, 'Signin error');
+    context.logger.error(prepareObjectForLogs(err), 'Sign in error');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

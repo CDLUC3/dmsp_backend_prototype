@@ -1,7 +1,7 @@
 import casual from 'casual';
 import { OutputType } from '../OutputType';
 import { buildContext, mockToken } from '../../__mocks__/context';
-import { logger } from '../../__mocks__/logger';
+import { logger } from "../../logger";
 
 describe('OutputType', () => {
   it('constructor should initialize as expected', () => {

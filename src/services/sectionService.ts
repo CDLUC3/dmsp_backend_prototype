@@ -6,7 +6,7 @@ import { VersionedSection } from "../models/VersionedSection";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { generateQuestionVersion } from "./questionService";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { reorderDisplayOrder } from "../utils/helpers";
 
 // Creates a new Version/Snapshot the specified Section (as a point in time snapshot)
@@ -67,16 +67,16 @@ export const generateSectionVersion = async (
         if (updated && !updated.hasErrors()) return true;
 
         const msg = `Unable to set the isDirty flag for section: ${section.id}`;
-        formatLogMessage(context).error(updated.errors, msg);
+        context.logger.error(prepareObjectForLogs(updated.errors), msg);
         throw new Error(msg);
       }
     } else {
       const msg = `Unable to create a new version for section: ${section.id}`;
-      formatLogMessage(context).error(created.errors, msg);
+      context.logger.error(prepareObjectForLogs(created.errors), msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(context).error(err, `Unable to generate a new version for section: ${section.id}`);
+    context.logger.error(prepareObjectForLogs(err), `Unable to generate a new version for section: ${section.id}`);
     throw err;
   }
 
@@ -153,7 +153,7 @@ export const updateDisplayOrders = async (
       if (updatedSection && updatedSection.hasErrors()) {
         // If one of them fais, throw an error
         const msg = `Unable to update the display order for section: ${reorderedSection.id}`;
-        formatLogMessage(context).error(updatedSection.errors, msg);
+        context.logger.error(prepareObjectForLogs(updatedSection.errors), msg);
         throw new Error(msg);
       }
     }

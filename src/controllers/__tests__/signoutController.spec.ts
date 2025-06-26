@@ -4,9 +4,9 @@ import { Cache } from "../../datasources/cache";
 import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../../services/tokenService';
 import casual from 'casual';
 import { signoutController } from '../signoutController';
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { MyContext } from '../../context';
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 

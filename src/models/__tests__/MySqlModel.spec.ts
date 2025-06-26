@@ -1,10 +1,10 @@
 import casual from 'casual';
 import { MySqlModel } from "../MySqlModel";
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 import { generalConfig } from '../../config/generalConfig';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
+import { logger } from "../../logger";
 
 jest.mock('../../dataSources/mysql', () => {
   return {
@@ -410,9 +410,7 @@ describe('query function', () => {
     expect(context.logger.debug).toHaveBeenCalledTimes(1);
     expect(context.logger.error).toHaveBeenCalledTimes(1);
     expect(context.logger.debug).toHaveBeenCalledWith(`testing failure, sql: ${sql}, vals: 123`);
-    expect(context.logger.error).toHaveBeenCalledWith(
-      mockError, "testing failure, ERROR: Testing error handler"
-    );
+    expect(context.logger.error).toHaveBeenCalledWith({}, "testing failure, ERROR: Testing error handler");
     expect(result).toEqual([]);
   });
 

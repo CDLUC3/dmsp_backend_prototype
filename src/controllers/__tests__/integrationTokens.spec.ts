@@ -14,8 +14,8 @@ import { verifyAccessToken } from '../../services/tokenService';
 import { defaultLanguageId } from '../../models/Language';
 import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken, MockCache } from "../../__mocks__/context";
+import { logger } from "../../logger";
 
 jest.mock('../../datasources/cache');
 jest.mock('../../datasources/dmphubAPI');

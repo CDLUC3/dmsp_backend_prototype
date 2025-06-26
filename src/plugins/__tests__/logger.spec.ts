@@ -21,7 +21,7 @@ import {
   // GraphQLExperimentalFormattedSubsequentIncrementalExecutionResult,
   GraphQLRequestListener,
 } from '@apollo/server';
-import { logger as mockLogger } from '../../__mocks__/logger';
+import { logger } from "../../logger";
 import { loggerPlugin } from '../logger';
 
 const mockIntrospectionRequestContext = {
@@ -58,13 +58,13 @@ let debugSpy: jest.SpyInstance;
 let errorSpy: jest.SpyInstance;
 let infoSpy: jest.SpyInstance;
 
-const logger = loggerPlugin(mockLogger);
+const mockLogger = loggerPlugin(logger);
 
 describe('loggerPlugin', () => {
   beforeEach(() => {
-    debugSpy = jest.spyOn(mockLogger, 'debug');
-    errorSpy = jest.spyOn(mockLogger, 'error');
-    infoSpy = jest.spyOn(mockLogger, 'info');
+    debugSpy = jest.spyOn(logger, 'debug');
+    errorSpy = jest.spyOn(logger, 'error');
+    infoSpy = jest.spyOn(logger, 'info');
     jest.clearAllMocks();
   });
 
@@ -75,12 +75,12 @@ describe('loggerPlugin', () => {
   });
 
   test('invalidRequestWasReceived logs the expected error message', async () => {
-    await logger.invalidRequestWasReceived(mockRequestError);
+    await mockLogger.invalidRequestWasReceived(mockRequestError);
     expect(errorSpy).toHaveBeenCalledWith('Invalid request error!');
   });
 
   test('unexpectedErrorProcessingRequest logs the expected error message', async () => {
-    await logger.unexpectedErrorProcessingRequest({
+    await mockLogger.unexpectedErrorProcessingRequest({
       requestContext: mockRequestContext,
       error: mockRequestError.error
     });
@@ -89,20 +89,20 @@ describe('loggerPlugin', () => {
 
   describe('requestDidStart', () => {
     test('skips introspection queries', async() => {
-      expect(await logger.requestDidStart(mockIntrospectionRequestContext)).toEqual({});
+      expect(await mockLogger.requestDidStart(mockIntrospectionRequestContext)).toEqual({});
     });
 
     test('skips healthcheck queries', async() => {
-      expect(await logger.requestDidStart(mockHealthCheckRequestContext)).toEqual({});
+      expect(await mockLogger.requestDidStart(mockHealthCheckRequestContext)).toEqual({});
     });
 
     test('logs the expected message', async () => {
-      await logger.requestDidStart(mockRequestContext);
+      await mockLogger.requestDidStart(mockRequestContext);
       expect(infoSpy).toHaveBeenCalledWith('Request started');
     });
 
     test('returns a GraphQLRequestListener', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext);
+      const listener = await mockLogger.requestDidStart(mockRequestContext);
       expect(typeof listener).toEqual('object');
       expect(listener).toHaveProperty('didResolveSource');
     });
@@ -111,44 +111,44 @@ describe('loggerPlugin', () => {
   describe('GraphQLRequestListener', () => {
     /*
     test('didResolveSource logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.didResolveSource(mockRequestContext as GraphQLRequestContextDidResolveSource<BaseContext>);
       expect(debugSpy).toHaveBeenCalledWith('Resolved source');
     });
 
     test('parsingDidStart logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.parsingDidStart(mockRequestContext as GraphQLRequestContextDidResolveSource<BaseContext>);
       expect(debugSpy).toHaveBeenCalledWith('Parsing started');
     });
 
     test('validationDidStart logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.validationDidStart(mockRequestContext as GraphQLRequestContextValidationDidStart<BaseContext>);
       expect(debugSpy).toHaveBeenCalledWith('Validation started');
     });
 
     test('didResolveOperation logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.didResolveOperation(mockRequestContext as GraphQLRequestContextDidResolveOperation<BaseContext>);
       expect(debugSpy).toHaveBeenCalledWith('Resolved operation');
     });
 
     test('responseForOperation logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.responseForOperation(mockRequestContext as GraphQLRequestContextResponseForOperation<BaseContext>);
       expect(debugSpy).toHaveBeenCalledWith('Ready to start operation');
     });
     */
 
     test('didEncounterErrors logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.didEncounterErrors(mockRequestContext as GraphQLRequestContextDidEncounterErrors<BaseContext>);
       expect(errorSpy).toHaveBeenCalledWith('Encountered errors!');
     });
 
     test('didEncounterSubsequentErrors logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.didEncounterSubsequentErrors(
         mockRequestContext as GraphQLRequestContextDidEncounterSubsequentErrors<BaseContext>,
         [] as GraphQLError[]
@@ -158,13 +158,13 @@ describe('loggerPlugin', () => {
 
     /*
     test('willSendResponse logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.willSendResponse(mockRequestContext as GraphQLRequestContextWillSendResponse<BaseContext>);
       expect(infoSpy).toHaveBeenCalledWith('Ready to send response');
     });
 
     test('willSendSubsequentPayload logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.willSendSubsequentPayload(
         mockRequestContext as GraphQLRequestContextWillSendSubsequentPayload<BaseContext>,
         {} as GraphQLExperimentalFormattedSubsequentIncrementalExecutionResult
@@ -173,13 +173,13 @@ describe('loggerPlugin', () => {
     });
 
     test('executionDidStart logs expected message', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       listener.executionDidStart(mockRequestContext as GraphQLRequestContextExecutionDidStart<BaseContext>);
       expect(debugSpy).toHaveBeenCalledWith('Operation execution started');
     });
 
     test('willResolveField logs expected error', async () => {
-      const listener = await logger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
+      const listener = await mockLogger.requestDidStart(mockRequestContext) as GraphQLRequestListener<BaseContext>;
       const fieldListener = await listener.executionDidStart(
         mockRequestContext as GraphQLRequestContextExecutionDidStart<BaseContext>
       ) as GraphQLRequestExecutionListener<BaseContext>;

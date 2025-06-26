@@ -1,5 +1,5 @@
 import { MyContext } from "../context";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { ProjectCollaborator, ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { Project } from "../models/Project";
 import { User } from "../models/User";
@@ -54,6 +54,6 @@ export const hasPermissionOnProject = async (
   }
 
   const payload = { projectId: project?.id, userId: context.token?.id };
-  formatLogMessage(context).error(payload, `AUTH failure: ${reference}`)
+  context.logger.error(prepareObjectForLogs(payload), `AUTH failure: ${reference}`);
   return false;
 }

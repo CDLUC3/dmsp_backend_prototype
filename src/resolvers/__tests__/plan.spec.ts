@@ -10,7 +10,7 @@ import { resolvers } from "../../resolver";
 import casual from "casual";
 import assert from "assert";
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import { JWTAccessToken } from "../../services/tokenService";
 
 import { Project } from "../../models/Project";

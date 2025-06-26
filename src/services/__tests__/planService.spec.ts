@@ -1,13 +1,12 @@
 import { MyContext } from '../../context';
 import { buildContext, mockToken } from '../../__mocks__/context';
-import { logger } from '../../__mocks__/logger';
 import { updateMemberRoles } from '../planService';
 import { MemberRole } from '../../models/MemberRole';
+import { logger } from '../../logger';
 
 jest.mock('../commonStandardService');
 jest.mock('../../datasources/dynamo');
 jest.mock('../../models/PlanVersion');
-jest.mock('../../logger');
 
 describe('planService', () => {
   let context: MyContext;

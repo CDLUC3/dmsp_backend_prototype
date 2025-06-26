@@ -5,10 +5,10 @@ import { signupController } from './controllers/signupController';
 import { signoutController } from './controllers/signoutController';
 import { csrfMiddleware } from './middleware/csrf';
 import { refreshTokenController } from './controllers/refreshTokenController';
-import {Logger} from "pino";
-import {MySQLConnection} from "./datasources/mysql";
-import {DMPHubAPI} from "./datasources/dmphubAPI";
-import {KeyvAdapter} from "@apollo/utils.keyvadapter";
+import { Logger } from "pino";
+import { MySQLConnection } from "./datasources/mysql";
+import { DMPHubAPI } from "./datasources/dmphubAPI";
+import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 
 const router = express.Router();
 

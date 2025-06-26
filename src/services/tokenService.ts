@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { createHash, timingSafeEqual } from 'crypto';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { Response } from "express";
-import { logger, formatLogMessage } from '../logger';
+import { logger, prepareObjectForLogs } from '../logger';
 import { User } from '../models/User';
 import { generalConfig } from '../config/generalConfig';
 import { UserRole } from '../models/User';
@@ -82,7 +82,7 @@ const generateAccessToken = (context: MyContext, jti: string, user: User): strin
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTTL });
   } catch(err) {
     if (context?.logger) {
-      formatLogMessage(context).error(err, `generateAccessToken error - ${err.message}`);
+      context.logger.error(prepareObjectForLogs(err), `generateAccessToken error`);
     }
     throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
   }
@@ -105,7 +105,7 @@ const generateRefreshToken = async (context: MyContext, jti: string, userId: num
     return token;
   } catch(err) {
     if (context?.logger) {
-      formatLogMessage(context).error(err, `generateRefreshToken error - ${err.message}`);
+      context.logger.error(prepareObjectForLogs(err), 'generateRefreshToken error');
     }
     throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
   }
@@ -125,7 +125,7 @@ export const generateAuthTokens = async (context: MyContext, user: User): Promis
 
       return { accessToken, refreshToken };
     } catch(err) {
-      formatLogMessage(context).error(err, 'generateAuthTokens - unable to generate tokens');
+      context.logger.error(prepareObjectForLogs(err), 'generateAuthTokens - unable to generate tokens');
     }
   }
   return { accessToken: null, refreshToken: null };
@@ -156,7 +156,7 @@ export const verifyAccessToken = (context: MyContext, accessToken: string): JwtP
       return token;
     }
   } catch(err) {
-    formatLogMessage(context).error(err, `verifyAccessToken error`);
+    context.logger.error(prepareObjectForLogs(err), 'verifyAccessToken error');
   }
   return null;
 }
@@ -175,7 +175,7 @@ const verifyRefreshToken = async (context: MyContext, refreshToken: string): Pro
     return null;
   } catch(err) {
     if (logger) {
-      formatLogMessage(context).error(err, 'verifyRefreshToken error');
+      context.logger.error(prepareObjectForLogs(err), 'verifyRefreshToken error');
     }
     throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - Invalid refresh token`);
   }
@@ -222,7 +222,7 @@ export const refreshAccessToken = async (
     throw AuthenticationError();
   } catch (err) {
     if (logger) {
-      formatLogMessage(context).error(err, 'refreshAccessToken error');
+      context.logger.error(prepareObjectForLogs(err), 'refreshAccessToken error');
     }
     throw AuthenticationError(err.message);
   }
@@ -234,7 +234,7 @@ export const revokeRefreshToken = async (context: MyContext, jti: string): Promi
     await context.cache.delete(`{dmspr}:${jti}`);
     return true;
   } catch(err) {
-    formatLogMessage(context).error(err, `revokeRefreshToken unable to delete token from cache - ${err.message}`);
+    context.logger.error(prepareObjectForLogs(err), 'revokeRefreshToken - unable to delete token from cache');
     throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
   }
 };
@@ -244,7 +244,7 @@ export const revokeAccessToken = async (context: MyContext, jti: string): Promis
     await context.cache.set(`{dmspbl}:${jti}`, new Date().toISOString(), { ttl: generalConfig.jwtTTL });
     return true;
   } catch(err) {
-    formatLogMessage(context).error(err, `revokeAccessToken unable to add token to black list - ${err.message}`);
+    context.logger.error(prepareObjectForLogs(err), 'revokeAccessToken - unable to add token to black list');
     throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
   }
 }
