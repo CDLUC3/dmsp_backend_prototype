@@ -3,7 +3,7 @@ import { getRandomEnumValue } from "../../__tests__/helpers";
 import { Template, TemplateVisibility } from "../../models/Template";
 import { generateTemplateVersion } from "../templateService";
 import { buildContext } from "../../context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import { mockToken } from "../../__mocks__/context";
 import { TemplateVersionType, VersionedTemplate } from "../../models/VersionedTemplate";
 import { Section } from "../../models/Section";

@@ -5,11 +5,11 @@ import { cloneTemplate, generateTemplateVersion, hasPermissionOnTemplate } from 
 import { TemplateCollaborator } from '../../models/Collaborator';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isSuperAdmin } from '../authService';
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { Section } from '../../models/Section';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { getCurrentDate } from '../../utils/helpers';
+import { logger } from '../../logger';
 
 // Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');

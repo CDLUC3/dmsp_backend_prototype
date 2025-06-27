@@ -1,5 +1,5 @@
 import { MyContext } from "../context";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
@@ -155,7 +155,7 @@ export class Repository extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, projectOutputId };
       const msg = 'Unable to add the repository to the project output';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -171,7 +171,7 @@ export class Repository extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, projectOutputId };
       const msg = 'Unable to remove the repository from the project output';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -242,7 +242,7 @@ export class Repository extends MySqlModel {
       reference,
     )
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 

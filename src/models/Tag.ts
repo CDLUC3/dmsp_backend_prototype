@@ -1,6 +1,6 @@
 import { MySqlModel } from "./MySqlModel";
 import { MyContext } from "../context";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 
 const tableName = 'tags';
 export class Tag extends MySqlModel {
@@ -77,7 +77,7 @@ export class Tag extends MySqlModel {
     if (!results) {
       const payload = { tagId: this.id, sectionId };
       const msg = 'Unable to add the tag to the section';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), msg);
       return false;
     }
     return true;
@@ -93,7 +93,7 @@ export class Tag extends MySqlModel {
     if (!results) {
       const payload = { tagId: this.id, sectionId };
       const msg = 'Unable to remove the tag from the section';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;

@@ -3,10 +3,10 @@ import { Collaborator, ProjectCollaborator, ProjectCollaboratorAccessLevel, Temp
 import { Template } from '../Template';
 import { User } from '../User';
 import { buildContext, mockToken } from '../../__mocks__/context';
-import { logger } from '../../__mocks__/logger';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../../services/emailService';
 import { Project } from '../Project';
+import { logger } from "../../logger";
 
 jest.mock('../../logger.ts');
 jest.mock('../../context.ts');

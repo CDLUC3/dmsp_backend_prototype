@@ -1,6 +1,6 @@
 import * as mysql2 from 'mysql2/promise';
 import {mysqlGeneralConfig, mysqlPoolConfig} from "../config/mysqlConfig";
-import {logger, formatLogMessage} from '../logger';
+import { logger, prepareObjectForLogs } from '../logger';
 import {MyContext} from '../context';
 
 export interface DatabaseConnection {
@@ -79,7 +79,7 @@ export class MySQLConnection implements DatabaseConnection {
       const [rows] = await connection.execute(sql, sanitizedValues);
       return rows as T;
     } catch (err) {
-      formatLogMessage(context).error({err, sql, values}, 'Unable to process SQL query!');
+      context.logger.error(prepareObjectForLogs({ sql, values, err }), 'Uanble to process SQL query');
       throw new DatabaseError(
         'Database query failed',
         err instanceof Error ? err : undefined

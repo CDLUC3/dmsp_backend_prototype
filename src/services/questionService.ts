@@ -6,7 +6,7 @@ import { VersionedQuestion } from "../models/VersionedQuestion";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { reorderDisplayOrder } from "../utils/helpers";
 
 // Determine whether the specified user has permission to access the Section
@@ -88,17 +88,17 @@ export const generateQuestionVersion = async (
 
         // There were errors on the object so report them
         const msg = `Unable to set isDirty flag on question: ${question.id}`;
-        formatLogMessage(context).error(updated.errors, msg);
+        context.logger.error(prepareObjectForLogs(updated.errors), msg);
         throw new Error(msg);
       }
     } else {
       // There were errors on the object so report them
       const msg = `Unable to create new version for question: ${question.id}`;
-      formatLogMessage(context).error(saved.errors, msg);
+      context.logger.error(prepareObjectForLogs(saved.errors), msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(context).error(err, `Unable to generate a new version for question: ${question.id}`);
+    context.logger.error(prepareObjectForLogs(err), `Unable to generate a new version for question: ${question.id}`);
     throw err
   }
 
@@ -165,7 +165,7 @@ export const generateQuestionConditionVersion = async (
 
   // There were errors on the object so report them
   const msg = `Unable to generate a new version for questionCondition: ${questionCondition.id}`;
-  formatLogMessage(context).error(created.errors, msg);
+  context.logger.error(prepareObjectForLogs(created.errors), msg);
   throw new Error(msg);
 }
 
@@ -201,7 +201,7 @@ export const updateDisplayOrders = async (
       if (updatedSection && updatedSection.hasErrors()) {
         // If one of them fais, throw an error
         const msg = `Unable to update the display order for section: ${reorderedQuestion.id}`;
-        formatLogMessage(context).error(updatedSection.errors, msg);
+        context.logger.error(prepareObjectForLogs(updatedSection.errors), msg);
         throw new Error(msg);
       }
     }

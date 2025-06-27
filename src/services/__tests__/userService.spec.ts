@@ -1,6 +1,6 @@
 import casual from "casual";
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import { User, UserRole } from "../../models/User";
 import { anonymizeUser, generateRandomPassword, mergeUsers } from "../userService";
 import { getCurrentDate } from "../../utils/helpers";

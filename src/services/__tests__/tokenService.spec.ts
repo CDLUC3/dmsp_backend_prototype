@@ -2,7 +2,6 @@ import casual from 'casual';
 import jwt, { Jwt } from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { Response } from 'express';
-import { logger } from '../../__mocks__/logger';
 import { User, UserRole } from '../../models/User';
 import { DEFAULT_INTERNAL_SERVER_MESSAGE, DEFAULT_UNAUTHORIZED_MESSAGE } from '../../utils/graphQLErrors';
 import { Cache } from '../../datasources/cache';
@@ -19,6 +18,7 @@ import {
 } from '../tokenService'; // assuming the original code is in auth.ts
 import { buildContext, mockToken, MockCache } from '../../__mocks__/context';
 import { defaultLanguageId } from '../../models/Language';
+import { logger } from "../../logger";
 
 jest.mock('jsonwebtoken');
 jest.mock('../../datasources/cache');
@@ -386,8 +386,8 @@ describe('revokeRefreshToken', () => {
 
     const expectedErr = `${DEFAULT_INTERNAL_SERVER_MESSAGE} - Test error`;
     await expect(() => revokeRefreshToken(context, 'mock-token')).rejects.toThrow(expectedErr);
-    const thrownErr = `revokeRefreshToken unable to delete token from cache - Test error`;
-    expect(logger.error).toHaveBeenCalledWith(mockError, thrownErr);
+    const thrownErr = `revokeRefreshToken - unable to delete token from cache`;
+    expect(logger.error).toHaveBeenCalledWith({}, thrownErr);
   });
 });
 
@@ -416,7 +416,7 @@ describe('revokeAccessToken', () => {
 
     const expectedErr = `${DEFAULT_INTERNAL_SERVER_MESSAGE} - Test error`;
     await expect(() => revokeAccessToken(context, mockJti)).rejects.toThrow(expectedErr);
-    const thrownErr = `revokeAccessToken unable to add token to black list - Test error`;
-    expect(logger.error).toHaveBeenCalledWith(mockError, thrownErr);
+    const thrownErr = `revokeAccessToken - unable to add token to black list`;
+    expect(logger.error).toHaveBeenCalledWith({}, thrownErr);
   });
 });

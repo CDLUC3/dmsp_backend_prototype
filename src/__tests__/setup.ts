@@ -1,7 +1,24 @@
-import { logger } from '../__mocks__/logger';
+jest.mock('../logger', () => {
+  const original = jest.requireActual('../logger') as typeof import('../logger');
 
-// Mock the Pino logger
-jest.mock('pino', () => () => logger);
+  const mockLogger = {
+    info: jest.fn(),
+    error: jest.fn(),
+    fatal: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    trace: jest.fn(),
+  };
+
+  return {
+    ...original, // Keep all original exports
+    // Override the actual write functions for the pino logger and its ability to spawn
+    logger: {
+      ...mockLogger,
+      child: jest.fn().mockReturnValue(mockLogger),
+    }
+  };
+});
 
 // Always mock out our config files
 jest.mock('../config/awsConfig', () => ({

@@ -1,7 +1,7 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { AnswerComment } from "../AnswerComment";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 

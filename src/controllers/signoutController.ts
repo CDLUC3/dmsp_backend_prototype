@@ -1,7 +1,7 @@
 import { Request } from 'express-jwt';
 import { Response } from 'express';
 import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../services/tokenService';
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { buildContext } from '../context';
 
 export const signoutController = async (req: Request, res: Response) => {
@@ -41,7 +41,7 @@ export const signoutController = async (req: Request, res: Response) => {
       res.status(200).json({});
     }
   } catch (err) {
-    formatLogMessage(context)?.error(err, 'Signout error!');
+    context.logger.error(prepareObjectForLogs(err), 'Sign out error');
     res.status(500).json({ error: 'An unexpected error occurred' });
   }
 }

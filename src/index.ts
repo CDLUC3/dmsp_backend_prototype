@@ -7,13 +7,13 @@ import { logger } from './logger';
 import { serverConfig } from './config';
 import { healthcheck } from './controllers/healthcheck';
 import { attachApolloServer } from './middleware/express';
-import {setupRouter} from './router';
-import {MySQLConnection} from './datasources/mysql';
+import { setupRouter } from './router';
+import { MySQLConnection } from './datasources/mysql';
 import { Cache } from './datasources/cache';
 import { verifyCriticalEnvVariable } from './utils/helpers';
 import corsConfig from './config/corsConfig';
 import { authMiddleware } from './middleware/auth';
-import {DMPHubAPI} from "./datasources/dmphubAPI";
+import { DMPHubAPI } from "./datasources/dmphubAPI";
 
 verifyCriticalEnvVariable('NODE_ENV');
 console.log(`DMPTool Apollo server backend starting in ${process.env.NODE_ENV} mode.`)
@@ -31,10 +31,11 @@ const dmphubAPIDataSource = new DMPHubAPI({ cache, token: null })
 const app = express();
 // Our httpServer handles incoming requests to our Express app.
 const httpServer = http.createServer(app);
+const baseLogger = logger;
 
 const apolloServer = new ApolloServer({
   cache,
-  ...serverConfig(logger, httpServer)
+  ...serverConfig(baseLogger, httpServer)
 });
 
 const startServer = async () => {
@@ -58,13 +59,13 @@ const startServer = async () => {
   app.use('/graphql', authMiddleware, await attachApolloServer(
     apolloServer,
     cache,
-    logger,
+    baseLogger,
     sqlDataSource,
     dmphubAPIDataSource
   ));
 
   // Pass off to the Router for non-GraphQL requests
-  app.use('/', setupRouter(logger, cache, sqlDataSource, null));
+  app.use('/', setupRouter(baseLogger, cache, sqlDataSource, null));
 
   httpServer.listen({ port: 4000 }, () => {
     console.log(`Server running on port ${PORT}`);

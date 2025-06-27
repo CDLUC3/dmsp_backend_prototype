@@ -1,4 +1,4 @@
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { ExternalProject, ProjectSearchResults, Resolvers } from "../types";
 import { Project, ProjectSearchResult } from "../models/Project";
 import { ProjectCollaborator } from '../models/Collaborator';
@@ -36,7 +36,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -55,7 +55,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -99,7 +99,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -136,7 +136,7 @@ export const resolvers: Resolvers = {
             // Return new project
             return newProject;
           } catch (err) {
-            formatLogMessage(context).error(err, `Failure in ${reference}`);
+            context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
             throw InternalServerError();
           }
         }
@@ -144,7 +144,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -176,7 +176,7 @@ export const resolvers: Resolvers = {
 
             return updated;
           } catch (err) {
-            formatLogMessage(context).error(err, `Failure in ${reference}`);
+            context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
             throw InternalServerError();
           }
         }
@@ -184,7 +184,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -213,7 +213,7 @@ export const resolvers: Resolvers = {
 
             return await project.delete(context);
           } catch (err) {
-            formatLogMessage(context).error(err, `Failure in ${reference}`);
+            context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
             throw InternalServerError();
           }
         }
@@ -221,7 +221,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -259,7 +259,7 @@ export const resolvers: Resolvers = {
               }
               if(addFundingErrors.length > 0){
                 const msg = `Unable to add fundings to project: ${addFundingErrors.join(', ')}`;
-                formatLogMessage(context).error(msg);
+                context.logger.error(prepareObjectForLogs({ projectId }), msg);
                 updatedProject.addError('fundings', msg)
               }
 
@@ -269,18 +269,18 @@ export const resolvers: Resolvers = {
               for (const contrib of input.members) {
                 // Add project member
                 const newMember = new ProjectMember(contrib);
-                formatLogMessage(context).debug(`${reference}: add project member`);
+                context.logger.debug(`${reference}: add project member`);
                 const memberAdded = await newMember.create(context, projectId);
                 if(!memberAdded){
                   addMemberErrors.push(`Member(affiliationId=${newMember.affiliationId}, givenName=${newMember.givenName}, surName=${newMember.surName}, orcid=${newMember.orcid}, email=${newMember.email})`);
                 } else {
                   // Add member role
-                  formatLogMessage(context).debug(`${reference}: add member role`);
+                  context.logger.debug(`${reference}: add member role`);
                   const role = await MemberRole.defaultRole(context, reference);
                   if(!role){
-                    formatLogMessage(context).error(`${reference}: could not find default role`);
+                    context.logger.error(`${reference}: could not find default role`);
                   } else {
-                    formatLogMessage(context).debug(`${reference}: add ${role.label} to member ${memberAdded.id}`);
+                    context.logger.debug(`${reference}: add ${role.label} to member ${memberAdded.id}`);
                     const wasAdded = await role.addToProjectMember(context, memberAdded.id);
                     if (!wasAdded) {
                       addMemberRoleErrors.push(`MemberRole(memberId=${memberAdded.id}, role=${role.label})`);
@@ -291,19 +291,19 @@ export const resolvers: Resolvers = {
 
               if(addMemberErrors.length > 0){
                 const msg = `Unable to add members to project: ${addMemberErrors.join(', ')}`;
-                formatLogMessage(context).error(msg);
+                context.logger.error(prepareObjectForLogs({ projectId }), msg);
                 updatedProject.addError('members', msg)
               }
               if(addMemberRoleErrors.length > 0){
                 const msg = `Unable to add default member roles: ${addMemberRoleErrors.join(', ')}`
-                formatLogMessage(context).error(msg);
+                context.logger.error(prepareObjectForLogs({ projectId }), msg);
                 updatedProject.addError('memberRoles', msg)
               }
             }
 
             return updatedProject;
           } catch (err) {
-            formatLogMessage(context).error(err, `Failure in ${reference}`);
+            context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
             throw InternalServerError();
           }
         }
@@ -311,7 +311,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },

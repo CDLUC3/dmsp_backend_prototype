@@ -7,7 +7,7 @@ it('passes', () => {
 import { ApolloServer } from "@apollo/server";
 import assert from "assert";
 import { buildContext } from "../../context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import { JWTAccessToken } from "../../services/tokenService";
 import { User, UserRole } from "../../models/User";
 import { MyContext } from "../../context";

@@ -1,8 +1,8 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { RelatedWork, RelatedWorkRelationDescriptor, RelatedWorkType } from "../RelatedWork";
 import { getRandomEnumValue } from "../../__tests__/helpers";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 

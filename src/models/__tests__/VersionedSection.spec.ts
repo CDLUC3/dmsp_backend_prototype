@@ -1,9 +1,9 @@
 import casual from "casual";
 import { VersionedSection, VersionedSectionSearchResult } from "../VersionedSection";
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import { generalConfig } from "../../config/generalConfig";
 import { TemplateVersionType } from "../VersionedTemplate";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
