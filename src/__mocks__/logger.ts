@@ -21,7 +21,8 @@ const mockLogger = {
 
 export const logger = mockLogger;
 
-export function initLogger(baseLogger: Logger, contextFields: LoggerContext): Logger {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function initLogger(_baseLogger: Logger, _contextFields: LoggerContext): Logger {
   return mockLogger;
 }
 
