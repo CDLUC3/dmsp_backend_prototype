@@ -1,6 +1,6 @@
 import * as mysql2 from 'mysql2/promise';
 import { mysqlGeneralConfig, mysqlPoolConfig } from "../config/mysqlConfig";
-import { logger } from '../logger';
+import { logger, prepareObjectForLogs } from '../logger';
 import { MyContext } from '../context';
 
 export interface DatabaseConnection {
@@ -65,7 +65,7 @@ export class MySQLConnection implements DatabaseConnection {
   private async validateConnection(): Promise<void> {
     try {
       const connection = await this.pool.getConnection();
-      await connection.release();
+      connection.release();
     } catch (err) {
       throw new DatabaseError('Failed to validate initial connection', err);
     }
@@ -104,12 +104,15 @@ export class MySQLConnection implements DatabaseConnection {
       const [rows] = await connection.execute(sql, sanitizedValues);
       return rows as T;
     } catch (err) {
-      // If we are running tests and this fails send it to the console because
-      // it can be really painful to debug if we don't
       if (process.env.NODE_ENV === 'test') {
-        console.log(err);
+        console.log('MySQL query error:', err);
       }
-      throw new DatabaseError('Database query failed', err);
+
+      context.logger.error(prepareObjectForLogs({ sql, values, err }), 'Uanble to process SQL query');
+      throw new DatabaseError(
+        'Database query failed',
+        err instanceof Error ? err : undefined
+      );
     } finally {
       if (connection) {
         await connection.release();

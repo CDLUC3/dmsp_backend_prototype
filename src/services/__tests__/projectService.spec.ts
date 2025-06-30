@@ -1,5 +1,5 @@
 import casual from "casual";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import {
   buildContext,
   mockedMysqlInstance,

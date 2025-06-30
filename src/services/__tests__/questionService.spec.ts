@@ -1,7 +1,7 @@
 import casual from "casual";
 import { Template } from "../../models/Template";
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion, updateDisplayOrders } from "../questionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";

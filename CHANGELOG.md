@@ -110,6 +110,7 @@
 - Fixed a bug in `ProjectMember` that was causing the role ids to not be saved
 - Updated `templateService` permission check function to give super admins access
 - Refactored the existing resolver tests to work with the new test DBs
+- Refactor the way we initialize the pino Logger and pass it around. Also removed the old `formatLogMessage` function and replaced with `prepareObjectForLogs`
 - Consolidated handling of the Cache, so that we always pass the `adapter`
 - Updated `mysqlConfig` to use the new test DB when running in `test` mode
 - Refactored `mysql` datasource to properly use a connection pool. Updated the `index.ts` to initialize the connection pool and then pass it, the dmpHubAPI, cache and logger around properly.

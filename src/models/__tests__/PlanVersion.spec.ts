@@ -1,5 +1,4 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from "../../__mocks__/context";
 import {
   addVersion,
@@ -14,6 +13,7 @@ import { getRandomEnumValue } from "../../__tests__/helpers";
 import * as DynamoModule from '../../datasources/dynamo';
 import * as CommonStandardModule from '../../services/commonStandardService';
 import { getCurrentDate } from "../../utils/helpers";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 

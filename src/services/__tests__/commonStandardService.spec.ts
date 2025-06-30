@@ -12,7 +12,6 @@ import {
 } from '../../types/DMP';
 import { MyContext } from '../../context';
 import { buildContext, mockToken } from '../../__mocks__/context';
-import { logger } from '../../__mocks__/logger';
 import { RelatedWork } from '../../models/RelatedWork';
 import { MemberRole } from '../../models/MemberRole';
 import { User } from '../../models/User';
@@ -22,6 +21,7 @@ import { PlanMember } from '../../models/Member';
 import { PlanFunding } from '../../models/Funding';
 import { Answer } from '../../models/Answer';
 import { ResearchDomain } from '../../models/ResearchDomain';
+import { logger } from '../../logger';
 import casual from 'casual';
 
 let context: MyContext;

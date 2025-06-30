@@ -92,13 +92,15 @@ export const cleanUpAddedProjectFunding = async (
   id?: number,
 ) : Promise<void> => {
   const reference = 'cleanUpAddedProjectFunding';
-  try {
-    // Do a direct delete on the MySQL model because the tests might be mocking the
-    // ProjectFunding functions
-    await ProjectFunding.delete(context, ProjectFunding.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up project funding id ${id}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
+  if (!isNullOrUndefined(id)) {
+    try {
+      // Do a direct delete on the MySQL model because the tests might be mocking the
+      // ProjectFunding functions
+      await ProjectFunding.delete(context, ProjectFunding.tableName, id, reference);
+    } catch (e) {
+      console.error(`Error cleaning up project funding id ${id}: ${e.message}`);
+      if (e.originalError) console.log(e.originalError);
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 import pino, { Logger } from 'pino';
-import { MyContext } from '../context';
+import {LoggerContext} from "../logger";
 
 const baseMockLogger = {
   level: jest.fn(),
@@ -21,7 +21,10 @@ const mockLogger = {
 
 export const logger = mockLogger;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-invalid-void-type
-export function formatLogMessage(context: MyContext): Logger {
-  return context.logger;
+export function initLogger(baseLogger: Logger, contextFields: LoggerContext): Logger {
+  return mockLogger;
+}
+
+export function prepareObjectForLogs(obj: object): object {
+  return obj;
 }

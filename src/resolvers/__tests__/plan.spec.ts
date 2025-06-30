@@ -1,7 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import casual from "casual";
 import { buildContext, MyContext } from "../../context";
-import { logger } from "../../__mocks__/logger";
 import { User, UserRole } from "../../models/User";
 import { Project } from "../../models/Project";
 import { PlanMember, ProjectMember } from '../../models/Member';
@@ -65,6 +64,10 @@ import {
   persistProjectFunding
 } from "../../models/__mocks__/Funding";
 
+// Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
+jest.mock('../../logger');
+import { logger as mockLogger } from '../../logger';
+
 jest.mock("../../datasources/dmphubAPI");
 
 let mysqlInstance: MySQLConnection;
@@ -94,7 +97,7 @@ beforeEach(async () => {
   }
 
   // Build out the Apollo context
-  context = buildContext(logger, null, null, mysqlInstance, null);
+  context = buildContext(mockLogger, null, null, mysqlInstance, null);
 
   // Get a random affiliation because a User needs one
   affiliation = await randomAffiliation(context);
@@ -123,6 +126,8 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  jest.resetAllMocks();
+
   try {
     // Delete all the DB records that were persisted during the tests
     await cleanUpAddedUser(context, sameAffiliationAdmin.id);
@@ -566,6 +571,8 @@ describe('plan', () => {
     }))
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, random', false, false, false);
+
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with comment level access flow', async () => {
@@ -585,6 +592,7 @@ describe('plan', () => {
     await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false, false);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with edit level access flow', async () => {
@@ -604,6 +612,7 @@ describe('plan', () => {
     await testAddQueryRemoveAccess(context, 'researcher, editor', true, true, false);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with owner level access flow', async () => {
@@ -623,6 +632,7 @@ describe('plan', () => {
     await testAddQueryRemoveAccess(context, 'researcher, owner', true, true, true);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Allows a plan to be published', async () => {

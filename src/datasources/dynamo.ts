@@ -11,7 +11,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { marshall, NativeAttributeValue, unmarshall } from "@aws-sdk/util-dynamodb";
 import { awsConfig } from "../config/awsConfig";
-import { formatLogMessage, logger } from "../logger";
+import {logger, prepareObjectForLogs } from "../logger";
 import { DMPCommonStandard } from "../types/DMP";
 import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
@@ -61,7 +61,7 @@ export const DMPExists = async (context: MyContext, dmpId: string): Promise<bool
     const response = await queryTable(context, awsConfig.dynamoTableName, params);
     return response && response.Items.length > 0;
   } catch (err) {
-    formatLogMessage(context).error(params, 'Error checking DynamoDB for DMP existence');
+    context.logger.error(prepareObjectForLogs(err), 'Error checking DynamoDB for DMP existence');
     return false;
   }
 }
@@ -107,7 +107,7 @@ export const getDMP = async (
       });
     }
   } catch (err) {
-    formatLogMessage(context).error({ dmpId, version }, 'Error getting DMP');
+    context.logger.error(prepareObjectForLogs({ dmpId, version }), 'Error getting DMP');
     throw(err);
   }
   return [];
@@ -129,7 +129,7 @@ export const createDMP = async (
   if (version === DMP_LATEST_VERSION) {
     const existing = await getDMP(context, dmpId, DMP_LATEST_VERSION);
     if (!Array.isArray(existing) || existing.length > 0) {
-      formatLogMessage(context).error({ dmpId, version }, 'Error creating DMP: Latest version already exists');
+      context.logger.error(prepareObjectForLogs({ dmpId, version }), 'Error creating DMP: Latest version already exists');
       return null;
     }
   }
@@ -155,7 +155,7 @@ export const createDMP = async (
       }
     }
   } catch (err) {
-    formatLogMessage(context).error({ dmpId, dmp, version, err }, 'Error creating DMP');
+    context.logger.error(prepareObjectForLogs({ dmpId, dmp, version, err }), 'Error creating DMP');
     throw(err);
   }
   return null;
@@ -180,7 +180,7 @@ export const updateDMP = async (
       return Array.isArray(updated) && updated.length > 0 ? updated[0] : null;
     }
   } catch (err) {
-    formatLogMessage(context).error({ dmp }, 'Error updating DMP for DynamoDB');
+    context.logger.error(prepareObjectForLogs(dmp), 'Error updating DMP for DynamoDB');
     throw(err);
   }
   return null;
@@ -207,7 +207,7 @@ export const tombstoneDMP = async (context: MyContext, dmpId: string): Promise<D
         return dmp;
       }
     } catch (err) {
-      formatLogMessage(context).error({ dmpId}, 'Error tombstoning DMP in DynamoDB');
+      context.logger.error(prepareObjectForLogs({ dmpId }), 'Error tombstoning DMP in DynamoDB');
       throw(err);
     }
   }
@@ -229,7 +229,7 @@ export const deleteDMP = async (context: MyContext, dmpId: string): Promise<void
       }
     }
   } catch (err) {
-    formatLogMessage(context).error({ dmpId }, 'Error deleting DMP from DynamoDB');
+    context.logger.error(prepareObjectForLogs({ dmpId }), 'Error deleting DMP from DynamoDB');
     throw(err);
   }
 }
@@ -253,7 +253,7 @@ export const deleteDMP = async (context: MyContext, dmpId: string): Promise<void
       ...params
     });
 
-    formatLogMessage(context).debug({ table, params }, 'Scanning DynamoDB');
+    context.logger.debug(prepareObjectForLogs({ table, params }), 'Scanning DynamoDB');
     const response = await dynamoDBClient.send(command);
 
     // Collect items and update the pagination key
@@ -282,7 +282,7 @@ export const queryTable = async (
       ...params
     });
 
-    formatLogMessage(context).debug({ table, params }, 'Querying DynamoDB');
+    context.logger.debug(prepareObjectForLogs({ table, params }), 'Querying DynamoDB');
     return await dynamoDBClient.send(command);
   } catch (err) {
     logger.error({ table, err, params }, `Error querying DynamoDB table: ${table}`);
@@ -298,14 +298,14 @@ export const putItem = async (
 ): Promise<PutItemCommandOutput> => {
   try {
     // Put the item into the DynamoDB table
-    formatLogMessage(context).debug({ table, item }, 'Putting item into DynamoDB');
+    context.logger.debug(prepareObjectForLogs({ table, item }), 'Putting item into DynamoDB');
     return await dynamoDBClient.send(new PutItemCommand({
       TableName: table,
       ReturnConsumedCapacity: logger?.level === 'debug' ? 'TOTAL' : 'NONE',
       Item: item
     }));
   } catch (err) {
-    formatLogMessage(context).error({ table, item, err }, 'Error putting item into DynamoDB');
+    context.logger.error(prepareObjectForLogs({ table, item, err }), 'Error putting item into DynamoDB');
     throw new Error('Unable to put item into DynamoDB table');
   }
 }
@@ -318,14 +318,14 @@ export const deleteItem = async (
 ): Promise<void> => {
   try {
     // Delete the item from the DynamoDB table
-    formatLogMessage(context).debug({ table, key }, 'Deleting item from DynamoDB');
+    context.logger.debug(prepareObjectForLogs({ table, key }), 'Deleting item from DynamoDB');
     await dynamoDBClient.send(new DeleteItemCommand({
       TableName: table,
       ReturnConsumedCapacity: logger?.level === 'debug' ? 'TOTAL' : 'NONE',
       Key: key
     }));
   } catch (err) {
-    formatLogMessage(context).error({ table, key, err }, 'Error deleting item from DynamoDB');
+    context.logger.error(prepareObjectForLogs({table, key, err }), 'Error deleting item from DynamoDB');
     throw new Error('Unable to delete item from DynamoDB table');
   }
 }

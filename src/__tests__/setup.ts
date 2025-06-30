@@ -1,11 +1,11 @@
-import { logger } from '../__mocks__/logger';
 import * as dotenv from 'dotenv';
+import { jest } from '@jest/globals';
+import { logger } from '../__mocks__/logger';
 
 dotenv.config();
 
 const isTest = process.env.NODE_ENV === 'test';
 
-// Mock the Pino logger
 jest.mock('pino', () => () => logger);
 
 // Always mock out our config files

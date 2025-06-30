@@ -3,9 +3,7 @@ import { Response } from 'express';
 import { Request } from 'express-jwt';
 import { refreshAccessToken, setTokenCookie } from '../../services/tokenService';
 import { refreshTokenController } from '../refreshTokenController';
-import { logger } from '../../__mocks__/logger';
-
-jest.mock('../../context.ts');
+import { logger } from "../../logger";
 
 // Mocking external dependencies
 jest.mock('../../context');

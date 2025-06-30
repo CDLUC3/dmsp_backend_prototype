@@ -6,8 +6,7 @@ import { isSuperAdmin } from "./authService";
 import { TemplateCollaborator } from "../models/Collaborator";
 import { Section } from "../models/Section";
 import { generateSectionVersion } from "./sectionService";
-import { formatLogMessage } from "../logger";
-
+import { prepareObjectForLogs } from "../logger";
 
 // Determine whether the specified user has permission to access the Template
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
@@ -32,7 +31,7 @@ export const hasPermissionOnTemplate = async (context: MyContext, template: Temp
   }
 
   const payload = { templateId: template?.id, userId: context.token?.id };
-  formatLogMessage(context).error(payload, 'AUTH failure: hasPermissionOnTemplate')
+  context.logger.error(prepareObjectForLogs(payload), 'AUTH failure: hasPermissionOnTemplate');
   return false;
 }
 
@@ -118,16 +117,16 @@ export const generateTemplateVersion = async (
         if (updated && !updated.hasErrors()) return created;
 
         const msg = `Unable to update template: ${template.id}`;
-        formatLogMessage(context).error(updated.errors, msg);
+        context.logger.error(prepareObjectForLogs(updated.errors), msg);
         throw new Error(msg);
       }
     } catch (err) {
-      formatLogMessage(context).error(err, `Unable to create a new version for template: ${template.id}`);
+      context.logger.error(prepareObjectForLogs(err), `Unable t create a new version for template: ${template.id}`);
       throw new Error(err.message);
     }
   } else {
     const msg = `Unable to generate a new version of template ${template.id}`;
-    formatLogMessage(context).error(created.errors, msg);
+    context.logger.error(prepareObjectForLogs(created.errors), msg);
     throw new Error(msg);
   }
   // Something went wrong, so return a null instead

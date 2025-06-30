@@ -2,13 +2,13 @@ import nock from 'nock';
 import { DMPHubAPI, Authorizer } from '../dmphubAPI';
 import { DMPIdentifierType, DMPPrivacy, DMPStatus, DMPYesNoUnknown } from '../../types/DMP';
 import { RESTDataSource } from '@apollo/datasource-rest';
-import { logger, formatLogMessage } from '../../__mocks__/logger';
 import { JWTAccessToken } from '../../services/tokenService';
 import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
 import { DMPHubConfig } from '../../config/dmpHubConfig';
 import casual from 'casual';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import {KeyvAdapter} from "@apollo/utils.keyvadapter";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
@@ -160,8 +160,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.getDMP(context, dmpId);
 
       expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=LATEST`);
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.getDMP Calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `dmphubAPI.getDMP calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
       );
     });
 
@@ -178,8 +178,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.getDMP(context, dmpId, '1234', 'getDMP');
 
       expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=1234`);
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `getDMP Calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `getDMP calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
       );
     });
 
@@ -213,8 +213,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.createDMP(context, dmp);
 
       expect(mockPost).toHaveBeenCalledWith(`dmps`, { body: JSON.stringify({ dmp }) });
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.createDMP Calling DMPHub Create: ${DMPHubConfig.dmpHubURL}/dmps`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `dmphubAPI.createDMP calling DMPHub Create: ${DMPHubConfig.dmpHubURL}/dmps`
       );
     });
 
@@ -242,8 +242,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.updateDMP(context, dmp);
 
       expect(mockPut).toHaveBeenCalledWith(`dmps/${dmpId}`, { body: JSON.stringify({ dmp }) });
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.updateDMP Calling DMPHub Update: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `dmphubAPI.updateDMP calling DMPHub Update: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
       );
     });
 
@@ -271,8 +271,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.tombstoneDMP(context, dmp);
 
       expect(mockDelete).toHaveBeenCalledWith(`dmps/${dmpId}`);
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.tombstoneDMP Calling DMPHub Tombstone: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `dmphubAPI.tombstoneDMP calling DMPHub Tombstone: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
       );
     });
 
@@ -360,9 +360,9 @@ describe('DMPToolAPI', () => {
 
       expect(mockGet).toHaveBeenCalledWith(expectedPath);
       expect(result).toEqual(mockItems);
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        mockItems,
-        `dmphubAPI.getAwards Results from DMPHub getAwards: ${DMPHubConfig.dmpHubURL}/${expectedPath}`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        { items: mockItems },
+        `dmphubAPI.getAwards results from DMPHub getAwards: ${DMPHubConfig.dmpHubURL}/${expectedPath}`
       );
     });
 

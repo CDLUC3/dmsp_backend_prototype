@@ -1,26 +1,26 @@
-import {Resolvers} from "../types";
+import { Resolvers } from "../types";
 import {
   ProjectCollaborator,
   ProjectCollaboratorAccessLevel,
   TemplateCollaborator
 } from "../models/Collaborator";
-import {User} from '../models/User';
-import {MyContext} from "../context";
-import {Template} from "../models/Template";
-import {Project} from "../models/Project";
-import {isAdmin} from "../services/authService";
+import { User } from '../models/User';
+import { MyContext } from "../context";
+import { Template } from "../models/Template";
+import { Project } from "../models/Project";
+import { isAdmin } from "../services/authService";
 import {
   AuthenticationError,
   ForbiddenError,
   InternalServerError,
   NotFoundError
 } from "../utils/graphQLErrors";
-import {hasPermissionOnTemplate} from "../services/templateService";
-import {hasPermissionOnProject} from "../services/projectService";
-import {formatLogMessage} from "../logger";
-import {GraphQLError} from "graphql";
-import {formatISO9075} from "date-fns";
-import {isNullOrUndefined} from "../utils/helpers";
+import { hasPermissionOnTemplate } from "../services/templateService";
+import { hasPermissionOnProject } from "../services/projectService";
+import { prepareObjectForLogs } from "../logger";
+import { GraphQLError } from "graphql";
+import { formatISO9075 } from "date-fns";
+import { isNullOrUndefined } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -47,7 +47,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -69,7 +69,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -112,7 +112,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -149,7 +149,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -187,7 +187,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -230,7 +230,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -259,7 +259,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },

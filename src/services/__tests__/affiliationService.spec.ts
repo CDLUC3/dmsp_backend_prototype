@@ -1,6 +1,6 @@
 import casual from "casual";
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import { Affiliation, AffiliationProvenance, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL } from "../../models/Affiliation";
 import { processOtherAffiliationName } from "../affiliationService";
 import { getCurrentDate } from "../../utils/helpers";

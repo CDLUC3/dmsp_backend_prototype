@@ -1,4 +1,4 @@
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { MyContext } from '../context';
 import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
@@ -139,7 +139,7 @@ export class MySqlModel {
       return results && results.length === 1;
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return false;
     }
   }
@@ -186,7 +186,7 @@ export class MySqlModel {
       return Array.isArray(countResponse) && countResponse.length > 0 ? countResponse?.[0]?.total : 0;
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return 0;
     }
   }
@@ -211,21 +211,21 @@ export class MySqlModel {
       const vals = values.map((entry) => this.prepareValue(entry, typeof (entry)));
 
       try {
-        formatLogMessage(apolloContext).debug(logMessage);
+        apolloContext.logger.debug(logMessage);
         const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
-        const msg = `${reference}, ERROR: ${err.originalError ? err.originalError.message : err.message}`;
-        formatLogMessage(apolloContext).error(err, msg);
+        const msg = `${reference}, ERROR: ${err.message}`;
+        apolloContext.logger.error(prepareObjectForLogs(err), msg);
         return [];
       }
     }
     const errMsg = `${reference}, ERROR: apolloContext and sqlStatement are required.`;
     if (logger) {
-      formatLogMessage(apolloContext).error(errMsg);
+      apolloContext.logger.error(`${errMsg} - ${sqlStatement}`);
     } else {
       // In the event that there was no logger!
-      console.log(errMsg);
+      console.log(`${errMsg} - ${sqlStatement}`);
     }
     return [];
   }
@@ -274,7 +274,7 @@ export class MySqlModel {
       }
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return {
         limit: generalConfig.defaultSearchLimit,
         totalCount: 0,
@@ -341,7 +341,7 @@ export class MySqlModel {
       };
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return {
         limit: generalConfig.defaultSearchLimit,
         currentOffset: null,
@@ -422,7 +422,7 @@ export class MySqlModel {
       };
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return {
         limit: generalConfig.defaultSearchLimit,
         nextCursor: null,

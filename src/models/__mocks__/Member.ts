@@ -140,6 +140,12 @@ export const cleanUpAddedProjectMember = async (
 ) : Promise<void> => {
   const reference = 'cleanUpAddedProjectMember';
   try {
+    // Clean out any associated member roles
+    const roles = await MemberRole.findByProjectMemberId(reference, context, id);
+    for (const role of roles) {
+      await role.removeFromProjectMember(context, id);
+    }
+
     // Do a direct delete on the MySQL model because the tests might be mocking the
     // ProjectMember functions
     await ProjectMember.delete(context, ProjectMember.tableName, id, reference);
@@ -156,6 +162,12 @@ export const cleanUpAddedPlanMember = async (
 ) : Promise<void> => {
   const reference = 'cleanUpAddedPlanMember';
   try {
+    // Clean out any associated member roles
+    const roles = await MemberRole.findByPlanMemberId(reference, context, id);
+    for (const role of roles) {
+      await role.removeFromPlanMember(context, id);
+    }
+
     // Do a direct delete on the MySQL model because the tests might be mocking the
     // ProjectMember functions
     await PlanMember.delete(context, PlanMember.tableName, id, reference);

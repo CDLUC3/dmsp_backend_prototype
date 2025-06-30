@@ -1,6 +1,6 @@
 import casual from "casual";
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import { getMockDMPId, getRandomEnumValue } from "../../__tests__/helpers";
 import {
   DEFAULT_TEMPORARY_DMP_ID_PREFIX,

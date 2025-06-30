@@ -3,7 +3,7 @@ import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType, SortDirection } from "../types/general";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 
 export enum TemplateVersionType {
@@ -104,7 +104,7 @@ export class VersionedTemplateSearchResult {
       reference,
     )
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 

@@ -1,11 +1,11 @@
 import casual from 'casual';
 import { Template, TemplateSearchResult, TemplateVisibility } from "../Template";
-import { logger } from '../../__mocks__/logger';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { TemplateCollaborator } from '../Collaborator';
 import { defaultLanguageId } from '../Language';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { generalConfig } from '../../config/generalConfig';
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 

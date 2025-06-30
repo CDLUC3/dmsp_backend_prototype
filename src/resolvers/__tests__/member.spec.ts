@@ -1,7 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import casual from "casual";
 import { buildContext, MyContext } from "../../context";
-import { logger } from "../../__mocks__/logger";
 import { User, UserRole } from "../../models/User";
 import { Project } from "../../models/Project";
 import { PlanMember, ProjectMember } from '../../models/Member';
@@ -49,6 +48,10 @@ import {
 import { VersionedTemplate } from "../../models/VersionedTemplate";
 import { randomVersionedTemplate } from "../../models/__mocks__/VersionedTemplate";
 
+// Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
+jest.mock('../../logger');
+import { logger as mockLogger } from '../../logger';
+
 jest.mock("../../datasources/dmphubAPI");
 
 let mysqlInstance: MySQLConnection;
@@ -92,7 +95,7 @@ beforeEach(async () => {
   }
 
   // Build out the Apollo context
-  context = buildContext(logger, null, null, mysqlInstance, null);
+  context = buildContext(mockLogger, null, null, mysqlInstance, null);
 
   // Get a random affiliation because a User needs one
   affiliation = await randomAffiliation(context);
@@ -455,6 +458,8 @@ describe('projectMembers', () => {
     }))
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, random', false, false);
+
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with comment level access flow', async () => {
@@ -474,6 +479,7 @@ describe('projectMembers', () => {
     await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with edit level access flow', async () => {
@@ -493,6 +499,7 @@ describe('projectMembers', () => {
     await testAddQueryRemoveAccess(context, 'researcher, editor', true, true);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with owner level access flow', async () => {
@@ -512,6 +519,7 @@ describe('projectMembers', () => {
     await testAddQueryRemoveAccess(context, 'researcher, owner', true, true);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('returns the member with errors if it is a duplicate', async () => {
@@ -907,6 +915,8 @@ describe('planMembers', () => {
     }))
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, random', false, false);
+
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with comment level access flow', async () => {
@@ -926,6 +936,7 @@ describe('planMembers', () => {
     await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with edit level access flow', async () => {
@@ -945,6 +956,7 @@ describe('planMembers', () => {
     await testAddQueryRemoveAccess(context, 'researcher, editor', true, true);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with owner level access flow', async () => {
@@ -964,6 +976,7 @@ describe('planMembers', () => {
     await testAddQueryRemoveAccess(context, 'researcher, owner', true, true);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('returns the member with errors if it is a duplicate', async () => {

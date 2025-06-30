@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { User } from '../models/User';
 import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
 import { generalConfig } from '../config/generalConfig';
@@ -64,7 +64,7 @@ export const signupController = async (req: Request, res: Response) => {
       res.status(500).json({ success: false, message: 'Unable to register the account.' });
     }
   } catch (err) {
-    formatLogMessage(context)?.error({ err, user }, 'Signup error');
+    context.logger.error(prepareObjectForLogs(err), 'Sign up error');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

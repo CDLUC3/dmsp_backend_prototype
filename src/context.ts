@@ -3,8 +3,10 @@ import { DMPHubAPI } from './datasources/dmphubAPI'
 import { MySQLConnection } from './datasources/mysql';
 import { JWTAccessToken } from './services/tokenService';
 import { randomHex } from './utils/helpers';
-import {BaseContext} from "@apollo/server";
-import {KeyvAdapter} from "@apollo/utils.keyvadapter";
+import { BaseContext } from "@apollo/server";
+import { KeyvAdapter } from "@apollo/utils.keyvadapter";
+import { initLogger } from "./logger";
+import { generalConfig } from "./config/generalConfig";
 
 // The Apollo Server Context object passed in to the Resolver on each request
 export interface MyContext extends BaseContext {
@@ -26,7 +28,7 @@ export interface MyContext extends BaseContext {
 // This function should only be used when the caller is running a query from outside the
 // Apollo Server GraphQL context. e.g. when calling signup or register
 export function buildContext(
-  logger: Logger,
+  logger: Logger | null = null,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cache: any | null = null,
   token: JWTAccessToken | null = null,
@@ -39,11 +41,23 @@ export function buildContext(
   }
 
   try {
+    const requestId: string = randomHex(32);
+    const requestLogger: Logger = initLogger(
+      logger,                                 // Base logger
+      {
+        app: generalConfig.applicationName,   // Help identify entries for this application
+        env: generalConfig.env,               // The current environment (not necessarily the Node env)
+        requestId,                            // Unique id for the incoming GraphQL request
+        jti: token?.jti,                      // The id of the JWT
+        userId: token?.id,                    // The current user's id
+      }
+    );
+
     return {
       cache,
       token,
-      logger,
-      requestId: randomHex(32),
+      logger: requestLogger,
+      requestId,
       dataSources: {
         dmphubAPIDataSource: dmphubAPIDataSource,
         sqlDataSource: sqlDataSource,

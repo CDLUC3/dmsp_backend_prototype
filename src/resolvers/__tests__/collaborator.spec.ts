@@ -1,7 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import casual from "casual";
 import { buildContext, MyContext } from "../../context";
-import { logger } from "../../__mocks__/logger";
 import { User, UserRole } from "../../models/User";
 import { Project } from "../../models/Project";
 import {
@@ -43,6 +42,10 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from "../../services/emailService";
 
+// Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
+jest.mock('../../logger');
+import { logger as mockLogger } from '../../logger';
+
 jest.mock("../../datasources/dmphubAPI");
 jest.mock("../../services/emailService");
 
@@ -73,7 +76,7 @@ beforeEach(async () => {
   }
 
   // Build out the Apollo context
-  context = buildContext(logger, null, null, mysqlInstance, null);
+  context = buildContext(mockLogger, null, null, mysqlInstance, null);
 
   // Get a random affiliation because a User needs one
   affiliation = await randomAffiliation(context);
@@ -329,6 +332,7 @@ describe('templateCollaborators', () => {
     await testAddQueryRemoveAccess(context, 'researcher, random', true, true);
 
     await cleanUpAddedTemplateCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, admin.id);
 
     // Emailer should have been called for existingCollaborator, this collaborator and one we added
     expect(emailer).toHaveBeenCalledTimes(3);
@@ -681,6 +685,8 @@ describe('projectCollaborators', () => {
 
     // Generating the existingCollaborator caused the emailer to fire once
     expect(emailer).toHaveBeenCalledTimes(1);
+
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with comment level access flow', async () => {
@@ -703,6 +709,7 @@ describe('projectCollaborators', () => {
     expect(emailer).toHaveBeenCalledTimes(2);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with edit level access flow', async () => {
@@ -725,6 +732,7 @@ describe('projectCollaborators', () => {
     expect(emailer).toHaveBeenCalledTimes(3);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with owner level access flow', async () => {
@@ -747,6 +755,7 @@ describe('projectCollaborators', () => {
     expect(emailer).toHaveBeenCalledTimes(3);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('returns the collaborator with errors if it is a duplicate', async () => {

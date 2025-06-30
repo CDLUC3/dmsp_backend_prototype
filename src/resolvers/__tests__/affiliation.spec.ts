@@ -1,10 +1,9 @@
 import casual from "casual";
 import {ApolloServer} from "@apollo/server";
 import assert from "assert";
-import {buildContext, MyContext} from "../../context";
-import {logger} from "../../__mocks__/logger";
-import {JWTAccessToken} from "../../services/tokenService";
-import {User, UserRole} from "../../models/User";
+import { buildContext, MyContext } from "../../context";
+import { JWTAccessToken } from "../../services/tokenService";
+import { User, UserRole } from "../../models/User";
 import {
   Affiliation,
   AffiliationProvenance,
@@ -28,6 +27,10 @@ import { cleanUpAddedUser, mockUser, persistUser } from "../../models/__mocks__/
 import {MySQLConnection} from "../../datasources/mysql";
 import {getRandomEnumValue} from "../../__tests__/helpers";
 import {formatISO9075} from "date-fns";
+
+// Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
+jest.mock('../../logger');
+import { logger as mockLogger } from '../../logger';
 
 jest.mock("../../datasources/dmphubAPI");
 
@@ -58,7 +61,7 @@ beforeEach(async () => {
   }
 
   // Build out the Apollo context
-  context = buildContext(logger, null, null, mysqlInstance, null);
+  context = buildContext(mockLogger, null, null, mysqlInstance, null);
 
   // Get a random affiliation because a User needs one
   const initialAffiliation = await randomAffiliation(context);

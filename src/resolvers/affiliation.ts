@@ -1,5 +1,5 @@
-import {AffiliationSearchResults, Resolvers} from "../types";
-import {MyContext} from '../context';
+import { AffiliationSearchResults, Resolvers } from "../types";
+import { MyContext } from '../context';
 import {
   Affiliation,
   AffiliationProvenance,
@@ -7,22 +7,22 @@ import {
   AffiliationType,
   PopularFunder
 } from '../models/Affiliation';
-import {isAdmin, isSuperAdmin} from "../services/authService";
+import { isAdmin, isSuperAdmin } from "../services/authService";
 import {
   AuthenticationError,
   ForbiddenError,
   InternalServerError,
   NotFoundError
 } from "../utils/graphQLErrors";
-import {formatLogMessage} from "../logger";
-import {GraphQLError} from "graphql";
+import { prepareObjectForLogs } from "../logger";
+import { GraphQLError } from "graphql";
 import {
   PaginationOptionsForCursors,
   PaginationOptionsForOffsets,
   PaginationType
 } from "../types/general";
-import {isNullOrUndefined} from "../utils/helpers";
-import {formatISO9075} from "date-fns";
+import { isNullOrUndefined } from "../utils/helpers";
+import { formatISO9075 } from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -41,7 +41,7 @@ export const resolvers: Resolvers = {
 
         return await AffiliationSearch.search(reference, context, name, funderOnly, opts);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -52,7 +52,7 @@ export const resolvers: Resolvers = {
       try {
         return await Affiliation.findById(reference, context, affiliationId);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -63,7 +63,7 @@ export const resolvers: Resolvers = {
       try {
         return await Affiliation.findByURI(reference, context, uri);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -74,7 +74,7 @@ export const resolvers: Resolvers = {
       try {
         return await PopularFunder.top20(context);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     }
@@ -100,7 +100,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -132,7 +132,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -159,7 +159,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },

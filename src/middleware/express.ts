@@ -3,10 +3,9 @@ import { JWTAccessToken } from '../services/tokenService';
 import { buildContext } from '../context';
 import { ApolloServer } from '@apollo/server';
 import { Request } from 'express-jwt';
-import { formatLogMessage } from '../logger';
-import {Logger} from "pino";
-import {MySQLConnection} from "../datasources/mysql";
-import {DMPHubAPI} from "../datasources/dmphubAPI";
+import { Logger } from "pino";
+import { MySQLConnection } from "../datasources/mysql";
+import { DMPHubAPI } from "../datasources/dmphubAPI";
 
 export async function attachApolloServer(
   apolloServer: ApolloServer,
@@ -23,7 +22,7 @@ export async function attachApolloServer(
     sqlDataSource,
     dmphubAPIDataSource
   );
-  formatLogMessage(context).info(null, 'Attaching Apollo server');
+  context.logger.info(null, 'Attaching Apollo server');
 
   // expressMiddleware accepts the same arguments:
   //   an Apollo Server instance and optional configuration options

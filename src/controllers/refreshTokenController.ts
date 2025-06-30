@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { Request } from 'express-jwt';
 import { refreshAccessToken, setTokenCookie } from '../services/tokenService';
 import { buildContext } from '../context';
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 
 export const refreshTokenController = async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.dmspr?.toString();
@@ -30,7 +30,7 @@ export const refreshTokenController = async (req: Request, res: Response) => {
         res.status(401).json({ success: false, message: 'Refresh token has expired' });
       }
     } catch (err) {
-      formatLogMessage(context)?.error(err, 'refreshTokenController error');
+      context.logger.error(prepareObjectForLogs(err), 'refreshTokenController error');
       res.status(401).json({ success: false, message: 'Server error: unable to refresh tokens at this time' });
     }
   } else {

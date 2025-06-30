@@ -2,7 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { QuestionType } from "../models/QuestionType";
 import { InternalServerError } from "../utils/graphQLErrors";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { QuestionTypeInterface } from "../types/template";
 
 export const resolvers: Resolvers = {
@@ -14,7 +14,7 @@ export const resolvers: Resolvers = {
         const types = await QuestionType.findAll(reference, context);
         return types.map((typ) => { return { ...typ, json: JSON.stringify(typ.json) }; });
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },

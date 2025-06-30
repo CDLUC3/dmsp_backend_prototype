@@ -1,7 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import casual from "casual";
 import { buildContext, MyContext } from "../../context";
-import { logger } from "../../__mocks__/logger";
 import { User, UserRole } from "../../models/User";
 import { Project } from "../../models/Project";
 import {
@@ -54,6 +53,10 @@ import {
 import { VersionedTemplate } from "../../models/VersionedTemplate";
 import { randomVersionedTemplate } from "../../models/__mocks__/VersionedTemplate";
 
+// Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
+jest.mock('../../logger');
+import { logger as mockLogger } from '../../logger';
+
 jest.mock("../../datasources/dmphubAPI");
 
 let mysqlInstance: MySQLConnection;
@@ -83,7 +86,7 @@ beforeEach(async () => {
   }
 
   // Build out the Apollo context
-  context = buildContext(logger, null, null, mysqlInstance, null);
+  context = buildContext(mockLogger, null, null, mysqlInstance, null);
 
   // Get a random affiliation because a User needs one
   affiliation = await randomAffiliation(context);
@@ -412,6 +415,8 @@ describe('projectFundings', () => {
     }))
     context.token = mockToken(researcher);
     await testAddUpdateRemoveAccess(context, 'researcher, random', false, false);
+
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with comment level access flow', async () => {
@@ -431,6 +436,7 @@ describe('projectFundings', () => {
     await testAddUpdateRemoveAccess(context, 'researcher, commenter', true, false);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with edit level access flow', async () => {
@@ -450,6 +456,7 @@ describe('projectFundings', () => {
     await testAddUpdateRemoveAccess(context, 'researcher, editor', true, true);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with owner level access flow', async () => {
@@ -469,6 +476,7 @@ describe('projectFundings', () => {
     await testAddUpdateRemoveAccess(context, 'researcher, owner', true, true);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('returns the Funding with errors if it is a duplicate', async () => {

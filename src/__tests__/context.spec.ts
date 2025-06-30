@@ -4,12 +4,12 @@ import { MockCache, mockDataSources } from '../__mocks__/context';
 // For some reason esLint is reporting this isn't used, but it used below
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { randomHex } from '../utils/helpers';
-import {MySQLConnection} from "../datasources/mysql";
+import { MySQLConnection } from "../datasources/mysql";
+import { logger } from '../logger';
 
 // Mock dependencies
 jest.mock('../datasources/dmpHubAPI');
 jest.mock('../datasources/mysql');
-jest.mock('../logger');
 
 describe('buildContext', () => {
   let loggerMock;
@@ -18,10 +18,11 @@ describe('buildContext', () => {
   let dataSourcesMock: { sqlDataSource: MySQLConnection, dmphubAPIDataSource: DMPHubAPI };
 
   beforeEach(() => {
-    loggerMock = {
-      error: jest.fn(),
-      info: jest.fn(),
-    };
+    // loggerMock = {
+    //   error: jest.fn(),
+    //   info: jest.fn(),
+    // };
+    loggerMock = logger;
     cacheMock = MockCache.getInstance();
     tokenMock = { accessToken: 'test-token' };
     dataSourcesMock = mockDataSources
@@ -42,7 +43,7 @@ describe('buildContext', () => {
     expect(context.cache).toEqual(cacheMock.adapter);
     expect(context.requestId).toBeTruthy();
     expect(context.token).toBe(tokenMock);
-    expect(context.logger).toEqual(loggerMock);
+    expect(context.logger.debug).toBeDefined();
     expect(context.dataSources.dmphubAPIDataSource).toEqual(dataSourcesMock.dmphubAPIDataSource);
     expect(context.dataSources.sqlDataSource).toEqual(dataSourcesMock.sqlDataSource);
   });
@@ -59,7 +60,7 @@ describe('buildContext', () => {
     expect(context.cache).toBeTruthy();
     expect(context.requestId).toBeTruthy();
     expect(context.token).toBe(tokenMock);
-    expect(context.logger).toEqual(loggerMock);
+    expect(context.logger.error).toBeDefined();
     expect(context.dataSources.dmphubAPIDataSource).toEqual(dataSourcesMock.dmphubAPIDataSource);
     expect(context.dataSources.sqlDataSource).toEqual(dataSourcesMock.sqlDataSource);
     expect(context.cache).toEqual({ skipCache: true });
@@ -77,7 +78,7 @@ describe('buildContext', () => {
     expect(context.cache).toEqual(cacheMock);
     expect(context.requestId).toBeTruthy();
     expect(context.token).toBe(null);
-    expect(context.logger).toEqual(loggerMock);
+    expect(context.logger.info).toBeDefined();
     expect(context.dataSources.dmphubAPIDataSource).toEqual(dataSourcesMock.dmphubAPIDataSource);
     expect(context.dataSources.sqlDataSource).toEqual(dataSourcesMock.sqlDataSource);
   });
