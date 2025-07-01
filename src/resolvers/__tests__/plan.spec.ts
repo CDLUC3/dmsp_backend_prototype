@@ -43,7 +43,7 @@ import {
 import { ProjectCollaboratorAccessLevel } from "../../models/Collaborator";
 import { Plan, PlanStatus, PlanVisibility } from "../../models/Plan";
 import {
-  cleanUpAddedPlan,
+  cleanUpAddedPlan, cleanUpAddedPlans,
   mockPlan,
   persistPlan
 } from "../../models/__mocks__/Plan";
@@ -67,6 +67,7 @@ import {
 // Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
 jest.mock('../../logger');
 import { logger as mockLogger } from '../../logger';
+import {isNullOrUndefined} from "../../utils/helpers";
 
 jest.mock("../../datasources/dmphubAPI");
 
@@ -530,7 +531,9 @@ describe('plan', () => {
     for (const planFunding of existingPlanFundings) {
       await cleanUpAddedPlanFunding(context, planFunding.id);
     }
-    await cleanUpAddedPlan(context, existingPlan.id);
+    if (!isNullOrUndefined(existingPlan?.id)) {
+      await cleanUpAddedPlan(context, existingPlan.id);
+    }
 
     // Clean up the project and its associated entities
     for (const member of existingProjectMembers) {
@@ -547,11 +550,17 @@ describe('plan', () => {
   it('Super Admin flow', async () => {
     context.token = mockToken(superAdmin);
     await testAddQueryRemoveAccess(context, 'SuperAdmin', true, true, true);
+
+    // Clean up the plan because we are only archiving it in the test
+    await cleanUpAddedPlans(context, project.id);
   });
 
   it('Admin of same affiliation flow', async () => {
     context.token = mockToken(sameAffiliationAdmin);
     await testAddQueryRemoveAccess(context, 'Admin, same affiliation', true, true, true);
+
+    // Clean up the plan because we are only archiving it in the test
+    await cleanUpAddedPlans(context, project.id);
   });
 
   it('Admin of other affiliation flow', async () => {
@@ -562,6 +571,9 @@ describe('plan', () => {
   it('Project creator flow', async () => {
     context.token = mockToken(creator);
     await testAddQueryRemoveAccess(context, 'creator', true, true, true);
+
+    // Clean up the plan because we are only archiving it in the test
+    await cleanUpAddedPlans(context, project.id);
   });
 
   it('Research who is not the creator or a collaborator flow (private plan)', async () => {
@@ -612,6 +624,8 @@ describe('plan', () => {
     await testAddQueryRemoveAccess(context, 'researcher, editor', true, true, false);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    // Clean up the plan because we are only archiving it in the test
+    await cleanUpAddedPlans(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -632,6 +646,8 @@ describe('plan', () => {
     await testAddQueryRemoveAccess(context, 'researcher, owner', true, true, true);
 
     await cleanUpAddedProjectCollaborator(context, collab.id);
+    // Clean up the plan because we are only archiving it in the test
+    await cleanUpAddedPlans(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 

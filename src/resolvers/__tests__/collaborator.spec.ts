@@ -29,9 +29,13 @@ import {
 import { Affiliation } from "../../models/Affiliation";
 import assert from "assert";
 import {
-  cleanUpAddedProjectCollaborator, cleanUpAddedTemplateCollaborator,
-  mockProjectCollaborator, mockTemplateCollaborator,
-  persistProjectCollaborator, persistTemplateCollaborator
+  cleanUpAddedProjectCollaborator,
+  cleanUpAddedProjectCollaborators,
+  cleanUpAddedTemplateCollaborator,
+  mockProjectCollaborator,
+  mockTemplateCollaborator,
+  persistProjectCollaborator,
+  persistTemplateCollaborator
 } from "../../models/__mocks__/Collaborator";
 import {Template} from "../../models/Template";
 import {
@@ -694,7 +698,7 @@ describe('projectCollaborators', () => {
       affiliationId: otherAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -708,16 +712,16 @@ describe('projectCollaborators', () => {
     // Generating the existingCollaborator and the commenter caused the emailer to fire twice
     expect(emailer).toHaveBeenCalledTimes(2);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
-  it('Research with edit level access flow', async () => {
+  it('Researcher with edit level access flow', async () => {
     const researcher = await persistUser(context, mockUser({
       affiliationId: otherAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -731,16 +735,16 @@ describe('projectCollaborators', () => {
     // Should have emailed for the existingCollaborator the editor and the one being added
     expect(emailer).toHaveBeenCalledTimes(3);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
-  it('Research with owner level access flow', async () => {
+  it('Researcher with owner level access flow', async () => {
     const researcher = await persistUser(context, mockUser({
       affiliationId: otherAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -754,7 +758,7 @@ describe('projectCollaborators', () => {
     // Should have emailed for the existingCollaborator the owner and the one being added
     expect(emailer).toHaveBeenCalledTimes(3);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 

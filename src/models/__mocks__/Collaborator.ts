@@ -143,7 +143,7 @@ export const cleanUpAddedTemplateCollaborator = async (
   }
 }
 
-// Clean up all mock/test ProjectCollaborator
+// Clean up the mock/test ProjectCollaborator
 export const cleanUpAddedProjectCollaborator = async (
   context: MyContext,
   id?: number,
@@ -155,6 +155,23 @@ export const cleanUpAddedProjectCollaborator = async (
     await ProjectCollaborator.delete(context, ProjectCollaborator.tableName, id, reference);
   } catch (e) {
     console.error(`Error cleaning up project collaborator id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+  }
+}
+
+// Clean up all mock/test ProjectCollaborators for the given project
+export const cleanUpAddedProjectCollaborators = async (
+  context: MyContext,
+  projectId: number,
+): Promise<void> => {
+  const reference = 'cleanUpAddedProjectCollaborators';
+  try {
+    const collabs = await ProjectCollaborator.findByProjectId(reference, context, projectId);
+    for (const collab of collabs) {
+      await ProjectCollaborator.delete(context, ProjectCollaborator.tableName, collab.id, reference);
+    }
+  } catch (e) {
+    console.error(`Error cleaning up project collaborators for project ${projectId}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
   }
 }

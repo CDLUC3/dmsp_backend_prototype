@@ -26,14 +26,14 @@ import {
 import { Affiliation } from "../../models/Affiliation";
 import assert from "assert";
 import {
-  cleanUpAddedPlanMember,
-  cleanUpAddedProjectMember,
+  cleanUpAddedPlanMember, cleanUpAddedPlanMembers,
+  cleanUpAddedProjectMember, cleanUpAddedProjectMembers,
   mockPlanMember,
   mockProjectMember, persistPlanMember, persistProjectMember,
 } from "../../models/__mocks__/Member";
 import {getMockORCID} from "../../__tests__/helpers";
 import {
-  cleanUpAddedProjectCollaborator,
+  cleanUpAddedProjectCollaborators,
   mockProjectCollaborator,
   persistProjectCollaborator
 } from "../../models/__mocks__/Collaborator";
@@ -467,7 +467,7 @@ describe('projectMembers', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -478,7 +478,8 @@ describe('projectMembers', () => {
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedProjectMembers(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -487,7 +488,7 @@ describe('projectMembers', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -498,7 +499,8 @@ describe('projectMembers', () => {
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, editor', true, true);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedProjectMembers(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -507,7 +509,7 @@ describe('projectMembers', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -518,7 +520,8 @@ describe('projectMembers', () => {
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, owner', true, true);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedProjectMembers(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -924,7 +927,7 @@ describe('planMembers', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -935,7 +938,8 @@ describe('planMembers', () => {
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedPlanMembers(context, plan.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -944,7 +948,7 @@ describe('planMembers', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -955,7 +959,8 @@ describe('planMembers', () => {
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, editor', true, true);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedPlanMembers(context, plan.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -964,7 +969,7 @@ describe('planMembers', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -975,7 +980,8 @@ describe('planMembers', () => {
     context.token = mockToken(researcher);
     await testAddQueryRemoveAccess(context, 'researcher, owner', true, true);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedPlanMembers(context, plan.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 

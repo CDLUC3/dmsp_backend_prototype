@@ -32,14 +32,14 @@ import {
 import { Affiliation } from "../../models/Affiliation";
 import assert from "assert";
 import {
-  cleanUpAddedPlanFunding,
-  cleanUpAddedProjectFunding,
+  cleanUpAddedPlanFunding, cleanUpAddedPlanFundings,
+  cleanUpAddedProjectFunding, cleanUpAddedProjectFundings,
   mockPlanFunding,
   mockProjectFunding, persistPlanFunding, persistProjectFunding,
 } from "../../models/__mocks__/Funding";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import {
-  cleanUpAddedProjectCollaborator,
+  cleanUpAddedProjectCollaborators,
   mockProjectCollaborator,
   persistProjectCollaborator
 } from "../../models/__mocks__/Collaborator";
@@ -424,7 +424,7 @@ describe('projectFundings', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -435,7 +435,8 @@ describe('projectFundings', () => {
     context.token = mockToken(researcher);
     await testAddUpdateRemoveAccess(context, 'researcher, commenter', true, false);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedProjectFundings(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -444,7 +445,7 @@ describe('projectFundings', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -455,7 +456,8 @@ describe('projectFundings', () => {
     context.token = mockToken(researcher);
     await testAddUpdateRemoveAccess(context, 'researcher, editor', true, true);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedProjectFundings(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -464,7 +466,7 @@ describe('projectFundings', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -475,7 +477,8 @@ describe('projectFundings', () => {
     context.token = mockToken(researcher);
     await testAddUpdateRemoveAccess(context, 'researcher, owner', true, true);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedProjectFundings(context, project.id);
     await cleanUpAddedUser(context, researcher.id);
   });
 
@@ -796,6 +799,7 @@ describe('planFundings', () => {
     }))
     context.token = mockToken(researcher);
     await testAccess(context, 'researcher, random', false, false);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with comment level access flow', async () => {
@@ -803,7 +807,7 @@ describe('planFundings', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -814,7 +818,9 @@ describe('planFundings', () => {
     context.token = mockToken(researcher);
     await testAccess(context, 'researcher, commenter', true, false);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedPlanFundings(context, plan.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with edit level access flow', async () => {
@@ -822,7 +828,7 @@ describe('planFundings', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -833,7 +839,9 @@ describe('planFundings', () => {
     context.token = mockToken(researcher);
     await testAccess(context, 'researcher, editor', true, true);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedPlanFundings(context, plan.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('Research with owner level access flow', async () => {
@@ -841,7 +849,7 @@ describe('planFundings', () => {
       affiliationId: sameAffiliationAdmin.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       context,
       mockProjectCollaborator({
         projectId: project.id,
@@ -852,7 +860,9 @@ describe('planFundings', () => {
     context.token = mockToken(researcher);
     await testAccess(context, 'researcher, owner', true, true);
 
-    await cleanUpAddedProjectCollaborator(context, collab.id);
+    await cleanUpAddedProjectCollaborators(context, project.id);
+    await cleanUpAddedPlanFundings(context, plan.id);
+    await cleanUpAddedUser(context, researcher.id);
   });
 
   it('returns the Funding with errors if it is a duplicate', async () => {

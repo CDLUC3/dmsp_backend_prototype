@@ -133,7 +133,7 @@ export const persistPlanMember = async (
   }
 }
 
-// Clean up all mock/test ProjectMember
+// Clean up a mock/test ProjectMember
 export const cleanUpAddedProjectMember = async (
   context: MyContext,
   id?: number,
@@ -155,7 +155,24 @@ export const cleanUpAddedProjectMember = async (
   }
 }
 
-// Clean up all mock/test PlanMember
+// Clean up all mock/test ProjectMembers for the specified project
+export const cleanUpAddedProjectMembers = async (
+  context: MyContext,
+  projectId?: number,
+): Promise<void> => {
+  const reference = 'cleanUpAddedProjectMembers';
+  try {
+    const members = await ProjectMember.findByProjectId(reference, context, projectId);
+    for (const member of members) {
+      await cleanUpAddedProjectMember(context, member.id);
+    }
+  } catch (error) {
+    console.error(`Error cleaning up project members ${projectId}`);
+    if (error.originalError) console.log(error.originalError);
+  }
+}
+
+// Clean up a mock/test PlanMember
 export const cleanUpAddedPlanMember = async (
   context: MyContext,
   id?: number,
@@ -174,5 +191,22 @@ export const cleanUpAddedPlanMember = async (
   } catch (e) {
     console.error(`Error cleaning up plan member id ${id}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
+  }
+}
+
+// Clean up all mock/test PlanMembers for the specified project
+export const cleanUpAddedPlanMembers = async (
+  context: MyContext,
+  planId?: number,
+): Promise<void> => {
+  const reference = 'cleanUpAddedPlanMembers';
+  try {
+    const members = await PlanMember.findByPlanId(reference, context, planId);
+    for (const member of members) {
+      await cleanUpAddedPlanMember(context, member.id);
+    }
+  } catch (error) {
+    console.error(`Error cleaning up plan members ${planId}`);
+    if (error.originalError) console.log(error.originalError);
   }
 }

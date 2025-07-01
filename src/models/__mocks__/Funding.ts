@@ -104,6 +104,23 @@ export const cleanUpAddedProjectFunding = async (
   }
 }
 
+// Clean up all the mock/test Funding for the specified project
+export const cleanUpAddedProjectFundings = async (
+  context: MyContext,
+  projectId: number
+): Promise<void> => {
+  const reference = 'cleanUpAddedProjectFundings';
+  try {
+    const fundings = await ProjectFunding.findByProjectId(reference, context, projectId);
+    for (const funding of fundings) {
+      await ProjectFunding.delete(context, ProjectFunding.tableName, funding.id, reference);
+    }
+  } catch (e) {
+    console.error(`Error cleaning up funding for project ${projectId}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+  }
+}
+
 // Clean up all mock/test PlanFunding
 export const cleanUpAddedPlanFunding = async (
   context: MyContext,
@@ -116,6 +133,23 @@ export const cleanUpAddedPlanFunding = async (
     await PlanFunding.delete(context, PlanFunding.tableName, id, reference);
   } catch (e) {
     console.error(`Error cleaning up plan funding id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+  }
+}
+
+// Clean up all the mock/test Funding for the specified plan
+export const cleanUpAddedPlanFundings = async (
+  context: MyContext,
+  planId: number
+): Promise<void> => {
+  const reference = 'cleanUpAddedProjectFundings';
+  try {
+    const fundings = await PlanFunding.findByPlanId(reference, context, planId);
+    for (const funding of fundings) {
+      await PlanFunding.delete(context, PlanFunding.tableName, funding.id, reference);
+    }
+  } catch (e) {
+    console.error(`Error cleaning up funding for plan ${planId}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
   }
 }

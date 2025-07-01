@@ -3,7 +3,7 @@ import casual from "casual";
 import { isNullOrUndefined } from "../../utils/helpers";
 import { getMockDMPId, getRandomEnumValue } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
-import { Plan, PlanStatus, PlanVisibility } from "../Plan";
+import {Plan, PlanStatus, PlanVisibility} from "../Plan";
 import { supportedLanguages } from "../Language";
 import { deleteDMP } from "../../datasources/dynamo";
 
@@ -68,14 +68,34 @@ export const cleanUpAddedPlan = async (
     // Fetch the Plan from the DB
     const plan = await Plan.findById(reference, context, id);
 
-    // Do a direct delete on the MySQL model because the tests might be mocking the
-    // Plan functions
-    await Plan.delete(context, Plan.tableName, plan.id, reference);
+    if (!isNullOrUndefined(plan)) {
+      // Do a direct delete on the MySQL model because the tests might be mocking the
+      // Plan functions
+      await Plan.delete(context, Plan.tableName, plan.id, reference);
 
-    // Delete any Dynamo version records that were persisted
-    await deleteDMP(context, plan.dmpId);
+      // Delete any Dynamo version records that were persisted
+      await deleteDMP(context, plan.dmpId);
+    }
   } catch (e) {
     console.error(`Error cleaning up plan id ${id}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+  }
+}
+
+// Clean up all mock/test Plans for the project
+export const cleanUpAddedPlans = async (
+  context: MyContext,
+  projectId?: number,
+) : Promise<void> => {
+  const reference = 'cleanUpAddedPlans';
+  try {
+    // Fetch the Plan from the DB
+    const plans = await Plan.findByProjectId(reference, context, projectId);
+    for (const plan of plans) {
+      await cleanUpAddedPlan(context, plan.id);
+    }
+  } catch (e) {
+    console.error(`Error cleaning up plans for project id ${projectId}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
   }
 }
