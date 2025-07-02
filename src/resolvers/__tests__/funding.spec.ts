@@ -766,6 +766,7 @@ describe('planFundings', () => {
     // Clean up the project, plan, user and Funding records we generated
     await cleanUpAddedPlanFunding(context, existingFunding.id);
     await cleanUpAddedProjectFunding(context, existingProjectFunding.id);
+    await cleanUpAddedPlanFundings(context, plan.id);
     await cleanUpAddedPlan(context, plan.id);
     await cleanUpAddedProject(context, project.id);
     await cleanUpAddedAffiliation(context, otherFunder.id);
