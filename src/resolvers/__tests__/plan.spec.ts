@@ -1,34 +1,23 @@
-import { ApolloServer } from "@apollo/server";
 import casual from "casual";
-import { buildContext, MyContext } from "../../context";
 import { User, UserRole } from "../../models/User";
 import { Project } from "../../models/Project";
 import { PlanMember, ProjectMember } from '../../models/Member';
-import { MySQLConnection } from "../../datasources/mysql";
 import {
+  addTableForTeardown,
   executeQuery,
-  initErrorMessage,
-  initTestServer,
+  generateFullTemplate,
+  generateFullVersionedTemplate,
+  initResolverTest,
   mockToken,
+  ResolverTest,
+  teardownResolverTest,
   testNotFound,
   testStandardErrors,
 } from "./resolverTestHelper";
-import { randomAffiliation } from "../../models/__mocks__/Affiliation";
-import {
-  cleanUpAddedUser,
-  mockUser,
-  persistUser,
-} from "../../models/__mocks__/User";
-import {
-  cleanUpAddedProject,
-  mockProject,
-  persistProject
-} from "../../models/__mocks__/Project";
-import { Affiliation } from "../../models/Affiliation";
+import { mockUser, persistUser } from "../../models/__mocks__/User";
+import { mockProject, persistProject } from "../../models/__mocks__/Project";
 import assert from "assert";
 import {
-  cleanUpAddedPlanMember,
-  cleanUpAddedProjectMember,
   mockPlanMember,
   mockProjectMember,
   persistPlanMember,
@@ -36,135 +25,58 @@ import {
 } from "../../models/__mocks__/Member";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import {
-  cleanUpAddedProjectCollaborator,
   mockProjectCollaborator,
   persistProjectCollaborator
 } from "../../models/__mocks__/Collaborator";
-import { ProjectCollaboratorAccessLevel } from "../../models/Collaborator";
+import { ProjectCollaborator, ProjectCollaboratorAccessLevel } from "../../models/Collaborator";
 import { Plan, PlanStatus, PlanVisibility } from "../../models/Plan";
-import {
-  cleanUpAddedPlan, cleanUpAddedPlans,
-  mockPlan,
-  persistPlan
-} from "../../models/__mocks__/Plan";
-import { VersionedTemplate } from "../../models/VersionedTemplate";
-import {
-  randomVersionedTemplate
-} from "../../models/__mocks__/VersionedTemplate";
+import { mockPlan, persistPlan } from "../../models/__mocks__/Plan";
+import { TemplateVersionType, VersionedTemplate } from "../../models/VersionedTemplate";
 import { defaultLanguageId } from "../../models/Language";
 import { PlanFunding, ProjectFunding } from "../../models/Funding";
-import { VersionedSection } from "../../models/VersionedSection";
-import { VersionedQuestion } from "../../models/VersionedQuestion";
 import {
-  cleanUpAddedPlanFunding,
-  cleanUpAddedProjectFunding,
   mockPlanFunding,
   mockProjectFunding,
   persistPlanFunding,
   persistProjectFunding
 } from "../../models/__mocks__/Funding";
+import { TemplateVisibility } from "../../models/Template";
+import { VersionedSection } from "../../models/VersionedSection";
+import { VersionedQuestion } from "../../models/VersionedQuestion";
+import {
+  mockMemberRole,
+  persistMemberRole
+} from "../../models/__mocks__/MemberRole";
+import {MemberRole} from "../../models/MemberRole";
 
 // Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
 jest.mock('../../logger');
-import { logger as mockLogger } from '../../logger';
-import {isNullOrUndefined} from "../../utils/helpers";
 
 jest.mock("../../datasources/dmphubAPI");
 
-let mysqlInstance: MySQLConnection;
-let testServer: ApolloServer;
-let context: MyContext;
-
-let affiliation: Affiliation;
-let sameAffiliationAdmin: User;
-let otherAffiliationAdmin: User;
-let superAdmin: User;
+let resolverTest: ResolverTest;
 
 beforeEach(async () => {
   jest.clearAllMocks();
 
-  try {
-    // Initialize the mysql connection pool
-    mysqlInstance = new MySQLConnection();
-    // Ensure the pool has finished initializing
-    await mysqlInstance.initPromise;
-
-    // Initialize the Apollo server
-    testServer = initTestServer();
-    await testServer.start();
-  } catch (err) {
-    console.error(initErrorMessage, err);
-    process.exit(1);
-  }
-
-  // Build out the Apollo context
-  context = buildContext(mockLogger, null, null, mysqlInstance, null);
-
-  // Get a random affiliation because a User needs one
-  affiliation = await randomAffiliation(context);
-
-  // Generate the test admin users
-  sameAffiliationAdmin = await persistUser(
-    context,
-    mockUser({
-      affiliationId: affiliation.uri,
-      role: UserRole.ADMIN
-    })
-  );
-  otherAffiliationAdmin = await persistUser(
-    context,
-    mockUser({
-      affiliationId: 'https://test.example.com',
-      role: UserRole.ADMIN
-    })
-  );
-  superAdmin = await persistUser(
-    context,
-    mockUser({
-      role: UserRole.SUPERADMIN
-    })
-  );
+  // Start up the Apollo server and initialize some test Affiliations and Users
+  //
+  // Be sure to add the table names of any objects you persist in your tests to
+  // the resolverTest.tablesToCleanUp list. The teardownResolverTest will purge
+  // any persisted records for you.
+  resolverTest = await initResolverTest();
 });
 
 afterEach(async () => {
   jest.resetAllMocks();
 
-  try {
-    // Delete all the DB records that were persisted during the tests
-    await cleanUpAddedUser(context, sameAffiliationAdmin.id);
-    await cleanUpAddedUser(context, otherAffiliationAdmin.id);
-    await cleanUpAddedUser(context, superAdmin.id);
-
-    // Close the mysql connection pool
-    await mysqlInstance.close();
-
-    // Shutdown the test server
-    await testServer.stop();
-  } catch (err) {
-    console.error('Error cleaning up after tests', err);
-    process.exit(1);
-  }
+  // Purge all test records from the test DB and shutdown the Apollo server
+  await teardownResolverTest();
 });
 
-
 describe('plan', () => {
-  let project: Project;
-  let versionedTemplate: VersionedTemplate;
-  let sections: {
-    sectionId: number,
-    sectionTitle: string,
-    displayOrder: number,
-    totalQuestions: number,
-    answeredQuestions: number,
-  }[];
-
-  let creator: User;
-  let existingPlan: Plan;
-  let existingProjectMembers: ProjectMember[];
-  let existingPlanMembers: PlanMember[];
-  let existingProjectFundings: ProjectFunding[];
-  let existingPlanFundings: PlanFunding[];
-
+  // Define all the queries and mutations. We will be using them to simulate
+  // GraphQL calls from a client
   const query = `
     query plansQuery($projectId: Int!) {
       plans (projectId: $projectId) {
@@ -316,9 +228,25 @@ describe('plan', () => {
     }
   `;
 
+  // Define any dependencies for the object you're testing (e.g. Plan requires a
+  // Project and a VersionedTemplate)
+  let project: Project;
+  let versionedTemplate: VersionedTemplate;
+  let sections: {
+    sectionId: number,
+    sectionTitle: string,
+    displayOrder: number,
+    totalQuestions: number,
+    answeredQuestions: number,
+  }[];
+
+  let creator: User;
+  let existingPlan: Plan;
+  let existingProjectMembers: ProjectMember[];
+  let existingProjectFunding: ProjectFunding[];
+
   // Test that the specified user/token is able to perform all actions
   async function testAddQueryRemoveAccess(
-    contextIn: MyContext,
     errContext: string,
     canQuery = true,
     canAdd = true,
@@ -328,9 +256,9 @@ describe('plan', () => {
 
     const queryVariables = { projectId: project.id };
 
-    const qryResp = await executeQuery(testServer, contextIn, query, queryVariables);
+    const qryResp = await executeQuery(query, queryVariables);
     const qry2Variables = { planId: existingPlan.id };
-    const qry2Resp = await executeQuery(testServer, contextIn, querySingle, qry2Variables);
+    const qry2Resp = await executeQuery(querySingle, qry2Variables);
 
     if (canQuery) {
       assert(qryResp.body.kind === 'single');
@@ -355,16 +283,35 @@ describe('plan', () => {
       versionedTemplateId: versionedTemplate.id
     }
 
-    const userId = contextIn.token.id;
+    const userId = resolverTest.context.token.id;
     let planId = existingPlan.id;
 
     if (canAdd) {
       // Should be able to add
-      const addResp = await executeQuery(testServer, contextIn, addMutation, addVariables);
+      const addResp = await executeQuery(addMutation, addVariables);
       assert(addResp.body.kind === 'single');
       expect(addResp.body.singleResult.errors, msg).toBeUndefined();
       planId = addResp.body.singleResult.data.addPlan.id;
       expect(planId, msg).toBeDefined();
+
+      const sections = await VersionedSection.findByTemplateId(
+        msg,
+        resolverTest.context,
+        versionedTemplate.id
+      );
+      const questions = await VersionedQuestion.findByVersionedSectionId(
+        msg,
+        resolverTest.context,
+        sections[0].id
+      );
+
+      const expectedSectionInfo = [{
+        answeredQuestions: 0,
+        displayOrder: sections[0].displayOrder,
+        sectionId: sections[0].id,
+        sectionTitle: sections[0].name,
+        totalQuestions: questions.length
+      }];
 
       expect(addResp.body.singleResult.data.addPlan.project.id, msg).toEqual(project.id);
       expect(addResp.body.singleResult.data.addPlan.versionedTemplate.id, msg).toEqual(versionedTemplate.id);
@@ -374,21 +321,20 @@ describe('plan', () => {
       expect(addResp.body.singleResult.data.addPlan.languageId, msg).toEqual(defaultLanguageId);
       expect(addResp.body.singleResult.data.addPlan.featured, msg).toBeFalsy();
       expect(addResp.body.singleResult.data.addPlan.registeredBy, msg).toBeUndefined();
-      // expect(addResp.body.singleResult.data.addPlan.registered, msg).toBeUndefined();
-      expect(addResp.body.singleResult.data.addPlan.sections, msg).toEqual(sections);
+      expect(addResp.body.singleResult.data.addPlan.sections, msg).toEqual(expectedSectionInfo);
       expect(addResp.body.singleResult.data.addPlan.members, msg).toEqual([]);
       expect(addResp.body.singleResult.data.addPlan.fundings, msg).toEqual([]);
       expect(addResp.body.singleResult.data.addPlan.createdById, msg).toEqual(userId);
       expect(addResp.body.singleResult.data.addPlan.modifiedById, msg).toEqual(userId);
 
       // Should see the new record
-      const qry2Resp = await executeQuery(testServer, contextIn, querySingle, { planId });
+      const qry2Resp = await executeQuery(querySingle, { planId });
       assert(qry2Resp.body.kind === 'single');
       expect(qry2Resp.body.singleResult.errors, msg).toBeUndefined();
       expect(qry2Resp.body.singleResult.data.plan.id, msg).toEqual(planId);
     } else {
       // Should NOT be able to add
-      const addResp = await executeQuery(testServer, contextIn, addMutation, addVariables);
+      const addResp = await executeQuery(addMutation, addVariables);
       assert(addResp.body.kind === 'single');
       expect(addResp.body.singleResult.errors, msg).toBeDefined();
       expect(addResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
@@ -399,7 +345,7 @@ describe('plan', () => {
 
     if (canUpdatePublishAndArchive) {
       // Should be able to update
-      const updResp = await executeQuery(testServer, contextIn, updatePlanStatusMutation, updateVariables);
+      const updResp = await executeQuery(updatePlanStatusMutation, updateVariables);
       assert(updResp.body.kind === 'single');
       expect(updResp.body.singleResult.errors, msg).toBeUndefined();
       expect(updResp.body.singleResult.data.updatePlanStatus.id, msg).toEqual(planId);
@@ -408,270 +354,281 @@ describe('plan', () => {
       // Should be able to archive
       const removeVariables = { planId }
 
-      const remResp = await executeQuery(testServer, contextIn, removeMutation, removeVariables);
+      const remResp = await executeQuery(removeMutation, removeVariables);
       assert(remResp.body.kind === 'single');
       expect(remResp.body.singleResult.errors, msg).toBeUndefined();
       expect(remResp.body.singleResult.data.archivePlan.id, msg).toEqual(planId);
 
       // Should no longer be able to see new record
-      const qry3Resp = await executeQuery(testServer, contextIn, query, queryVariables);
+      const qry3Resp = await executeQuery(query, queryVariables);
       assert(qry3Resp.body.kind === 'single');
       expect(qry3Resp.body.singleResult.errors, msg).toBeUndefined();
       expect(qry3Resp.body.singleResult.data.plans.map(c => c.id), msg).not.toContain(planId);
 
     } else {
       // Should NOT be able to update status
-      const updResp = await executeQuery(testServer, contextIn, updatePlanStatusMutation, updateVariables);
+      const updResp = await executeQuery(updatePlanStatusMutation, updateVariables);
       assert(updResp.body.kind === 'single');
       expect(updResp.body.singleResult.errors, msg).toBeDefined();
       expect(updResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
 
       // Should NOT be able to publish
-      const pubResp = await executeQuery(testServer, contextIn, publishPlanMutation, publishVariables);
+      const pubResp = await executeQuery(publishPlanMutation, publishVariables);
       assert(pubResp.body.kind === 'single');
       expect(pubResp.body.singleResult.errors, msg).toBeDefined();
       expect(pubResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
 
       // Should NOT be able to remove
       const removeVariables = { planId }
-      const remResp = await executeQuery(testServer, contextIn, removeMutation, removeVariables);
+      const remResp = await executeQuery(removeMutation, removeVariables);
       assert(remResp.body.kind === 'single');
       expect(remResp.body.singleResult.errors, msg).toBeDefined();
       expect(remResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
     }
   }
 
+  // Build all dependencies for the object we're testing
   beforeEach(async () => {
-    jest.resetAllMocks();
-
     // Generate the creator of the project
-    creator = await persistUser(context, mockUser({
-      affiliationId: sameAffiliationAdmin.affiliationId,
-      role: UserRole.RESEARCHER
-    }));
-    // Make sure the token belongs to the creator
-    context.token = mockToken(creator);
-    project = await persistProject(context, mockProject({ isTestProject: false }));
-
-    // Get a random Template and then catalog its sections
-    versionedTemplate = await randomVersionedTemplate(context);
-    const vSections = await VersionedSection.findByTemplateId(
-      'resolver test',
-      context,
-      versionedTemplate.id
+    creator = await persistUser(
+      resolverTest.context,
+      mockUser({
+        affiliationId: resolverTest.researcherAffiliationA.affiliationId,
+        role: UserRole.RESEARCHER
+      })
     );
-    sections = [];
-    for (const section of vSections) {
-      const questions = await VersionedQuestion.findByVersionedSectionId(
-        'resolver test',
-        context,
-        section.id
-      );
-      sections.push({
-        sectionId: section.id,
-        sectionTitle: section.name,
-        displayOrder: section.displayOrder,
-        totalQuestions: questions.length,
-        answeredQuestions: 0
-      });
-    }
+    addTableForTeardown(User.tableName);
+
+    // Make sure the token belongs to the creator
+    resolverTest.context.token = mockToken(creator);
+    project = await persistProject(
+      resolverTest.context,
+      mockProject({
+        isTestProject: false
+      })
+    );
+    addTableForTeardown(Project.tableName);
+
+    // Create a member role
+    const role = await persistMemberRole(resolverTest.context, mockMemberRole({}));
+    addTableForTeardown(MemberRole.tableName);
+
+    // Create a template for the funder and then a published version of it.
+    // These functions add the corresponding tables to the teardown list
+    const template = await generateFullTemplate(resolverTest);
+    versionedTemplate = await generateFullVersionedTemplate(
+      resolverTest,
+      template.id,
+      TemplateVisibility.PUBLIC,
+      TemplateVersionType.PUBLISHED
+    );
 
     // Add some ProjectMembers and ProjectFunding
     existingProjectMembers = [];
-    existingProjectFundings = [];
+    existingProjectFunding = [];
     for (let i = 0; i < 3; i++) {
-      const mockMember = await mockProjectMember(context, {
-        projectId: project.id,
-        affiliationId: sameAffiliationAdmin.affiliationId,
-      });
-      existingProjectMembers.push(await persistProjectMember(context, mockMember));
+      const mockMember = await mockProjectMember(
+        resolverTest.context,
+        {
+          projectId: project.id,
+          affiliationId: resolverTest.researcherAffiliationA.affiliationId,
+          memberRoles: [role]
+        }
+      );
+      existingProjectMembers.push(await persistProjectMember(resolverTest.context, mockMember));
 
       const mockFunding = mockProjectFunding({
         projectId: project.id,
-        affiliationId: (await randomAffiliation(context, true)).uri
+        affiliationId: resolverTest.funder.uri,
       });
-      existingProjectFundings.push(await persistProjectFunding(context, mockFunding));
+      existingProjectFunding.push(await persistProjectFunding(resolverTest.context, mockFunding));
     }
+    addTableForTeardown(ProjectMember.tableName);
+    addTableForTeardown(ProjectFunding.tableName);
 
     // Create a plan
-    const mockedPlan = mockPlan({
-      projectId: project.id,
-      versionedTemplateId: versionedTemplate.id,
-      status: PlanStatus.DRAFT,
-      visibility: PlanVisibility.PUBLIC
-    });
-    existingPlan = await persistPlan(context, mockedPlan);
+    existingPlan = await persistPlan(
+      resolverTest.context,
+      mockPlan({
+        projectId: project.id,
+        versionedTemplateId: versionedTemplate.id,
+        status: PlanStatus.DRAFT,
+        visibility: PlanVisibility.PUBLIC
+      })
+    );
+    addTableForTeardown(Plan.tableName);
 
-    // Attach members and funding to the Plan
-    existingPlanMembers = [];
-    existingPlanFundings = [];
-    existingPlanMembers.push(await persistPlanMember(context, await mockPlanMember(context, {
-      planId: existingPlan.id,
-      projectMemberId: existingProjectMembers[0].id
-    })));
+    await persistPlanMember(
+      resolverTest.context,
+      await mockPlanMember(
+        resolverTest.context,
+        {
+          planId: existingPlan.id,
+          projectMemberId: existingProjectMembers[1].id,
+          memberRoleIds: [role.id]
+        }
+      )
+    );
+    addTableForTeardown(PlanMember.tableName);
 
-    existingPlanMembers.push(await persistPlanMember(context, await mockPlanMember(context, {
-      planId: existingPlan.id,
-      projectMemberId: existingProjectMembers[1].id
-    })));
-
-    existingPlanFundings.push(await persistPlanFunding(context, mockPlanFunding({
-      planId: existingPlan.id,
-      projectFundingId: existingProjectFundings[0].id
-    })));
-  });
-
-  afterEach(async () => {
-    jest.clearAllMocks();
-
-    // Clean up the plan and its associated entities
-    for (const planMember of existingPlanMembers) {
-      await cleanUpAddedPlanMember(context, planMember.id);
-    }
-    for (const planFunding of existingPlanFundings) {
-      await cleanUpAddedPlanFunding(context, planFunding.id);
-    }
-    if (!isNullOrUndefined(existingPlan?.id)) {
-      await cleanUpAddedPlan(context, existingPlan.id);
-    }
-
-    // Clean up the project and its associated entities
-    for (const member of existingProjectMembers) {
-      await cleanUpAddedProjectMember(context, member.id);
-    }
-    for (const funding of existingProjectFundings) {
-      await cleanUpAddedProjectFunding(context, funding.id);
-    }
-    await cleanUpAddedProject(context, project.id);
-
-    await cleanUpAddedUser(context, creator.id);
+    await persistPlanFunding(
+      resolverTest.context,
+      mockPlanFunding({
+        planId: existingPlan.id,
+        projectFundingId: existingProjectFunding[0].id
+      })
+    );
+    addTableForTeardown(PlanFunding.tableName);
   });
 
   it('Super Admin flow', async () => {
-    context.token = mockToken(superAdmin);
-    await testAddQueryRemoveAccess(context, 'SuperAdmin', true, true, true);
-
-    // Clean up the plan because we are only archiving it in the test
-    await cleanUpAddedPlans(context, project.id);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    await testAddQueryRemoveAccess(
+      'SuperAdmin',
+      true,
+      true,
+      true
+    );
   });
 
   it('Admin of same affiliation flow', async () => {
-    context.token = mockToken(sameAffiliationAdmin);
-    await testAddQueryRemoveAccess(context, 'Admin, same affiliation', true, true, true);
-
-    // Clean up the plan because we are only archiving it in the test
-    await cleanUpAddedPlans(context, project.id);
+    resolverTest.context.token = mockToken(resolverTest.adminAffiliationA);
+    await testAddQueryRemoveAccess(
+      'Admin, same affiliation',
+      true,
+      true,
+      true
+    );
   });
 
   it('Admin of other affiliation flow', async () => {
-    context.token = mockToken(otherAffiliationAdmin);
-    await testAddQueryRemoveAccess(context, 'Admin. other affiliation', false, false, false);
+    resolverTest.context.token = mockToken(resolverTest.adminAffiliationB);
+    await testAddQueryRemoveAccess(
+      'Admin. other affiliation',
+      false,
+      false,
+      false
+    );
   });
 
   it('Project creator flow', async () => {
-    context.token = mockToken(creator);
-    await testAddQueryRemoveAccess(context, 'creator', true, true, true);
-
-    // Clean up the plan because we are only archiving it in the test
-    await cleanUpAddedPlans(context, project.id);
+    resolverTest.context.token = mockToken(creator);
+    await testAddQueryRemoveAccess(
+      'creator',
+      true,
+      true,
+      true
+    );
   });
 
   it('Research who is not the creator or a collaborator flow (private plan)', async () => {
-    const researcher = await persistUser(context, mockUser({
-      affiliationId: sameAffiliationAdmin.affiliationId,
+    const researcher = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    context.token = mockToken(researcher);
-    await testAddQueryRemoveAccess(context, 'researcher, random', false, false, false);
-
-    await cleanUpAddedUser(context, researcher.id);
+    resolverTest.context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess(
+      'researcher, random',
+      false,
+      false,
+      false
+    );
+    addTableForTeardown(User.tableName);
   });
 
   it('Research with comment level access flow', async () => {
-    const researcher = await persistUser(context, mockUser({
-      affiliationId: sameAffiliationAdmin.affiliationId,
+    const researcher = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
     const collab = await persistProjectCollaborator(
-      context,
+      resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
         email: researcher.email,
         accessLevel: ProjectCollaboratorAccessLevel.COMMENT
       })
     )
-    context.token = mockToken(researcher);
-    await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false, false);
-
-    await cleanUpAddedProjectCollaborator(context, collab.id);
-    await cleanUpAddedUser(context, researcher.id);
+    resolverTest.context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess(
+      'researcher, commenter',
+      true,
+      false,
+      false
+    );
+    addTableForTeardown(User.tableName);
+    addTableForTeardown(ProjectCollaborator.tableName);
   });
 
   it('Research with edit level access flow', async () => {
-    const researcher = await persistUser(context, mockUser({
-      affiliationId: sameAffiliationAdmin.affiliationId,
+    const researcher = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
     const collab = await persistProjectCollaborator(
-      context,
+      resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
         email: researcher.email,
         accessLevel: ProjectCollaboratorAccessLevel.EDIT
       })
     )
-    context.token = mockToken(researcher);
-    await testAddQueryRemoveAccess(context, 'researcher, editor', true, true, false);
-
-    await cleanUpAddedProjectCollaborator(context, collab.id);
-    // Clean up the plan because we are only archiving it in the test
-    await cleanUpAddedPlans(context, project.id);
-    await cleanUpAddedUser(context, researcher.id);
+    resolverTest.context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess(
+      'researcher, editor',
+      true,
+      true,
+      false
+    );
+    addTableForTeardown(User.tableName);
+    addTableForTeardown(ProjectCollaborator.tableName);
   });
 
   it('Research with owner level access flow', async () => {
-    const researcher = await persistUser(context, mockUser({
-      affiliationId: sameAffiliationAdmin.affiliationId,
+    const researcher = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
     const collab = await persistProjectCollaborator(
-      context,
+      resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
         email: researcher.email,
         accessLevel: ProjectCollaboratorAccessLevel.OWN
       })
     )
-    context.token = mockToken(researcher);
-    await testAddQueryRemoveAccess(context, 'researcher, owner', true, true, true);
-
-    await cleanUpAddedProjectCollaborator(context, collab.id);
-    // Clean up the plan because we are only archiving it in the test
-    await cleanUpAddedPlans(context, project.id);
-    await cleanUpAddedUser(context, researcher.id);
+    resolverTest.context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess(
+      'researcher, owner',
+      true,
+      true,
+      true
+    );
+    addTableForTeardown(User.tableName);
+    addTableForTeardown(ProjectCollaborator.tableName);
   });
 
   it('Allows a plan to be published', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
     const variables = { planId: existingPlan.id, visibility: getRandomEnumValue(PlanVisibility) }
 
-    const resp = await executeQuery(testServer, context, publishPlanMutation, variables);
+    const resp = await executeQuery(publishPlanMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data.publishPlan.id).toEqual(existingPlan.id);
     expect(resp.body.singleResult.data.publishPlan.visibility).toEqual(variables.visibility);
-    expect(resp.body.singleResult.data.publishPlan.registeredById).toEqual(context.token.id);
+    expect(resp.body.singleResult.data.publishPlan.registeredById).toEqual(resolverTest.context.token.id);
     expect(resp.body.singleResult.data.publishPlan.registered).toBeDefined();
   });
 
   it('Doesn\'t allow plans of test projects to be published', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
     project.isTestProject = true;
-    await project.update(context)
+    await project.update(resolverTest.context)
 
     const variables = { planId: existingPlan.id, visibility: getRandomEnumValue(PlanVisibility) }
-    const resp = await executeQuery(testServer, context, publishPlanMutation, variables);
+    const resp = await executeQuery(publishPlanMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -679,13 +636,13 @@ describe('plan', () => {
   });
 
   it('Doesn\'t allow published plans to be published again', async () => {
-    context.token = mockToken(superAdmin);
-    existingPlan.registeredById = context.token.id;
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    existingPlan.registeredById = resolverTest.context.token.id;
     existingPlan.registered = casual.date('YYYY-MM-DD hh:mm:ss');
-    await existingPlan.update(context)
+    await existingPlan.update(resolverTest.context)
 
     const variables = { planId: existingPlan.id, visibility: getRandomEnumValue(PlanVisibility) }
-    const resp = await executeQuery(testServer, context, publishPlanMutation, variables);
+    const resp = await executeQuery(publishPlanMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -693,13 +650,13 @@ describe('plan', () => {
   });
 
   it('Doesn\'t allow a published plan to be archived', async () => {
-    context.token = mockToken(superAdmin);
-    existingPlan.registeredById = context.token.id;
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    existingPlan.registeredById = resolverTest.context.token.id;
     existingPlan.registered = casual.date('YYYY-MM-DD hh:mm:ss');
-    await existingPlan.update(context)
+    await existingPlan.update(resolverTest.context)
 
     const variables = { planId: existingPlan.id }
-    const resp = await executeQuery(testServer, context, removeMutation, variables);
+    const resp = await executeQuery(removeMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -707,24 +664,22 @@ describe('plan', () => {
   });
 
   it('Throws a 404 if the project does not exist', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
 
-    await testNotFound(testServer, context, query, { projectId: 99999999 });
-    await testNotFound(testServer, context, querySingle, { planId: 99999999 });
-    await testNotFound(testServer, context, addMutation, { projectId: 99999999, versionedTemplateId: versionedTemplate.id });
-    await testNotFound(testServer, context, addMutation, { projectId: project.id, versionedTemplateId: 99999999 });
-    await testNotFound(testServer, context, updatePlanStatusMutation, { planId: 99999999, status: PlanStatus.COMPLETE });
-    await testNotFound(testServer, context, publishPlanMutation, { planId: 99999999, visibility: PlanVisibility.PUBLIC });
-    await testNotFound(testServer, context, removeMutation, { planId: 99999999 });
+    await testNotFound(query, { projectId: 99999999 });
+    await testNotFound(querySingle, { planId: 99999999 });
+    await testNotFound(addMutation, { projectId: 99999999, versionedTemplateId: versionedTemplate.id });
+    await testNotFound(addMutation, { projectId: project.id, versionedTemplateId: 99999999 });
+    await testNotFound(updatePlanStatusMutation, { planId: 99999999, status: PlanStatus.COMPLETE });
+    await testNotFound(publishPlanMutation, { planId: 99999999, visibility: PlanVisibility.PUBLIC });
+    await testNotFound(removeMutation, { planId: 99999999 });
   });
 
   it('handles missing tokens and internal server errors', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
 
     // Test standard error handling for query
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: query,
       variables: { projectId: project.id },
       spyOnClass: Plan,
@@ -734,8 +689,6 @@ describe('plan', () => {
 
     // Test standard error handling for query
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: querySingle,
       variables: { planId: existingPlan.id },
       spyOnClass: Plan,
@@ -745,8 +698,6 @@ describe('plan', () => {
 
     // Test standard error handling for add
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: addMutation,
       variables: {
         projectId: project.id,
@@ -759,8 +710,6 @@ describe('plan', () => {
 
     // Test standard error handling for status update
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: updatePlanStatusMutation,
       variables: {
         planId: existingPlan.id,
@@ -773,8 +722,6 @@ describe('plan', () => {
 
     // Test standard error handling for publish
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: publishPlanMutation,
       variables: {
         planId: existingPlan.id,
@@ -787,8 +734,6 @@ describe('plan', () => {
 
     // Test standard error handling for remove
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: removeMutation,
       variables: { planId: existingPlan.id },
       spyOnClass: Plan,

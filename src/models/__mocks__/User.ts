@@ -31,7 +31,7 @@ export const mockUser = (
     role: options.role ?? getRandomEnumValue(UserRole),
     givenName: options.givenName ?? casual.first_name,
     surName: options.surName ?? casual.last_name,
-    affiliationId: options.affiliationId ?? getMockROR(),
+    affiliationId: options.affiliationId,
     acceptedTerms: options.acceptedTerms ?? true,
   });
 }
@@ -47,43 +47,6 @@ export const persistUser = async (
   } catch (e) {
     console.error(`Error persisting user ${user.email}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
-  }
-  return null;
-}
-
-// Clean up all mock/test Users
-export const cleanUpAddedUser = async (
-  context: MyContext,
-  id?: number,
-) : Promise<void> => {
-  const reference = 'cleanUpAddedUsers';
-  try {
-    // User auto-creates UserEmail records so we need to delete those first
-    const userEmails = await UserEmail.findByUserId(reference, context, id);
-    for (const userEmail of userEmails) {
-      await userEmail.delete(context);
-    }
-
-    // Do a direct delete on the MySQL model because the tests might be mocking the User functions
-    await User.delete(context, User.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
-  }
-}
-
-// Fetch a random persisted User
-export const randomUser = async (
-  context: MyContext
-): Promise<User | null> => {
-  const sql = `SELECT * FROM ${User.tableName} WHERE active = 1 ORDER BY RAND() LIMIT 1`;
-  try {
-    const results = await User.query(context, sql, [], 'randomUser');
-    if (Array.isArray(results) && results.length > 0) {
-      return new User(results[0]);
-    }
-  } catch (e) {
-    console.error(`Error getting random user: ${e.message}`);
   }
   return null;
 }

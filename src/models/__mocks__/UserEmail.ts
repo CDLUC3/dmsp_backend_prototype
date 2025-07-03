@@ -38,17 +38,3 @@ export const persistUserEmail = async (
     return null;
   }
 }
-
-// Clean up all mock/test UserEmails
-export const cleanUpAddedUserEmail = async (
-  context: MyContext,
-  id?: number,
-) : Promise<void> => {
-  const reference = 'cleanUpUserEmails';
-  try {
-    // Do a direct delete on the MySQL model because the tests might be mocking the UserEmail functions
-    await UserEmail.delete(context, UserEmail.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up user email id ${id}: ${e.message}`);
-  }
-}

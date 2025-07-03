@@ -13,7 +13,7 @@ export interface MockVersionedTemplateOptions {
   versionedById?: number;
   name?: string;
   description?: string;
-  ownerId?: number;
+  ownerId?: string;
   versionType?: TemplateVersionType;
   comment?: string;
   active?: boolean;
@@ -62,37 +62,4 @@ export const persistVersionedTemplate = async (
     if (e.originalError) console.log(e.originalError);
     return null;
   }
-}
-
-// Clean up all mock/test VersionedTemplate
-export const cleanUpAddedVersionedTemplate = async (
-  context: MyContext,
-  id?: number,
-) : Promise<void> => {
-  const reference = 'cleanUpAddedVersionedTemplates';
-  try {
-    // Do a direct delete on the MySQL model because the tests might be mocking the
-    // VersionedTemplate functions
-    await VersionedTemplate.delete(context, VersionedTemplate.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up plan member id ${id}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
-  }
-}
-
-// Fetch a random persisted VersionedTemplate
-export const randomVersionedTemplate = async (
-  context: MyContext
-): Promise<VersionedTemplate | null> => {
-  const sql = `SELECT * FROM ${VersionedTemplate.tableName} WHERE active = 1 ORDER BY RAND() LIMIT 1`;
-  try {
-    const results = await VersionedTemplate.query(context, sql, [], 'randomVersionedTemplate');
-
-    if (Array.isArray(results) && results.length > 0) {
-      return new VersionedTemplate(results[0]);
-    }
-  } catch (e) {
-    console.error(`Error getting random VersionedTemplate: ${e.message}`);
-  }
-  return null;
 }

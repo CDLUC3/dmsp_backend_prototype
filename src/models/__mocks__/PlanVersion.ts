@@ -161,17 +161,3 @@ export const persistPlanVersion = async (
     return null;
   }
 }
-
-// Clean up all mock/test PlanVersions
-export const cleanUpAddedPlanVersion = async (
-  context: MyContext,
-  dmpId: string,
-) : Promise<void> => {
-  try {
-    // Should delete all versions of the DMP Id
-    await deleteDMP(context, dmpId);
-  } catch (e) {
-    console.error(`Error cleaning up plan version dmpId: ${dmpId}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
-  }
-}

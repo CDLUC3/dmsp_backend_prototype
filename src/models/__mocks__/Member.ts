@@ -1,10 +1,10 @@
 import casual from "casual";
 import { isNullOrUndefined } from "../../utils/helpers";
-import { randomMemberRole } from "./MemberRole";
 import { getMockORCID } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
 import { PlanMember, ProjectMember } from "../Member";
 import {MemberRole} from "../MemberRole";
+import {persistMemberRole} from "./MemberRole";
 
 // NOTE: associations to memberRoles will be deleted automatically when cleanup
 // is called on these records due to cascading deletes enforced by the DB.
@@ -16,12 +16,12 @@ export interface MockProjectMemberOptions {
   affiliationId?: string;
   orcid?: string;
   email?: string;
-  memberRoles?: number[];
+  memberRoles: MemberRole[];
 }
 export interface MockPlanMemberOptions {
   planId?: number;
   projectMemberId?: number;
-  memberRoleIds?: number[];
+  memberRoleIds: number[];
   isPrimaryContact?: boolean;
 }
 
@@ -30,7 +30,6 @@ export const mockProjectMember = async (
   context: MyContext,
   options: MockProjectMemberOptions
 ): Promise<ProjectMember> => {
-  const randoRole = await randomMemberRole(context);
   // Use the options provided or default a value
   return new ProjectMember({
     projectId: options.projectId ?? casual.integer(1, 9999),
@@ -39,7 +38,7 @@ export const mockProjectMember = async (
     affiliationId: options.affiliationId ?? casual.url,
     orcid: options.orcid ?? getMockORCID(),
     email: options.email ?? `test.${casual.integer(1, 999)}.${casual.email}`,
-    memberRoles: options.memberRoles ?? [randoRole.id],
+    memberRoles: options.memberRoles,
   });
 }
 
@@ -48,12 +47,11 @@ export const mockPlanMember = async (
   context: MyContext,
   options: MockPlanMemberOptions
 ): Promise<PlanMember> => {
-  const randoRole = await randomMemberRole(context);
   // Use the options provided or default a value
   return new PlanMember({
     planId: options.planId ?? casual.integer(1, 9999),
     projectMemberId: options.projectMemberId ?? casual.integer(1, 9999),
-    memberRoleIds: options.memberRoleIds ?? [randoRole.id],
+    memberRoleIds: options.memberRoleIds,
     isPrimaryContact: options.isPrimaryContact ?? false,
   });
 }
@@ -130,83 +128,5 @@ export const persistPlanMember = async (
     console.error(`Error persisting plan member ${member.projectMemberId}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
     return null;
-  }
-}
-
-// Clean up a mock/test ProjectMember
-export const cleanUpAddedProjectMember = async (
-  context: MyContext,
-  id?: number,
-) : Promise<void> => {
-  const reference = 'cleanUpAddedProjectMember';
-  try {
-    // Clean out any associated member roles
-    const roles = await MemberRole.findByProjectMemberId(reference, context, id);
-    for (const role of roles) {
-      await role.removeFromProjectMember(context, id);
-    }
-
-    // Do a direct delete on the MySQL model because the tests might be mocking the
-    // ProjectMember functions
-    await ProjectMember.delete(context, ProjectMember.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up project member id ${id}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
-  }
-}
-
-// Clean up all mock/test ProjectMembers for the specified project
-export const cleanUpAddedProjectMembers = async (
-  context: MyContext,
-  projectId?: number,
-): Promise<void> => {
-  const reference = 'cleanUpAddedProjectMembers';
-  try {
-    const members = await ProjectMember.findByProjectId(reference, context, projectId);
-    for (const member of members) {
-      await cleanUpAddedProjectMember(context, member.id);
-    }
-  } catch (error) {
-    console.error(`Error cleaning up project members ${projectId}`);
-    if (error.originalError) console.log(error.originalError);
-  }
-}
-
-// Clean up a mock/test PlanMember
-export const cleanUpAddedPlanMember = async (
-  context: MyContext,
-  id?: number,
-) : Promise<void> => {
-  const reference = 'cleanUpAddedPlanMember';
-  try {
-    // Clean out any associated member roles
-    const roles = await MemberRole.findByPlanMemberId(reference, context, id);
-    for (const role of roles) {
-      await role.removeFromPlanMember(context, id);
-    }
-
-    // Do a direct delete on the MySQL model because the tests might be mocking the
-    // ProjectMember functions
-    await PlanMember.delete(context, PlanMember.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up plan member id ${id}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
-  }
-}
-
-// Clean up all mock/test PlanMembers for the specified project
-export const cleanUpAddedPlanMembers = async (
-  context: MyContext,
-  planId?: number,
-): Promise<void> => {
-  const reference = 'cleanUpAddedPlanMembers';
-  try {
-    const members = await PlanMember.findByPlanId(reference, context, planId);
-    for (const member of members) {
-      await cleanUpAddedPlanMember(context, member.id);
-    }
-  } catch (error) {
-    console.error(`Error cleaning up plan members ${planId}`);
-    if (error.originalError) console.log(error.originalError);
   }
 }

@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { prepareObjectForLogs } from "../logger";
-import { validateURL } from "../utils/helpers";
+import {randomHex, validateURL} from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
 export const DEFAULT_DMPTOOL_MEMBER_ROLE_URL = 'https://dmptool.org/contributor_roles/';
@@ -108,6 +108,79 @@ export class MemberRole extends MySqlModel {
       return false;
     }
     return true;
+  }
+
+  //Create a new MemberRole
+  async create(context: MyContext): Promise<MemberRole> {
+    const reference = 'MemberRole.create';
+
+    // If no URI is present, then use the DMPTool's default URI
+    if (!this.uri) {
+      this.uri = `${DEFAULT_DMPTOOL_MEMBER_ROLE_URL}${randomHex(6)}`;
+    }
+
+    // First make sure the record is valid
+    if (await this.isValid()) {
+      let current = await MemberRole.findByURL(reference, context, this.uri);
+
+      // Then make sure it doesn't already exist
+      if (current) {
+        this.addError('general', 'MemberRole already exists');
+      } else {
+        // Save the record and then fetch it
+        const newId = await MemberRole.insert(
+          context,
+          MemberRole.tableName,
+          this,
+          reference
+        );
+        return await MemberRole.findById(reference, context, newId);
+      }
+    }
+    // Otherwise return as-is with all the errors
+    return new MemberRole(this);
+  }
+
+  //Update an existing MemberRole
+  async update(context: MyContext, noTouch = false): Promise<MemberRole> {
+    const id = this.id;
+
+    if (await this.isValid()) {
+      if (id) {
+        await MemberRole.update(
+          context,
+          MemberRole.tableName,
+          this,
+          'MemberRole.update',
+          [],
+          noTouch
+        );
+        return await MemberRole.findById('MemberRole.update', context, id);
+      }
+      // This template has never been saved before so we cannot update it!
+      this.addError('general', 'MemberRole has never been saved');
+    }
+    return new MemberRole(this);
+  }
+
+  //Delete the MemberRole
+  async delete(context: MyContext): Promise<MemberRole> {
+    if (this.id) {
+      const deleted = await MemberRole.findById('MemberRole.delete', context, this.id);
+
+      const successfullyDeleted = await MemberRole.delete(
+        context,
+        MemberRole.tableName,
+        this.id,
+        'MemberRole.delete'
+      );
+      if (successfullyDeleted) {
+        return deleted;
+      } else {
+        return null
+      }
+    }
+    return null;
   }
 
   // Return all the member roles

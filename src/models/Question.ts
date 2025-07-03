@@ -17,7 +17,7 @@ export class Question extends MySqlModel {
   public displayOrder: number;
   public isDirty: boolean;
 
-  private tableName = 'questions';
+  public static tableName = 'questions';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -96,7 +96,7 @@ export class Question extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await Question.insert(context, this.tableName, this, 'Question.create', ['questionType']);
+      const newId = await Question.insert(context, Question.tableName, this, 'Question.create', ['questionType']);
       const response = await Question.findById('Question.create', context, newId);
       return response;
 
@@ -111,7 +111,7 @@ export class Question extends MySqlModel {
       this.prepForSave();
 
       if (await this.isValid()) {
-        await Question.update(context, this.tableName, this, 'Question.update', ['questionType'], noTouch);
+        await Question.update(context, Question.tableName, this, 'Question.update', ['questionType'], noTouch);
         return await Question.findById('Question.update', context, this.id);
       }
     }
@@ -126,7 +126,7 @@ export class Question extends MySqlModel {
       since calling 'delete' doesn't return anything*/
       const deletedSection = await Question.findById('Question.delete', context, this.id);
 
-      const successfullyDeleted = await Question.delete(context, this.tableName, this.id, 'Question.delete');
+      const successfullyDeleted = await Question.delete(context, Question.tableName, this.id, 'Question.delete');
       if (successfullyDeleted) {
         return deletedSection;
       } else {
@@ -138,14 +138,14 @@ export class Question extends MySqlModel {
 
   // Find the Question by it's id
   static async findById(reference: string, context: MyContext, questionId: number): Promise<Question> {
-    const sql = 'SELECT * FROM questions WHERE id = ?';
+    const sql = `SELECT * FROM ${Question.tableName} WHERE id = ?`;
     const result = await Question.query(context, sql, [questionId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new Question(result[0]) : null;
   }
 
   // Fetch all of the Questions for the specified Section
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Question[]> {
-    const sql = 'SELECT * FROM questions WHERE sectionId = ?';
+    const sql = `SELECT * FROM ${Question.tableName} WHERE sectionId = ?`;
     const results = await Question.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new Question(entry)) : [];
   }

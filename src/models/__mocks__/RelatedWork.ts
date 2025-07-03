@@ -44,19 +44,3 @@ export const persistRelatedWork = async (
     return null;
   }
 }
-
-// Clean up all mock/test RelatedWork
-export const cleanUpAddedRelatedWork = async (
-  context: MyContext,
-  id?: number,
-) : Promise<void> => {
-  const reference = 'cleanUpAddedRelatedWorks';
-  try {
-    // Do a direct delete on the MySQL model because the tests might be mocking the
-    // RelatedWork functions
-    await RelatedWork.delete(context, RelatedWork.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up related work id ${id}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
-  }
-}

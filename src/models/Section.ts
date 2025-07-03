@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { Tag } from "../types";
+import { Tag } from "./Tag";
 
 // A Template for creating a DMP
 export class Section extends MySqlModel {
@@ -15,7 +15,7 @@ export class Section extends MySqlModel {
   public tags: Tag[];
   public isDirty: boolean;
 
-  private tableName = 'sections';
+  public static tableName = 'sections';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -58,7 +58,7 @@ export class Section extends MySqlModel {
     if (await this.isValid()) {
       this.templateId = templateId;
       // Save the record and then fetch it
-      const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
+      const newId = await Section.insert(context, Section.tableName, this, 'Section.create', ['tags']);
       const response = await Section.findById('Section.create', context, newId);
       return response;
     }
@@ -74,7 +74,7 @@ export class Section extends MySqlModel {
       if (id) {
         this.prepForSave();
 
-        await Section.update(context, this.tableName, this, 'Section.update', ['tags'], noTouch);
+        await Section.update(context, Section.tableName, this, 'Section.update', ['tags'], noTouch);
         return await Section.findById('Section.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -90,7 +90,7 @@ export class Section extends MySqlModel {
       since calling 'delete' doesn't return anything*/
       const deletedSection = await Section.findById('Section.delete', context, this.id);
 
-      const successfullyDeleted = await Section.delete(context, this.tableName, this.id, 'Section.delete');
+      const successfullyDeleted = await Section.delete(context, Section.tableName, this.id, 'Section.delete');
       if (successfullyDeleted) {
         return deletedSection;
       } else {
@@ -102,7 +102,7 @@ export class Section extends MySqlModel {
 
   // Find the current max section displayOrder for the specified templateId
   static async findMaxDisplayOrder(reference: string, context: MyContext, templateId: number): Promise<number> {
-    const sql = 'SELECT MAX(displayOrder) as maxDisplayOrder FROM sections WHERE templateId = ?';
+    const sql = `SELECT MAX(displayOrder) as maxDisplayOrder FROM ${Section.tableName} WHERE templateId = ?`;
     const results = await Section.query(context, sql, [templateId?.toString()], reference);
     if (Array.isArray(results) && results.length > 0) {
       const maxDisplayOrder = results[0].maxDisplayOrder;
@@ -118,7 +118,7 @@ export class Section extends MySqlModel {
     name: string,
     templateId: number
   ): Promise<Section> {
-    const sql = 'SELECT * FROM sections WHERE LOWER(name) = ? AND templateId = ?';
+    const sql = `SELECT * FROM ${Section.tableName} WHERE LOWER(name) = ? AND templateId = ?`;
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim(), templateId?.toString()];
     const results = await Section.query(context, sql, vals, reference);
@@ -128,13 +128,13 @@ export class Section extends MySqlModel {
 
   // Find all Sections associated with the specified templateId
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
-    const sql = 'SELECT * FROM sections WHERE templateId = ?';
+    const sql = `SELECT * FROM ${Section.tableName} WHERE templateId = ?`;
     const results = await Section.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new Section(entry)) : [];
   }
 
   static async findById(reference: string, context: MyContext, sectionId: number): Promise<Section> {
-    const sql = 'SELECT * FROM sections where id = ?';
+    const sql = `SELECT * FROM ${Section.tableName} where id = ?`;
     const result = await Section.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new Section(result[0]) : null;
   }

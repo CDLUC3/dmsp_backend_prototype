@@ -15,7 +15,7 @@ export class VersionedQuestion extends MySqlModel {
   public required: boolean;
   public displayOrder: number;
 
-  private tableName = 'versionedQuestions';
+  public static tableName = 'versionedQuestions';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -78,7 +78,7 @@ export class VersionedQuestion extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create', ['json']);
+      const newId = await VersionedQuestion.insert(context, VersionedQuestion.tableName, this, 'VersionedQuestion.create', ['json']);
       return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
     }
     // Otherwise return as-is with all the errors
@@ -87,7 +87,7 @@ export class VersionedQuestion extends MySqlModel {
 
   // Find the VersionedQuestion by id
   static async findById(reference: string, context: MyContext, id: number): Promise<VersionedQuestion> {
-    const sql = 'SELECT * FROM versionedQuestions WHERE id = ?';
+    const sql = `SELECT * FROM ${VersionedQuestion.tableName} WHERE id = ?`;
     const results = await VersionedQuestion.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedQuestion(results[0]) : null;
   }
@@ -95,7 +95,7 @@ export class VersionedQuestion extends MySqlModel {
 
   // Find all VersionedQuestion that match versionedSectionId
   static async findByVersionedSectionId(reference: string, context: MyContext, versionedSectionId: number): Promise<VersionedQuestion[]> {
-    const sql = 'SELECT * FROM versionedQuestions WHERE versionedSectionId = ?';
+    const sql = `SELECT * FROM ${VersionedQuestion.tableName} WHERE versionedSectionId = ?`;
     const results = await VersionedQuestion.query(context, sql, [versionedSectionId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new VersionedQuestion(entry)) : [];
   }

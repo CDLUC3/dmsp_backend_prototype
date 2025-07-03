@@ -20,7 +20,7 @@ export class QuestionCondition extends MySqlModel {
   public conditionMatch?: string;
   public target: string;
 
-  private tableName = 'questionConditions';
+  public static tableName = 'questionConditions';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -48,7 +48,7 @@ export class QuestionCondition extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await QuestionCondition.insert(context, this.tableName, this, 'QuestionCondition.create');
+      const newId = await QuestionCondition.insert(context, QuestionCondition.tableName, this, 'QuestionCondition.create');
       const created = await QuestionCondition.findById('QuestionCondition.create', context, newId);
       if (created) {
         return new QuestionCondition(created);
@@ -65,7 +65,7 @@ export class QuestionCondition extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await QuestionCondition.update(context, this.tableName, this, 'QuestionCondition.update');
+        await QuestionCondition.update(context, QuestionCondition.tableName, this, 'QuestionCondition.update');
         const updated = await QuestionCondition.findById('QuestionCondition.update', context, id);
         if (updated) {
           return new QuestionCondition(updated);
@@ -84,7 +84,7 @@ export class QuestionCondition extends MySqlModel {
       since calling 'delete' doesn't return anything*/
       const deleted = await QuestionCondition.findById('QuestionCondition.delete', context, this.id);
 
-      const successfullyDeleted = await QuestionCondition.delete(context, this.tableName, this.id, 'QuestionCondition.delete');
+      const successfullyDeleted = await QuestionCondition.delete(context, QuestionCondition.tableName, this.id, 'QuestionCondition.delete');
       if (successfullyDeleted) {
         return new QuestionCondition(deleted);
       } else {
@@ -94,16 +94,16 @@ export class QuestionCondition extends MySqlModel {
     return null;
   }
 
-  // Fetch a QuestionConditions by it's id
+  // Fetch a QuestionConditions by its id
   static async findById(reference: string, context: MyContext, questionConditionId: number): Promise<QuestionCondition> {
-    const sql = 'SELECT * FROM questionConditions WHERE id = ?';
+    const sql = `SELECT * FROM ${QuestionCondition.tableName} WHERE id = ?`;
     const results = await QuestionCondition.query(context, sql, [questionConditionId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new QuestionCondition(results[0]) : null;
   }
 
   // Fetch all of the QuestionConditions for the specified Question
   static async findByQuestionId(reference: string, context: MyContext, questionId: number): Promise<QuestionCondition[]> {
-    const sql = 'SELECT * FROM questionConditions WHERE questionId = ?';
+    const sql = `SELECT * FROM ${QuestionCondition.tableName} WHERE questionId = ?`;
     const results = await QuestionCondition.query(context, sql, [questionId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new QuestionCondition(entry)) : [];
   }

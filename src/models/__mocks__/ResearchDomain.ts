@@ -1,6 +1,7 @@
 import casual from "casual";
 import { ResearchDomain } from "../ResearchDomain";
 import { MyContext } from "../../context";
+import {isNullOrUndefined} from "../../utils/helpers";
 
 export interface MockResearchDomainOptions {
   name?: string;
@@ -20,18 +21,23 @@ export const mockResearchDomain = (
   });
 }
 
-// Fetch a random persisted Affiliation
-export const randomResearchDomain = async (
-  context: MyContext
+// Save a mock/test ResearchDomain in the DB for integration tests
+export const persistResearchDomain = async (
+  context: MyContext,
+  domain: ResearchDomain
 ): Promise<ResearchDomain | null> => {
-  const sql = `SELECT * FROM ${ResearchDomain.tableName} WHERE active = 1 ORDER BY RAND() LIMIT 1`;
-  try {
-    const results = await ResearchDomain.query(context, sql, [], 'randomResearchDomain');
-    if (Array.isArray(results) && results.length > 0) {
-      return new ResearchDomain(results[0]);
-    }
-  } catch (e) {
-    console.error(`Error getting research domain role: ${e.message}`);
+  // Ensure the createdById and modifiedId are set
+  if (isNullOrUndefined(domain.createdById) || isNullOrUndefined(domain.modifiedById)) {
+    domain.createdById = context.token.id;
+    domain.modifiedById = context.token.id;
   }
-  return null;
+
+  try {
+    const created = await domain.create(context);
+    return isNullOrUndefined(created) ? null : created;
+  } catch (e) {
+    console.error(`Error persisting research domain ${domain.name}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+    return null;
+  }
 }

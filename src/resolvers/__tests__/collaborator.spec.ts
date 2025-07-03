@@ -1,6 +1,4 @@
-import { ApolloServer } from "@apollo/server";
 import casual from "casual";
-import { buildContext, MyContext } from "../../context";
 import { User, UserRole } from "../../models/User";
 import { Project } from "../../models/Project";
 import {
@@ -8,131 +6,56 @@ import {
   ProjectCollaboratorAccessLevel,
   TemplateCollaborator,
 } from '../../models/Collaborator';
-import { MySQLConnection } from "../../datasources/mysql";
 import {
+  addTableForTeardown,
   executeQuery,
-  initErrorMessage,
-  initTestServer,
-  mockToken, testNotFound, testStandardErrors,
+  initResolverTest,
+  mockToken,
+  ResolverTest,
+  teardownResolverTest,
+  testNotFound,
+  testStandardErrors,
 } from "./resolverTestHelper";
-import { randomAffiliation } from "../../models/__mocks__/Affiliation";
-import {
-  cleanUpAddedUser,
-  mockUser,
-  persistUser, randomUser
-} from "../../models/__mocks__/User";
-import {
-  cleanUpAddedProject,
-  mockProject,
-  persistProject
-} from "../../models/__mocks__/Project";
-import { Affiliation } from "../../models/Affiliation";
+import { mockUser, persistUser } from "../../models/__mocks__/User";
+import { mockProject, persistProject } from "../../models/__mocks__/Project";
 import assert from "assert";
 import {
-  cleanUpAddedProjectCollaborator,
-  cleanUpAddedProjectCollaborators,
-  cleanUpAddedTemplateCollaborator,
   mockProjectCollaborator,
   mockTemplateCollaborator,
   persistProjectCollaborator,
   persistTemplateCollaborator
 } from "../../models/__mocks__/Collaborator";
 import {Template} from "../../models/Template";
-import {
-  cleanUpAddedTemplate,
-  mockTemplate,
-  persistTemplate
-} from "../../models/__mocks__/Template";
+import { mockTemplate, persistTemplate } from "../../models/__mocks__/Template";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from "../../services/emailService";
 
 // Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
 jest.mock('../../logger');
-import { logger as mockLogger } from '../../logger';
-
 jest.mock("../../datasources/dmphubAPI");
 jest.mock("../../services/emailService");
 
-let mysqlInstance: MySQLConnection;
-let testServer: ApolloServer;
-let context: MyContext;
-
-let affiliation: Affiliation;
-let sameAffiliationAdmin: User;
-let otherAffiliationAdmin: User;
-let superAdmin: User;
+let resolverTest: ResolverTest;
 
 beforeEach(async () => {
   jest.clearAllMocks();
 
-  try {
-    // Initialize the mysql connection pool
-    mysqlInstance = new MySQLConnection();
-    // Ensure the pool has finished initializing
-    await mysqlInstance.initPromise;
-
-    // Initialize the Apollo server
-    testServer = initTestServer();
-    await testServer.start();
-  } catch (err) {
-    console.error(initErrorMessage, err);
-    process.exit(1);
-  }
-
-  // Build out the Apollo context
-  context = buildContext(mockLogger, null, null, mysqlInstance, null);
-
-  // Get a random affiliation because a User needs one
-  affiliation = await randomAffiliation(context);
-
-  // Generate the test admin users
-  sameAffiliationAdmin = await persistUser(
-    context,
-    mockUser({
-      affiliationId: affiliation.uri,
-      role: UserRole.ADMIN
-    })
-  );
-  otherAffiliationAdmin = await persistUser(
-    context,
-    mockUser({
-      affiliationId: 'https://test.example.com',
-      role: UserRole.ADMIN
-    })
-  );
-  superAdmin = await persistUser(
-    context,
-    mockUser({
-      role: UserRole.SUPERADMIN
-    })
-  );
+  // Start up the Apollo server and initialize some test Affiliations and Users
+  //
+  // Be sure to add the table names of any objects you persist in your tests to
+  // the resolverTest.tablesToCleanUp list. The teardownResolverTest will purge
+  // any persisted records for you.
+  resolverTest = await initResolverTest();
 });
 
 afterEach(async () => {
-  try {
-    // Delete all the DB records that were persisted during the tests
-    await cleanUpAddedUser(context, sameAffiliationAdmin.id);
-    await cleanUpAddedUser(context, otherAffiliationAdmin.id);
-    await cleanUpAddedUser(context, superAdmin.id);
+  jest.resetAllMocks();
 
-    // Close the mysql connection pool
-    await mysqlInstance.close();
-
-    // Shutdown the test server
-    await testServer.stop();
-  } catch (err) {
-    console.error('Error cleaning up after tests', err);
-    process.exit(1);
-  }
+  // Purge all test records from the test DB and shutdown the Apollo server
+  await teardownResolverTest();
 });
 
 describe('templateCollaborators', () => {
-  let template: Template;
-  let emailer: jest.Mock;
-
-  let creator: User;
-  let existingCollaborator: TemplateCollaborator;
-
   const query = `
     query TemplateCollaborators($templateId: Int!) {
       templateCollaborators (templateId: $templateId) {
@@ -158,7 +81,7 @@ describe('templateCollaborators', () => {
       addTemplateCollaborator (templateId: $templateId, email: $email) {
         id
         email
-        createdById
+        createdByIdx
         created
         modifiedById
         modified
@@ -183,9 +106,14 @@ describe('templateCollaborators', () => {
     }
   `;
 
+  let template: Template;
+  let emailer: jest.Mock;
+
+  let creator: User;
+  let existingCollaborator: TemplateCollaborator;
+
   // Test that the specified user/token is able to perform all actions
   async function testAddQueryRemoveAccess(
-    contextIn: MyContext,
     errContext: string,
     canQuery = true,
     canAddAndRemove = true,
@@ -194,7 +122,7 @@ describe('templateCollaborators', () => {
 
     const queryVariables = { templateId: template.id };
 
-    const qryResp = await executeQuery(testServer, contextIn, query, queryVariables);
+    const qryResp = await executeQuery(query, queryVariables);
     if (canQuery) {
       assert(qryResp.body.kind === 'single');
       expect(qryResp.body.singleResult.errors, msg).toBeUndefined();
@@ -210,10 +138,10 @@ describe('templateCollaborators', () => {
     }
 
     if (canAddAndRemove) {
-      const userId = context.token.id;
+      const userId = resolverTest.context.token.id;
 
       // Should be able to add
-      const addResp = await executeQuery(testServer, contextIn, addMutation, addVariables);
+      const addResp = await executeQuery(addMutation, addVariables);
       assert(addResp.body.kind === 'single');
       expect(addResp.body.singleResult.errors, msg).toBeUndefined();
 
@@ -225,15 +153,15 @@ describe('templateCollaborators', () => {
       expect(addResp.body.singleResult.data.addTemplateCollaborator.modifiedById, msg).toEqual(userId);
 
       expect(emailer).toHaveBeenCalledWith(
-        context,
+        resolverTest.context,
         template.name,
-        [context.token.givenName, context.token.surName].join(' '),
+        [resolverTest.context.token.givenName, resolverTest.context.token.surName].join(' '),
         addVariables.email,
         undefined,
       )
 
       // Should see the new record
-      const qry2Resp = await executeQuery(testServer, contextIn, query, queryVariables);
+      const qry2Resp = await executeQuery(query, queryVariables);
       assert(qry2Resp.body.kind === 'single');
       expect(qry2Resp.body.singleResult.errors, msg).toBeUndefined();
       expect(qry2Resp.body.singleResult.data.templateCollaborators.map(c => c.id), msg).toContain(id);
@@ -241,26 +169,26 @@ describe('templateCollaborators', () => {
       // Should be able to remove
       const removeVariables = { templateId: template.id, email: addVariables.email };
 
-      const remResp = await executeQuery(testServer, contextIn, removeMutation, removeVariables);
+      const remResp = await executeQuery(removeMutation, removeVariables);
       assert(remResp.body.kind === 'single');
       expect(remResp.body.singleResult.errors, msg).toBeUndefined();
       expect(remResp.body.singleResult.data.removeTemplateCollaborator.id, msg).toEqual(id);
 
       // Should no longer be able to see new record
-      const qry3Resp = await executeQuery(testServer, contextIn, query, queryVariables);
+      const qry3Resp = await executeQuery(query, queryVariables);
       assert(qry3Resp.body.kind === 'single');
       expect(qry3Resp.body.singleResult.errors, msg).toBeUndefined();
       expect(qry3Resp.body.singleResult.data.templateCollaborators.map(c => c.id), msg).not.toContain(id);
     } else {
       // Should NOT be able to add
-      const addResp = await executeQuery(testServer, contextIn, addMutation, addVariables);
+      const addResp = await executeQuery(addMutation, addVariables);
       assert(addResp.body.kind === 'single');
       expect(addResp.body.singleResult.errors, msg).toBeDefined();
       expect(addResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
 
       // Should NOT be able to remove
       const removeVariables = { templateId: template.id, email: existingCollaborator.email };
-      const remResp = await executeQuery(testServer, contextIn, removeMutation, removeVariables);
+      const remResp = await executeQuery(removeMutation, removeVariables);
       assert(remResp.body.kind === 'single');
       expect(remResp.body.singleResult.errors, msg).toBeDefined();
       expect(remResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
@@ -268,85 +196,84 @@ describe('templateCollaborators', () => {
   }
 
   beforeEach(async () => {
-    jest.resetAllMocks();
-
     emailer = jest.fn();
     (sendTemplateCollaborationEmail as jest.Mock) = emailer;
 
     // Generate the creator of the project
-    creator = await persistUser(context, mockUser({
-      affiliationId: sameAffiliationAdmin.affiliationId,
+    creator = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }));
     // Make sure the token belongs to the creator
-    context.token = mockToken(creator);
-    template = await persistTemplate(context, mockTemplate({ ownerId: affiliation.uri }));
+    resolverTest.context.token = mockToken(creator);
 
-    existingCollaborator = await persistTemplateCollaborator(context, mockTemplateCollaborator({
-      templateId: template.id,
-    }));
-  });
+    template = await persistTemplate(
+      resolverTest.context,
+      mockTemplate({ ownerId: resolverTest.adminAffiliationA.affiliationId })
+    );
+    addTableForTeardown(Template.tableName);
 
-  afterEach(async () => {
-    jest.clearAllMocks();
-
-    // Clean up the project, user and collaborator records we generated
-    await cleanUpAddedTemplate(context, template.id);
-    await cleanUpAddedUser(context, creator.id);
+    existingCollaborator = await persistTemplateCollaborator(
+      resolverTest.context,
+      mockTemplateCollaborator({
+        templateId: template.id,
+      })
+    );
+    addTableForTeardown(TemplateCollaborator.tableName);
   });
 
   it('Super Admin flow', async () => {
-    context.token = mockToken(superAdmin);
-    await testAddQueryRemoveAccess(context, 'SuperAdmin', true, true);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    await testAddQueryRemoveAccess('SuperAdmin', true, true);
 
     // Emailer should have been called for existingCollaborator and one we added
     expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Admin of same affiliation flow', async () => {
-    context.token = mockToken(sameAffiliationAdmin);
-    await testAddQueryRemoveAccess(context, 'Admin, same affiliation', true, true);
+    resolverTest.context.token = mockToken(resolverTest.adminAffiliationA);
+    await testAddQueryRemoveAccess('Admin, same affiliation', true, true);
 
     // Emailer should have been called for existingCollaborator and one we added
     expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Admin of other affiliation flow', async () => {
-    context.token = mockToken(otherAffiliationAdmin);
-    await testAddQueryRemoveAccess(context, 'Admin. other affiliation', false, false);
+    resolverTest.context.token = mockToken(resolverTest.adminAffiliationB);
+    await testAddQueryRemoveAccess('Admin. other affiliation', false, false);
 
     // Emailer should have been called for existingCollaborator only
     expect(emailer).toHaveBeenCalledTimes(1);
   });
 
   it('Admin who is a collaborator flow', async () => {
-    const admin = await persistUser(context, mockUser({
-      affiliationId: otherAffiliationAdmin.affiliationId,
+    const admin = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationB.affiliationId,
       role: UserRole.ADMIN
     }))
     const collab = await persistTemplateCollaborator(
-      context,
+      resolverTest.context,
       mockTemplateCollaborator({
         templateId: template.id,
         email: admin.email,
       })
     )
 
-    context.token = mockToken(admin);
-    await testAddQueryRemoveAccess(context, 'researcher, random', true, true);
+    resolverTest.context.token = mockToken(admin);
+    await testAddQueryRemoveAccess('researcher, random', true, true);
 
-    await cleanUpAddedTemplateCollaborator(context, collab.id);
-    await cleanUpAddedUser(context, admin.id);
+    addTableForTeardown(User.tableName);
+    addTableForTeardown(TemplateCollaborator.tableName);
 
     // Emailer should have been called for existingCollaborator, this collaborator and one we added
     expect(emailer).toHaveBeenCalledTimes(3);
   });
 
   it('returns the collaborator with errors if it is a duplicate', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
     const variables = { templateId: template.id, email: existingCollaborator.email };
 
-    const resp = await executeQuery(testServer, context, addMutation, variables);
+    const resp = await executeQuery(addMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -357,11 +284,14 @@ describe('templateCollaborators', () => {
   });
 
   it('finds the userId for an existing User', async () => {
-    context.token = mockToken(superAdmin);
-    const existingUser = await randomUser(context);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    const existingUser = await persistUser(
+      resolverTest.context,
+      mockUser({ affiliationId: resolverTest.adminAffiliationA.affiliationId })
+    )
     const variables = { templateId: template.id, email: existingUser.email};
 
-    const resp = await executeQuery(testServer, context, addMutation, variables);
+    const resp = await executeQuery(addMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -370,29 +300,27 @@ describe('templateCollaborators', () => {
 
     // Make sure an email was sent
     expect(emailer).toHaveBeenCalledWith(
-      context,
+      resolverTest.context,
       template.name,
-      [context.token.givenName, context.token.surName].join(' '),
+      [resolverTest.context.token.givenName, resolverTest.context.token.surName].join(' '),
       variables.email,
       existingUser.id,
     )
   });
 
   it('Throws a 404 if the template does not exist', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
 
-    await testNotFound(testServer, context, query, { templateId: 99999999 });
-    await testNotFound(testServer, context, addMutation, { templateId: 99999999, email: 'test' });
-    await testNotFound(testServer, context, removeMutation, { templateId: 99999999, email: 'test' });
+    await testNotFound(query, { templateId: 99999999 });
+    await testNotFound(addMutation, { templateId: 99999999, email: 'test' });
+    await testNotFound(removeMutation, { templateId: 99999999, email: 'test' });
   });
 
   it('handles missing tokens and internal server errors', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
 
     // Test standard error handling for query
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: query,
       variables: { templateId: template.id },
       spyOnClass: TemplateCollaborator,
@@ -402,8 +330,6 @@ describe('templateCollaborators', () => {
 
     // Test standard error handling for add
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: addMutation,
       variables: { templateId: template.id, email: casual.email },
       spyOnClass: TemplateCollaborator,
@@ -413,8 +339,6 @@ describe('templateCollaborators', () => {
 
     // Test standard error handling for remove
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: removeMutation,
       variables: { templateId: template.id, email: existingCollaborator.email },
       spyOnClass: TemplateCollaborator,
@@ -426,12 +350,6 @@ describe('templateCollaborators', () => {
 
 
 describe('projectCollaborators', () => {
-  let project: Project;
-  let emailer: jest.Mock;
-
-  let creator: User;
-  let existingCollaborator: ProjectCollaborator;
-
   const query = `
     query ProjectCollaborators($projectId: Int!) {
       projectCollaborators (projectId: $projectId) {
@@ -509,9 +427,14 @@ describe('projectCollaborators', () => {
     }
   `;
 
+  let project: Project;
+  let emailer: jest.Mock;
+
+  let creator: User;
+  let existingCollaborator: ProjectCollaborator;
+
   // Test that the specified user/token is able to perform all actions
   async function testAddQueryRemoveAccess(
-    contextIn: MyContext,
     errContext: string,
     canQuery = true,
     canAddAndRemove = true,
@@ -520,7 +443,7 @@ describe('projectCollaborators', () => {
 
     const queryVariables = { projectId: project.id };
 
-    const qryResp = await executeQuery(testServer, contextIn, query, queryVariables);
+    const qryResp = await executeQuery(query, queryVariables);
     if (canQuery) {
       assert(qryResp.body.kind === 'single');
       expect(qryResp.body.singleResult.errors, msg).toBeUndefined();
@@ -542,10 +465,10 @@ describe('projectCollaborators', () => {
     }
 
     if (canAddAndRemove) {
-      const userId = context.token.id;
+      const userId = resolverTest.context.token.id;
 
       // Should be able to add
-      const addResp = await executeQuery(testServer, contextIn, addMutation, addVariables);
+      const addResp = await executeQuery(addMutation, addVariables);
       assert(addResp.body.kind === 'single');
       expect(addResp.body.singleResult.errors, msg).toBeUndefined();
 
@@ -559,21 +482,21 @@ describe('projectCollaborators', () => {
 
       // Make sure an email was sent
       expect(emailer).toHaveBeenCalledWith(
-        context,
+        resolverTest.context,
         project.title,
-        [context.token.givenName, context.token.surName].join(' '),
+        [resolverTest.context.token.givenName, resolverTest.context.token.surName].join(' '),
         addVariables.email,
         undefined,
       )
 
       // Should see the new record
-      const qry2Resp = await executeQuery(testServer, contextIn, query, queryVariables);
+      const qry2Resp = await executeQuery(query, queryVariables);
       assert(qry2Resp.body.kind === 'single');
       expect(qry2Resp.body.singleResult.errors, msg).toBeUndefined();
       expect(qry2Resp.body.singleResult.data.projectCollaborators.map(c => c.id), msg).toContain(id);
 
       // Should be able to update
-      const updResp = await executeQuery(testServer, contextIn, updateMutation, updateVariables);
+      const updResp = await executeQuery(updateMutation, updateVariables);
       assert(updResp.body.kind === 'single');
       expect(updResp.body.singleResult.errors, msg).toBeUndefined();
       expect(updResp.body.singleResult.data.updateProjectCollaborator.id, msg).toEqual(existingCollaborator.id);
@@ -585,32 +508,32 @@ describe('projectCollaborators', () => {
       // Should be able to remove
       const removeVariables = { projectCollaboratorId: id }
 
-      const remResp = await executeQuery(testServer, contextIn, removeMutation, removeVariables);
+      const remResp = await executeQuery(removeMutation, removeVariables);
       assert(remResp.body.kind === 'single');
       expect(remResp.body.singleResult.errors, msg).toBeUndefined();
       expect(remResp.body.singleResult.data.removeProjectCollaborator.id, msg).toEqual(id);
 
       // Should no longer be able to see new record
-      const qry3Resp = await executeQuery(testServer, contextIn, query, queryVariables);
+      const qry3Resp = await executeQuery(query, queryVariables);
       assert(qry3Resp.body.kind === 'single');
       expect(qry3Resp.body.singleResult.errors, msg).toBeUndefined();
       expect(qry3Resp.body.singleResult.data.projectCollaborators.map(c => c.id), msg).not.toContain(id);
     } else {
       // Should NOT be able to add
-      const addResp = await executeQuery(testServer, contextIn, addMutation, addVariables);
+      const addResp = await executeQuery(addMutation, addVariables);
       assert(addResp.body.kind === 'single');
       expect(addResp.body.singleResult.errors, msg).toBeDefined();
       expect(addResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
 
       // Should NOT be able to update
-      const updResp = await executeQuery(testServer, contextIn, updateMutation, updateVariables);
+      const updResp = await executeQuery(updateMutation, updateVariables);
       assert(updResp.body.kind === 'single');
       expect(updResp.body.singleResult.errors, msg).toBeDefined();
       expect(updResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
 
       // Should NOT be able to remove
       const removeVariables = { projectCollaboratorId: existingCollaborator.id }
-      const remResp = await executeQuery(testServer, contextIn, removeMutation, removeVariables);
+      const remResp = await executeQuery(removeMutation, removeVariables);
       assert(remResp.body.kind === 'single');
       expect(remResp.body.singleResult.errors, msg).toBeDefined();
       expect(remResp.body.singleResult.errors[0].extensions.code, msg).toEqual('FORBIDDEN');
@@ -618,154 +541,153 @@ describe('projectCollaborators', () => {
   }
 
   beforeEach(async () => {
-    jest.resetAllMocks();
-
     emailer = jest.fn();
     (sendProjectCollaborationEmail as jest.Mock) = emailer;
 
     // Generate the creator of the project
-    creator = await persistUser(context, mockUser({
-      affiliationId: sameAffiliationAdmin.affiliationId,
-      role: UserRole.RESEARCHER
-    }));
+    creator = await persistUser(
+      resolverTest.context,
+      mockUser({
+        affiliationId: resolverTest.adminAffiliationA.affiliationId,
+        role: UserRole.RESEARCHER
+      })
+    );
+    addTableForTeardown(User.tableName);
+
     // Make sure the token belongs to the creator
-    context.token = mockToken(creator);
-    project = await persistProject(context, mockProject({}));
+    resolverTest.context.token = mockToken(creator);
+    project = await persistProject(resolverTest.context, mockProject({}));
+    addTableForTeardown(Project.tableName);
 
     // Note that this triggers the emailer above so count it in tests above/below
-    existingCollaborator = await persistProjectCollaborator(context, mockProjectCollaborator({
-      projectId: project.id,
-    }));
-  });
-
-  afterEach(async () => {
-    jest.clearAllMocks();
-
-    // Clean up the project, user and collaborator records we generated
-    await cleanUpAddedProjectCollaborator(context, existingCollaborator.id);
-    await cleanUpAddedProject(context, project.id);
-    await cleanUpAddedUser(context, creator.id);
+    existingCollaborator = await persistProjectCollaborator(
+      resolverTest.context,
+      mockProjectCollaborator({
+        projectId: project.id,
+      })
+    );
+    addTableForTeardown(ProjectCollaborator.tableName);
   });
 
   it('Super Admin flow', async () => {
-    context.token = mockToken(superAdmin);
-    await testAddQueryRemoveAccess(context, 'SuperAdmin', true, true);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    await testAddQueryRemoveAccess('SuperAdmin', true, true);
 
     // Should have emailed for the existingCollaborator and the one being added
     expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Admin of same affiliation flow', async () => {
-    context.token = mockToken(sameAffiliationAdmin);
-    await testAddQueryRemoveAccess(context, 'Admin, same affiliation', true, true);
+    resolverTest.context.token = mockToken(resolverTest.adminAffiliationA);
+    await testAddQueryRemoveAccess('Admin, same affiliation', true, true);
 
     // Should have emailed for the existingCollaborator and the one being added
     expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Admin of other affiliation flow', async () => {
-    context.token = mockToken(otherAffiliationAdmin);
-    await testAddQueryRemoveAccess(context, 'Admin. other affiliation', false, false);
+    resolverTest.context.token = mockToken(resolverTest.adminAffiliationB);
+    await testAddQueryRemoveAccess('Admin. other affiliation', false, false);
 
     // Generating the existingCollaborator caused the emailer to fire once
     expect(emailer).toHaveBeenCalledTimes(1);
   });
 
   it('Project creator flow', async () => {
-    context.token = mockToken(creator);
-    await testAddQueryRemoveAccess(context, 'creator', true, true);
+    resolverTest.context.token = mockToken(creator);
+    await testAddQueryRemoveAccess('creator', true, true);
 
     // Should have emailed for the existingCollaborator and the one being added
     expect(emailer).toHaveBeenCalledTimes(2);
   });
 
   it('Research who is not the creator or a collaborator flow', async () => {
-    const researcher = await persistUser(context, mockUser({
-      affiliationId: sameAffiliationAdmin.affiliationId,
+    const researcher = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    context.token = mockToken(researcher);
-    await testAddQueryRemoveAccess(context, 'researcher, random', false, false);
+    resolverTest.context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess('researcher, random', false, false);
 
     // Generating the existingCollaborator caused the emailer to fire once
     expect(emailer).toHaveBeenCalledTimes(1);
 
-    await cleanUpAddedUser(context, researcher.id);
+    addTableForTeardown(User.tableName);
   });
 
   it('Research with comment level access flow', async () => {
-    const researcher = await persistUser(context, mockUser({
-      affiliationId: otherAffiliationAdmin.affiliationId,
+    const researcher = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
     await persistProjectCollaborator(
-      context,
+      resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
         email: researcher.email,
         accessLevel: ProjectCollaboratorAccessLevel.COMMENT
       })
     )
-    context.token = mockToken(researcher);
-    await testAddQueryRemoveAccess(context, 'researcher, commenter', true, false);
+    resolverTest.context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess('researcher, commenter', true, false);
 
     // Generating the existingCollaborator and the commenter caused the emailer to fire twice
     expect(emailer).toHaveBeenCalledTimes(2);
 
-    await cleanUpAddedProjectCollaborators(context, project.id);
-    await cleanUpAddedUser(context, researcher.id);
+    addTableForTeardown(User.tableName);
+    addTableForTeardown(ProjectCollaborator.tableName);
   });
 
   it('Researcher with edit level access flow', async () => {
-    const researcher = await persistUser(context, mockUser({
-      affiliationId: otherAffiliationAdmin.affiliationId,
+    const researcher = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
     await persistProjectCollaborator(
-      context,
+      resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
         email: researcher.email,
         accessLevel: ProjectCollaboratorAccessLevel.EDIT
       })
     )
-    context.token = mockToken(researcher);
-    await testAddQueryRemoveAccess(context, 'researcher, editor', true, true);
+    resolverTest.context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess('researcher, editor', true, true);
 
     // Should have emailed for the existingCollaborator the editor and the one being added
     expect(emailer).toHaveBeenCalledTimes(3);
 
-    await cleanUpAddedProjectCollaborators(context, project.id);
-    await cleanUpAddedUser(context, researcher.id);
+    addTableForTeardown(User.tableName);
+    addTableForTeardown(ProjectCollaborator.tableName);
   });
 
   it('Researcher with owner level access flow', async () => {
-    const researcher = await persistUser(context, mockUser({
-      affiliationId: otherAffiliationAdmin.affiliationId,
+    const researcher = await persistUser(resolverTest.context, mockUser({
+      affiliationId: resolverTest.adminAffiliationB.affiliationId,
       role: UserRole.RESEARCHER
     }))
     await persistProjectCollaborator(
-      context,
+      resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
         email: researcher.email,
         accessLevel: ProjectCollaboratorAccessLevel.OWN
       })
     )
-    context.token = mockToken(researcher);
-    await testAddQueryRemoveAccess(context, 'researcher, owner', true, true);
+    resolverTest.context.token = mockToken(researcher);
+    await testAddQueryRemoveAccess('researcher, owner', true, true);
 
     // Should have emailed for the existingCollaborator the owner and the one being added
     expect(emailer).toHaveBeenCalledTimes(3);
 
-    await cleanUpAddedProjectCollaborators(context, project.id);
-    await cleanUpAddedUser(context, researcher.id);
+    addTableForTeardown(User.tableName);
+    addTableForTeardown(ProjectCollaborator.tableName);
   });
 
   it('returns the collaborator with errors if it is a duplicate', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
     const variables = { projectId: project.id, email: existingCollaborator.email };
-    const resp = await executeQuery(testServer, context, addMutation, variables);
+    const resp = await executeQuery(addMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -776,11 +698,17 @@ describe('projectCollaborators', () => {
   });
 
   it('finds the userId for an existing User', async () => {
-    context.token = mockToken(superAdmin);
-    const existingUser = await randomUser(context);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    const existingUser = await persistUser(
+      resolverTest.context,
+      mockUser({
+        affiliationId: resolverTest.adminAffiliationA.affiliationId,
+        role: UserRole.RESEARCHER
+      })
+    )
     const variables = { projectId: project.id, email: existingUser.email};
 
-    const resp = await executeQuery(testServer, context, addMutation, variables);
+    const resp = await executeQuery(addMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -789,33 +717,31 @@ describe('projectCollaborators', () => {
 
     // Make sure an email was sent
     expect(emailer).toHaveBeenCalledWith(
-      context,
+      resolverTest.context,
       project.title,
-      [context.token.givenName, context.token.surName].join(' '),
+      [resolverTest.context.token.givenName, resolverTest.context.token.surName].join(' '),
       variables.email,
       existingUser.id,
     )
   });
 
   it('Throws a 404 if the project does not exist', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
 
-    await testNotFound(testServer, context, query, { projectId: 99999999 });
-    await testNotFound(testServer, context, addMutation, { projectId: 99999999, email: 'test' });
-    await testNotFound(testServer, context, updateMutation, {
+    await testNotFound(query, { projectId: 99999999 });
+    await testNotFound(addMutation, { projectId: 99999999, email: 'test' });
+    await testNotFound(updateMutation, {
       projectCollaboratorId: 99999999,
       accessLevel: ProjectCollaboratorAccessLevel.EDIT
     });
-    await testNotFound(testServer, context, removeMutation, { projectCollaboratorId: 99999999 });
+    await testNotFound(removeMutation, { projectCollaboratorId: 99999999 });
   });
 
   it('handles missing tokens and internal server errors', async () => {
-    context.token = mockToken(superAdmin);
+    resolverTest.context.token = mockToken(resolverTest.superAdmin);
 
     // Test standard error handling for query
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: query,
       variables: { projectId: project.id },
       spyOnClass: ProjectCollaborator,
@@ -825,8 +751,6 @@ describe('projectCollaborators', () => {
 
     // Test standard error handling for add
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: addMutation,
       variables: {
         projectId: project.id,
@@ -840,8 +764,6 @@ describe('projectCollaborators', () => {
 
     // Test standard error handling for update
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: updateMutation,
       variables: {
         projectCollaboratorId: existingCollaborator.id,
@@ -854,8 +776,6 @@ describe('projectCollaborators', () => {
 
     // Test standard error handling for remove
     await testStandardErrors({
-      server: testServer,
-      context,
       graphQL: removeMutation,
       variables: { projectCollaboratorId: existingCollaborator.id },
       spyOnClass: ProjectCollaborator,

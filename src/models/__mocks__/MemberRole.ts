@@ -2,12 +2,15 @@
 import casual from "casual";
 import { MemberRole } from "../MemberRole";
 import {MyContext} from "../../context";
+import {ResearchDomain} from "../ResearchDomain";
+import {isNullOrUndefined} from "../../utils/helpers";
 
 export interface MockMemberRoleOptions {
   displayOrder?: number;
   uri?: string;
   label?: string;
   description?: string;
+  isDefault?: boolean;
 }
 
 // Generate a mock/test MemberRole
@@ -20,21 +23,28 @@ export const mockMemberRole = (
     uri: options.uri ?? casual.url,
     label: options.label ?? casual.words(2),
     description: options.description ?? casual.sentence,
+    isDefault: options.isDefault ?? false
   });
 }
 
-// Fetch a random persisted Affiliation
-export const randomMemberRole = async (
-  context: MyContext
+// Save a mock/test MemberRole in the DB for integration tests
+export const persistMemberRole = async (
+  context: MyContext,
+  role: MemberRole
 ): Promise<MemberRole | null> => {
-  const sql = `SELECT * FROM ${MemberRole.tableName} ORDER BY RAND() LIMIT 1`;
-  try {
-    const results = await MemberRole.query(context, sql, [], 'randomMemberRole');
-    if (Array.isArray(results) && results.length > 0) {
-      return new MemberRole(results[0]);
-    }
-  } catch (e) {
-    console.error(`Error getting random member role: ${e.message}`);
+  // Ensure the createdById and modifiedId are set
+  if (isNullOrUndefined(role.createdById) || isNullOrUndefined(role.modifiedById)) {
+    role.createdById = context.token.id;
+    role.modifiedById = context.token.id;
   }
-  return null;
+
+  try {
+    const created = await role.create(context);
+    return isNullOrUndefined(created) ? null : created;
+  } catch (e) {
+    console.error(`Error persisting member role ${role.label}: ${e.message}`);
+    if (e.originalError) console.log(e.originalError);
+    return null;
+  }
 }
+

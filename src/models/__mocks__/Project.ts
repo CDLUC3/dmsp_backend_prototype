@@ -48,36 +48,3 @@ export const persistProject = async (
     return null;
   }
 }
-
-// Clean up all mock/test Project
-export const cleanUpAddedProject = async (
-  context: MyContext,
-  id?: number,
-) : Promise<void> => {
-  const reference = 'cleanUpAddedProjects';
-  try {
-    // Do a direct delete on the MySQL model because the tests might be mocking the
-    // Project functions
-    await Project.delete(context, Project.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up plan member id ${id}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
-  }
-}
-
-// Fetch a random persisted Project
-export const randomProject = async (
-  context: MyContext
-): Promise<Project | null> => {
-  const sql = `SELECT * FROM ${Project.tableName} ORDER BY RAND() LIMIT 1`;
-  try {
-    const results = await Project.query(context, sql, [], 'randomProject');
-
-    if (Array.isArray(results) && results.length > 0) {
-      return new Project(results[0]);
-    }
-  } catch (e) {
-    console.error(`Error getting random Project: ${e.message}`);
-  }
-  return null;
-}

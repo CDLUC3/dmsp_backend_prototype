@@ -247,9 +247,10 @@ export class Plan extends MySqlModel {
         // Create the original version snapshot of the DMP
         if (newId) {
           let newPlan = await Plan.findById(reference, context, newId);
+
           if (newPlan && !newPlan.hasErrors()) {
             // Generate the version history of the DMP
-            newPlan = await addVersion(context, newPlan, reference);
+            await addVersion(context, newPlan, reference);
           }
           return new Plan(newPlan);
         }

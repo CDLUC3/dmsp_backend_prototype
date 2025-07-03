@@ -40,11 +40,13 @@ export const mockAffiliation = (
     aliases.join(' | ')
   ].filter((s) => s.length > 0);
 
+  const isFunder = options.funder ?? casual.boolean;
+
   // Use the options provided or default a value
   return new Affiliation({
     name: options.name ?? `TEST - ${name}`,
     uri: options.uri ?? `${DEFAULT_ROR_AFFILIATION_URL}/${casual.uuid}`,
-    funder: options.funder ?? casual.boolean,
+    funder: isFunder,
     types: options.types ?? [getRandomEnumValue(AffiliationType)],
     displayName: `${name} (${domain})`,
     searchName,
@@ -52,7 +54,7 @@ export const mockAffiliation = (
     homepage: options.homepage ?? homepage,
     acronyms: options.acronyms ?? acronyms,
     aliases: options.aliases ?? aliases,
-    fundrefId: options.fundrefId ?? casual.uuid,
+    fundrefId: options.fundrefId ?? (isFunder ? casual.uuid : undefined),
     active: options.active ?? casual.boolean,
   });
 }
@@ -71,38 +73,4 @@ export const persistAffiliation = async (
   const created = await affiliation.create(context);
 
   return isNullOrUndefined(created) ? null : created;
-}
-
-// Clean up all mock/test Affiliations
-export const cleanUpAddedAffiliation = async (
-  context: MyContext,
-  id: number,
-) : Promise<void> => {
-  const reference = 'cleanUpAddedAffiliations';
-  try {
-    // Do a direct delete on the MySQL model because the tests might be mocking the Affiliation functions
-    await Affiliation.delete(context, Affiliation.tableName, id, reference);
-  } catch (e) {
-    console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
-    if (e.originalError) console.log(e.originalError);
-  }
-}
-
-// Fetch a random persisted Affiliation
-export const randomAffiliation = async (
-  context: MyContext,
-  funderOnly = false
-): Promise<Affiliation | null> => {
-  let whereClause = 'WHERE active = 1'
-  whereClause += funderOnly ? ' AND funder = 1' : '';
-  const sql = `SELECT * FROM ${Affiliation.tableName} ${whereClause} ORDER BY RAND() LIMIT 1`;
-  try {
-    const results = await Affiliation.query(context, sql, [], 'randomAffiliation');
-    if (Array.isArray(results) && results.length > 0) {
-      return new Affiliation(results[0]);
-    }
-  } catch (e) {
-    console.error(`Error getting random affiliation: ${e.message}`);
-  }
-  return null;
 }

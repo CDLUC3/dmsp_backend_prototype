@@ -46,6 +46,7 @@ export const addVersion = async (
     // There is already a latest version, so we are creating a snapshot before making changes
     context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - creating a version snapshot`);
     const newSnapshot = await createDMP(context, plan.dmpId, commonStandard, currentVersion.modified);
+
     if (!newSnapshot) {
       context.logger.error(prepareObjectForLogs({ timestamp: currentVersion.modified, plan }), `${reference} - Unable to create a version snapshot`);
       plan.addError('general', 'Unable to create a new version snapshot');
@@ -54,6 +55,7 @@ export const addVersion = async (
     // This is the first version of the plan
     context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - creating an initial version`);
     const newPlanVersion = await createDMP(context, plan.dmpId, commonStandard);
+
     if (!newPlanVersion) {
       context.logger.error(prepareObjectForLogs({ plan }), `${reference} - Unable to create an initial version snapshot`);
       plan.addError('general', 'Unable to create a new version snapshot');

@@ -1,7 +1,7 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
-import { Tag } from "../models/Tag";
+import { Tag } from "./Tag";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
@@ -112,7 +112,7 @@ export class VersionedSection extends MySqlModel {
   // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
   //public bestPractice: boolean;
 
-  private tableName = 'versionedSections';
+  public static tableName = 'versionedSections';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -146,7 +146,7 @@ export class VersionedSection extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await VersionedSection.insert(context, this.tableName, this, 'VersionedSection.create', ['tags']);
+      const newId = await VersionedSection.insert(context, VersionedSection.tableName, this, 'VersionedSection.create', ['tags']);
       return await VersionedSection.findById('VersionedSection.create', context, newId);
     }
     // Otherwise return as-is with all the errors
@@ -155,21 +155,21 @@ export class VersionedSection extends MySqlModel {
 
   // Find the VersionedSection by id
   static async findById(reference: string, context: MyContext, id: number): Promise<VersionedSection> {
-    const sql = 'SELECT * FROM versionedSections WHERE id= ?';
+    const sql = `SELECT * FROM ${VersionedSection.tableName} WHERE id= ?`;
     const results = await VersionedSection.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedSection(results[0]) : null;
   }
 
   // Find the VersionedSections by sectionId
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
-    const sql = 'SELECT * FROM versionedSections WHERE sectionId = ?';
+    const sql = `SELECT * FROM ${VersionedSection.tableName} WHERE sectionId = ?`;
     const results = await VersionedSection.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : null;
   }
 
   // Find the VersionedSections by versionedTemplateId
   static async findByTemplateId(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedSection[]> {
-    const sql = 'SELECT * FROM versionedSections WHERE versionedTemplateId = ?';
+    const sql = `SELECT * FROM ${VersionedSection.tableName} WHERE versionedTemplateId = ?`;
     const results = await VersionedSection.query(context, sql, [versionedTemplateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : [];
   }
@@ -214,7 +214,7 @@ export class VersionedSection extends MySqlModel {
     // Specify the field we want to use for the count
     opts.countField = 'vs.id';
 
-    const sqlStatement = 'SELECT vs.* FROM versionedSections vs';
+    const sqlStatement = `SELECT vs.* FROM ${VersionedSection.tableName} vs`;
 
     const response: PaginatedQueryResults<VersionedSection> = await VersionedSection.queryWithPagination(
       context,
