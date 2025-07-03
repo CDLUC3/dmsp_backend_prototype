@@ -3,6 +3,7 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added a new resolver for `answerByVersionedQuestionId` so that we can get the question-specific answer to populate the question in the Question detail page.
 - Added a new MySQL container to host the test DB to the docker compose stack
 - Added JSON column `questionType` to `questions` and `versionedQuestions` tables
 - Added JSON column `json` to the `answers` table
