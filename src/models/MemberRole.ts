@@ -1,5 +1,5 @@
 import { MyContext } from "../context";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
@@ -52,7 +52,7 @@ export class MemberRole extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, projectMemberId };
       const msg = 'Unable to add the member role to the project member';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -70,7 +70,7 @@ export class MemberRole extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, planMemberId };
       const msg = 'Unable to add the member role to the plan member';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -86,7 +86,7 @@ export class MemberRole extends MySqlModel {
     if (!results) {
       const payload = { memberRoleId: this.id, projectMemberId };
       const msg = 'Unable to remove the member role from the project member';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -102,7 +102,7 @@ export class MemberRole extends MySqlModel {
     if (!results) {
       const payload = { memberRoleId: this.id, planMemberId };
       const msg = 'Unable to remove the member role from the plan member';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;

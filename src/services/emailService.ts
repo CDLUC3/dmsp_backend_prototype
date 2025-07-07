@@ -6,7 +6,7 @@ import { MyContext } from "../context";
 import { User } from "../models/User";
 import { awsConfig } from "../config/awsConfig";
 import { emailConfig } from "../config/emailConfig";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { generalConfig } from '../config/generalConfig';
 
 export const emailSubjects = {
@@ -57,8 +57,8 @@ const sendEmail = async (
   if (['development'].includes(process.env.NODE_ENV)) {
     // When running in development mode, we do not have access to AWS SES and we probably don't want to
     // actually send emails to people by accident so so just log the message
-    formatLogMessage(context).info(
-      { toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML },
+    context.logger.info(
+      prepareObjectForLogs({ toAddresses, ccAddresses, bccAddresses, subjectLine, message, asHTML }),
       `Logging email notification of type '${emailType}' because we are in ${process.env.NODE_ENV} mode`
     );
     return true;
@@ -75,7 +75,7 @@ const sendEmail = async (
       bcc: bccAddresses.join(', '),
       subject: subjectLine,
     };
-    formatLogMessage(context).debug(options, `Preparing to send ${emailType} email`);
+    context.logger.debug(prepareObjectForLogs(options), `Preparing to send ${emailType} email`);
 
     try {
       // Send as HTML (default) or text depending on what was specified
@@ -85,11 +85,11 @@ const sendEmail = async (
         response = await transporter.sendMail({ ...options, text: message });
       }
       const logInfo = { id: response?.messageId, to: toAddresses, subject: subject };
-      formatLogMessage(context).info(logInfo, `${emailType} email sent`);
+      context.logger.info(prepareObjectForLogs(logInfo), `${emailType} email sent`);
 
       return true;
     } catch (err) {
-      formatLogMessage(context).fatal(err, `Unable to send ${emailType} email`);
+      context.logger.error(prepareObjectForLogs({ err, options }), `Unable to send ${emailType} email`);
     }
     return false;
   }

@@ -4,9 +4,9 @@ import { Cache } from "../../datasources/cache";
 import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../../services/tokenService';
 import casual from 'casual';
 import { signoutController } from '../signoutController';
-import { logger } from '../../__mocks__/logger';
 import { buildMockContextWithToken } from "../../__mocks__/context";
 import { MyContext } from '../../context';
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
@@ -27,6 +27,7 @@ describe('signoutController', () => {
     context = await buildMockContextWithToken(logger);
 
     mockRequest = {
+      logger: logger,
       auth: { jti: casual.integer(1, 99999).toString() },
       cookies: { dmspt: casual.uuid },
     };

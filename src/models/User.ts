@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import {capitalizeFirstLetter, formatORCID, getCurrentDate, isNullOrUndefined, validateEmail} from '../utils/helpers';
 import { buildContext } from '../context';
-import { logger, formatLogMessage } from '../logger';
+import { logger, prepareObjectForLogs } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
@@ -169,13 +169,14 @@ export class User extends MySqlModel {
     // If the user was found, check the password
     // TODO: Add logic to lock the account after too many failures
 
-    // Otherwise check the password
-    if (user && await bcrypt.compare(password, user.password)) {
-      formatLogMessage(context).debug(`Successful authCheck for ${email}`);
-      return user.id;
+      // Otherwise check the password
+      if (users[0] && await bcrypt.compare(password, users[0].password)) {
+        context.logger.debug(`Successful authCheck for ${email}`);
+        return users[0].id;
+      }
     }
 
-    formatLogMessage(context).debug(`Failed authCheck for ${email}`);
+    context.logger.debug(`Failed authCheck for ${email}`);
     return null;
   }
 
@@ -256,7 +257,7 @@ export class User extends MySqlModel {
       reference,
     );
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 
@@ -321,7 +322,7 @@ export class User extends MySqlModel {
       reference,
     )
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 
@@ -336,7 +337,7 @@ export class User extends MySqlModel {
       }
     }
     // This recordSignIn could not update the record for some reason
-    formatLogMessage(context).error(null, `recordSignIn failed for user ${this.id}`);
+    context.logger.error(`recordSignIn failed for user ${this.id}`);
     return false;
   }
 
@@ -351,7 +352,7 @@ export class User extends MySqlModel {
 
     try {
       const userId = await User.authCheck('User.login', context, email, this.password);
-      formatLogMessage(context)?.debug({ userId }, 'User.login:');
+      context.logger.debug(prepareObjectForLogs({ userId }), 'User.login');
       if (userId) {
         const existing = await User.findById('User.login', context, userId);
 
@@ -363,7 +364,7 @@ export class User extends MySqlModel {
       }
       return null;
     } catch (err) {
-      formatLogMessage(context).error({ err, email: email }, 'Error logging in User');
+      context.logger.error(prepareObjectForLogs({ err, email: this.email }), 'Error logging in User');
       return null;
     }
   }
@@ -404,15 +405,16 @@ export class User extends MySqlModel {
                      VALUES(?, ?, ?, ?, ?, ?)`;
         const vals = [this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
         const context = buildContext(logger);
-        formatLogMessage(context)?.debug({ email: email }, 'User.register');
+        context.logger.debug(prepareObjectForLogs({ email: this.email }), 'User.register');
         const result = await User.query(context, sql, vals, 'User.register');
 
         if (!Array.isArray(result) || !result[0].insertId) {
           this.addError('general', 'Unable to register your account');
           return this;
         }
-        formatLogMessage(context).debug(
-          { email: email, userId: result[0].insertId }, 'User was created'
+        context.logger.debug(
+          prepareObjectForLogs({ email: this.email, userId: result[0].insertId }),
+          'User was created'
         );
 
         // Fetch the new record
@@ -426,20 +428,16 @@ export class User extends MySqlModel {
         // Add the email to the UserEmail table and send out a 'please confirm' email
         const userEmail = new UserEmail({ userId: user.id, email: email, isPrimary: true });
         if (!await userEmail.create(context)){
-          formatLogMessage(context).error({ email: userEmail }, 'User.register - unable to add UserEmail!');
-          // I don't believe this should happen often if at all since we previously
-          // checked that the email did not already exist (unless the database goes down)
-          // or was modified by another process in a brief time.
-          throw new Error('Unable to add UserEmail record during registration');
+          context.logger.error(prepareObjectForLogs({ userEmail }), 'user.register - unable to add UserEmail');
         }
 
         return user;
       } catch (err) {
-        formatLogMessage(context)?.error({ err, email: email }, 'Error creating User');
+        context.logger.error(prepareObjectForLogs({ err, email: this.email }), 'Error creating User');
         return null;
       }
     } else {
-      formatLogMessage(context)?.debug({ email: email, errors: this.errors }, 'Invalid user');
+      context.logger.debug(prepareObjectForLogs({ email: this.email, errors: this.errors }), 'Invalid user');
       return this;
     }
   }
@@ -454,7 +452,7 @@ export class User extends MySqlModel {
           // If the user is an ADMIN then demote them to RESEARCHER
           if (this.role === UserRole.ADMIN) {
             const msg = `User.update Admin changed affiliation so their role must change to Researcher`;
-            formatLogMessage(context).info({ userId: this.id}, msg);
+            context.logger.info(prepareObjectForLogs({ userId: this.id, email: this.email }), msg);
             this.role = UserRole.RESEARCHER;
           }
 

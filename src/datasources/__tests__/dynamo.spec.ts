@@ -5,7 +5,7 @@ import { getDMP, updateDMP, createDMP, tombstoneDMP, deleteDMP } from "../dynamo
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
 import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 
 let context: MyContext;
 let dmp: DMPCommonStandard;

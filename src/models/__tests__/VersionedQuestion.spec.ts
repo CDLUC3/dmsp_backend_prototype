@@ -1,9 +1,9 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
 import { buildMockContextWithToken } from "../../__mocks__/context";
 import { VersionedQuestion } from "../VersionedQuestion";
 import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 

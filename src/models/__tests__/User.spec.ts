@@ -4,10 +4,10 @@ import { normaliseHttpProtocol } from "../../utils/helpers";
 import { LogInType, User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
-import { logger } from '../../__mocks__/logger';
 import { defaultLanguageId, supportedLanguages } from '../Language';
 import { buildContext, mockToken, buildMockContextWithToken } from '../../__mocks__/context';
 import { getRandomEnumValue } from '../../__tests__/helpers';
+import { logger } from "../../logger";
 import { UserEmail } from '../UserEmail';
 
 jest.mock('../../context.ts');

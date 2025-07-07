@@ -2,7 +2,6 @@ import casual from 'casual';
 import jwt, { Jwt } from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { Response } from 'express';
-import { logger } from '../../__mocks__/logger';
 import { User, UserRole } from '../../models/User';
 import { DEFAULT_INTERNAL_SERVER_MESSAGE, DEFAULT_UNAUTHORIZED_MESSAGE } from '../../utils/graphQLErrors';
 import { Cache } from '../../datasources/cache';
@@ -19,6 +18,7 @@ import {
 } from '../tokenService'; // assuming the original code is in auth.ts
 import { buildContext, mockToken, MockCache } from '../../__mocks__/context';
 import { defaultLanguageId } from '../../models/Language';
+import { logger } from "../../logger";
 
 jest.mock('jsonwebtoken');
 jest.mock('../../datasources/cache');
@@ -163,14 +163,14 @@ describe('generateCSRFToken', () => {
 
   it('should generate a CSRF token and store the hashed version in the cache', async () => {
     jest.spyOn(mockCache.adapter, 'set');
-    expect(await generateCSRFToken(mockCache)).toBeTruthy();
+    expect(await generateCSRFToken(mockCache.adapter)).toBeTruthy();
   });
 
   it('should return null if it is unable to store the CSRF token in the cache', async () => {
     const mockError = new Error('test CSRF failure');
     jest.spyOn(mockCache.adapter, 'set').mockImplementation(() => { throw mockError; });
 
-    expect(await generateCSRFToken(mockCache)).toEqual(null);
+    expect(await generateCSRFToken(mockCache.adapter)).toEqual(null);
     expect(logger.error).toHaveBeenLastCalledWith(mockError, 'generateCSRFToken error!');
   });
 });
@@ -180,7 +180,7 @@ describe('generateAuthTokens', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache.adapter);
   });
 
   it('should generate access and refresh tokens', async () => {
@@ -218,7 +218,7 @@ describe('verifyCSRFToken', () => {
 
     jest.spyOn(mockCache.adapter, 'get').mockResolvedValue(hashed);
 
-    expect(await verifyCSRFToken(mockCache, token)).toBe(true);
+    expect(await verifyCSRFToken(mockCache.adapter, token)).toBe(true);
   });
 
   it('returns false when the CSRF token does NOT match the hashed token in the cache', async () => {
@@ -289,7 +289,7 @@ describe('refreshAccessToken', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache.adapter);
   });
 
   it('should refresh the access token if refresh token is valid', async () => {
@@ -367,7 +367,7 @@ describe('revokeRefreshToken', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache.adapter);
   });
 
   it('should delete the token from the cache', async () => {
@@ -386,8 +386,8 @@ describe('revokeRefreshToken', () => {
 
     const expectedErr = `${DEFAULT_INTERNAL_SERVER_MESSAGE} - Test error`;
     await expect(() => revokeRefreshToken(context, 'mock-token')).rejects.toThrow(expectedErr);
-    const thrownErr = `revokeRefreshToken unable to delete token from cache - Test error`;
-    expect(logger.error).toHaveBeenCalledWith(mockError, thrownErr);
+    const thrownErr = `revokeRefreshToken - unable to delete token from cache`;
+    expect(logger.error).toHaveBeenCalledWith({}, thrownErr);
   });
 });
 
@@ -396,7 +396,7 @@ describe('revokeAccessToken', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = buildContext(logger, mockToken(), mockCache.adapter);
   });
 
   it('should add the token to the cache black list', async () => {
@@ -416,7 +416,7 @@ describe('revokeAccessToken', () => {
 
     const expectedErr = `${DEFAULT_INTERNAL_SERVER_MESSAGE} - Test error`;
     await expect(() => revokeAccessToken(context, mockJti)).rejects.toThrow(expectedErr);
-    const thrownErr = `revokeAccessToken unable to add token to black list - Test error`;
-    expect(logger.error).toHaveBeenCalledWith(mockError, thrownErr);
+    const thrownErr = `revokeAccessToken - unable to add token to black list`;
+    expect(logger.error).toHaveBeenCalledWith({}, thrownErr);
   });
 });

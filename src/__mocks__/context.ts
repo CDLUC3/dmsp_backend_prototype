@@ -2,7 +2,7 @@ import { Logger } from "pino";
 import { JWTAccessToken } from "../services/tokenService";
 import { MyContext } from "../context";
 import { Authorizer, DMPHubAPI } from "../datasources/dmphubAPI";
-import { mysql } from "../datasources/mysql";
+import { MySQLConnection } from "../datasources/mysql";
 import { User, UserRole } from "../models/User";
 import casual from "casual";
 import { defaultLanguageId } from "../models/Language";
@@ -10,11 +10,13 @@ import { defaultLanguageId } from "../models/Language";
 jest.mock('../datasources/mysql', () => {
   return {
     __esModule: true,
-    mysql: {
-      getInstance: jest.fn().mockReturnValue({
-        query: jest.fn(),
-      }),
-    },
+    MySQLConnection: jest.fn().mockImplementation(() => ({
+      pool: null,
+      getConnection: jest.fn(),
+      releaseConnection: jest.fn(),
+      close: jest.fn(),
+      query: jest.fn()
+    }))
   };
 });
 
@@ -45,17 +47,6 @@ jest.mock('../datasources/dmphubAPI', () => {
   };
 });
 
-jest.spyOn(mysql, 'getInstance').mockImplementation(function () {
-  this.pool = null;
-  this.connection = null;
-  this.initializePool = jest.fn();
-  this.getConnection = jest.fn();
-  this.releaseConnection = jest.fn();
-  this.close = jest.fn();
-  this.query = jest.fn();
-  return this;
-});
-
 // Mock Cache for testing, just has a local storage hash
 let mockCacheStore = {};
 // eslint-disable-next-line  @typescript-eslint/no-extraneous-class
@@ -84,7 +75,7 @@ export class MockCache {
   }
 }
 
-const mockedMysqlInstance = mysql.getInstance();
+export const mockedMysqlInstance = new MySQLConnection();
 
 // Generate a mock user
 export const mockUser = (

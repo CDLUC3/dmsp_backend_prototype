@@ -5,12 +5,11 @@ import { cloneTemplate, generateTemplateVersion, hasPermissionOnTemplate } from 
 import { TemplateCollaborator } from '../../models/Collaborator';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isSuperAdmin } from '../authService';
-import { logger } from '../../__mocks__/logger';
-import { mysql } from '../../datasources/mysql';
 import { buildContext, mockToken } from '../../__mocks__/context';
 import { Section } from '../../models/Section';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { getCurrentDate } from '../../utils/helpers';
+import { logger } from '../../logger';
 
 // Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
@@ -35,11 +34,6 @@ describe('hasPermissionOnTemplate', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (mysql.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
 
     context = buildContext(logger, mockToken());
 

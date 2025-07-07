@@ -8,9 +8,8 @@ import { signupController } from '../signupController';
 import { defaultLanguageId } from '../../models/Language';
 import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
-import { logger } from '../../__mocks__/logger';
-import { buildMockContextWithToken } from "../../__mocks__/context";
-import { mockUser as mockUserFn } from '../../__mocks__/context';
+import { buildContext, mockToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
@@ -76,6 +75,7 @@ describe('signupController', () => {
     context = await buildMockContextWithToken(logger, mockUser);
 
     mockRequest = {
+      logger: logger,
       body: {
         email: casual.email,
         givenName: casual.first_name,

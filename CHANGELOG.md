@@ -3,6 +3,7 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added a new MySQL container to host the test DB to the docker compose stack
 - Added JSON column `questionType` to `questions` and `versionedQuestions` tables
 - Added JSON column `json` to the `answers` table
 - Added the new [@dmptool/types](https://github.com/CDLUC3/dmptool-types) package 
@@ -92,6 +93,11 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Refactor the way we initialize the pino Logger and pass it around. Also removed the old `formatLogMessage` function and replaced with `prepareObjectForLogs`
+- Consolidated handling of the Cache, so that we always pass the `adapter`
+- Updated `mysqlConfig` to use the new test DB when running in `test` mode
+- Refactored `mysql` datasource to properly use a connection pool. Updated the `index.ts` to initialize the connection pool and then pass it, the dmpHubAPI, cache and logger around properly.
+- Updated `data-migrations` scripts to work with new test MySQL DB in  the docker compose stack
 - Updated the `Question` schema to allow `questionJSON: String` to be used in GraphQL query
 - Updated `Question` model to access `questionJSON` input, parse the JSON using the Zod schemas provided by `@dmptool/types`, and populate the `questionType` with the parsed JSON.
 - Updated cursor pagination to always return `null` for `nextCursor` if we are at the end of the results
@@ -151,6 +157,7 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Dropped FKeys on `users` and `affiliations`
 - Dropped `questionTypes` and `questionOptions` tables
 - Dropped the `questionTypeId` field from the `questions` and `versionedQuestions` tables
 - Dropped the `answerText` field from `answers`

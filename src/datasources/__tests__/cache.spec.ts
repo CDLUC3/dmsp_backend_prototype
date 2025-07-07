@@ -2,9 +2,9 @@ import { Cache } from '../cache';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';
 import { KeyvAdapter } from '@apollo/utils.keyvadapter';
-import { logger } from '../../__mocks__/logger';
 import { cacheConfig } from '../../config/cacheConfig';
 import Redis from 'ioredis';
+import { logger } from "../../logger";
 
 jest.mock('ioredis', () => (
   jest.fn(() => {

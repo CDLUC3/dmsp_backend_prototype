@@ -2,7 +2,7 @@ import { InitializePlanVersionOutput, Resolvers } from "../types";
 import { MyContext } from "../context";
 import { ForbiddenError, NotFoundError, InternalServerError } from "../utils/graphQLErrors";
 import { isSuperAdmin } from "../services/authService";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined, valueIsEmpty } from "../utils/helpers";
 import { addVersion, findVersionByTimestamp, hasLatestVersion, latestVersion } from "../models/PlanVersion";
 import { Plan } from "../models/Plan";
@@ -33,7 +33,7 @@ export const resolvers: Resolvers = {
         }
         throw NotFoundError();
       } catch (err) {
-        formatLogMessage(context).error(err, `${reference} Error fetching plan version from DynamoDB`);
+        context.logger.error(prepareObjectForLogs(err), `${reference} error fetching plan version from DynamoDB`);
         throw InternalServerError();
       }
     }
@@ -67,13 +67,13 @@ export const resolvers: Resolvers = {
             planIds.push(plan.id);
           }
         })).catch((err) => {
-          formatLogMessage(context).error(err, `${reference} Error processing PlanVersion records`);
+          context.logger.error(prepareObjectForLogs(err), `${reference} error processing PlanVersion records`);
           throw InternalServerError();
         });
 
         return { count, planIds };
       } catch (err) {
-        formatLogMessage(context).error(err, `${reference} Error initializing PlanVersion records`);
+        context.logger.error(prepareObjectForLogs(err), `${reference} error initializing PlanVersion records`);
         throw InternalServerError();
       }
     }

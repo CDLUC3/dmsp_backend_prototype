@@ -1,9 +1,9 @@
 import casual from "casual";
 import { Affiliation, AffiliationSearch, PopularFunder } from "../Affiliation";
-import { logger } from '../../__mocks__/logger';
 import { buildMockContextWithToken } from "../../__mocks__/context";
 import { DMPHubConfig } from "../../config/dmpHubConfig";
 import { generalConfig } from "../../config/generalConfig";
+import { logger } from "../../logger";
 
 let context;
 jest.mock('../../context.ts');

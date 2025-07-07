@@ -2,7 +2,7 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
@@ -383,7 +383,7 @@ export class AffiliationSearch {
       reference,
     )
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 }

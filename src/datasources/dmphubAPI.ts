@@ -1,13 +1,13 @@
 import { Buffer } from "buffer";
 import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
-import type { KeyValueCache } from '@apollo/utils.keyvaluecache';
-import { formatLogMessage, logger } from '../logger';
+import { logger, prepareObjectForLogs } from '../logger';
 import { DMPHubConfig } from '../config/dmpHubConfig';
 import { JWTAccessToken } from '../services/tokenService';
 import { MyContext } from "../context";
 import { GraphQLError } from "graphql";
 import { DMPCommonStandard, DMPCommonStandardContact, DMPCommonStandardContributor, DMPCommonStandardProject } from "../types/DMP";
 import { isNullOrUndefined } from "../utils/helpers";
+import {KeyvAdapter} from "@apollo/utils.keyvadapter";
 
 // Singleton class that retrieves an Auth token from the API
 export class Authorizer extends RESTDataSource {
@@ -72,11 +72,11 @@ export class DMPHubAPI extends RESTDataSource {
   override baseURL = DMPHubConfig.dmpHubURL;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private cache: KeyValueCache;
+  private cache: KeyvAdapter;
   private token: JWTAccessToken;
   private authorizer: Authorizer;
 
-  constructor(options: { cache: KeyValueCache, token: JWTAccessToken }) {
+  constructor(options: { cache: KeyvAdapter, token: JWTAccessToken }) {
     super(options);
 
     this.token = options.token;
@@ -111,20 +111,20 @@ export class DMPHubAPI extends RESTDataSource {
       const sanitizedVersion = `?version=${encodeURI(version)}`;
       const path = `dmps/${sanitizedDOI}${sanitizedVersion}`;
 
-      formatLogMessage(context).debug(`${reference} Calling DMPHub Get: ${this.baseURL}/${path}`)
+      context.logger.debug(`${reference} calling DMPHub Get: ${this.baseURL}/${path}`);
       const response = await this.get(path);
 
       if (response?.status === 200 && Array.isArray(response?.items) && response?.items?.length > 0) {
         return response.items[0]?.dmp as DMPCommonStandard;
       }
 
-      formatLogMessage(context).error(
-        { dmp_id, code: response?.status, errs: response?.errors },
+      context.logger.error(
+        prepareObjectForLogs({ dmp_id, code: response?.status, errs: response?.errors }),
         'Error retrieving DMP from DMPHub API'
       );
       return null;
     } catch(err) {
-      formatLogMessage(context).error({ dmp_id, err }, 'Error calling DMPHub API getDMP.');
+      context.logger.error(prepareObjectForLogs({ dmp_id, err }), 'Error calling DMPHub API getDMP');
       throw(err);
     }
   }
@@ -137,14 +137,14 @@ export class DMPHubAPI extends RESTDataSource {
   ): Promise<DMPCommonStandard> {
     try {
       const path = `dmps`;
-      formatLogMessage(context).debug(`${reference} Calling DMPHub Create: ${this.baseURL}/${path}`)
+      context.logger.debug(`${reference} calling DMPHub Create: ${this.baseURL}/${path}`);
       const response = await this.post(path, { body: JSON.stringify({ dmp }) });
       if (response?.status === 201 && Array.isArray(response?.items) && response?.items?.length > 0) {
         return response.items[0]?.dmp as DMPCommonStandard;
       }
       return null;
     } catch(err) {
-      formatLogMessage(context).error({ dmp, err }, 'Error calling DMPHub API createDMP.');
+      context.logger.error(prepareObjectForLogs({ dmp, err }), 'Error calling DMPHub API createDMP');
       throw(err);
     }
   }
@@ -157,7 +157,7 @@ export class DMPHubAPI extends RESTDataSource {
   ): Promise<DMPCommonStandard> {
     try {
       const path = `dmps/${encodeURI(this.removeProtocol(dmp.dmp_id.identifier))}`;
-      formatLogMessage(context).debug(`${reference} Calling DMPHub Update: ${this.baseURL}/${path}`)
+      context.logger.debug(`${reference} calling DMPHub Update: ${this.baseURL}/${path}`);
 
       const response = await this.put(path, { body: JSON.stringify({ dmp }) });
       if (response?.status === 200 && Array.isArray(response?.items) && response?.items?.length > 0) {
@@ -165,7 +165,7 @@ export class DMPHubAPI extends RESTDataSource {
       }
       return null;
     } catch(err) {
-      formatLogMessage(context).error({ dmp, err }, 'Error calling DMPHub API updateDMP.');
+      context.logger.error(prepareObjectForLogs({ dmp, err }), 'Error calling DMPHub API updateDMP');
       throw(err);
     }
   }
@@ -178,7 +178,7 @@ export class DMPHubAPI extends RESTDataSource {
   ): Promise<DMPCommonStandard> {
     try {
       const path = `dmps/${encodeURI(this.removeProtocol(dmp.dmp_id.identifier))}`;
-      formatLogMessage(context).debug(`${reference} Calling DMPHub Tombstone: ${this.baseURL}/${path}`)
+      context.logger.debug(`${reference} calling DMPHub Tombstone: ${this.baseURL}/${path}`);
 
       const response = await this.delete(path);
       if (response?.status === 200 && Array.isArray(response?.items) && response?.items?.length > 0) {
@@ -186,7 +186,7 @@ export class DMPHubAPI extends RESTDataSource {
       }
       return null;
     } catch(err) {
-      formatLogMessage(context).error({ dmp, err }, 'Error calling DMPHub API tombstoneDMP.');
+      context.logger.error(prepareObjectForLogs({ dmp, err }), 'Error calling DMPHub API tombstoneDMP');
       throw(err);
     }
   }
@@ -196,7 +196,7 @@ export class DMPHubAPI extends RESTDataSource {
     try {
       // If we don't have a cached version, call the API
       const path = `dmps/validate`;
-      formatLogMessage(context).debug(`${reference} Calling DMPHub: ${this.baseURL}/${path}`)
+      context.logger.debug(`${reference} Calling DMPHub: ${this.baseURL}/${path}`);
 
       const response = await this.post(path, { body: JSON.stringify({ dmp: dmp }) });
       if (response?.status === 400 && Array.isArray(response?.errors) && response?.errors?.length > 0) {
@@ -217,7 +217,7 @@ export class DMPHubAPI extends RESTDataSource {
         }
       }
 
-      formatLogMessage(context).error({ dmp, err }, 'Error calling DMPHub API validate.');
+      context.logger.error(prepareObjectForLogs({ dmp, err }), 'Error calling DMPHub API validate');
       throw(err);
     }
   }
@@ -269,20 +269,20 @@ export class DMPHubAPI extends RESTDataSource {
       }
 
       const fullUrl = `${this.baseURL}/${path}`;
-      formatLogMessage(context).debug(`${reference} Calling DMPHub getAwards: ${fullUrl}`)
+      context.logger.debug(`${reference} calling DMPHub getAwards: ${fullUrl}`);
       const response = await this.get(path);
       if (response?.status === 200 && Array.isArray(response?.items)) {
-        formatLogMessage(context).debug(response.items, `${reference} Results from DMPHub getAwards: ${fullUrl}`);
+        context.logger.debug(prepareObjectForLogs({ items: response.items }), `${reference} results from DMPHub getAwards: ${fullUrl}`);
         return response.items as DMPHubAward[];
       }
 
-      formatLogMessage(context).error(
-        {  code: response?.status, errs: response?.errors },
+      context.logger.error(
+        prepareObjectForLogs({ code: response?.status, errs: response?.errors }),
         `${reference} Error retrieving Awards from DMPHub API`
       );
       return null;
     } catch(err) {
-      formatLogMessage(context).error({ err }, `${reference} Error calling DMPHub API getAwards.`);
+      context.logger.error(prepareObjectForLogs(err), `${reference} error calling DMPHub API getAwards`);
       throw(err);
     }
   }

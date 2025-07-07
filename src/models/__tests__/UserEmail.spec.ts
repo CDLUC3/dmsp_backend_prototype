@@ -1,6 +1,6 @@
 import casual from "casual";
 import { buildMockContextWithToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { logger } from "../../logger";
 import { User } from "../User";
 import { UserEmail } from "../UserEmail";
 import { TemplateCollaborator } from "../Collaborator";

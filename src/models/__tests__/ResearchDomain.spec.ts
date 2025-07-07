@@ -1,8 +1,8 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
 import { buildMockContextWithToken } from "../../__mocks__/context";
 import { ResearchDomain } from "../ResearchDomain";
 import { generalConfig } from "../../config/generalConfig";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 

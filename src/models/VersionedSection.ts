@@ -3,7 +3,7 @@ import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
 import { Tag } from "../models/Tag";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 import { TemplateVersionType } from "./VersionedTemplate";
 
@@ -94,7 +94,7 @@ export class VersionedSectionSearchResult {
       reference,
     )
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 }
@@ -226,7 +226,7 @@ export class VersionedSection extends MySqlModel {
       reference,
     )
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 }
