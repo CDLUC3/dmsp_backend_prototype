@@ -16,13 +16,13 @@ import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { buildContext, mockToken, MockCache } from "../../__mocks__/context";
 import { logger } from "../../logger";
-import {
-  buildContext,
-  mockToken,
-  MockCache,
-  mockUser,
-  buildMockContextWithToken
-} from "../../__mocks__/context";
+// import {
+//   buildContext,
+//   mockToken,
+//   MockCache,
+//   mockUser,
+//   buildMockContextWithToken
+// } from "../../__mocks__/context";
 
 jest.mock('../../datasources/cache');
 jest.mock('../../datasources/dmphubAPI');
@@ -130,7 +130,8 @@ beforeEach(async() => {
   jest.clearAllMocks();
 
   // context = buildContext(logger, mockToken(), mockCache);
-  context = await buildMockContextWithToken(logger, mockUser(), mockCache);
+  // context = await buildMockContextWithToken(logger, mockUser(), mockCache);
+  context = buildContext(logger, mockToken(), mockCache.adapter);
 
   mockedUserData = {
     email: casual.email,

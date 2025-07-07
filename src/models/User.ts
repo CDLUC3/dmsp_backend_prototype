@@ -160,7 +160,7 @@ export class User extends MySqlModel {
     const userEmail = userEmails[0];
 
     if (!userEmail || (!userEmail.isPrimary && !userEmail.isConfirmed)) {
-      formatLogMessage(context).debug(`No primary or confirmed UserEmail found for ${email}`);
+      context.logger.debug(`No primary or confirmed UserEmail found for ${email}`);
       return null;
     }
 
@@ -170,11 +170,10 @@ export class User extends MySqlModel {
     // TODO: Add logic to lock the account after too many failures
 
       // Otherwise check the password
-      if (users[0] && await bcrypt.compare(password, users[0].password)) {
+      if (user && await bcrypt.compare(password, user.password)) {
         context.logger.debug(`Successful authCheck for ${email}`);
-        return users[0].id;
+        return user.id;
       }
-    }
 
     context.logger.debug(`Failed authCheck for ${email}`);
     return null;
@@ -364,7 +363,7 @@ export class User extends MySqlModel {
       }
       return null;
     } catch (err) {
-      context.logger.error(prepareObjectForLogs({ err, email: this.email }), 'Error logging in User');
+      context.logger.error(prepareObjectForLogs({ err, email: email }), 'Error logging in User');
       return null;
     }
   }
@@ -405,7 +404,7 @@ export class User extends MySqlModel {
                      VALUES(?, ?, ?, ?, ?, ?)`;
         const vals = [this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
         const context = buildContext(logger);
-        context.logger.debug(prepareObjectForLogs({ email: this.email }), 'User.register');
+        context.logger.debug(prepareObjectForLogs({ email: email }), 'User.register');
         const result = await User.query(context, sql, vals, 'User.register');
 
         if (!Array.isArray(result) || !result[0].insertId) {
@@ -413,7 +412,7 @@ export class User extends MySqlModel {
           return this;
         }
         context.logger.debug(
-          prepareObjectForLogs({ email: this.email, userId: result[0].insertId }),
+          prepareObjectForLogs({ email: email, userId: result[0].insertId }),
           'User was created'
         );
 
@@ -433,11 +432,11 @@ export class User extends MySqlModel {
 
         return user;
       } catch (err) {
-        context.logger.error(prepareObjectForLogs({ err, email: this.email }), 'Error creating User');
+        context.logger.error(prepareObjectForLogs({ err, email: email }), 'Error creating User');
         return null;
       }
     } else {
-      context.logger.debug(prepareObjectForLogs({ email: this.email, errors: this.errors }), 'Invalid user');
+      context.logger.debug(prepareObjectForLogs({ email: email, errors: this.errors }), 'Invalid user');
       return this;
     }
   }
@@ -452,7 +451,7 @@ export class User extends MySqlModel {
           // If the user is an ADMIN then demote them to RESEARCHER
           if (this.role === UserRole.ADMIN) {
             const msg = `User.update Admin changed affiliation so their role must change to Researcher`;
-            context.logger.info(prepareObjectForLogs({ userId: this.id, email: this.email }), msg);
+            context.logger.info(prepareObjectForLogs({ userId: this.id }), msg);
             this.role = UserRole.RESEARCHER;
           }
 
