@@ -14,7 +14,7 @@ import { verifyAccessToken } from '../../services/tokenService';
 import { defaultLanguageId } from '../../models/Language';
 import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
-import { buildContext, mockToken, MockCache } from "../../__mocks__/context";
+import { buildContext, mockToken, mockUser, MockCache, buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 // import {
 //   buildContext,
@@ -131,7 +131,8 @@ beforeEach(async() => {
 
   // context = buildContext(logger, mockToken(), mockCache);
   // context = await buildMockContextWithToken(logger, mockUser(), mockCache);
-  context = buildContext(logger, mockToken(), mockCache.adapter);
+  context = await buildMockContextWithToken(logger, mockUser(), mockCache.adapter);
+  // context = buildContext(logger, mockToken(), mockCache.adapter);
 
   mockedUserData = {
     email: casual.email,
