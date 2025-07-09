@@ -8,8 +8,9 @@ import { signupController } from '../signupController';
 import { defaultLanguageId } from '../../models/Language';
 import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildContext, mockToken, buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
+import { mockUser as mockUserFn } from '../../__mocks__/context';
 
 jest.mock('../../context.ts');
 
