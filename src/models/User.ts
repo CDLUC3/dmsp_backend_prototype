@@ -398,7 +398,6 @@ export class User extends MySqlModel {
       this.password = passwordHash
 
       try {
-        // TODO: this needs different logic for the email insertion
         const sql = `INSERT INTO users \
                       (password, role, givenName, surName, affiliationId, acceptedTerms) \
                      VALUES(?, ?, ?, ?, ?, ?)`;
@@ -432,8 +431,9 @@ export class User extends MySqlModel {
 
         return user;
       } catch (err) {
+        this.addError('general', 'There was an error creating user');
         context.logger.error(prepareObjectForLogs({ err, email: email }), 'Error creating User');
-        return null;
+        return this;
       }
     } else {
       context.logger.debug(prepareObjectForLogs({ email: email, errors: this.errors }), 'Invalid user');

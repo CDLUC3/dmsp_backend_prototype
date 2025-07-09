@@ -286,21 +286,25 @@ describe('authCheck', () => {
   it('it returns null if there is no User for the specified email', async () => {
     const email = casual.email;
     const password = 'Abcd3Fgh1jkL$';
+    (UserEmail.findByEmail as jest.Mock).mockResolvedValue([]);
     mockQuery.mockResolvedValueOnce([])
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
-    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(1);
   });
 
   it('it returns null if the password does not match', async () => {
     const email = casual.email;
     const password = 'Abcd3Fgh1jkL$';
+    (UserEmail.findByEmail as jest.Mock).mockResolvedValue([
+      new UserEmail({ userId: 12345, isPrimary: true, isConfirmed: true, email: email})
+    ]);
     mockQuery.mockResolvedValueOnce([mockUser]);
 
     bcryptCompare = jest.fn().mockResolvedValue(false);
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
-    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(1);
   });
 
   it('it returns the user\'s id if the password matched', async () => {
@@ -309,35 +313,40 @@ describe('authCheck', () => {
     mockUser.id = 12345;
     // mockQuery.mockResolvedValueOnce([mockUser]);
 
-    (UserEmail.findByEmail as jest.Mock).mockResolvedValue([mockUserEmail]);
-    jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
-    (User.findById as jest.Mock).mockResolvedValue(mockUser);
-    // (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    (UserEmail.findByEmail as jest.Mock).mockResolvedValueOnce([
+      { userId: mockUser.id, isPrimary: true, isConfirmed: true, email: email }
+    ]);
 
-    bcryptCompare = jest.fn().mockResolvedValue(true);
+    const mockUserData = { ...mockUser }; // or Object.assign({}, mockUser)
+    mockQuery.mockResolvedValueOnce([mockUserData]);
+
+    // jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+
+    const bcryptCompare = jest.fn().mockResolvedValue(true);
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
-    expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toEqual(12345);
+    const result = await User.authCheck('Testing authCheck', mockContext, email, password);
+    expect(result).toEqual(mockUser.id);
     expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
   });
-});
 
-it('getName returns the user\'s full name', () => {
-  mockUser.givenName = casual.first_name;
-  mockUser.surName = casual.last_name;
-  expect(mockUser.getName()).toEqual(`${mockUser.givenName} ${mockUser.surName}`);
+  it('getName returns the user\'s full name', () => {
+    mockUser.givenName = casual.first_name;
+    mockUser.surName = casual.last_name;
+    expect(mockUser.getName()).toEqual(`${mockUser.givenName} ${mockUser.surName}`);
 
-  mockUser.givenName = null;
-  mockUser.surName = casual.last_name;
-  expect(mockUser.getName()).toEqual(`${mockUser.surName}`);
+    mockUser.givenName = null;
+    mockUser.surName = casual.last_name;
+    expect(mockUser.getName()).toEqual(`${mockUser.surName}`);
 
-  mockUser.givenName = casual.first_name;
-  mockUser.surName = null;
-  expect(mockUser.getName()).toEqual(`${mockUser.givenName}`);
+    mockUser.givenName = casual.first_name;
+    mockUser.surName = null;
+    expect(mockUser.getName()).toEqual(`${mockUser.givenName}`);
 
-  mockUser.givenName = undefined;
-  mockUser.surName = null;
-  expect(mockUser.getName()).toEqual('');
+    mockUser.givenName = undefined;
+    mockUser.surName = null;
+    expect(mockUser.getName()).toEqual('');
+  });
 });
 
 describe('recordLogIn', () => {

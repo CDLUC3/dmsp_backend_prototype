@@ -2,7 +2,7 @@ import casual from 'casual';
 import { Collaborator, ProjectCollaborator, ProjectCollaboratorAccessLevel, TemplateCollaborator } from "../Collaborator";
 import { Template } from '../Template';
 import { User } from '../User';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../../services/emailService';
 import { Project } from '../Project';

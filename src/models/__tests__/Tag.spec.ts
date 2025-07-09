@@ -1,6 +1,6 @@
 import casual from "casual";
 import { Tag } from "../Tag";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 
 let context;

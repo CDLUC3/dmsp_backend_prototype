@@ -15,6 +15,9 @@
     "aws_start": "node ./dist/index.js",
     "prepare": "is-ci || npx husky install"
   },
+  "compilerOptions": {
+    "sourceMap": true
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/CDLUC3/dmsp_backend_prototype.git"
