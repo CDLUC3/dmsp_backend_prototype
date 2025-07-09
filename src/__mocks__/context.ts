@@ -95,8 +95,8 @@ export const mockUser = (
 
 // Generate a mock JWToken
 export const mockToken = async (
-  user = mockUser(),
-  context: MyContext
+  user: User = mockUser(),
+  context?: MyContext
 ): Promise<JWTAccessToken> => {
   const email = await user.getEmail(context);
   return {

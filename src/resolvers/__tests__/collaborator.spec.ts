@@ -3,7 +3,7 @@ import { typeDefs } from "../../schema";
 import { resolvers } from "../../resolver";
 import casual from "casual";
 import assert from "assert";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildContext, mockToken, buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 import { JWTAccessToken } from "../../services/tokenService";
 
@@ -31,6 +31,7 @@ async function executeQuery (
   token: JWTAccessToken
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
+  // const context = await buildMockContextWithToken(logger, token, null);
   const context = buildContext(logger, token, null);
 
   return await testServer.executeOperation(
@@ -39,7 +40,7 @@ async function executeQuery (
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
   // Initialize the Apollo server
@@ -65,7 +66,7 @@ beforeEach(() => {
   affiliationId = casual.url;
   templateId = templateCollaboratorStore[0].templateId;
 
-  adminToken = mockToken();
+  adminToken = await mockToken();
   adminToken.affiliationId = affiliationId;
   adminToken.role = UserRole.ADMIN;
 
@@ -137,7 +138,7 @@ describe.skip('templateCollaborators query', () => {
 
   it('returns a 403 when the user is not an Admin', async () => {
     // Make the user an Researcher
-    const token = mockToken();
+    const token = await mockToken();
     token.affiliationId = affiliationId;
     token.role = UserRole.RESEARCHER.toString();
 
@@ -262,7 +263,7 @@ describe.skip('addTemplateCollaborator mutation', () => {
 
   it('returns a 403 when the user is not an Admin', async () => {
     // Make the user an Researcher
-    const token = mockToken();
+    const token = await mockToken();
     token.affiliationId = affiliationId;
     token.role = UserRole.RESEARCHER.toString();
 
@@ -358,7 +359,7 @@ describe.skip('removeTemplateCollaborator mutation', () => {
 
   it('returns a 403 when the user is not an Admin', async () => {
     // Make the user an Researcher
-    const token = mockToken();
+    const token = await mockToken();
     token.affiliationId = affiliationId;
     token.role = UserRole.RESEARCHER.toString();
 
