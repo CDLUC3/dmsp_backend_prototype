@@ -221,13 +221,13 @@ describe('confirmEmail', () => {
     mockUserEmail = new UserEmail({ id: casual.integer(1, 99), email: casual.email, userId: mockUser.id });
 
     mockOtherEmails = [
-      new UserEmail({ id: 1, email: mockUser.email, userId: casual.integer(99991, 999999) }),
-      new UserEmail({ id: 2, email: mockUser.email, userId: casual.integer(99991, 999999) }),
+      new UserEmail({ id: 1, email: mockUserEmail.email, userId: casual.integer(99991, 999999) }),
+      new UserEmail({ id: 2, email: mockUserEmail.email, userId: casual.integer(99991, 999999) }),
     ];
 
     mockTemplateCollaborators = [
-      new TemplateCollaborator({ id: 1, email: mockUser.email, templateId: casual.integer(1, 999) }),
-      new TemplateCollaborator({ id: 2, email: mockUser.email, templateId: casual.integer(1, 999) }),
+      new TemplateCollaborator({ id: 1, email: mockUserEmail.email, templateId: casual.integer(1, 999) }),
+      new TemplateCollaborator({ id: 2, email: mockUserEmail.email, templateId: casual.integer(1, 999) }),
     ]
 
     mockFindUserEmailById = jest.fn();
@@ -295,10 +295,18 @@ describe('confirmEmail', () => {
     mockFindTemplateCollaboratorById.mockResolvedValue(mockTemplateCollaborators[0]);
     mockUpdateTemplateCollaborator.mockResolvedValue(mockTemplateCollaborators[0]);
 
+    // Mock the instance method update for each collaborator
+    for (const collab of mockTemplateCollaborators) {
+      collab.update = jest.fn().mockResolvedValue(collab);
+    }
+
     const result = await UserEmail.confirmEmail(context, mockUser.id, mockUserEmail.email)
     expect(result).toEqual(confirmedEmail);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(mockUpdate).toHaveBeenCalledTimes(3);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    for (const collab of mockTemplateCollaborators) {
+      expect(collab.update).toHaveBeenCalledTimes(1);
+    }
   });
 
   it('removes other unconfirmed records associated with other users if successful', async () => {
@@ -309,7 +317,7 @@ describe('confirmEmail', () => {
     mockFindUserEmailById.mockResolvedValue(confirmedEmail);
     mockFindTemplateCollaboratorByEmail.mockResolvedValue([]);
 
-    const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
+    const result = await UserEmail.confirmEmail(context, mockUser.id, mockUserEmail.email)
     expect(result).toEqual(confirmedEmail);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
