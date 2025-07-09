@@ -3,7 +3,7 @@ import { DMPHubAPI, Authorizer } from '../dmphubAPI';
 import { DMPIdentifierType, DMPPrivacy, DMPStatus, DMPYesNoUnknown } from '../../types/DMP';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { JWTAccessToken } from '../../services/tokenService';
-import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
+import { buildContext, MockCache, mockToken, buildMockContextWithToken } from '../../__mocks__/context';
 import { DMPHubConfig } from '../../config/dmpHubConfig';
 import casual from 'casual';
 import { getRandomEnumValue } from '../../__tests__/helpers';
@@ -148,7 +148,7 @@ describe('DMPToolAPI', () => {
 
   describe('getDMP', () => {
     it('should call get with the correct dmpId and the latest version by default', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
@@ -166,7 +166,7 @@ describe('DMPToolAPI', () => {
     });
 
     it('should call get with the correct dmpId and the specified version', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
@@ -197,7 +197,7 @@ describe('DMPToolAPI', () => {
 
   describe('createDMP', () => {
     it('should create the DMP', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
@@ -230,7 +230,7 @@ describe('DMPToolAPI', () => {
 
   describe('updateDMP', () => {
     it('should update the DMP', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const mockResponse = {
         status: 200,
         items: [{ dmp }]
@@ -259,7 +259,7 @@ describe('DMPToolAPI', () => {
 
   describe('tombstoneDMP', () => {
     it('should tombstone the DMP', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const mockResponse = {
         status: 200,
         items: [{ dmp }]
@@ -289,7 +289,7 @@ describe('DMPToolAPI', () => {
   describe('getAwards', () => {
 
     it('should getAwards', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const mockItems = [{
         project: {
           title: casual.title,

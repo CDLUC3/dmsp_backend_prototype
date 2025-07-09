@@ -8,7 +8,7 @@ import * as UserModel from '../../models/User';
 import { defaultLanguageId } from '../../models/Language';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { getCurrentDate } from '../../utils/helpers';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildContext, mockToken, buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
