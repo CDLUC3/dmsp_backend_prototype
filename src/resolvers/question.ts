@@ -78,6 +78,8 @@ export const resolvers: Resolvers = {
             required
           });
 
+          console.log(question.json);
+
           // create the new question
           const newQuestion = await question.create(context);
 
@@ -157,6 +159,10 @@ export const resolvers: Resolvers = {
 
             // Refetch the question or the updated question with errors
             const final = await Question.findById(reference, context, questionId);
+
+            console.log(final);
+            console.log(final.json)
+            console.log(typeof final.json)
 
             return final;
           }
