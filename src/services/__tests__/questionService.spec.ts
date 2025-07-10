@@ -1,6 +1,6 @@
 import casual from "casual";
 import { Template } from "../../models/Template";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion, updateDisplayOrders } from "../questionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -21,10 +21,10 @@ jest.mock('../../context.ts');
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let context: MyContext;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -37,10 +37,10 @@ describe('hasPermissionOnQuestion', () => {
   let mockHashPermissionOnTemplate;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockFindById = jest.fn();
     (Template.findById as jest.Mock) = mockFindById;
