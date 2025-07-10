@@ -38,13 +38,14 @@ beforeEach(() => {
 
   mockUser = {
     id: casual.integer(1, 999),
-    email: casual.email,
     givenName: casual.first_name,
     surName: casual.last_name,
     affiliationId: casual.url,
     role: UserRole.RESEARCHER,
     languageId: defaultLanguageId,
+    getEmail: jest.fn().mockResolvedValue(casual.email)
   };
+
 });
 
 describe('setTokenCookie', () => {
@@ -176,11 +177,11 @@ describe('generateCSRFToken', () => {
 });
 
 describe('generateAuthTokens', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache.adapter);
+    context = buildContext(logger, await mockToken(), mockCache.adapter);
   });
 
   it('should generate access and refresh tokens', async () => {
@@ -285,11 +286,11 @@ describe('isRevokedCallback', () => {
 describe('refreshAccessToken', () => {
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache.adapter);
+    context = buildContext(logger, await mockToken(), mockCache.adapter);
   });
 
   it('should refresh the access token if refresh token is valid', async () => {
@@ -363,11 +364,11 @@ describe('refreshAccessToken', () => {
 });
 
 describe('revokeRefreshToken', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache.adapter);
+    context = buildContext(logger, await mockToken(), mockCache.adapter);
   });
 
   it('should delete the token from the cache', async () => {
@@ -392,11 +393,11 @@ describe('revokeRefreshToken', () => {
 });
 
 describe('revokeAccessToken', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache.adapter);
+    context = buildContext(logger, await mockToken(), mockCache.adapter);
   });
 
   it('should add the token to the cache black list', async () => {
