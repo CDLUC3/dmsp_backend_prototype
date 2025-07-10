@@ -94,6 +94,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated `sections` and `questions` queries to order by `displayOrder` [#324]
 - Refactor the way we initialize the pino Logger and pass it around. Also removed the old `formatLogMessage` function and replaced with `prepareObjectForLogs`
 - Consolidated handling of the Cache, so that we always pass the `adapter`
 - Updated `mysqlConfig` to use the new test DB when running in `test` mode

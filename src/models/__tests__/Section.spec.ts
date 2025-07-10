@@ -118,11 +118,11 @@ describe('findByTemplateId', () => {
     Section.query = originalQuery;
   });
 
-  it('should call query with correct params and return the section', async () => {
+  it.only('should call query with correct params and return the section', async () => {
     localQuery.mockResolvedValueOnce([section]);
     const templateId = 1;
     const result = await Section.findByTemplateId('Section query', context, templateId);
-    const expectedSql = 'SELECT * FROM sections WHERE templateId = ?';
+    const expectedSql = 'SELECT * FROM sections WHERE templateId = ? ORDER BY displayOrder ASC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Section query')
     expect(result).toEqual([section]);

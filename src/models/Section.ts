@@ -128,7 +128,7 @@ export class Section extends MySqlModel {
 
   // Find all Sections associated with the specified templateId
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
-    const sql = 'SELECT * FROM sections WHERE templateId = ?';
+    const sql = 'SELECT * FROM sections WHERE templateId = ? ORDER BY displayOrder ASC';
     const results = await Section.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new Section(entry)) : [];
   }
