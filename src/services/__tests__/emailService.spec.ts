@@ -9,7 +9,7 @@ jest.mock('nodemailer', () => ({
 jest.mock('../../config/awsConfig');
 
 import casual from "casual";
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { logger } from "../../logger";
 import {
   emailMessages,
@@ -26,10 +26,10 @@ let context;
 
 const subjectPrefix = `${generalConfig.applicationName}`;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -84,16 +84,23 @@ describe('sendEmail', () => {
 
   it('sends the template collaboration email to the user\'s primary email', async () => {
     jest.spyOn(logger, 'info');
+    const email = casual.email;
     const user = new User({
       id: casual.integer(1, 99),
-      email: casual.email,
+      created: new Date(),
+      createdById: 1,
+      modified: new Date(),
+      modifiedById: 1,
+      errors: [],
       givenName: casual.first_name,
       surName: casual.last_name,
+      // add any other required fields
     });
-    const email = casual.email;
+
     const templateName = casual.sentence;
     const inviterName = `${casual.first_name} ${casual.last_name}`;
 
+    jest.spyOn(User.prototype, 'getEmail').mockResolvedValue(email);
     (User.findById as jest.Mock) = jest.fn().mockResolvedValueOnce(user);
     const sent = await sendTemplateCollaborationEmail(context, templateName, inviterName, email, user.id);
 
@@ -110,13 +117,14 @@ describe('sendEmail', () => {
       "replyTo": emailConfig.helpDeskAddress,
       "sender": emailConfig.doNotReplyAddress,
       "subject": expectedSubject,
-      "to": user.email,
+      "to": email,
     });
   });
 
   it('sends the project collaboration email', async () => {
     jest.spyOn(logger, 'info');
     const email = casual.email;
+    jest.spyOn(User.prototype, 'getEmail').mockResolvedValue(email);
     const projectName = casual.sentence;
     const inviterName = `${casual.first_name} ${casual.last_name}`;
     const sent = await sendProjectCollaborationEmail(context, projectName, inviterName, email);
@@ -140,17 +148,19 @@ describe('sendEmail', () => {
 
   it('sends the project collaboration email to the user\'s primary email', async () => {
     jest.spyOn(logger, 'info');
+    const email = casual.email;
     const user = new User({
       id: casual.integer(1, 99),
-      email: casual.email,
       givenName: casual.first_name,
       surName: casual.last_name,
     });
-    const email = casual.email;
     const projectName = casual.sentence;
     const inviterName = `${casual.first_name} ${casual.last_name}`;
 
-    (User.findById as jest.Mock) = jest.fn().mockResolvedValueOnce(user);
+    jest.spyOn(User.prototype, 'getEmail').mockResolvedValue(email);
+
+    (User.findById as jest.Mock) = jest.fn().
+    mockResolvedValueOnce(user);
     const sent = await sendProjectCollaborationEmail(context, projectName, inviterName, email, user.id);
 
     const expectedSubject = `${subjectPrefix} - ${emailSubjects.projectCollaboration}`
@@ -166,7 +176,7 @@ describe('sendEmail', () => {
       "replyTo": emailConfig.helpDeskAddress,
       "sender": emailConfig.doNotReplyAddress,
       "subject": expectedSubject,
-      "to": user.email,
+      "to": email,
     });
   });
 });
