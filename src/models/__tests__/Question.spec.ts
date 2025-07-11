@@ -174,7 +174,7 @@ describe('findBy Queries', () => {
     localQuery.mockResolvedValueOnce([question]);
     const questionId = casual.integer(1, 999);
     const result = await Question.findBySectionId('testing', context, questionId);
-    const expectedSql = 'SELECT * FROM questions WHERE sectionId = ?';
+    const expectedSql = 'SELECT * FROM questions WHERE sectionId = ? ORDER BY displayOrder ASC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [questionId.toString()], 'testing')
     expect(result).toEqual([question]);

@@ -3,6 +3,7 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added a new resolver for `answerByVersionedQuestionId` so that we can get the question-specific answer to populate the question in the Question detail page.
 - Added a new MySQL container to host the test DB to the docker compose stack
 - Added JSON column `questionType` to `questions` and `versionedQuestions` tables
 - Added JSON column `json` to the `answers` table
@@ -93,6 +94,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated `sections` and `questions` queries to order by `displayOrder` [#324]
 - Refactor the way we initialize the pino Logger and pass it around. Also removed the old `formatLogMessage` function and replaced with `prepareObjectForLogs`
 - Consolidated handling of the Cache, so that we always pass the `adapter`
 - Updated `mysqlConfig` to use the new test DB when running in `test` mode
@@ -172,6 +174,7 @@
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- Fixed a bug where clients calling `createTemplateVersion` in the `template` resolver would get an error when trying to publish because adding data to `versionedQuestions` required that `questionTypeId` not be null. I added a data-migration script to allow null because I believe we store the question type in the `json` field now and do not require `questionTypeId` [#328]
 - Update profile was not working due to missing `createdById` and `modifiedById` values in db. Added data migration script to populate those fields [#278]
 - Fixed myTemplates query so that `TemplateSearchResult` returns the `ownerDisplayName` specified in schema.
 - Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.

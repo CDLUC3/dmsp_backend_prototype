@@ -37,7 +37,31 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // Find the answer by its id
+    // return the answer for the given versionedQuestionId
+    answerByVersionedQuestionId: async (_, { projectId, planId, versionedQuestionId }, context: MyContext): Promise<Answer> => {
+
+      const reference = 'planSectionAnswers resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${projectId} not found`);
+          }
+          if (await hasPermissionOnProject(context, project)) {
+            const temp = await Answer.findByPlanIdAndVersionedQuestionId(reference, context, planId, versionedQuestionId);
+            return temp;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Find the answer by its answerId
     answer: async (_, { projectId, answerId }, context: MyContext): Promise<Answer> => {
       const reference = 'plan resolver';
       try {
