@@ -634,7 +634,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 
   `last_sign_in` TIMESTAMP,
   `last_sign_in_via` VARCHAR(10),
-  `failed_sign_in_attempts` INT NOT NULL DEFAULT 0,
+  `failed_sign_in_attemps` INT NOT NULL DEFAULT 0,
 
   `notify_on_comment_added` TINYINT(1) NOT NULL DEFAULT 1,
   `notify_on_template_shared` TINYINT(1) NOT NULL DEFAULT 1,
