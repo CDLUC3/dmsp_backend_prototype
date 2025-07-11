@@ -1,6 +1,6 @@
 import { MySQLConnection } from '../mysql';
 import * as mysql2 from 'mysql2/promise';
-import { buildContext, MockCache, mockToken, buildMockContextWithToken} from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { MyContext } from '../../context';
 
 import { logger } from "../../logger";

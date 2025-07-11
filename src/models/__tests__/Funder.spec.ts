@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken, buildMockContextWithToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { PlanFunding, ProjectFunding, ProjectFundingStatus } from "../Funding";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { logger } from "../../logger";

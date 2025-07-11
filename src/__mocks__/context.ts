@@ -128,11 +128,9 @@ export function buildContext(logger: Logger, token: JWTAccessToken = null, cache
   }
 }
 
-export const buildMockContextWithToken = async (
-  logger: Logger,
-  user: User = mockUser(),
-  cache: any = null
-): Promise<MyContext> => {
+// disabling the any since it's the same as above and I think whoever wrote this wanted to avoid the type error
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const buildMockContextWithToken = async (logger: Logger, user: User = mockUser(),  cache: any = null): Promise<MyContext> => {
   // Only spy on the prototype if user.getEmail is not defined
   if (!user.getEmail && !jest.isMockFunction(User.prototype.getEmail)) {
     jest.spyOn(User.prototype, 'getEmail').mockImplementation(async () => casual.email);

@@ -3,7 +3,7 @@ import { DMPHubAPI, Authorizer } from '../dmphubAPI';
 import { DMPIdentifierType, DMPPrivacy, DMPStatus, DMPYesNoUnknown } from '../../types/DMP';
 import { RESTDataSource } from '@apollo/datasource-rest';
 import { JWTAccessToken } from '../../services/tokenService';
-import { buildContext, MockCache, mockToken, buildMockContextWithToken } from '../../__mocks__/context';
+import { buildContext, buildMockContextWithToken } from '../../__mocks__/context';
 import { DMPHubConfig } from '../../config/dmpHubConfig';
 import casual from 'casual';
 import { getRandomEnumValue } from '../../__tests__/helpers';

@@ -14,7 +14,7 @@ import { verifyAccessToken } from '../../services/tokenService';
 import { defaultLanguageId } from '../../models/Language';
 import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
-import { buildContext, mockToken, mockUser, MockCache, buildMockContextWithToken } from "../../__mocks__/context";
+import { mockUser, MockCache, buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 // import {
 //   buildContext,

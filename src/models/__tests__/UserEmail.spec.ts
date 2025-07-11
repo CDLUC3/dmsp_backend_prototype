@@ -9,7 +9,6 @@ import { sendEmailConfirmationNotification } from "../../services/emailService";
 
 let context;
 let mockUser;
-let mockPrimaryEmail;
 
 beforeEach(async () => {
   jest.resetAllMocks();
@@ -21,15 +20,6 @@ beforeEach(async () => {
     affiliationId: casual.url,
     acceptedTerms: true,
   });
-
-  mockPrimaryEmail = new UserEmail({
-    id: casual.integer(1, 999),
-    email: casual.email,
-    userId: mockUser.id,
-    isPrimary: true,
-    isConfirmed: true,
-    createdById: mockUser.id,
-    modifiedById: mockUser.id,});
 
   context = buildMockContextWithToken(logger);
 });

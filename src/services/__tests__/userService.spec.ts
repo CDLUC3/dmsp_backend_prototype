@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken, buildMockContextWithToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 import { User, UserRole } from "../../models/User";
 import { anonymizeUser, generateRandomPassword, mergeUsers } from "../userService";

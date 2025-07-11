@@ -4,7 +4,7 @@ import * as dynamoModule from "../dynamo";
 import { getDMP, updateDMP, createDMP, tombstoneDMP, deleteDMP } from "../dynamo";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
-import { buildContext, mockToken, buildMockContextWithToken  } from "../../__mocks__/context";
+import { buildMockContextWithToken  } from "../../__mocks__/context";
 import { logger } from "../../logger";
 
 let context: MyContext;

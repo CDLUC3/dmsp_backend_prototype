@@ -5,7 +5,7 @@ import { LogInType, User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
 import { defaultLanguageId, supportedLanguages } from '../Language';
-import { buildContext, mockToken, buildMockContextWithToken } from '../../__mocks__/context';
+import { buildContext, buildMockContextWithToken } from '../../__mocks__/context';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { logger } from "../../logger";
 import { UserEmail } from '../UserEmail';
@@ -17,7 +17,6 @@ jest.mock('../UserEmail');
 let mockQuery;
 let mockUser;
 let mockContext;
-let mockUserEmail;
 
 describe('constructor', () => {
   it('should set the expected properties', () => {
@@ -257,12 +256,6 @@ describe('authCheck', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    mockUserEmail = new UserEmail({
-      userId: 12345,
-      isPrimary: true,
-      isConfirmed: true,
-      email: 'test.email@example.com',
-    });
 
     mockUser = new User({
       password: 'abcd3Fgh!JklM_m0$',
