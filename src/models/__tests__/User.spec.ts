@@ -9,6 +9,7 @@ import { buildContext, buildMockContextWithToken } from '../../__mocks__/context
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { logger } from "../../logger";
 import { UserEmail } from '../UserEmail';
+import { PaginationType } from '../../types/general';
 
 jest.mock('../../context.ts');
 jest.mock('../UserEmail');
@@ -706,5 +707,98 @@ describe('updatePassword', () => {
     expect(mockAuthCheck).toHaveBeenCalledTimes(1);
     expect(mockValidator).not.toHaveBeenCalled();
     expect(updateQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('getEmail', () => {
+  let user;
+  let context;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    context = await buildMockContextWithToken(logger);
+    user = new User({
+      id: 123,
+      password: casual.password,
+      affiliationId: casual.url,
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      role: UserRole.RESEARCHER,
+      acceptedTerms: true,
+      languageId: defaultLanguageId,
+    });
+  });
+
+  it('should return the primary email if it exists', async () => {
+    const mockEmail = 'test.user@example.com';
+    (UserEmail.findPrimaryByUserId as jest.Mock).mockResolvedValue({ email: mockEmail });
+    const result = await user.getEmail(context);
+    expect(result).toBe(mockEmail);
+    expect(UserEmail.findPrimaryByUserId).toHaveBeenCalledWith('User.getEmail', context, user.id);
+  });
+
+  it('should return null if no primary email exists', async () => {
+    (UserEmail.findPrimaryByUserId as jest.Mock).mockResolvedValue(null);
+    const result = await user.getEmail(context);
+    expect(result).toBeNull();
+    expect(UserEmail.findPrimaryByUserId).toHaveBeenCalledWith('User.getEmail', context, user.id);
+  });
+});
+
+describe('findByAffiliationId', () => {
+  let context;
+  let mockPaginatedResults;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    context = await buildMockContextWithToken(logger);
+    mockPaginatedResults = {
+      items: [
+        new User({
+          id: 1,
+          affiliationId: 'affil-1',
+          givenName: 'Alice',
+          surName: 'Smith',
+          password: 'password',
+          role: UserRole.RESEARCHER,
+          languageId: defaultLanguageId,
+          acceptedTerms: true,
+        }),
+        new User({
+          id: 2,
+          affiliationId: 'affil-1',
+          givenName: 'Bob',
+          surName: 'Jones',
+          password: 'password',
+          role: UserRole.RESEARCHER,
+          languageId: defaultLanguageId,
+          acceptedTerms: true,
+        })
+      ],
+      totalCount: 2,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      pageInfo: {}
+    };
+    jest.spyOn(User, 'queryWithPagination').mockResolvedValue(mockPaginatedResults);
+  });
+
+  it('should return users for a given affiliationId and term', async () => {
+    const affiliationId = 'affil-1';
+    const term = 'Alice';
+    const options = { type: PaginationType.OFFSET, sortField: 'u.surName', sortDir: 'ASC' };
+    const result = await User.findByAffiliationId('testRef', context, affiliationId, term, options);
+    expect(User.queryWithPagination).toHaveBeenCalled();
+    expect(result.items.length).toBe(2);
+    expect(result.items[0].givenName).toBe('Alice');
+    expect(result.items[1].givenName).toBe('Bob');
+  });
+
+  it('should handle empty results', async () => {
+    (User.queryWithPagination as jest.Mock).mockResolvedValueOnce({ items: [], limit: 10, totalCount: 0, hasNextPage: false, hasPreviousPage: false });
+    const options = { type: PaginationType.OFFSET };
+    const result = await User.findByAffiliationId('testRef', context, 'affil-2', '', options);
+    expect(result.items).toEqual([]);
+    expect(result.totalCount).toBe(0);
   });
 });
