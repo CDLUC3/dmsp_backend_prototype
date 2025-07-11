@@ -21,7 +21,6 @@ export enum LogInType {
 }
 
 export class User extends MySqlModel {
-  // public email: string;  // TODO: Remove this line once all references to email are removed
   public password: string;
   public role: UserRole;
   public givenName?: string;
@@ -51,7 +50,6 @@ export class User extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
-    // this.email = options.email; // TODO: Remove this line once all references to email are removed
     this.password = options.password;
     this.role = options.role;
     this.givenName = options.givenName;
@@ -82,8 +80,6 @@ export class User extends MySqlModel {
 
   // Ensure data integrity
   prepForSave() {
-    // this.email = this.email?.trim()?.replace('%40', '@'); // TODO: Remove this line once all references to email are removed
-    // I think is is already independently checked in UserEmail to fit the format of an email address
     this.role = this.role ?? UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
@@ -98,12 +94,7 @@ export class User extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    // TODO: We probably don't want to validate the email here.  It is in a separate table
-    // and validates there.  If we require an email to save the User then we have
-    // a problem since the user needs to be created so we have the primary id for the
-    // foreign key in the UserEmail table.
-
-    // if (!validateEmail(email)) this.addError('email', 'Invalid email address');
+    // email is validated in the table to which it belongs, UserEmail
     if (!this.password) this.addError('password', 'Password is required');
     if (!this.role) this.addError('role', 'Role can\'t be blank');
     if (this.orcid && formatORCID(this.orcid) === null) this.addError('orcid', 'Invalid ORCID');
