@@ -124,6 +124,38 @@ export const resolvers: Resolvers = {
             });
             await collaborator.create(context);
 
+            const projectId = created.id;
+
+            // Automatically add owner as projectMember
+            const newMember = new ProjectMember({
+              projectId: projectId,
+              affiliationId: context.token.affiliationId,
+              givenName: context.token.givenName,
+              surName: context.token.surName,
+              email: context.token?.email,
+              memberRoles: [] //initially add empty array
+            });
+
+            // Create new project member using owner data from context
+            const memberAdded = await newMember.create(context, projectId);
+            if (memberAdded) {
+              // Add member role
+              context.logger.debug(`${reference}: add member role`);
+              const msg = `Unable to add member to project`;
+              memberAdded.addError('member', msg);
+              const role = await MemberRole.defaultRole(context, reference);
+              if (!role) {
+                context.logger.error(`${reference}: could not find default role`);
+              } else {
+                context.logger.debug(`${reference}: add ${role.label} to member ${memberAdded.id}`);
+                const roleAdded = await role.addToProjectMember(context, memberAdded.id);
+                if (!roleAdded) {
+                  const msg = `Unable to add default member roles`;
+                  memberAdded.addError('memberRoles', msg);
+                }
+              }
+            }
+
             if (created?.id) {
               return created;
             }
