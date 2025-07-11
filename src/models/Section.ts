@@ -125,7 +125,6 @@ export class Section extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new Section(results[0]) : null;
   }
 
-
   // Find all Sections associated with the specified templateId
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
     const sql = 'SELECT * FROM sections WHERE templateId = ? ORDER BY displayOrder ASC';

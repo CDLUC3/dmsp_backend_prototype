@@ -5,6 +5,9 @@ export const typeDefs = gql`
     "Get all answers for the given project and plan and section"
     answers(projectId: Int!, planId: Int!, versionedSectionId: Int!): [Answer]
 
+    "Get an answer by versionedQuestionId"
+    answerByVersionedQuestionId(projectId: Int!, planId: Int!, versionedQuestionId: Int!): Answer
+
     "Get the sepecific answer"
     answer(projectId: Int!, answerId: Int!): Answer
   }

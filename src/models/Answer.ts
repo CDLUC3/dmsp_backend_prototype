@@ -1,5 +1,7 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
+import { removeNullAndUndefinedFromJSON } from "../utils/helpers";
+
 
 export class Answer extends MySqlModel {
   public planId: number;
@@ -16,6 +18,12 @@ export class Answer extends MySqlModel {
     this.versionedSectionId = options.versionedSectionId;
     this.versionedQuestionId = options.versionedQuestionId;
     this.json = options.json;
+    // Ensure json is stored as a string
+    try {
+      this.json = removeNullAndUndefinedFromJSON(options.json);
+    } catch (e) {
+      this.addError('json', e.message);
+    }
   }
 
   // Validation to be used prior to saving the record
