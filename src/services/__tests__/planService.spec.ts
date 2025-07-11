@@ -1,5 +1,5 @@
 import { MyContext } from '../../context';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { updateMemberRoles } from '../planService';
 import { MemberRole } from '../../models/MemberRole';
 import { logger } from '../../logger';
@@ -11,8 +11,8 @@ jest.mock('../../models/PlanVersion');
 describe('planService', () => {
   let context: MyContext;
 
-  beforeEach(() => {
-    context = buildContext(logger, mockToken());
+  beforeEach(async () => {
+    context = await buildMockContextWithToken(logger);
   });
   afterEach(() => {
     jest.clearAllMocks();
