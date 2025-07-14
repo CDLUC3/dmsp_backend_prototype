@@ -39,7 +39,7 @@ async function executeQuery (
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
   // Initialize the Apollo server
@@ -65,7 +65,7 @@ beforeEach(() => {
   affiliationId = casual.url;
   templateId = templateCollaboratorStore[0].templateId;
 
-  adminToken = mockToken();
+  adminToken = await mockToken();
   adminToken.affiliationId = affiliationId;
   adminToken.role = UserRole.ADMIN;
 
@@ -137,7 +137,7 @@ describe.skip('templateCollaborators query', () => {
 
   it('returns a 403 when the user is not an Admin', async () => {
     // Make the user an Researcher
-    const token = mockToken();
+    const token = await mockToken();
     token.affiliationId = affiliationId;
     token.role = UserRole.RESEARCHER.toString();
 
@@ -262,7 +262,7 @@ describe.skip('addTemplateCollaborator mutation', () => {
 
   it('returns a 403 when the user is not an Admin', async () => {
     // Make the user an Researcher
-    const token = mockToken();
+    const token = await mockToken();
     token.affiliationId = affiliationId;
     token.role = UserRole.RESEARCHER.toString();
 
@@ -358,7 +358,7 @@ describe.skip('removeTemplateCollaborator mutation', () => {
 
   it('returns a 403 when the user is not an Admin', async () => {
     // Make the user an Researcher
-    const token = mockToken();
+    const token = await mockToken();
     token.affiliationId = affiliationId;
     token.role = UserRole.RESEARCHER.toString();
 

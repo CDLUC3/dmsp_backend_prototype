@@ -14,7 +14,7 @@ import { verifyAccessToken } from '../../services/tokenService';
 import { defaultLanguageId } from '../../models/Language';
 import { getCurrentDate } from '../../utils/helpers';
 import { getRandomEnumValue } from '../../__tests__/helpers';
-import { buildContext, mockToken, MockCache } from "../../__mocks__/context";
+import { mockUser, MockCache, buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 
 jest.mock('../../datasources/cache');
@@ -43,7 +43,6 @@ let mockCache;
 
 const mockedUser: UserModel.User = {
   id: casual.integer(1, 999),
-  email: casual.email,
   givenName: casual.first_name,
   surName: casual.last_name,
   affiliationId: null,
@@ -62,7 +61,7 @@ const mockedUser: UserModel.User = {
   notify_on_plan_visibility_change: casual.boolean,
   last_sign_in: getCurrentDate(),
   last_sign_in_via: getRandomEnumValue(UserModel.LogInType),
-  failed_sign_in_attemps: 0,
+  failed_sign_in_attempts: 0,
   created: getCurrentDate(),
   modified: getCurrentDate(),
   errors: {},
@@ -70,6 +69,7 @@ const mockedUser: UserModel.User = {
   tableName: 'testUsers',
 
   getName: jest.fn(),
+  getEmail: jest.fn().mockResolvedValue(casual.email),
   recordLogIn: jest.fn(),
   isValid: jest.fn(),
   validatePassword: jest.fn(),
@@ -119,10 +119,10 @@ beforeAll(async () => {
   app.use('/', setupRouter(logger, mockCache.adapter, null, null));
 });
 
-beforeEach(() => {
+beforeEach(async() => {
   jest.clearAllMocks();
 
-  context = buildContext(logger, mockToken(), mockCache.adapter);
+  context = await buildMockContextWithToken(logger, mockUser(), mockCache.adapter);
 
   mockedUserData = {
     email: casual.email,
@@ -180,7 +180,7 @@ describe('Sign up', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache.adapter);
+    context = await buildMockContextWithToken(logger, mockUser, mockCache);;
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -261,7 +261,8 @@ describe('Sign in', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache.adapter);
+    context = await buildMockContextWithToken(logger, mockUser, mockCache);
+    // context = buildContext(logger, mockToken(), mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -280,7 +281,7 @@ describe('Sign in', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     expect(resp.statusCode).toEqual(200);
     expect(resp.headers['x-csrf-token']).toBeTruthy();
@@ -333,7 +334,7 @@ describe('Sign out', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache.adapter);
+    context = await buildMockContextWithToken(logger, mockUser, mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -353,7 +354,7 @@ describe('Sign out', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     expect(signinResp.statusCode).toEqual(200);
     expect(signinResp.headers['x-csrf-token']).toBeTruthy();
@@ -419,7 +420,7 @@ describe('Sign out', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     // Try a signout
     const signoutResp = await request(app)
@@ -447,7 +448,7 @@ describe('Sign out', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     expect(signinResp.statusCode).toEqual(200);
     const signinCookies = processResponseCookies(signinResp.headers);
@@ -481,7 +482,7 @@ describe('token refresh', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache.adapter);
+    context = await buildMockContextWithToken(logger, mockUser, mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -517,7 +518,7 @@ describe('token refresh', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     const signinCookies = processResponseCookies(resp.headers);
     const accessToken = signinCookies['dmspt'].split(';')[0];
@@ -564,7 +565,7 @@ describe('token refresh', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     expect(signinResp.statusCode).toEqual(200);
     const signinCookies = processResponseCookies(signinResp.headers);
@@ -604,7 +605,7 @@ describe('token refresh', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     const cookies = processResponseCookies(resp.headers);
     const accessToken = cookies['dmspt'].split(';')[0];
@@ -654,7 +655,7 @@ describe('protected endpoint access', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    context = buildContext(logger, mockToken(), mockCache);
+    context = await buildMockContextWithToken(logger, mockUser, mockCache);
 
     const resp = await request(app).get('/apollo-csrf');
     csrfToken = resp.headers['x-csrf-token'];
@@ -687,7 +688,7 @@ describe('protected endpoint access', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     // Try a signout
     const protectedResp = await request(app)
@@ -718,7 +719,7 @@ describe('protected endpoint access', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     expect(signinResp.statusCode).toEqual(200);
     const signinCookies = processResponseCookies(signinResp.headers);
@@ -753,7 +754,7 @@ describe('protected endpoint access', () => {
       .set('X-CSRF-Token', csrfToken)
       .set('Accept', 'application/json')
       .set('Content-Type', 'application/json')
-      .send(JSON.stringify({ email: mockUser.email, password: mockUser.password }));
+      .send(JSON.stringify({ email: await mockUser.getEmail(context), password: mockUser.password }));
 
     expect(signinResp.statusCode).toEqual(200);
     const signinCookies = processResponseCookies(signinResp.headers);

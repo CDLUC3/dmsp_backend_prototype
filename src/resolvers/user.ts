@@ -300,7 +300,7 @@ export const resolvers: Resolvers = {
               oldPrimary.isPrimary = false;
               await new UserEmail(oldPrimary).update(context);
             }
-            user.email = email;
+
             if (await User.update(context, new User(user).tableName, user, ref, ['password'])) {
               return await UserEmail.findByUserId(ref, context, user.id);
             }
@@ -326,7 +326,7 @@ export const resolvers: Resolvers = {
     },
 
     // Change the current user's password
-    updatePassword: async (_, { oldPassword, newPassword }, context: MyContext): Promise<User> => {
+    updatePassword: async (_, { oldPassword, newPassword, email }, context: MyContext): Promise<User> => {
       const reference = 'updatePassword resolver';
       try {
         if (isAuthorized(context?.token)) {
@@ -336,7 +336,7 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          const updated = await new User(user).updatePassword(context, oldPassword, newPassword);
+          const updated = await new User(user).updatePassword(context, oldPassword, newPassword, email);
           if (!updated || updated.hasErrors()) {
             user.addError('general', 'Unable to update the password at this time');
           }
@@ -458,6 +458,11 @@ export const resolvers: Resolvers = {
     // Chained resolver to fetch the secondary email addresses
     emails: async (parent: User, _, context): Promise<UserEmail[]> => {
       return await UserEmail.findByUserId('Chained User.emails', context, parent.id);
+    },
+    // Chained resolver to fetch the primary email address
+    email: async (parent: User, _, context): Promise<string | null> => {
+      const primaryEmail = await UserEmail.findPrimaryByUserId('Chained User.email', context, parent.id);
+      return primaryEmail ? primaryEmail.email : null;
     },
   },
 };

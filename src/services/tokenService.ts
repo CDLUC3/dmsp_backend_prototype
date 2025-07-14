@@ -66,11 +66,11 @@ export const generateCSRFToken = async (cache: KeyvAdapter): Promise<string> => 
 }
 
 // Generate an access token for the User
-const generateAccessToken = (context: MyContext, jti: string, user: User): string => {
+const generateAccessToken = async (context: MyContext, jti: string, user: User): Promise<string> => {
   try {
     const payload: JWTAccessToken = {
       id: user.id,
-      email: user.email,
+      email: await user.getEmail(context),
       givenName: user.givenName,
       surName: user.surName,
       affiliationId: user.affiliationId,
@@ -113,12 +113,12 @@ const generateRefreshToken = async (context: MyContext, jti: string, userId: num
 
 // Generate an Access Token and a Refresh Token
 export const generateAuthTokens = async (context: MyContext, user: User): Promise<{ accessToken: string; refreshToken: string }> => {
-  if (generalConfig.jwtSecret && generalConfig.jwtRefreshSecret && user && user.id && user.email) {
+  if (generalConfig.jwtSecret && generalConfig.jwtRefreshSecret && user && user.id && await user.getEmail(context)) {
     try {
       // Generate a unique id for the JWT
       const jti = `${user.id}-${new Date().getTime()}`;
       // Generate an Access Token
-      const accessToken = generateAccessToken(context, jti, user);
+      const accessToken = await generateAccessToken(context, jti, user);
 
       // Generate a Refresh Token
       const refreshToken = await generateRefreshToken(context, jti, user.id);

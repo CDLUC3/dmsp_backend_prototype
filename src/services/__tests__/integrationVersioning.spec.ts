@@ -2,9 +2,8 @@ import casual from "casual";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { Template, TemplateVisibility } from "../../models/Template";
 import { generateTemplateVersion } from "../templateService";
-import { buildContext } from "../../context";
 import { logger } from "../../logger";
-import { mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { TemplateVersionType, VersionedTemplate } from "../../models/VersionedTemplate";
 import { Section } from "../../models/Section";
 import { getCurrentDate } from "../../utils/helpers";
@@ -56,11 +55,11 @@ function updateStore(store: any[], tableName: string, obj: MySqlModel) {
 }
 
 describe('Integration test: Template Versioning', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     // Mock the Apollo context
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     // Fetch an item from the templateStore
     mockFindTemplateById = jest.fn().mockImplementation(async (_, __, id) => {

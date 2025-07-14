@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { PlanMember, ProjectMember } from "../Member";
 import { getMockORCID } from "../../__tests__/helpers";
 import { MemberRole } from "../MemberRole";
@@ -9,10 +9,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -88,11 +88,11 @@ describe('findBy Queries', () => {
   let context;
   let projectMember;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (ProjectMember.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     projectMember = new ProjectMember({
       projectId: casual.integer(1, 999),
@@ -476,11 +476,11 @@ describe('findByPlanId', () => {
   let context;
   let planMember;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (PlanMember.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     planMember = new PlanMember({
       planId: casual.integer(1, 999),

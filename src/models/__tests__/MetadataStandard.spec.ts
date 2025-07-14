@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { MetadataStandard } from "../MetadataStandard";
 import { generalConfig } from "../../config/generalConfig";
 import { logger } from "../../logger";
@@ -8,10 +8,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -74,14 +74,14 @@ describe('findBy Queries', () => {
   let context;
   let standard;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (MetadataStandard.query as jest.Mock) = localQuery;
 
     localPaginationQuery = jest.fn();
     (MetadataStandard.queryWithPagination as jest.Mock) = localPaginationQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     standard = new MetadataStandard({
       id: casual.integer(1,9999),
@@ -457,10 +457,10 @@ describe('addToProjectOutput', () => {
   let context;
   let mockStandard;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockStandard = new MetadataStandard({
       id: casual.integer(1, 99),
@@ -499,10 +499,10 @@ describe('removeFromProjectOutput', () => {
   let context;
   let mockStandard;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockStandard = new MetadataStandard({
       id: casual.integer(1, 99),

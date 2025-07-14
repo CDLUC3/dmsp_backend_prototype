@@ -1,6 +1,6 @@
 import casual from 'casual';
 import { MySqlModel } from "../MySqlModel";
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 import { generalConfig } from '../../config/generalConfig';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
@@ -156,13 +156,13 @@ describe('MySqlModel abstract class', () => {
     let localQuery;
     let context;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (MySqlModel.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
     });
 
     afterEach(() => {
@@ -369,10 +369,10 @@ describe('query function', () => {
   let mockQuery;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockQuery = jest.fn();
     const dataSource = context.dataSources.sqlDataSource;
@@ -434,10 +434,10 @@ describe('queryWithPagination', () => {
   let localPaginatedQueryByCursor;
   let localPaginatedQueryByOffset;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     localPaginatedQueryByCursor = jest.fn();
     localPaginatedQueryByOffset = jest.fn();
@@ -571,10 +571,10 @@ describe('paginatedQueryByOffset', () => {
   let localQuery;
   let localGetTotalCountForPagination;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     localQuery = jest.fn();
     localGetTotalCountForPagination = jest.fn();
@@ -775,10 +775,10 @@ describe('paginatedQueryByCursor', () => {
   let localQuery;
   let localGetTotalCountForPagination;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     localQuery = jest.fn();
     localGetTotalCountForPagination = jest.fn();
@@ -1016,13 +1016,13 @@ describe('exists', () => {
   let localQuery;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
   });
 
   afterEach(() => {
@@ -1047,13 +1047,13 @@ describe('insert function', () => {
   let context;
   let options;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     options = {
       createdById: casual.integer(1, 99),
@@ -1099,13 +1099,13 @@ describe('update function', () => {
   let context;
   let options;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     options = {
       id: casual.integer(1, 999),
@@ -1150,13 +1150,13 @@ describe('delete function', () => {
   let localQuery;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
   });
 
   afterEach(() => {

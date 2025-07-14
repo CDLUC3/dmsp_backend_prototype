@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Answer } from "../Answer";
 import { logger } from "../../logger";
 
@@ -7,10 +7,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -70,11 +70,11 @@ describe('findBy Queries', () => {
   let context;
   let answer;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (Answer.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     answer = new Answer({
       id: casual.integer(1, 9999),

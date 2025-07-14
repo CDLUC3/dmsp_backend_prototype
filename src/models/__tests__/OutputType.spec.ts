@@ -1,6 +1,6 @@
 import casual from 'casual';
 import { OutputType } from '../OutputType';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { logger } from "../../logger";
 
 describe('OutputType', () => {
@@ -53,13 +53,13 @@ describe('queries', () => {
   let context;
   let mockType;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockQuery = jest.fn();
     (OutputType.insert as jest.Mock) = mockQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockType = {
       id: casual.integer(1, 99),

@@ -1,6 +1,6 @@
 import casual from "casual";
 import { Tag } from "../Tag";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 
 let context;
@@ -155,10 +155,10 @@ describe('addToSection', () => {
   let context;
   let mockTag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockTag = new Tag({
       id: casual.integer(1, 99),
@@ -196,10 +196,10 @@ describe('removeFromSection', () => {
   let context;
   let mockTag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockTag = new Tag({
       id: casual.integer(1, 99),
@@ -239,13 +239,13 @@ describe('findAll', () => {
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),
@@ -277,13 +277,13 @@ describe('findBySectionId', () => {
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),
@@ -315,13 +315,13 @@ describe('findByVersionedSectionId', () => {
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),
@@ -352,13 +352,13 @@ describe('findById', () => {
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),
@@ -389,13 +389,13 @@ describe('findByName', () => {
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),

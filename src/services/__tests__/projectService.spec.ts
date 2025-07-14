@@ -1,9 +1,8 @@
 import casual from "casual";
 import { logger } from "../../logger";
 import {
-  buildContext,
   mockedMysqlInstance,
-  mockToken
+  buildMockContextWithToken
 } from "../../__mocks__/context";
 import { Project } from "../../models/Project";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -23,10 +22,10 @@ jest.mock('../PlanService.ts', () => {
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -40,10 +39,10 @@ describe('hasPermissionOnProject', () => {
   let mockIsAdmin;
   let mockCollaboratorQuery;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     const instance = mockedMysqlInstance;
     mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockIsSuperAdmin = jest.fn();
     (isSuperAdmin as jest.Mock) = mockIsSuperAdmin;
