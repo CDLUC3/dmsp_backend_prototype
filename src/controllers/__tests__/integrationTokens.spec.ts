@@ -180,7 +180,6 @@ describe('Sign up', () => {
     jest.clearAllMocks();
 
     mockCache.resetStore();
-    // context = buildContext(logger, mockToken(), mockCache);
     context = await buildMockContextWithToken(logger, mockUser, mockCache);;
 
     const resp = await request(app).get('/apollo-csrf');

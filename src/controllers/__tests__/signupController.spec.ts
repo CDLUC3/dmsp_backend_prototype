@@ -93,7 +93,6 @@ describe('signupController', () => {
     mockCache = Cache.getInstance() as jest.Mocked<Cache>;
     (Cache.getInstance as jest.Mock).mockReturnValue(mockCache);
 
-    // testUser = mockedUser;
     jest.spyOn(UserModel, 'User').mockReturnValue(mockUser);
   });
 
