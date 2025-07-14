@@ -471,7 +471,6 @@ export class User extends MySqlModel {
   ): Promise<User> {
     const ref = 'User.updatePassword';
     // First make sure the current password is valid
-
     const validPassword = await User.authCheck(ref, context, email, oldPassword);
     if (validPassword) {
       this.password = newPassword;

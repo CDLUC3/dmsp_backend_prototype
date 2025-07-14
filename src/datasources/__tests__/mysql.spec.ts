@@ -2,7 +2,6 @@ import { MySQLConnection } from '../mysql';
 import * as mysql2 from 'mysql2/promise';
 import { buildMockContextWithToken } from '../../__mocks__/context';
 import { MyContext } from '../../context';
-
 import { logger } from "../../logger";
 
 jest.mock('mysql2/promise');
@@ -16,7 +15,6 @@ describe('MySQLConnection', () => {
   beforeEach(async () => {
     jest.resetAllMocks();
 
-    //  context = buildContext(logger, mockToken(), MockCache.getInstance());
     context = await buildMockContextWithToken(logger);
 
     // Mock MySQL pool and connection

@@ -3,6 +3,7 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `getEmail` method to the `User` model to retrieve the email address for a user.
 - Added a new resolver for `answerByVersionedQuestionId` so that we can get the question-specific answer to populate the question in the Question detail page.
 - Added a new MySQL container to host the test DB to the docker compose stack
 - Added JSON column `questionType` to `questions` and `versionedQuestions` tables
@@ -94,6 +95,10 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated package.json and tsconfig.json with options for sourcemaps which is supposed to help making debugging/breakpoints in IDEs more reliable.
+- Updated most tests since they mostly require tokens which require email which is now async because it comes from the UserEmail model.
+- Updated resolvers, models and controllers to use correct methods for using email from the UserEmail model (or use convenience method `getEmail` on the User model).
+- Updated table `user.failed_sign_in_attemps` to be spelled correctly as `failed_sign_in_attempts`
 - Updated `sections` and `questions` queries to order by `displayOrder` [#324]
 - Refactor the way we initialize the pino Logger and pass it around. Also removed the old `formatLogMessage` function and replaced with `prepareObjectForLogs`
 - Consolidated handling of the Cache, so that we always pass the `adapter`
@@ -159,6 +164,7 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Dropped the `email` from the `users` table
 - Dropped FKeys on `users` and `affiliations`
 - Dropped `questionTypes` and `questionOptions` tables
 - Dropped the `questionTypeId` field from the `questions` and `versionedQuestions` tables
@@ -178,7 +184,7 @@
 - Update profile was not working due to missing `createdById` and `modifiedById` values in db. Added data migration script to populate those fields [#278]
 - Fixed myTemplates query so that `TemplateSearchResult` returns the `ownerDisplayName` specified in schema.
 - Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
--Was getting `undefined` bestPractice in `updateTemplate` when none was passed in because of the logic on how it was set. Added a check for whether `bestPractice` is defined before setting value. Also, added an update to `createTemplateVersion`, so that errors from the `generateTemplateVersion` will be caught and passed back in graphql response. Previously, when trying to save a DRAFT of a template, the mutation wouldn't return an error to the client, even though the `Save draft` did not successfully complete. [#265]
+- Was getting `undefined` bestPractice in `updateTemplate` when none was passed in because of the logic on how it was set. Added a check for whether `bestPractice` is defined before setting value. Also, added an update to `createTemplateVersion`, so that errors from the `generateTemplateVersion` will be caught and passed back in graphql response. Previously, when trying to save a DRAFT of a template, the mutation wouldn't return an error to the client, even though the `Save draft` did not successfully complete. [#265]
 - Removed `Copy of` from in front of copied `Section` and `Template` names [#261]
 - Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
 - Fixed an issue where adding `projectCollaborators` was failing due to the fact that the `userId` field was required. This should not be required to add a new collaborator [#260]

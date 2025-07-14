@@ -216,7 +216,6 @@ describe('anonymizeUser', () => {
       acceptedTerms: true,
       errors: [],
     });
-    // jest.spyOn(user, 'getEmail').mockResolvedValue(casual.email);
     userStore.push(user);
   });
 

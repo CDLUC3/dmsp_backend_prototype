@@ -52,6 +52,7 @@ export const persistUser = async (
   } catch (e) {
     console.error(`Error persisting user ${user.email}: ${e.message}`);
   }
+  return null;
 }
 
 // Clean up all mock/test Users

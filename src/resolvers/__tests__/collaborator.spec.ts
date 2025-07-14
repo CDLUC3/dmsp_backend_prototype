@@ -31,7 +31,6 @@ async function executeQuery (
   token: JWTAccessToken
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
-  // const context = await buildMockContextWithToken(logger, token, null);
   const context = buildContext(logger, token, null);
 
   return await testServer.executeOperation(

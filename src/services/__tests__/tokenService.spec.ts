@@ -45,7 +45,6 @@ beforeEach(() => {
     languageId: defaultLanguageId,
     getEmail: jest.fn().mockResolvedValue(casual.email)
   };
-
 });
 
 describe('setTokenCookie', () => {

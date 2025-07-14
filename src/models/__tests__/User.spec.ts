@@ -13,7 +13,6 @@ import { PaginationType } from '../../types/general';
 
 jest.mock('../../context.ts');
 jest.mock('../UserEmail');
-// jest.mock('../User');
 
 let mockQuery;
 let mockUser;
@@ -305,7 +304,6 @@ describe('authCheck', () => {
     const email = 'test.email@example.com'
     const password = 'Abcd3Fgh1jkL$';
     mockUser.id = 12345;
-    // mockQuery.mockResolvedValueOnce([mockUser]);
 
     (UserEmail.findByEmail as jest.Mock).mockResolvedValueOnce([
       { userId: mockUser.id, isPrimary: true, isConfirmed: true, email: email }
