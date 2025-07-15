@@ -541,7 +541,7 @@ describe('top20', () => {
     localQuery.mockResolvedValueOnce([popularFunder]);
     const result = await PopularFunder.top20(context);
     const expectedSql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
-                        'FROM affiliations a LEFT JOIN projectFunders pf ON pf.affiliationId = a.uri ' +
+                        'FROM affiliations a LEFT JOIN projectFundings pf ON pf.affiliationId = a.uri ' +
                         'LEFT JOIN projects p ON p.id = pf.projectId WHERE a.active = 1 AND a.funder = 1 ' +
                         'AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? GROUP BY a.id, a.uri, ' +
                         'a.displayName ORDER BY nbrPlans DESC, displayName ASC LIMIT 20';

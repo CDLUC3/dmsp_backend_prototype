@@ -1,8 +1,3 @@
-it('passes', () => {
-  expect(true).toBeTruthy();
-});
-
-/*
 import casual from "casual";
 
 import assert from "assert";
@@ -19,7 +14,7 @@ import {
 } from "../../models/__mocks__/Affiliation";
 import {
   addTableForTeardown,
-  executeQuery,
+  executeQuery, generateFullTemplate, generateFullVersionedTemplate,
   initResolverTest,
   mockToken,
   ResolverTest,
@@ -29,6 +24,15 @@ import {
 } from "./resolverTestHelper";
 import {getRandomEnumValue} from "../../__tests__/helpers";
 import {formatISO9075} from "date-fns";
+import {mockProject, persistProject} from "../../models/__mocks__/Project";
+import {mockTemplate, persistTemplate} from "../../models/__mocks__/Template";
+import {persistPlan} from "../../models/__mocks__/Plan";
+import {
+  mockProjectFunding,
+  persistProjectFunding
+} from "../../models/__mocks__/Funding";
+import {ProjectFunding} from "../../models/Funding";
+import {Project} from "../../models/Project";
 
 // Mock and then import the logger (this has jest pick up and use src/__mocks__/logger.ts)
 jest.mock('../../logger');
@@ -75,16 +79,71 @@ describe('affiliationTypes query', () => {
   it('returns the expected affiliation types', async () => {
     const resp = await executeQuery(query, {});
 
-    const expectedTypes = affiliations.map(a => a.types).flat();
-
+    const expectedTypes = Object.values(AffiliationType);
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
     expect(resp.body.singleResult.data?.affiliationTypes).toEqual(expectedTypes);
   });
 });
 
+describe('popularFunders query', () => {
+  const query = `
+    query PopularFunders {
+      popularFunders {
+        uri
+        displayName
+      }
+    }
+  `;
 
-describe('affiliationById query', () => {
+  let affiliationURIs: string[] = [];
+
+  beforeEach(async () => {
+    const affiliations: Affiliation[] = [];
+
+    for (let i = 0; i < 21; i++) {
+      affiliations.push(mockAffiliation({ active: true, funder: true }));
+    }
+
+    await Promise.all(affiliations.map(async (affiliation, index) => {
+      await persistAffiliation(resolverTest.context, affiliation);
+      affiliationURIs.push(affiliation.uri);
+
+      if (index < 20) {
+        // Add projects to the first 20
+        const project = await persistProject(
+          resolverTest.context,
+          mockProject({
+            isTestProject: false
+          })
+        );
+        await persistProjectFunding(
+          resolverTest.context,
+          mockProjectFunding({ affiliationId: affiliation.uri, projectId: project.id })
+        );
+      }
+    }));
+    addTableForTeardown(Affiliation.tableName);
+    addTableForTeardown(Project.tableName);
+    addTableForTeardown(ProjectFunding.tableName);
+  });
+
+  it('returns the expected funders', async () => {
+    const resp = await executeQuery(query, {});
+
+    assert(resp.body.kind === 'single');
+    expect(resp.body.singleResult.errors).toBeUndefined();
+
+    const uris = resp.body.singleResult.data.popularFunders.map((f: any) => f.uri);
+    const notExpectedURIs = affiliationURIs.slice(20);
+
+    expect(uris.length).toEqual(20);
+    expect(uris).not.toContain(notExpectedURIs);
+  });
+});
+
+
+describe('affiliation resolver', () => {
   const query = `
     query Affiliations($name: String!, $funderOnly: Boolean, $paginationOptions: PaginationOptions) {
       affiliations (name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
@@ -173,6 +232,7 @@ describe('affiliationById query', () => {
         aliases
         types
         provenance
+        active
         managed
         feedbackEnabled
         feedbackEmails
@@ -226,8 +286,31 @@ describe('affiliationById query', () => {
     }
   `;
 
+  let affiliations: Affiliation[];
+  let namePrefix: string = 'Test resolver - ';
+
+  beforeEach(async () => {
+    affiliations = [];
+
+    // Create 3 affiliations for our tests
+    affiliations.push(await persistAffiliation(
+      resolverTest.context,
+      mockAffiliation({ active: true, name: `${namePrefix} A` }),
+    ));
+    affiliations.push(await persistAffiliation(
+      resolverTest.context,
+      mockAffiliation({ active: true, name: `${namePrefix} B` }),
+    ));
+    affiliations.push(await persistAffiliation(
+      resolverTest.context,
+      mockAffiliation({ active: true, name: `${namePrefix} C` }),
+    ));
+
+    addTableForTeardown(Affiliation.tableName);
+  });
+
   it('handles cursor pagination successfully', async () => {
-    const variables = { name: 'Affiliation Query Test', paginationOptions: { cursor: null, limit: 2 } };
+    const variables = { name: namePrefix, paginationOptions: { cursor: null, limit: 2 } };
     const resp = await executeQuery(query, variables);
 
     assert(resp.body.kind === 'single');
@@ -267,7 +350,7 @@ describe('affiliationById query', () => {
 
   it('handles offset pagination successfully', async () => {
     const variables = {
-      name: 'Affiliation Query Test',
+      name: namePrefix,
       paginationOptions: { offset: 0, limit: 2, type: 'OFFSET' }
     };
     const resp = await executeQuery(query, variables);
@@ -310,7 +393,11 @@ describe('affiliationById query', () => {
     const newAffiliation = mockAffiliation({});
 
     resolverTest.context.token.role = UserRole.SUPERADMIN;
-    const resp = await executeQuery(addMutation, newAffiliation);
+    const resp = await executeQuery(addMutation, {
+      input: {
+        name: newAffiliation.name,
+      }
+    });
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -328,7 +415,11 @@ describe('affiliationById query', () => {
     const newAffiliation = mockAffiliation({});
 
     resolverTest.context.token.role = UserRole.ADMIN;
-    const resp = await executeQuery(addMutation, newAffiliation);
+    const resp = await executeQuery(addMutation, {
+      input: {
+        name: newAffiliation.name,
+      }
+    });
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -346,7 +437,11 @@ describe('affiliationById query', () => {
     const newAffiliation = mockAffiliation({});
 
     resolverTest.context.token.role = UserRole.RESEARCHER;
-    const resp = await executeQuery(addMutation, newAffiliation);
+    const resp = await executeQuery(addMutation, {
+      input: {
+        name: newAffiliation.name,
+      }
+    });
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
@@ -647,13 +742,13 @@ describe('affiliationById query', () => {
     );
     affiliations.push(persistedAffiliation);
 
-    const variables = { affiliationId: affiliations[1].id };
+    const variables = { affiliationId: persistedAffiliation.id };
     resolverTest.context.token.role = UserRole.SUPERADMIN;
     const resp = await executeQuery(removeMutation, variables);
 
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
-    expect(resp.body.singleResult.data?.removeAffiliation?.id).toEqual(affiliations[1].id);
+    expect(resp.body.singleResult.data?.removeAffiliation?.id).toEqual(persistedAffiliation.id);
   });
 
   it('does not allow an affiliation that is NOT managed by the DMP Tool to be deleted', async () => {
@@ -666,7 +761,7 @@ describe('affiliationById query', () => {
     );
     affiliations.push(persistedAffiliation);
 
-    const variables = { affiliationId: affiliations[1].id };
+    const variables = { affiliationId: persistedAffiliation.id };
     resolverTest.context.token.role = UserRole.SUPERADMIN;
     const resp = await executeQuery(removeMutation, variables);
 
@@ -685,7 +780,7 @@ describe('affiliationById query', () => {
       })
     );
     affiliations.push(persistedAffiliation);
-    const variables = { affiliationId: affiliations[1].id };
+    const variables = { affiliationId: persistedAffiliation.id };
 
     resolverTest.context.token.role = UserRole.ADMIN;
     const resp = await executeQuery(removeMutation, variables);
@@ -699,10 +794,8 @@ describe('affiliationById query', () => {
   it('Throws a 404 if the template does not exist', async () => {
     resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
-    await testNotFound(queryById, { id: 99999999 });
-    await testNotFound(queryByURI, { uri: 'http://missing.affiliation.org' });
     await testNotFound(updateMutation, { input: { id: 99999999, name: 'TEST' } });
-    await testNotFound(removeMutation, { id: 99999999 });
+    await testNotFound(removeMutation, { affiliationId: 99999999 });
   });
 
   it('handles missing tokens and internal server errors', async () => {
@@ -711,18 +804,18 @@ describe('affiliationById query', () => {
     // Test standard error handling for query
     await testStandardErrors({
       graphQL: query,
-      variables: { affiliationId: affiliations[0].id },
+      variables: { name: namePrefix, paginationOptions: { cursor: null, limit: 2 } },
       spyOnClass: Affiliation,
-      spyOnFunction: 'query',
-      mustBeAuthenticated: true
+      spyOnFunction: 'queryWithPagination',
+      mustBeAuthenticated: false
     });
 
     await testStandardErrors({
       graphQL: queryById,
-      variables: { id: affiliations[0].id },
+      variables: { affiliationId: affiliations[0].id },
       spyOnClass: Affiliation,
       spyOnFunction: 'query',
-      mustBeAuthenticated: true
+      mustBeAuthenticated: false
     });
 
     await testStandardErrors({
@@ -730,32 +823,40 @@ describe('affiliationById query', () => {
       variables: { uri: affiliations[0].uri },
       spyOnClass: Affiliation,
       spyOnFunction: 'query',
-      mustBeAuthenticated: true
+      mustBeAuthenticated: false
     });
 
     await testStandardErrors({
-      graphQL: query,
-      variables: { name: casual.sentence },
+      graphQL: addMutation,
+      variables: { input: { name: casual.sentence } },
       spyOnClass: Affiliation,
       spyOnFunction: 'insert',
-      mustBeAuthenticated: true
+      mustBeAuthenticated: false
     });
 
     await testStandardErrors({
-      graphQL: query,
+      graphQL: updateMutation,
       variables: { input: { id: affiliations[0].id, name: 'TEST' } },
       spyOnClass: Affiliation,
       spyOnFunction: 'update',
       mustBeAuthenticated: true
     });
 
+    // We can only delete DMP Tool managed affiliations (e.g. can't delete ROR)
+    const persistedAffiliation = await persistAffiliation(
+      resolverTest.context,
+      mockAffiliation({
+        uri: `${DEFAULT_DMPTOOL_AFFILIATION_URL}${casual.integer(1, 1000000)}`,
+        provenance: AffiliationProvenance.DMPTOOL
+      })
+    )
+
     await testStandardErrors({
-      graphQL: query,
-      variables: { id: affiliations[0].id },
+      graphQL: removeMutation,
+      variables: { affiliationId: persistedAffiliation.id },
       spyOnClass: Affiliation,
       spyOnFunction: 'delete',
       mustBeAuthenticated: true
     });
   });
 });
- */

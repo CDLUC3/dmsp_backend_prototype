@@ -419,12 +419,16 @@ export class PopularFunder {
     // Get the top 20 funders based on the number of plans created in the past year
     const sql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
                 `FROM ${Affiliation.tableName} a ` +
-                'LEFT JOIN projectFunders pf ON pf.affiliationId = a.uri ' +
+                'LEFT JOIN projectFundings pf ON pf.affiliationId = a.uri ' +
                 'LEFT JOIN projects p ON p.id = pf.projectId ' +
                 'WHERE a.active = 1 AND a.funder = 1 AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? ' +
                 'GROUP BY a.id, a.uri, a.displayName ' +
                 'ORDER BY nbrPlans DESC, displayName ASC LIMIT 20';
-    const results = await Affiliation.query(context, sql, [startDate, endDate], 'PopularFunder.top20');
+    const results = await Affiliation.query(
+      context,
+      sql,
+      [`${startDate} 00:00:00`, `${endDate} 23:59:59`],
+      'PopularFunder.top20');
 
     if (Array.isArray(results) && results.length > 0) {
       return results.map((entry) => { return new PopularFunder(entry) });

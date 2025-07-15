@@ -36,11 +36,13 @@ import {
   persistMemberRole
 } from "../../models/__mocks__/MemberRole";
 import {MemberRole} from "../../models/MemberRole";
+import {UserEmail} from "../../models/UserEmail";
 
 let mysqlInstance: MySQLConnection;
 let testServer: ApolloServer;
 let context: MyContext;
-let tablesToCleanup: string[];
+let tablesToCleanup: string[] = [];
+let userIdsToCleanup: string[] = [];
 
 const initErrorMessage = 'Failed to initialize test. You need to ' +
   'run docker-compose in another window to make the test DB available!'
@@ -60,6 +62,12 @@ export interface ResolverTest {
 export function addTableForTeardown (tableName: string): void {
   if (!tablesToCleanup.includes(tableName)) {
     tablesToCleanup.push(tableName);
+  }
+}
+
+export function addUserForTeardown (userId: string): void {
+  if (!userIdsToCleanup.includes(userId)) {
+    userIdsToCleanup.push(userId);
   }
 }
 
@@ -100,6 +108,7 @@ export async function initResolverTest (): Promise<ResolverTest> {
       mockedUser,
       'initResolverTest'
     )
+    userIdsToCleanup.push(initialUserId.toString());
     await mysqlInstance.query(context, 'SET FOREIGN_KEY_CHECKS = 1;', []);
 
     // Set the token to the SuperAdmin by default
@@ -126,7 +135,13 @@ export async function initResolverTest (): Promise<ResolverTest> {
     superAdmin.affiliationId = affiliations[1].uri;
     await superAdmin.update(context)
 
-    tablesToCleanup = [Affiliation.tableName, MemberRole.tableName, User.tableName];
+    userIdsToCleanup.push(superAdmin.id.toString());
+    tablesToCleanup = [
+      Affiliation.tableName,
+      MemberRole.tableName,
+      User.tableName,
+      UserEmail.tableName,
+    ];
 
     return {
       server: testServer,
@@ -173,7 +188,10 @@ export async function teardownResolverTest (): Promise<void> {
 
     // Purge all records from the specified tables
     for (const table of tableNames) {
-      await mysqlInstance.query(context,`DELETE FROM ${table};`, []);
+      await mysqlInstance.query(
+        context,
+        `DELETE FROM ${table} WHERE createdById IN (${userIdsToCleanup.join(',')});`,
+      );
     }
 
     // Re-enable FKey checks
@@ -267,7 +285,6 @@ export async function testStandardErrors (input: standardErrorTestInput): Promis
     context.token = null;
 
     const resp2 = await executeQuery(input.graphQL, input.variables);
-
     assert(resp2.body.kind === 'single');
     expect(resp2.body.singleResult.errors).toBeDefined();
     expect(resp2.body.singleResult.data[Object.keys(resp2.body.singleResult.data)[0]]).toBeNull();

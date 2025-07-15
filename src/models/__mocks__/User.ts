@@ -4,6 +4,7 @@ import { isNullOrUndefined } from "../../utils/helpers";
 import { User, UserRole } from "../User";
 import { MyContext } from "../../context";
 import { getRandomEnumValue } from "../../__tests__/helpers";
+import {addUserForTeardown} from "../../resolvers/__tests__/resolverTestHelper";
 
 export interface MockUserOptions {
   id?: number;
@@ -41,6 +42,7 @@ export const persistUser = async (
 ): Promise<User | null> => {
   try {
     const created = await user.register(context, email);
+    addUserForTeardown(created.id.toString());
     return isNullOrUndefined(created) ? null : created;
   } catch (e) {
     console.error(`Error persisting user ${email}: ${e.message}`);

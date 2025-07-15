@@ -81,7 +81,7 @@ describe('templateCollaborators', () => {
       addTemplateCollaborator (templateId: $templateId, email: $email) {
         id
         email
-        createdByIdx
+        createdById
         created
         modifiedById
         modified
