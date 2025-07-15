@@ -1276,6 +1276,7 @@ export type MutationUpdateMetadataStandardArgs = {
 
 
 export type MutationUpdatePasswordArgs = {
+  email: Scalars['String']['input'];
   newPassword: Scalars['String']['input'];
   oldPassword: Scalars['String']['input'];
 };
@@ -2154,6 +2155,8 @@ export type Query = {
   affiliations?: Maybe<AffiliationSearchResults>;
   /** Get the sepecific answer */
   answer?: Maybe<Answer>;
+  /** Get an answer by versionedQuestionId */
+  answerByVersionedQuestionId?: Maybe<Answer>;
   /** Get all answers for the given project and plan and section */
   answers?: Maybe<Array<Maybe<Answer>>>;
   /** Get all of the best practice VersionedSection */
@@ -2294,6 +2297,13 @@ export type QueryAffiliationsArgs = {
 export type QueryAnswerArgs = {
   answerId: Scalars['Int']['input'];
   projectId: Scalars['Int']['input'];
+};
+
+
+export type QueryAnswerByVersionedQuestionIdArgs = {
+  planId: Scalars['Int']['input'];
+  projectId: Scalars['Int']['input'];
+  versionedQuestionId: Scalars['Int']['input'];
 };
 
 
@@ -3468,16 +3478,16 @@ export type User = {
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The user's primary email address */
-  email: Scalars['EmailAddress']['output'];
+  email?: Maybe<Scalars['String']['output']>;
   /** The user's email addresses */
   emails?: Maybe<Array<Maybe<UserEmail>>>;
   /** Errors associated with the Object */
   errors?: Maybe<UserErrors>;
   /** The number of failed login attempts */
-  failed_sign_in_attemps?: Maybe<Scalars['Int']['output']>;
+  failed_sign_in_attempts?: Maybe<Scalars['Int']['output']>;
   /** The user's first/given name */
   givenName?: Maybe<Scalars['String']['output']>;
-  /** The unique identifer for the Object */
+  /** The unique identifier for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The user's preferred language */
   languageId: Scalars['String']['output'];
@@ -3487,7 +3497,7 @@ export type User = {
   last_sign_in_via?: Maybe<Scalars['String']['output']>;
   /** Whether or not the account is locked from failed login attempts */
   locked?: Maybe<Scalars['Boolean']['output']>;
-  /** The timestamp when the Object was last modifed */
+  /** The timestamp when the Object was last modified */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
@@ -3521,13 +3531,13 @@ export type UserEmail = {
   email: Scalars['String']['output'];
   /** Errors associated with the Object */
   errors?: Maybe<UserEmailErrors>;
-  /** The unique identifer for the Object */
+  /** The unique identifier for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** Whether or not the email address has been confirmed */
   isConfirmed: Scalars['Boolean']['output'];
   /** Whether or not this is the primary email address */
   isPrimary: Scalars['Boolean']['output'];
-  /** The timestamp when the Object was last modifed */
+  /** The timestamp when the Object was last modified */
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
@@ -4643,7 +4653,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationUpdateLicenseArgs, 'name' | 'uri'>>;
   updateMemberRole?: Resolver<Maybe<ResolversTypes['MemberRole']>, ParentType, ContextType, RequireFields<MutationUpdateMemberRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
-  updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'newPassword' | 'oldPassword'>>;
+  updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'email' | 'newPassword' | 'oldPassword'>>;
   updatePlanMember?: Resolver<Maybe<ResolversTypes['PlanMember']>, ParentType, ContextType, RequireFields<MutationUpdatePlanMemberArgs, 'planId' | 'planMemberId'>>;
   updatePlanStatus?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUpdatePlanStatusArgs, 'planId' | 'status'>>;
   updateProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationUpdateProjectArgs>>;
@@ -5101,6 +5111,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
+  answerByVersionedQuestionId?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerByVersionedQuestionIdArgs, 'planId' | 'projectId' | 'versionedQuestionId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;
   bestPracticeSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType>;
   childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;
@@ -5529,10 +5540,10 @@ export type UserResolvers<ContextType = MyContext, ParentType extends ResolversP
   affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  email?: Resolver<ResolversTypes['EmailAddress'], ParentType, ContextType>;
+  email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   emails?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['UserErrors']>, ParentType, ContextType>;
-  failed_sign_in_attemps?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  failed_sign_in_attempts?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   languageId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

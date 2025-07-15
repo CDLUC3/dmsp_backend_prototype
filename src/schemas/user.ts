@@ -28,7 +28,7 @@ export const typeDefs = gql`
     setPrimaryUserEmail(email: String!): [UserEmail]
 
     "Change the current user's password"
-    updatePassword(oldPassword: String!, newPassword: String!): User
+    updatePassword(oldPassword: String!, newPassword: String!, email: String!): User
 
     "Deactivate the specified user Account (Admin only)"
     deactivateUser(userId: Int!): User
@@ -53,7 +53,7 @@ export const typeDefs = gql`
 
   "A user of the DMPTool"
   type User {
-    "The unique identifer for the Object"
+    "The unique identifier for the Object"
     id: Int
     "The user who created the Object"
     createdById: Int
@@ -61,7 +61,7 @@ export const typeDefs = gql`
     created: String
     "The user who last modified the Object"
     modifiedById: Int
-    "The timestamp when the Object was last modifed"
+    "The timestamp when the Object was last modified"
     modified: String
     "Errors associated with the Object"
     errors: UserErrors
@@ -70,8 +70,6 @@ export const typeDefs = gql`
     givenName: String
     "The user's last/family name"
     surName: String
-    "The user's primary email address"
-    email: EmailAddress!
     "The user's role within the DMPTool"
     role: UserRole!
     "The user's organizational affiliation"
@@ -106,10 +104,12 @@ export const typeDefs = gql`
     "The method user for the last login: PASSWORD or SSO"
     last_sign_in_via: String
     "The number of failed login attempts"
-    failed_sign_in_attemps: Int
+    failed_sign_in_attempts: Int
 
     "The user's email addresses"
     emails: [UserEmail]
+    "The user's primary email address"
+    email: String
   }
 
   type UserSearchResults implements PaginatedQueryResults {
@@ -152,7 +152,7 @@ export const typeDefs = gql`
   }
 
   type UserEmail {
-    "The unique identifer for the Object"
+    "The unique identifier for the Object"
     id: Int
     "The user who created the Object"
     createdById: Int
@@ -160,7 +160,7 @@ export const typeDefs = gql`
     created: String
     "The user who last modified the Object"
     modifiedById: Int
-    "The timestamp when the Object was last modifed"
+    "The timestamp when the Object was last modified"
     modified: String
     "Errors associated with the Object"
     errors: UserEmailErrors

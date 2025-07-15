@@ -205,7 +205,7 @@ describe('templateCollaborators', () => {
       role: UserRole.RESEARCHER
     }));
     // Make sure the token belongs to the creator
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
 
     template = await persistTemplate(
       resolverTest.context,
@@ -223,7 +223,7 @@ describe('templateCollaborators', () => {
   });
 
   it('Super Admin flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     await testAddQueryRemoveAccess('SuperAdmin', true, true);
 
     // Emailer should have been called for existingCollaborator and one we added
@@ -231,7 +231,7 @@ describe('templateCollaborators', () => {
   });
 
   it('Admin of same affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationA);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationA);
     await testAddQueryRemoveAccess('Admin, same affiliation', true, true);
 
     // Emailer should have been called for existingCollaborator and one we added
@@ -239,7 +239,7 @@ describe('templateCollaborators', () => {
   });
 
   it('Admin of other affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationB);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationB);
     await testAddQueryRemoveAccess('Admin. other affiliation', false, false);
 
     // Emailer should have been called for existingCollaborator only
@@ -251,15 +251,15 @@ describe('templateCollaborators', () => {
       affiliationId: resolverTest.adminAffiliationB.affiliationId,
       role: UserRole.ADMIN
     }))
-    const collab = await persistTemplateCollaborator(
+    await persistTemplateCollaborator(
       resolverTest.context,
       mockTemplateCollaborator({
         templateId: template.id,
-        email: admin.email,
+        email: await admin.getEmail(resolverTest.context),
       })
     )
 
-    resolverTest.context.token = mockToken(admin);
+    resolverTest.context.token = await mockToken(resolverTest.context, admin);
     await testAddQueryRemoveAccess('researcher, random', true, true);
 
     addTableForTeardown(User.tableName);
@@ -270,7 +270,7 @@ describe('templateCollaborators', () => {
   });
 
   it('returns the collaborator with errors if it is a duplicate', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     const variables = { templateId: template.id, email: existingCollaborator.email };
 
     const resp = await executeQuery(addMutation, variables);
@@ -284,12 +284,12 @@ describe('templateCollaborators', () => {
   });
 
   it('finds the userId for an existing User', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     const existingUser = await persistUser(
       resolverTest.context,
       mockUser({ affiliationId: resolverTest.adminAffiliationA.affiliationId })
     )
-    const variables = { templateId: template.id, email: existingUser.email};
+    const variables = { templateId: template.id, email: await existingUser.getEmail(resolverTest.context)};
 
     const resp = await executeQuery(addMutation, variables);
 
@@ -309,7 +309,7 @@ describe('templateCollaborators', () => {
   });
 
   it('Throws a 404 if the template does not exist', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     await testNotFound(query, { templateId: 99999999 });
     await testNotFound(addMutation, { templateId: 99999999, email: 'test' });
@@ -317,7 +317,7 @@ describe('templateCollaborators', () => {
   });
 
   it('handles missing tokens and internal server errors', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     // Test standard error handling for query
     await testStandardErrors({
@@ -555,7 +555,7 @@ describe('projectCollaborators', () => {
     addTableForTeardown(User.tableName);
 
     // Make sure the token belongs to the creator
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
     project = await persistProject(resolverTest.context, mockProject({}));
     addTableForTeardown(Project.tableName);
 
@@ -570,7 +570,7 @@ describe('projectCollaborators', () => {
   });
 
   it('Super Admin flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     await testAddQueryRemoveAccess('SuperAdmin', true, true);
 
     // Should have emailed for the existingCollaborator and the one being added
@@ -578,7 +578,7 @@ describe('projectCollaborators', () => {
   });
 
   it('Admin of same affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationA);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationA);
     await testAddQueryRemoveAccess('Admin, same affiliation', true, true);
 
     // Should have emailed for the existingCollaborator and the one being added
@@ -586,7 +586,7 @@ describe('projectCollaborators', () => {
   });
 
   it('Admin of other affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationB);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationB);
     await testAddQueryRemoveAccess('Admin. other affiliation', false, false);
 
     // Generating the existingCollaborator caused the emailer to fire once
@@ -594,7 +594,7 @@ describe('projectCollaborators', () => {
   });
 
   it('Project creator flow', async () => {
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
     await testAddQueryRemoveAccess('creator', true, true);
 
     // Should have emailed for the existingCollaborator and the one being added
@@ -606,7 +606,7 @@ describe('projectCollaborators', () => {
       affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, random', false, false);
 
     // Generating the existingCollaborator caused the emailer to fire once
@@ -624,11 +624,11 @@ describe('projectCollaborators', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.COMMENT
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, commenter', true, false);
 
     // Generating the existingCollaborator and the commenter caused the emailer to fire twice
@@ -647,11 +647,11 @@ describe('projectCollaborators', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.EDIT
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, editor', true, true);
 
     // Should have emailed for the existingCollaborator the editor and the one being added
@@ -670,11 +670,11 @@ describe('projectCollaborators', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.OWN
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, owner', true, true);
 
     // Should have emailed for the existingCollaborator the owner and the one being added
@@ -685,7 +685,7 @@ describe('projectCollaborators', () => {
   });
 
   it('returns the collaborator with errors if it is a duplicate', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     const variables = { projectId: project.id, email: existingCollaborator.email };
     const resp = await executeQuery(addMutation, variables);
 
@@ -698,7 +698,7 @@ describe('projectCollaborators', () => {
   });
 
   it('finds the userId for an existing User', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     const existingUser = await persistUser(
       resolverTest.context,
       mockUser({
@@ -706,7 +706,7 @@ describe('projectCollaborators', () => {
         role: UserRole.RESEARCHER
       })
     )
-    const variables = { projectId: project.id, email: existingUser.email};
+    const variables = { projectId: project.id, email: await existingUser.getEmail(resolverTest.context)};
 
     const resp = await executeQuery(addMutation, variables);
 
@@ -726,7 +726,7 @@ describe('projectCollaborators', () => {
   });
 
   it('Throws a 404 if the project does not exist', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     await testNotFound(query, { projectId: 99999999 });
     await testNotFound(addMutation, { projectId: 99999999, email: 'test' });
@@ -738,7 +738,7 @@ describe('projectCollaborators', () => {
   });
 
   it('handles missing tokens and internal server errors', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     // Test standard error handling for query
     await testStandardErrors({

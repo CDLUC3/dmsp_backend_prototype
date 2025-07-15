@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 import { User, UserRole } from "../../models/User";
 import { anonymizeUser, generateRandomPassword, mergeUsers } from "../userService";
@@ -30,7 +30,7 @@ let mockDelete;
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
   affiliationId = casual.url;
@@ -38,14 +38,14 @@ beforeEach(() => {
   // Define a fake logged in admin user
   adminUser = new User({
     id: casual.integer(1, 9999),
-    email: casual.email,
     givenName: casual.first_name,
     surName: casual.last_name,
     affiliationId,
     role: UserRole.ADMIN,
   });
 
-  context = buildContext(logger, mockToken(adminUser));
+  jest.spyOn(adminUser, 'getEmail').mockResolvedValue(casual.email);
+  context = await buildMockContextWithToken(logger, adminUser);
 
   const mockSendEmail = jest.fn().mockReturnValue(true);
   (sendEmailConfirmationNotification as jest.Mock) = mockSendEmail;
@@ -199,7 +199,6 @@ describe('anonymizeUser', () => {
       created: getCurrentDate(),
       modifiedById: casual.integer(1, 999),
       modified: getCurrentDate(),
-      email: casual.email,
       password: 'TestPa$$word987',
       givenName: casual.first_name,
       surName: casual.last_name,
@@ -227,8 +226,27 @@ describe('anonymizeUser', () => {
   });
 
   it('anonymizes the expected User properties', async () => {
+
+    jest.spyOn(UserEmail, 'createOrUpdatePrimary').mockResolvedValue(
+      new UserEmail({ id: 123, userId: user.id, email: 'anonymized@deleted-account.example.com', isPrimary: true })
+    );
+
+    // First call: original email
+    jest.spyOn(UserEmail, 'findPrimaryByUserId').mockResolvedValueOnce(
+      new UserEmail({ id: 1, userId: user.id, email: 'original@example.com', isPrimary: true })
+    );
+
+    // After anonymization: new email
+    jest.spyOn(UserEmail, 'findPrimaryByUserId').mockResolvedValueOnce(
+      new UserEmail({ id: 1, userId: user.id, email: 'anonymized@deleted-account.example.com', isPrimary: true })
+    );
+
     const original = structuredClone(user);
+    const originalEmail = await user.getEmail(context);
+
     const result = await anonymizeUser(context, user);
+
+    const anonymizedEmail = await result.getEmail(context);
 
     expect(mockFindUserById).toHaveBeenCalledTimes(3);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
@@ -240,13 +258,13 @@ describe('anonymizeUser', () => {
     expect(result.locked).toEqual(original.locked);
     expect(result.last_sign_in).toEqual(original.last_sign_in);
     expect(result.last_sign_in_via).toEqual(original.last_sign_in_via);
-    expect(result.failed_sign_in_attemps).toEqual(original.failed_sign_in_attemps);
+    expect(result.failed_sign_in_attempts).toEqual(original.failed_sign_in_attempts);
 
     // Should record the modifier's info
     expect(result.modifiedById).toEqual(context.token.id);
 
     // Expect others to change
-    expect(result.email).not.toEqual(original.email);
+    expect(originalEmail).not.toEqual(anonymizedEmail);
     expect(result.password).not.toEqual(original.password);
     expect(result.givenName).not.toEqual(original.givenName);
     expect(result.surName).not.toEqual(original.surName);
@@ -367,7 +385,7 @@ describe('mergeUsers', () => {
     expect(mergedUser.createdById).toEqual(keepUser.createdById);
   });
 
-  it('does not overwrite properties if they arealready  defined in the User to keep', async () => {
+  it('does not overwrite properties if they are already defined in the User to keep', async () => {
     const mergedUser = await mergeUsers(context, mergeUser, keepUser);
     expect(mockUpdate).toHaveBeenCalled();
     // Expect core MySQLModel properties to have remained unchanged
@@ -385,7 +403,7 @@ describe('mergeUsers', () => {
     expect(mergedUser.surName).toEqual(keepUser.surName);
     expect(mergedUser.givenName).toEqual(keepUser.givenName);
     expect(mergedUser.password).toEqual(keepUser.password);
-    expect(mergedUser.email).toEqual(keepUser.email);
+    expect(await mergedUser.getEmail(context)).toEqual(await keepUser.getEmail(context));
   });
 
   it('Overwrites some properties if they are NOT defined on the User to keep', async () => {
@@ -414,7 +432,7 @@ describe('mergeUsers', () => {
     expect(mergedUser.surName).toEqual(mergeUser.surName);
     expect(mergedUser.givenName).toEqual(mergeUser.givenName);
     expect(mergedUser.password).toEqual(original.password);
-    expect(mergedUser.email).toEqual(keepUser.email);
+    expect(await mergedUser.getEmail(context)).toEqual(await keepUser.getEmail(context));
   });
 
   it('promotes the User to keep if the merge user is an ADMIN', async () => {

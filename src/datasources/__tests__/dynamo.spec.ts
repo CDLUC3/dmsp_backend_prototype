@@ -4,14 +4,14 @@ import * as dynamoModule from "../dynamo";
 import { getDMP, updateDMP, createDMP, tombstoneDMP, deleteDMP } from "../dynamo";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken  } from "../../__mocks__/context";
 import { logger } from "../../logger";
 
 let context: MyContext;
 let dmp: DMPCommonStandard;
 
-beforeEach(() => {
-  context = buildContext(logger, mockToken());
+beforeEach(async () => {
+  context = await buildMockContextWithToken(logger);
 
   dmp = {
     dmphub_provenance_id: casual.word,

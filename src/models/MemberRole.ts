@@ -121,7 +121,7 @@ export class MemberRole extends MySqlModel {
 
     // First make sure the record is valid
     if (await this.isValid()) {
-      let current = await MemberRole.findByURL(reference, context, this.uri);
+      const current = await MemberRole.findByURL(reference, context, this.uri);
 
       // Then make sure it doesn't already exist
       if (current) {

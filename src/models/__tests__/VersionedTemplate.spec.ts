@@ -1,7 +1,7 @@
 import casual from 'casual';
 import { TemplateVisibility } from "../Template";
 import { TemplateVersionType, VersionedTemplate, VersionedTemplateSearchResult } from '../VersionedTemplate';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { defaultLanguageId } from '../Language';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { generalConfig } from '../../config/generalConfig';
@@ -11,10 +11,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -29,7 +29,7 @@ describe('VersionedTemplateSearchResult', () => {
   let context;
   let versionedTemplateSearchResult;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
@@ -37,7 +37,7 @@ describe('VersionedTemplateSearchResult', () => {
     localPaginationQuery = jest.fn();
     (VersionedTemplate.queryWithPagination as jest.Mock) = localPaginationQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedTemplateSearchResult = new VersionedTemplateSearchResult({
       id: casual.integer(1, 9),
@@ -213,13 +213,13 @@ describe('VersionedTemplate', () => {
     let context;
     let versionedTemplate;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (VersionedTemplate.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       versionedTemplate = new VersionedTemplate({
         id: casual.integer(1, 9),

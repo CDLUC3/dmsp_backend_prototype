@@ -11,7 +11,7 @@ import {
   DMPIdentifierType
 } from '../../types/DMP';
 import { MyContext } from '../../context';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { RelatedWork } from '../../models/RelatedWork';
 import { MemberRole } from '../../models/MemberRole';
 import { User } from '../../models/User';
@@ -146,10 +146,10 @@ jest.spyOn(MemberRole, 'defaultRole').mockResolvedValue(
   new MemberRole({ id: 1, uri: 'http://example.com/roles/tester', label: 'Tester' })
 );
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 
   template = new VersionedTemplate({
     id: 1,

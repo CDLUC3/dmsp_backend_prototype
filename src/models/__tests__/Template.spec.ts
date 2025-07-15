@@ -1,6 +1,6 @@
 import casual from 'casual';
 import { Template, TemplateSearchResult, TemplateVisibility } from "../Template";
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { TemplateCollaborator } from '../Collaborator';
 import { defaultLanguageId } from '../Language';
 import { getRandomEnumValue } from '../../__tests__/helpers';
@@ -11,10 +11,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.restoreAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -26,7 +26,7 @@ describe('TemplateSearchResult', () => {
   let localPaginationQuery;
   let templateSearchResult;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
@@ -35,7 +35,7 @@ describe('TemplateSearchResult', () => {
     localPaginationQuery = jest.fn();
     (Template.queryWithPagination as jest.Mock) = localPaginationQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     templateSearchResult = new TemplateSearchResult({
       id: casual.integer(1, 9),
@@ -166,13 +166,13 @@ describe('Template', () => {
     let context;
     let template;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (Template.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       template = new Template({
         id: casual.integer(1, 9),
@@ -458,8 +458,8 @@ describe('Template', () => {
     let template;
     let context;
 
-    beforeEach(() => {
-      context = buildContext(logger, mockToken());
+    beforeEach(async () => {
+      context = await buildMockContextWithToken(logger);
 
       template = new Template({
         id: casual.integer(1, 99),

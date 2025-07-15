@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Answer } from "../Answer";
 import { logger } from "../../logger";
 
@@ -7,10 +7,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -24,7 +24,7 @@ describe('Answer', () => {
     planId: casual.integer(1, 9999),
     versionedQuestionId: casual.integer(1, 9999),
     versionedSectionId: casual.integer(1, 9999),
-    json: casual.sentences(3),
+    json: "{\"answer\":\"California\"}"
   }
   beforeEach(() => {
     answer = new Answer(answerData);
@@ -70,14 +70,14 @@ describe('findBy Queries', () => {
   let context;
   let answer;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (Answer.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     answer = new Answer({
-      id: casual.integer(1,9999),
+      id: casual.integer(1, 9999),
       planId: casual.integer(1, 9999),
       versionedQuestionId: casual.integer(1, 9999),
       versionedSectionId: casual.integer(1, 9999),
@@ -178,7 +178,7 @@ describe('update', () => {
       planId: casual.integer(1, 9999),
       versionedQuestionId: casual.integer(1, 9999),
       versionedSectionId: casual.integer(1, 9999),
-      json: casual.sentences(3),
+      json: "{\"answer\":\"California\"}"
     })
   });
 
@@ -235,7 +235,7 @@ describe('create', () => {
       planId: casual.integer(1, 9999),
       versionedQuestionId: casual.integer(1, 9999),
       versionedSectionId: casual.integer(1, 9999),
-      json: casual.sentences(3),
+      json: "{\"answer\":\"California\"}"
     });
   });
 
@@ -297,7 +297,7 @@ describe('delete', () => {
       planId: casual.integer(1, 9999),
       versionedQuestionId: casual.integer(1, 9999),
       versionedSectionId: casual.integer(1, 9999),
-      json: casual.sentences(3),
+      json: "{\"answer\":\"California\"}"
     });
   })
 

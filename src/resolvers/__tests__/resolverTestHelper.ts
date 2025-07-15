@@ -18,22 +18,10 @@ import {Section} from "../../models/Section";
 import {mockQuestion, persistQuestion} from "../../models/__mocks__/Question";
 import {Question} from "../../models/Question";
 import {
-  mockVersionedTemplate,
-  persistVersionedTemplate
-} from "../../models/__mocks__/VersionedTemplate";
-import {
   TemplateVersionType,
   VersionedTemplate
 } from "../../models/VersionedTemplate";
-import {
-  mockVersionedSection,
-  persistVersionedSection
-} from "../../models/__mocks__/VersionedSection";
 import {VersionedSection} from "../../models/VersionedSection";
-import {
-  mockVersionedQuestion,
-  persistVersionedQuestion
-} from "../../models/__mocks__/VersionedQuestion";
 import {VersionedQuestion} from "../../models/VersionedQuestion";
 import {isNullOrUndefined} from "../../utils/helpers";
 import {generateTemplateVersion} from "../../services/templateService";
@@ -104,7 +92,7 @@ export async function initResolverTest (): Promise<ResolverTest> {
 
   try {
     // Create the initial SuperAdmin user with a bogus affiliationId
-    const mockedUser = mockUser({role: UserRole.SUPERADMIN});
+    const mockedUser = mockUser({ role: UserRole.SUPERADMIN });
     await mysqlInstance.query(context, 'SET FOREIGN_KEY_CHECKS = 0;', []);
     const initialUserId = await User.insert(
       context,
@@ -116,7 +104,7 @@ export async function initResolverTest (): Promise<ResolverTest> {
 
     // Set the token to the SuperAdmin by default
     const superAdmin = await User.findById('initResolverTest', context, initialUserId);
-    context.token = mockToken(superAdmin);
+    context.token = await mockToken(context, superAdmin);
 
     // Create a default MemberRole
     await persistMemberRole(context, mockMemberRole({ isDefault: true }));
@@ -203,10 +191,13 @@ export async function teardownResolverTest (): Promise<void> {
 }
 
 // Generate a mock JWT
-export const mockToken = (user: User): JWTAccessToken => {
+export const mockToken = async (
+  context: MyContext,
+  user: User
+): Promise<JWTAccessToken> => {
   return {
     id: user.id,
-    email: user.email,
+    email: await user.getEmail(context),
     givenName: user.givenName,
     surName: user.surName,
     affiliationId: user.affiliationId,

@@ -1,9 +1,8 @@
 
 import casual from "casual";
 import { MemberRole } from "../MemberRole";
-import {MyContext} from "../../context";
-import {ResearchDomain} from "../ResearchDomain";
-import {isNullOrUndefined} from "../../utils/helpers";
+import { MyContext } from "../../context";
+import { isNullOrUndefined } from "../../utils/helpers";
 
 export interface MockMemberRoleOptions {
   displayOrder?: number;

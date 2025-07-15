@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Question } from "../Question";
 import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
@@ -9,10 +9,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -130,13 +130,13 @@ describe('findBy Queries', () => {
   let context;
   let question;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Question.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     question = new Question({
       templateId: casual.integer(1, 999),
@@ -174,7 +174,7 @@ describe('findBy Queries', () => {
     localQuery.mockResolvedValueOnce([question]);
     const questionId = casual.integer(1, 999);
     const result = await Question.findBySectionId('testing', context, questionId);
-    const expectedSql = 'SELECT * FROM questions WHERE sectionId = ?';
+    const expectedSql = 'SELECT * FROM questions WHERE sectionId = ? ORDER BY displayOrder ASC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [questionId.toString()], 'testing')
     expect(result).toEqual([question]);

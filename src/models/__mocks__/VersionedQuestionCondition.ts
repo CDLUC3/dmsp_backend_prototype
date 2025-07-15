@@ -1,13 +1,7 @@
 
-import casual from "casual";
 import { isNullOrUndefined } from "../../utils/helpers";
 import { MyContext } from "../../context";
-import {
-  QuestionConditionActionType,
-  QuestionConditionCondition
-} from "../QuestionCondition";
 import { VersionedQuestionCondition } from "../VersionedQuestionCondition";
-import { getRandomEnumValue } from "../../__tests__/helpers";
 
 export interface MockVersionedQuestionConditionOptions {
   versionedQuestionId: number;

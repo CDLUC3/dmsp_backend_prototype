@@ -3,8 +3,7 @@ import { isNullOrUndefined } from "../../utils/helpers";
 import { getMockORCID } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
 import { PlanMember, ProjectMember } from "../Member";
-import {MemberRole} from "../MemberRole";
-import {persistMemberRole} from "./MemberRole";
+import { MemberRole } from "../MemberRole";
 
 // NOTE: associations to memberRoles will be deleted automatically when cleanup
 // is called on these records due to cascading deletes enforced by the DB.

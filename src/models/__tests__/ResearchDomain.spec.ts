@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { ResearchDomain } from "../ResearchDomain";
 import { generalConfig } from "../../config/generalConfig";
 import { logger } from "../../logger";
@@ -8,10 +8,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -87,14 +87,14 @@ describe('findBy Queries', () => {
   let context;
   let domain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (ResearchDomain.query as jest.Mock) = localQuery;
 
     localPaginationQuery = jest.fn();
     (ResearchDomain.queryWithPagination as jest.Mock) = localPaginationQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     domain = new ResearchDomain({
       name: casual.company_name,
@@ -438,10 +438,10 @@ describe('addToRepository', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -480,10 +480,10 @@ describe('addToMetadataStandard', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -522,10 +522,10 @@ describe('removeFromRepository', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -562,10 +562,10 @@ describe('removeFromMetadataStandard', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),

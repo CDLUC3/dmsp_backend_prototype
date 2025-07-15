@@ -1,5 +1,4 @@
 
-import casual from "casual";
 import { isNullOrUndefined } from "../../utils/helpers";
 import { MyContext } from "../../context";
 import { Tag } from "../Tag";

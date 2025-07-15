@@ -11,7 +11,7 @@ import {
 import { getMockDMPId, getMockORCID, getMockROR, getRandomEnumValue } from "../../__tests__/helpers";
 import { generalConfig } from "../../config/generalConfig";
 import { MyContext } from "../../context";
-import { createDMP, deleteDMP } from "../../datasources/dynamo";
+import { createDMP } from "../../datasources/dynamo";
 import {isNullOrUndefined} from "../../utils/helpers";
 
 // Generate a mock/test PlanVersion

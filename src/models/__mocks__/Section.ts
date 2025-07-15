@@ -50,7 +50,7 @@ export const persistSection = async (
 
   try {
     // Save any tags that are associated but have not been persisted!
-    const tags = await Promise.all(
+    await Promise.all(
       section.tags.map(async (tag) => {
         if (isNullOrUndefined(tag.id)) {
           await persistTag(context, new Tag(tag));

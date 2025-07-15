@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { License } from "../License";
 import { generalConfig } from "../../config/generalConfig";
 import { logger } from "../../logger";
@@ -8,10 +8,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -70,14 +70,14 @@ describe('findBy Queries', () => {
   let context;
   let license;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (License.query as jest.Mock) = localQuery;
 
     localPaginationQuery = jest.fn();
     (License.queryWithPagination as jest.Mock) = localPaginationQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     license = new License({
       id: casual.integer(1,9999),

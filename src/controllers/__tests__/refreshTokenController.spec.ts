@@ -15,7 +15,7 @@ describe('refreshTokenController', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
 
-  beforeEach(() => {
+  beforeEach(async() => {
     jest.resetAllMocks();
 
     mockRequest = {

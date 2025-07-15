@@ -5,6 +5,8 @@
 ### Added
 - Added `initPromise` to the `mysql` datasource that can be used to determine if the connection pool has finished setup and updated resolver tests and root index.ts to use it
 - Added new `DYNAMO_TEST_TABLE_NAME` to `.env-example`
+- Added `getEmail` method to the `User` model to retrieve the email address for a user.
+- Added a new resolver for `answerByVersionedQuestionId` so that we can get the question-specific answer to populate the question in the Question detail page.
 - Added a new MySQL container to host the test DB to the docker compose stack
 - Added `src/resolvers/__tests__/resolverTestHelper.ts` with functions to help with boilerplate testing of 404 NOT_FOUND and 401 UNAUTHENTICATED and 500 INTERNAL_SERVER_ERROR GraphQL errors
 - Added JSON column `questionType` to `questions` and `versionedQuestions` tables
@@ -110,6 +112,11 @@
 - Fixed a bug in `ProjectMember` that was causing the role ids to not be saved
 - Updated `templateService` permission check function to give super admins access
 - Refactored the existing resolver tests to work with the new test DBs
+- Updated package.json and tsconfig.json with options for sourcemaps which is supposed to help making debugging/breakpoints in IDEs more reliable.
+- Updated most tests since they mostly require tokens which require email which is now async because it comes from the UserEmail model.
+- Updated resolvers, models and controllers to use correct methods for using email from the UserEmail model (or use convenience method `getEmail` on the User model).
+- Updated table `user.failed_sign_in_attemps` to be spelled correctly as `failed_sign_in_attempts`
+- Updated `sections` and `questions` queries to order by `displayOrder` [#324]
 - Refactor the way we initialize the pino Logger and pass it around. Also removed the old `formatLogMessage` function and replaced with `prepareObjectForLogs`
 - Consolidated handling of the Cache, so that we always pass the `adapter`
 - Updated `mysqlConfig` to use the new test DB when running in `test` mode
@@ -174,6 +181,7 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Dropped the `email` from the `users` table
 - Dropped FKeys on `users` and `affiliations`
 - Removed old `src/models/__mocks__/MockStore.ts`
 - Dropped `questionTypes` and `questionOptions` tables
@@ -190,10 +198,11 @@
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- Fixed a bug where clients calling `createTemplateVersion` in the `template` resolver would get an error when trying to publish because adding data to `versionedQuestions` required that `questionTypeId` not be null. I added a data-migration script to allow null because I believe we store the question type in the `json` field now and do not require `questionTypeId` [#328]
 - Update profile was not working due to missing `createdById` and `modifiedById` values in db. Added data migration script to populate those fields [#278]
 - Fixed myTemplates query so that `TemplateSearchResult` returns the `ownerDisplayName` specified in schema.
 - Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
--Was getting `undefined` bestPractice in `updateTemplate` when none was passed in because of the logic on how it was set. Added a check for whether `bestPractice` is defined before setting value. Also, added an update to `createTemplateVersion`, so that errors from the `generateTemplateVersion` will be caught and passed back in graphql response. Previously, when trying to save a DRAFT of a template, the mutation wouldn't return an error to the client, even though the `Save draft` did not successfully complete. [#265]
+- Was getting `undefined` bestPractice in `updateTemplate` when none was passed in because of the logic on how it was set. Added a check for whether `bestPractice` is defined before setting value. Also, added an update to `createTemplateVersion`, so that errors from the `generateTemplateVersion` will be caught and passed back in graphql response. Previously, when trying to save a DRAFT of a template, the mutation wouldn't return an error to the client, even though the `Save draft` did not successfully complete. [#265]
 - Removed `Copy of` from in front of copied `Section` and `Template` names [#261]
 - Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
 - Fixed an issue where adding `projectCollaborators` was failing due to the fact that the `userId` field was required. This should not be required to add a new collaborator [#260]

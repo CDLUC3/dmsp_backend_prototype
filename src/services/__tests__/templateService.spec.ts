@@ -5,7 +5,7 @@ import { cloneTemplate, generateTemplateVersion, hasPermissionOnTemplate } from 
 import { TemplateCollaborator } from '../../models/Collaborator';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isSuperAdmin } from '../authService';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { Section } from '../../models/Section';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { getCurrentDate } from '../../utils/helpers';
@@ -16,10 +16,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -33,10 +33,10 @@ describe('hasPermissionOnTemplate', () => {
   let mockFindByTemplateAndEmail;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockIsSuperAdmin = jest.fn();
     (isSuperAdmin as jest.Mock) = mockIsSuperAdmin;

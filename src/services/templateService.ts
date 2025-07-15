@@ -121,7 +121,7 @@ export const generateTemplateVersion = async (
         throw new Error(msg);
       }
     } catch (err) {
-      context.logger.error(prepareObjectForLogs(err), `Unable t create a new version for template: ${template.id}`);
+      context.logger.error(prepareObjectForLogs(err), `Unable to create a new version for template: ${template.id}`);
       throw new Error(err.message);
     }
   } else {

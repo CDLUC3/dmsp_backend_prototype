@@ -18,7 +18,6 @@ export const signupController = async (req: Request, res: Response) => {
   const props = req.body;
 
   let user: User = new User({
-    email: props?.email,
     password: props?.password,
     affiliationId: props?.affiliationId,
     givenName: props?.givenName,
@@ -27,7 +26,7 @@ export const signupController = async (req: Request, res: Response) => {
   });
 
   try {
-    user = await user.register(context) || null;
+    user = await user.register(context, props?.email) || null;
 
     if (user) {
       if (user.hasErrors()) {

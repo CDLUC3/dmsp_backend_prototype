@@ -1,6 +1,6 @@
 import casual from "casual";
 import { Section } from "../Section";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 
 let context;
@@ -51,13 +51,13 @@ describe('findBySectionName', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -97,13 +97,13 @@ describe('findByTemplateId', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -122,7 +122,7 @@ describe('findByTemplateId', () => {
     localQuery.mockResolvedValueOnce([section]);
     const templateId = 1;
     const result = await Section.findByTemplateId('Section query', context, templateId);
-    const expectedSql = 'SELECT * FROM sections WHERE templateId = ?';
+    const expectedSql = 'SELECT * FROM sections WHERE templateId = ? ORDER BY displayOrder ASC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Section query')
     expect(result).toEqual([section]);
@@ -143,13 +143,13 @@ describe('findById', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),

@@ -145,7 +145,7 @@ export class Question extends MySqlModel {
 
   // Fetch all of the Questions for the specified Section
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Question[]> {
-    const sql = `SELECT * FROM ${Question.tableName} WHERE sectionId = ?`;
+    const sql = 'SELECT * FROM questions WHERE sectionId = ? ORDER BY displayOrder ASC';
     const results = await Question.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new Question(entry)) : [];
   }

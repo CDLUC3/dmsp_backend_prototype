@@ -232,14 +232,6 @@ describe('plan', () => {
   // Project and a VersionedTemplate)
   let project: Project;
   let versionedTemplate: VersionedTemplate;
-  let sections: {
-    sectionId: number,
-    sectionTitle: string,
-    displayOrder: number,
-    totalQuestions: number,
-    answeredQuestions: number,
-  }[];
-
   let creator: User;
   let existingPlan: Plan;
   let existingProjectMembers: ProjectMember[];
@@ -400,7 +392,7 @@ describe('plan', () => {
     addTableForTeardown(User.tableName);
 
     // Make sure the token belongs to the creator
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
     project = await persistProject(
       resolverTest.context,
       mockProject({
@@ -482,7 +474,7 @@ describe('plan', () => {
   });
 
   it('Super Admin flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     await testAddQueryRemoveAccess(
       'SuperAdmin',
       true,
@@ -492,7 +484,7 @@ describe('plan', () => {
   });
 
   it('Admin of same affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationA);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationA);
     await testAddQueryRemoveAccess(
       'Admin, same affiliation',
       true,
@@ -502,7 +494,7 @@ describe('plan', () => {
   });
 
   it('Admin of other affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationB);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationB);
     await testAddQueryRemoveAccess(
       'Admin. other affiliation',
       false,
@@ -512,7 +504,7 @@ describe('plan', () => {
   });
 
   it('Project creator flow', async () => {
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
     await testAddQueryRemoveAccess(
       'creator',
       true,
@@ -526,7 +518,7 @@ describe('plan', () => {
       affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess(
       'researcher, random',
       false,
@@ -541,15 +533,15 @@ describe('plan', () => {
       affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.COMMENT
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess(
       'researcher, commenter',
       true,
@@ -565,15 +557,15 @@ describe('plan', () => {
       affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.EDIT
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess(
       'researcher, editor',
       true,
@@ -589,15 +581,15 @@ describe('plan', () => {
       affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    const collab = await persistProjectCollaborator(
+    await persistProjectCollaborator(
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.OWN
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess(
       'researcher, owner',
       true,
@@ -609,7 +601,7 @@ describe('plan', () => {
   });
 
   it('Allows a plan to be published', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     const variables = { planId: existingPlan.id, visibility: getRandomEnumValue(PlanVisibility) }
 
     const resp = await executeQuery(publishPlanMutation, variables);
@@ -623,7 +615,7 @@ describe('plan', () => {
   });
 
   it('Doesn\'t allow plans of test projects to be published', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     project.isTestProject = true;
     await project.update(resolverTest.context)
 
@@ -636,7 +628,7 @@ describe('plan', () => {
   });
 
   it('Doesn\'t allow published plans to be published again', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     existingPlan.registeredById = resolverTest.context.token.id;
     existingPlan.registered = casual.date('YYYY-MM-DD hh:mm:ss');
     await existingPlan.update(resolverTest.context)
@@ -650,7 +642,7 @@ describe('plan', () => {
   });
 
   it('Doesn\'t allow a published plan to be archived', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     existingPlan.registeredById = resolverTest.context.token.id;
     existingPlan.registered = casual.date('YYYY-MM-DD hh:mm:ss');
     await existingPlan.update(resolverTest.context)
@@ -664,7 +656,7 @@ describe('plan', () => {
   });
 
   it('Throws a 404 if the project does not exist', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     await testNotFound(query, { projectId: 99999999 });
     await testNotFound(querySingle, { planId: 99999999 });
@@ -676,7 +668,7 @@ describe('plan', () => {
   });
 
   it('handles missing tokens and internal server errors', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     // Test standard error handling for query
     await testStandardErrors({

@@ -1,5 +1,5 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { RelatedWork, RelatedWorkRelationDescriptor, RelatedWorkType } from "../RelatedWork";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { logger } from "../../logger";
@@ -8,10 +8,10 @@ jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -78,11 +78,11 @@ describe('findBy Queries', () => {
   let context;
   let relatedWork;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (RelatedWork.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     relatedWork = new RelatedWork({
       id: casual.integer(1,9999),

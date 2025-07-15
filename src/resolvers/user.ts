@@ -4,13 +4,22 @@ import { User } from '../models/User';
 import { UserEmail } from "../models/UserEmail";
 import { Affiliation } from '../models/Affiliation';
 import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from "../utils/graphQLErrors";
 import { defaultLanguageId } from "../models/Language";
 import { anonymizeUser, mergeUsers } from "../services/userService";
 import { processOtherAffiliationName } from "../services/affiliationService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
-import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import {
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType
+} from "../types/general";
 import { isNullOrUndefined } from "../utils/helpers";
 import {formatISO9075} from "date-fns";
 
@@ -301,7 +310,6 @@ export const resolvers: Resolvers = {
               oldPrimary.isPrimary = false;
               await new UserEmail(oldPrimary).update(context);
             }
-            user.email = email;
             if (await User.update(context, User.tableName, user, ref, ['password'])) {
               return await UserEmail.findByUserId(ref, context, user.id);
             }
@@ -327,7 +335,7 @@ export const resolvers: Resolvers = {
     },
 
     // Change the current user's password
-    updatePassword: async (_, { oldPassword, newPassword }, context: MyContext): Promise<User> => {
+    updatePassword: async (_, { oldPassword, newPassword, email }, context: MyContext): Promise<User> => {
       const reference = 'updatePassword resolver';
       try {
         if (isAuthorized(context?.token)) {
@@ -337,7 +345,7 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          const updated = await new User(user).updatePassword(context, oldPassword, newPassword);
+          const updated = await new User(user).updatePassword(context, oldPassword, newPassword, email);
           if (!updated || updated.hasErrors()) {
             user.addError('general', 'Unable to update the password at this time');
           }
@@ -468,6 +476,15 @@ export const resolvers: Resolvers = {
     },
     modified: (parent: User) => {
       return formatISO9075(new Date(parent.modified));
-    }
+    },
+    // Chained resolver to fetch the primary email address
+    email: async (parent: User, _, context): Promise<string | null> => {
+      const primaryEmail = await UserEmail.findPrimaryByUserId(
+        'Chained User.email',
+        context,
+        parent.id
+      );
+      return primaryEmail ? primaryEmail.email : null;
+    },
   },
 };

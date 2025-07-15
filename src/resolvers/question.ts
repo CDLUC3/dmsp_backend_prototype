@@ -79,8 +79,6 @@ export const resolvers: Resolvers = {
             required
           });
 
-console.log(question.json);
-
           // create the new question
           const newQuestion = await question.create(context);
 
@@ -159,13 +157,9 @@ console.log(question.json);
             await Template.markTemplateAsDirty('Question resolver - updateQuestion', context, questionData.templateId);
 
             // Refetch the question or the updated question with errors
-             const final = await Question.findById(reference, context, questionId);
+            const final = await Question.findById(reference, context, questionId);
 
-console.log(final);
-console.log(final.json)
-console.log(typeof final.json)
-
-             return final;
+            return final;
           }
 
           // Otherwise return the Question with errors

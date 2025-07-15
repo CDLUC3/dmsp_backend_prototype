@@ -325,7 +325,7 @@ describe('projectMembers', () => {
     addTableForTeardown(User.tableName);
 
     // Make sure the token belongs to the creator
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
     project = await persistProject(resolverTest.context, mockProject({}));
     addTableForTeardown(Project.tableName);
 
@@ -342,22 +342,22 @@ describe('projectMembers', () => {
   });
 
   it('Super Admin flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     await testAddQueryRemoveAccess('SuperAdmin', true, true);
   });
 
   it('Admin of same affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationA);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationA);
     await testAddQueryRemoveAccess('Admin, same affiliation', true, true);
   });
 
   it('Admin of other affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationB);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationB);
     await testAddQueryRemoveAccess('Admin. other affiliation', false, false);
   });
 
   it('Project creator flow', async () => {
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
     await testAddQueryRemoveAccess('creator', true, true);
   });
 
@@ -366,7 +366,7 @@ describe('projectMembers', () => {
       affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, random', false, false);
 
     addTableForTeardown(User.tableName);
@@ -381,11 +381,11 @@ describe('projectMembers', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.COMMENT
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, commenter', true, false);
 
     addTableForTeardown(User.tableName);
@@ -401,11 +401,11 @@ describe('projectMembers', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.EDIT
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, editor', true, true);
 
     addTableForTeardown(User.tableName);
@@ -421,11 +421,11 @@ describe('projectMembers', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.OWN
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, owner', true, true);
 
     addTableForTeardown(User.tableName);
@@ -433,7 +433,7 @@ describe('projectMembers', () => {
   });
 
   it('returns the member with errors if it is a duplicate', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     // Existing Email
     const emailVariables = { input: { projectId: project.id, email: existingMember.email } };
@@ -465,7 +465,7 @@ describe('projectMembers', () => {
   });
 
   it('Throws a 404 if the project does not exist', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     await testNotFound(query, { projectId: 99999999 });
     await testNotFound(querySingle, { projectMemberId: 99999999 });
@@ -475,7 +475,7 @@ describe('projectMembers', () => {
   });
 
   it('handles missing tokens and internal server errors', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     // Test standard error handling for query
     await testStandardErrors({
@@ -744,7 +744,7 @@ describe('planMembers', () => {
     addTableForTeardown(User.tableName);
 
     // Make sure the token belongs to the creator
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
     project = await persistProject(resolverTest.context, mockProject({}));
     addTableForTeardown(Project.tableName);
 
@@ -793,22 +793,22 @@ describe('planMembers', () => {
   });
 
   it('Super Admin flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
     await testAddQueryRemoveAccess('SuperAdmin', true, true);
   });
 
   it('Admin of same affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationA);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationA);
     await testAddQueryRemoveAccess('Admin, same affiliation', true, true);
   });
 
   it('Admin of other affiliation flow', async () => {
-    resolverTest.context.token = mockToken(resolverTest.adminAffiliationB);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.adminAffiliationB);
     await testAddQueryRemoveAccess('Admin. other affiliation', false, false);
   });
 
   it('Project creator flow', async () => {
-    resolverTest.context.token = mockToken(creator);
+    resolverTest.context.token = await mockToken(resolverTest.context, creator);
     await testAddQueryRemoveAccess('creator', true, true);
   });
 
@@ -817,7 +817,7 @@ describe('planMembers', () => {
       affiliationId: resolverTest.adminAffiliationA.affiliationId,
       role: UserRole.RESEARCHER
     }))
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, random', false, false);
 
     addTableForTeardown(User.tableName);
@@ -832,11 +832,11 @@ describe('planMembers', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.COMMENT
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, commenter', true, false);
 
     addTableForTeardown(User.tableName);
@@ -852,11 +852,11 @@ describe('planMembers', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.EDIT
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, editor', true, true);
 
     addTableForTeardown(User.tableName);
@@ -872,11 +872,11 @@ describe('planMembers', () => {
       resolverTest.context,
       mockProjectCollaborator({
         projectId: project.id,
-        email: researcher.email,
+        email: await researcher.getEmail(resolverTest.context),
         accessLevel: ProjectCollaboratorAccessLevel.OWN
       })
     )
-    resolverTest.context.token = mockToken(researcher);
+    resolverTest.context.token = await mockToken(resolverTest.context, researcher);
     await testAddQueryRemoveAccess('researcher, owner', true, true);
 
     addTableForTeardown(User.tableName);
@@ -884,7 +884,7 @@ describe('planMembers', () => {
   });
 
   it('returns the member with errors if it is a duplicate', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     // Existing Email
     const variables = { planId: plan.id, projectMemberId: existingProjectMember.id };
@@ -896,7 +896,7 @@ describe('planMembers', () => {
   });
 
   it('Throws a 404 if the plan does not exist', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     await testNotFound(query, { planId: 99999999 });
     await testNotFound(addMutation, { planId: 99999999, projectMemberId: existingProjectMember.id });
@@ -906,7 +906,7 @@ describe('planMembers', () => {
   });
 
   it('handles missing tokens and internal server errors', async () => {
-    resolverTest.context.token = mockToken(resolverTest.superAdmin);
+    resolverTest.context.token = await mockToken(resolverTest.context, resolverTest.superAdmin);
 
     // Test standard error handling for query
     await testStandardErrors({

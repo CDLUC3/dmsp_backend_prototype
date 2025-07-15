@@ -214,6 +214,17 @@ export class UserEmail extends MySqlModel {
     return Array.isArray(results) ? results.map((entry) => new UserEmail(entry)) : [];
   }
 
+  // Return the primary email for the specified user
+  static async findPrimaryByUserId(
+    reference: string,
+    context: MyContext,
+    userId: number
+  ): Promise<UserEmail | null> {
+    const sql = 'SELECT * FROM userEmails WHERE userId = ? AND isPrimary = 1';
+    const results = await UserEmail.query(context, sql, [userId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new UserEmail(results[0]) : null;
+  }
+
   // Return the specified UserEmail
   static async findByEmail(
     reference: string,
@@ -223,5 +234,58 @@ export class UserEmail extends MySqlModel {
     const sql = `SELECT * FROM ${UserEmail.tableName} WHERE email = ?`;
     const results = await UserEmail.query(context, sql, [email], reference);
     return Array.isArray(results) ? results.map((entry) => new UserEmail(entry)) : [];
+  }
+
+  /**
+   * Create or update the primary email for a user.
+   * - If no primary exists, create a new primary record.
+   * - If the email exists for the user but is not primary, set it as primary and unset any other.
+   * - If a primary exists, update its email address.  The isConfirmed is only set for new email records,
+   *   otherwise it remains unchanged.
+   */
+  static async createOrUpdatePrimary(
+    context: MyContext,
+    userId: number,
+    email: string,
+    isConfirmed = false
+  ): Promise<UserEmail> {
+    const ref = 'UserEmail.createOrUpdatePrimary';
+    // Find current primary email for user
+    const currentPrimary = await UserEmail.findPrimaryByUserId(ref, context, userId);
+
+    // Find if the email already exists for this user
+    const existingEmail = await UserEmail.findByUserIdAndEmail(ref, context, userId, email);
+
+    if (!currentPrimary) {
+      // No primary exists, create new primary
+      const newPrimary = new UserEmail({
+        userId,
+        email,
+        isPrimary: true,
+        isConfirmed: isConfirmed,
+      });
+      return await newPrimary.create(context);
+    }
+
+    if (existingEmail) {
+      if (!existingEmail.isPrimary) {
+        // Set this email as primary, unset current primary
+        existingEmail.isPrimary = true;
+        await existingEmail.update(context);
+
+        if (currentPrimary.id !== existingEmail.id) {
+          currentPrimary.isPrimary = false;
+          await currentPrimary.update(context);
+        }
+        return existingEmail;
+      } else {
+        // Already primary, nothing to do
+        return existingEmail;
+      }
+    } else {
+      // Update current primary record to have the new email
+      currentPrimary.email = email;
+      return await currentPrimary.update(context);
+    }
   }
 }

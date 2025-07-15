@@ -128,7 +128,7 @@ export const sendTemplateCollaborationEmail = async (
       return false;
     }
     // Use the user's primary email address, regardless of what was provided
-    toAddress = user.email;
+    toAddress = await user.getEmail(context);
   }
 
   return await sendEmail(
@@ -159,7 +159,7 @@ export const sendProjectCollaborationEmail = async (
       return false;
     }
     // Use the user's primary email address, regardless of what was provided
-    toAddress = user.email;
+    toAddress = await user.getEmail(context);
   }
 
   return await sendEmail(

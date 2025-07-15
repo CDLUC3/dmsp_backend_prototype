@@ -3,12 +3,10 @@ import casual from "casual";
 import { isNullOrUndefined } from "../../utils/helpers";
 import { User, UserRole } from "../User";
 import { MyContext } from "../../context";
-import { getMockROR, getRandomEnumValue } from "../../__tests__/helpers";
-import {UserEmail} from "../UserEmail";
+import { getRandomEnumValue } from "../../__tests__/helpers";
 
 export interface MockUserOptions {
   id?: number;
-  email?: string;
   password?: string;
   givenName?: string;
   surName?: string;
@@ -26,7 +24,6 @@ export const mockUser = (
   // Use the options provided or default a value
   return new User({
     id: options.id,
-    email: options.email ?? `test.${casual.integer(1, 999)}.${casual.email}`,
     password: options.password ?? 'Testing123$9',
     role: options.role ?? getRandomEnumValue(UserRole),
     givenName: options.givenName ?? casual.first_name,
@@ -39,13 +36,14 @@ export const mockUser = (
 // Save a mock/test User in the DB for integration tests
 export const persistUser = async (
   context: MyContext,
-  user: User
+  user: User,
+  email: string = casual.email,
 ): Promise<User | null> => {
   try {
-    const created = await user.register(context);
+    const created = await user.register(context, email);
     return isNullOrUndefined(created) ? null : created;
   } catch (e) {
-    console.error(`Error persisting user ${user.email}: ${e.message}`);
+    console.error(`Error persisting user ${email}: ${e.message}`);
     if (e.originalError) console.log(e.originalError);
   }
   return null;

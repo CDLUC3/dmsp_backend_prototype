@@ -3,9 +3,8 @@ import casual from "casual";
 import { isNullOrUndefined } from "../../utils/helpers";
 import { getMockDMPId, getRandomEnumValue } from "../../__tests__/helpers";
 import { MyContext } from "../../context";
-import {Plan, PlanStatus, PlanVisibility} from "../Plan";
+import { Plan, PlanStatus, PlanVisibility } from "../Plan";
 import { supportedLanguages } from "../Language";
-import { deleteDMP } from "../../datasources/dynamo";
 
 export interface MockPlanOptions {
   projectId?: number;
