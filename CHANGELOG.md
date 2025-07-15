@@ -95,6 +95,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Fixed bug with `Affiliation.top20` query which was still referencing the old `projectFunders` table 
 - Updated package.json and tsconfig.json with options for sourcemaps which is supposed to help making debugging/breakpoints in IDEs more reliable.
 - Updated most tests since they mostly require tokens which require email which is now async because it comes from the UserEmail model.
 - Updated resolvers, models and controllers to use correct methods for using email from the UserEmail model (or use convenience method `getEmail` on the User model).
