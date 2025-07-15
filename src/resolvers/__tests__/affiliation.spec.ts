@@ -14,7 +14,7 @@ import {
 } from "../../models/__mocks__/Affiliation";
 import {
   addTableForTeardown,
-  executeQuery, generateFullTemplate, generateFullVersionedTemplate,
+  executeQuery,
   initResolverTest,
   mockToken,
   ResolverTest,
@@ -25,8 +25,6 @@ import {
 import {getRandomEnumValue} from "../../__tests__/helpers";
 import {formatISO9075} from "date-fns";
 import {mockProject, persistProject} from "../../models/__mocks__/Project";
-import {mockTemplate, persistTemplate} from "../../models/__mocks__/Template";
-import {persistPlan} from "../../models/__mocks__/Plan";
 import {
   mockProjectFunding,
   persistProjectFunding
@@ -96,7 +94,7 @@ describe('popularFunders query', () => {
     }
   `;
 
-  let affiliationURIs: string[] = [];
+  const affiliationURIs: string[] = [];
 
   beforeEach(async () => {
     const affiliations: Affiliation[] = [];
@@ -134,7 +132,7 @@ describe('popularFunders query', () => {
     assert(resp.body.kind === 'single');
     expect(resp.body.singleResult.errors).toBeUndefined();
 
-    const uris = resp.body.singleResult.data.popularFunders.map((f: any) => f.uri);
+    const uris: string[] = resp.body.singleResult.data.popularFunders.map((f: Affiliation) => f.uri);
     const notExpectedURIs = affiliationURIs.slice(20);
 
     expect(uris.length).toEqual(20);
@@ -287,7 +285,7 @@ describe('affiliation resolver', () => {
   `;
 
   let affiliations: Affiliation[];
-  let namePrefix: string = 'Test resolver - ';
+  const namePrefix = 'Test resolver - ';
 
   beforeEach(async () => {
     affiliations = [];

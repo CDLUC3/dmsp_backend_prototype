@@ -553,7 +553,12 @@ describe('top20', () => {
     const endDate = today.toISOString().split('T')[0];
 
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [startDate, endDate], 'PopularFunder.top20')
+    expect(localQuery).toHaveBeenLastCalledWith(
+      context,
+      expectedSql,
+      [`${startDate} 00:00:00`, `${endDate} 23:59:59`],
+      'PopularFunder.top20'
+    );
     expect(result).toEqual([popularFunder]);
   });
 

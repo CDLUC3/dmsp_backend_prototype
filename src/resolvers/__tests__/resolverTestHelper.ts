@@ -42,7 +42,7 @@ let mysqlInstance: MySQLConnection;
 let testServer: ApolloServer;
 let context: MyContext;
 let tablesToCleanup: string[] = [];
-let userIdsToCleanup: string[] = [];
+const userIdsToCleanup: string[] = [];
 
 const initErrorMessage = 'Failed to initialize test. You need to ' +
   'run docker-compose in another window to make the test DB available!'
