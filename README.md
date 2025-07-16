@@ -551,27 +551,42 @@ TODO: update with documentation on how to provide translation support for DB bas
 
 ### Tests
 
-We use Jest to run our tests. There is a Jest config file in the root of the directory and a `src/__tests__/setup.ts` file that is used in every test. The `setup.ts` is used to mock the values loaded and used by the various `src/config/` files.
+We use Jest to run our tests. There is a Jest config file in the root of the directory and a `src/__tests__/setup.ts` file that is used in every test. The `setup.ts` is used to mock the config values loaded and used by the various `src/config/` files.
+
+There is a precommit hook in place that enforces that the unit tests pass before you can commit your changes.
+We ask of course that you also manually check the integration tests to ensure that they pass as well. We do not include the integration tests in the precommit hook because they require the the application to be running locally and this can cause unecessary frustration when you're just trying to pull down the latest changes or make a small change.
 
 #### Unit tests
 
 You should, at minimum, add unit tests any time you add or modify a file! To do so, find the corresponding file (or add a new one) in the `src/[dir]/__tests_/` directory. When you write a unit test, please use Jest mock to mock interactions with other files. We like to isolate unit tests to the file in question.
 
+To run the unit tests you can run `npm run test-unit`.
+
 ### Integration tests
 
 The system makes use of an Apollo server helper to mimic GraphQL requests. We use this along with test instances of the data sources to run end-to-end integration tests. When you add a new resolver, please add corresponding tests. Refer to one of the other `src/resolvers/__tests__/` files for examples. 
 
+To run the integration tests you can run `npm run test-integration`.
+
 We have provided a `resolverTestHelper.ts` file with functions to help remove the need for boilerplate code in your tests. The `resolverTestHelper` file provides:
+- `ResolverTest` interface is the object returned from `initResolverTest`
 - `mockToken` to generate a mock token for the Apollo context
-- `initTestServer` to initialize the Apollo server for testing
+- `initResolverTest` this should be run in your test's top level `beforeEach`. It initializes the Apollo server, the test MySQL DB, the test DyanmoDB table, and also adds a default MemberRole, two Affiliation records, and registers a SuperAdmin user and two Admin users (one for each affiliation). These users are meant to help test various user/token scenarios
+- `teardownResolverTest` this should be run in your test's top level `afterEach`. It ensures that the Apollo server is shut down, the MySQL DB connections are released, and all of the records generated for the tests are cleaned up.
 - `executeQuery` to invoke a GraphQL query or mutation against the test Apollo server
 - `testNotFound` to verify that a resolver returns a `404 NOT FOUND` when expected
 - `testStandardErrors` to verify that the resolver is properly handling unexpected `401 UNAUTHORIZED` and `500 INTERNAL SERVER ERROR`
+- `addTableForTeardown` allows you to specify a table whose test records should be cleaned up after a test runs. By default the MemberRole, User, UserEmail and Affiliation tables are included in this list.
+- `addUserForTeardown` allows you to specify user ids that will be used to delete records from the tables marked for cleanup. The code will use these user ids in a `createdById = ?` where clause.
+- `generateFullTemplate` will create a complete Template including some Sections, Questions (including ones with Options and Conditions)
+- `generateFullVersionedTemplate` will create a new version of the specified template (versioning all of the sections, questions, etc.)
 
 The basic pattern you should follow in your resolver tests are to:
-- Use the `src/models/__mocks__/` files to persist and cleanup test database records
+- Copy the top level `beforeEach` and `afterEach` functions from another resolver test!
+- Use the `src/models/__mocks__/` files to mock and persist records to the test DB 
 - Use `beforeEach` to create records for dependencies of the object you're testing. For example `Plan` requires a `projectId` and a `versionedTemplateId`, so you would create those in a before each
-- Use `afterEach` to clean up any dependency records you create within your tests
+- Make sure you add the `Model.tableName` to `addTableForTeardown` after you persist a new record
+- Note that calling a `persistX` function on a mock will automatically add the `context.token.id` to the `addUserForTeardown` list
 - Use the `testNotFound` and `testStandardErrors` on each resolver endpoint
 - Make sure you include all fields in your GraphQL queries to ensure that the resolver actually returns all fields and handles any chaining to get at associated objects
 - Create a function that follows a standard workflow. For example:
