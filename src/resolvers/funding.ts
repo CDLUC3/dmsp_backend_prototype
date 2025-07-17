@@ -11,6 +11,9 @@ import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
+import {ProjectCollaboratorAccessLevel} from "../models/Collaborator";
+import {isNullOrUndefined} from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -21,7 +24,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
 
-          if (project && await hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await ProjectFunding.findByProjectId(reference, context, projectId);
           }
         }
@@ -40,9 +43,12 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const projectFunding = await ProjectFunding.findById(reference, context, projectFundingId);
-          const project = await Project.findById(reference, context, projectFunding.projectId);
+          if (isNullOrUndefined(projectFunding)) {
+            throw NotFoundError();
+          }
 
-          if (project && await hasPermissionOnProject(context, project)) {
+          const project = await Project.findById(reference, context, projectFunding.projectId);
+          if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return projectFunding;
           }
         }
@@ -60,8 +66,12 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
+          if (isNullOrUndefined(plan)) {
+            throw NotFoundError();
+          }
+
           const project = await Project.findById(reference, context, plan.projectId);
-          if (plan && await hasPermissionOnProject(context, project)) {
+          if (plan && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanFunding.findByPlanId(reference, context, plan.id);
           }
         }
@@ -82,22 +92,24 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !(await hasPermissionOnProject(context, project))) {
-            throw ForbiddenError();
+          if (isNullOrUndefined(project)) {
+            throw NotFoundError();
           }
 
-          const newFunding = new ProjectFunding(input);
-          const created = await newFunding.create(context, project.id);
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
+            const newFunding = new ProjectFunding(input);
+            const created = await newFunding.create(context, project.id);
 
-          if (created?.id) {
-            return created;
-          }
+            if (created?.id) {
+              return created;
+            }
 
-          // A null was returned so add a generic error and return it
-          if (!newFunding.errors['general']) {
-            newFunding.addError('general', 'Unable to create funding');
+            // A null was returned so add a generic error and return it
+            if (!newFunding.errors['general']) {
+              newFunding.addError('general', 'Unable to create funding');
+            }
+            return newFunding;
           }
-          return newFunding;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -114,30 +126,28 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const funding = await ProjectFunding.findById(reference, context, input.projectFundingId);
-          if (!funding) {
+          if (isNullOrUndefined(funding)) {
             throw NotFoundError();
           }
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, funding.projectId);
-          if (!(await hasPermissionOnProject(context, project))) {
-            throw ForbiddenError();
-          }
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
+            const toUpdate = new ProjectFunding(input);
+            toUpdate.projectId = funding?.projectId;
+            toUpdate.id = funding?.id;
+            toUpdate.affiliationId = funding.affiliationId;
 
-          const toUpdate = new ProjectFunding(input);
-          toUpdate.projectId = funding?.projectId;
-          toUpdate.id = funding?.id;
-          toUpdate.affiliationId = funding.affiliationId;
-
-          const updated = await toUpdate.update(context);
-          if (updated && !updated.hasErrors()) {
-            const plans = await Plan.findByProjectId(reference, context, funding.projectId);
-            for (const plan of plans) {
-              // Version all of the plans (if any) and sync with the DMPHub
-              await addVersion(context, plan, reference);
+            const updated = await toUpdate.update(context);
+            if (updated && !updated.hasErrors()) {
+              const plans = await Plan.findByProjectId(reference, context, funding.projectId);
+              for (const plan of plans) {
+                // Version all of the plans (if any) and sync with the DMPHub
+                await addVersion(context, plan, reference);
+              }
             }
+            return updated;
           }
-          return updated;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -154,25 +164,23 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const funding = await ProjectFunding.findById(reference, context, projectFundingId);
-          if (!funding) {
+          if (isNullOrUndefined(funding)) {
             throw NotFoundError();
           }
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, funding.projectId);
-          if (!(await hasPermissionOnProject(context, project))) {
-            throw ForbiddenError();
-          }
-
-          const removed = await funding.delete(context);
-          if (removed && !removed.hasErrors()) {
-            const plans = await Plan.findByProjectId(reference, context, funding.projectId);
-            for (const plan of plans) {
-              // Version all of the plans (if any) and sync with the DMPHub
-              addVersion(context, plan, reference);
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
+            const removed = await funding.delete(context);
+            if (removed && !removed.hasErrors()) {
+              const plans = await Plan.findByProjectId(reference, context, funding.projectId);
+              for (const plan of plans) {
+                // Version all of the plans (if any) and sync with the DMPHub
+                addVersion(context, plan, reference);
+              }
             }
+            return removed;
           }
-          return removed;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -189,19 +197,30 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
+          if (isNullOrUndefined(plan)) {
+            throw NotFoundError();
+          }
+
+          const projectFunding = await ProjectFunding.findById(
+            reference,
+            context,
+            projectFundingId
+          );
+          if (isNullOrUndefined(projectFunding)) {
+            throw NotFoundError();
+          }
+
           const project = await Project.findById(reference, context, plan.projectId);
-          if (!plan || !project || !(await hasPermissionOnProject(context, project))) {
-            throw ForbiddenError();
+          if (await hasPermissionOnProject(context, project)) {
+            const newFunding = new PlanFunding({ planId, projectFundingId });
+
+            if (newFunding && !newFunding.hasErrors()) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              await addVersion(context, plan, reference);
+            }
+
+            return await newFunding.create(context);
           }
-
-          const newFunding = new PlanFunding({ planId, projectFundingId });
-
-          if (newFunding && !newFunding.hasErrors()) {
-            // Version all of the plans (if any) and sync with the DMPHub
-            await addVersion(context, plan, reference);
-          }
-
-          return await newFunding.create(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -218,24 +237,22 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const funding = await PlanFunding.findById(reference, context, planFundingId);
-          if (!funding) {
+          if (isNullOrUndefined(funding)) {
             throw NotFoundError();
           }
 
           const plan = await Plan.findById(reference, context, funding.planId);
           const project = await Project.findById(reference, context, plan.projectId);
-          if (!plan || !project || !(await hasPermissionOnProject(context, project))) {
-            throw ForbiddenError();
+          if (await hasPermissionOnProject(context, project)) {
+            const deletedFunding = await funding.delete(context);
+
+            if (deletedFunding && !deletedFunding.hasErrors()) {
+              // Version the plan
+              await addVersion(context, plan, reference);
+            }
+
+            return deletedFunding;
           }
-
-          const deletedFunding = await funding.delete(context);
-
-          if (deletedFunding && !deletedFunding.hasErrors()) {
-            // Version the plan
-            await addVersion(context, plan, reference);
-          }
-
-          return deletedFunding;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -261,14 +278,31 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
+    created: (parent: ProjectFunding) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ProjectFunding) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 
   PlanFunding: {
+    plan: async (parent: PlanFunding, _, context: MyContext): Promise<Plan> => {
+      if (parent?.planId) {
+        return await Plan.findById('Chained PlanFunding.plan', context, parent.planId);
+      }
+    },
     projectFunding: async (parent: PlanFunding, _, context: MyContext): Promise<ProjectFunding> => {
       if (parent?.projectFundingId) {
         return await ProjectFunding.findById('Chained PlanFunding.projectFunding', context, parent.projectFundingId);
       }
       return null;
+    },
+    created: (parent: PlanFunding) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: PlanFunding) => {
+      return formatISO9075(new Date(parent.modified));
     }
   }
 };

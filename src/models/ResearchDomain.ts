@@ -72,7 +72,13 @@ export class ResearchDomain extends MySqlModel {
         this.addError('general', 'ResearchDomain already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await ResearchDomain.insert(context, this.tableName, this, reference);
+        const newId = await ResearchDomain.insert(
+          context,
+          this.tableName,
+          this,
+          reference,
+          ['parentResearchDomain']
+        );
         const response = await ResearchDomain.findById(reference, context, newId);
         return response;
       }
@@ -87,7 +93,14 @@ export class ResearchDomain extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await ResearchDomain.update(context, this.tableName, this, 'ResearchDomain.update', [], noTouch);
+        await ResearchDomain.update(
+          context,
+          this.tableName,
+          this,
+          'ResearchDomain.update',
+          ['parentResearchDomain'],
+          noTouch
+        );
         return await ResearchDomain.findById('ResearchDomain.update', context, id);
       }
       // This template has never been saved before so we cannot update it!

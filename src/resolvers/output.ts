@@ -11,6 +11,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { OutputType } from '../models/OutputType';
 import { GraphQLError } from 'graphql';
+import {formatISO9075} from "date-fns";
 
 // Process updates to the Repository associations
 async function processRepositoryUpdates(
@@ -343,6 +344,12 @@ export const resolvers: Resolvers = {
         context,
         parent.id
       );
+    },
+    created: (parent: ProjectOutput) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ProjectOutput) => {
+      return formatISO9075(new Date(parent.modified));
     }
   },
 };

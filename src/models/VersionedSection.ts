@@ -1,7 +1,7 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
-import { Tag } from "../models/Tag";
+import { Tag } from "./Tag";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
@@ -164,14 +164,14 @@ export class VersionedSection extends MySqlModel {
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<VersionedSection[]> {
     const sql = 'SELECT * FROM versionedSections WHERE sectionId = ?';
     const results = await VersionedSection.query(context, sql, [sectionId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : [];
   }
 
   // Find the VersionedSections by versionedTemplateId
   static async findByTemplateId(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedSection[]> {
     const sql = 'SELECT * FROM versionedSections WHERE versionedTemplateId = ?';
     const results = await VersionedSection.query(context, sql, [versionedTemplateId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedSection(entry)) : [];
   }
 
   // Find the VersionedSection by name

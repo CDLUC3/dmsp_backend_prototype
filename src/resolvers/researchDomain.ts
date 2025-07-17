@@ -5,6 +5,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError } from "../uti
 import { prepareObjectForLogs } from "../logger";
 import { isAuthorized } from "../services/authService";
 import { GraphQLError } from "graphql";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -49,5 +50,11 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
+    created: (parent: ResearchDomain) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ResearchDomain) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

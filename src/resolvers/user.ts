@@ -12,6 +12,7 @@ import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined } from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -463,6 +464,15 @@ export const resolvers: Resolvers = {
     email: async (parent: User, _, context): Promise<string | null> => {
       const primaryEmail = await UserEmail.findPrimaryByUserId('Chained User.email', context, parent.id);
       return primaryEmail ? primaryEmail.email : null;
+    },
+    last_sign_in: (parent: User) => {
+      return formatISO9075(new Date(parent.last_sign_in));
+    },
+    created: (parent: User) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: User) => {
+      return formatISO9075(new Date(parent.modified));
     },
   },
 };

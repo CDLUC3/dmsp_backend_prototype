@@ -100,8 +100,8 @@ describe('ProjectSearchResult', () => {
                           'p.modifiedById, p.modified, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, ' +
                           'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', ' +
                             'CASE ' +
-                              'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(collab.givenName, CONCAT(\' \', collab.surName))) ' +
-                              'ELSE collab.email ' +
+                              'WHEN collab.surName IS NOT NULL THEN TRIM(CONCAT(collab.givenName, CONCAT(\' \', collab.surName))) ' +
+                              'ELSE (SELECT collabE.email FROM userEmails collabE WHERE collabE.userId = collab.id AND collabE.isPrimary = 1 LIMIT 1) ' +
                             'END, ' +
                             'CONCAT(UPPER(SUBSTRING(pcol.accessLevel, 1, 1)), LOWER(SUBSTRING(pcol.accessLevel FROM 2))), ' +
                             'collab.orcid ' +
@@ -110,7 +110,7 @@ describe('ProjectSearchResult', () => {
                             'CONCAT_WS(\'|\', ' +
                               'CASE ' +
                                 'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(pc.givenName, CONCAT(\' \', pc.surName))) ' +
-                                'ELSE pc.email ' +
+                                'ELSE (SELECT pcE.email FROM userEmails pcE WHERE pcE.userId = pc.id AND pcE.isPrimary = 1 LIMIT 1) ' +
                               'END, ' +
                               'r.label, ' +
                               'pc.orcid ' +

@@ -131,7 +131,7 @@ export class MemberRole extends MySqlModel {
 
   // Fetch all of the MemberRoles associated with a ProjectMember
   static async findByProjectMemberId(reference: string, context: MyContext, projectMemberId: number): Promise<MemberRole[]> {
-    const sql = 'SELECT cr.* FROM projectMemberRoles pcr INNER JOIN memberRoles cr ON pcr.memberRoleId = cr.id';
+    const sql = 'SELECT mr.* FROM projectMemberRoles pmr INNER JOIN memberRoles mr ON pmr.memberRoleId = mr.id';
     const whereClause = 'WHERE pcr.projectMemberId = ?';
     const vals = [projectMemberId?.toString()];
     const results = await MemberRole.query(context, `${sql} ${whereClause}`, vals, reference);
@@ -140,7 +140,7 @@ export class MemberRole extends MySqlModel {
 
   // Fetch all of the MemberRoles associated with a ProjectMember
   static async findByPlanMemberId(reference: string, context: MyContext, planMemberId: number): Promise<MemberRole[]> {
-    const sql = 'SELECT cr.* FROM planMemberRoles pcr INNER JOIN memberRoles cr ON pcr.memberRoleId = cr.id';
+    const sql = 'SELECT mr.* FROM planMemberRoles pmr INNER JOIN memberRoles mr ON pmr.memberRoleId = mr.id';
     const whereClause = 'WHERE pcr.planMemberId = ?';
     const vals = [planMemberId?.toString()];
     const results = await MemberRole.query(context, `${sql} ${whereClause}`, vals, reference);
