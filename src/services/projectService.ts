@@ -102,6 +102,7 @@ export const ensureDefaultProjectContact = async (
         // Create a new member record from the user and set as the primary contact
         const member = new ProjectMember({
           ...owner,
+          email: await owner.getEmail(context),
           projectId: project.id,
           isPrimaryContact: true,
           memberRoles: [dfltRole],

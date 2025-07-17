@@ -283,7 +283,7 @@ describe('queries', () => {
     const memberId = casual.integer(1, 999);
     await MemberRole.findByProjectMemberId('testing', context, memberId);
     let sql = 'SELECT mr.* FROM projectMemberRoles pmr INNER JOIN memberRoles mr ON pmr.memberRoleId = mr.id';
-    sql = `${sql} WHERE pcr.projectMemberId = ?`;
+    sql = `${sql} WHERE pmr.projectMemberId = ?`;
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(querySpy).toHaveBeenCalledWith(context, sql, [memberId.toString()], 'testing');
   });
@@ -293,7 +293,7 @@ describe('queries', () => {
     const memberId = casual.integer(1, 999);
     await MemberRole.findByPlanMemberId('testing', context, memberId);
     let sql = 'SELECT mr.* FROM planMemberRoles pmr INNER JOIN memberRoles mr ON pmr.memberRoleId = mr.id';
-    sql = `${sql} WHERE pcr.planMemberId = ?`;
+    sql = `${sql} WHERE pmr.planMemberId = ?`;
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(querySpy).toHaveBeenCalledWith(context, sql, [memberId.toString()], 'testing');
   });

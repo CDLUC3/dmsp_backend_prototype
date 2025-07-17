@@ -104,7 +104,7 @@ export class MySQLConnection implements DatabaseConnection {
       const [rows] = await connection.execute(sql, sanitizedValues);
       return rows as T;
     } catch (err) {
-      context.logger.error(prepareObjectForLogs({ sql, values, err }), 'Uanble to process SQL query');
+      context.logger.error(prepareObjectForLogs({ sql, values, err }), 'Unable to process SQL query');
       throw new DatabaseError('Database query failed', err);
     } finally {
       if (connection) {

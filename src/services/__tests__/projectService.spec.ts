@@ -272,6 +272,7 @@ describe('ensureDefaultProjectContact', () => {
     const newId = casual.integer(1, 9999);
     const newMember = new ProjectMember({
       ...user,
+      email: await user.getEmail(context),
       projectId: project.id,
       isPrimaryContact: true,
       memberRoleIds: [defaultRole.id],

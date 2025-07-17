@@ -104,7 +104,7 @@ export class ProjectSearchResult {
                           'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', ' +
                             'CASE ' +
                               'WHEN collab.surName IS NOT NULL THEN TRIM(CONCAT(collab.givenName, CONCAT(\' \', collab.surName))) ' +
-                              'ELSE (SELECT collabE.email FROM userEmails collabE WHERE collabE.userId = collab.id AND collabE.isPrimary = 1 LIMIT 1) ' +
+                              'ELSE (SELECT collabE.email FROM userEmails collabE WHERE collabE.userId = collab.id LIMIT 1) ' +
                             'END, ' +
                             'CONCAT(UPPER(SUBSTRING(pcol.accessLevel, 1, 1)), LOWER(SUBSTRING(pcol.accessLevel FROM 2))), ' +
                             'collab.orcid ' +
@@ -112,12 +112,12 @@ export class ProjectSearchResult {
                           'GROUP_CONCAT(DISTINCT ' +
                             'CONCAT_WS(\'|\', ' +
                               'CASE ' +
-                                'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(pc.givenName, CONCAT(\' \', pc.surName))) ' +
-                                'ELSE (SELECT pcE.email FROM userEmails pcE WHERE pcE.userId = pc.id AND pcE.isPrimary = 1 LIMIT 1) ' +
+                                'WHEN pm.surName IS NOT NULL THEN TRIM(CONCAT(pm.givenName, CONCAT(\' \', pm.surName))) ' +
+                                'ELSE (SELECT pmE.email FROM userEmails pmE WHERE pmE.userId = pm.id AND pmE.isPrimary = 1 LIMIT 1) ' +
                               'END, ' +
                               'r.label, ' +
-                              'pc.orcid ' +
-                          ') ORDER BY pc.created) as membersData, ' +
+                              'pm.orcid ' +
+                          ') ORDER BY pm.created) as membersData, ' +
                           'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', fundings.name, pf.grantId) ' +
                             'ORDER BY fundings.name SEPARATOR \',\') fundingsData ' +
                         'FROM projects p ' +
@@ -126,14 +126,14 @@ export class ProjectSearchResult {
                           'LEFT JOIN users mu ON mu.id = p.modifiedById ' +
                           'LEFT JOIN projectCollaborators pcol ON pcol.projectId = p.id ' +
                             'LEFT JOIN users collab ON pcol.userId = collab.id ' +
-                          'LEFT JOIN projectMembers pc ON pc.projectId = p.id ' +
-                            'LEFT JOIN projectMemberRoles pcr ON pc.id = pcr.projectMemberId ' +
-                            'LEFT JOIN memberRoles r ON pcr.memberRoleId = r.id ' +
+                          'LEFT JOIN projectMembers pm ON pm.projectId = p.id ' +
+                            'LEFT JOIN projectMemberRoles pmr ON pm.id = pmr.projectMemberId ' +
+                            'LEFT JOIN memberRoles r ON pmr.memberRoleId = r.id ' +
                           'LEFT JOIN projectFundings pf ON pf.projectId = p.id ' +
                             'LEFT JOIN affiliations fundings ON pf.affiliationId = fundings.uri ';
 
     const groupByClause = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
-                          'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description ';
+                          'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description';
 
     const response: PaginatedQueryResults<ProjectSearchResult> = await Project.queryWithPagination(
       context,

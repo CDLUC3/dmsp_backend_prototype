@@ -132,7 +132,7 @@ export class MemberRole extends MySqlModel {
   // Fetch all of the MemberRoles associated with a ProjectMember
   static async findByProjectMemberId(reference: string, context: MyContext, projectMemberId: number): Promise<MemberRole[]> {
     const sql = 'SELECT mr.* FROM projectMemberRoles pmr INNER JOIN memberRoles mr ON pmr.memberRoleId = mr.id';
-    const whereClause = 'WHERE pcr.projectMemberId = ?';
+    const whereClause = 'WHERE pmr.projectMemberId = ?';
     const vals = [projectMemberId?.toString()];
     const results = await MemberRole.query(context, `${sql} ${whereClause}`, vals, reference);
     return Array.isArray(results) ? results.map((entry) => new MemberRole(entry)) : [];
@@ -141,7 +141,7 @@ export class MemberRole extends MySqlModel {
   // Fetch all of the MemberRoles associated with a ProjectMember
   static async findByPlanMemberId(reference: string, context: MyContext, planMemberId: number): Promise<MemberRole[]> {
     const sql = 'SELECT mr.* FROM planMemberRoles pmr INNER JOIN memberRoles mr ON pmr.memberRoleId = mr.id';
-    const whereClause = 'WHERE pcr.planMemberId = ?';
+    const whereClause = 'WHERE pmr.planMemberId = ?';
     const vals = [planMemberId?.toString()];
     const results = await MemberRole.query(context, `${sql} ${whereClause}`, vals, reference);
     return Array.isArray(results) ? results.map((entry) => new MemberRole(entry)) : [];
