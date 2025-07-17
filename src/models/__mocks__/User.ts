@@ -39,18 +39,19 @@ export const mockUser = (
 // Save a mock/test User in the DB for integration tests
 export const persistUser = async (
   context: MyContext,
-  user: User
+  user: User,
+  email = casual.email,
 ): Promise<User | null> => {
   try {
-    const created = await user.register(context);
+    const created = await user.register(context, email);
     if (!isNullOrUndefined(created)) {
       // Keep track of the id so we can clean up afterward
       addedUserIds.push(created.id);
       return created;
     }
-    console.error(`Unable to persist user: ${user.email}`);
+    console.error(`Unable to persist user: ${email}`);
   } catch (e) {
-    console.error(`Error persisting user ${user.email}: ${e.message}`);
+    console.error(`Error persisting user ${email}: ${e.message}`);
   }
   return null;
 }
