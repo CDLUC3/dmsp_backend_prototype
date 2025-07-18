@@ -418,7 +418,12 @@ export class PopularFunder {
                 'WHERE a.active = 1 AND a.funder = 1 AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? ' +
                 'GROUP BY a.id, a.uri, a.displayName ' +
                 'ORDER BY nbrPlans DESC LIMIT 20';
-    const results = await Affiliation.query(context, sql, [startDate, endDate], 'PopularFunder.top20');
+    const results = await Affiliation.query(
+      context,
+      sql,
+      [`${startDate} 00:00:00`, `${endDate} 23:59:59`],
+      'PopularFunder.top20'
+    );
     if (Array.isArray(results) && results.length > 0) {
       return results.map((entry) => { return new PopularFunder(entry) });
     }

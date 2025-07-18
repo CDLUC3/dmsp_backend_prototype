@@ -42,6 +42,7 @@ export const generateNewProjectMember = (options) => {
     affiliationId: options.affiliationId ?? casual.url,
     orcid: options.orcid ?? getMockORCID(),
     email: options.email ?? casual.email,
+    isPrimaryContact: options.isPrimaryContact ?? false,
     memberRoles: [getRandomMemberRole().id],
   }
 }

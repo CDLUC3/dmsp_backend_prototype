@@ -80,8 +80,8 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: PlanFundingErrors
 
-    "The project that is seeking (or has aquired) funding"
-    project: Project
+    "The plan that is seeking (or has aquired) funding"
+    plan: Plan
     "The project funder"
     projectFunding: ProjectFunding
   }
@@ -132,7 +132,7 @@ export const typeDefs = gql`
     "General error messages such as the object already exists"
     general: String
 
-    projectId: String
+    planId: String
     ProjectFundingId: String
   }
 `;

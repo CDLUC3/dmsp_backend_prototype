@@ -28,6 +28,7 @@ afterEach(() => {
 
 describe('hasPermissionOnTemplate', () => {
   let template;
+  let collaborator;
   let mockIsSuperAdmin;
   let mockFindByTemplateAndEmail;
   let context;
@@ -48,6 +49,13 @@ describe('hasPermissionOnTemplate', () => {
       name: casual.sentence,
       ownerId: casual.url,
     });
+
+    collaborator = new TemplateCollaborator({
+      id: casual.integer(1, 999),
+      templateId: template.id,
+      email: casual.email,
+      userId: casual.integer(1, 999),
+    });
   });
 
   afterEach(() => {
@@ -55,7 +63,7 @@ describe('hasPermissionOnTemplate', () => {
   });
 
   it('returns true if the current user is a Super Admin', async () => {
-    mockIsSuperAdmin.mockResolvedValueOnce(true);
+    mockIsSuperAdmin.mockReturnValue(true);
 
     context.token = { affiliationId: 'https://test.example.com/foo' };
     expect(await hasPermissionOnTemplate(context, template)).toBe(true)
@@ -63,17 +71,17 @@ describe('hasPermissionOnTemplate', () => {
   });
 
   it('returns true if the current user\'s affiliation is the same as the template\'s owner', async () => {
-    mockIsSuperAdmin.mockResolvedValueOnce(false);
+    mockIsSuperAdmin.mockReturnValue(false);
 
     context.token = { affiliationId: template.ownerId };
     expect(await hasPermissionOnTemplate(context, template)).toBe(true)
-    expect(mockIsSuperAdmin).toHaveBeenCalledTimes(0);
+    expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
 
   });
 
   it('returns true if the current user is a collaborator for the template', async () => {
-    mockIsSuperAdmin.mockResolvedValue(false);
-    mockFindByTemplateAndEmail.mockResolvedValueOnce(template);
+    mockIsSuperAdmin.mockReturnValue(false);
+    mockFindByTemplateAndEmail.mockResolvedValueOnce(collaborator);
 
     context.token = { affiliationId: 'https://test.example.com/foo' };
     expect(await hasPermissionOnTemplate(context, template)).toBe(true)
@@ -82,10 +90,10 @@ describe('hasPermissionOnTemplate', () => {
   });
 
   it('returns false when the user does not have permission', async () => {
-    mockIsSuperAdmin.mockResolvedValueOnce(false);
+    mockIsSuperAdmin.mockReturnValue(false);
     mockFindByTemplateAndEmail.mockResolvedValueOnce(null);
 
-    context.token = { affiliationId: 'https://test.example.com/foo' };
+    context.token = { affiliationId: 'https://test.example.com/other-foo' };
     expect(await hasPermissionOnTemplate(context, template)).toBe(false)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
     expect(mockFindByTemplateAndEmail).toHaveBeenCalledTimes(1);

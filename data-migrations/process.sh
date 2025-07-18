@@ -106,24 +106,11 @@ echo "Making sure the DB exists"
 create_database $MYSQL_DATABASE
 init_migrations_table $MYSQL_DATABASE
 
-# If a test database is defined make sure it exists
-echo "* Making sure the TEST DB exists *"
-if [ -n "${MYSQL_TEST_DATABASE}" ]; then
-  create_database $MYSQL_TEST_DATABASE
-  init_migrations_table $MYSQL_TEST_DATABASE
-fi
-
 # Run this script to process any new SQL migrations on your local DB.
 for i in ./data-migrations/*.sql; do
   [ -f "$i" ] || break
 
   process_migration $MYSQL_DATABASE $i
-
-  if [ -n "${MYSQL_TEST_DATABASE}" ]; then
-    echo "* Running migration in the TEST DB *"
-    process_migration $MYSQL_TEST_DATABASE $i
-  fi
-
   echo ''
   echo ''
 done

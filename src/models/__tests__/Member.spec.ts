@@ -558,14 +558,14 @@ describe('findByPlanId', () => {
     const expectedSql = 'SELECT * FROM planMembers WHERE projectMemberId = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectMemberId.toString()], 'testing')
-    expect(result).toEqual(planMember);
+    expect(result).toEqual([planMember]);
   });
 
   it('findByProjectMemberId should return empty array if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
     const projectMemberId = casual.integer(1, 999);
     const result = await PlanMember.findByProjectMemberId('testing', context, projectMemberId);
-    expect(result).toEqual(null);
+    expect(result).toEqual([]);
   });
 });
 

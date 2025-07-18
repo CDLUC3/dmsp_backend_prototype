@@ -11,9 +11,10 @@ export class ProjectMember extends MySqlModel {
   public surName?: string;
   public orcid?: string;
   public email?: string;
+  public isPrimaryContact: boolean;
   public memberRoles: MemberRole[];
 
-  private static tableName = 'projectMembers';
+  public static tableName = 'projectMembers';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -25,6 +26,7 @@ export class ProjectMember extends MySqlModel {
     this.surName = options.surName;
     this.orcid = options.orcid;
     this.email = options.email;
+    this.isPrimaryContact = options.isPrimaryContact ?? false;
     this.memberRoles = options.memberRoles ?? [];
   }
 
@@ -153,28 +155,28 @@ export class ProjectMember extends MySqlModel {
     return null;
   }
 
-  // Return all of the members for the Project
+  // Return all members of the Project
   static async findByProjectId(reference: string, context: MyContext, projectId: number): Promise<ProjectMember[]> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE projectId = ? ORDER BY surName, givenName`;
     const results = await ProjectMember.query(context, sql, [projectId?.toString()], reference);
     return Array.isArray(results) ? results.map((item) => new ProjectMember(item)) : [];
   }
 
-  // Return all of the members for the Project
+  // Return all members associated with the Affiliation
   static async findByAffiliation(reference: string, context: MyContext, affiliationId: string): Promise<ProjectMember[]> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE affiliationId = ? ORDER BY surName, givenName`;
     const results = await ProjectMember.query(context, sql, [affiliationId], reference);
     return Array.isArray(results) ? results.map((item) => new ProjectMember(item)) : [];
   }
 
-  // Fetch a members by it's id
+  // Fetch a member by its id
   static async findById(reference: string, context: MyContext, projectMemberId: number): Promise<ProjectMember> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE id = ?`;
     const results = await ProjectMember.query(context, sql, [projectMemberId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
   }
 
-  // Fetch a members by it's project and email
+  // Fetch a member by its project and email
   static async findByProjectAndEmail(
     reference: string,
     context: MyContext,
@@ -186,7 +188,7 @@ export class ProjectMember extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
   }
 
-  // Fetch a members by it's Project and ORCID
+  // Fetch a member by its Project and ORCID
   static async findByProjectAndORCID(
     reference: string,
     context: MyContext,
@@ -198,7 +200,7 @@ export class ProjectMember extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
   }
 
-  // Fetch a members by it's project and name
+  // Fetch a member by its project and name
   static async findByProjectAndName(
     reference: string,
     context: MyContext,
@@ -212,7 +214,7 @@ export class ProjectMember extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
   }
 
-  // Fetch a members by it's project and name or ORCID or email
+  // Fetch a member by its project and name or ORCID or email
   static async findByProjectAndNameOrORCIDOrEmail(
     reference: string,
     context: MyContext,
@@ -231,22 +233,22 @@ export class ProjectMember extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
   }
 
-  // Fetch the primary contact for a plan
-  static async findPrimaryByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanMember> {
-    const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE planId = ? AND isPrimaryContact = 1`;
-    const results = await PlanMember.query(context, sql, [planId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? new PlanMember(results[0]) : null;
+  // Get the primary contact for the specified project
+  static async findPrimaryContact(reference: string, context: MyContext, projectId: number): Promise<ProjectMember> {
+    const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE projectId = ? AND isPrimaryContact = 1`;
+    const results = await ProjectMember.query(context, sql, [projectId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
   }
 }
 
-// Represents a members to a DMP
+// Represents members of a research project associated with a DMP
 export class PlanMember extends MySqlModel {
   public planId: number;
   public projectMemberId: number;
   public isPrimaryContact: boolean;
   public memberRoleIds: number[];
 
-  private static tableName = 'planMembers';
+  public static tableName = 'planMembers';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -362,10 +364,10 @@ export class PlanMember extends MySqlModel {
     reference: string,
     context: MyContext,
     planMemberId: number
-  ): Promise<PlanMember> {
+  ): Promise<PlanMember[]> {
     const sql = `SELECT * FROM ${this.tableName} WHERE projectMemberId = ?`;
     const results = await PlanMember.query(context, sql, [planMemberId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? new PlanMember(results[0]) : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((item) => new PlanMember(item)) : [];
   }
 
   // Fetch all of the members for a plan
@@ -373,5 +375,12 @@ export class PlanMember extends MySqlModel {
     const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? ORDER BY isPrimaryContact DESC`;
     const results = await PlanMember.query(context, sql, [planId?.toString()], reference);
     return Array.isArray(results) ? results.map((item) => new PlanMember(item)) : [];
+  }
+
+  // Get the primary contact for the specified plan
+  static async findPrimaryContact(reference: string, context: MyContext, planId: number): Promise<PlanMember> {
+    const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? AND isPrimaryContact = 1`;
+    const results = await PlanMember.query(context, sql, [planId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new PlanMember(results[0]) : null;
   }
 }

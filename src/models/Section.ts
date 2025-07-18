@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { Tag } from "../types";
+import { Tag } from "./Tag";
 
 // A Template for creating a DMP
 export class Section extends MySqlModel {

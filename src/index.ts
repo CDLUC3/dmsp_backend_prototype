@@ -24,7 +24,6 @@ const PORT = 4000;
 // Establish the MySQL connection pool
 const cache = Cache.getInstance().adapter;
 const sqlDataSource = new MySQLConnection();
-const mysqlDB = new MySQLConnection();
 const dmphubAPIDataSource = new DMPHubAPI({ cache, token: null })
 
 // Required logic for integrating with Express
@@ -39,6 +38,8 @@ const apolloServer = new ApolloServer({
 });
 
 const startServer = async () => {
+  // Ensure the connection pool is ready
+  await sqlDataSource.initPromise;
   await apolloServer.start();
 
   // Healthcheck endpoint (declare this BEFORE CORS definition due to AWS ALB limitations)
@@ -75,9 +76,13 @@ const startServer = async () => {
 
 // Graceful shutdown
 const shutdown = async () => {
-  await mysqlDB.close();
-
-  process.exit(0);
+  try {
+    await sqlDataSource.close();
+    process.exit(0);
+  } catch (error) {
+    console.log('Error shutting down server:', error);
+    process.exit(1);
+  }
 };
 
 if (!process.listeners('SIGINT').includes(shutdown)) {
@@ -89,6 +94,7 @@ if (!process.listeners('SIGTERM').includes(shutdown)) {
 
 startServer().catch((error) => {
   console.log('Error starting server:', error)
+  process.exit(1);
 });
 
 export default app;

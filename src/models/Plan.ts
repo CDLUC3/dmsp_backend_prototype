@@ -2,7 +2,12 @@
 
 import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
-import { getCurrentDate, randomHex, valueIsEmpty } from "../utils/helpers";
+import {
+  getCurrentDate,
+  isNullOrUndefined,
+  randomHex,
+  valueIsEmpty
+} from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { addVersion, removeVersions, updateVersion } from "./PlanVersion";
 
@@ -182,7 +187,7 @@ export class Plan extends MySqlModel {
 
   // Helper function to determine if the plan has been published
   isPublished(): boolean {
-    return !valueIsEmpty(this.registered) || !valueIsEmpty(this.registeredById);
+    return !isNullOrUndefined(this.registered) || !isNullOrUndefined(this.registeredById);
   }
 
   // Make sure the plan is valid
@@ -205,13 +210,14 @@ export class Plan extends MySqlModel {
   }
 
   // Publish the plan (register a DOI)
-  async publish(context: MyContext): Promise<Plan> {
+  async publish(context: MyContext, visibility = PlanVisibility.PRIVATE): Promise<Plan> {
     if (this.id) {
       // Make sure the plan is valid
       if (await this.isValid()) {
         if (!this.isPublished()) {
           this.registered = getCurrentDate();
           this.registeredById = context.token.id;
+          this.visibility = visibility;
 
           // Update the plan
           return await this.update(context);
@@ -241,10 +247,10 @@ export class Plan extends MySqlModel {
 
         // Create the original version snapshot of the DMP
         if (newId) {
-          let newPlan = await Plan.findById(reference, context, newId);
+          const newPlan = await Plan.findById(reference, context, newId);
           if (newPlan && !newPlan.hasErrors()) {
             // Generate the version history of the DMP
-            newPlan = await addVersion(context, newPlan, reference);
+            await addVersion(context, newPlan, reference);
           }
           return new Plan(newPlan);
         }

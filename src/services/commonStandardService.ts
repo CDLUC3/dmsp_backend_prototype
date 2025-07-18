@@ -459,7 +459,9 @@ export async function loadContactFromPlanOwner(
   reference: string,
   ownerId: number
 ): Promise<LoadMemberResult> {
-  const sql = 'SELECT u.givenName, u.surName, u.email, u.orcid, a.uri, a.name ' +
+  const sql = 'SELECT u.givenName, u.surName, u.orcid, a.uri, a.name, ' +
+                        '(SELECT ue.email FROM userEmails ue WHERE ue.userId = u.id ' +
+                          'AND ue.isPrimary = 1 LIMIT 1) as email ' +
                       'FROM users u ' +
                         'LEFT JOIN affiliations a ON u.affiliationId = a.id ' +
                       'WHERE u.id = ?';

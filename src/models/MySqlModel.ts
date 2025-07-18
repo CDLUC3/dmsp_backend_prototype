@@ -222,10 +222,10 @@ export class MySqlModel {
     }
     const errMsg = `${reference}, ERROR: apolloContext and sqlStatement are required.`;
     if (logger) {
-      apolloContext.logger.error(errMsg);
+      apolloContext.logger.error(`${errMsg} - ${sqlStatement}`);
     } else {
       // In the event that there was no logger!
-      console.log(errMsg);
+      console.log(`${errMsg} - ${sqlStatement}`);
     }
     return [];
   }

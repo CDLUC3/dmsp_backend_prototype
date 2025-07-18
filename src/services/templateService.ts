@@ -12,8 +12,11 @@ import { prepareObjectForLogs } from "../logger";
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
   if (!context || !context.token) return false;
 
-  // If the current user belongs to the same affiliation OR the user is a super admin
-  if (context.token?.affiliationId === template?.ownerId || await isSuperAdmin(context.token)) {
+  // If the user is a super admin they have access
+  if (isSuperAdmin(context.token)) return true;
+
+  // If the current user belongs to the same affiliation
+  if (context.token?.affiliationId === template?.ownerId) {
     return true;
   }
 
@@ -119,7 +122,7 @@ export const generateTemplateVersion = async (
         throw new Error(msg);
       }
     } catch (err) {
-      context.logger.error(prepareObjectForLogs(err), `Unable t create a new version for template: ${template.id}`);
+      context.logger.error(prepareObjectForLogs(err), `Unable to create a new version for template: ${template.id}`);
       throw new Error(err.message);
     }
   } else {

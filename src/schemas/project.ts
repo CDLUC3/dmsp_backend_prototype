@@ -12,7 +12,7 @@ export const projectTypeDefs = gql`
     project(projectId: Int!): Project
 
     "Search for projects within external APIs"
-    searchExternalProjects(affiliationId: Int!, awardId: String, awardName: String, awardYear: String, piNames: [String]): [ExternalProject]
+    searchExternalProjects(input: ExternalSearchInput!): [ExternalProject]
   }
 
   extend type Mutation {
@@ -110,6 +110,8 @@ export const projectTypeDefs = gql`
     "Whether or not this is test/mock research project"
     isTestProject: Boolean
 
+    "People who have access to modify or comment on the Project"
+    collaborators: [ProjectCollaborator!]
     "People who are contributing to the research project (not just the DMP)"
     members: [ProjectMember!]
     "The funders who are supporting the research project"
@@ -175,6 +177,19 @@ export const projectTypeDefs = gql`
     researchDomainId: Int
     "Whether or not the project is a mock/test"
     isTestProject: Boolean
+  }
+
+  input ExternalSearchInput {
+    "The URI of the funder we are using to search for projects"
+    affiliationId: String!
+    "The funder award/grant id/url (optional)"
+    awardId: String
+    "The funder award/grant name (optional)"
+    awardName: String
+    "The funder award/grant year (optional) as YYYY"
+    awardYear: String
+    "The principal investigator names (optional) can be any combination of first/middle/last names"
+    piNames: [String]
   }
 
   "External Project type"

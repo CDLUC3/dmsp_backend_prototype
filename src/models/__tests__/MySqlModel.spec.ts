@@ -422,7 +422,8 @@ describe('query function', () => {
     context.dataSources = null;
     const result = await MySqlModel.query(context, sql, ['123'], 'testing failure');
     expect(context.logger.error).toHaveBeenCalledTimes(1);
-    expect(context.logger.error).toHaveBeenCalledWith(`testing failure, ERROR: apolloContext and sqlStatement are required.`);
+    const msg = 'testing failure, ERROR: apolloContext and sqlStatement are required. - SELECT * FROM tests WHERE field = ?';
+    expect(context.logger.error).toHaveBeenCalledWith(msg);
     expect(result).toEqual([]);
   });
 });

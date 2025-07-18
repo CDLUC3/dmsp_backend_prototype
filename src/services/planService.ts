@@ -1,5 +1,9 @@
 import { MyContext } from "../context";
 import { MemberRole } from "../models/MemberRole";
+import {isNullOrUndefined} from "../utils/helpers";
+import {PlanMember, ProjectMember} from "../models/Member";
+import {Plan} from "../models/Plan";
+import {Project} from "../models/Project";
 
 export async function updateMemberRoles(
   reference: string,
@@ -49,4 +53,43 @@ export async function updateMemberRoles(
     updatedRoleIds: updatedRoles.length > 0 ? updatedRoles : currentRoleIds,
     errors: associationErrors,
   };
+}
+
+// Make sure the plan has a primary contact defined. If not default to the project's
+export const ensureDefaultPlanContact = async (
+  context: MyContext,
+  plan: Plan,
+  project: Project
+): Promise<boolean> => {
+  const reference = 'planService.ensurePlanHasPrimaryContact';
+
+  if (!isNullOrUndefined(plan) && !isNullOrUndefined(project)) {
+    const dfltMember = await ProjectMember.findPrimaryContact(reference, context, project.id);
+    if (isNullOrUndefined(dfltMember)) {
+      return false;
+    }
+    const dfltMemberRoles = await MemberRole.findByProjectMemberId(
+      reference,
+      context,
+      dfltMember.id,
+    );
+
+    const current = await PlanMember.findPrimaryContact(reference, context, plan.id);
+    if (isNullOrUndefined(current)) {
+      // Create a new member record from the user and set as the primary contact
+      const member = new PlanMember({
+        planId: plan.id,
+        projectMemberId: dfltMember.id,
+        isPrimaryContact: true,
+        memberRoleIds: dfltMemberRoles.map(role => role.id),
+      });
+
+      const created = await member.create(context);
+      return !isNullOrUndefined(created) && !created.hasErrors();
+    } else {
+      // PrimaryContact was already set
+      return true;
+    }
+  }
+  return false
 }

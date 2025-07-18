@@ -57,11 +57,4 @@ drop_tables() {
 
 drop_tables $MYSQL_DATABASE
 
-if [ -n "${MYSQL_TEST_DATABASE}" ]; then
-  echo ''
-  echo ''
-  echo "Purging all tables from the TEST database"
-  drop_tables $MYSQL_TEST_DATABASE
-fi
-
 echo "Nuke complete. You may now run data-migrations/process.sh to rebuild the database tables"

@@ -18,6 +18,7 @@ import { GraphQLError } from "graphql";
 import { generalConfig } from "../config/generalConfig";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined } from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -319,6 +320,13 @@ export const resolvers: Resolvers = {
         return Array.isArray(results.items) ? results.items.filter((user) => user.role === UserRole.ADMIN) : [];
       }
       return [];
+    },
+
+    created: (parent: Template) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Template) => {
+      return formatISO9075(new Date(parent.modified));
     }
   },
 };
