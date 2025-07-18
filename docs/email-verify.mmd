@@ -1,0 +1,21 @@
+flowchart TD
+  A[Start: User receives verification email with token]
+
+  A --> B[User clicks verification link]
+
+  B --> C{"Is token valid and not expired?"}
+  C -- No --> D["Show error: Invalid or expired link"]
+  D --> E{"Is user logged in?"}
+  E -- Yes --> G["message includes link to page where verifications can be requested again"]
+
+  C -- Yes --> H["Mark email as confirmed (isConfirmed = true)"]
+  H --> I["Expire token so it cannot be reused"]
+  I --> J["Show message like 'bob@example.org has been confirmed'"]
+  J --> K[End]
+
+  style A fill:#cfe2ff
+  style H fill:#d4edda
+  style I fill:#d4edda
+  style J fill:#d4edda
+  style D fill:#f8d7da
+  style G fill:#f8d7da

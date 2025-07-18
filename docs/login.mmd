@@ -1,0 +1,29 @@
+flowchart TD
+  A[Start: Enter email and click submit]
+
+  A --> B{User found in system?}
+  B -- No --> D[Prompt for password]
+  B -- Yes --> C{User has SSO ID?}
+  C -- No --> D
+  C -- Yes --> SSO1[Begin SSO Login Workflow]
+
+  D --> E{Password correct?}
+  E -- No --> E1[Show login failure message]
+  E1 --> D
+  E -- Yes --> F[Redirect to dashboard as logged-in user]
+
+  SSO1 --> S1["Redirect to Shibboleth using entityID + callback URL"]
+  S1 --> S2["User logs in at external SSO site"]
+  S2 --> S3["SSO returns to callback URL"]
+  S3 --> S4["Match SSO ID to user record"]
+
+  S4 --> S5{User profile complete?}
+  S5 -- Yes --> F
+  S5 -- No --> S6["Show profile completion form (pre-filled)"]
+  S6 --> S7{Form complete and valid?}
+  S7 -- No --> S6
+  S7 -- Yes --> F
+
+  style A fill:#cfe2ff
+  style F fill:#d4edda
+  style E1 fill:#f8d7da

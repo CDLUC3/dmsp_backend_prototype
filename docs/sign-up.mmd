@@ -1,0 +1,37 @@
+flowchart TD
+  A[Start: Enter email and click continue]
+
+  A --> B{Is email already used?}
+  B -- Yes --> B1[Display error: Email already registered]
+  B1 --> End1[End]
+  B -- No --> C{Email domain matches SSO affiliation?}
+
+  C -- Yes --> D[Show 'Login method' screen: SSO or Local account?]
+  D -->|User selects SSO| SSO1[Redirect to SSO Signup Workflow]
+  D -->|User selects local| E[Show 'Create a DMP account' form]
+
+  C -- No --> E
+
+  E --> F{Form filled correctly?}
+  F -- No --> F1[Display error: Missing info or password mismatch] --> E
+  F -- Yes --> G[Create local account & send verification email]
+  G --> H[Redirect to dashboard as logged-in user]
+
+%% SSO Signup branch
+  SSO1 --> S1[Redirect to Shibboleth using entityID + callback URL]
+  S1 --> S2[User logs in at institution's SSO site]
+  S2 --> S3[SSO returns metadata to callback URL]
+  S3 --> S4[Pre-fill 'Complete sign up' form with metadata]
+
+  S4 --> S5{Form complete & accepted?}
+  S5 -- No --> S4
+  S5 -- Yes --> S6[Create verified SSO account]
+  S6 --> H
+
+  style A fill:#cfe2ff
+  style G fill:#d4edda
+  style S6 fill:#d4edda
+  style H fill:#d1ecf1
+  style B1 fill:#f8d7da
+  style F1 fill:#f8d7da
+  style End1 fill:#f8d7da
