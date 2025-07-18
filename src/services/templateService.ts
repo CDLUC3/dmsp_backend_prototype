@@ -12,9 +12,10 @@ import { prepareObjectForLogs } from "../logger";
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
   if (!context || !context.token) return false;
 
+  // If the user is a super admin they have access
   if (isSuperAdmin(context.token)) return true;
 
-  // If the current user belongs to the same affiliation OR the user is a super admin
+  // If the current user belongs to the same affiliation
   if (context.token?.affiliationId === template?.ownerId) {
     return true;
   }

@@ -62,12 +62,8 @@ export class MySQLConnection implements DatabaseConnection {
 
   // Verify that the pool is able to establish a connection
   private async validateConnection(): Promise<void> {
-    try {
-      const connection = await this.pool.getConnection();
-      connection.release();
-    } catch (err) {
-      throw new DatabaseError('Failed to validate initial connection', err);
-    }
+    const connection = await this.getConnection();
+    connection.release();
   }
 
   // Get a new connection
@@ -108,7 +104,7 @@ export class MySQLConnection implements DatabaseConnection {
       throw new DatabaseError('Database query failed', err);
     } finally {
       if (connection) {
-        await connection.release();
+        connection.release();
       }
     }
   }
