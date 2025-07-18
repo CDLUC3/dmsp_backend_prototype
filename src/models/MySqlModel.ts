@@ -1,9 +1,9 @@
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { MyContext } from '../context';
-import { validateDate } from "../utils/helpers";
+import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
-import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets } from "../types/general";
+import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets, SortDirection } from "../types/general";
 import { generalConfig } from "../config/generalConfig";
 import { PaginationOptions } from "../types";
 
@@ -79,6 +79,7 @@ export class MySqlModel {
     if (val === null || val === undefined) {
       return null;
     }
+
     switch (type) {
       case 'number':
         return Number(val);
@@ -95,6 +96,9 @@ export class MySqlModel {
           return formatISO9075(date);
 
         } else if (Array.isArray(val)) {
+          return JSON.stringify(val);
+
+        } else if (type === 'object') {
           return JSON.stringify(val);
 
         } else {
@@ -135,7 +139,7 @@ export class MySqlModel {
       return results && results.length === 1;
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return false;
     }
   }
@@ -182,7 +186,7 @@ export class MySqlModel {
       return Array.isArray(countResponse) && countResponse.length > 0 ? countResponse?.[0]?.total : 0;
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return 0;
     }
   }
@@ -207,21 +211,21 @@ export class MySqlModel {
       const vals = values.map((entry) => this.prepareValue(entry, typeof (entry)));
 
       try {
-        formatLogMessage(apolloContext).debug(logMessage);
+        apolloContext.logger.debug(logMessage);
         const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
         const msg = `${reference}, ERROR: ${err.message}`;
-        formatLogMessage(apolloContext).error(err, msg);
+        apolloContext.logger.error(prepareObjectForLogs(err), msg);
         return [];
       }
     }
     const errMsg = `${reference}, ERROR: apolloContext and sqlStatement are required.`;
     if (logger) {
-      formatLogMessage(apolloContext).error(errMsg);
+      apolloContext.logger.error(`${errMsg} - ${sqlStatement}`);
     } else {
       // In the event that there was no logger!
-      console.log(errMsg);
+      console.log(`${errMsg} - ${sqlStatement}`);
     }
     return [];
   }
@@ -270,7 +274,7 @@ export class MySqlModel {
       }
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return {
         limit: generalConfig.defaultSearchLimit,
         totalCount: 0,
@@ -338,7 +342,7 @@ export class MySqlModel {
       };
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return {
         limit: generalConfig.defaultSearchLimit,
         currentOffset: null,
@@ -375,18 +379,24 @@ export class MySqlModel {
       const filters = [...whereFilters];
       const vals = [...values];
 
-      // Add the cursor to the where clause
-      filters.push(`${options.cursorField} > ?`);
-      vals.push(options.cursor ?? '');
+      // Add the cursor to the where clause if one is provided
+      const cursorSortDir = options.cursorSortDir ?? SortDirection.ASC;
+      if (!isNullOrUndefined(options.cursor)) {
+        filters.push(`${options.cursorField} ${cursorSortDir === SortDirection.DESC ? '<=' : '>='} ?`);
+        vals.push(options.cursor ?? '');
+      }
       const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
       // Add the limit
       const limitClause = 'LIMIT ?';
-      vals.push(limit.toString());
+      // Add 1 to the limit so that we can determine if there is a next page
+      const extendedLimit = limit + 1;
+      vals.push(extendedLimit.toString());
 
-      const orderByClause = `ORDER BY ${options.sortField} ${options.sortDir}`;
+      const orderByClause = `ORDER BY cursorId ${cursorSortDir.toString()}`;
       let sql = `${sqlStatement.replace('SELECT ', `SELECT ${options.cursorField} cursorId, `)} `
       sql += `${whereClause} ${groupByClause} ${orderByClause} ${limitClause}`;
+
       const rows = await MySqlModel.query(apolloContext, sql, vals, reference);
       const items = Array.isArray(rows) ? rows : [];
 
@@ -401,19 +411,19 @@ export class MySqlModel {
       );
 
       const nextCursor = items.length > 0 ? items[items.length - 1]?.cursorId : undefined;
-      const hasNextPage = nextCursor !== undefined && options.cursor !== nextCursor;
+      const hasNextPage = nextCursor !== undefined && options.cursor !== nextCursor && items.length > limit;
 
       return {
-        items,
+        items: items.slice(0, limit), // Return only the first 'limit' items
         limit,
         totalCount,
-        nextCursor,
+        nextCursor: hasNextPage ? nextCursor : null,
         hasNextPage,
         availableSortFields: [],
       };
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
-      formatLogMessage(apolloContext).error(err, msg);
+      apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return {
         limit: generalConfig.defaultSearchLimit,
         nextCursor: null,

@@ -8,10 +8,11 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { defaultLanguageId } from "../models/Language";
 import { anonymizeUser, mergeUsers } from "../services/userService";
 import { processOtherAffiliationName } from "../services/affiliationService";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined } from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -26,7 +27,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -52,7 +53,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -77,7 +78,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -126,7 +127,7 @@ export const resolvers: Resolvers = {
         // Unauthenticated
         throw AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -162,7 +163,7 @@ export const resolvers: Resolvers = {
         // Unauthenticated
         throw AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -186,7 +187,7 @@ export const resolvers: Resolvers = {
         // Unauthenticated
         throw AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -212,7 +213,7 @@ export const resolvers: Resolvers = {
         // Unauthenticated
         throw AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -237,7 +238,7 @@ export const resolvers: Resolvers = {
         // Unauthenticated
         throw AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -267,7 +268,7 @@ export const resolvers: Resolvers = {
         // Unauthenticated
         throw AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${ref}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${ref}`);
         throw InternalServerError();
       }
     },
@@ -300,7 +301,7 @@ export const resolvers: Resolvers = {
               oldPrimary.isPrimary = false;
               await new UserEmail(oldPrimary).update(context);
             }
-            user.email = email;
+
             if (await User.update(context, new User(user).tableName, user, ref, ['password'])) {
               return await UserEmail.findByUserId(ref, context, user.id);
             }
@@ -320,13 +321,13 @@ export const resolvers: Resolvers = {
         // Unauthenticated
         throw AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${ref}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${ref}`);
         throw InternalServerError();
       }
     },
 
     // Change the current user's password
-    updatePassword: async (_, { oldPassword, newPassword }, context: MyContext): Promise<User> => {
+    updatePassword: async (_, { oldPassword, newPassword, email }, context: MyContext): Promise<User> => {
       const reference = 'updatePassword resolver';
       try {
         if (isAuthorized(context?.token)) {
@@ -336,7 +337,7 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          const updated = await new User(user).updatePassword(context, oldPassword, newPassword);
+          const updated = await new User(user).updatePassword(context, oldPassword, newPassword, email);
           if (!updated || updated.hasErrors()) {
             user.addError('general', 'Unable to update the password at this time');
           }
@@ -345,7 +346,7 @@ export const resolvers: Resolvers = {
         // Unauthenticated
         throw AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -378,7 +379,7 @@ export const resolvers: Resolvers = {
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -410,7 +411,7 @@ export const resolvers: Resolvers = {
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -444,7 +445,7 @@ export const resolvers: Resolvers = {
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -458,6 +459,20 @@ export const resolvers: Resolvers = {
     // Chained resolver to fetch the secondary email addresses
     emails: async (parent: User, _, context): Promise<UserEmail[]> => {
       return await UserEmail.findByUserId('Chained User.emails', context, parent.id);
+    },
+    // Chained resolver to fetch the primary email address
+    email: async (parent: User, _, context): Promise<string | null> => {
+      const primaryEmail = await UserEmail.findPrimaryByUserId('Chained User.email', context, parent.id);
+      return primaryEmail ? primaryEmail.email : null;
+    },
+    last_sign_in: (parent: User) => {
+      return formatISO9075(new Date(parent.last_sign_in));
+    },
+    created: (parent: User) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: User) => {
+      return formatISO9075(new Date(parent.modified));
     },
   },
 };

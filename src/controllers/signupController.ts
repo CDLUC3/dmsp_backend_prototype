@@ -1,20 +1,23 @@
 import { Request, Response } from 'express';
-import { logger, formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { User } from '../models/User';
 import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
-import { Cache } from '../datasources/cache';
 import { generalConfig } from '../config/generalConfig';
 import { buildContext } from '../context';
 import { processOtherAffiliationName } from '../services/affiliationService';
 
 export const signupController = async (req: Request, res: Response) => {
-  const cache = Cache.getInstance();
-  const context = buildContext(logger, cache);
+  const context = buildContext(
+    req.logger,
+    req.cache,
+    null,
+    req.sqlDataSource,
+    req.dmphubAPIDataSource,
+  );
 
   const props = req.body;
 
   let user: User = new User({
-    email: props?.email,
     password: props?.password,
     affiliationId: props?.affiliationId,
     givenName: props?.givenName,
@@ -23,7 +26,7 @@ export const signupController = async (req: Request, res: Response) => {
   });
 
   try {
-    user = await user.register(context) || null;
+    user = await user.register(context, props?.email) || null;
 
     if (user) {
       if (user.hasErrors()) {
@@ -60,7 +63,7 @@ export const signupController = async (req: Request, res: Response) => {
       res.status(500).json({ success: false, message: 'Unable to register the account.' });
     }
   } catch (err) {
-    formatLogMessage(context)?.error({ err, user }, 'Signup error');
+    context.logger.error(prepareObjectForLogs(err), 'Sign up error');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

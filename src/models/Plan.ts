@@ -2,7 +2,12 @@
 
 import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
-import { getCurrentDate, randomHex, valueIsEmpty } from "../utils/helpers";
+import {
+  getCurrentDate,
+  isNullOrUndefined,
+  randomHex,
+  valueIsEmpty
+} from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { addVersion, removeVersions, updateVersion } from "./PlanVersion";
 
@@ -31,8 +36,8 @@ export class PlanSearchResult {
   public status: PlanStatus;
   public visibility: PlanVisibility;
   public featured: boolean;
-  public funder: string;
-  public contributors: string;
+  public funding: string;
+  public members: string;
   public templateTitle: string;
 
   // The following fields will only be set when the plan is published!
@@ -50,8 +55,8 @@ export class PlanSearchResult {
     this.status = options.status ?? PlanStatus.DRAFT;
     this.visibility = options.visibility ?? PlanVisibility.PRIVATE;
     this.featured = options.featured ?? false;
-    this.funder = options.funder;
-    this.contributors = options.contributors;
+    this.funding = options.funding;
+    this.members = options.members;
     this.templateTitle = options.title;
 
     this.dmpId = options.dmpId;
@@ -67,20 +72,20 @@ export class PlanSearchResult {
                 'p.versionedTemplateId, vt.name title, p.status, p.visibility, p.dmpId, ' +
                 'CONCAT(cr.givenName, CONCAT(\' \', cr.surName)) registeredBy, p.registered, p.featured, ' +
                 'GROUP_CONCAT(DISTINCT CONCAT(prc.givenName, CONCAT(\' \', prc.surName, ' +
-                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) contributors, ' +
-                'GROUP_CONCAT(DISTINCT funders.name) funder ' +
+                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) members, ' +
+                'GROUP_CONCAT(DISTINCT fundings.name) funding ' +
               'FROM plans p ' +
                 'LEFT JOIN users cu ON cu.id = p.createdById ' +
                 'LEFT JOIN users cm ON cm.id = p.modifiedById ' +
                 'LEFT JOIN users cr ON cr.id = p.registeredById ' +
                 'LEFT JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId ' +
-                'LEFT JOIN planContributors plc ON plc.planId = p.id ' +
-                  'LEFT JOIN projectContributors prc ON prc.id = plc.projectContributorId ' +
-                  'LEFT JOIN planContributorRoles plcr ON plc.id = plcr.planContributorId ' +
-                    'LEFT JOIN contributorRoles r ON plcr.contributorRoleId = r.id ' +
-                'LEFT JOIN planFunders ON planFunders.planId = p.id ' +
-                  'LEFT JOIN projectFunders ON projectFunders.id = planFunders.projectFunderId ' +
-                    'LEFT JOIN affiliations funders ON projectFunders.affiliationId = funders.uri ' +
+                'LEFT JOIN planMembers plc ON plc.planId = p.id ' +
+                  'LEFT JOIN projectMembers prc ON prc.id = plc.projectMemberId ' +
+                  'LEFT JOIN planMemberRoles plcr ON plc.id = plcr.planMemberId ' +
+                    'LEFT JOIN memberRoles r ON plcr.memberRoleId = r.id ' +
+                'LEFT JOIN planFundings ON planFundings.planId = p.id ' +
+                  'LEFT JOIN projectFundings ON projectFundings.id = planFundings.projectFundingId ' +
+                    'LEFT JOIN affiliations fundings ON projectFundings.affiliationId = fundings.uri ' +
               'WHERE p.projectId = ? ' +
               'GROUP BY p.id, cu.givenName, cu.surName, cm.givenName, cm.surName, ' +
                 'vt.id, vt.name, p.status, p.visibility, ' +
@@ -111,7 +116,7 @@ export class PlanSectionProgress {
   static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanSectionProgress[]> {
     const sql = 'SELECT vs.id sectionId, vs.displayOrder, vs.name sectionTitle, ' +
                   'COUNT(DISTINCT vq.id) totalQuestions, ' +
-                  'COUNT(DISTINCT CASE WHEN a.answerText IS NOT NULL THEN vs.id END) answeredQuestions ' +
+                  'COUNT(DISTINCT CASE WHEN a.json IS NOT NULL THEN vs.id END) answeredQuestions ' +
                 'FROM plans p ' +
                   'INNER JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id ' +
                   'INNER JOIN versionedSections vs ON vt.id = vs.versionedTemplateId ' +
@@ -182,7 +187,7 @@ export class Plan extends MySqlModel {
 
   // Helper function to determine if the plan has been published
   isPublished(): boolean {
-    return !valueIsEmpty(this.registered) || !valueIsEmpty(this.registeredById);
+    return !isNullOrUndefined(this.registered) || !isNullOrUndefined(this.registeredById);
   }
 
   // Make sure the plan is valid
@@ -205,13 +210,14 @@ export class Plan extends MySqlModel {
   }
 
   // Publish the plan (register a DOI)
-  async publish(context: MyContext): Promise<Plan> {
+  async publish(context: MyContext, visibility = PlanVisibility.PRIVATE): Promise<Plan> {
     if (this.id) {
       // Make sure the plan is valid
       if (await this.isValid()) {
         if (!this.isPublished()) {
           this.registered = getCurrentDate();
           this.registeredById = context.token.id;
+          this.visibility = visibility;
 
           // Update the plan
           return await this.update(context);
@@ -241,10 +247,10 @@ export class Plan extends MySqlModel {
 
         // Create the original version snapshot of the DMP
         if (newId) {
-          let newPlan = await Plan.findById(reference, context, newId);
+          const newPlan = await Plan.findById(reference, context, newId);
           if (newPlan && !newPlan.hasErrors()) {
             // Generate the version history of the DMP
-            newPlan = await addVersion(context, newPlan, reference);
+            await addVersion(context, newPlan, reference);
           }
           return new Plan(newPlan);
         }

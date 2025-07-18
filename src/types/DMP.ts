@@ -307,7 +307,7 @@ export interface DMPCommonStandardNarrativeQuestion {
   }
 
   answer_id?: number;
-  answer_text?: string;
+  answer_json?: string;
 }
 
 // Represents a section of the narrative in the DMP Common Standard format

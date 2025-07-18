@@ -1,18 +1,18 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Repository, RepositoryType } from "../Repository";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { generalConfig } from "../../config/generalConfig";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -86,7 +86,7 @@ describe('findBy Queries', () => {
   let context;
   let repo;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
@@ -95,7 +95,7 @@ describe('findBy Queries', () => {
     localPaginationQuery = jest.fn();
     (Repository.queryWithPagination as jest.Mock) = localPaginationQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     repo = new Repository({
       id: casual.integer(1, 9999),
@@ -500,10 +500,10 @@ describe('addToProjectOutput', () => {
   let context;
   let mockRepository;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockRepository = new Repository({
       id: casual.integer(1, 99),
@@ -542,10 +542,10 @@ describe('removeFromProjectOutput', () => {
   let context;
   let mockRepository;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockRepository = new Repository({
       id: casual.integer(1, 99),

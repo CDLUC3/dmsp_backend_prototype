@@ -1,23 +1,30 @@
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { ExternalProject, ProjectSearchResults, Resolvers } from "../types";
 import { Project, ProjectSearchResult } from "../models/Project";
-import { ProjectCollaborator } from '../models/Collaborator';
+import {
+  ProjectCollaborator,
+  ProjectCollaboratorAccessLevel
+} from '../models/Collaborator';
 import { MyContext } from '../context';
-import { isAuthorized } from '../services/authService';
+import {isAdmin, isAuthorized, isSuperAdmin} from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
-import { ProjectFunder } from '../models/Funder';
-import { ProjectContributor } from '../models/Contributor';
-import { hasPermissionOnProject } from '../services/projectService';
+import { ProjectFunding } from '../models/Funding';
+import { ProjectMember } from '../models/Member';
+import {
+  ensureDefaultProjectContact,
+  hasPermissionOnProject, setCurrentUserAsProjectOwner
+} from '../services/projectService';
 import { Affiliation } from '../models/Affiliation';
 import { ResearchDomain } from '../models/ResearchDomain';
 import { ProjectOutput } from '../models/Output';
-import { ContributorRole } from '../models/ContributorRole';
+import { MemberRole } from '../models/MemberRole';
 import { GraphQLError } from 'graphql';
 import { Plan, PlanSearchResult } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
 import { isNullOrUndefined, normaliseDate } from '../utils/helpers';
-import { parseContributor } from '../services/commonStandardService';
+import { parseMember } from '../services/commonStandardService';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -30,13 +37,16 @@ export const resolvers: Resolvers = {
                       ? paginationOptions as PaginationOptionsForOffsets
                       : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
-          return await ProjectSearchResult.search(reference, context, term, context.token?.id, opts);
+          const userId = isAdmin(context.token) ? null : context.token?.id;
+          const affiliationId = isSuperAdmin(context.token) ? null : context.token?.affiliationId;
+
+          return await ProjectSearchResult.search(reference, context, term, userId, affiliationId, opts);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -47,7 +57,10 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (isNullOrUndefined(project)) {
+            throw NotFoundError();
+          }
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return project;
           }
         }
@@ -55,18 +68,19 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
-    searchExternalProjects: async (_, { affiliationId , awardId, awardName, awardYear, piNames }, context: MyContext): Promise<ExternalProject[]> => {
+    searchExternalProjects: async (_, { input }, context: MyContext): Promise<ExternalProject[]> => {
       const reference = 'external project search resolver';
+      const { affiliationId , awardId, awardName, awardYear, piNames } = input;
 
       try {
         if (isAuthorized(context.token)) {
           const dmphubAPI = context.dataSources.dmphubAPIDataSource;
-          const affiliation = await Affiliation.findById(reference, context, affiliationId);
+          const affiliation = await Affiliation.findByURI(reference, context, affiliationId);
           const dmps = await dmphubAPI.getAwards(
             context,
             affiliation.apiTarget,
@@ -76,9 +90,9 @@ export const resolvers: Resolvers = {
             piNames,
           );
           return dmps.map((dmpHubAward) => {
-            const contributors = [
-              parseContributor(dmpHubAward.contact),
-              ...dmpHubAward.contributor.map((c) => parseContributor(c)),
+            const members = [
+              parseMember(dmpHubAward.contact),
+              ...dmpHubAward.contributor.map((c) => parseMember(c)),
             ].filter((c) => c !== null);
 
             return {
@@ -86,12 +100,12 @@ export const resolvers: Resolvers = {
               abstractText: dmpHubAward.project.description,
               startDate: normaliseDate(dmpHubAward.project.start),
               endDate: normaliseDate(dmpHubAward.project.end),
-              funders: dmpHubAward.project.funding.map((fund) => ({
+              fundings: dmpHubAward.project.funding.map((fund) => ({
                 funderProjectNumber: fund.dmproadmap_project_number,
                 grantId: fund.grant_id.identifier,
                 funderOpportunityNumber: fund.dmproadmap_opportunity_number,
               })),
-              contributors: contributors,
+              members: members,
             };
           });
         }
@@ -99,7 +113,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -111,40 +125,29 @@ export const resolvers: Resolvers = {
       const reference = 'addProject resolver';
       try {
         if (isAuthorized(context.token)) {
-          try {
-            const newProject = new Project({ title, isTestProject });
-            const created = await newProject.create(context);
+          const newProject = new Project({title, isTestProject});
+          const created = await newProject.create(context);
 
-            // Automatically add this user as a projectCollaborator with acccessLevel = OWN when project created
-            const collaborator = new ProjectCollaborator({
-              projectId: created.id,
-              email: context.token?.email,
-              userId: context.token?.id,
-              accessLevel: 'OWN',
-            });
-            await collaborator.create(context);
+          if (!isNullOrUndefined(created) && !created.hasErrors()) {
+            // Set the current user as an owner on the project
+            const ownerWasSet = await setCurrentUserAsProjectOwner(context, created.id);
+            // Set the current user as the default primary contact
+            const contactWasSet = await ensureDefaultProjectContact(context, created);
 
-            if (created?.id) {
-              return created;
+            if (!ownerWasSet) {
+              created.addError('general', 'Unable to set the default owner of the project');
             }
-
-            // A null was returned so add a generic error and return it
-            if (!newProject.errors['general']) {
-              newProject.addError('general', 'Unable to create Project');
+            if (!contactWasSet) {
+              created.addError('general', 'Uable to set the default primary contact');
             }
-
-            // Return new project
-            return newProject;
-          } catch (err) {
-            formatLogMessage(context).error(err, `Failure in ${reference}`);
-            throw InternalServerError();
+            return created;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -154,37 +157,32 @@ export const resolvers: Resolvers = {
       const reference = 'updateProject resolver';
       try {
         if (isAuthorized(context.token)) {
-          try {
-            const project = await Project.findById(reference, context, input.id);
-            if (!project) {
-              throw NotFoundError();
-            }
-
-            if (!(await hasPermissionOnProject(context, project))) {
-              throw ForbiddenError();
-            }
-
-            const toUpdate = new Project(input);
-            const updated = await toUpdate.update(context);
-            if (updated && !updated.hasErrors()) {
-              // Update each plan's version snapshot if the project was updated
-              const plans = await Plan.findByProjectId(reference, context, project.id);
-              for (const plan of plans) {
-                await addVersion(context, plan, reference);
-              }
-            }
-
-            return updated;
-          } catch (err) {
-            formatLogMessage(context).error(err, `Failure in ${reference}`);
-            throw InternalServerError();
+          const project = await Project.findById(reference, context, input.id);
+          if (isNullOrUndefined(project)) {
+            throw NotFoundError();
           }
+
+          if (!(await hasPermissionOnProject(context, project))) {
+            throw ForbiddenError();
+          }
+
+          const toUpdate = new Project(input);
+          const updated = await toUpdate.update(context);
+          if (updated && !updated.hasErrors()) {
+            // Update each plan's version snapshot if the project was updated
+            const plans = await Plan.findByProjectId(reference, context, project.id);
+            for (const plan of plans) {
+              await addVersion(context, plan, reference);
+            }
+          }
+
+          return updated;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -194,34 +192,29 @@ export const resolvers: Resolvers = {
       const reference = 'archiveProject resolver';
       try {
         if (isAuthorized(context.token)) {
-          try {
-            const project = await Project.findById(reference, context, projectId);
-            if (!project) {
-              throw NotFoundError();
-            }
-
-            // Only allow the owner of the project to delete it
-            if (!(await hasPermissionOnProject(context, project))) {
-              throw ForbiddenError();
-            }
-
-            // Delete/Tombstone each plan associated with the project
-            const plans = await Plan.findByProjectId(reference, context, project.id);
-            for (const plan of plans) {
-              plan.delete(context);
-            }
-
-            return await project.delete(context);
-          } catch (err) {
-            formatLogMessage(context).error(err, `Failure in ${reference}`);
-            throw InternalServerError();
+          const project = await Project.findById(reference, context, projectId);
+          if (!project) {
+            throw NotFoundError();
           }
+
+          // Only allow the owner of the project to delete it
+          if (!(await hasPermissionOnProject(context, project))) {
+            throw ForbiddenError();
+          }
+
+          // Delete/Tombstone each plan associated with the project
+          const plans = await Plan.findByProjectId(reference, context, project.id);
+          for (const plan of plans) {
+            plan.delete(context);
+          }
+
+          return await project.delete(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -246,64 +239,64 @@ export const resolvers: Resolvers = {
             const toUpdateProject = new Project(input.project);
             const updatedProject = await toUpdateProject.update(context);
 
-            // Add project funding and project contributors
+            // Add project funding and project members
             if (updatedProject && !updatedProject.hasErrors()) {
               // Update project funding
-              const addFunderErrors = [];
+              const addFundingErrors = [];
               for (const fund of input.funding) {
-                const newFunder = new ProjectFunder(fund);
-                const funderAdded = await newFunder.create(context, projectId);
-                if(!funderAdded){
-                  addFunderErrors.push(`Funder(affiliationId=${newFunder.affiliationId})`);
+                const newFunding = new ProjectFunding(fund);
+                const fundingAdded = await newFunding.create(context, projectId);
+                if(!fundingAdded){
+                  addFundingErrors.push(`Funding(affiliationId=${newFunding.affiliationId})`);
                 }
               }
-              if(addFunderErrors.length > 0){
-                const msg = `Unable to add funders to project: ${addFunderErrors.join(', ')}`;
-                formatLogMessage(context).error(msg);
-                updatedProject.addError('funders', msg)
+              if(addFundingErrors.length > 0){
+                const msg = `Unable to add fundings to project: ${addFundingErrors.join(', ')}`;
+                context.logger.error(prepareObjectForLogs({ projectId }), msg);
+                updatedProject.addError('fundings', msg)
               }
 
-              // Update project contributors
-              const addContributorErrors = [];
-              const addContributorRoleErrors = [];
-              for (const contrib of input.contributors) {
-                // Add project contributor
-                const newContributor = new ProjectContributor(contrib);
-                formatLogMessage(context).debug(`${reference}: add project contributor`);
-                const contributorAdded = await newContributor.create(context, projectId);
-                if(!contributorAdded){
-                  addContributorErrors.push(`Contributor(affiliationId=${newContributor.affiliationId}, givenName=${newContributor.givenName}, surName=${newContributor.surName}, orcid=${newContributor.orcid}, email=${newContributor.email})`);
+              // Update project members
+              const addMemberErrors = [];
+              const addMemberRoleErrors = [];
+              for (const contrib of input.members) {
+                // Add project member
+                const newMember = new ProjectMember(contrib);
+                context.logger.debug(`${reference}: add project member`);
+                const memberAdded = await newMember.create(context, projectId);
+                if(!memberAdded){
+                  addMemberErrors.push(`Member(affiliationId=${newMember.affiliationId}, givenName=${newMember.givenName}, surName=${newMember.surName}, orcid=${newMember.orcid}, email=${newMember.email})`);
                 } else {
-                  // Add contributor role
-                  formatLogMessage(context).debug(`${reference}: add contributor role`);
-                  const role = await ContributorRole.defaultRole(context, reference);
+                  // Add member role
+                  context.logger.debug(`${reference}: add member role`);
+                  const role = await MemberRole.defaultRole(context, reference);
                   if(!role){
-                    formatLogMessage(context).error(`${reference}: could not find default role`);
+                    context.logger.error(`${reference}: could not find default role`);
                   } else {
-                    formatLogMessage(context).debug(`${reference}: add ${role.label} to contributor ${contributorAdded.id}`);
-                    const wasAdded = await role.addToProjectContributor(context, contributorAdded.id);
+                    context.logger.debug(`${reference}: add ${role.label} to member ${memberAdded.id}`);
+                    const wasAdded = await role.addToProjectMember(context, memberAdded.id);
                     if (!wasAdded) {
-                      addContributorRoleErrors.push(`ContributorRole(contributorId=${contributorAdded.id}, role=${role.label})`);
+                      addMemberRoleErrors.push(`MemberRole(memberId=${memberAdded.id}, role=${role.label})`);
                     }
                   }
                 }
               }
 
-              if(addContributorErrors.length > 0){
-                const msg = `Unable to add contributors to project: ${addContributorErrors.join(', ')}`;
-                formatLogMessage(context).error(msg);
-                updatedProject.addError('contributors', msg)
+              if(addMemberErrors.length > 0){
+                const msg = `Unable to add members to project: ${addMemberErrors.join(', ')}`;
+                context.logger.error(prepareObjectForLogs({ projectId }), msg);
+                updatedProject.addError('members', msg)
               }
-              if(addContributorRoleErrors.length > 0){
-                const msg = `Unable to add default contributor roles: ${addContributorRoleErrors.join(', ')}`
-                formatLogMessage(context).error(msg);
-                updatedProject.addError('contributorRoles', msg)
+              if(addMemberRoleErrors.length > 0){
+                const msg = `Unable to add default member roles: ${addMemberRoleErrors.join(', ')}`
+                context.logger.error(prepareObjectForLogs({ projectId }), msg);
+                updatedProject.addError('memberRoles', msg)
               }
             }
 
             return updatedProject;
           } catch (err) {
-            formatLogMessage(context).error(err, `Failure in ${reference}`);
+            context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
             throw InternalServerError();
           }
         }
@@ -311,7 +304,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -328,16 +321,23 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
-    contributors: async (parent: Project, _, context: MyContext): Promise<ProjectContributor[]> => {
-      return await ProjectContributor.findByProjectId(
-        'Chained Project.contributors',
+    collaborators: async (parent: Project, _, context: MyContext): Promise<ProjectCollaborator[]> => {
+      return await ProjectCollaborator.findByProjectId(
+        'Chained Project.collaborators',
         context,
         parent.id
       );
     },
-    funders: async (parent: Project, _, context: MyContext): Promise<ProjectFunder[]> => {
-      return await ProjectFunder.findByProjectId(
-        'Chained Project.funders',
+    members: async (parent: Project, _, context: MyContext): Promise<ProjectMember[]> => {
+      return await ProjectMember.findByProjectId(
+        'Chained Project.members',
+        context,
+        parent.id
+      );
+    },
+    fundings: async (parent: Project, _, context: MyContext): Promise<ProjectFunding[]> => {
+      return await ProjectFunding.findByProjectId(
+        'Chained Project.fundings',
         context,
         parent.id
       );
@@ -356,5 +356,11 @@ export const resolvers: Resolvers = {
         parent.id
       );
     },
+    created: (parent: Project) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Project) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

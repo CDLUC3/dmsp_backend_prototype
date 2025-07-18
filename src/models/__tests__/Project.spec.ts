@@ -1,17 +1,17 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Project, ProjectSearchResult } from "../Project";
 import { generalConfig } from "../../config/generalConfig";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -23,13 +23,13 @@ describe('ProjectSearchResult', () => {
   let originalQuery;
   let projectSearchResult;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Project.queryWithPagination as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     projectSearchResult = new ProjectSearchResult({
       id: casual.integer(1, 9),
@@ -50,16 +50,16 @@ describe('ProjectSearchResult', () => {
         { name: 'foo@example.com', accessLevel: 'Comment', orcid: '0000-0000-0000-1234' },
         { name: 'Jane Doe', accessLevel: 'Own', orcid: '0000-0000-0000-5678' }
       ],
-      contributorsData: 'John Smith|Principal Investigator (PI)|0000-0000-0000-TEST,' +
+      membersData: 'John Smith|Principal Investigator (PI)|0000-0000-0000-TEST,' +
                           'John Smith|Other|0000-0000-0000-TEST,Elmer Fudd|Other|0000-0000-0000-9876',
-      contributors: [
+      members: [
         { name: 'John Smith', role: 'Principal Investigator (PI), Other', orcid: '0000-0000-0000-TEST' },
         { name: 'Elmer Fudd', role: 'Other', orcid: '0000-0000-0000-9876' }
       ],
-      fundersData: 'Test Funder|12345,Another Funder|67890',
-      funders: [
-        { name: 'Test Funder', grantId: '12345' },
-        { name: 'Another Funder', grantId: '67890' },
+      fundingsData: 'Test funding|12345,Another funding|67890',
+      fundings: [
+        { name: 'Test funding', grantId: '12345' },
+        { name: 'Another funding', grantId: '67890' },
       ],
     });
   });
@@ -86,54 +86,54 @@ describe('ProjectSearchResult', () => {
         modified: projectSearchResult.modified,
         modifiedByName: projectSearchResult.modifiedByName,
         collaboratorsData: 'foo@example.com|Comment|0000-0000-0000-1234,Jane Doe|Own|0000-0000-0000-5678',
-        contributorsData: 'John Smith|Principal Investigator (PI)|0000-0000-0000-TEST,' +
+        membersData: 'John Smith|Principal Investigator (PI)|0000-0000-0000-TEST,' +
                           'John Smith|Other|0000-0000-0000-TEST,Elmer Fudd|Other|0000-0000-0000-9876',
-        fundersData: 'Test Funder|12345,Another Funder|67890',
+        fundingsData: 'Test funding|12345,Another funding|67890',
       }
       localQuery.mockResolvedValueOnce({ items: [queryResult] });
 
       const term = 'Test';
       const result = await ProjectSearchResult.search('Test', context, term, projectSearchResult.createdById);
       const sql = 'SELECT p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
-                          'researchDomains.description as researchDomain, ' +
-                          'p.createdById, p.created, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, ' +
-                          'p.modifiedById, p.modified, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, ' +
-                          'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', ' +
-                            'CASE ' +
-                              'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(collab.givenName, CONCAT(\' \', collab.surName))) ' +
-                              'ELSE collab.email ' +
-                            'END, ' +
-                            'CONCAT(UPPER(SUBSTRING(pcol.accessLevel, 1, 1)), LOWER(SUBSTRING(pcol.accessLevel FROM 2))), ' +
-                            'collab.orcid ' +
-                          ') ORDER BY collab.created) collaboratorsData, ' +
-                          'GROUP_CONCAT(DISTINCT ' +
-                            'CONCAT_WS(\'|\', ' +
+                            'researchDomains.description as researchDomain, ' +
+                            'p.createdById, p.created, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, ' +
+                            'p.modifiedById, p.modified, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, ' +
+                            'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', ' +
                               'CASE ' +
-                                'WHEN pc.surName IS NOT NULL THEN TRIM(CONCAT(pc.givenName, CONCAT(\' \', pc.surName))) ' +
-                                'ELSE pc.email ' +
+                                'WHEN collab.surName IS NOT NULL THEN TRIM(CONCAT(collab.givenName, CONCAT(\' \', collab.surName))) ' +
+                                'ELSE (SELECT collabE.email FROM userEmails collabE WHERE collabE.userId = collab.id LIMIT 1) ' +
+                              'END, ' +
+                              'CONCAT(UPPER(SUBSTRING(pcol.accessLevel, 1, 1)), LOWER(SUBSTRING(pcol.accessLevel FROM 2))), ' +
+                              'collab.orcid ' +
+                            ') ORDER BY collab.created) collaboratorsData, ' +
+                            'GROUP_CONCAT(DISTINCT ' +
+                              'CONCAT_WS(\'|\', ' +
+                              'CASE ' +
+                                'WHEN pm.surName IS NOT NULL THEN TRIM(CONCAT(pm.givenName, CONCAT(\' \', pm.surName))) ' +
+                                'ELSE (SELECT pmE.email FROM userEmails pmE WHERE pmE.userId = pm.id AND pmE.isPrimary = 1 LIMIT 1) ' +
                               'END, ' +
                               'r.label, ' +
-                              'pc.orcid ' +
-                          ') ORDER BY pc.created) as contributorsData, ' +
-                          'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', funders.name, pf.grantId) ' +
-                            'ORDER BY funders.name SEPARATOR \',\') fundersData ' +
-                        'FROM projects p ' +
-                          'LEFT JOIN researchDomains ON p.researchDomainId = researchDomains.id ' +
-                          'LEFT JOIN users cu ON cu.id = p.createdById ' +
-                          'LEFT JOIN users mu ON mu.id = p.modifiedById ' +
-                          'LEFT JOIN projectCollaborators pcol ON pcol.projectId = p.id ' +
-                            'LEFT JOIN users collab ON pcol.userId = collab.id ' +
-                          'LEFT JOIN projectContributors pc ON pc.projectId = p.id ' +
-                            'LEFT JOIN projectContributorRoles pcr ON pc.id = pcr.projectContributorId ' +
-                            'LEFT JOIN contributorRoles r ON pcr.contributorRoleId = r.id ' +
-                          'LEFT JOIN projectFunders pf ON pf.projectId = p.id ' +
-                            'LEFT JOIN affiliations funders ON pf.affiliationId = funders.uri ';
+                              'pm.orcid ' +
+                            ') ORDER BY pm.created) as membersData, ' +
+                            'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', fundings.name, pf.grantId) ' +
+                              'ORDER BY fundings.name SEPARATOR \',\') fundingsData ' +
+                            'FROM projects p ' +
+                              'LEFT JOIN researchDomains ON p.researchDomainId = researchDomains.id ' +
+                              'LEFT JOIN users cu ON cu.id = p.createdById ' +
+                              'LEFT JOIN users mu ON mu.id = p.modifiedById ' +
+                              'LEFT JOIN projectCollaborators pcol ON pcol.projectId = p.id ' +
+                                'LEFT JOIN users collab ON pcol.userId = collab.id ' +
+                              'LEFT JOIN projectMembers pm ON pm.projectId = p.id ' +
+                                'LEFT JOIN projectMemberRoles pmr ON pm.id = pmr.projectMemberId ' +
+                                  'LEFT JOIN memberRoles r ON pmr.memberRoleId = r.id ' +
+                              'LEFT JOIN projectFundings pf ON pf.projectId = p.id ' +
+                                'LEFT JOIN affiliations fundings ON pf.affiliationId = fundings.uri ';
       const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`,
                     projectSearchResult.createdById.toString(), projectSearchResult.createdById.toString()];
       const whereFilters = ['(LOWER(p.title) LIKE ? OR LOWER(p.abstractText) LIKE ?)',
             '(p.createdById = ? OR p.id IN (SELECT projectId FROM projectCollaborators WHERE userId = ?))'];
       const groupBy = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
-                        'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description ';
+                        'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description';
       const opts = {
         cursor: null,
         limit: generalConfig.defaultSearchLimit,
@@ -228,11 +228,11 @@ describe('Project', () => {
     let context;
     let project;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       localQuery = jest.fn();
       (Project.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       project = new Project({
         id: casual.integer(1, 999),

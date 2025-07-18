@@ -1,5 +1,9 @@
 import { Resolvers } from "../types";
-import { TemplateCollaborator, ProjectCollaborator } from "../models/Collaborator";
+import {
+  TemplateCollaborator,
+  ProjectCollaborator,
+  ProjectCollaboratorAccessLevel
+} from "../models/Collaborator";
 import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
@@ -8,8 +12,10 @@ import { isAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { hasPermissionOnTemplate } from "../services/templateService";
 import { hasPermissionOnProject } from "../services/projectService";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
+import {isNullOrUndefined} from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -21,6 +27,10 @@ export const resolvers: Resolvers = {
         // if the user is an admin
         if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
+          if (isNullOrUndefined(template)){
+            throw NotFoundError();
+          }
+
           // If the user has permission on the Template
           if (template && await hasPermissionOnTemplate(context, template)) {
             const results = await TemplateCollaborator.findByTemplateId(reference, context, templateId);
@@ -31,7 +41,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -39,8 +49,12 @@ export const resolvers: Resolvers = {
       const reference = 'projectCollaborators resolver';
       try {
         const project = await Project.findById(reference, context, projectId);
+        if (isNullOrUndefined(project)) {
+          throw NotFoundError();
+        }
+
         // If the user has permission on the Template
-        if (project && await hasPermissionOnProject(context, project)) {
+        if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
           const results = await ProjectCollaborator.findByProjectId(reference, context, projectId);
           return results;
         }
@@ -48,7 +62,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -63,9 +77,8 @@ export const resolvers: Resolvers = {
         // if the user is an admin
         if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
-
           // The template doesn't exist
-          if (!template) {
+          if (isNullOrUndefined(template)) {
             throw NotFoundError();
           }
 
@@ -91,7 +104,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -104,6 +117,9 @@ export const resolvers: Resolvers = {
         // if the user is an admin
         if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
+          if (isNullOrUndefined(template)) {
+            throw NotFoundError();
+          }
 
           // If the user has permission on the Template
           if (template && await hasPermissionOnTemplate(context, template)) {
@@ -111,8 +127,6 @@ export const resolvers: Resolvers = {
             if (collaborator) {
               return await collaborator.delete(context);
             }
-            // Couldn't find the TemplateCollaborator
-            throw NotFoundError();
           }
         }
         // Unauthorized! or Forbidden
@@ -120,7 +134,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -158,7 +172,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -201,7 +215,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -222,11 +236,7 @@ export const resolvers: Resolvers = {
 
         // If the user has permission on the Project
         if (await hasPermissionOnProject(context, project)) {
-          if (projectCollaborator) {
-            return await projectCollaborator.delete(context);
-          }
-          // Couldn't find the TemplateCollaborator
-          throw NotFoundError();
+          return await projectCollaborator.delete(context);
         }
 
         // Unauthorized! or Forbidden
@@ -234,7 +244,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -243,13 +253,39 @@ export const resolvers: Resolvers = {
   ProjectCollaborator: {
     // Chained resolver to fetch the User record
     user: async (parent: ProjectCollaborator, _, context: MyContext): Promise<User> => {
-      return await User.findById('Chained TemplateController.user', context, parent.userId);
+      if (!isNullOrUndefined(parent?.userId)) {
+        return await User.findById('Chained TemplateController.user', context, parent.userId);
+      }
     },
+
+    invitedBy: async (parent: ProjectCollaborator, _, context: MyContext): Promise<User> => {
+      if (!isNullOrUndefined(parent?.invitedById)) {
+        return await User.findById(
+          'Chained ProjectCollaborator.invitedBy',
+          context,
+          parent.invitedById
+        );
+      }
+    },
+
+    created: (parent: ProjectCollaborator) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ProjectCollaborator) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
+
   TemplateCollaborator: {
     // Chained resolver to fetch the Template info
     template: async (parent: TemplateCollaborator, _, context: MyContext): Promise<Template> => {
-      return await Template.findById('Chained TemplateCollaborator.template', context, parent.templateId);
+      if (!isNullOrUndefined(parent?.templateId)) {
+        return await Template.findById(
+          'Chained TemplateCollaborator.template',
+          context,
+          parent.templateId
+        );
+      }
     },
 
     // Chained resolver to fetch the Affiliation info for the user
@@ -259,7 +295,16 @@ export const resolvers: Resolvers = {
 
     // Chained resolver to fetch the User record
     user: async (parent: TemplateCollaborator, _, context: MyContext): Promise<User> => {
-      return await User.findById('Chained TemplateController.user', context, parent.userId);
+      if (!isNullOrUndefined(parent?.userId)) {
+        return await User.findById('Chained TemplateController.user', context, parent.userId);
+      }
     },
+
+    created: (parent: TemplateCollaborator) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: TemplateCollaborator) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

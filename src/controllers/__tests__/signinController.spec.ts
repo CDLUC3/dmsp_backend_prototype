@@ -8,8 +8,8 @@ import * as UserModel from '../../models/User';
 import { defaultLanguageId } from '../../models/Language';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { getCurrentDate } from '../../utils/helpers';
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
@@ -20,7 +20,7 @@ jest.mock('../../config/generalConfig');
 
 const mockedUser: UserModel.User = {
   id: casual.integer(1, 999),
-  email: casual.email,
+  getEmail: jest.fn().mockResolvedValue(casual.email),
   givenName: casual.first_name,
   surName: casual.last_name,
   affiliationId: casual.url,
@@ -39,7 +39,7 @@ const mockedUser: UserModel.User = {
   notify_on_plan_visibility_change: casual.boolean,
   last_sign_in: getCurrentDate(),
   last_sign_in_via: getRandomEnumValue(UserModel.LogInType),
-  failed_sign_in_attemps: 0,
+  failed_sign_in_attempts: 0,
   created: new Date().toISOString(),
   tableName: 'testUsers',
   errors: {},
@@ -66,16 +66,17 @@ describe('signinController', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let context;
 
-  beforeEach(() => {
+  beforeEach(async() => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken(), null);
+    context = await buildMockContextWithToken(logger);
 
     mockRequest = {
       body: {
         email: casual.email,
         password: casual.uuid,
-      }
+      },
+      logger: logger
     };
     mockResponse = {
       status: jest.fn().mockReturnThis(),

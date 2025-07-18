@@ -1,104 +1,123 @@
 import * as mysql2 from 'mysql2/promise';
-import { mysqlGeneralConfig, mysqlPoolConfig } from "../config/mysqlConfig";
-import { logger, formatLogMessage } from '../logger';
-import { MyContext } from '../context';
-export interface PoolConfig {
-  connectionLimit: number;
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
+import {mysqlGeneralConfig, mysqlPoolConfig} from "../config/mysqlConfig";
+import { logger, prepareObjectForLogs } from '../logger';
+import {MyContext} from '../context';
+
+export interface DatabaseConnection {
+  getConnection(): Promise<mysql2.PoolConnection>;
+  query<T>(context: MyContext, sql: string, values?: string[]): Promise<T>;
+  close(): Promise<void>;
 }
 
-// Singleton MySQL Connection Pool
-export class mysql {
-  private static instance: mysql;
-
-  public pool: mysql2.Pool;
-
-  private connection: mysql2.PoolConnection;
-
-  private initializePool(): void {
-    if (!this.pool) {
-      this.pool = mysql2.createPool({
-        ...mysqlPoolConfig,
-        waitForConnections: true,
-        queueLimit: 0,
-        multipleStatements: false,
-      });
-    }
+export class DatabaseError extends Error {
+  constructor(message: string, public readonly originalError?: Error) {
+    super(message);
+    this.name = 'DatabaseError';
   }
+}
 
-  // Create a new connection pool
-  private constructor() {
-    logger.info('Establishing MySQL connection pool ...');
+const POOL_CONFIG = {
+  waitForConnections: true,
+  multipleStatements: false,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  connectTimeout: mysqlGeneralConfig.connectTimeout,
+  queueLimit: mysqlGeneralConfig.queueLimit
+};
 
+export class MySQLConnection implements DatabaseConnection {
+  private pool: mysql2.Pool;
+  public initPromise: Promise<void>;
+
+  constructor() {
+    logger.info('Establishing MySQL connection pool...');
     try {
       this.pool = mysql2.createPool({
         ...mysqlPoolConfig,
-        waitForConnections: true,  // Queue if no connections are available
-        queueLimit: mysqlGeneralConfig.queueLimit,
-        connectTimeout: mysqlGeneralConfig.connectTimeout,
-        multipleStatements: false, // Disallow multiple statements for security
+        ...POOL_CONFIG
       });
 
+      // Add initialization check
+      this.initPromise = this.validateConnection();
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      this.pool.on('connection', (_connection) => {
+        logger.trace('Connection established');
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      this.pool.on('release', (_connection) => {
+        logger.trace('Connection released');
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      this.pool.on('acquire', (_connection) => {
+        logger.trace('Connection acquired');
+      });
     } catch (err) {
-      logger.error('Unable to establish the MySQL connection pool.');
-      throw(err);
+      logger.error('Unable to establish the MySQL connection pool');
+      throw new DatabaseError('Failed to create connection pool', err);
     }
   }
 
-  // Retrieve the instance of this class
-  public static getInstance(): mysql {
-    if (!mysql.instance) {
-      mysql.instance = new mysql();
-    }
-    return mysql.instance;
+  // Verify that the pool is able to establish a connection
+  private async validateConnection(): Promise<void> {
+    const connection = await this.getConnection();
+    connection.release();
   }
 
-  public static async removeInstance(): Promise<void> {
-    if (mysql.instance) {
-      mysql.instance.close();
-      mysql.instance = null;
-    }
-  }
-
-  // Retrieve a MySQL connection
+  // Get a new connection
   public async getConnection(): Promise<mysql2.PoolConnection> {
-    this.initializePool();
-
-    if (!this.connection) {
-      this.connection = await this.pool.getConnection();
-    }
-    return this.connection;
-  }
-
-  // Release the MySQL connection
-  public async releaseConnection(): Promise<void> {
-    if (this.connection) {
-      this.connection.release();
-      this.connection = null;
-    }
-  }
-
-  // Execute a SQL query
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async query(context: MyContext, sql: string, values?: string[]): Promise<any> {
     try {
-      const vals = values.map((val) => (typeof val === 'string') ? val.trim() : val);
-      const [rows] = await this.pool.execute(sql, vals);
-      return rows;
+      return await this.pool.getConnection();
     } catch (err) {
-      formatLogMessage(context).error({ err, sql, values }, 'Unable to process SQL query!');
-      throw new Error('Database query failed');
+      logger.error('Failed to get connection from pool');
+      throw new DatabaseError('Failed to get connection from pool', err);
     }
   }
 
-  // Release the MySQL connection pool
+  public async releaseConnection(connection: mysql2.PoolConnection): Promise<void> {
+    try {
+      connection.release();
+    } catch (err) {
+      logger.error('Failed to release connection');
+      throw new DatabaseError('Failed to release connection', err);
+    }
+  }
+
+  // Query the database
+  public async query<T>(context: MyContext, sql: string, values: string[] = []): Promise<T> {
+    let connection: mysql2.PoolConnection | null = null;
+    try {
+      // Wait for initialization to complete before querying
+      await this.initPromise;
+
+      connection = await this.getConnection();
+      const sanitizedValues = values.map(val =>
+        typeof val === 'string' ? val.trim() : val
+      );
+
+      const [rows] = await connection.execute(sql, sanitizedValues);
+      return rows as T;
+    } catch (err) {
+      context.logger.error(prepareObjectForLogs({ sql, values, err }), 'Unable to process SQL query');
+      throw new DatabaseError('Database query failed', err);
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
+
+  // Shutdown the pool
   public async close(): Promise<void> {
     if (this.pool) {
-      await this.pool.end();
+      try {
+        await this.pool.end();
+      } catch (err) {
+        logger.error('Unable to close the MySQL connection pool');
+        throw new DatabaseError('Failed to close connection pool', err);
+      }
     }
   }
 }

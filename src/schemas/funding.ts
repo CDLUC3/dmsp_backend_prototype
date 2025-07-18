@@ -2,32 +2,32 @@ import gql from "graphql-tag";
 
 export const typeDefs = gql`
   extend type Query {
-    "Get all of the Users that a Funders to the research project"
-    projectFunders(projectId: Int!): [ProjectFunder]
+    "Get all of the Funding information for the research project"
+    projectFundings(projectId: Int!): [ProjectFunding]
 
-    "Get a specific ProjectFunder"
-    projectFunder(projectFunderId: Int!): ProjectFunder
+    "Get a specific ProjectFunding"
+    projectFunding(projectFundingId: Int!): ProjectFunding
 
-    "Get all of the Funders for the specific Plan"
-    planFunders(planId: Int!): [PlanFunder]
+    "Get all of the Funding information for the specific Plan"
+    planFundings(planId: Int!): [PlanFunding]
   }
 
   extend type Mutation {
-    "Add a Funder to a research project"
-    addProjectFunder(input: AddProjectFunderInput!): ProjectFunder
-    "Update a Funder on the research project"
-    updateProjectFunder(input: UpdateProjectFunderInput!): ProjectFunder
-    "Remove a research project Funder"
-    removeProjectFunder(projectFunderId: Int!): ProjectFunder
+    "Add Funding information to a research project"
+    addProjectFunding(input: AddProjectFundingInput!): ProjectFunding
+    "Update Funding information on the research project"
+    updateProjectFunding(input: UpdateProjectFundingInput!): ProjectFunding
+    "Remove Funding from the research project"
+    removeProjectFunding(projectFundingId: Int!): ProjectFunding
 
-    "Add a Funder to a Plan"
-    addPlanFunder(planId: Int!, projectFunderId: Int!): PlanFunder
-    "Remove a PlanFunder from a Plan"
-    removePlanFunder(planFunderId: Int!): PlanFunder
+    "Add a Funding information to a Plan"
+    addPlanFunding(planId: Int!, projectFundingId: Int!): PlanFunding
+    "Remove a Funding from a Plan"
+    removePlanFunding(planFundingId: Int!): PlanFunding
   }
 
   "The status of the funding"
-  enum ProjectFunderStatus {
+  enum ProjectFundingStatus {
     "The project will be submitting a grant, or has not yet heard back from the funder"
     PLANNED
     "The funder did not award the project"
@@ -36,8 +36,8 @@ export const typeDefs = gql`
     GRANTED
   }
 
-  "A funder affiliation that is supporting a research project"
-  type ProjectFunder {
+  "Funding that is supporting a research project"
+  type ProjectFunding {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"
@@ -49,14 +49,14 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: ProjectFunderErrors
+    errors: ProjectFundingErrors
 
     "The project that is seeking (or has aquired) funding"
     project: Project
     "The funder"
     affiliation: Affiliation
     "The status of the funding resquest"
-    status: ProjectFunderStatus
+    status: ProjectFundingStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
     funderProjectNumber: String
     "The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded)"
@@ -65,8 +65,8 @@ export const typeDefs = gql`
     funderOpportunityNumber: String
   }
 
-  "A funder associated with a plan"
-  type PlanFunder {
+  "Funding associated with a plan"
+  type PlanFunding {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"
@@ -78,21 +78,21 @@ export const typeDefs = gql`
     "The timestamp when the Object was last modifed"
     modified: String
     "Errors associated with the Object"
-    errors: PlanFunderErrors
+    errors: PlanFundingErrors
 
-    "The project that is seeking (or has aquired) funding"
-    project: Project
+    "The plan that is seeking (or has aquired) funding"
+    plan: Plan
     "The project funder"
-    projectFunder: ProjectFunder
+    projectFunding: ProjectFunding
   }
 
-  input AddProjectFunderInput {
+  input AddProjectFundingInput {
     "The project"
     projectId: Int!
     "The funder URI"
     affiliationId: String!
     "The status of the funding resquest"
-    status: ProjectFunderStatus
+    status: ProjectFundingStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
     funderProjectNumber: String
     "The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded)"
@@ -101,11 +101,11 @@ export const typeDefs = gql`
     funderOpportunityNumber: String
   }
 
-  input UpdateProjectFunderInput {
+  input UpdateProjectFundingInput {
     "The project funder"
-    projectFunderId: Int!
+    projectFundingId: Int!
     "The status of the funding resquest"
-    status: ProjectFunderStatus
+    status: ProjectFundingStatus
     "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
     funderProjectNumber: String
     "The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded)"
@@ -114,8 +114,8 @@ export const typeDefs = gql`
     funderOpportunityNumber: String
   }
 
-  "A collection of errors related to the ProjectFunder"
-  type ProjectFunderErrors {
+  "A collection of errors related to the ProjectFunding"
+  type ProjectFundingErrors {
     "General error messages such as the object already exists"
     general: String
 
@@ -127,12 +127,12 @@ export const typeDefs = gql`
     funderOpportunityNumber: String
   }
 
-  "A collection of errors related to the PlanFunder"
-  type PlanFunderErrors {
+  "A collection of errors related to the PlanFunding"
+  type PlanFundingErrors {
     "General error messages such as the object already exists"
     general: String
 
-    projectId: String
-    projectFunderId: String
+    planId: String
+    ProjectFundingId: String
   }
 `;

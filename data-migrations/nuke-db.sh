@@ -22,37 +22,39 @@ else
   . .env
 
   # Run the migration using the env variable defined in the dotenv file
-  if [ -z "${MYSQL_PASSWORD}" ]; then
-    MYSQL_ARGS="-h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER}"
-  else
-    MYSQL_ARGS="-h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER} -p${MYSQL_PASSWORD}"
-  fi
+    if [ -z "${MYSQL_PASSWORD}" ]; then
+      MYSQL_ARGS="-h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER}"
+      MYSQL_TEST_ARGS="-h ${MYSQL_TEST_HOST} -P ${MYSQL_TEST_PORT} -u ${MYSQL_TEST_USER}"
+    else
+      MYSQL_ARGS="-h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER} -p${MYSQL_PASSWORD}"
+      MYSQL_TEST_ARGS="-h ${MYSQL_TEST_HOST} -P ${MYSQL_TEST_PORT} -u ${MYSQL_TEST_USER} -p${MYSQL_TEST_PASSWORD}"
+    fi
 fi
 
-FKEY_OFF="SET FOREIGN_KEY_CHECKS = 0;"
-LIST_TABLES="SELECT table_name FROM information_schema.tables WHERE table_schema = '${MYSQL_DATABASE}';"
-FKEY_ON="SET FOREIGN_KEY_CHECKS = 1;"
+drop_tables() {
+  FKEY_OFF="SET FOREIGN_KEY_CHECKS = 0;"
+  LIST_TABLES="SELECT table_name FROM information_schema.tables WHERE table_schema = '${1}';"
+  FKEY_ON="SET FOREIGN_KEY_CHECKS = 1;"
 
-echo "Purging all tables from database ${MYSQL_DATABASE} ..."
-mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "$FKEY_OFF"
+  echo "Purging all tables from database ${1} ..."
+  if [ "${1}" == "${MYSQL_DATABASE}" ]; then
+    MIGRATION_ARGS=${MYSQL_ARGS}
+  else
+    MIGRATION_ARGS=${MYSQL_TEST_ARGS}
+  fi
 
-TABLE_LIST=$(mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "$LIST_TABLES")
+  mysql $MIGRATION_ARGS -N $1 <<< "$FKEY_OFF"
 
-while read -r TABLE; do
-  echo "  Dropping: $TABLE"
-  mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "${FKEY_OFF} DROP TABLE \`${TABLE}\`; ${FKEY_ON}"
-done <<< "$TABLE_LIST"
+  TABLE_LIST=$(mysql $MIGRATION_ARGS -N $1 <<< "$LIST_TABLES")
 
-mysql $MYSQL_ARGS -N $MYSQL_DATABASE <<< "$FKEY_ON"
+  while read -r TABLE; do
+    echo "  Dropping: $TABLE"
+    mysql $MIGRATION_ARGS -N $1 <<< "${FKEY_OFF} DROP TABLE \`${TABLE}\`; ${FKEY_ON}"
+  done <<< "$TABLE_LIST"
 
-CREATE_MIGRATIONS_TABLE="USE ${MYSQL_DATABASE}; CREATE TABLE dataMigrations (
-    migrationFile varchar(255) NOT NULL,
-    created timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT unique_migration_file UNIQUE (migrationFile)
-  ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;"
+  mysql $MIGRATION_ARGS -N $1 <<< "$FKEY_ON"
+}
 
-# Create the Database
-echo "Creating the dataMigrations table ..."
-mysql -h${MYSQL_HOST} -P${MYSQL_PORT} -u${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} <<< ${CREATE_MIGRATIONS_TABLE}
+drop_tables $MYSQL_DATABASE
 
 echo "Nuke complete. You may now run data-migrations/process.sh to rebuild the database tables"

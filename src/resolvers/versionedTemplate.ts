@@ -6,11 +6,12 @@ import { Template } from "../models/Template";
 import { Affiliation } from "../models/Affiliation";
 import { VersionedSection } from "../models/VersionedSection";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
-import { isAdmin } from "../services/authService";
-import { formatLogMessage } from "../logger";
+import { isAdmin, isAuthorized } from "../services/authService";
+import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined } from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -27,7 +28,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -38,7 +39,7 @@ export const resolvers: Resolvers = {
       const reference = 'publishedTemplates resolver';
 
       try {
-        if (isAdmin(context.token)) {
+        if (isAuthorized(context.token)) {
           const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
                       ? paginationOptions as PaginationOptionsForOffsets
                       : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
@@ -50,7 +51,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -71,7 +72,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -97,5 +98,12 @@ export const resolvers: Resolvers = {
     versionedSections: async (parent: VersionedTemplate, _, context: MyContext): Promise<VersionedSection[]> => {
       return await VersionedSection.findByTemplateId('Chained VersionedTemplate.versionedSection', context, parent.id);
     },
+
+    created: (parent: VersionedTemplate) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: VersionedTemplate) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

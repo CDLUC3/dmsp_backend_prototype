@@ -1,7 +1,7 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
 import { Plan } from "../models/Plan";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
@@ -12,6 +12,7 @@ import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
 import { addVersion } from "../models/PlanVersion";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -32,12 +33,36 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
-    // Find the answer by its id
+    // return the answer for the given versionedQuestionId
+    answerByVersionedQuestionId: async (_, { projectId, planId, versionedQuestionId }, context: MyContext): Promise<Answer> => {
+
+      const reference = 'planSectionAnswers resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${projectId} not found`);
+          }
+          if (await hasPermissionOnProject(context, project)) {
+            const temp = await Answer.findByPlanIdAndVersionedQuestionId(reference, context, planId, versionedQuestionId);
+            return temp;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Find the answer by its answerId
     answer: async (_, { projectId, answerId }, context: MyContext): Promise<Answer> => {
       const reference = 'plan resolver';
       try {
@@ -49,7 +74,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -57,7 +82,7 @@ export const resolvers: Resolvers = {
 
   Mutation: {
     // Create a new answer
-    addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, answerText }, context: MyContext): Promise<Answer> => {
+    addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, json }, context: MyContext): Promise<Answer> => {
       const reference = 'addAnswer resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -71,7 +96,7 @@ export const resolvers: Resolvers = {
           }
 
           if (await hasPermissionOnProject(context, project)) {
-            const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, answerText });
+            const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, json });
             const newAnswer = await answer.create(context);
             if (newAnswer && !newAnswer.hasErrors()) {
               // Version the plan
@@ -84,13 +109,13 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
     // Delete an answer
-    updateAnswer: async (_, { answerId, answerText }, context: MyContext): Promise<Answer> => {
+    updateAnswer: async (_, { answerId, json }, context: MyContext): Promise<Answer> => {
       const reference = 'updateAnswer resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -104,7 +129,7 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
-            answer.answerText = answerText;
+            answer.json = json;
             const updatedAnswer = await answer.update(context);
 
             if (updatedAnswer && !updatedAnswer.hasErrors()) {
@@ -119,7 +144,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -154,5 +179,11 @@ export const resolvers: Resolvers = {
       }
       return [];
     },
+    created: (parent: Answer) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Answer) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 }

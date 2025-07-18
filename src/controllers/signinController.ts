@@ -1,18 +1,23 @@
 import { Request, Response } from 'express';
-import { logger, formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { User } from '../models/User';
 import { generateAuthTokens, setTokenCookie } from '../services/tokenService';
-import { Cache } from '../datasources/cache';
 import { generalConfig } from '../config/generalConfig';
 import { buildContext } from '../context';
 
 export const signinController = async (req: Request, res: Response) => {
-  const userIn = new User(req.body);
-  const cache = Cache.getInstance();
-  const context = buildContext(logger, cache);
+  const { email, ...userData } = req.body;
+  const userIn = new User(userData);
+  const context = buildContext(
+    req.logger,
+    req.cache,
+    null,
+    req.sqlDataSource,
+    req.dmphubAPIDataSource,
+  );
 
   try {
-    const user = await userIn.login(context) || null;
+    const user = await userIn.login(context, email) || null;
 
     if (user) {
       const { accessToken, refreshToken } = await generateAuthTokens(context, user);
@@ -31,7 +36,7 @@ export const signinController = async (req: Request, res: Response) => {
       res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
   } catch (err) {
-    formatLogMessage(context)?.error(err, 'Signin error');
+    context.logger.error(prepareObjectForLogs(err), 'Sign in error');
     res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };

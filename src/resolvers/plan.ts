@@ -1,17 +1,20 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
 import { Plan, PlanSearchResult, PlanSectionProgress, PlanStatus, PlanVisibility } from "../models/Plan";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
-import { PlanContributor } from "../models/Contributor";
-import { PlanFunder } from "../models/Funder";
+import { PlanMember } from "../models/Member";
+import { PlanFunding } from "../models/Funding";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
+import {isNullOrUndefined} from "../utils/helpers";
+import {formatISO9075} from "date-fns";
+import {ensureDefaultPlanContact} from "../services/planService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -25,7 +28,7 @@ export const resolvers: Resolvers = {
           if (!project) {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanSearchResult.findByProjectId(reference, context, projectId);
           }
         }
@@ -33,7 +36,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -48,14 +51,14 @@ export const resolvers: Resolvers = {
         }
 
         const project = await Project.findById(reference, context, plan.projectId);
-        if (project && await hasPermissionOnProject(context, project)) {
+        if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
           return plan;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -77,16 +80,25 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Template with ID ${versionedTemplateId} not found`);
           }
 
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
             const plan = new Plan({ projectId, versionedTemplateId });
-            return plan.create(context);
+            const created = await plan.create(context);
+
+            if (!isNullOrUndefined(created.id) && !created.hasErrors()) {
+              // Add the project's primary contact as the primary contact for the new plan
+              const contactWasSet = await ensureDefaultPlanContact(context, created, project);
+              if (!contactWasSet) {
+                created.addError('general', 'Unable to set the default contact');
+              }
+            }
+            return created;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -106,7 +118,7 @@ export const resolvers: Resolvers = {
             plan.addError('general', 'Plan is already published and cannot be archived');
           }
 
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
             if (!plan.hasErrors()) {
               return await plan.delete(context);
             } else {
@@ -118,7 +130,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -132,7 +144,7 @@ export const resolvers: Resolvers = {
           if (!project) {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
             const plan = new Plan({ projectId, fileName, fileContent });
 
             // TODO: Figure out what would be passed in from the client and how we'd get the actual
@@ -145,7 +157,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -173,8 +185,14 @@ export const resolvers: Resolvers = {
               }
 
               if (!plan.hasErrors()) {
-                plan.visibility = visibility as PlanVisibility;
-                return await plan.publish(context);
+                // Add the project's primary contact as the primary contact for the new plan
+                const contactWasSet = await ensureDefaultPlanContact(context, plan, project);
+                if (!contactWasSet) {
+                  plan.addError('general', 'Plan must have a primary contact');
+                } else {
+                  // All criteria was satisfied, so publish the plan
+                  await plan.publish(context, visibility as PlanVisibility);
+                }
               }
             }
             return plan;
@@ -184,7 +202,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -207,7 +225,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -228,17 +246,17 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
-    // The contributors to the plan
-    contributors: async (parent: Plan, _, context: MyContext): Promise<PlanContributor[]> => {
+    // The members to the plan
+    members: async (parent: Plan, _, context: MyContext): Promise<PlanMember[]> => {
       if (parent?.id) {
-        return await PlanContributor.findByPlanId('plan contributors resolver', context, parent.id);
+        return await PlanMember.findByPlanId('plan members resolver', context, parent.id);
       }
       return [];
     },
     // The funding sources for the plan
-    funders: async (parent: Plan, _, context: MyContext): Promise<PlanFunder[]> => {
+    fundings: async (parent: Plan, _, context: MyContext): Promise<PlanFunding[]> => {
       if (parent?.id) {
-        return await PlanFunder.findByPlanId('plan funders resolver', context, parent.id);
+        return await PlanFunding.findByPlanId('plan fundings resolver', context, parent.id);
       }
       return [];
     },
@@ -253,6 +271,15 @@ export const resolvers: Resolvers = {
         return await PlanSectionProgress.findByPlanId('plan sections resolver', context, parent.id);
       }
       return [];
+    },
+    registered: (parent: Plan) => {
+      return formatISO9075(new Date(parent.registered));
+    },
+    created: (parent: Plan) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Plan) => {
+      return formatISO9075(new Date(parent.modified));
     }
   },
 

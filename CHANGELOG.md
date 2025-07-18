@@ -3,6 +3,23 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `projectMembers.isPrimaryContact` field to DB and `ProjectMember` model and GraphQL schema
+- Added `setCurrentUserAsProjectOwner` and `ensureDefaultProjectContact` functions to the `projectService` and updated the `project` resolver to call them.
+- Added the new `ensureDefaultPlanContact` function to the `planService` module and updated the `plan` resolver to use it
+- Added a `sendEmailNotification` argument to the `create` function of `ProjectCollaborator` (defaults to true) so that we can bypass sending an email when setting the project creator as the default contact.
+- Added `PlanMember.findPrimaryContact` function
+- Added `return formatISO9075(new Date(parent.blah));` to all resolvers so that dates are always in the correct format
+- Added `invitedBy` to the `ProjectCollaborator` resolver
+- Added SQL script to convert `affiliations.types` to upper case to work with the `AffiliationType` enum
+- Added a `validateConnection` function to the mysql datasource
+- Added time constraints to the `Affiliation.top20` function so that it is inclusive of the current day
+- Added `sqlStatement` to the log output when `MySQLModel.query` fails
+- Added `getEmail` method to the `User` model to retrieve the email address for a user.
+- Added a new resolver for `answerByVersionedQuestionId` so that we can get the question-specific answer to populate the question in the Question detail page.
+- Added a new MySQL container to host the test DB to the docker compose stack
+- Added JSON column `questionType` to `questions` and `versionedQuestions` tables
+- Added JSON column `json` to the `answers` table
+- Added the new [@dmptool/types](https://github.com/CDLUC3/dmptool-types) package 
 - Added `reorderDisplayOrder` herlper function to help maintain the `displayOrder` field on a set of objects
 - Added `updateDisplayOrders` to both the `sectionService` and `questionService`
 - Added `updateSectionsDisplayOrder` and `updateQuestionsDisplayOrder` schema and resolvers
@@ -89,6 +106,40 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Replace old `ProjectMember.findPrimaryByPlanId` function with `ProjectMember.findPrimaryContact`
+- Updated the `project` resolver and schema so that `searchExternalProjects` has its own `input` type definition
+- Exposed the DynamoDB port in the local `docker-compose.yaml` so that AWS CLI commands can be run against it
+- Discovered some intermittent issues with the new MySQL connection pool. Changed `keepAliveInitialDelay` to zero and also added an `initPromise` to the class so that we can effectively wait for the connection pool to finish initializing before attaching it to the Apollo server context
+- Updated the `index.ts` to use the new `initPromise` and also added some missing `process.exit` statements
+- Found that `Collaborator` classes were not awaiting the call to `super` in their `isValid` functions
+- Fixed an issue where `isValid` was being called too soon in the `Collaborator` classes
+- Fixed an issue with `PlanMember` classes' `findByProjectMemberId` function so that it returns an empty array instead of null
+- Fixed some typos in `MemberRole` SQL queries
+- Fixed a bug where `Plan.isPublished` was not returning the correct result
+- Fixed a bug where `Plan.visibility` was not being defaulted to `PRIVATE`
+- Fixed a bug on `Project` model that was not allowing SuperAdmins or Admins to fetch a Project
+- Fixed a bug where `ProjectSearch` was still trying to fetch the user's email from the old table
+- Fixed a bug that was preventing `ResearchDomain.create` from working because `parentResearchDomain` is an unknown field
+- Fixed a bug on `VersionedSection` so that `findBySectionId` and `findByTemplateId` return an empty array instead of null when no results are found
+- Fixed a bug on the `affiliation` resolver that was incorrectly checking the record's provenance
+- Fixed some bugs in the permissions checks for `collaborator`, `member`, `funding`, `project` and `plan`
+- Fixed an issue with the `planFunder` schema that was referencing `project` instead of `plan`
+- Fixed some auth check bugs in `templateService`
+- Fixed bug with `Affiliation.top20` query which was still referencing the old `projectFunders` table 
+- Updated package.json and tsconfig.json with options for sourcemaps which is supposed to help making debugging/breakpoints in IDEs more reliable.
+- Updated most tests since they mostly require tokens which require email which is now async because it comes from the UserEmail model.
+- Updated resolvers, models and controllers to use correct methods for using email from the UserEmail model (or use convenience method `getEmail` on the User model).
+- Updated table `user.failed_sign_in_attemps` to be spelled correctly as `failed_sign_in_attempts`
+- Updated `sections` and `questions` queries to order by `displayOrder` [#324]
+- Refactor the way we initialize the pino Logger and pass it around. Also removed the old `formatLogMessage` function and replaced with `prepareObjectForLogs`
+- Consolidated handling of the Cache, so that we always pass the `adapter`
+- Updated `mysqlConfig` to use the new test DB when running in `test` mode
+- Refactored `mysql` datasource to properly use a connection pool. Updated the `index.ts` to initialize the connection pool and then pass it, the dmpHubAPI, cache and logger around properly.
+- Updated `data-migrations` scripts to work with new test MySQL DB in  the docker compose stack
+- Updated the `Question` schema to allow `questionJSON: String` to be used in GraphQL query
+- Updated `Question` model to access `questionJSON` input, parse the JSON using the Zod schemas provided by `@dmptool/types`, and populate the `questionType` with the parsed JSON.
+- Updated cursor pagination to always return `null` for `nextCursor` if we are at the end of the results
+- Rename all occurrences of `Contributor` to `Member` and `Funder` to `Funding` to match newer terminology
 - Updated `addSection` resolver to properly copy questions and tags when creating a new section by copying one
 - Replaced all instances of `TemplateVisibility.PRIVATE` with `TemplateVisibility.ORGANIZATION` [#159]
 - Renamed the `outputTypes` table to `projectOutputTypes`
@@ -144,6 +195,19 @@
 - added bestPractice flag to the Section
 
 ### Removed
+- Removed self referential foreign key constraints from the `users` table (makes it impossible to delete user records)
+- Removed `NOT NULL` constraint from the `users.affiliationId` field (makes it hard to create an initial user record)
+- Dropped the `versionedQuestions.questionTypeId` field and foreign key constraints (missed this one when those changes were made)
+- Removed test MySQL from the docker-compose.yaml
+- Removed test DB values from `.env.example`
+- Removed logic that used the test MySQL DB in the `data-migrations/nuke-db.sh` and `data-migrations/process.sh` scripts
+- Dropped the `email` from the `users` table
+- Dropped FKeys on `users` and `affiliations`
+- Dropped `questionTypes` and `questionOptions` tables
+- Dropped the `questionTypeId` field from the `questions` and `versionedQuestions` tables
+- Dropped the `answerText` field from `answers`
+- Removed the old `QuestionType` and `QuestionOptions` schema and resolvers
+- Removed the `getQuestionOptionsToRemove` from `questionService`.
 - Dropped all previous `data-migration` files in favor of the new `init-tables` and `init-seed` files
 - Removed duplicate section check from `Section.create` that was just going off of the "name"
 - Dropped the `PlanVersion` table
@@ -153,10 +217,11 @@
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- Fixed a bug where clients calling `createTemplateVersion` in the `template` resolver would get an error when trying to publish because adding data to `versionedQuestions` required that `questionTypeId` not be null. I added a data-migration script to allow null because I believe we store the question type in the `json` field now and do not require `questionTypeId` [#328]
 - Update profile was not working due to missing `createdById` and `modifiedById` values in db. Added data migration script to populate those fields [#278]
 - Fixed myTemplates query so that `TemplateSearchResult` returns the `ownerDisplayName` specified in schema.
 - Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
--Was getting `undefined` bestPractice in `updateTemplate` when none was passed in because of the logic on how it was set. Added a check for whether `bestPractice` is defined before setting value. Also, added an update to `createTemplateVersion`, so that errors from the `generateTemplateVersion` will be caught and passed back in graphql response. Previously, when trying to save a DRAFT of a template, the mutation wouldn't return an error to the client, even though the `Save draft` did not successfully complete. [#265]
+- Was getting `undefined` bestPractice in `updateTemplate` when none was passed in because of the logic on how it was set. Added a check for whether `bestPractice` is defined before setting value. Also, added an update to `createTemplateVersion`, so that errors from the `generateTemplateVersion` will be caught and passed back in graphql response. Previously, when trying to save a DRAFT of a template, the mutation wouldn't return an error to the client, even though the `Save draft` did not successfully complete. [#265]
 - Removed `Copy of` from in front of copied `Section` and `Template` names [#261]
 - Fixed an issue where adding `templateCollaborators` was failing due to the fact that the `userId` field was required.
 - Fixed an issue where adding `projectCollaborators` was failing due to the fact that the `userId` field was required. This should not be required to add a new collaborator [#260]

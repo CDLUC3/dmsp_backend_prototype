@@ -14,6 +14,7 @@ import {
   formatORCID,
   normaliseHttpProtocol,
   reorderDisplayOrder,
+  removeNullAndUndefinedFromJSON
 } from '../helpers';
 
 describe('Date validation', () => {
@@ -139,6 +140,55 @@ describe('Convert a string into an Array', () => {
   });
   test('allows us to define the default response', () => {
     expect(stringToArray(null, ',', ['test'])).toEqual(['test']);
+  });
+});
+
+describe('removeNullAndUndefinedFromJSON', () => {
+  it('removes null and undefined values from objects', () => {
+    const input = JSON.stringify({ a: 1, b: null, c: undefined, d: 'test' });
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify({ a: 1, d: 'test' }));
+  });
+
+  it('removes null and undefined values from arrays', () => {
+    const input = JSON.stringify([1, null, 2, undefined, 3]);
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify([1, 2, 3]));
+  });
+
+  it('removes nested null and undefined values', () => {
+    const input = JSON.stringify({
+      a: null,
+      b: [1, null, 2, undefined, 3],
+      c: { d: null, e: 5, f: undefined }
+    });
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify({
+      b: [1, 2, 3],
+      c: { e: 5 }
+    }));
+  });
+
+  it('returns the same JSON if there are no null or undefined values', () => {
+    const input = JSON.stringify({ a: 1, b: 2 });
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify({ a: 1, b: 2 }));
+  });
+
+  it('throws an error for invalid JSON', () => {
+    expect(() => removeNullAndUndefinedFromJSON('{a:1, b:2}')).toThrow(/Invalid JSON format/);
+  });
+
+  it('handles stringified arrays with only null/undefined', () => {
+    const input = JSON.stringify([null, undefined, null]);
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify([]));
+  });
+
+  it('handles stringified objects with only null/undefined', () => {
+    const input = JSON.stringify({ a: null, b: undefined });
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify({}));
+  });
+
+  it('handles primitive values', () => {
+    expect(removeNullAndUndefinedFromJSON('1')).toBe('1');
+    expect(removeNullAndUndefinedFromJSON('"test"')).toBe('"test"');
+    expect(removeNullAndUndefinedFromJSON('true')).toBe('true');
   });
 });
 

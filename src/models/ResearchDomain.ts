@@ -1,5 +1,5 @@
 import { MyContext } from "../context";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
@@ -72,7 +72,13 @@ export class ResearchDomain extends MySqlModel {
         this.addError('general', 'ResearchDomain already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await ResearchDomain.insert(context, this.tableName, this, reference);
+        const newId = await ResearchDomain.insert(
+          context,
+          this.tableName,
+          this,
+          reference,
+          ['parentResearchDomain']
+        );
         const response = await ResearchDomain.findById(reference, context, newId);
         return response;
       }
@@ -87,7 +93,14 @@ export class ResearchDomain extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await ResearchDomain.update(context, this.tableName, this, 'ResearchDomain.update', [], noTouch);
+        await ResearchDomain.update(
+          context,
+          this.tableName,
+          this,
+          'ResearchDomain.update',
+          ['parentResearchDomain'],
+          noTouch
+        );
         return await ResearchDomain.findById('ResearchDomain.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -128,7 +141,7 @@ export class ResearchDomain extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, metadataStandardId };
       const msg = 'Unable to add the research domain to the metadata standard';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -146,7 +159,7 @@ export class ResearchDomain extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, repositoryId };
       const msg = 'Unable to add the research domain to the repository';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -162,7 +175,7 @@ export class ResearchDomain extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, metadataStandardId };
       const msg = 'Unable to remove the research domain from the metadata standard';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -178,7 +191,7 @@ export class ResearchDomain extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, repositoryId };
       const msg = 'Unable to remove the research domain from the repository';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -236,7 +249,7 @@ export class ResearchDomain extends MySqlModel {
       reference,
     )
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 

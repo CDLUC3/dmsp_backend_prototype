@@ -2,7 +2,7 @@
 import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
 import { createDMP, deleteDMP, DMPExists, getDMP, tombstoneDMP, updateDMP } from "../datasources/dynamo";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { planToDMPCommonStandard } from "../services/commonStandardService";
 import { DMPCommonStandard } from "../types/DMP";
 import { Plan } from "./Plan";
@@ -44,18 +44,18 @@ export const addVersion = async (
   const currentVersion = await latestVersion(context, plan, reference);
   if (currentVersion) {
     // There is already a latest version, so we are creating a snapshot before making changes
-    formatLogMessage(context).debug(commonStandard, `${reference} - creating a version snapshot`);
+    context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - creating a version snapshot`);
     const newSnapshot = await createDMP(context, plan.dmpId, commonStandard, currentVersion.modified);
     if (!newSnapshot) {
-      formatLogMessage(context).error({ timestamp: currentVersion.modified, plan }, `${reference} - Unable to create a version snapshot`);
+      context.logger.error(prepareObjectForLogs({ timestamp: currentVersion.modified, plan }), `${reference} - Unable to create a version snapshot`);
       plan.addError('general', 'Unable to create a new version snapshot');
     }
   } else {
     // This is the first version of the plan
-    formatLogMessage(context).debug(commonStandard, `${reference} - creating and initial version`);
+    context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - creating an initial version`);
     const newPlanVersion = await createDMP(context, plan.dmpId, commonStandard);
     if (!newPlanVersion) {
-      formatLogMessage(context).error({ plan }, `${reference} - Unable to create an initial version snapshot`);
+      context.logger.error(prepareObjectForLogs({ plan }), `${reference} - Unable to create an initial version snapshot`);
       plan.addError('general', 'Unable to create a new version snapshot');
     }
   }
@@ -84,15 +84,16 @@ export const updateVersion = async (
     // If the change happened more than one hour since the lastSync date then generate a version snapshot
     if (diff >= generalConfig.versionPlanAfter) {
       const msg = `Plan last changed over ${generalConfig.versionPlanAfter} hour(s) ago, so creating a new version`;
-      formatLogMessage(context).debug({ planId: plan.id}, msg);
+      context.logger.debug(prepareObjectForLogs({ planId: plan.id }), msg);
       return addVersion(context, plan, reference);
 
     } else {
-      formatLogMessage(context).debug(commonStandard, `${reference} - updating Plan Version`);
+      context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - updating Plan Version`);
       const updatedVersion = await updateDMP(context, commonStandard);
       if (!updatedVersion) {
-        formatLogMessage(context).error({ plan }, `${reference} - Unable to update the latest version`);
-        plan.addError('general', 'Unable to update the version snapshot');
+        const msg = 'Unable to update the version snapshot';
+        context.logger.error(prepareObjectForLogs({ plan }), `${reference} - ${msg}`);
+        plan.addError('general', msg);
       }
     }
   } else {
@@ -111,13 +112,13 @@ export const removeVersions = async (
   const mostRecentVersion = await latestVersion(context, plan, reference);
   // If the plan is registered then tombstone the DMP otherwise delete it
   if (mostRecentVersion?.registered) {
-    formatLogMessage(context).debug({ dmpId: plan.dmpId }, `${reference} - tombstoning the DMP`);
+    context.logger.debug(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - tombstoning the DMP`);
     const tombstoned = await tombstoneDMP(context, plan.dmpId);
     if (!tombstoned) {
       plan.addError('general', 'Unable to tombstone the DMP');
     }
   } else {
-    formatLogMessage(context).debug({ dmpId: plan.dmpId }, `${reference} - deleting all versions of the DMP`);
+    context.logger.debug(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - deleting all versions of the DMP`);
     await deleteDMP(context, plan.dmpId);
   }
   return new Plan(plan);
@@ -137,7 +138,7 @@ export const findVersionsByDMPId = async (
   dmpId: string,
   reference = 'PlanVersion.findVersionsByDMPId'
 ): Promise<DMPCommonStandard[] | []> => {
-  formatLogMessage(context).debug({ dmpId }, `${reference} - retrieving the versions of the DMP`);
+  context.logger.debug(prepareObjectForLogs({ dmpId }), `${reference} - retrieving the versions of the DMP`);
   const dmps = await getDMP(context, dmpId, null);
   return Array.isArray(dmps) && dmps.length > 0 ? dmps : [];
 }
@@ -149,7 +150,7 @@ export const findVersionByTimestamp = async (
   versionTimestamp: string,
   reference = 'PlanVersion.findVersionByTimestamp'
 ): Promise<DMPCommonStandard | null> => {
-  formatLogMessage(context).debug({ dmpId: plan.dmpId, versionTimestamp }, `${reference} - retrieving the version of the DMP`);
+  context.logger.error(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - retrieving the versions of the DMP`);
   const dmps = await getDMP(context, plan.dmpId, versionTimestamp);
   return Array.isArray(dmps) && dmps.length > 0 ? dmps[0] : null;
 }
@@ -160,7 +161,7 @@ export const latestVersion = async (
   plan: Plan,
   reference = 'PlanVersion.latestVersion'
 ): Promise<DMPCommonStandard | null> => {
-  formatLogMessage(context).debug({ dmpId: plan.dmpId }, `${reference} - retrieving the latest version of the DMP`);
+  context.logger.error(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - retrieving the latest version of the DMP`);
   const dmps = await getDMP(context, plan.dmpId, null);
   return Array.isArray(dmps) && dmps.length > 0 ? dmps[0] : null;
 }

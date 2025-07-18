@@ -1,15 +1,15 @@
 import casual from 'casual';
 import { MySqlModel } from "../MySqlModel";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from '../../__mocks__/context';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 import { generalConfig } from '../../config/generalConfig';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
+import { logger } from "../../logger";
 
 jest.mock('../../dataSources/mysql', () => {
   return {
     __esModule: true,
-    mysql: {
+    MySQLConnection: {
       getInstance: jest.fn().mockReturnValue({
         query: jest.fn(), // Initialize the query mock function
       }),
@@ -156,13 +156,13 @@ describe('MySqlModel abstract class', () => {
     let localQuery;
     let context;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (MySqlModel.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
     });
 
     afterEach(() => {
@@ -369,10 +369,10 @@ describe('query function', () => {
   let mockQuery;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockQuery = jest.fn();
     const dataSource = context.dataSources.sqlDataSource;
@@ -410,9 +410,7 @@ describe('query function', () => {
     expect(context.logger.debug).toHaveBeenCalledTimes(1);
     expect(context.logger.error).toHaveBeenCalledTimes(1);
     expect(context.logger.debug).toHaveBeenCalledWith(`testing failure, sql: ${sql}, vals: 123`);
-    expect(context.logger.error).toHaveBeenCalledWith(
-      mockError, "testing failure, ERROR: Testing error handler"
-    );
+    expect(context.logger.error).toHaveBeenCalledWith({}, "testing failure, ERROR: Testing error handler");
     expect(result).toEqual([]);
   });
 
@@ -424,7 +422,8 @@ describe('query function', () => {
     context.dataSources = null;
     const result = await MySqlModel.query(context, sql, ['123'], 'testing failure');
     expect(context.logger.error).toHaveBeenCalledTimes(1);
-    expect(context.logger.error).toHaveBeenCalledWith(`testing failure, ERROR: apolloContext and sqlStatement are required.`);
+    const msg = 'testing failure, ERROR: apolloContext and sqlStatement are required. - SELECT * FROM tests WHERE field = ?';
+    expect(context.logger.error).toHaveBeenCalledWith(msg);
     expect(result).toEqual([]);
   });
 });
@@ -436,10 +435,10 @@ describe('queryWithPagination', () => {
   let localPaginatedQueryByCursor;
   let localPaginatedQueryByOffset;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     localPaginatedQueryByCursor = jest.fn();
     localPaginatedQueryByOffset = jest.fn();
@@ -573,10 +572,10 @@ describe('paginatedQueryByOffset', () => {
   let localQuery;
   let localGetTotalCountForPagination;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     localQuery = jest.fn();
     localGetTotalCountForPagination = jest.fn();
@@ -777,10 +776,10 @@ describe('paginatedQueryByCursor', () => {
   let localQuery;
   let localGetTotalCountForPagination;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     localQuery = jest.fn();
     localGetTotalCountForPagination = jest.fn();
@@ -802,14 +801,14 @@ describe('paginatedQueryByCursor', () => {
     const values = ['value'];
     const options = {
       cursorField: 'id',
-      limit: 10,
+      limit: 2,
       cursor: '5',
       sortField: 'id',
       sortDir: 'ASC',
       countField: 'id',
     };
     const reference = 'Testing';
-    const mockRows = [{ id: 6, cursorId: 6 }, { id: 7, cursorId: 7 }];
+    const mockRows = [{ id: 6, cursorId: 6 }, { id: 7, cursorId: 7 }, { id: 8, cursorId: 8 }];
     const mockTotalCount = 20;
 
     localQuery.mockResolvedValueOnce(mockRows);
@@ -828,8 +827,8 @@ describe('paginatedQueryByCursor', () => {
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenCalledWith(
       context,
-      'SELECT id cursorId, * FROM tests WHERE field = ? AND id > ? GROUP BY field ORDER BY id ASC LIMIT ?',
-      ['value', '5', '10'],
+      'SELECT id cursorId, * FROM tests WHERE field = ? AND id >= ? GROUP BY field ORDER BY cursorId ASC LIMIT ?',
+      ['value', '5', '3'],
       reference
     );
     expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
@@ -843,10 +842,10 @@ describe('paginatedQueryByCursor', () => {
       reference
     );
     expect(result).toEqual({
-      items: mockRows,
-      limit: 10,
+      items: mockRows.slice(0, 2), // Only return the first 2 items
+      limit: 2,
       totalCount: mockTotalCount,
-      nextCursor: 7,
+      nextCursor: 8,
       hasNextPage: true,
       availableSortFields: [],
     });
@@ -886,7 +885,49 @@ describe('paginatedQueryByCursor', () => {
       items: [],
       limit: 10,
       totalCount: 0,
-      nextCursor: undefined,
+      nextCursor: null,
+      hasNextPage: false,
+      availableSortFields: []
+    });
+  });
+
+  it('returns a null nextCursor if there are no further results', async () => {
+    const sqlStatement = 'SELECT * FROM tests';
+    const whereFilters = ['field = ?'];
+    const groupByClause = 'GROUP BY field';
+    const values = ['value'];
+    const options = {
+      cursorField: 'id',
+      limit: 10,
+      cursor: null,
+      sortField: 'id',
+      sortDir: 'ASC',
+      countField: 'id',
+    };
+    const reference = 'Testing';
+    const mockRows = [{ id: 6, cursorId: 6 }, { id: 7, cursorId: 7 }];
+    const mockTotalCount = 2;
+
+    localQuery.mockResolvedValueOnce(mockRows);
+    localGetTotalCountForPagination.mockResolvedValueOnce(mockTotalCount);
+
+    const result = await MySqlModel.paginatedQueryByCursor(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      options as PaginationOptionsForCursors,
+      reference
+    );
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localGetTotalCountForPagination).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      items: mockRows,
+      limit: 10,
+      totalCount: mockTotalCount,
+      nextCursor: null,
       hasNextPage: false,
       availableSortFields: []
     });
@@ -976,13 +1017,13 @@ describe('exists', () => {
   let localQuery;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
   });
 
   afterEach(() => {
@@ -1007,13 +1048,13 @@ describe('insert function', () => {
   let context;
   let options;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     options = {
       createdById: casual.integer(1, 99),
@@ -1059,13 +1100,13 @@ describe('update function', () => {
   let context;
   let options;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     options = {
       id: casual.integer(1, 999),
@@ -1110,13 +1151,13 @@ describe('delete function', () => {
   let localQuery;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (MySqlModel.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
   });
 
   afterEach(() => {

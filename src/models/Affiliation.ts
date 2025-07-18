@@ -2,7 +2,7 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
@@ -383,7 +383,7 @@ export class AffiliationSearch {
       reference,
     )
 
-    formatLogMessage(context).debug({ options, response }, reference);
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
 }
@@ -413,12 +413,17 @@ export class PopularFunder {
     // Get the top 20 funders based on the number of plans created in the past year
     const sql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
                 'FROM affiliations a ' +
-                'LEFT JOIN projectFunders pf ON pf.affiliationId = a.uri ' +
+                'LEFT JOIN projectFundings pf ON pf.affiliationId = a.uri ' +
                 'LEFT JOIN projects p ON p.id = pf.projectId ' +
                 'WHERE a.active = 1 AND a.funder = 1 AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? ' +
                 'GROUP BY a.id, a.uri, a.displayName ' +
                 'ORDER BY nbrPlans DESC LIMIT 20';
-    const results = await Affiliation.query(context, sql, [startDate, endDate], 'PopularFunder.top20');
+    const results = await Affiliation.query(
+      context,
+      sql,
+      [`${startDate} 00:00:00`, `${endDate} 23:59:59`],
+      'PopularFunder.top20'
+    );
     if (Array.isArray(results) && results.length > 0) {
       return results.map((entry) => { return new PopularFunder(entry) });
     }

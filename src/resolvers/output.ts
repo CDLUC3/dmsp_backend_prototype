@@ -1,5 +1,5 @@
 
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { Resolvers } from "../types";
 import { ProjectOutput } from '../models/Output';
 import { MetadataStandard } from '../models/MetadataStandard';
@@ -11,6 +11,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { OutputType } from '../models/OutputType';
 import { GraphQLError } from 'graphql';
+import {formatISO9075} from "date-fns";
 
 // Process updates to the Repository associations
 async function processRepositoryUpdates(
@@ -116,7 +117,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -136,7 +137,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -157,7 +158,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -221,7 +222,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -287,7 +288,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -317,7 +318,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -343,6 +344,12 @@ export const resolvers: Resolvers = {
         context,
         parent.id
       );
+    },
+    created: (parent: ProjectOutput) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ProjectOutput) => {
+      return formatISO9075(new Date(parent.modified));
     }
   },
 };

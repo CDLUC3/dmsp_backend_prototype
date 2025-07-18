@@ -1,4 +1,4 @@
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { Resolvers } from "../types";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
@@ -9,6 +9,7 @@ import { Project } from '../models/Project';
 import { hasPermissionOnProject } from '../services/projectService';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -26,7 +27,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -45,7 +46,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     }
@@ -76,7 +77,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -111,7 +112,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -145,9 +146,17 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
+  },
+  RelatedWork: {
+    created: (parent: RelatedWork) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: RelatedWork) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
 };

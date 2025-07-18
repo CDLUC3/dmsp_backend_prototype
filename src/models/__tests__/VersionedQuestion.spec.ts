@@ -1,16 +1,18 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { VersionedQuestion } from "../VersionedQuestion";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
+import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -24,7 +26,7 @@ describe('VersionedQuestion', () => {
     versionedTemplateId: casual.integer(1, 999),
     versionedSectionId: casual.integer(1, 999),
     questionId: casual.integer(1, 999),
-    questionTypeId: casual.integer(1, 9),
+    json: '{"type":"boolean","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     questionText: casual.sentences(5),
     requirementText: casual.sentences(3),
     guidanceText: casual.sentences(10),
@@ -39,13 +41,27 @@ describe('VersionedQuestion', () => {
     expect(versionedQuestion.versionedTemplateId).toEqual(versionedQuestionData.versionedTemplateId);
     expect(versionedQuestion.versionedSectionId).toEqual(versionedQuestionData.versionedSectionId);
     expect(versionedQuestion.questionId).toEqual(versionedQuestionData.questionId);
-    expect(versionedQuestion.questionTypeId).toEqual(versionedQuestionData.questionTypeId);
+    expect(versionedQuestion.json).toEqual(versionedQuestionData.json);
     expect(versionedQuestion.questionText).toEqual(versionedQuestionData.questionText);
     expect(versionedQuestion.requirementText).toEqual(versionedQuestionData.requirementText);
     expect(versionedQuestion.guidanceText).toEqual(versionedQuestionData.guidanceText);
     expect(versionedQuestion.sampleText).toEqual(versionedQuestionData.sampleText);
     expect(versionedQuestion.displayOrder).toEqual(versionedQuestionData.displayOrder);
     expect(versionedQuestion.required).toEqual(false);
+  });
+
+  it('should call removeNullAndUndefinedFromJSON and set json as a string', () => {
+    const parsedJSON = removeNullAndUndefinedFromJSON(versionedQuestionData.json);
+    expect(parsedJSON).toEqual(versionedQuestionData.json);
+    expect(versionedQuestion.json).toEqual(parsedJSON);
+    expect(typeof versionedQuestion.json).toBe('string');
+  });
+
+  it('should return null if removeNullAndUndefinedFromJSON fails', () => {
+    const invalidJSON = '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"invalidVersion"';
+    const q = new VersionedQuestion({ ...versionedQuestionData, json: invalidJSON });
+    expect(q.errors['json']).toBeTruthy();
+    expect(q.errors['json'].includes('Invalid JSON format')).toBe(true);
   });
 
   it('isValid returns true when the record is valid', async () => {
@@ -73,18 +89,35 @@ describe('VersionedQuestion', () => {
     expect(versionedQuestion.errors['questionId'].includes('Question')).toBe(true);
   });
 
-  it('isValid returns false if the questionTypeId is null', async () => {
-    versionedQuestion.questionTypeId = null;
-    expect(await versionedQuestion.isValid()).toBe(false);
-    expect(Object.keys(versionedQuestion.errors).length).toBe(1);
-    expect(versionedQuestion.errors['questionTypeId'].includes('Question type')).toBe(true);
-  });
-
   it('isValid returns false if the questionText is null', async () => {
     versionedQuestion.questionText = null;
     expect(await versionedQuestion.isValid()).toBe(false);
     expect(Object.keys(versionedQuestion.errors).length).toBe(1);
     expect(versionedQuestion.errors['questionText'].includes('Question text')).toBe(true);
+  });
+
+  it('should not be valid if the JSON is missing', async () => {
+    versionedQuestion.json = null;
+    expect(await versionedQuestion.isValid()).toBe(false);
+    expect(versionedQuestion.errors['json']).toBeTruthy();
+    expect(versionedQuestion.errors['json']).toEqual('Question type JSON can\'t be blank');
+    versionedQuestion.json = versionedQuestionData.json; // Reset to valid JSON
+  });
+
+  it('should not be valid if the JSON is for an unknown question type', async () => {
+    versionedQuestion.json = `{"type":"unknownType","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`;
+    expect(await versionedQuestion.isValid()).toBe(false);
+    expect(versionedQuestion.errors['json']).toBeTruthy();
+    expect(versionedQuestion.errors['json'].includes('Unknown question type')).toBe(true);
+    versionedQuestion.json = versionedQuestionData.json; // Reset to valid JSON
+  });
+
+  it('should not be valid if Zod parse fails', async () => {
+    versionedQuestion.json = `{"type":"textArea"}`; // Missing meta
+    expect(await versionedQuestion.isValid()).toBe(false);
+    expect(versionedQuestion.errors['json']).toBeTruthy();
+    expect(versionedQuestion.errors['json'].includes('meta')).toBe(true);
+    versionedQuestion.json = versionedQuestionData.json; // Reset to valid JSON
   });
 });
 
@@ -95,13 +128,13 @@ describe('findBy Queries', () => {
   let context;
   let versionedQuestion;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedQuestion.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedQuestion = new VersionedQuestion({
       templateId: casual.integer(1, 999),
@@ -147,7 +180,24 @@ describe('create', () => {
       versionedTemplateId: casual.integer(1, 999),
       versionedSectionId: casual.integer(1, 999),
       questionId: casual.integer(1, 999),
-      questionTypeId: casual.integer(1, 9),
+      json: {
+        type: 'checkBoxes',
+        options: [
+          {
+            label: casual.word,
+            value: casual.word,
+            checked: casual.boolean,
+          },
+          {
+            label: casual.word,
+            value: casual.word,
+            checked: casual.boolean,
+          }
+        ],
+        meta: {
+          schemaVersion: CURRENT_SCHEMA_VERSION
+        }
+      },
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 20),
     })
@@ -188,19 +238,18 @@ describe('findByVersionedSectionId', () => {
   let context;
   let versionedQuestion;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     localQuery = jest.fn();
     (VersionedQuestion.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     versionedQuestion = new VersionedQuestion({
       versionedTemplateId: casual.integer(1, 999),
       versionedSectionId: casual.integer(1, 999),
       questionId: casual.integer(1, 999),
-      questionTypeId: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 20),
     })

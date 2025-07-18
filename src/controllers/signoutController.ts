@@ -1,13 +1,17 @@
 import { Request } from 'express-jwt';
 import { Response } from 'express';
-import { Cache } from "../datasources/cache";
 import { revokeAccessToken, revokeRefreshToken, verifyAccessToken } from '../services/tokenService';
-import { formatLogMessage, logger } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { buildContext } from '../context';
 
 export const signoutController = async (req: Request, res: Response) => {
-  const cache = Cache.getInstance();
-  const context = buildContext(logger, cache);
+  const context = buildContext(
+    req.logger,
+    req.cache,
+    null,
+    req.sqlDataSource,
+    req.dmphubAPIDataSource,
+  );
 
   try {
     // For some reason req.auth is `undefined` here even though authMiddleware is called.
@@ -37,7 +41,7 @@ export const signoutController = async (req: Request, res: Response) => {
       res.status(200).json({});
     }
   } catch (err) {
-    formatLogMessage(context)?.error(err, 'Signout error!');
+    context.logger.error(prepareObjectForLogs(err), 'Sign out error');
     res.status(500).json({ error: 'An unexpected error occurred' });
   }
 }

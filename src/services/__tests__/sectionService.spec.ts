@@ -1,8 +1,7 @@
 import casual from "casual";
 import { Template } from "../../models/Template";
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
-import { mysql } from "../../datasources/mysql";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
 import { cloneSection, generateSectionVersion, hasPermissionOnSection, updateDisplayOrders } from "../sectionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
@@ -19,10 +18,10 @@ jest.mock('../../context.ts');
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -35,15 +34,10 @@ describe('hasPermissionOnSection', () => {
   let mockHashPermissionOnTemplate;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (mysql.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockFindById = jest.fn();
     (Template.findById as jest.Mock) = mockFindById;

@@ -8,9 +8,10 @@ import { cloneSection, hasPermissionOnSection, updateDisplayOrders } from "../se
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError, BadRequestError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { VersionedQuestion } from "../models/VersionedQuestion";
+import {formatISO9075} from "date-fns";
 
 
 export const resolvers: Resolvers = {
@@ -27,7 +28,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -44,7 +45,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     }
@@ -155,7 +156,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -265,7 +266,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -305,7 +306,7 @@ export const resolvers: Resolvers = {
               return { sections: reorderedSections ?? [] };
 
             } catch (err) {
-              formatLogMessage(context).error(err, `${reference} failed: sectionId: ${sectionId}`);
+              context.logger.error(prepareObjectForLogs(err), `${reference} failed: sectionId: ${sectionId}`);
               return { sections: [], errors: { general: err.message } };
             }
           }
@@ -314,7 +315,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -350,7 +351,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -367,5 +368,11 @@ export const resolvers: Resolvers = {
     questions: async (parent: Section, _, context: MyContext): Promise<Question[]> => {
       return await Question.findBySectionId('Chained Section.questions', context, parent.id)
     },
+    created: (parent: Section) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Section) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
 };
