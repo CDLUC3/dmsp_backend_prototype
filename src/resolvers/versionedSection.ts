@@ -10,8 +10,7 @@ import { VersionedQuestion } from "../models/VersionedQuestion";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { isNullOrUndefined } from "../utils/helpers";
-import {formatISO9075} from "date-fns";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -76,10 +75,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: VersionedSection) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: VersionedSection) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   }
 };

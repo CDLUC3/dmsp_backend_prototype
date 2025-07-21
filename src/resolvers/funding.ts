@@ -11,9 +11,8 @@ import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
-import {ProjectCollaboratorAccessLevel} from "../models/Collaborator";
-import {isNullOrUndefined} from "../utils/helpers";
-import {formatISO9075} from "date-fns";
+import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -279,10 +278,10 @@ export const resolvers: Resolvers = {
       return null;
     },
     created: (parent: ProjectFunding) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: ProjectFunding) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   },
 
@@ -299,10 +298,10 @@ export const resolvers: Resolvers = {
       return null;
     },
     created: (parent: PlanFunding) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: PlanFunding) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   }
 };

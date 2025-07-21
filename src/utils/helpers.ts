@@ -168,12 +168,24 @@ export function randomHex(size: number): string {
   return [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
 }
 
+// Normalises a date and time value
+export function normaliseDateTime (date: string | null): string {
+  try {
+    return isNullOrUndefined(date) ? null : formatISO9075(new Date(date));
+  } catch (e) {
+    // value wasn't a date so return null
+    return null;
+  }
+}
+
 // Normalises dates
 export function normaliseDate (date: string | null): string {
+  // If its null or undefined return null
   if (date === null || date === undefined) {
     return null;
   }
 
+  // Otherwise its a string
   // Split into parts, convert to integers and only continue if 3 integer parts
   const parts = date
     .split("-")

@@ -9,7 +9,7 @@ import { Project } from '../models/Project';
 import { hasPermissionOnProject } from '../services/projectService';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
-import {formatISO9075} from "date-fns";
+import { normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -153,10 +153,10 @@ export const resolvers: Resolvers = {
   },
   RelatedWork: {
     created: (parent: RelatedWork) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: RelatedWork) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   }
 };
