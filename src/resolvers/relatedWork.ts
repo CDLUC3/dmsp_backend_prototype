@@ -9,7 +9,7 @@ import { Project } from '../models/Project';
 import { hasPermissionOnProject } from '../services/projectService';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
-import { normaliseDate } from "../utils/helpers";
+import { normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -153,10 +153,10 @@ export const resolvers: Resolvers = {
   },
   RelatedWork: {
     created: (parent: RelatedWork) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: RelatedWork) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   }
 };

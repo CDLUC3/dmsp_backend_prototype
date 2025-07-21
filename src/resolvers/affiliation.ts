@@ -12,7 +12,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -157,10 +157,10 @@ export const resolvers: Resolvers = {
 
   Affiliation: {
     created: (parent: Affiliation) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Affiliation) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   }
 }

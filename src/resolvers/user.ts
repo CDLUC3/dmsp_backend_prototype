@@ -11,7 +11,7 @@ import { processOtherAffiliationName } from "../services/affiliationService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -465,13 +465,13 @@ export const resolvers: Resolvers = {
       return primaryEmail ? primaryEmail.email : null;
     },
     last_sign_in: (parent: User) => {
-      return normaliseDate(parent.last_sign_in);
+      return normaliseDateTime(parent.last_sign_in);
     },
     created: (parent: User) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: User) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 };

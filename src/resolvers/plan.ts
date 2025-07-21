@@ -12,7 +12,7 @@ import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
-import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 import { ensureDefaultPlanContact } from "../services/planService";
 
 export const resolvers: Resolvers = {
@@ -272,13 +272,13 @@ export const resolvers: Resolvers = {
       return [];
     },
     registered: (parent: Plan) => {
-      return normaliseDate(parent.registered);
+      return normaliseDateTime(parent.registered);
     },
     created: (parent: Plan) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Plan) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 

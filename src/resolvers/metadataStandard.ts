@@ -8,7 +8,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { ResearchDomain } from '../models/ResearchDomain';
 import { GraphQLError } from 'graphql';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
-import { isNullOrUndefined, normaliseDate } from '../utils/helpers';
+import { isNullOrUndefined, normaliseDateTime } from '../utils/helpers';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -255,10 +255,10 @@ export const resolvers: Resolvers = {
       return [];
     },
     created: (parent: MetadataStandard) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: MetadataStandard) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 };

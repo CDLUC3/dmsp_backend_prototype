@@ -12,7 +12,7 @@ import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
-import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -278,10 +278,10 @@ export const resolvers: Resolvers = {
       return null;
     },
     created: (parent: ProjectFunding) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: ProjectFunding) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 
@@ -298,10 +298,10 @@ export const resolvers: Resolvers = {
       return null;
     },
     created: (parent: PlanFunding) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: PlanFunding) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   }
 };

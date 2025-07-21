@@ -21,7 +21,7 @@ import { MemberRole } from '../models/MemberRole';
 import { GraphQLError } from 'graphql';
 import { Plan, PlanSearchResult } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
-import { isNullOrUndefined, normaliseDate } from '../utils/helpers';
+import { isNullOrUndefined, normaliseDate, normaliseDateTime } from '../utils/helpers';
 import { parseMember } from '../services/commonStandardService';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
 
@@ -356,10 +356,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: Project) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Project) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 };

@@ -7,7 +7,7 @@ import { hasPermissionOnQuestion } from "../services/questionService";
 import { Question } from "../models/Question";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
-import { normaliseDate } from "../utils/helpers";
+import { normaliseDateTime } from "../utils/helpers";
 
 
 export const resolvers: Resolvers = {
@@ -133,10 +133,10 @@ export const resolvers: Resolvers = {
   },
   QuestionCondition: {
     created: (parent: QuestionCondition) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: QuestionCondition) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   }
 };

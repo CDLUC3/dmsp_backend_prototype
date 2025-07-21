@@ -14,7 +14,7 @@ import { hasPermissionOnTemplate } from "../services/templateService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
-import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -268,10 +268,10 @@ export const resolvers: Resolvers = {
     },
 
     created: (parent: ProjectCollaborator) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: ProjectCollaborator) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 
@@ -300,10 +300,10 @@ export const resolvers: Resolvers = {
     },
 
     created: (parent: TemplateCollaborator) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: TemplateCollaborator) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 };

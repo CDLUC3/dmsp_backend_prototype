@@ -11,7 +11,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { OutputType } from '../models/OutputType';
 import { GraphQLError } from 'graphql';
-import { normaliseDate } from "../utils/helpers";
+import { normaliseDateTime } from "../utils/helpers";
 
 // Process updates to the Repository associations
 async function processRepositoryUpdates(
@@ -346,10 +346,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: ProjectOutput) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: ProjectOutput) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 };

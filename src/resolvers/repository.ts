@@ -8,7 +8,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { ResearchDomain } from '../models/ResearchDomain';
 import {
   isNullOrUndefined,
-  normaliseDate,
+  normaliseDateTime,
   stringToEnumValue
 } from '../utils/helpers';
 import { GraphQLError } from 'graphql';
@@ -290,10 +290,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: Repository) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Repository) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 };

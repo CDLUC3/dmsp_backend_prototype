@@ -17,7 +17,7 @@ import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { generalConfig } from "../config/generalConfig";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -322,10 +322,10 @@ export const resolvers: Resolvers = {
     },
 
     created: (parent: Template) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Template) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   },
 };

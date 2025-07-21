@@ -7,7 +7,7 @@ import { isAdmin, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { GraphQLError } from 'graphql';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
-import { isNullOrUndefined, normaliseDate } from '../utils/helpers';
+import { isNullOrUndefined, normaliseDateTime } from '../utils/helpers';
 
 export const resolvers: Resolvers = {
   Query: {
@@ -171,10 +171,10 @@ export const resolvers: Resolvers = {
 
   License: {
     created: (parent: License) => {
-      return normaliseDate(parent.created);
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: License) => {
-      return normaliseDate(parent.modified);
+      return normaliseDateTime(parent.modified);
     }
   }
 };
