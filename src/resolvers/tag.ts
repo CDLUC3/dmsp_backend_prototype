@@ -7,7 +7,7 @@ import { isSuperAdmin } from "../services/authService";
 import { NotFoundError, ForbiddenError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
-
+import { normaliseDate } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -122,5 +122,12 @@ export const resolvers: Resolvers = {
       }
     },
   },
-
+  Tag: {
+    created: (parent: Tag) => {
+      return normaliseDate(parent.created);
+    },
+    modified: (parent: Tag) => {
+      return normaliseDate(parent.modified);
+    }
+  },
 };

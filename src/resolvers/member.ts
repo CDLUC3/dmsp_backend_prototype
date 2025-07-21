@@ -13,9 +13,8 @@ import { updateMemberRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
-import {isNullOrUndefined} from "../utils/helpers";
-import {ProjectCollaboratorAccessLevel} from "../models/Collaborator";
-import {formatISO9075} from "date-fns";
+import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
+import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -511,10 +510,10 @@ export const resolvers: Resolvers = {
       return null;
     },
     created: (parent: ProjectMember) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: ProjectMember) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   },
 
@@ -545,10 +544,10 @@ export const resolvers: Resolvers = {
       return null;
     },
     created: (parent: PlanMember) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: PlanMember) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   },
 };

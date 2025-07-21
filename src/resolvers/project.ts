@@ -24,7 +24,6 @@ import { addVersion } from '../models/PlanVersion';
 import { isNullOrUndefined, normaliseDate } from '../utils/helpers';
 import { parseMember } from '../services/commonStandardService';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
-import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -357,10 +356,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: Project) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: Project) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   },
 };

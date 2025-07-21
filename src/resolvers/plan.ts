@@ -12,9 +12,8 @@ import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
-import {isNullOrUndefined} from "../utils/helpers";
-import {formatISO9075} from "date-fns";
-import {ensureDefaultPlanContact} from "../services/planService";
+import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
+import { ensureDefaultPlanContact } from "../services/planService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -273,13 +272,13 @@ export const resolvers: Resolvers = {
       return [];
     },
     registered: (parent: Plan) => {
-      return formatISO9075(new Date(parent.registered));
+      return normaliseDate(parent.registered);
     },
     created: (parent: Plan) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: Plan) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   },
 

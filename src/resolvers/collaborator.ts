@@ -14,8 +14,7 @@ import { hasPermissionOnTemplate } from "../services/templateService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
-import {isNullOrUndefined} from "../utils/helpers";
-import {formatISO9075} from "date-fns";
+import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -269,10 +268,10 @@ export const resolvers: Resolvers = {
     },
 
     created: (parent: ProjectCollaborator) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: ProjectCollaborator) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   },
 
@@ -301,10 +300,10 @@ export const resolvers: Resolvers = {
     },
 
     created: (parent: TemplateCollaborator) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: TemplateCollaborator) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   },
 };

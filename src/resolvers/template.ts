@@ -17,8 +17,7 @@ import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { generalConfig } from "../config/generalConfig";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import { isNullOrUndefined } from "../utils/helpers";
-import {formatISO9075} from "date-fns";
+import { isNullOrUndefined, normaliseDate } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -323,10 +322,10 @@ export const resolvers: Resolvers = {
     },
 
     created: (parent: Template) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: Template) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   },
 };

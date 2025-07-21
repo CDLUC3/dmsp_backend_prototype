@@ -6,7 +6,7 @@ import { MyContext } from '../context';
 import { isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError } from '../utils/graphQLErrors';
 import { GraphQLError } from 'graphql';
-import {formatISO9075} from "date-fns";
+import { normaliseDate } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -117,10 +117,10 @@ export const resolvers: Resolvers = {
 
   MemberRole: {
     created: (parent: MemberRole) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: MemberRole) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   }
 };

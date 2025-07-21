@@ -11,8 +11,7 @@ import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { VersionedQuestion } from "../models/VersionedQuestion";
-import {formatISO9075} from "date-fns";
-
+import { normaliseDate } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -369,10 +368,10 @@ export const resolvers: Resolvers = {
       return await Question.findBySectionId('Chained Section.questions', context, parent.id)
     },
     created: (parent: Section) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDate(parent.created);
     },
     modified: (parent: Section) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDate(parent.modified);
     }
   }
 };
