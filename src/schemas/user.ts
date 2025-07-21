@@ -4,17 +4,17 @@ export const typeDefs = gql`
   extend type Query {
     "Returns the currently logged in user's information"
     me: User
-    "Returns all of the users associated with the current user's affiliation (Admin only)"
-    users: [User]
+    "Returns all of the users associated with the current admin's affiliation (Super admins get everything)"
+    users(term: String, paginationOptions: PaginationOptions): UserSearchResults
     "Returns the specified user (Admin only)"
     user(userId: Int!): User
   }
 
   extend type Mutation {
     "Update the current user's information"
-    updateUserProfile(input: updateUserProfileInput!): User
+    updateUserProfile(input: UpdateUserProfileInput!): User
     "Update the current user's email notifications"
-    updateUserNotifications(input: updateUserNotificationsInput!): User
+    updateUserNotifications(input: UpdateUserNotificationsInput!): User
     "Set the user's ORCID"
     setUserOrcid(orcid: String!): User
     "Anonymize the current user's account (essentially deletes their account without orphaning things)"
@@ -28,7 +28,7 @@ export const typeDefs = gql`
     setPrimaryUserEmail(email: String!): [UserEmail]
 
     "Change the current user's password"
-    updatePassword(oldPassword: String!, newPassword: String!): User
+    updatePassword(oldPassword: String!, newPassword: String!, email: String!): User
 
     "Deactivate the specified user Account (Admin only)"
     deactivateUser(userId: Int!): User
@@ -53,7 +53,7 @@ export const typeDefs = gql`
 
   "A user of the DMPTool"
   type User {
-    "The unique identifer for the Object"
+    "The unique identifier for the Object"
     id: Int
     "The user who created the Object"
     createdById: Int
@@ -61,7 +61,7 @@ export const typeDefs = gql`
     created: String
     "The user who last modified the Object"
     modifiedById: Int
-    "The timestamp when the Object was last modifed"
+    "The timestamp when the Object was last modified"
     modified: String
     "Errors associated with the Object"
     errors: UserErrors
@@ -70,8 +70,6 @@ export const typeDefs = gql`
     givenName: String
     "The user's last/family name"
     surName: String
-    "The user's primary email address"
-    email: EmailAddress!
     "The user's role within the DMPTool"
     role: UserRole!
     "The user's organizational affiliation"
@@ -106,10 +104,31 @@ export const typeDefs = gql`
     "The method user for the last login: PASSWORD or SSO"
     last_sign_in_via: String
     "The number of failed login attempts"
-    failed_sign_in_attemps: Int
+    failed_sign_in_attempts: Int
 
     "The user's email addresses"
     emails: [UserEmail]
+    "The user's primary email address"
+    email: String
+  }
+
+  type UserSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [User]
+    "The total number of possible items"
+    totalCount: Int
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
   }
 
   "A collection of errors related to the User"
@@ -133,7 +152,7 @@ export const typeDefs = gql`
   }
 
   type UserEmail {
-    "The unique identifer for the Object"
+    "The unique identifier for the Object"
     id: Int
     "The user who created the Object"
     createdById: Int
@@ -141,7 +160,7 @@ export const typeDefs = gql`
     created: String
     "The user who last modified the Object"
     modifiedById: Int
-    "The timestamp when the Object was last modifed"
+    "The timestamp when the Object was last modified"
     modified: String
     "Errors associated with the Object"
     errors: UserEmailErrors
@@ -165,7 +184,7 @@ export const typeDefs = gql`
     email: String
   }
 
-  input updateUserProfileInput {
+  input UpdateUserProfileInput {
     "The user's first/given name"
     givenName: String!
     "The user's last/family name"
@@ -178,7 +197,7 @@ export const typeDefs = gql`
     languageId: String
   }
 
-  input updateUserNotificationsInput {
+  input UpdateUserNotificationsInput {
     "Whether or not email notifications are on for when a Plan has a new comment"
     notify_on_comment_added: Boolean!
     "Whether or not email notifications are on for when a Template is shared with the User (Admin only)"

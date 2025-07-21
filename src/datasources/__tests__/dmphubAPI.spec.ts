@@ -1,20 +1,14 @@
 import nock from 'nock';
-import {
-  DMPHubAPI,
-  Authorizer,
-  DMPIdentifierType,
-  DMPPrivacy,
-  DMPStatus,
-  DMPYesNoUnknown
-} from '../dmphubAPI';
+import { DMPHubAPI, Authorizer } from '../dmphubAPI';
+import { DMPIdentifierType, DMPPrivacy, DMPStatus, DMPYesNoUnknown } from '../../types/DMP';
 import { RESTDataSource } from '@apollo/datasource-rest';
-import { logger, formatLogMessage } from '../../__mocks__/logger';
-import { KeyValueCache } from '@apollo/utils.keyvaluecache';
 import { JWTAccessToken } from '../../services/tokenService';
-import { buildContext, MockCache, mockToken } from '../../__mocks__/context';
+import { buildContext, buildMockContextWithToken } from '../../__mocks__/context';
 import { DMPHubConfig } from '../../config/dmpHubConfig';
 import casual from 'casual';
 import { getRandomEnumValue } from '../../__tests__/helpers';
+import {KeyvAdapter} from "@apollo/utils.keyvadapter";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
@@ -130,7 +124,7 @@ describe('DMPToolAPI', () => {
 
     // Initialize DMPToolAPI
     dmphubAPI = new DMPHubAPI({
-      cache: {} as KeyValueCache,
+      cache: {} as KeyvAdapter,
       token: {} as JWTAccessToken,
     });
   });
@@ -154,7 +148,7 @@ describe('DMPToolAPI', () => {
 
   describe('getDMP', () => {
     it('should call get with the correct dmpId and the latest version by default', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
@@ -166,13 +160,13 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.getDMP(context, dmpId);
 
       expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=LATEST`);
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.getDMP Calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `dmphubAPI.getDMP calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=LATEST`
       );
     });
 
     it('should call get with the correct dmpId and the specified version', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
@@ -184,8 +178,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.getDMP(context, dmpId, '1234', 'getDMP');
 
       expect(mockGet).toHaveBeenCalledWith(`dmps/${dmpId}?version=1234`);
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `getDMP Calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `getDMP calling DMPHub Get: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}?version=1234`
       );
     });
 
@@ -203,7 +197,7 @@ describe('DMPToolAPI', () => {
 
   describe('createDMP', () => {
     it('should create the DMP', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const dmpId = '11.22222/3C4D5E6G';
       const mockResponse = {
         status: 200,
@@ -219,8 +213,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.createDMP(context, dmp);
 
       expect(mockPost).toHaveBeenCalledWith(`dmps`, { body: JSON.stringify({ dmp }) });
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.createDMP Calling DMPHub Create: ${DMPHubConfig.dmpHubURL}/dmps`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `dmphubAPI.createDMP calling DMPHub Create: ${DMPHubConfig.dmpHubURL}/dmps`
       );
     });
 
@@ -236,7 +230,7 @@ describe('DMPToolAPI', () => {
 
   describe('updateDMP', () => {
     it('should update the DMP', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const mockResponse = {
         status: 200,
         items: [{ dmp }]
@@ -248,8 +242,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.updateDMP(context, dmp);
 
       expect(mockPut).toHaveBeenCalledWith(`dmps/${dmpId}`, { body: JSON.stringify({ dmp }) });
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.updateDMP Calling DMPHub Update: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `dmphubAPI.updateDMP calling DMPHub Update: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
       );
     });
 
@@ -265,7 +259,7 @@ describe('DMPToolAPI', () => {
 
   describe('tombstoneDMP', () => {
     it('should tombstone the DMP', async () => {
-      const context = buildContext(logger, mockToken(), new MockCache());
+      const context = await buildMockContextWithToken(logger);
       const mockResponse = {
         status: 200,
         items: [{ dmp }]
@@ -277,8 +271,8 @@ describe('DMPToolAPI', () => {
       await dmphubAPI.tombstoneDMP(context, dmp);
 
       expect(mockDelete).toHaveBeenCalledWith(`dmps/${dmpId}`);
-      expect(formatLogMessage(context).debug).toHaveBeenCalledWith(
-        `dmphubAPI.tombstoneDMP Calling DMPHub Tombstone: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        `dmphubAPI.tombstoneDMP calling DMPHub Tombstone: ${DMPHubConfig.dmpHubURL}/dmps/${dmpId}`
       );
     });
 
@@ -289,6 +283,96 @@ describe('DMPToolAPI', () => {
       jest.spyOn(Authorizer.instance, 'hasExpired').mockReturnValue(false);
 
       await expect(dmphubAPI.tombstoneDMP(context, dmp)).rejects.toThrow('API error');
+    });
+  });
+
+  describe('getAwards', () => {
+
+    it('should getAwards', async () => {
+      const context = await buildMockContextWithToken(logger);
+      const mockItems = [{
+        project: {
+          title: casual.title,
+          description: casual.description,
+          start: casual.date('YYYY-M-DD'),
+          end: casual.date('YYYY-M-DD'),
+          funding: [
+            {
+              dmproadmap_project_number: "CTF-2023-01-006",
+              dmproadmap_award_amount: casual.double(1000, 1000000).toFixed(2),
+              grant_id: {
+                identifier: "https://doi.org/10.00000/grant-id",
+                type: "url"
+              }
+            }
+          ]
+        },
+        contact: {
+          name: `${casual.last_name}, ${casual.first_name}`,
+          dmproadmap_affiliation: {
+            "name": casual.name,
+            "affiliation_id": {
+              "identifier": "https://ror.org/000000000",
+              "type": "ror"
+            }
+          },
+          contact_id: {
+            type: "orcid",
+            identifier: "http://orcid.org/0000-0000-0000-0000"
+          },
+          role: [
+            "http://credit.niso.org/contributor-roles/investigation"
+          ]
+        },
+        contributor: [
+          {
+            name: `${casual.last_name}, ${casual.first_name}`,
+            dmproadmap_affiliation: {
+              name: casual.name,
+              affiliation_id: {
+                identifier: "https://ror.org/000000000",
+                type: "ror"
+              }
+            },
+            contributor_id: {
+              type: "orcid",
+              identifier: "http://orcid.org/0000-0000-0000-0000"
+            },
+            role: [
+              "http://credit.niso.org/contributor-roles/investigation"
+            ]
+          }
+        ]
+      }];
+      const mockResponse = {
+        status: 200,
+        items: mockItems
+      };
+
+      const apiTarget = "awards/crossref/000000000000";
+      const awardId = "123";
+      const awardName = "Physics";
+      const awardYear = "2024";
+      const piNames = ["John Doe", "Jane Doe"];
+      const expectedPath = "awards/crossref/000000000000?project=123&pi_names=John+Doe%2CJane+Doe&keywords=Physics&years=2024";
+      mockGet.mockResolvedValue(mockResponse);
+      const result = await dmphubAPI.getAwards(context, apiTarget, awardId, awardName, awardYear, piNames);
+
+      expect(mockGet).toHaveBeenCalledWith(expectedPath);
+      expect(result).toEqual(mockItems);
+      expect(context.logger.debug).toHaveBeenCalledWith(
+        { items: mockItems },
+        `dmphubAPI.getAwards results from DMPHub getAwards: ${DMPHubConfig.dmpHubURL}/${expectedPath}`
+      );
+    });
+
+    it('should throw and error when get fails', async () => {
+      const context = buildContext(logger);
+      const apiTarget = 'awards/nih';
+      const mockError = new Error('API down');
+      mockGet.mockImplementation(() => { throw mockError });
+
+      await expect(dmphubAPI.getAwards(context, apiTarget)).rejects.toThrow('API down');
     });
   });
 });

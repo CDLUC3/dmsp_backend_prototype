@@ -2,21 +2,21 @@ import casual from 'casual';
 import { Collaborator, ProjectCollaborator, ProjectCollaboratorAccessLevel, TemplateCollaborator } from "../Collaborator";
 import { Template } from '../Template';
 import { User } from '../User';
-import { buildContext, mockToken } from '../../__mocks__/context';
-import { logger } from '../../__mocks__/logger';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../../services/emailService';
 import { Project } from '../Project';
+import { logger } from "../../logger";
 
 jest.mock('../../logger.ts');
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -115,13 +115,13 @@ describe('TemplateCollaborator', () => {
     let context;
     let templateCollaborator;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (TemplateCollaborator.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       templateCollaborator = new TemplateCollaborator({
         id: casual.integer(1, 9),
@@ -270,6 +270,14 @@ describe('TemplateCollaborator', () => {
       (collaborator.isValid as jest.Mock) = localValidator;
       localValidator.mockResolvedValueOnce(false);
 
+      const mockFindByTemplateIdAndEmail = jest.fn();
+      (TemplateCollaborator.findByTemplateIdAndEmail as jest.Mock) = mockFindByTemplateIdAndEmail;
+      mockFindByTemplateIdAndEmail.mockResolvedValueOnce(null);
+
+      const mockUser = jest.fn();
+      (User.findByEmail as jest.Mock) = mockUser;
+      mockUser.mockResolvedValueOnce(null);
+
       const result = await collaborator.create(context);
       expect(result instanceof TemplateCollaborator).toBe(true);
       expect(localValidator).toHaveBeenCalledTimes(1);
@@ -284,8 +292,12 @@ describe('TemplateCollaborator', () => {
       (TemplateCollaborator.findByTemplateIdAndEmail as jest.Mock) = mockFindBy;
       mockFindBy.mockResolvedValueOnce(collaborator);
 
+      const mockUser = jest.fn();
+      (User.findByEmail as jest.Mock) = mockUser;
+      mockUser.mockResolvedValueOnce(null);
+
       const result = await collaborator.create(context);
-      expect(localValidator).toHaveBeenCalledTimes(1);
+      expect(localValidator).toHaveBeenCalledTimes(0);
       expect(mockFindBy).toHaveBeenCalledTimes(1);
       expect(Object.keys(result.errors).length).toBe(1);
       expect(result.errors['general']).toBeTruthy();
@@ -505,13 +517,13 @@ describe('ProjectCollaborator', () => {
     let context;
     let projectCollaborator;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       jest.resetAllMocks();
 
       localQuery = jest.fn();
       (ProjectCollaborator.query as jest.Mock) = localQuery;
 
-      context = buildContext(logger, mockToken());
+      context = await buildMockContextWithToken(logger);
 
       projectCollaborator = new ProjectCollaborator({
         id: casual.integer(1, 9),
@@ -660,6 +672,14 @@ describe('ProjectCollaborator', () => {
       (collaborator.isValid as jest.Mock) = localValidator;
       localValidator.mockResolvedValueOnce(false);
 
+      const mockFindBy = jest.fn();
+      (ProjectCollaborator.findByProjectIdAndEmail as jest.Mock) = mockFindBy;
+      mockFindBy.mockResolvedValue(null);
+
+      const mockUser = jest.fn();
+      (User.findByEmail as jest.Mock) = mockUser;
+      mockUser.mockResolvedValueOnce(null);
+
       const result = await collaborator.create(context);
       expect(result instanceof ProjectCollaborator).toBe(true);
       expect(localValidator).toHaveBeenCalledTimes(1);
@@ -674,8 +694,12 @@ describe('ProjectCollaborator', () => {
       (ProjectCollaborator.findByProjectIdAndEmail as jest.Mock) = mockFindBy;
       mockFindBy.mockResolvedValueOnce(collaborator);
 
+      const mockUser = jest.fn();
+      (User.findByEmail as jest.Mock) = mockUser;
+      mockUser.mockResolvedValueOnce(null);
+
       const result = await collaborator.create(context);
-      expect(localValidator).toHaveBeenCalledTimes(1);
+      expect(localValidator).toHaveBeenCalledTimes(0);
       expect(mockFindBy).toHaveBeenCalledTimes(1);
       expect(Object.keys(result.errors).length).toBe(1);
       expect(result.errors['general']).toBeTruthy();

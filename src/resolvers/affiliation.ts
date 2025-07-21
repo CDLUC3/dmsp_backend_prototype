@@ -1,10 +1,19 @@
-import { Resolvers } from "../types";
+import { AffiliationSearchResults, Resolvers } from "../types";
 import { MyContext } from '../context';
-import { Affiliation, AffiliationSearch, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL } from '../models/Affiliation';
+import {
+  Affiliation,
+  AffiliationProvenance,
+  AffiliationSearch,
+  AffiliationType,
+  PopularFunder
+} from '../models/Affiliation';
 import { isAdmin, isSuperAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined } from "../utils/helpers";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -14,12 +23,16 @@ export const resolvers: Resolvers = {
     },
 
     // returns an array of Affiliations that match the search criteria
-    affiliations: async (_, { name, funderOnly }, context: MyContext): Promise<AffiliationSearch[]> => {
+    affiliations: async (_, { name, funderOnly, paginationOptions }, context: MyContext): Promise<AffiliationSearchResults> => {
       const reference = 'affiliations resolver';
       try {
-        return await AffiliationSearch.search(context, { name, funderOnly });
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+            ? paginationOptions as PaginationOptionsForOffsets
+            : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+        return await AffiliationSearch.search(reference, context, name, funderOnly, opts);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -30,7 +43,7 @@ export const resolvers: Resolvers = {
       try {
         return await Affiliation.findById(reference, context, affiliationId);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -41,10 +54,21 @@ export const resolvers: Resolvers = {
       try {
         return await Affiliation.findByURI(reference, context, uri);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
+
+    // Returns the most popular funders
+    popularFunders: async (_, __, context: MyContext): Promise<PopularFunder[]> => {
+      const reference = 'popularFunders resolver';
+      try {
+        return await PopularFunder.top20(context);
+      } catch (err) {
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    }
   },
 
   Mutation: {
@@ -67,7 +91,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -99,7 +123,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -118,7 +142,7 @@ export const resolvers: Resolvers = {
           }
 
           // If the affiliation is managed by the DMP Tool then we can delete it
-          if (affiliation.uri.startsWith(DEFAULT_DMPTOOL_AFFILIATION_URL)) {
+          if (affiliation.provenance === AffiliationProvenance.DMPTOOL) {
             return await affiliation.delete(context);
           }
         }
@@ -126,9 +150,18 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
+  },
+
+  Affiliation: {
+    created: (parent: Affiliation) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Affiliation) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
 }

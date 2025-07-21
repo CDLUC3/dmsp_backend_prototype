@@ -20,4 +20,44 @@ export const typeDefs = gql`
   type Mutation {
     _empty: String
   }
+
+  enum PaginationType {
+    "Standard pagination using offsets (first, next, previous, last)"
+    OFFSET
+    "Cursor-based pagination (infinite scroll/load more)"
+    CURSOR
+  }
+
+  "Pagination options, either cursor-based (inifite-scroll) or offset-based pagination (standard first, next, etc.)"
+  input PaginationOptions {
+    "The type of pagination to use (cursor or offset)"
+    type: String = "CURSOR"
+    "The number of items to return"
+    limit: Int
+    "The cursor to start the pagination from (used for cursor infinite scroll/load more only!)"
+    cursor: String
+    "The number of items to skip before starting the pagination (used for standard offset pagination only!)"
+    offset: Int
+    "The sort field (used for standard offset pagination only!)"
+    sortField: String
+    "The sort order (used for standard offset pagination only!)"
+    sortDir: String
+  }
+
+  interface PaginatedQueryResults {
+    "The total number of possible items"
+    totalCount: Int
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more only!)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination only!)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page (standard offset pagination only!)"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
+  }
 `;

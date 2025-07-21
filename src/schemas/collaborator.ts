@@ -5,8 +5,8 @@ export const typeDefs = gql`
     "Get all of the Users that belong to another affiliation that can edit the Template"
     templateCollaborators(templateId: Int!): [TemplateCollaborator]
 
-    "Get all of the Users that are collaborators for the Plan"
-    planCollaborators(planId: Int!): [ProjectCollaborator]
+    "Get all of the Users that are collaborators for the Project"
+    projectCollaborators(projectId: Int!): [ProjectCollaborator]
 
     "Search for a User to add as a collaborator"
     findCollaborator(term: String): [CollaboratorSearchResult]
@@ -19,8 +19,8 @@ export const typeDefs = gql`
     removeTemplateCollaborator(templateId: Int!, email: String!): TemplateCollaborator
 
     "Add a collaborator to a Plan"
-    addProjectCollaborator(planId: Int!, email: String!): ProjectCollaborator
-    "Chnage a collaborator's accessLevel on a Plan"
+    addProjectCollaborator(projectId: Int!, email: String!, accessLevel: ProjectCollaboratorAccessLevel): ProjectCollaborator
+    "Change a collaborator's accessLevel on a Plan"
     updateProjectCollaborator(projectCollaboratorId: Int!, accessLevel: ProjectCollaboratorAccessLevel!): ProjectCollaborator
     "Remove a ProjectCollaborator from a Plan"
     removeProjectCollaborator(projectCollaboratorId: Int!): ProjectCollaborator
@@ -86,10 +86,10 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: ProjectCollaboratorErrors
 
-    "The plan the collaborator may edit"
-    plan: Plan
-    "The ProjectContributor id"
-    projectContributorId: Int
+    "The project the collaborator may edit"
+    project: Project
+    "The project member id"
+    projectMemberId: Int
     "The collaborator's email"
     email: String!
     "The collaborator (if they have an account)"
@@ -114,7 +114,7 @@ export const typeDefs = gql`
 
   "The result of the findCollaborator query"
   type CollaboratorSearchResult {
-    "The unique identifer for the Object"
+    "The unique identifier for the Object"
     id: Int
     "The collaborator's first/given name"
     givenName: String

@@ -1,6 +1,190 @@
 import { MyContext } from "../context";
-import { validateDate } from "../utils/helpers";
+import { prepareObjectForLogs } from "../logger";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
+export class ProjectSearchResult {
+  public id: number;
+  public title: string;
+  public abstractText?: string;
+  public startDate?: string;
+  public endDate?: string;
+  public researchDomain?: string;
+  public isTestProject: boolean;
+  public created: string;
+  public createdById: number;
+  public createdByName: string;
+  public modified: string;
+  public modifiedById: number;
+  public modifiedByName: string;
+  public collaboratorsData: string;
+  public collaborators: { name: string, accessLevel: string, orcid: string }[];
+  public membersData: string;
+  public members: { name: string, role: string, orcid: string }[];
+  public fundingsData: string;
+  public fundings: { name: string, grantId: string }[];
+
+  constructor(options) {
+    this.id = options.id;
+    this.title = options.title;
+    this.abstractText = options.abstractText;
+    this.startDate = options.startDate;
+    this.endDate = options.endDate;
+    this.researchDomain = options.researchDomain;
+    this.isTestProject = options.isTestProject;
+    this.created = options.created;
+    this.createdById = options.createdById;
+    this.createdByName = options.createdByName;
+    this.modified = options.modified;
+    this.modifiedById = options.modifiedById;
+    this.modifiedByName = options.modifiedByName;
+    this.collaboratorsData = options.collaboratorsData;
+    this.collaborators = options.collaborators;
+    this.membersData = options.membersData;
+    this.members = options.members;
+    this.fundingsData = options.fundingsData;
+    this.fundings = options.fundings;
+  }
+
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    userId: number,
+    affiliationId: string | null = null,
+    options: PaginationOptions = Project.getDefaultPaginationOptions()
+  ): Promise<PaginatedQueryResults<ProjectSearchResult>> {
+    const whereFilters = [];
+    const values = [];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(p.title) LIKE ? OR LOWER(p.abstractText) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['p.title', 'p.created', 'p.modified', 'p.startDate', 'p.endDate', 'p.isTestProject'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(p.modified, p.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'p.modified';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the totalCount
+    opts.countField = 'p.id';
+
+    // If a userId was provided, add it to the filters
+    if (userId) {
+      whereFilters.push('(p.createdById = ? OR p.id IN (SELECT projectId FROM projectCollaborators WHERE userId = ?))');
+      values.push(userId.toString(), userId.toString());
+    } else if (affiliationId) {
+      // If the current user is an organizational admin
+      whereFilters.push('(cu.affiliationId = ?)');
+      values.push(affiliationId);
+    }
+
+    const sqlStatement = 'SELECT p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
+                          'researchDomains.description as researchDomain, ' +
+                          'p.createdById, p.created, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, ' +
+                          'p.modifiedById, p.modified, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, ' +
+                          'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', ' +
+                            'CASE ' +
+                              'WHEN collab.surName IS NOT NULL THEN TRIM(CONCAT(collab.givenName, CONCAT(\' \', collab.surName))) ' +
+                              'ELSE (SELECT collabE.email FROM userEmails collabE WHERE collabE.userId = collab.id LIMIT 1) ' +
+                            'END, ' +
+                            'CONCAT(UPPER(SUBSTRING(pcol.accessLevel, 1, 1)), LOWER(SUBSTRING(pcol.accessLevel FROM 2))), ' +
+                            'collab.orcid ' +
+                          ') ORDER BY collab.created) collaboratorsData, ' +
+                          'GROUP_CONCAT(DISTINCT ' +
+                            'CONCAT_WS(\'|\', ' +
+                              'CASE ' +
+                                'WHEN pm.surName IS NOT NULL THEN TRIM(CONCAT(pm.givenName, CONCAT(\' \', pm.surName))) ' +
+                                'ELSE (SELECT pmE.email FROM userEmails pmE WHERE pmE.userId = pm.id AND pmE.isPrimary = 1 LIMIT 1) ' +
+                              'END, ' +
+                              'r.label, ' +
+                              'pm.orcid ' +
+                          ') ORDER BY pm.created) as membersData, ' +
+                          'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', fundings.name, pf.grantId) ' +
+                            'ORDER BY fundings.name SEPARATOR \',\') fundingsData ' +
+                        'FROM projects p ' +
+                          'LEFT JOIN researchDomains ON p.researchDomainId = researchDomains.id ' +
+                          'LEFT JOIN users cu ON cu.id = p.createdById ' +
+                          'LEFT JOIN users mu ON mu.id = p.modifiedById ' +
+                          'LEFT JOIN projectCollaborators pcol ON pcol.projectId = p.id ' +
+                            'LEFT JOIN users collab ON pcol.userId = collab.id ' +
+                          'LEFT JOIN projectMembers pm ON pm.projectId = p.id ' +
+                            'LEFT JOIN projectMemberRoles pmr ON pm.id = pmr.projectMemberId ' +
+                            'LEFT JOIN memberRoles r ON pmr.memberRoleId = r.id ' +
+                          'LEFT JOIN projectFundings pf ON pf.projectId = p.id ' +
+                            'LEFT JOIN affiliations fundings ON pf.affiliationId = fundings.uri ';
+
+    const groupByClause = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
+                          'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description';
+
+    const response: PaginatedQueryResults<ProjectSearchResult> = await Project.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      groupByClause,
+      values,
+      opts,
+      reference,
+    )
+
+    // Loop through each result and marshal the collaborators, members, and fundings objects
+    response.items = response.items.map((item) => {
+      const collabs = item.collaboratorsData?.split(',') ?? [];
+      const contribs = item.membersData?.split(',') ?? [];
+      const funds = item.fundingsData?.split(',') ?? [];
+
+      // Translate the string data into collaborator objects
+      item.collaborators = collabs.map((collab) => {
+        const [name, accessLevel, orcid] = collab.split('|');
+        return { name, accessLevel, orcid };
+      });
+      // Translate the string data into member objects.
+      item.members = contribs.map((contrib) => {
+        const [name, role, orcid] = contrib.split('|');
+        return { name, role, orcid };
+      });
+      // There can be multiple member entries (one per role) so we want to deduplicate them
+      // and have a single entry with all the roles listed
+      item.members = item.members.reduce((acc, curr) => {
+        const existing = acc.find((entry) => entry.name === curr.name);
+        if (existing) {
+          existing.role += `, ${curr.role}`;
+        } else {
+          acc.push(curr);
+        }
+        return acc;
+      }, []);
+
+      // Translate the string data into Funding objects
+      item.fundings = funds.map((funding) => {
+        const [name, grantId] = funding.split('|');
+        return { name, grantId };
+      });
+      return new ProjectSearchResult(item)
+    });
+
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
+    return response;
+  }
+}
 
 export class Project extends MySqlModel {
   public title: string;
@@ -144,9 +328,9 @@ export class Project extends MySqlModel {
   }
 
   // Fetch a Project by it's id
-  static async findById(reference: string, context: MyContext, projectFunderId: number): Promise<Project> {
+  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<Project> {
     const sql = 'SELECT * FROM projects WHERE id = ?';
-    const results = await Project.query(context, sql, [projectFunderId?.toString()], reference);
+    const results = await Project.query(context, sql, [projectFundingId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Project(results[0]) : null;
   }
 };

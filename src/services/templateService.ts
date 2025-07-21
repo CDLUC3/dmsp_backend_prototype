@@ -6,13 +6,17 @@ import { isSuperAdmin } from "./authService";
 import { TemplateCollaborator } from "../models/Collaborator";
 import { Section } from "../models/Section";
 import { generateSectionVersion } from "./sectionService";
-import { formatLogMessage } from "../logger";
-
+import { prepareObjectForLogs } from "../logger";
 
 // Determine whether the specified user has permission to access the Template
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
-  // If the current user belongs to the same affiliation OR the user is a super admin
-  if (context.token?.affiliationId === template?.ownerId || await isSuperAdmin(context.token)) {
+  if (!context || !context.token) return false;
+
+  // If the user is a super admin they have access
+  if (isSuperAdmin(context.token)) return true;
+
+  // If the current user belongs to the same affiliation
+  if (context.token?.affiliationId === template?.ownerId) {
     return true;
   }
 
@@ -28,7 +32,7 @@ export const hasPermissionOnTemplate = async (context: MyContext, template: Temp
   }
 
   const payload = { templateId: template?.id, userId: context.token?.id };
-  formatLogMessage(context).error(payload, 'AUTH failure: hasPermissionOnTemplate')
+  context.logger.error(prepareObjectForLogs(payload), 'AUTH failure: hasPermissionOnTemplate');
   return false;
 }
 
@@ -42,7 +46,7 @@ export const generateTemplateVersion = async (
   versions: VersionedTemplate[],
   versionerId: number,
   comment = '',
-  visibility = TemplateVisibility.PRIVATE,
+  visibility = TemplateVisibility.ORGANIZATION,
   versionType = TemplateVersionType.DRAFT,
 ): Promise<VersionedTemplate> => {
   // If the template has no id then it has not yet been saved so throw an error
@@ -114,16 +118,16 @@ export const generateTemplateVersion = async (
         if (updated && !updated.hasErrors()) return created;
 
         const msg = `Unable to update template: ${template.id}`;
-        formatLogMessage(context).error(updated.errors, msg);
+        context.logger.error(prepareObjectForLogs(updated.errors), msg);
         throw new Error(msg);
       }
     } catch (err) {
-      formatLogMessage(context).error(err, `Unable to create a new version for template: ${template.id}`);
+      context.logger.error(prepareObjectForLogs(err), `Unable to create a new version for template: ${template.id}`);
       throw new Error(err.message);
     }
   } else {
     const msg = `Unable to generate a new version of template ${template.id}`;
-    formatLogMessage(context).error(created.errors, msg);
+    context.logger.error(prepareObjectForLogs(created.errors), msg);
     throw new Error(msg);
   }
   // Something went wrong, so return a null instead
@@ -139,7 +143,7 @@ export const cloneTemplate = (
   // If the incoming is a VersionedTemplate, then use the templateId (the template it was based off of)
   const sourceId = Object.keys(template).includes('templateId') ? template['templateId'] : template.id;
   const templateCopy = new Template({
-    name: `Copy of ${template.name}`,
+    name: template.name,
     description: template.description,
     languageId: template.languageId,
     ownerId: newOwnerId,

@@ -1,7 +1,7 @@
 import casual from "casual";
 import { Section } from "../Section";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
 
 let context;
 jest.mock('../../context.ts');
@@ -51,13 +51,13 @@ describe('findBySectionName', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -97,13 +97,13 @@ describe('findByTemplateId', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -122,7 +122,7 @@ describe('findByTemplateId', () => {
     localQuery.mockResolvedValueOnce([section]);
     const templateId = 1;
     const result = await Section.findByTemplateId('Section query', context, templateId);
-    const expectedSql = 'SELECT * FROM sections WHERE templateId = ?';
+    const expectedSql = 'SELECT * FROM sections WHERE templateId = ? ORDER BY displayOrder ASC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [templateId.toString()], 'Section query')
     expect(result).toEqual([section]);
@@ -143,13 +143,13 @@ describe('findById', () => {
   let context;
   let section;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Section.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     section = new Section({
       id: casual.integer(1, 9),
@@ -215,30 +215,10 @@ describe('create', () => {
     expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
-  it('returns the Section with an error if the section already exists', async () => {
-    const localValidator = jest.fn();
-    (section.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
-
-    const mockFindBy = jest.fn();
-    (Section.findBySectionName as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValueOnce(section);
-
-    const result = await section.create(context);
-    expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(mockFindBy).toHaveBeenCalledTimes(1);
-    expect(Object.keys(result.errors).length).toBe(1);
-    expect(result.errors['general']).toBeTruthy();
-  });
   it('returns the newly added Section', async () => {
     const localValidator = jest.fn();
     (section.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
-
-    const mockFindBy = jest.fn();
-    (Section.findBySectionName as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValueOnce(null);
-    mockFindBy.mockResolvedValue(section);
 
     const mockFindById = jest.fn();
     (Section.findById as jest.Mock) = mockFindById;
@@ -246,7 +226,6 @@ describe('create', () => {
 
     const result = await section.create(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
-    expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);

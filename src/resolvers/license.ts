@@ -1,21 +1,28 @@
 
-import { formatLogMessage } from '../logger';
-import { Resolvers } from "../types";
+import { prepareObjectForLogs } from '../logger';
+import { LicenseSearchResults, Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_LICENSE_URL, License } from "../models/License";
 import { MyContext } from '../context';
 import { isAdmin, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { GraphQLError } from 'graphql';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import { isNullOrUndefined } from '../utils/helpers';
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
     // searches the licenses table or returns all licenses if no critieria is specified
-    licenses: async (_, { term }, context: MyContext): Promise<License[]> => {
+    licenses: async (_, { term, paginationOptions }, context: MyContext): Promise<LicenseSearchResults> => {
       const reference = 'licenses resolver';
       try {
-        return await License.search(reference, context, term);
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                    ? paginationOptions as PaginationOptionsForOffsets
+                    : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+        return await License.search(reference, context, term, opts);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -26,7 +33,7 @@ export const resolvers: Resolvers = {
       try {
         return await License.recommended(reference, context, recommended);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -37,7 +44,7 @@ export const resolvers: Resolvers = {
       try {
         return await License.findByURI(reference, context, uri);
       } catch (err) {
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -66,7 +73,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -89,7 +96,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -113,7 +120,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -157,9 +164,18 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
   },
+
+  License: {
+    created: (parent: License) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: License) => {
+      return formatISO9075(new Date(parent.modified));
+    }
+  }
 };

@@ -1,90 +1,90 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { PlanFunder, ProjectFunder, ProjectFunderStatus } from "../Funder";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { PlanFunding, ProjectFunding, ProjectFundingStatus } from "../Funding";
 import { getRandomEnumValue } from "../../__tests__/helpers";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
   jest.clearAllMocks();
 });
 
-describe('ProjectFunder', () => {
-  let projectFunder;
+describe('ProjectFunding', () => {
+  let projectFunding;
 
-  const funderData = {
+  const fundingData = {
     projectId: casual.integer(1, 9),
     affiliationId: casual.url,
-    status: getRandomEnumValue(ProjectFunderStatus),
+    status: getRandomEnumValue(ProjectFundingStatus),
     funderOpportunityNumber: casual.url,
     funderProjectNumber: casual.uuid,
     grantId: casual.url,
   }
   beforeEach(() => {
-    projectFunder = new ProjectFunder(funderData);
+    projectFunding = new ProjectFunding(fundingData);
   });
 
   it('should initialize options as expected', () => {
-    expect(projectFunder.projectId).toEqual(funderData.projectId);
-    expect(projectFunder.affiliationId).toEqual(funderData.affiliationId);
-    expect(projectFunder.status).toEqual(funderData.status);
-    expect(projectFunder.funderOpportunityNumber).toEqual(funderData.funderOpportunityNumber);
-    expect(projectFunder.funderProjectNumber).toEqual(funderData.funderProjectNumber);
-    expect(projectFunder.grantId).toEqual(funderData.grantId);
+    expect(projectFunding.projectId).toEqual(fundingData.projectId);
+    expect(projectFunding.affiliationId).toEqual(fundingData.affiliationId);
+    expect(projectFunding.status).toEqual(fundingData.status);
+    expect(projectFunding.funderOpportunityNumber).toEqual(fundingData.funderOpportunityNumber);
+    expect(projectFunding.funderProjectNumber).toEqual(fundingData.funderProjectNumber);
+    expect(projectFunding.grantId).toEqual(fundingData.grantId);
   });
 
   it('should return true when calling isValid if object is valid', async () => {
-    expect(await projectFunder.isValid()).toBe(true);
+    expect(await projectFunding.isValid()).toBe(true);
   });
 
   it('should return false when calling isValid if the projectId field is missing', async () => {
-    projectFunder.projectId = null;
-    expect(await projectFunder.isValid()).toBe(false);
-    expect(Object.keys(projectFunder.errors).length).toBe(1);
-    expect(projectFunder.errors['projectId']).toBeTruthy();
+    projectFunding.projectId = null;
+    expect(await projectFunding.isValid()).toBe(false);
+    expect(Object.keys(projectFunding.errors).length).toBe(1);
+    expect(projectFunding.errors['projectId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the projectId field is missing', async () => {
-    projectFunder.affiliationId = null;
-    expect(await projectFunder.isValid()).toBe(false);
-    expect(Object.keys(projectFunder.errors).length).toBe(1);
-    expect(projectFunder.errors['affiliationId']).toBeTruthy();
+    projectFunding.affiliationId = null;
+    expect(await projectFunding.isValid()).toBe(false);
+    expect(Object.keys(projectFunding.errors).length).toBe(1);
+    expect(projectFunding.errors['affiliationId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the projectId field is missing', async () => {
-    projectFunder.status = null;
-    expect(await projectFunder.isValid()).toBe(false);
-    expect(Object.keys(projectFunder.errors).length).toBe(1);
-    expect(projectFunder.errors['status']).toBeTruthy();
+    projectFunding.status = null;
+    expect(await projectFunding.isValid()).toBe(false);
+    expect(Object.keys(projectFunding.errors).length).toBe(1);
+    expect(projectFunding.errors['status']).toBeTruthy();
   });
 });
 
 describe('findBy Queries', () => {
-  const originalQuery = ProjectFunder.query;
+  const originalQuery = ProjectFunding.query;
 
   let localQuery;
   let context;
-  let projectFunder;
+  let projectFunding;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
-    (ProjectFunder.query as jest.Mock) = localQuery;
+    (ProjectFunding.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
-    projectFunder = new ProjectFunder({
+    projectFunding = new ProjectFunding({
       projectId: casual.integer(1, 999),
       affiliationId: casual.url,
-      status: getRandomEnumValue(ProjectFunderStatus),
+      status: getRandomEnumValue(ProjectFundingStatus),
       funderOpportunityNumber: casual.url,
       funderProjectNumber: casual.uuid,
       grantId: casual.url
@@ -93,152 +93,152 @@ describe('findBy Queries', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    ProjectFunder.query = originalQuery;
+    ProjectFunding.query = originalQuery;
   });
 
   it('findById should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([projectFunder]);
-    const projectFunderId = casual.integer(1, 999);
-    const result = await ProjectFunder.findById('testing', context, projectFunderId);
-    const expectedSql = 'SELECT * FROM projectFunders WHERE id = ?';
+    localQuery.mockResolvedValueOnce([projectFunding]);
+    const projectFundingId = casual.integer(1, 999);
+    const result = await ProjectFunding.findById('testing', context, projectFundingId);
+    const expectedSql = 'SELECT * FROM projectFundings WHERE id = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectFunderId.toString()], 'testing')
-    expect(result).toEqual(projectFunder);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectFundingId.toString()], 'testing')
+    expect(result).toEqual(projectFunding);
   });
 
   it('findById should return null if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const projectFunderId = casual.integer(1, 999);
-    const result = await ProjectFunder.findById('testing', context, projectFunderId);
+    const projectFundingId = casual.integer(1, 999);
+    const result = await ProjectFunding.findById('testing', context, projectFundingId);
     expect(result).toEqual(null);
   });
 
   it('findByProjectId should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([projectFunder]);
+    localQuery.mockResolvedValueOnce([projectFunding]);
     const projectId = casual.integer(1, 999);
-    const result = await ProjectFunder.findByProjectId('testing', context, projectId);
-    const expectedSql = 'SELECT * FROM projectFunders WHERE projectId = ? ORDER BY created DESC';
+    const result = await ProjectFunding.findByProjectId('testing', context, projectId);
+    const expectedSql = 'SELECT * FROM projectFundings WHERE projectId = ? ORDER BY created DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectId.toString()], 'testing')
-    expect(result).toEqual([projectFunder]);
+    expect(result).toEqual([projectFunding]);
   });
 
   it('findByProjectId should return empty array if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
     const projectId = casual.integer(1, 999);
-    const result = await ProjectFunder.findByProjectId('testing', context, projectId);
+    const result = await ProjectFunding.findByProjectId('testing', context, projectId);
     expect(result).toEqual([]);
   });
 
   it('findByAffiliation should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([projectFunder]);
+    localQuery.mockResolvedValueOnce([projectFunding]);
     const affiliationId = casual.url;
-    const result = await ProjectFunder.findByAffiliation('testing', context, affiliationId);
-    const expectedSql = 'SELECT * FROM projectFunders WHERE affiliationId = ? ORDER BY created DESC';
+    const result = await ProjectFunding.findByAffiliation('testing', context, affiliationId);
+    const expectedSql = 'SELECT * FROM projectFundings WHERE affiliationId = ? ORDER BY created DESC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliationId], 'testing')
-    expect(result).toEqual([projectFunder]);
+    expect(result).toEqual([projectFunding]);
   });
 
   it('findByAffiliation should return empty array if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
     const affiliationId = casual.url;
-    const result = await ProjectFunder.findByAffiliation('testing', context, affiliationId);
+    const result = await ProjectFunding.findByAffiliation('testing', context, affiliationId);
     expect(result).toEqual([]);
   });
 
   it('findByProjectAndAffiliation should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([projectFunder]);
+    localQuery.mockResolvedValueOnce([projectFunding]);
     const projectId = casual.integer(1, 999);
     const email = casual.email;
-    const result = await ProjectFunder.findByProjectAndAffiliation('testing', context, projectId, email);
-    const expectedSql = 'SELECT * FROM projectFunders WHERE projectId = ? AND affiliationId = ?';
+    const result = await ProjectFunding.findByProjectAndAffiliation('testing', context, projectId, email);
+    const expectedSql = 'SELECT * FROM projectFundings WHERE projectId = ? AND affiliationId = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectId.toString(), email], 'testing')
-    expect(result).toEqual(projectFunder);
+    expect(result).toEqual(projectFunding);
   });
 
   it('findByProjectAndAffiliation should return empty array if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
     const projectId = casual.integer(1, 999);
     const email = casual.email;
-    const result = await ProjectFunder.findByProjectAndAffiliation('testing', context, projectId, email);
+    const result = await ProjectFunding.findByProjectAndAffiliation('testing', context, projectId, email);
     expect(result).toEqual(null);
   });
 });
 
 describe('update', () => {
   let updateQuery;
-  let projectFunder;
+  let projectFunding;
 
   beforeEach(() => {
     updateQuery = jest.fn();
-    (ProjectFunder.update as jest.Mock) = updateQuery;
+    (ProjectFunding.update as jest.Mock) = updateQuery;
 
-    projectFunder = new ProjectFunder({
+    projectFunding = new ProjectFunding({
       id: casual.integer(1, 9999),
       projectId: casual.integer(1, 999),
       affiliationId: casual.url,
-      status: getRandomEnumValue(ProjectFunderStatus),
+      status: getRandomEnumValue(ProjectFundingStatus),
       funderOpportunityNumber: casual.url,
       funderProjectNumber: casual.uuid,
       grantId: casual.url
     })
   });
 
-  it('returns the ProjectFunder with errors if it is not valid', async () => {
+  it('returns the ProjectFunding with errors if it is not valid', async () => {
     const localValidator = jest.fn();
-    (projectFunder.isValid as jest.Mock) = localValidator;
+    (projectFunding.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    const result = await projectFunder.update(context);
-    expect(result).toBeInstanceOf(ProjectFunder);
+    const result = await projectFunding.update(context);
+    expect(result).toBeInstanceOf(ProjectFunding);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
-  it('returns an error if the ProjectFunder has no id', async () => {
+  it('returns an error if the ProjectFunding has no id', async () => {
     const localValidator = jest.fn();
-    (projectFunder.isValid as jest.Mock) = localValidator;
+    (projectFunding.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
 
-    projectFunder.id = null;
-    const result = await projectFunder.update(context);
+    projectFunding.id = null;
+    const result = await projectFunding.update(context);
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
   });
 
-  it('returns the updated ProjectFunder', async () => {
+  it('returns the updated ProjectFunding', async () => {
     const localValidator = jest.fn();
-    (projectFunder.isValid as jest.Mock) = localValidator;
+    (projectFunding.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
 
-    updateQuery.mockResolvedValueOnce(projectFunder);
+    updateQuery.mockResolvedValueOnce(projectFunding);
 
     const mockFindById = jest.fn();
-    (ProjectFunder.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(projectFunder);
+    (ProjectFunding.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(projectFunding);
 
-    const result = await projectFunder.update(context);
+    const result = await projectFunding.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(ProjectFunder);
+    expect(result).toBeInstanceOf(ProjectFunding);
   });
 });
 
 describe('create', () => {
-  const originalInsert = ProjectFunder.insert;
+  const originalInsert = ProjectFunding.insert;
   let insertQuery;
-  let projectFunder;
+  let projectFunding;
 
   beforeEach(() => {
     insertQuery = jest.fn();
-    (ProjectFunder.insert as jest.Mock) = insertQuery;
+    (ProjectFunding.insert as jest.Mock) = insertQuery;
 
-    projectFunder = new ProjectFunder({
+    projectFunding = new ProjectFunding({
       projectId: casual.integer(1, 999),
       affiliationId: casual.url,
-      status: getRandomEnumValue(ProjectFunderStatus),
+      status: getRandomEnumValue(ProjectFundingStatus),
       funderOpportunityNumber: casual.url,
       funderProjectNumber: casual.uuid,
       grantId: casual.url
@@ -246,366 +246,366 @@ describe('create', () => {
   });
 
   afterEach(() => {
-    ProjectFunder.insert = originalInsert;
+    ProjectFunding.insert = originalInsert;
   });
 
-  it('returns the ProjectFunder without errors if it is valid', async () => {
+  it('returns the ProjectFunding without errors if it is valid', async () => {
     const localValidator = jest.fn();
-    (projectFunder.isValid as jest.Mock) = localValidator;
+    (projectFunding.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    const result = await projectFunder.create(context);
-    expect(result).toBeInstanceOf(ProjectFunder);
+    const result = await projectFunding.create(context);
+    expect(result).toBeInstanceOf(ProjectFunding);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
-  it('returns the ProjectFunder with errors if it is invalid', async () => {
-    projectFunder.projectId = undefined;
-    const response = await projectFunder.create(context);
+  it('returns the ProjectFunding with errors if it is invalid', async () => {
+    projectFunding.projectId = undefined;
+    const response = await projectFunding.create(context);
     expect(response.errors['projectId']).toBe('Project can\'t be blank');
   });
 
-  it('returns the ProjectFunder with an error if the question already exists', async () => {
+  it('returns the ProjectFunding with an error if the question already exists', async () => {
     const mockFindBy = jest.fn();
-    (ProjectFunder.findByProjectAndAffiliation as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValueOnce(projectFunder);
+    (ProjectFunding.findByProjectAndAffiliation as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(projectFunding);
 
-    const result = await projectFunder.create(context);
+    const result = await projectFunding.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
   });
 
-  it('returns the newly added ProjectFunder', async () => {
+  it('returns the newly added ProjectFunding', async () => {
     const mockFindBy = jest.fn();
-    (ProjectFunder.findByProjectAndAffiliation as jest.Mock) = mockFindBy;
+    (ProjectFunding.findByProjectAndAffiliation as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(null);
 
     const mockFindById = jest.fn();
-    (ProjectFunder.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(projectFunder);
+    (ProjectFunding.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(projectFunding);
 
-    const result = await projectFunder.create(context);
+    const result = await projectFunding.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(ProjectFunder);
+    expect(result).toBeInstanceOf(ProjectFunding);
   });
 });
 
 describe('delete', () => {
-  let projectFunder;
+  let projectFunding;
 
   beforeEach(() => {
-    projectFunder = new ProjectFunder({
+    projectFunding = new ProjectFunding({
       id: casual.integer(1, 9999),
       projectId: casual.integer(1, 999),
       affiliationId: casual.url,
-      status: getRandomEnumValue(ProjectFunderStatus),
+      status: getRandomEnumValue(ProjectFundingStatus),
       funderOpportunityNumber: casual.url,
       funderProjectNumber: casual.uuid,
       grantId: casual.url
     });
   })
 
-  it('returns null if the ProjectFunder has no id', async () => {
-    projectFunder.id = null;
-    expect(await projectFunder.delete(context)).toBe(null);
+  it('returns null if the ProjectFunding has no id', async () => {
+    projectFunding.id = null;
+    expect(await projectFunding.delete(context)).toBe(null);
   });
 
   it('returns null if it was not able to delete the record', async () => {
     const deleteQuery = jest.fn();
-    (ProjectFunder.delete as jest.Mock) = deleteQuery;
+    (ProjectFunding.delete as jest.Mock) = deleteQuery;
 
     deleteQuery.mockResolvedValueOnce(null);
-    expect(await projectFunder.delete(context)).toBe(null);
+    expect(await projectFunding.delete(context)).toBe(null);
   });
 
-  it('returns the ProjectFunder if it was able to delete the record', async () => {
+  it('returns the ProjectFunding if it was able to delete the record', async () => {
     const deleteQuery = jest.fn();
-    (ProjectFunder.delete as jest.Mock) = deleteQuery;
-    deleteQuery.mockResolvedValueOnce(projectFunder);
+    (ProjectFunding.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(projectFunding);
 
     const mockFindById = jest.fn();
-    (ProjectFunder.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(projectFunder);
+    (ProjectFunding.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(projectFunding);
 
-    const result = await projectFunder.delete(context);
+    const result = await projectFunding.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(ProjectFunder);
+    expect(result).toBeInstanceOf(ProjectFunding);
   });
 });
 
-describe('PlanFunder', () => {
-  let planFunder;
+describe('PlanFunding', () => {
+  let planFunding;
 
-  const funderData = {
+  const fundingData = {
     createdById: casual.integer(1, 999),
     planId: casual.integer(1, 9),
-    projectFunderId: casual.integer(1, 999),
+    projectFundingId: casual.integer(1, 999),
   }
   beforeEach(() => {
-    planFunder = new PlanFunder(funderData);
+    planFunding = new PlanFunding(fundingData);
   });
 
   it('should initialize options as expected', () => {
-    expect(planFunder.planId).toEqual(funderData.planId);
-    expect(planFunder.projectFunderId).toEqual(funderData.projectFunderId);
+    expect(planFunding.planId).toEqual(fundingData.planId);
+    expect(planFunding.projectFundingId).toEqual(fundingData.projectFundingId);
   });
 
   it('should return true when calling isValid if object is valid', async () => {
-    expect(await planFunder.isValid()).toBe(true);
+    expect(await planFunding.isValid()).toBe(true);
   });
 
   it('should return false when calling isValid if the planId field is missing', async () => {
-    planFunder.planId = null;
-    expect(await planFunder.isValid()).toBe(false);
-    expect(Object.keys(planFunder.errors).length).toBe(1);
-    expect(planFunder.errors['planId']).toBeTruthy();
+    planFunding.planId = null;
+    expect(await planFunding.isValid()).toBe(false);
+    expect(Object.keys(planFunding.errors).length).toBe(1);
+    expect(planFunding.errors['planId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the projectFunderId field is missing', async () => {
-    planFunder.projectFunderId = null;
-    expect(await planFunder.isValid()).toBe(false);
-    expect(Object.keys(planFunder.errors).length).toBe(1);
-    expect(planFunder.errors['projectFunderId']).toBeTruthy();
+  it('should return false when calling isValid if the projectFundingId field is missing', async () => {
+    planFunding.projectFundingId = null;
+    expect(await planFunding.isValid()).toBe(false);
+    expect(Object.keys(planFunding.errors).length).toBe(1);
+    expect(planFunding.errors['projectFundingId']).toBeTruthy();
   });
 });
 
 describe('findBy Queries', () => {
-  const originalQuery = PlanFunder.query;
+  const originalQuery = PlanFunding.query;
 
   let localQuery;
   let context;
-  let planFunder;
+  let planFunding;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
-    (PlanFunder.query as jest.Mock) = localQuery;
+    (PlanFunding.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
-    planFunder = new PlanFunder({
+    planFunding = new PlanFunding({
       planId: casual.integer(1, 999),
-      projectFunderId: casual.url,
+      projectFundingId: casual.url,
     });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    PlanFunder.query = originalQuery;
+    PlanFunding.query = originalQuery;
   });
 
   it('findById should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([planFunder]);
-    const planFunderId = casual.integer(1, 999);
-    const result = await PlanFunder.findById('testing', context, planFunderId);
-    const expectedSql = 'SELECT * FROM planFunders WHERE id = ?';
+    localQuery.mockResolvedValueOnce([planFunding]);
+    const planFundingId = casual.integer(1, 999);
+    const result = await PlanFunding.findById('testing', context, planFundingId);
+    const expectedSql = 'SELECT * FROM planFundings WHERE id = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planFunderId.toString()], 'testing')
-    expect(result).toEqual(planFunder);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planFundingId.toString()], 'testing')
+    expect(result).toEqual(planFunding);
   });
 
   it('findById should return null if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const planFunderId = casual.integer(1, 999);
-    const result = await PlanFunder.findById('testing', context, planFunderId);
+    const planFundingId = casual.integer(1, 999);
+    const result = await PlanFunding.findById('testing', context, planFundingId);
     expect(result).toEqual(null);
   });
 
   it('findByPlanId should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([planFunder]);
+    localQuery.mockResolvedValueOnce([planFunding]);
     const projectId = casual.integer(1, 999);
-    const result = await PlanFunder.findByPlanId('testing', context, projectId);
-    const expectedSql = 'SELECT * FROM planFunders WHERE planId = ?';
+    const result = await PlanFunding.findByPlanId('testing', context, projectId);
+    const expectedSql = 'SELECT * FROM planFundings WHERE planId = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectId.toString()], 'testing')
-    expect(result).toEqual([planFunder]);
+    expect(result).toEqual([planFunding]);
   });
 
   it('findByPlanId should return empty array if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
     const projectId = casual.integer(1, 999);
-    const result = await PlanFunder.findByPlanId('testing', context, projectId);
+    const result = await PlanFunding.findByPlanId('testing', context, projectId);
     expect(result).toEqual([]);
   });
 
-  it('findByProjectFunderId should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([planFunder]);
+  it('findByProjectFundingId should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([planFunding]);
     const planId = casual.integer(1, 999);
-    const projectFunderId = casual.integer(1, 999);
-    const result = await PlanFunder.findByProjectFunderId('testing', context, planId, projectFunderId);
-    const expectedSql = 'SELECT * FROM planFunders WHERE planId = ? AND projectFunderId = ?';
+    const projectFundingId = casual.integer(1, 999);
+    const result = await PlanFunding.findByProjectFundingId('testing', context, planId, projectFundingId);
+    const expectedSql = 'SELECT * FROM planFundings WHERE planId = ? AND projectFundingId = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    const vals = [planId.toString(), projectFunderId.toString()];
+    const vals = [planId.toString(), projectFundingId.toString()];
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
-    expect(result).toEqual(planFunder);
+    expect(result).toEqual(planFunding);
   });
 
-  it('findByProjectFunderId should return empty array if it finds no default', async () => {
+  it('findByProjectFundingId should return empty array if it finds no default', async () => {
     localQuery.mockResolvedValueOnce([]);
     const planId = casual.integer(1, 999);
-    const projectFunderId = casual.integer(1, 999);
-    const result = await PlanFunder.findByProjectFunderId('testing', context, planId, projectFunderId);
+    const projectFundingId = casual.integer(1, 999);
+    const result = await PlanFunding.findByProjectFundingId('testing', context, planId, projectFundingId);
     expect(result).toEqual(null);
   });
 });
 
 describe('update', () => {
   let updateQuery;
-  let planFunder;
+  let planFunding;
 
   beforeEach(() => {
     updateQuery = jest.fn();
-    (PlanFunder.update as jest.Mock) = updateQuery;
+    (PlanFunding.update as jest.Mock) = updateQuery;
 
-    planFunder = new PlanFunder({
+    planFunding = new PlanFunding({
       id: casual.integer(1, 9999),
       planId: casual.integer(1, 999),
-      projectFunderId: casual.integer(1, 999),
+      projectFundingId: casual.integer(1, 999),
     })
   });
 
-  it('returns the PlanFunder with errors if it is not valid', async () => {
+  it('returns the PlanFunding with errors if it is not valid', async () => {
     const localValidator = jest.fn();
-    (planFunder.isValid as jest.Mock) = localValidator;
+    (planFunding.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    const result = await planFunder.update(context);
-    expect(result).toBeInstanceOf(PlanFunder);
+    const result = await planFunding.update(context);
+    expect(result).toBeInstanceOf(PlanFunding);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
-  it('returns an error if the PlanFunder has no id', async () => {
+  it('returns an error if the PlanFunding has no id', async () => {
     const localValidator = jest.fn();
-    (planFunder.isValid as jest.Mock) = localValidator;
+    (planFunding.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
 
-    planFunder.id = null;
-    const result = await planFunder.update(context);
+    planFunding.id = null;
+    const result = await planFunding.update(context);
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
   });
 
-  it('returns the updated PlanFunder', async () => {
+  it('returns the updated PlanFunding', async () => {
     const localValidator = jest.fn();
-    (planFunder.isValid as jest.Mock) = localValidator;
+    (planFunding.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
 
-    updateQuery.mockResolvedValueOnce(planFunder);
+    updateQuery.mockResolvedValueOnce(planFunding);
 
     const mockFindById = jest.fn();
-    (PlanFunder.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(planFunder);
+    (PlanFunding.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planFunding);
 
-    const result = await planFunder.update(context);
+    const result = await planFunding.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(PlanFunder);
+    expect(result).toBeInstanceOf(PlanFunding);
   });
 });
 
 describe('create', () => {
-  const originalInsert = PlanFunder.insert;
+  const originalInsert = PlanFunding.insert;
   let insertQuery;
-  let planFunder;
+  let planFunding;
 
   beforeEach(() => {
     insertQuery = jest.fn();
-    (PlanFunder.insert as jest.Mock) = insertQuery;
+    (PlanFunding.insert as jest.Mock) = insertQuery;
 
-    planFunder = new PlanFunder({
+    planFunding = new PlanFunding({
       planId: casual.integer(1, 999),
-      projectFunderId: casual.integer(1, 999),
+      projectFundingId: casual.integer(1, 999),
     });
   });
 
   afterEach(() => {
-    PlanFunder.insert = originalInsert;
+    PlanFunding.insert = originalInsert;
   });
 
-  it('returns the PlanFunder without errors if it is valid', async () => {
+  it('returns the PlanFunding without errors if it is valid', async () => {
     const localValidator = jest.fn();
-    (planFunder.isValid as jest.Mock) = localValidator;
+    (planFunding.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    const result = await planFunder.create(context);
-    expect(result).toBeInstanceOf(PlanFunder);
+    const result = await planFunding.create(context);
+    expect(result).toBeInstanceOf(PlanFunding);
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
-  it('returns the PlanFunder with errors if it is invalid', async () => {
-    planFunder.planId = undefined;
-    const response = await planFunder.create(context);
+  it('returns the PlanFunding with errors if it is invalid', async () => {
+    planFunding.planId = undefined;
+    const response = await planFunding.create(context);
     expect(response.errors['planId']).toBe('Plan can\'t be blank');
   });
 
-  it('returns the PlanFunder with an error if the question already exists', async () => {
+  it('returns the PlanFunding with an error if the question already exists', async () => {
     const mockFindBy = jest.fn();
-    (PlanFunder.findByProjectFunderId as jest.Mock) = mockFindBy;
-    mockFindBy.mockResolvedValueOnce(planFunder);
+    (PlanFunding.findByProjectFundingId as jest.Mock) = mockFindBy;
+    mockFindBy.mockResolvedValueOnce(planFunding);
 
-    const result = await planFunder.create(context);
+    const result = await planFunding.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
   });
 
-  it('returns the newly added PlanFunder', async () => {
+  it('returns the newly added PlanFunding', async () => {
     const mockFindBy = jest.fn();
-    (PlanFunder.findByProjectFunderId as jest.Mock) = mockFindBy;
+    (PlanFunding.findByProjectFundingId as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(null);
 
     const mockFindById = jest.fn();
-    (PlanFunder.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(planFunder);
+    (PlanFunding.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planFunding);
 
-    const result = await planFunder.create(context);
+    const result = await planFunding.create(context);
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(PlanFunder);
+    expect(result).toBeInstanceOf(PlanFunding);
   });
 });
 
 describe('delete', () => {
-  let planFunder;
+  let planFunding;
 
   beforeEach(() => {
-    planFunder = new PlanFunder({
+    planFunding = new PlanFunding({
       id: casual.integer(1, 9999),
       planId: casual.integer(1, 999),
-      projectFunderId: casual.integer(1, 999),
+      projectFundingId: casual.integer(1, 999),
     });
   })
 
-  it('returns null if the PlanFunder has no id', async () => {
-    planFunder.id = null;
-    expect(await planFunder.delete(context)).toBe(null);
+  it('returns null if the PlanFunding has no id', async () => {
+    planFunding.id = null;
+    expect(await planFunding.delete(context)).toBe(null);
   });
 
   it('returns null if it was not able to delete the record', async () => {
     const deleteQuery = jest.fn();
-    (PlanFunder.delete as jest.Mock) = deleteQuery;
+    (PlanFunding.delete as jest.Mock) = deleteQuery;
 
     deleteQuery.mockResolvedValueOnce(null);
-    expect(await planFunder.delete(context)).toBe(null);
+    expect(await planFunding.delete(context)).toBe(null);
   });
 
-  it('returns the PlanFunder if it was able to delete the record', async () => {
+  it('returns the PlanFunding if it was able to delete the record', async () => {
     const deleteQuery = jest.fn();
-    (PlanFunder.delete as jest.Mock) = deleteQuery;
-    deleteQuery.mockResolvedValueOnce(planFunder);
+    (PlanFunding.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(planFunding);
 
     const mockFindById = jest.fn();
-    (PlanFunder.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(planFunder);
+    (PlanFunding.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planFunding);
 
-    const result = await planFunder.delete(context);
+    const result = await planFunding.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(result).toBeInstanceOf(PlanFunder);
+    expect(result).toBeInstanceOf(PlanFunding);
   });
 });

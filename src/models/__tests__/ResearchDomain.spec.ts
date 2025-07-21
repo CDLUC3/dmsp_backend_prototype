@@ -1,16 +1,17 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { ResearchDomain } from "../ResearchDomain";
+import { generalConfig } from "../../config/generalConfig";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -82,14 +83,18 @@ describe('findBy Queries', () => {
   const originalQuery = ResearchDomain.query;
 
   let localQuery;
+  let localPaginationQuery
   let context;
   let domain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (ResearchDomain.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    localPaginationQuery = jest.fn();
+    (ResearchDomain.queryWithPagination as jest.Mock) = localPaginationQuery;
+
+    context = await buildMockContextWithToken(logger);
 
     domain = new ResearchDomain({
       name: casual.company_name,
@@ -103,6 +108,33 @@ describe('findBy Queries', () => {
   afterEach(() => {
     jest.clearAllMocks();
     ResearchDomain.query = originalQuery;
+  });
+
+  it('search should call query with correct params and return the object', async () => {
+    localPaginationQuery.mockResolvedValueOnce([domain]);
+    const name = casual.company_name;
+    const result = await ResearchDomain.search('testing', context, name.toLowerCase().trim());
+    const sql = 'SELECT rd.* FROM researchDomains rd';
+    const whereFilters = ['(LOWER(rd.name) LIKE ? OR LOWER(rd.description) LIKE ?)'];
+    const vals = [`%${name.toLowerCase().trim()}%`, `%${name.toLowerCase().trim()}%`];
+    const opts = {
+      cursor: null,
+      limit: generalConfig.defaultSearchLimit,
+      sortField: 'rd.name',
+      sortDir: 'ASC',
+      countField: 'rd.id',
+      cursorField: 'LOWER(REPLACE(CONCAT(rd.name, rd.id), \' \', \'_\'))',
+    };
+    expect(localPaginationQuery).toHaveBeenCalledTimes(1);
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')
+    expect(result).toEqual([domain]);
+  });
+
+  it('search should return an empty array if it finds no records', async () => {
+    localPaginationQuery.mockResolvedValueOnce([]);
+    const name = casual.company_name;
+    const result = await ResearchDomain.search('testing', context, name);
+    expect(result).toEqual([]);
   });
 
   it('findById should call query with correct params and return the object', async () => {
@@ -406,10 +438,10 @@ describe('addToRepository', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -448,10 +480,10 @@ describe('addToMetadataStandard', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -490,10 +522,10 @@ describe('removeFromRepository', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
@@ -530,10 +562,10 @@ describe('removeFromMetadataStandard', () => {
   let context;
   let mockDomain;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),

@@ -1,0 +1,2 @@
+ALTER TABLE `templateCollaborators`
+MODIFY `userId` INT NULL;

@@ -1,7 +1,24 @@
-import { logger } from '../__mocks__/logger';
+jest.mock('../logger', () => {
+  const original = jest.requireActual('../logger') as typeof import('../logger');
 
-// Mock the Pino logger
-jest.mock('pino', () => () => logger);
+  const mockLogger = {
+    info: jest.fn(),
+    error: jest.fn(),
+    fatal: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    trace: jest.fn(),
+  };
+
+  return {
+    ...original, // Keep all original exports
+    // Override the actual write functions for the pino logger and its ability to spawn
+    logger: {
+      ...mockLogger,
+      child: jest.fn().mockReturnValue(mockLogger),
+    }
+  };
+});
 
 // Always mock out our config files
 jest.mock('../config/awsConfig', () => ({
@@ -13,6 +30,9 @@ jest.mock('../config/awsConfig', () => ({
     sesAccessSecret: '98765',
     sesBounceAddress: 'bounce@example.com',
     sesBouncedEmailBucket: 'my-test-bucket',
+    dynamoTableName: 'test-table',
+    dynamoMaxQueryAttempts: 3,
+    dynamoEndpoint: 'http://localhost:8000',
   }
 }));
 
@@ -43,31 +63,21 @@ jest.mock('../config/dmpHubConfig', () => ({
   }
 }));
 
-jest.mock('../config/mysqlConfig', () => ({
-  mysqlPoolConfig: {
-    host: 'localhost',
-    port: 3306,
-    database: 'testdb',
-    user: 'root',
-    password: 'testpassword',
-  },
-  mysqlGeneralConfig: {
-    queueLimit: 100,
-    connectTimeout: 60000,
-  }
-}));
-
 jest.mock('../config/generalConfig', () => ({
   generalConfig: {
     env: 'test',
     domain: 'localhost:3000',
     applicationName: 'My test app',
     defaultAffiliatioURI: 'https://ror.org/1234abcd',
+    defaultSearchLimit: 5,
+    maximumSearchLimit: 10,
 
     dmpIdBaseURL: 'http://dmsp.com/',
     dmpIdShoulder: '11.22222/C3',
 
-    orcidBaseURL: 'http://orcid.example.com/',
+    versionPlanAfter: 1,
+
+    orcidBaseURL: 'http://sandbox.orcid.org/',
     rorBaseURL: 'http://ror.example.com/',
 
     jwtSecret: 'testJwtSecret',

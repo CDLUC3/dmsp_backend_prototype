@@ -1,30 +1,38 @@
 
-import { formatLogMessage } from '../logger';
-import { Resolvers } from "../types";
+import { prepareObjectForLogs } from '../logger';
+import { RepositorySearchResults, Resolvers } from "../types";
 import { DEFAULT_DMPTOOL_REPOSITORY_URL, Repository, RepositoryType } from "../models/Repository";
 import { MyContext } from '../context';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { ResearchDomain } from '../models/ResearchDomain';
-import { stringToEnumValue } from '../utils/helpers';
+import { isNullOrUndefined, stringToEnumValue } from '../utils/helpers';
 import { GraphQLError } from 'graphql';
+import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
     // searches the repositories table or returns all repos if no criteria is specified
-    repositories: async (_, { input }, context: MyContext): Promise<Repository[]> => {
+    repositories: async (_, { input }, context: MyContext): Promise<RepositorySearchResults> => {
       const reference = 'repositories resolver';
       try {
         if (isAuthorized(context.token)) {
-          const { term, researchDomainId, repositoryType } = input
+          const { term, researchDomainId, repositoryType, paginationOptions } = input
           const repoType = stringToEnumValue(RepositoryType, repositoryType);
-          return await Repository.search(reference, context, term, researchDomainId, repoType);
+
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+          return await Repository.search(reference, context, term, researchDomainId, repoType, opts);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -36,11 +44,12 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           return await Repository.findByURI(reference, context, uri);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -89,7 +98,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -171,7 +180,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -198,7 +207,7 @@ export const resolvers: Resolvers = {
             // No need to remove the related research domain associations the DB will cascade the deletion
             return repo.hasErrors() ? repo : deleted;
           } catch (err) {
-            formatLogMessage(context).error(err, 'Failure in removeRepository resolver');
+            context.logger.error(prepareObjectForLogs(err), `Failure in removeRepository`);
             throw InternalServerError();
           }
         }
@@ -206,7 +215,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -263,7 +272,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -277,5 +286,11 @@ export const resolvers: Resolvers = {
         parent.id
       );
     },
+    created: (parent: Repository) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Repository) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };

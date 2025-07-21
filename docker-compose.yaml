@@ -8,25 +8,35 @@ networks:
     driver: bridge
 
 services:
-  mariadb:
-    image: "bitnami/mariadb:latest"
-    restart: always
-    container_name: apollo-mariadb
-    environment:
-      - "MARIADB_ROOT_PASSWORD=d0ckerSecr3t"
-      - "MARIADB_USER=dmspuser"
-      - "MARIADB_PASSWORD=abcd3fgh1j"
-      - "MARIADB_DATABASE=dmsp"
-    networks:
-      - apollo-network
+  mysql:
+    image: mysql:latest
+    container_name: apollo-mysql
     ports:
       - "3307:3306"
       - "3306:3306"
     expose:
       - 3307
+    environment:
+      - MYSQL_ROOT_PASSWORD=d0ckerSecr3t
+      - MYSQL_DATABASE=dmsp
+    networks:
+      - apollo-network
     volumes:
-      - "./docker/mariadb-persistence:/bitnami/mariadb"
-      - "./mariadb.cnf:/etc/mysql/conf.d/appollo.cnf"
+      - ./docker/mysql:/var/lib/mysql
+
+  dynamodb:
+    image: "amazon/dynamodb-local:latest"
+    container_name: dynamodb
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+    networks:
+      - apollo-network
+    ports:
+      - "8000:8000"
+    expose:
+      - 8000
+    volumes:
+      - "./docker/dynamodb/data:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal
 
   redis:
     image: "public.ecr.aws/docker/library/redis:alpine"
@@ -42,7 +52,8 @@ services:
   apollo:
     container_name: apollo-server
     depends_on:
-      - mariadb
+      - mysql
+      - dynamodb
       - redis
     build:
       context: .
@@ -56,13 +67,21 @@ services:
     env_file:
       - .env
     environment:
+      - "AWS_ACCESS_KEY_ID=DUMMYIDEXAMPLE"
+      - "AWS_SECRET_ACCESS_KEY=DUMMYEXAMPLEKEY"
+      - "REGION=us-west-2"
       - "NODE_ENV=development"
+
       - "MYSQL_CONNECTION_LIMIT=5"
-      - "MYSQL_HOST=apollo-mariadb"
+      - "MYSQL_HOST=apollo-mysql"
       - "MYSQL_PORT=3306"
       - "MYSQL_DATABASE=dmsp"
-      - "MYSQL_USER=dmspuser"
-      - "MYSQL_PASSWORD=abcd3fgh1j"
+      - "MYSQL_USER=root"
+      - "MYSQL_PASSWORD=d0ckerSecr3t"
+
+      - "DYNAMO_TABLE_NAME=localDMPTable"
+      - "DYNAMO_ENDPOINT=http://dynamodb:8000"
+
       - "CACHE_HOST=apollo-redis"
       - "CACHE_PORT=6379"
       - "CACHE_CONNECT_TIMEOUT=10000"

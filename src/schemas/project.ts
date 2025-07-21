@@ -1,12 +1,18 @@
 import gql from "graphql-tag";
+import {mergeTypeDefs} from "@graphql-tools/merge";
+import {typeDefs as memberTypeDefs} from "./member"
+import {typeDefs as funderTypeDefs} from "./funding"
 
-export const typeDefs = gql`
+export const projectTypeDefs = gql`
   extend type Query {
     "Get all of the user's projects"
-    myProjects: [Project]
+    myProjects(term: String, paginationOptions: PaginationOptions): ProjectSearchResults
 
     "Get a specific project"
     project(projectId: Int!): Project
+
+    "Search for projects within external APIs"
+    searchExternalProjects(input: ExternalSearchInput!): [ExternalProject]
   }
 
   extend type Mutation {
@@ -16,8 +22,67 @@ export const typeDefs = gql`
     updateProject(input: UpdateProjectInput): Project
     "Download the plan"
     archiveProject(projectId: Int!): Project
+    "Import a project from an external source"
+    projectImport(input: ProjectImportInput): Project
   }
 
+  type ProjectSearchResult {
+    "The unique identifer for the Object"
+    id: Int
+    "The name/title of the research project"
+    title: String
+    "The research project abstract"
+    abstractText: String
+    "The estimated date the research project will begin (use YYYY-MM-DD format)"
+    startDate: String
+    "The estimated date the research project will end (use YYYY-MM-DD format)"
+    endDate: String
+    "The type of research being done"
+    researchDomain: String
+    "Whether or not this is test/mock research project"
+    isTestProject: Boolean
+    "The id of the person who created the project"
+    createdById: Int
+    "The name of the person who created the project"
+    createdByName: String
+    "The timestamp when the project was created"
+    created: String
+    "The id of the person who last modified the project"
+    modifiedById: Int
+    "The name of the person who last modified the project"
+    modifiedByName: String
+    "The timestamp when the project was last modified"
+    modified: String
+    "The names and access levels of the collaborators"
+    collaborators: [ProjectSearchResultCollaborator!]
+    "The names and roles of the members"
+    members: [ProjectSearchResultMember!]
+    "The names of the funders"
+    fundings: [ProjectSearchResultFunding!]
+    "Search results errors"
+    errors: ProjectErrors
+  }
+
+  type ProjectSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [ProjectSearchResult]
+    "The total number of possible items"
+    totalCount: Int
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
+  }
+
+  "DMP Tool Project type"
   type Project {
     "The unique identifer for the Object"
     id: Int
@@ -45,10 +110,12 @@ export const typeDefs = gql`
     "Whether or not this is test/mock research project"
     isTestProject: Boolean
 
+    "People who have access to modify or comment on the Project"
+    collaborators: [ProjectCollaborator!]
     "People who are contributing to the research project (not just the DMP)"
-    contributors: [ProjectContributor!]
+    members: [ProjectMember!]
     "The funders who are supporting the research project"
-    funders: [ProjectFunder!]
+    fundings: [ProjectFunding!]
     "The outputs that will be/were created as a reult of the research project"
     outputs: [ProjectOutput!]
     "The plans that are associated with the research project"
@@ -65,9 +132,34 @@ export const typeDefs = gql`
     startDate: String
     endDate: String
     researchDomainId: String
-    contributorIds: String
-    funderIds: String
+    memberIds: String
+    fundingIds: String
     outputIds: String
+  }
+
+  type ProjectSearchResultCollaborator {
+    "The name of the collaborator"
+    name: String
+    "The access level of the collaborator"
+    accessLevel: String
+    "The ORCiD ID"
+    orcid: String
+  }
+
+  type ProjectSearchResultMember {
+    "The name of the member"
+    name: String
+    "The role of the member"
+    role: String
+    "The ORCiD ID"
+    orcid: String
+  }
+
+  type ProjectSearchResultFunding {
+    "The name of the funder"
+    name: String
+    "The grant id/url"
+    grantId: String
   }
 
   input UpdateProjectInput {
@@ -86,4 +178,66 @@ export const typeDefs = gql`
     "Whether or not the project is a mock/test"
     isTestProject: Boolean
   }
+
+  input ExternalSearchInput {
+    "The URI of the funder we are using to search for projects"
+    affiliationId: String!
+    "The funder award/grant id/url (optional)"
+    awardId: String
+    "The funder award/grant name (optional)"
+    awardName: String
+    "The funder award/grant year (optional) as YYYY"
+    awardYear: String
+    "The principal investigator names (optional) can be any combination of first/middle/last names"
+    piNames: [String]
+  }
+
+  "External Project type"
+  type ExternalProject {
+    "The project title"
+    title: String
+    "The project description"
+    abstractText: String
+    "The project start date"
+    startDate: String
+    "The project end date"
+    endDate: String
+    "Funding information for this project"
+    fundings: [ExternalFunding!]
+    "Member information for this project"
+    members: [ExternalMember!]
+  }
+
+  type ExternalFunding {
+    "The funder's unique id/url for the research project (normally assigned after the grant has been awarded)"
+    funderProjectNumber: String
+    "The funder's unique id/url for the award/grant (normally assigned after the grant has been awarded)"
+    grantId: String
+    "The funder's unique id/url for the call for submissions to apply for a grant"
+    funderOpportunityNumber: String
+  }
+
+  type ExternalMember {
+    "The ROR ID of the member's institution"
+    affiliationId: String
+    "The member's first/given name"
+    givenName: String
+    "The member's last/sur name"
+    surName: String
+    "The member's ORCID"
+    orcid: String
+    "The member's email address"
+    email: String
+  }
+
+  input ProjectImportInput {
+    "The external project data"
+    project: UpdateProjectInput!
+    "The external funding data"
+    funding: [AddProjectFundingInput!]
+    "The external member data"
+    members: [AddProjectMemberInput!]
+  }
 `;
+
+export const typeDefs = mergeTypeDefs([projectTypeDefs, funderTypeDefs, memberTypeDefs]);

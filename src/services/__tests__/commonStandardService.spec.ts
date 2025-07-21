@@ -9,15 +9,20 @@ import {
   DMPPrivacy,
   DMPStatus,
   DMPIdentifierType
-} from '../../datasources/dmphubAPI';
+} from '../../types/DMP';
 import { MyContext } from '../../context';
-import { buildContext, mockToken } from '../../__mocks__/context';
-import { logger } from '../../__mocks__/logger';
+import { buildMockContextWithToken } from '../../__mocks__/context';
 import { RelatedWork } from '../../models/RelatedWork';
-import { ContributorRole } from '../../models/ContributorRole';
+import { MemberRole } from '../../models/MemberRole';
 import { User } from '../../models/User';
 import { Project } from '../../models/Project';
 import { VersionedTemplate } from '../../models/VersionedTemplate';
+import { PlanMember } from '../../models/Member';
+import { PlanFunding } from '../../models/Funding';
+import { Answer } from '../../models/Answer';
+import { ResearchDomain } from '../../models/ResearchDomain';
+import { logger } from '../../logger';
+import casual from 'casual';
 
 let context: MyContext;
 let plan: Plan;
@@ -25,7 +30,7 @@ let project: Project;
 let template: VersionedTemplate;
 
 // Mock query results
-const mockFunderResult = [
+const mockFundingResult = [
   {
     name: 'Funder name',
     uri: 'http://funder.example.com',
@@ -36,7 +41,7 @@ const mockFunderResult = [
   }
 ];
 
-const mockContributorResult = [
+const mockMemberResult = [
   {
     isPrimaryContact: true,
     givenName: 'John',
@@ -81,10 +86,9 @@ const mockNarrativeResult = [
     questionId: 1,
     questionText: 'Question 1',
     questionOrder: 1,
-    questionTypeId: 1,
-    questionTypeName: 'Text',
+    questionJSON: '{"type": "text", "meta":{"schemaVersion":"1.0"}}',
     answerId: 1,
-    answerText: 'Answer 1',
+    answerJSON: '{"type": "text", "answer": "Answer 1"}',
   },
   {
     templateId: 1,
@@ -97,10 +101,9 @@ const mockNarrativeResult = [
     questionId: 2,
     questionText: 'Question 2',
     questionOrder: 2,
-    questionTypeId: 2,
-    questionTypeName: 'Multiple choice',
+    questionJSON: '{"type": "checkBoxes","options":[{"type":"option","attributes":{"label":"A","value":"a"}}],"meta":{"schemaVersion":"1.0"}}',
     answerId: 2,
-    answerText: 'Answer 2',
+    answerJSON: '{"type": "checkBoxes", "answer": ["a"]}',
   },
   {
     templateId: 1,
@@ -113,10 +116,9 @@ const mockNarrativeResult = [
     questionId: 3,
     questionText: 'Question 3',
     questionOrder: 1,
-    questionTypeId: 1,
-    questionTypeName: 'Text',
+    questionJSON: '{"type":"textArea","meta":{"schemaVersion":"1.0","richText":true}}',
     answerId: 3,
-    answerText: 'Answer 3',
+    answerJSON: '{"type": "textArea", "answer": "<p>Answer 3</p>"}',
   }
 ];
 
@@ -140,14 +142,14 @@ const mockRelatedWorkResult = [
 ];
 
 // Mock the call to fetch the default role
-jest.spyOn(ContributorRole, 'defaultRole').mockResolvedValue(
-  new ContributorRole({ id: 1, uri: 'http://example.com/roles/tester', label: 'Tester' })
+jest.spyOn(MemberRole, 'defaultRole').mockResolvedValue(
+  new MemberRole({ id: 1, uri: 'http://example.com/roles/tester', label: 'Tester' })
 );
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 
   template = new VersionedTemplate({
     id: 1,
@@ -160,6 +162,7 @@ beforeEach(() => {
     id: 1,
     title: 'Project title',
     abstractText: 'Project description',
+    dmptool_research_domain: 'http://example.com/research_domain/1',
     startDate: '2023-01-01',
     endDate: '2023-12-31',
   });
@@ -172,7 +175,7 @@ beforeEach(() => {
     createdById: 1,
     modified: '2023-01-02',
     registered: '2023-01-03',
-    status: PlanStatus.PUBLISHED,
+    status: PlanStatus.COMPLETE,
     languageId: 'eng',
     featured: true,
     visibility: PlanVisibility.PUBLIC,
@@ -254,20 +257,22 @@ describe('commonStandardService', () => {
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
-    // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: casual.uuid }));
+    // Return the Member information 3rd
+    jest.spyOn(PlanMember, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
-    // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    // Return the Funding information 2nd
+    jest.spyOn(PlanFunding, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
     const result = await planToDMPCommonStandard(context, 'reference', plan);
 
-    expect(result.dmp_id).toEqual({ identifier: 'https://localhost:3000/project/1/new', type: 'url' });
+    expect(result.dmp_id).toEqual({ identifier: 'https://localhost:3000/dmps/1', type: 'url' });
   });
 
   it('planToDMPCommonStandard - handles plan with no primary contact', async () => {
@@ -286,14 +291,16 @@ describe('commonStandardService', () => {
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
-    // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: casual.uuid }));
+    // Return the Member information 3rd
+    jest.spyOn(PlanMember, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
-    // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    // Return the Funding information 2nd
+    jest.spyOn(PlanFunding, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
@@ -318,20 +325,23 @@ describe('commonStandardService', () => {
 
 
   it('planToDMPCommonStandard - minimal DMP', async () => {
+    const researchDomainURI = casual.url;
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(new Project({
       id: 1,
       title: 'Project title'
     }));
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
-    // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: researchDomainURI }));
+    // Return the Member information 3rd
+    jest.spyOn(PlanMember, 'query').mockResolvedValueOnce([]);
     // Return the Plan owner information
     jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
-    // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    // Return the Funding information 2nd
+    jest.spyOn(PlanFunding, 'query').mockResolvedValueOnce([]);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce([]);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
 
@@ -353,7 +363,7 @@ describe('commonStandardService', () => {
           type: 'orcid',
         },
       },
-      created: "2023-01-01",
+      created: "2023-01-01T00:00:00Z",
       dataset: [
         {
           dataset_id: {
@@ -371,33 +381,39 @@ describe('commonStandardService', () => {
         type: 'doi'
       },
       dmphub_provenance_id: "testing",
-      dmproadmap_featured: true,
+      dmproadmap_featured: '1',
       dmproadmap_privacy: "public",
-      dmproadmap_status: "published",
+      dmproadmap_status: "complete",
       ethical_issues_exist: "unknown",
       language: "eng",
-      modified: "2023-01-02",
+      modified: "2023-01-02T00:00:00Z",
       project: [
         {
           title: "Project title",
+          dmptool_research_domain: researchDomainURI
         },
       ],
-      registered: "2023-01-03",
+      registered: "2023-01-03T00:00:00Z",
       title: "DMP for: Template name"
     });
   });
 
 
   it('planToDMPCommonStandard - complete DMP', async () => {
+    const researchDomainURI = casual.url;
     // Return the Template and Project information 1st
     jest.spyOn(Project, 'findById').mockResolvedValueOnce(project);
     jest.spyOn(VersionedTemplate, 'findById').mockResolvedValueOnce(template);
-    // Return the Contributor information 3rd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockContributorResult);
-    // Return the Funder information 2nd
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockFunderResult);
+    // Return the the ResearchDomain
+    jest.spyOn(ResearchDomain, 'findById').mockResolvedValueOnce(new ResearchDomain({ uri: researchDomainURI }));
+    // Return the Member information 3rd
+    jest.spyOn(PlanMember, 'query').mockResolvedValueOnce(mockMemberResult);
+    // Return the Plan owner information
+    jest.spyOn(User, 'query').mockResolvedValueOnce(mockPlanOwnerResult);
+    // Return the Funding information 2nd
+    jest.spyOn(PlanFunding, 'query').mockResolvedValueOnce(mockFundingResult);
     // Return the Narrative information
-    jest.spyOn(Plan, 'query').mockResolvedValueOnce(mockNarrativeResult);
+    jest.spyOn(Answer, 'query').mockResolvedValueOnce(mockNarrativeResult);
     // Return the Related Identifiers information
     jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce(mockRelatedWorkResult);
 
@@ -405,15 +421,15 @@ describe('commonStandardService', () => {
 
     expect(result).toEqual({
       dmphub_provenance_id: 'testing',
-      created: '2023-01-01',
-      modified: '2023-01-02',
-      registered: '2023-01-03',
+      created: '2023-01-01T00:00:00Z',
+      modified: '2023-01-02T00:00:00Z',
+      registered: '2023-01-03T00:00:00Z',
       title: 'DMP for: Template name',
       language: 'eng',
       ethical_issues_exist: DMPYesNoUnknown.UNKNOWN,
-      dmproadmap_featured: true,
+      dmproadmap_featured: '1',
       dmproadmap_privacy: DMPPrivacy.PUBLIC,
-      dmproadmap_status: DMPStatus.PUBLISHED,
+      dmproadmap_status: DMPStatus.COMPLETE,
       dmp_id: {
         identifier: '10.1234/dmp',
         type: 'doi',
@@ -477,8 +493,9 @@ describe('commonStandardService', () => {
         {
           title: 'Project title',
           description: 'Project description',
-          start: '2023-01-01',
-          end: '2023-12-31',
+          dmptool_research_domain: researchDomainURI,
+          start: '2023-01-01T00:00:00Z',
+          end: '2023-12-31T00:00:00Z',
           funding: [
             {
               name: 'Funder name',
@@ -512,17 +529,17 @@ describe('commonStandardService', () => {
                 question_id: 1,
                 question_text: 'Question 1',
                 question_order: 1,
-                question_type: { id: 1, name: 'Text' },
+                question_json: '{"type": "text", "meta":{"schemaVersion":"1.0"}}',
                 answer_id: 1,
-                answer_text: 'Answer 1',
+                answer_json: '{"type": "text", "answer": "Answer 1"}',
               },
               {
                 question_id: 2,
                 question_text: 'Question 2',
                 question_order: 2,
-                question_type: { id: 2, name: 'Multiple choice' },
+                question_json: '{"type": "checkBoxes","options":[{"type":"option","attributes":{"label":"A","value":"a"}}],"meta":{"schemaVersion":"1.0"}}',
                 answer_id: 2,
-                answer_text: 'Answer 2',
+                answer_json: '{"type": "checkBoxes", "answer": ["a"]}',
               },
             ],
           },
@@ -536,9 +553,9 @@ describe('commonStandardService', () => {
                 question_id: 3,
                 question_text: 'Question 3',
                 question_order: 1,
-                question_type: { id: 1, name: 'Text' },
+                question_json: '{"type":"textArea","meta":{"schemaVersion":"1.0","richText":true}}',
                 answer_id: 3,
-                answer_text: 'Answer 3',
+                answer_json: '{"type": "textArea", "answer": "<p>Answer 3</p>"}',
               },
             ],
           },

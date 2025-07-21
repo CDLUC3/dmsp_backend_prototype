@@ -1,10 +1,11 @@
 import { Resolvers } from "../types";
 import { ResearchDomain } from "../models/ResearchDomain";
 import { MyContext } from '../context';
-import { AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
-import { formatLogMessage } from "../logger";
+import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
+import { prepareObjectForLogs } from "../logger";
 import { isAuthorized } from "../services/authService";
 import { GraphQLError } from "graphql";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -15,11 +16,12 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           return await ResearchDomain.topLevelDomains(reference, context);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -31,11 +33,12 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           return await ResearchDomain.findByParentId(reference, context, parentResearchDomainId);
         }
-        throw AuthenticationError();
+        // Unauthorized access
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -47,6 +50,11 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
+    created: (parent: ResearchDomain) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ResearchDomain) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 };
-

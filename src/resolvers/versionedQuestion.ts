@@ -6,9 +6,10 @@ import { Section } from "../models/Section";
 import { hasPermissionOnQuestion } from "../services/questionService";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { isAdmin } from "../services/authService";
 import { GraphQLError } from "graphql";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -28,7 +29,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -43,5 +44,11 @@ export const resolvers: Resolvers = {
         parent.id
       );
     },
+    created: (parent: VersionedQuestion) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: VersionedQuestion) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
 };

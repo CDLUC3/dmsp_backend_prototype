@@ -1,11 +1,11 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
 import { Affiliation, AffiliationProvenance, AffiliationType, DEFAULT_DMPTOOL_AFFILIATION_URL } from "../../models/Affiliation";
 import { processOtherAffiliationName } from "../affiliationService";
 import { getCurrentDate } from "../../utils/helpers";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -16,10 +16,10 @@ let mockFindById;
 let mockFindByName;
 let mockInsert;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 
   affiliationStore = [];
 

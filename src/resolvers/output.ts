@@ -1,5 +1,5 @@
 
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { Resolvers } from "../types";
 import { ProjectOutput } from '../models/Output';
 import { MetadataStandard } from '../models/MetadataStandard';
@@ -11,6 +11,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { OutputType } from '../models/OutputType';
 import { GraphQLError } from 'graphql';
+import {formatISO9075} from "date-fns";
 
 // Process updates to the Repository associations
 async function processRepositoryUpdates(
@@ -105,8 +106,8 @@ async function processMetadataStandardUpdates(
 export const resolvers: Resolvers = {
   Query: {
     // Fetch all of the possible project output types
-    outputTypes: async (_, __, context: MyContext): Promise<OutputType[]> => {
-      const reference = 'outputTypes resolver';
+    projectOutputTypes: async (_, __, context: MyContext): Promise<OutputType[]> => {
+      const reference = 'projectOutputTypes resolver';
       try {
         if (isAuthorized(context.token)) {
           return await OutputType.all(reference, context);
@@ -116,7 +117,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -128,7 +129,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return await ProjectOutput.findByProjectId(reference, context, projectId);
           }
         }
@@ -136,7 +137,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -149,7 +150,7 @@ export const resolvers: Resolvers = {
           const projectFunder = await ProjectOutput.findById(reference, context, projectOutputId);
           const project = await Project.findById(reference, context, projectFunder.projectId);
 
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return projectFunder;
           }
         }
@@ -157,7 +158,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -170,7 +171,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (!project || !hasPermissionOnProject(context, project)) {
+          if (!project || !(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -221,7 +222,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -238,7 +239,7 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, output.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -287,7 +288,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -304,7 +305,7 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, output.projectId);
-          if (!hasPermissionOnProject(context, project)) {
+          if (!(await hasPermissionOnProject(context, project))) {
             throw ForbiddenError();
           }
 
@@ -317,7 +318,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -343,6 +344,12 @@ export const resolvers: Resolvers = {
         context,
         parent.id
       );
+    },
+    created: (parent: ProjectOutput) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: ProjectOutput) => {
+      return formatISO9075(new Date(parent.modified));
     }
   },
 };

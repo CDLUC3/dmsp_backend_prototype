@@ -1,92 +1,167 @@
 
+import { generalConfig } from "../config/generalConfig";
 import { MyContext } from "../context";
-import { valueIsEmpty } from "../utils/helpers";
-import { MySqlModel } from "./MySqlModel";
+import { createDMP, deleteDMP, DMPExists, getDMP, tombstoneDMP, updateDMP } from "../datasources/dynamo";
+import { prepareObjectForLogs } from "../logger";
+import { planToDMPCommonStandard } from "../services/commonStandardService";
+import { DMPCommonStandard } from "../types/DMP";
+import { Plan } from "./Plan";
 
-// Represents a historical version of the plan. We just stuff the DMP Common Standard format into a JSON field
-// we will eventually want to be able to reconstitute the JSON back into a Plan object
-export class PlanVersion extends MySqlModel {
-  public planId: number;
-  public dmp: string;
+/*
+ * Plan versioning management:
+ *
+ * A Plan always has a "latest" version that is the most recent snapshot of the DMP.
+ *
+ * When a plan is first created, an initial version snapshot is created. this becomes the "latest" version.
+ * This initial version has the following properties:
+ *  - created: current timestamp
+ *  - modified: current timestamp
+ *  - dmpId: unique identifier for the DMP
+ *
+ * When a plan (or any aspect of the parent project) is updated, a check is performed to see if the
+ * "latest" version of the DMP has been modified within the last x hour(s) (x is defined in
+ * generalConfig.versionPlanAfter). If it has been modified within that time frame, the "latest" version
+ * is updated directly. If it has not been modified within that time frame, a version snapshot is created.
+ *
+ * A version snapshot is the state of the "latest" version at the time the change is being made. The
+ * version snapshot is created and then the changes are made to the "latest" version.
+ *
+ * Each time a change is made, the "latest" version's modified timestamp is updated to the current timestamp.
+ */
 
-  private static tableName = 'planVersions';
-
-  constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
-
-    this.planId = options?.planId;
-    this.dmp = options?.dmp;
+// Create a new PlanVersion
+export const addVersion = async (
+  context: MyContext,
+  plan: Plan,
+  reference = 'PlanVersion.addVersion'
+): Promise<Plan> => {
+  const commonStandard = await planToDMPCommonStandard(context, reference, plan);
+  if (!commonStandard) {
+    plan.addError('general', 'Unable to convert the plan to the DMP Common Standard');
   }
 
-  // Validate the version (must have a timestamp and a URL)
-  async isValid(): Promise<boolean> {
-    if (!this.planId) this.errors['planId'] = 'Plan can\'t be blank';
-    if (valueIsEmpty(this.dmp)) this.errors['dmp'] = 'DMP content cannot be empty';
-
-    return Object.keys(this.errors).length === 0;
-  }
-
-  // Serialize the DMP as JSON
-  prepForSave(): void {
-    // If the DMP is not a string, stringify it
-    if (typeof this.dmp !== 'string') {
-      this.dmp = JSON.stringify(this.dmp);
+  // First see if this is the first version of the plan
+  const currentVersion = await latestVersion(context, plan, reference);
+  if (currentVersion) {
+    // There is already a latest version, so we are creating a snapshot before making changes
+    context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - creating a version snapshot`);
+    const newSnapshot = await createDMP(context, plan.dmpId, commonStandard, currentVersion.modified);
+    if (!newSnapshot) {
+      context.logger.error(prepareObjectForLogs({ timestamp: currentVersion.modified, plan }), `${reference} - Unable to create a version snapshot`);
+      plan.addError('general', 'Unable to create a new version snapshot');
+    }
+  } else {
+    // This is the first version of the plan
+    context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - creating an initial version`);
+    const newPlanVersion = await createDMP(context, plan.dmpId, commonStandard);
+    if (!newPlanVersion) {
+      context.logger.error(prepareObjectForLogs({ plan }), `${reference} - Unable to create an initial version snapshot`);
+      plan.addError('general', 'Unable to create a new version snapshot');
     }
   }
+  return new Plan(plan);
+}
 
-  // Parse the JSON back into an object
-  static processResults(planVersion: PlanVersion): PlanVersion {
-    // if dmp is a string
-    if (typeof planVersion.dmp === 'string') {
-      // parse it
-      planVersion.dmp = JSON.parse(planVersion.dmp);
-    }
-    return planVersion;
+// Update the latest version of the Plan
+export const updateVersion = async (
+  context: MyContext,
+  plan: Plan,
+  reference = 'PlanVersion.updateVersion'
+): Promise<Plan> => {
+  const commonStandard = await planToDMPCommonStandard(context, reference, plan);
+  if (!commonStandard) {
+    plan.addError('general', 'Unable to convert the plan to the DMP Common Standard');
   }
 
-  //Create a new PlanVersion
-  async create(context: MyContext): Promise<PlanVersion> {
-    const reference = 'PlanVersion.create';
+  // If the lastModified date is not within the last hour, create a new version snapshot
+  const mostRecentVersion = await latestVersion(context, plan, reference);
+  if (mostRecentVersion) {
+    const lastModified = new Date(mostRecentVersion?.modified);
+    const now = new Date();
+    // Calculate the difference in hours between the lastModified and now
+    const diff = Math.abs(now.getTime() - lastModified.getTime()) / 36e5;
 
-    // First make sure the record is valid
-    if (await this.isValid()) {
-      // Save the record and then fetch it
-      this.prepForSave();
-      const newId = await PlanVersion.insert(context, PlanVersion.tableName, this, reference);
-      const response = await PlanVersion.findById(reference, context, newId);
-      return response;
-    }
-    // Otherwise return as-is with all the errors
-    return new PlanVersion(this);
-  }
+    // If the change happened more than one hour since the lastSync date then generate a version snapshot
+    if (diff >= generalConfig.versionPlanAfter) {
+      const msg = `Plan last changed over ${generalConfig.versionPlanAfter} hour(s) ago, so creating a new version`;
+      context.logger.debug(prepareObjectForLogs({ planId: plan.id }), msg);
+      return addVersion(context, plan, reference);
 
-  // Delete the PlanVersion
-  async delete(context: MyContext): Promise<PlanVersion> {
-    const reference = 'PlanVersion.delete';
-    if (this.id) {
-      const deleted = await PlanVersion.findById(reference, context, this.id);
-
-      const successfullyDeleted = await PlanVersion.delete(context, PlanVersion.tableName, this.id, reference);
-      if (successfullyDeleted) {
-        return deleted;
-      } else {
-        return null
+    } else {
+      context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - updating Plan Version`);
+      const updatedVersion = await updateDMP(context, commonStandard);
+      if (!updatedVersion) {
+        const msg = 'Unable to update the version snapshot';
+        context.logger.error(prepareObjectForLogs({ plan }), `${reference} - ${msg}`);
+        plan.addError('general', msg);
       }
     }
-    return null;
+  } else {
+    plan.addError('general', 'Unable to find the latest version of the DMP');
   }
+  return new Plan(plan);
+}
 
-  // Find the Version by it's id
-  static async findById(reference: string, context: MyContext, planVersionId: number): Promise<PlanVersion | null> {
-    const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`;
-    const results = await PlanVersion.query(context, sql, [planVersionId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? PlanVersion.processResults(results[0]) : null;
+// Delete/Tombstone the specified Plan Version (registered/published DMPs can only be Tombstoned!)
+export const removeVersions = async (
+  context: MyContext,
+  plan: Plan,
+  reference = 'PlanVersion.removeVersion'
+): Promise<Plan> => {
+  // Get the latest version and see if it is registered
+  const mostRecentVersion = await latestVersion(context, plan, reference);
+  // If the plan is registered then tombstone the DMP otherwise delete it
+  if (mostRecentVersion?.registered) {
+    context.logger.debug(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - tombstoning the DMP`);
+    const tombstoned = await tombstoneDMP(context, plan.dmpId);
+    if (!tombstoned) {
+      plan.addError('general', 'Unable to tombstone the DMP');
+    }
+  } else {
+    context.logger.debug(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - deleting all versions of the DMP`);
+    await deleteDMP(context, plan.dmpId);
   }
+  return new Plan(plan);
+}
 
-  // Find the Version by it's planId
-  static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanVersion[]> {
-    const sql = `SELECT * FROM ${this.tableName} WHERE planId = ?`;
-    const results = await PlanVersion.query(context, sql, [planId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? results.map(PlanVersion.processResults) : [];
-  }
+// Helper method to verify a Plan has a latest version
+export const hasLatestVersion = async (
+  context: MyContext,
+  plan: Plan,
+): Promise<boolean> => {
+  return await DMPExists(context, plan.dmpId);
+}
+
+// Find all of the versions for a specific plan
+export const findVersionsByDMPId = async (
+  context: MyContext,
+  dmpId: string,
+  reference = 'PlanVersion.findVersionsByDMPId'
+): Promise<DMPCommonStandard[] | []> => {
+  context.logger.debug(prepareObjectForLogs({ dmpId }), `${reference} - retrieving the versions of the DMP`);
+  const dmps = await getDMP(context, dmpId, null);
+  return Array.isArray(dmps) && dmps.length > 0 ? dmps : [];
+}
+
+// Find a specific version of the plan
+export const findVersionByTimestamp = async (
+  context: MyContext,
+  plan: Plan,
+  versionTimestamp: string,
+  reference = 'PlanVersion.findVersionByTimestamp'
+): Promise<DMPCommonStandard | null> => {
+  context.logger.error(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - retrieving the versions of the DMP`);
+  const dmps = await getDMP(context, plan.dmpId, versionTimestamp);
+  return Array.isArray(dmps) && dmps.length > 0 ? dmps[0] : null;
+}
+
+// Retrieve the latest version of the plan
+export const latestVersion = async (
+  context: MyContext,
+  plan: Plan,
+  reference = 'PlanVersion.latestVersion'
+): Promise<DMPCommonStandard | null> => {
+  context.logger.error(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - retrieving the latest version of the DMP`);
+  const dmps = await getDMP(context, plan.dmpId, null);
+  return Array.isArray(dmps) && dmps.length > 0 ? dmps[0] : null;
 }

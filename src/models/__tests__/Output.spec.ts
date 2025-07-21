@@ -1,16 +1,16 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { ProjectOutput, OutputAccessLevel } from "../Output";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -84,11 +84,11 @@ describe('findBy Queries', () => {
   let context;
   let projectOutput;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localQuery = jest.fn();
     (ProjectOutput.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     projectOutput = new ProjectOutput({
       projectId: casual.integer(1, 9),

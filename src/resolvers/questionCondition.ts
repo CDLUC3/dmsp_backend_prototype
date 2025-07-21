@@ -5,8 +5,9 @@ import { NotFoundError, ForbiddenError, AuthenticationError, InternalServerError
 import { isAdmin } from "../services/authService";
 import { hasPermissionOnQuestion } from "../services/questionService";
 import { Question } from "../models/Question";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
+import {formatISO9075} from "date-fns";
 
 
 export const resolvers: Resolvers = {
@@ -16,7 +17,7 @@ export const resolvers: Resolvers = {
       try {
         return await QuestionCondition.findByQuestionId('questionConditions resolver', context, questionId);
       } catch (err) {
-        formatLogMessage(context).error(err, 'Failure in questionConditions resolver');
+        context.logger.error(prepareObjectForLogs(err), `Failure in questionConditions resolver`);
         throw InternalServerError();
       }
     },
@@ -51,7 +52,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -95,7 +96,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -125,9 +126,17 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
   },
+  QuestionCondition: {
+    created: (parent: QuestionCondition) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: QuestionCondition) => {
+      return formatISO9075(new Date(parent.modified));
+    }
+  }
 };

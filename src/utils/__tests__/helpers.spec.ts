@@ -11,6 +11,10 @@ import {
   randomHex,
   stripIdentifierBaseURL,
   stringToEnumValue,
+  formatORCID,
+  normaliseHttpProtocol,
+  reorderDisplayOrder,
+  removeNullAndUndefinedFromJSON
 } from '../helpers';
 
 describe('Date validation', () => {
@@ -139,6 +143,55 @@ describe('Convert a string into an Array', () => {
   });
 });
 
+describe('removeNullAndUndefinedFromJSON', () => {
+  it('removes null and undefined values from objects', () => {
+    const input = JSON.stringify({ a: 1, b: null, c: undefined, d: 'test' });
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify({ a: 1, d: 'test' }));
+  });
+
+  it('removes null and undefined values from arrays', () => {
+    const input = JSON.stringify([1, null, 2, undefined, 3]);
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify([1, 2, 3]));
+  });
+
+  it('removes nested null and undefined values', () => {
+    const input = JSON.stringify({
+      a: null,
+      b: [1, null, 2, undefined, 3],
+      c: { d: null, e: 5, f: undefined }
+    });
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify({
+      b: [1, 2, 3],
+      c: { e: 5 }
+    }));
+  });
+
+  it('returns the same JSON if there are no null or undefined values', () => {
+    const input = JSON.stringify({ a: 1, b: 2 });
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify({ a: 1, b: 2 }));
+  });
+
+  it('throws an error for invalid JSON', () => {
+    expect(() => removeNullAndUndefinedFromJSON('{a:1, b:2}')).toThrow(/Invalid JSON format/);
+  });
+
+  it('handles stringified arrays with only null/undefined', () => {
+    const input = JSON.stringify([null, undefined, null]);
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify([]));
+  });
+
+  it('handles stringified objects with only null/undefined', () => {
+    const input = JSON.stringify({ a: null, b: undefined });
+    expect(removeNullAndUndefinedFromJSON(input)).toBe(JSON.stringify({}));
+  });
+
+  it('handles primitive values', () => {
+    expect(removeNullAndUndefinedFromJSON('1')).toBe('1');
+    expect(removeNullAndUndefinedFromJSON('"test"')).toBe('"test"');
+    expect(removeNullAndUndefinedFromJSON('true')).toBe('true');
+  });
+});
+
 describe('Verify critical env variables', () => {
   test('does not log an error if the specified variable exist', () => {
     const logSpy = jest.spyOn(global.console, 'log').mockImplementation(() => { return null });
@@ -198,5 +251,158 @@ describe('stringToEnumValue', () => {
 
   it('returns the enum value for the string', () => {
     expect(stringToEnumValue(testEnum, 'B')).toBe(testEnum.B);
+  });
+});
+
+
+describe('formatORCID', () => {
+  // Test the ORCID formatting
+  it('should return null for an invalid ORCID', () => {
+    expect(formatORCID('25t24g45g45g546gt')).toBeNull();
+    expect(formatORCID('0000-0000-0000')).toBeNull();
+    expect(formatORCID(`${generalConfig.orcidBaseURL}/0000-0000-000`)).toBeNull();
+  });
+
+  it('should return the ORCID with the default URL', () => {
+    expect(formatORCID('0000-0000-0000-000X')).toEqual(normaliseHttpProtocol(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`));
+  });
+
+  it('should return the ORCID as is if it already a valid ORCID with the base URL', () => {
+    expect(formatORCID(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`)).toEqual(normaliseHttpProtocol(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`));
+    expect(formatORCID('https://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
+  });
+
+  it('should convert http to https for valid ORCID URLs', () => {
+    expect(formatORCID(`http://orcid.org/0000-0000-0000-000X`)).toEqual(`https://orcid.org/0000-0000-0000-000X`);
+    expect(formatORCID('http://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
+  });
+});
+
+describe('reorderDisplayOrder', () => {
+  it('should reorder the display order of sections', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 1, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is the same as the current one', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 2, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is greater than the current one', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(1, 3, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is less than the current one', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(3, 1, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the list is empty', () => {
+    const sections: { id: number, displayOrder: number }[] = [];
+    const reorderedSections = reorderDisplayOrder(1, 1, sections);
+    expect(reorderedSections).toEqual([]);
+  });
+
+  it('should handle the case where the list has only one item', () => {
+    const sections = [{ id: 1, displayOrder: 1 }];
+    const reorderedSections = reorderDisplayOrder(1, 1, sections);
+    expect(reorderedSections).toEqual(sections);
+  });
+
+  it('should handle the case where the object being moved is not in the list', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(4, 1, sections);
+    expect(reorderedSections).toEqual(sections);
+  });
+
+  it('should handle the case where the new display order is out of bounds', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 5, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is negative', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, -1, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is zero', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 0, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
+  });
+
+  it('should handle the case where the new display order is the same as the last one', () => {
+    const sections = [
+      { id: 1, displayOrder: 1 },
+      { id: 2, displayOrder: 2 },
+      { id: 3, displayOrder: 3 },
+    ];
+
+    const reorderedSections = reorderDisplayOrder(2, 3, sections);
+    expect(reorderedSections[0].displayOrder).toBe(1);
+    expect(reorderedSections[1].displayOrder).toBe(2);
+    expect(reorderedSections[2].displayOrder).toBe(3);
   });
 });

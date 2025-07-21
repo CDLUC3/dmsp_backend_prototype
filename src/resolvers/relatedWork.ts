@@ -1,4 +1,4 @@
-import { formatLogMessage } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { Resolvers } from "../types";
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
@@ -7,6 +7,9 @@ import { RelatedWork } from '../models/RelatedWork';
 import { GraphQLError } from 'graphql';
 import { Project } from '../models/Project';
 import { hasPermissionOnProject } from '../services/projectService';
+import { Plan } from '../models/Plan';
+import { addVersion } from '../models/PlanVersion';
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -16,7 +19,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return await RelatedWork.findByProjectId(reference, context, projectId);
           }
         }
@@ -24,7 +27,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -35,7 +38,7 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const relatedWork = await RelatedWork.findById(reference, context, id);
           const project = await Project.findById(reference, context, relatedWork.projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             return relatedWork;
           }
         }
@@ -43,7 +46,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     }
@@ -56,19 +59,25 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             const relatedWork = new RelatedWork(input);
+            const newRelatedWork = await relatedWork.create(context);
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-
-            return await relatedWork.create(context);
+            if (newRelatedWork && !newRelatedWork.hasErrors()) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              const plans = await Plan.findByProjectId(reference, context, project.id);
+              for (const plan of plans) {
+                await addVersion(context, plan, reference);
+              }
+            }
+            return newRelatedWork;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -84,19 +93,26 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, relatedWork.projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             const toUpdate = new RelatedWork({ ...relatedWork, ...input });
+            const updated = await toUpdate.update(context);
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+            if(updated && !updated.hasErrors()) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              const plans = await Plan.findByProjectId(reference, context, project.id);
+              for (const plan of plans) {
+                await addVersion(context, plan, reference);
+              }
+            }
 
-            return await toUpdate.update(context);
+            return updated;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -112,20 +128,35 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, relatedWork.projectId);
-          if (project && hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
+            const removed = await relatedWork.delete(context);
 
-            // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
+            if(removed && !removed.hasErrors()) {
+              // Version all of the plans (if any) and sync with the DMPHub
+              const plans = await Plan.findByProjectId(reference, context, project.id);
+              for (const plan of plans) {
+                await addVersion(context, plan, reference);
+              }
+            }
 
-            return await relatedWork.delete(context);
+            return removed;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
+  },
+  RelatedWork: {
+    created: (parent: RelatedWork) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: RelatedWork) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
 };

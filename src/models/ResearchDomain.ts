@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
-import { formatLogMessage } from "../logger";
-import { randomHex, validateURL } from "../utils/helpers";
+import { prepareObjectForLogs } from "../logger";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 
 export const DEFAULT_DMPTOOL_RESEARCH_DOMAIN_URL = 'https://dmptool.org/research-domains/';;
@@ -71,7 +72,13 @@ export class ResearchDomain extends MySqlModel {
         this.addError('general', 'ResearchDomain already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await ResearchDomain.insert(context, this.tableName, this, reference);
+        const newId = await ResearchDomain.insert(
+          context,
+          this.tableName,
+          this,
+          reference,
+          ['parentResearchDomain']
+        );
         const response = await ResearchDomain.findById(reference, context, newId);
         return response;
       }
@@ -86,7 +93,14 @@ export class ResearchDomain extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await ResearchDomain.update(context, this.tableName, this, 'ResearchDomain.update', [], noTouch);
+        await ResearchDomain.update(
+          context,
+          this.tableName,
+          this,
+          'ResearchDomain.update',
+          ['parentResearchDomain'],
+          noTouch
+        );
         return await ResearchDomain.findById('ResearchDomain.update', context, id);
       }
       // This template has never been saved before so we cannot update it!
@@ -127,7 +141,7 @@ export class ResearchDomain extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, metadataStandardId };
       const msg = 'Unable to add the research domain to the metadata standard';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -145,7 +159,7 @@ export class ResearchDomain extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, repositoryId };
       const msg = 'Unable to add the research domain to the repository';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -161,7 +175,7 @@ export class ResearchDomain extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, metadataStandardId };
       const msg = 'Unable to remove the research domain from the metadata standard';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -177,10 +191,66 @@ export class ResearchDomain extends MySqlModel {
     if (!results) {
       const payload = { researchDomainId: this.id, repositoryId };
       const msg = 'Unable to remove the research domain from the repository';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
+  }
+
+  // Return all of the top level Research Domains (meaning they have no parent)
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptions = ResearchDomain.getDefaultPaginationOptions()
+  ): Promise<PaginatedQueryResults<ResearchDomain>> {
+    const whereFilters = [];
+    const values = [];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(rd.name) LIKE ? OR LOWER(rd.description) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['rd.name', 'rd.created'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(rd.name, rd.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'rd.name';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'rd.id';
+
+    const sqlStatement = 'SELECT rd.* FROM researchDomains rd';
+
+    const response: PaginatedQueryResults<ResearchDomain> = await ResearchDomain.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
+    return response;
   }
 
   // Return all of the top level Research Domains (meaning they have no parent)
@@ -247,4 +317,3 @@ export class ResearchDomain extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;
   }
 };
-

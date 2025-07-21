@@ -9,6 +9,7 @@ import { typeDefs } from './schema';
 import { resolvers } from './resolver';
 import { mocks } from './mocks';
 import { loggerPlugin } from './plugins/logger';
+import {Logger} from "pino";
 
 dotenv.config();
 
@@ -29,22 +30,25 @@ function baseConfig() {
   return { typeDefs, resolvers };
 }
 
-// Standard Apollo server configuration regarless of whether we are using mock data or not
-export function serverConfig(logger, httpServer) {
-  return  { ...baseConfig(), ...{
-    plugins: [
-      // The LoggerPlugin is used by Apollo server to record events in the request/response
-      // lifecycle as well as handling any GraphQL errors
-      loggerPlugin(logger),
-      ApolloServerPluginDrainHttpServer({ httpServer }),
-      // If we are in production disable the default Explorer landing page
-      process.env.NODE_ENV === 'production'
-        ? ApolloServerPluginLandingPageDisabled()
-        : ApolloServerPluginLandingPageLocalDefault()
-    ],
-    // Mitigation for an issue that causes Apollo server v4 to return a 200 when a query
-    // includes invalid variables.
-    //    See: https://www.apollographql.com/docs/apollo-server/migration/#known-regressions
-    status400ForVariableCoercionErrors: true
-  }};
+// Standard Apollo server configuration regardless of whether we are using mock data or not
+export function serverConfig(logger: Logger, httpServer) {
+  return  {
+    ...baseConfig(),
+    ...{
+      plugins: [
+        // The LoggerPlugin is used by Apollo server to record events in the request/response
+        // lifecycle as well as handling any GraphQL errors
+        loggerPlugin(logger),
+        ApolloServerPluginDrainHttpServer({ httpServer }),
+        // If we are in production disable the default Explorer landing page
+        process.env.NODE_ENV === 'production'
+          ? ApolloServerPluginLandingPageDisabled()
+          : ApolloServerPluginLandingPageLocalDefault()
+      ],
+      // Mitigation for an issue that causes Apollo server v4 to return a 200 when a query
+      // includes invalid variables.
+      //    See: https://www.apollographql.com/docs/apollo-server/migration/#known-regressions
+      status400ForVariableCoercionErrors: true
+    }
+  };
 }

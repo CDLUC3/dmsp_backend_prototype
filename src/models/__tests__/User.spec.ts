@@ -1,13 +1,18 @@
 import 'jest-expect-message';
-import { DEFAULT_ORCID_URL, LogInType, User, UserRole } from '../User';
+import { generalConfig } from "../../config/generalConfig";
+import { normaliseHttpProtocol } from "../../utils/helpers";
+import { LogInType, User, UserRole } from '../User';
 import bcrypt from 'bcryptjs';
 import casual from 'casual';
-import { logger } from '../../__mocks__/logger';
 import { defaultLanguageId, supportedLanguages } from '../Language';
-import { mockToken, buildContext } from '../../__mocks__/context';
+import { buildContext, buildMockContextWithToken } from '../../__mocks__/context';
 import { getRandomEnumValue } from '../../__tests__/helpers';
+import { logger } from "../../logger";
+import { UserEmail } from '../UserEmail';
+import { PaginationType } from '../../types/general';
 
 jest.mock('../../context.ts');
+jest.mock('../UserEmail');
 
 let mockQuery;
 let mockUser;
@@ -19,20 +24,18 @@ describe('constructor', () => {
 
     const props = {
       id: casual.integer(1, 99999),
-      email: casual.email,
       password: casual.password,
       affiliationId: casual.url,
       role: UserRole.ADMIN,
       givenName: casual.first_name,
       surName: casual.last_name,
-      orcid: `${DEFAULT_ORCID_URL}0000-0000-0000-000X`,
+      orcid: normaliseHttpProtocol(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`),
       ssoId: casual.uuid,
       languageId: lang.id,
     }
 
     const user = new User(props);
     expect(user.id).toEqual(props.id);
-    expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
     expect(user.affiliationId).toEqual(props.affiliationId);
     expect(user.givenName).toEqual(props.givenName);
@@ -44,10 +47,9 @@ describe('constructor', () => {
   });
 
   it('should set the defaults properly', () => {
-    const props = { email: casual.email, password: casual.password, affiliationId: casual.url };
+    const props = { password: casual.password, affiliationId: casual.url };
     const user = new User(props);
     expect(user.id).toBeFalsy();
-    expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
     expect(user.affiliationId).toEqual(props.affiliationId);
     expect(user.givenName).toBeFalsy();
@@ -57,7 +59,7 @@ describe('constructor', () => {
     expect(user.languageId).toEqual(defaultLanguageId);
     expect(user.last_sign_in).toBeFalsy();
     expect(user.last_sign_in_via).toBeFalsy();
-    expect(user.failed_sign_in_attemps).toEqual(0);
+    expect(user.failed_sign_in_attempts).toEqual(0);
     expect(user.notify_on_comment_added).toEqual(true);
     expect(user.notify_on_template_shared).toEqual(true);
     expect(user.notify_on_feedback_complete).toEqual(true);
@@ -68,9 +70,8 @@ describe('constructor', () => {
   });
 
   it('should ignore unexpected properties', () => {
-    const props = { email: casual.email, password: casual.password };
+    const props = { password: casual.password };
     const user = new User({ ...props, test: 'blah' });
-    expect(user.email).toEqual(props.email);
     expect(user.password).toEqual(props.password);
     expect(user['test']).toBeUndefined();
   });
@@ -79,26 +80,23 @@ describe('constructor', () => {
 describe('prepForSave standardizes the format of properties', () => {
   it('should properly format the properties', () => {
     const user = new User({
-      email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
-      orcid: `${DEFAULT_ORCID_URL}0000-0000-0000-000X`,
+      orcid: `${generalConfig.orcidBaseURL}0000-0000-0000-000X`,
     });
     user.prepForSave();
-    expect(user.email).toEqual('TESTer@exaMPle.cOm');
     expect(user.givenName).toEqual('Test');
     expect(user.surName).toEqual('User');
     expect(user.role).toEqual(UserRole.RESEARCHER);
     expect(user.languageId).toEqual(defaultLanguageId);
-    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+    expect(user.orcid).toEqual(normaliseHttpProtocol(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`));
   });
 });
 
 describe('prepForSave properly handles ORCIDs', () => {
   it('should null out invalid ORCIDs', () => {
     const user = new User({
-      email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
@@ -110,44 +108,24 @@ describe('prepForSave properly handles ORCIDs', () => {
 
   it('should handle the ORCID URL with no protocol', () => {
     const user = new User({
-      email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
-      orcid: `${DEFAULT_ORCID_URL.replace(/https?:\/\//, '')}0000-0000-0000-000X`,
+      orcid: `${generalConfig.orcidBaseURL.replace(/https?:\/\//, '')}0000-0000-0000-000X`,
     });
     user.prepForSave();
-    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
+    expect(user.orcid).toEqual(normaliseHttpProtocol(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`));
   });
 
   it('should handle the ORCID ID without base URL', () => {
     const user = new User({
-      email: 'TESTer%40exaMPle.cOm',
       givenName: ' Test ',
       surName: '  user  ',
       languageId: 'test',
       orcid: `0000-0000-0000-000X`,
     });
     user.prepForSave();
-    expect(user.orcid).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
-  });
-});
-
-describe('formatORCID', () => {
-  // Test the ORCID formatting
-  it('should return null for an invalid ORCID', () => {
-    expect(User.formatORCID('25t24g45g45g546gt')).toBeNull();
-    expect(User.formatORCID('0000-0000-0000')).toBeNull();
-    expect(User.formatORCID(`${DEFAULT_ORCID_URL}/0000-0000-000`)).toBeNull();
-  });
-
-  it('should return the ORCID with the default URL', () => {
-    expect(User.formatORCID('0000-0000-0000-000X')).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
-  });
-
-  it('should return the ORCID as is if it already a valid ORCID with the base URL', () => {
-    expect(User.formatORCID(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`)).toEqual(`${DEFAULT_ORCID_URL}0000-0000-0000-000X`);
-    expect(User.formatORCID('https://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
+    expect(user.orcid).toEqual(normaliseHttpProtocol(`${generalConfig.orcidBaseURL}0000-0000-0000-000X`));
   });
 });
 
@@ -156,7 +134,6 @@ describe('validate a new User', () => {
     jest.resetAllMocks();
 
     mockUser = new User({
-      email: casual.email,
       password: 'abcd3Fgh!JklM_m0$',
       givenName: casual.first_name,
       surName: casual.last_name,
@@ -186,14 +163,6 @@ describe('validate a new User', () => {
     expect(await mockUser.isValid()).toBe(false);
     expect(Object.keys(mockUser.errors).length).toBe(1);
     expect(mockUser.errors['password']).toBeTruthy();
-  });
-
-  it('should return false when we have a new user without a valid email format', async () => {
-    mockQuery.mockResolvedValueOnce(null);
-    mockUser.email = 'abcde';
-    expect(await mockUser.isValid()).toBe(false);
-    expect(Object.keys(mockUser.errors).length).toBe(1);
-    expect(mockUser.errors['email']).toBeTruthy();
   });
 
   it('should return false when we have a new user without an createdById', async () => {
@@ -231,7 +200,7 @@ describe('Password validation', () => {
   });
 
   it('should fail for a new user with a password that is too short', async () => {
-    const user = new User({ email: 'test.user@example.com', password: 'abcde' });
+    const user = new User({ password: 'abcde' });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
@@ -246,28 +215,28 @@ describe('Password validation', () => {
 
 
   it('should return error if password is missing', async () => {
-    const user = new User({ email: 'test.user@example.com', password: null });
+    const user = new User({ password: null });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 lowercase letter', async () => {
-    const user = new User({ email: 'test.user@example.com', password: 'ABCD3FGH1JKL' });
+    const user = new User({ password: 'ABCD3FGH1JKL' });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 number letter', async () => {
-    const user = new User({ email: 'test.user@example.com', password: 'Abcd$Fgh#jkL' });
+    const user = new User({ password: 'Abcd$Fgh#jkL' });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
   });
 
   it('should fail for a new user if the password does not contain at least 1 special character', async () => {
-    const user = new User({ email: 'test.user@example.com', password: 'Abcd3Fgh1jkL' });
+    const user = new User({ password: 'Abcd3Fgh1jkL' });
     expect(user.validatePassword()).toBe(false);
     expect(Object.keys(user.errors).length === 1);
     expect(user.errors['password'].includes('Invalid password')).toBe(true);
@@ -288,6 +257,16 @@ describe('authCheck', () => {
   beforeEach(() => {
     jest.resetAllMocks();
 
+    mockUser = new User({
+      password: 'abcd3Fgh!JklM_m0$',
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      affiliationId: casual.url,
+      role: UserRole.RESEARCHER,
+      createdById: casual.integer(1, 999),
+      acceptedTerms: true,
+    });
+
     mockContext = buildContext(logger, null, null);
     const mockSqlDataSource = mockContext.dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -300,53 +279,66 @@ describe('authCheck', () => {
   it('it returns null if there is no User for the specified email', async () => {
     const email = casual.email;
     const password = 'Abcd3Fgh1jkL$';
+    (UserEmail.findByEmail as jest.Mock).mockResolvedValue([]);
     mockQuery.mockResolvedValueOnce([])
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
-    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(1);
   });
 
   it('it returns null if the password does not match', async () => {
     const email = casual.email;
     const password = 'Abcd3Fgh1jkL$';
+    (UserEmail.findByEmail as jest.Mock).mockResolvedValue([
+      new UserEmail({ userId: 12345, isPrimary: true, isConfirmed: true, email: email})
+    ]);
     mockQuery.mockResolvedValueOnce([mockUser]);
 
     bcryptCompare = jest.fn().mockResolvedValue(false);
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
     expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toBeFalsy();
-    expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
+    expect(mockContext.logger.debug).toHaveBeenCalledTimes(1);
   });
 
   it('it returns the user\'s id if the password matched', async () => {
-    const email = casual.email;
+    const email = 'test.email@example.com'
     const password = 'Abcd3Fgh1jkL$';
     mockUser.id = 12345;
-    mockQuery.mockResolvedValueOnce([mockUser]);
 
-    bcryptCompare = jest.fn().mockResolvedValue(true);
+    (UserEmail.findByEmail as jest.Mock).mockResolvedValueOnce([
+      { userId: mockUser.id, isPrimary: true, isConfirmed: true, email: email }
+    ]);
+
+    const mockUserData = { ...mockUser }; // or Object.assign({}, mockUser)
+    mockQuery.mockResolvedValueOnce([mockUserData]);
+
+    // jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+
+    const bcryptCompare = jest.fn().mockResolvedValue(true);
     (bcrypt.compare as jest.Mock) = bcryptCompare;
 
-    expect(await User.authCheck('Testing authCheck', mockContext, email, password)).toEqual(12345);
+    const result = await User.authCheck('Testing authCheck', mockContext, email, password);
+    expect(result).toEqual(mockUser.id);
     expect(mockContext.logger.debug).toHaveBeenCalledTimes(2);
   });
-});
 
-it('getName returns the user\'s full name', () => {
-  mockUser.givenName = casual.first_name;
-  mockUser.surName = casual.last_name;
-  expect(mockUser.getName()).toEqual(`${mockUser.givenName} ${mockUser.surName}`);
+  it('getName returns the user\'s full name', () => {
+    mockUser.givenName = casual.first_name;
+    mockUser.surName = casual.last_name;
+    expect(mockUser.getName()).toEqual(`${mockUser.givenName} ${mockUser.surName}`);
 
-  mockUser.givenName = null;
-  mockUser.surName = casual.last_name;
-  expect(mockUser.getName()).toEqual(`${mockUser.surName}`);
+    mockUser.givenName = null;
+    mockUser.surName = casual.last_name;
+    expect(mockUser.getName()).toEqual(`${mockUser.surName}`);
 
-  mockUser.givenName = casual.first_name;
-  mockUser.surName = null;
-  expect(mockUser.getName()).toEqual(`${mockUser.givenName}`);
+    mockUser.givenName = casual.first_name;
+    mockUser.surName = null;
+    expect(mockUser.getName()).toEqual(`${mockUser.givenName}`);
 
-  mockUser.givenName = undefined;
-  mockUser.surName = null;
-  expect(mockUser.getName()).toEqual('');
+    mockUser.givenName = undefined;
+    mockUser.surName = null;
+    expect(mockUser.getName()).toEqual('');
+  });
 });
 
 describe('recordLogIn', () => {
@@ -354,15 +346,14 @@ describe('recordLogIn', () => {
 
   let user;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     user = new User({
       id: casual.integer(1, 9),
       createdById: casual.integer(1, 999),
-      email: casual.sentence,
       affiliationId: casual.url,
       password: casual.password,
       givenName: casual.first_name,
@@ -392,10 +383,10 @@ describe('login()', () => {
   let mockAuthCheck;
   let mockUpdate;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockAuthCheck = jest.fn();
     (User.authCheck as jest.Mock) = mockAuthCheck;
@@ -413,14 +404,14 @@ describe('login()', () => {
   });
 
   it('should succeed if user exists and its password matches with encrypted one', async () => {
+    const email = 'test.user@example.com';
     const user = new User({
-      email: casual.email,
       password: 'abcd3Fgh!JklM_m0$',
     });
     mockAuthCheck.mockReturnValue(123);
-    mockQuery.mockResolvedValue([{ id: 123, email: user.email, password: user.password }]);
+    mockQuery.mockResolvedValue([{ id: 123, password: user.password }]);
 
-    const response = await user.login(context);
+    const response = await user.login(context, email);
     expect(response).not.toBeNull();
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(context.logger.debug).toHaveBeenCalledTimes(2);
@@ -429,8 +420,9 @@ describe('login()', () => {
 
   it('should return an error when authCheck does not return a userId', async () => {
     mockAuthCheck.mockReturnValue(null);
-    const user = new User({ email: 'example.com', password: '@bcd3fGhijklmnop' });
-    const response = await user.login(context);
+    const email = 'test.user@example.com';
+    const user = new User({ password: '@bcd3fGhijklmnop' });
+    const response = await user.login(context, email);
     expect(response).toBe(null);
   });
 
@@ -439,7 +431,8 @@ describe('login()', () => {
       throw new Error('Testing error handler');
     });
     const user = new User({ email: 'test.user@example.com', password: 'AbcdefgH1!' });
-    const response = await user.login(context);
+    const email = 'test.user@example.com';
+    const response = await user.login(context, email);
     expect(response).toBeNull();
     expect(context.logger.error).toHaveBeenCalledTimes(1);
   });
@@ -454,10 +447,10 @@ describe('register()', () => {
   const bcryptPassword = jest.fn().mockReturnValue('test.user@example.com');
   (bcrypt.hash as jest.Mock) = bcryptPassword;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     const mockSqlDataSource = (buildContext(logger, null, null)).dataSources.sqlDataSource;
     mockQuery = mockSqlDataSource.query as jest.MockedFunction<typeof mockSqlDataSource.query>;
@@ -468,7 +461,8 @@ describe('register()', () => {
   })
 
   it('should not return null if user exists and its password matches with encrypted one', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
+    const email = 'test.user@example.com'
+    const mockedUser = { id: 1, name: '@bcd3fGhijklmnop' };
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
     // Second call to Mock mysql query from register()
@@ -477,7 +471,6 @@ describe('register()', () => {
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
 
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
@@ -486,27 +479,27 @@ describe('register()', () => {
     });
     jest.spyOn(user, 'validatePassword').mockReturnValue(true);
 
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).not.toBeNull();
     expect(user.validatePassword).toHaveBeenCalledTimes(1);
   });
 
   it('should return user object with an error if they did not accept the terms', async () => {
+    const email = 'test.user@example.com'
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
       affiliationId: casual.url,
     });
     mockQuery.mockResolvedValueOnce(user);
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).toBe(user);
     expect(response.errors['acceptedTerms']).toBeTruthy();
   });
 
   it('should return user object if there was an error creating user', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
+    const mockedUser = { id: 1, name: '@bcd3fGhijklmnop' };
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
     // Second call to Mock mysql query from register()
@@ -514,8 +507,8 @@ describe('register()', () => {
     // Third call to Mock mysql query from findById()
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
 
+    const email = 'test.user@example.com'
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
@@ -523,13 +516,13 @@ describe('register()', () => {
       acceptedTerms: true
     });
 
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).toBeInstanceOf(User);
     expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
   it('should return the user with errors if there are errors validating the user', async () => {
-    const mockedUser = { id: 1, email: 'test.user@example.com', name: '@bcd3fGhijklmnop' };
+    const mockedUser = { id: 1, name: '@bcd3fGhijklmnop' };
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([{}, []]);
     // Second call to Mock mysql query from register()
@@ -537,22 +530,22 @@ describe('register()', () => {
     // Third call to Mock mysql query from findById()
     mockQuery.mockResolvedValueOnce([mockedUser, []]);
 
+    const email = 'test.user@example.com'
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
       acceptedTerms: true,
     });
 
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).toBeInstanceOf(User);
     expect(Object.keys(response.errors).length > 0).toBe(true);
   });
 
   it('should return the user with errors if the terms were not accepted', async () => {
+    const email = 'test.user@example.com'
     const user = new User({
-      email: 'test.user@example.com',
       password: '@bcd3fGhijklmnop',
       givenName: 'Test',
       surName: 'simple',
@@ -561,7 +554,7 @@ describe('register()', () => {
     // First call to Mock mysql query from findByEmail()
     mockQuery.mockResolvedValueOnce([{}, []]);
 
-    const response = await user.register(context);
+    const response = await user.register(context, email);
     expect(response).toBeInstanceOf(User);
     expect(Object.keys(response.errors).length > 0).toBe(true);
   });
@@ -572,8 +565,8 @@ describe('update', () => {
   let updateQuery;
   let user;
 
-  beforeEach(() => {
-    context = buildContext(logger, mockToken());
+  beforeEach(async () => {
+    context = await buildMockContextWithToken(logger);
 
     updateQuery = jest.fn();
     (User.update as jest.Mock) = updateQuery;
@@ -653,10 +646,10 @@ describe('updatePassword', () => {
   let mockValidator;
   let mockAuthCheck;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     oldPassword = 'Test0ldP@ssw1';
     oldPassword = 'TestN3wP@ssw2';
@@ -712,5 +705,98 @@ describe('updatePassword', () => {
     expect(mockAuthCheck).toHaveBeenCalledTimes(1);
     expect(mockValidator).not.toHaveBeenCalled();
     expect(updateQuery).not.toHaveBeenCalled();
+  });
+});
+
+describe('getEmail', () => {
+  let user;
+  let context;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    context = await buildMockContextWithToken(logger);
+    user = new User({
+      id: 123,
+      password: casual.password,
+      affiliationId: casual.url,
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      role: UserRole.RESEARCHER,
+      acceptedTerms: true,
+      languageId: defaultLanguageId,
+    });
+  });
+
+  it('should return the primary email if it exists', async () => {
+    const mockEmail = 'test.user@example.com';
+    (UserEmail.findPrimaryByUserId as jest.Mock).mockResolvedValue({ email: mockEmail });
+    const result = await user.getEmail(context);
+    expect(result).toBe(mockEmail);
+    expect(UserEmail.findPrimaryByUserId).toHaveBeenCalledWith('User.getEmail', context, user.id);
+  });
+
+  it('should return null if no primary email exists', async () => {
+    (UserEmail.findPrimaryByUserId as jest.Mock).mockResolvedValue(null);
+    const result = await user.getEmail(context);
+    expect(result).toBeNull();
+    expect(UserEmail.findPrimaryByUserId).toHaveBeenCalledWith('User.getEmail', context, user.id);
+  });
+});
+
+describe('findByAffiliationId', () => {
+  let context;
+  let mockPaginatedResults;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    context = await buildMockContextWithToken(logger);
+    mockPaginatedResults = {
+      items: [
+        new User({
+          id: 1,
+          affiliationId: 'affil-1',
+          givenName: 'Alice',
+          surName: 'Smith',
+          password: 'password',
+          role: UserRole.RESEARCHER,
+          languageId: defaultLanguageId,
+          acceptedTerms: true,
+        }),
+        new User({
+          id: 2,
+          affiliationId: 'affil-1',
+          givenName: 'Bob',
+          surName: 'Jones',
+          password: 'password',
+          role: UserRole.RESEARCHER,
+          languageId: defaultLanguageId,
+          acceptedTerms: true,
+        })
+      ],
+      totalCount: 2,
+      hasNextPage: false,
+      hasPreviousPage: false,
+      pageInfo: {}
+    };
+    jest.spyOn(User, 'queryWithPagination').mockResolvedValue(mockPaginatedResults);
+  });
+
+  it('should return users for a given affiliationId and term', async () => {
+    const affiliationId = 'affil-1';
+    const term = 'Alice';
+    const options = { type: PaginationType.OFFSET, sortField: 'u.surName', sortDir: 'ASC' };
+    const result = await User.findByAffiliationId('testRef', context, affiliationId, term, options);
+    expect(User.queryWithPagination).toHaveBeenCalled();
+    expect(result.items.length).toBe(2);
+    expect(result.items[0].givenName).toBe('Alice');
+    expect(result.items[1].givenName).toBe('Bob');
+  });
+
+  it('should handle empty results', async () => {
+    (User.queryWithPagination as jest.Mock).mockResolvedValueOnce({ items: [], limit: 10, totalCount: 0, hasNextPage: false, hasPreviousPage: false });
+    const options = { type: PaginationType.OFFSET };
+    const result = await User.findByAffiliationId('testRef', context, 'affil-2', '', options);
+    expect(result.items).toEqual([]);
+    expect(result.totalCount).toBe(0);
   });
 });

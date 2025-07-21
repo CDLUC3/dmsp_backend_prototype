@@ -1,15 +1,17 @@
-import { Resolvers } from "../types";
+import { ReorderSectionsResult, Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { VersionedSection } from "../models/VersionedSection";
 import { Tag } from "../models/Tag";
 import { Template } from "../models/Template";
-import { cloneSection, hasPermissionOnSection } from "../services/sectionService";
-import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
+import { cloneSection, hasPermissionOnSection, updateDisplayOrders } from "../services/sectionService";
+import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError, BadRequestError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
+import { VersionedQuestion } from "../models/VersionedQuestion";
+import {formatISO9075} from "date-fns";
 
 
 export const resolvers: Resolvers = {
@@ -26,7 +28,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -43,7 +45,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     }
@@ -60,7 +62,6 @@ export const resolvers: Resolvers = {
           copyFromVersionedSectionId,
           introduction,
           requirements,
-          tags,
           guidance,
           displayOrder
         }
@@ -73,20 +74,22 @@ export const resolvers: Resolvers = {
           let section = new Section({ name, templateId, introduction, requirements, guidance, displayOrder });
 
           // if a copyFromVersionedSectionId is provided, clone the section
-          if (copyFromVersionedSectionId) {
-            const original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
+          let original: VersionedSection;
 
+          if (copyFromVersionedSectionId) {
+            original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
             if (!original) {
               throw NotFoundError('Unable to copy the specified section');
             }
 
             section = cloneSection(context.token?.id, templateId, original);
             section.name = name;
+            const maxDisplayOrder = await Section.findMaxDisplayOrder(reference, context, templateId);
+            section.displayOrder = maxDisplayOrder + 1;
           }
 
           // create the new section
           const newSection = await section.create(context, templateId);
-
           // if the section was not created, return the errors
           if (!newSection?.id) {
             // A null was returned so add a generic error and return it
@@ -96,20 +99,50 @@ export const resolvers: Resolvers = {
             return section;
           }
 
-          // Add tags to the section
-          if (tags && Array.isArray(tags) && tags.length > 0) {
-            const addTagErrors = [];
-            for (const tagIn of tags) {
-              const tag = await Tag.findById(reference, context, tagIn.id);
-              if (tag) {
-                const wasAdded = tag.addToSection(context, newSection.id)
-                if (!wasAdded) {
-                  addTagErrors.push(tag.name);
+          // if a copyFromVersionedSectionId is provided, clone all the questions
+          if (copyFromVersionedSectionId && original) {
+            const versionedQuestions = await VersionedQuestion.findByVersionedSectionId(
+              reference,
+              context,
+              original.id
+            );
+
+            // Add questions from the copied versionedSection to the section
+            for (const versionedQuestion of versionedQuestions) {
+              const newQuestion = new Question({
+                ...versionedQuestion,
+                isDirty: true,
+                sourceQuestionId: versionedQuestion.questionId,
+                sectionId: newSection.id,
+                templateId: templateId,
+                id: undefined, // ensure the id is not set since we're creating a new question
+              });
+
+              const addedQuestion = await newQuestion.create(context);
+              if (!addedQuestion?.id) {
+                // A null was returned so add a generic error and return it
+                if (!newQuestion.errors['general']) {
+                  newQuestion.addError('general', 'Unable to create the question');
                 }
               }
             }
-            if (addTagErrors.length > 0) {
-              newSection.addError('tags', `Section created but we were unable to assign tags: ${addTagErrors.join(', ')}`);
+
+            const versionedTags = await Tag.findByVersionedSectionId(reference, context, original.sectionId);
+            // Add tags from the copied versionedSection to the section
+            if (versionedTags && Array.isArray(versionedTags) && versionedTags.length > 0) {
+              const addTagErrors = [];
+              for (const tagIn of versionedTags) {
+                const tag = await Tag.findById(reference, context, tagIn.id);
+                if (tag) {
+                  const wasAdded = tag.addToSection(context, newSection.id)
+                  if (!wasAdded) {
+                    addTagErrors.push(tag.name);
+                  }
+                }
+              }
+              if (addTagErrors.length > 0) {
+                newSection.addError('tags', `Section created but we were unable to assign tags: ${addTagErrors.join(', ')}`);
+              }
             }
           }
 
@@ -123,7 +156,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -233,7 +266,56 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Change the section's display order
+    updateSectionDisplayOrder: async (
+      _,
+      { sectionId, newDisplayOrder },
+      context: MyContext
+    ): Promise<ReorderSectionsResult> => {
+      const reference = 'updateSectionDisplayOrder resolver';
+      try {
+        if (isAdmin(context.token)) {
+          // Find the section that is being repositioned
+          const section = await Section.findById(reference, context, sectionId);
+
+          if (!section) {
+            throw NotFoundError();
+          }
+
+          // Check that the new display order has actually changed
+          if (section.displayOrder === newDisplayOrder) {
+            throw BadRequestError('The new display order is the same as the current one');
+          }
+
+          // Check that user has permission to update this section
+          if (await hasPermissionOnSection(context, section.templateId)) {
+            try {
+              // Reorder the sections
+              const reorderedSections = await updateDisplayOrders(
+                context,
+                section.templateId,
+                sectionId,
+                newDisplayOrder
+              );
+
+              return { sections: reorderedSections ?? [] };
+
+            } catch (err) {
+              context.logger.error(prepareObjectForLogs(err), `${reference} failed: sectionId: ${sectionId}`);
+              return { sections: [], errors: { general: err.message } };
+            }
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -269,7 +351,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -286,5 +368,11 @@ export const resolvers: Resolvers = {
     questions: async (parent: Section, _, context: MyContext): Promise<Question[]> => {
       return await Question.findBySectionId('Chained Section.questions', context, parent.id)
     },
+    created: (parent: Section) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Section) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
 };

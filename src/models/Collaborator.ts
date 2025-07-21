@@ -13,7 +13,7 @@ export class Collaborator extends MySqlModel {
   public invitedById: number;
   public userId: number;
 
-  constructor(options){
+  constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.email = options.email;
@@ -49,7 +49,7 @@ export class TemplateCollaborator extends Collaborator {
 
   // Verify that the templateId is present
   async isValid(): Promise<boolean> {
-    super.isValid()
+    await super.isValid()
 
     if (this.templateId === null) this.addError('templateId', 'Template Id can\'t be blank');
 
@@ -59,26 +59,27 @@ export class TemplateCollaborator extends Collaborator {
   // Save the current record
   async create(context: MyContext): Promise<TemplateCollaborator> {
     const reference = 'TemplateCollaborator.create';
-    // First make sure the record is valid
-    if (await this.isValid()) {
-      const currentCollaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
-        reference,
-        context,
-        this.templateId,
-        this.email,
-      );
 
-      if (currentCollaborator) {
-        currentCollaborator.addError('general', 'Collaborator has already been added');
-        return currentCollaborator
-      } else {
-        // See if the user already has an account, if so grab their id
-        const user = await User.findByEmail(reference, context, this.email);
-        this.userId = user?.id;
+    const currentCollaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
+      reference,
+      context,
+      this.templateId,
+      this.email,
+    );
 
-        // Set the inviter's Id to the current user
-        this.invitedById = context.token?.id;
+    if (currentCollaborator) {
+      currentCollaborator.addError('general', 'Collaborator has already been added');
+      return currentCollaborator
+    } else {
+      // See if the user already has an account, if so grab their id
+      const user = await User.findByEmail(reference, context, this.email);
+      this.userId = user?.id;
 
+      // Set the inviter's Id to the current user
+      this.invitedById = context.token?.id;
+
+      // First make sure the record is valid
+      if (await this.isValid()) {
         // Save the record and then fetch it
         const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
         if (newId) {
@@ -211,7 +212,7 @@ export enum ProjectCollaboratorAccessLevel {
 // An individual that has permission to work on a Project and it's plans
 export class ProjectCollaborator extends Collaborator {
   public projectId: number;
-  public accessLevel: string;
+  public accessLevel: ProjectCollaboratorAccessLevel;
 
   private tableName = 'projectCollaborators';
 
@@ -224,7 +225,7 @@ export class ProjectCollaborator extends Collaborator {
 
   // Verify that the projectId is present
   async isValid(): Promise<boolean> {
-    super.isValid()
+    await super.isValid()
 
     if (isNullOrUndefined(this.projectId)) this.addError('projectId', 'Project Id can\'t be blank');
     if (valueIsEmpty(this.accessLevel)) this.addError('accessLevel', 'Access Level can\'t be blank');
@@ -233,36 +234,39 @@ export class ProjectCollaborator extends Collaborator {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<ProjectCollaborator> {
+  async create(context: MyContext, sendEmailNotification = true): Promise<ProjectCollaborator> {
     const reference = 'ProjectCollaborator.create';
-    // First make sure the record is valid
-    if (await this.isValid()) {
-      const currentCollaborator = await ProjectCollaborator.findByProjectIdAndEmail(
-        reference,
-        context,
-        this.projectId,
-        this.email,
-      );
 
-      if (currentCollaborator) {
-        currentCollaborator.addError('general', 'Collaborator has already been added');
-        return currentCollaborator
-      } else {
-        // See if the user already has an account, if so grab their id
-        const user = await User.findByEmail(reference, context, this.email);
-        this.userId = user?.id;
+    const currentCollaborator = await ProjectCollaborator.findByProjectIdAndEmail(
+      reference,
+      context,
+      this.projectId,
+      this.email,
+    );
 
-        // Set the inviter's Id to the current user
-        this.invitedById = context.token?.id;
+    if (currentCollaborator) {
+      currentCollaborator.addError('general', 'Collaborator has already been added');
+      return currentCollaborator
+    } else {
+      // See if the user already has an account, if so grab their id
+      const user = await User.findByEmail(reference, context, this.email);
+      this.userId = user?.id;
 
+      // Set the inviter's Id to the current user
+      this.invitedById = context.token?.id;
+
+      // First make sure the record is valid
+      if (await this.isValid()) {
         // Save the record and then fetch it
         const newId = await ProjectCollaborator.insert(context, this.tableName, this, reference);
         if (newId) {
           const inviter = await User.findById(reference, context, this.invitedById);
           const project = await Project.findById(reference, context, this.projectId);
 
-          // Send out the invitation notification (no async here, can happen in the background)
-          await sendProjectCollaborationEmail(context, project.title, inviter.getName(), this.email, this.userId)
+          if (sendEmailNotification) {
+            // Send out the invitation notification (no async here, can happen in the background)
+            await sendProjectCollaborationEmail(context, project.title, inviter.getName(), this.email, this.userId)
+          }
 
           return await ProjectCollaborator.findById(reference, context, newId);
         }

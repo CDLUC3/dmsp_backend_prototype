@@ -1,7 +1,8 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { randomHex, validateURL, valueIsEmpty } from "../utils/helpers";
-import { DMPHubConfig } from "../config/dmpHubConfig";
+import { isNullOrUndefined, randomHex, validateURL } from "../utils/helpers";
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import { prepareObjectForLogs } from "../logger";
 
 export const DEFAULT_DMPTOOL_AFFILIATION_URL = 'https://dmptool.org/affiliations/';
 export const DEFAULT_ROR_AFFILIATION_URL = 'https://ror.org/';
@@ -24,25 +25,6 @@ export enum AffiliationType {
   HEALTHCARE = 'HEALTHCARE',
   ARCHIVE = 'ARCHIVE',
   OTHER = 'OTHER',
-}
-
-// Prepare the API target URL for the Affiliation
-// We are currently proxying calls to external funder APIs through the DMPHub API
-// This may change in the future
-const prepareAPITarget = (target: string): string => {
-  // If the target is a URL then return it as-is
-  if (target && target.startsWith('http')) {
-    return target;
-  } else if (target && target.startsWith('/')) {
-    // If the target is a relative URL then prepend the DMPHub URL
-    return `${DMPHubConfig.dmpHubURL}${target}`;
-  } else if (target) {
-    // If the target is a relative URL then prepend the DMPHub URL
-    return `${DMPHubConfig.dmpHubURL}/${target}`;
-  } else {
-    // Otherwise return null
-    return null;
-  }
 }
 
 // Represents an Institution, Organization or Company
@@ -106,7 +88,7 @@ export class Affiliation extends MySqlModel {
     this.feedbackEmails = options.feedbackEmails;
 
     // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
-    this.apiTarget = prepareAPITarget(options.apiTarget);
+    this.apiTarget = options.apiTarget;
 
     this.uneditableProperties = ['uri', 'provenance', 'searchName'];
 
@@ -128,17 +110,13 @@ export class Affiliation extends MySqlModel {
     if (!this.searchName) this.addError('searchName', 'Search name can\'t be blank');
     if (!this.provenance) this.addError('provenance', 'Provenance can\'t be blank');
 
-    if (!valueIsEmpty(this.apiTarget) && !validateURL(this.apiTarget)) {
-      this.addError('apiTarget', 'Invalid URL');
-    }
-
     return Object.keys(this.errors).length === 0;
   }
 
   // Convert the name, homepage, acronyms and aliases into a search string
   buildSearchName(): string {
     const parts = [this.name, this.getDomain(), this.acronyms, this.aliases];
-    return parts.flat().filter((item) => item).join(' | ').substring(0, 249);
+    return parts.flat().filter((item) => !isNullOrUndefined(item)).join(' | ').substring(0, 249);
   }
 
   // Get the domain from the homepage
@@ -310,11 +288,6 @@ export class Affiliation extends MySqlModel {
   }
 }
 
-export interface AffiliationSearchCriteria {
-  name: string;
-  funderOnly: boolean;
-}
-
 // A pared down version of the full Affiliation object. This type is returned by
 // our index searches
 export class AffiliationSearch {
@@ -334,7 +307,7 @@ export class AffiliationSearch {
     this.types = options.types ?? [AffiliationType.OTHER];
 
     // We're proxying calls to funder APIs through the DMPHub API for now. This may change in the future
-    this.apiTarget = prepareAPITarget(options.apiTarget);
+    this.apiTarget = options.apiTarget;
   }
 
   // Some of the properties are stored as JSON strings in the DB so we need to parse them
@@ -355,23 +328,105 @@ export class AffiliationSearch {
   }
 
   // Search for Affiliations that match the term and the funder flag
-  static async search(context: MyContext, options: AffiliationSearchCriteria): Promise<AffiliationSearch[]> {
-    let sql = 'SELECT * FROM affiliations WHERE active = 1';
-    const vals = [];
+  static async search(
+    reference: string,
+    context: MyContext,
+    name: string,
+    funderOnly: boolean,
+    options: PaginationOptions = Affiliation.getDefaultPaginationOptions(),
+  ): Promise<PaginatedQueryResults<AffiliationSearch>> {
+    const whereFilters = ['a.active = 1'];
+    const values = [];
 
-    if (options.name) {
-      sql += ' AND LOWER(searchName) LIKE ?'
-      vals.push(`%${options.name.toLowerCase()}%`);
+    // Handle the incoming search term
+    const searchTerm = (name ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push('(LOWER(a.searchName) LIKE ?)');
+      values.push(`%${searchTerm}%`);
     }
-    if (options.funderOnly) {
-      sql += ' AND funder = 1';
+    if (funderOnly) {
+      whereFilters.push('a.funder = 1');
     }
 
-    const results = await Affiliation.query(context, sql, vals, 'AffiliationSearch.search');
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['a.displayName', 'a.created'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'a.displayName';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'a.id';
+
+    const sqlStatement = 'SELECT a.* FROM affiliations a';
+
+    const response: PaginatedQueryResults<AffiliationSearch> = await Affiliation.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
+    return response;
+  }
+}
+
+// Funder popularity result based on the number of plans associated with the funder over the past year
+export class PopularFunder {
+  public id: number;
+  public uri: string;
+  public displayName: string;
+  public nbrPlans: number;
+
+  constructor(options) {
+    this.id = options.id;
+    this.uri = options.uri;
+    this.displayName = options.displayName;
+    this.nbrPlans = options.nbrPlans;
+  }
+
+  static async top20(context: MyContext): Promise<PopularFunder[]> {
+    // Get the date range for the past year
+    const today = new Date();
+    const lastYear = new Date();
+    lastYear.setFullYear(today.getFullYear() - 1);
+    const startDate = lastYear.toISOString().split('T')[0];
+    const endDate = today.toISOString().split('T')[0];
+
+    // Get the top 20 funders based on the number of plans created in the past year
+    const sql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
+                'FROM affiliations a ' +
+                'LEFT JOIN projectFundings pf ON pf.affiliationId = a.uri ' +
+                'LEFT JOIN projects p ON p.id = pf.projectId ' +
+                'WHERE a.active = 1 AND a.funder = 1 AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? ' +
+                'GROUP BY a.id, a.uri, a.displayName ' +
+                'ORDER BY nbrPlans DESC LIMIT 20';
+    const results = await Affiliation.query(
+      context,
+      sql,
+      [`${startDate} 00:00:00`, `${endDate} 23:59:59`],
+      'PopularFunder.top20'
+    );
     if (Array.isArray(results) && results.length > 0) {
-      return results.map((entry) => { return AffiliationSearch.processResult(entry) });
+      return results.map((entry) => { return new PopularFunder(entry) });
     }
-
     return [];
   }
 }

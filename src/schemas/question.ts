@@ -8,17 +8,19 @@ export const typeDefs = gql`
     question(questionId: Int!): Question
   }
 
-extend type Mutation {
+  extend type Mutation {
     "Create a new Question"
     addQuestion(input: AddQuestionInput!): Question!
     "Update a Question"
     updateQuestion(input: UpdateQuestionInput!): Question!
+    "Change the question's display order"
+    updateQuestionDisplayOrder(questionId: Int!, newDisplayOrder: Int!): ReorderQuestionsResult!
     "Delete a Question"
     removeQuestion(questionId: Int!): Question
   }
 
-"Question always belongs to a Section, which always belongs to a Template"
-type Question {
+  "Question always belongs to a Section, which always belongs to a Template"
+  type Question {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"
@@ -42,10 +44,10 @@ type Question {
     displayOrder: Int
     "Whether or not the Question has had any changes since the related template was last published"
     isDirty: Boolean
-    "The type of question, such as text field, select box, radio buttons, etc"
-    questionTypeId: Int
     "This will be used as a sort of title for the Question"
     questionText: String
+    "The JSON representation of the question type"
+    json: String
     "Requirements associated with the Question"
     requirementText: String
     "Guidance to complete the question"
@@ -59,12 +61,10 @@ type Question {
 
     "The conditional logic triggered by this question"
     questionConditions: [QuestionCondition!]
-    "The question options associated with this question"
-    questionOptions: [QuestionOption!]
-}
+  }
 
-"A collection of errors related to the Question"
-type QuestionErrors {
+  "A collection of errors related to the Question"
+  type QuestionErrors {
     "General error messages such as the object already exists"
     general: String
 
@@ -72,16 +72,23 @@ type QuestionErrors {
     sectionId: String
     sourceQestionId: String
     displayOrder: String
-    questionTypeId: String
     questionText: String
+    json: String
     requirementText: String
     guidanceText: String
     sampleText: String
     questionConditionIds: String
-    questionOptionIds: String
   }
 
-input AddQuestionInput {
+  "The results of reordering the questions"
+  type ReorderQuestionsResult {
+    "The reordered sections"
+    questions: [Question!]
+    "Error messages"
+    errors: QuestionErrors
+  }
+
+  input AddQuestionInput {
     "The unique id of the Template that the question belongs to"
     templateId: Int!
     "The unique id of the Section that the question belongs to"
@@ -90,8 +97,8 @@ input AddQuestionInput {
     displayOrder: Int
     "Whether or not the Question has had any changes since it was last published"
     isDirty: Boolean
-    "The type of question, such as text field, select box, radio buttons, etc"
-    questionTypeId: Int
+    "The JSON representation of the question type"
+    json: String
     "This will be used as a sort of title for the Question"
     questionText: String
     "Requirements associated with the Question"
@@ -104,17 +111,15 @@ input AddQuestionInput {
     useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
-    "Add options for a question type, like radio buttons"
-    questionOptions: [QuestionOptionInput]
-}
+  }
 
-input UpdateQuestionInput {
+  input UpdateQuestionInput {
     "The unique identifier for the Question"
     questionId: Int!
-    "The type of question, such as text field, select box, radio buttons, etc"
-    questionTypeId: Int
     "The display order of the Question"
     displayOrder: Int
+    "The JSON representation of the question type"
+    json: String
     "This will be used as a sort of title for the Question"
     questionText: String
     "Requirements associated with the Question"
@@ -127,7 +132,5 @@ input UpdateQuestionInput {
     useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
-    "Update options for a question type like radio buttons"
-    questionOptions: [UpdateQuestionOptionInput]
-}
+  }
 `

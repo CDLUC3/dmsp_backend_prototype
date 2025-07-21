@@ -1,18 +1,28 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
-import { getRandomEnumValue } from "../../__tests__/helpers";
-import { Plan, PlanSearchResult, PlanSectionProgress, PlanStatus, PlanVisibility } from "../Plan";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
+import { getMockDMPId, getRandomEnumValue } from "../../__tests__/helpers";
+import {
+  DEFAULT_TEMPORARY_DMP_ID_PREFIX,
+  Plan,
+  PlanSearchResult,
+  PlanSectionProgress,
+  PlanStatus,
+  PlanVisibility
+} from "../Plan";
 import { defaultLanguageId } from "../Language";
+import { generalConfig } from "../../config/generalConfig";
+import { getCurrentDate } from "../../utils/helpers";
+import * as PlanVersionModule from "../PlanVersion";
 
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -29,8 +39,8 @@ describe('PlanSearchResult', () => {
     dmpId: casual.uuid,
     registeredBy: casual.full_name,
     registered: casual.date('YYYY-MM-DD'),
-    funder: casual.company_name,
-    contributors: [casual.full_name, casual.full_name],
+    funding: casual.company_name,
+    members: [casual.full_name, casual.full_name],
     createdBy: casual.full_name,
     created: casual.date('YYYY-MM-DD'),
     modifiedBy: casual.full_name,
@@ -46,13 +56,13 @@ describe('PlanSearchResult', () => {
     expect(searchResult.dmpId).toEqual(searchResultData.dmpId);
     expect(searchResult.registered).toEqual(searchResultData.registered);
     expect(searchResult.registeredBy).toEqual(searchResultData.registeredBy);
-    expect(searchResult.funder).toEqual(searchResultData.funder);
+    expect(searchResult.funding).toEqual(searchResultData.funding);
     expect(searchResult.createdBy).toEqual(searchResultData.createdBy);
     expect(searchResult.created).toEqual(searchResultData.created);
     expect(searchResult.modifiedBy).toEqual(searchResultData.modifiedBy);
     expect(searchResult.modified).toEqual(searchResultData.modified);
     expect(searchResult.featured).toBe(false);
-    expect(searchResult.contributors).toEqual(searchResultData.contributors);
+    expect(searchResult.members).toEqual(searchResultData.members);
     expect(searchResult.status).toEqual(PlanStatus.DRAFT);
     expect(searchResult.visibility).toEqual(PlanVisibility.PRIVATE);
   });
@@ -74,13 +84,13 @@ describe('PlanSearchResult.findByProjectId', () => {
       dmpId: casual.uuid,
       registeredBy: casual.full_name,
       registered: casual.date('YYYY-MM-DD'),
-      funder: casual.company_name,
+      funding: casual.company_name,
       createdBy: casual.full_name,
       created: casual.date('YYYY-MM-DD'),
       modifiedBy: casual.full_name,
       modified: casual.date('YYYY-MM-DD'),
       featured: casual.boolean,
-      contributors: [casual.full_name, casual.full_name],
+      members: [casual.full_name, casual.full_name],
       status: getRandomEnumValue(PlanStatus),
       visibility: getRandomEnumValue(PlanVisibility),
     });
@@ -99,25 +109,26 @@ describe('PlanSearchResult.findByProjectId', () => {
                 'p.versionedTemplateId, vt.name title, p.status, p.visibility, p.dmpId, ' +
                 'CONCAT(cr.givenName, CONCAT(\' \', cr.surName)) registeredBy, p.registered, p.featured, ' +
                 'GROUP_CONCAT(DISTINCT CONCAT(prc.givenName, CONCAT(\' \', prc.surName, ' +
-                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) contributors, ' +
-                'GROUP_CONCAT(DISTINCT funders.name) funder ' +
+                  'CONCAT(\' (\', CONCAT(r.label, \')\'))))) members, ' +
+                'GROUP_CONCAT(DISTINCT fundings.name) funding ' +
               'FROM plans p ' +
                 'LEFT JOIN users cu ON cu.id = p.createdById ' +
                 'LEFT JOIN users cm ON cm.id = p.modifiedById ' +
                 'LEFT JOIN users cr ON cr.id = p.registeredById ' +
                 'LEFT JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId ' +
-                'LEFT JOIN planContributors plc ON plc.planId = p.id ' +
-                  'LEFT JOIN projectContributors prc ON prc.id = plc.projectContributorId ' +
-                  'LEFT JOIN planContributorRoles plcr ON plc.id = plcr.planContributorId ' +
-                    'LEFT JOIN contributorRoles r ON plcr.contributorRoleId = r.id ' +
-                'LEFT JOIN planFunders ON planFunders.planId = p.id ' +
-                  'LEFT JOIN projectFunders ON projectFunders.id = planFunders.projectFunderId ' +
-                    'LEFT JOIN affiliations funders ON projectFunders.affiliationId = funders.uri ' +
+                'LEFT JOIN planMembers plc ON plc.planId = p.id ' +
+                  'LEFT JOIN projectMembers prc ON prc.id = plc.projectMemberId ' +
+                  'LEFT JOIN planMemberRoles plcr ON plc.id = plcr.planMemberId ' +
+                    'LEFT JOIN memberRoles r ON plcr.memberRoleId = r.id ' +
+                'LEFT JOIN planFundings ON planFundings.planId = p.id ' +
+                  'LEFT JOIN projectFundings ON projectFundings.id = planFundings.projectFundingId ' +
+                    'LEFT JOIN affiliations fundings ON projectFundings.affiliationId = fundings.uri ' +
               'WHERE p.projectId = ? ' +
               'GROUP BY p.id, cu.givenName, cu.surName, cm.givenName, cm.surName, ' +
                 'vt.id, vt.name, p.status, p.visibility, ' +
                 'p.dmpId, cr.givenName, cr.surName, p.registered, p.featured ' +
               'ORDER BY p.created DESC;';
+
     const result = await PlanSearchResult.findByProjectId('testing', context, projectId);
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, sql, [projectId.toString()], 'testing')
@@ -183,7 +194,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
     const planId = casual.integer(1, 99);
     const sql = 'SELECT vs.id sectionId, vs.displayOrder, vs.name sectionTitle, ' +
                   'COUNT(DISTINCT vq.id) totalQuestions, ' +
-                  'COUNT(DISTINCT CASE WHEN a.answerText IS NOT NULL THEN vs.id END) answeredQuestions ' +
+                  'COUNT(DISTINCT CASE WHEN a.json IS NOT NULL THEN vs.id END) answeredQuestions ' +
                 'FROM plans p ' +
                   'INNER JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id ' +
                   'INNER JOIN versionedSections vs ON vt.id = vs.versionedTemplateId ' +
@@ -215,7 +226,6 @@ describe('Plan', () => {
     dmpId: casual.uuid,
     registeredById: casual.integer(1, 99),
     registered: casual.date('YYYY-MM-DD'),
-    lastSynced: casual.date('YYYY-MM-DD'),
   }
 
   beforeEach(() => {
@@ -228,7 +238,6 @@ describe('Plan', () => {
     expect(plan.dmpId).toEqual(planData.dmpId);
     expect(plan.registeredById).toEqual(planData.registeredById);
     expect(plan.registered).toEqual(planData.registered);
-    expect(plan.lastSynced).toEqual(planData.lastSynced);
     expect(plan.featured).toEqual(false);
     expect(plan.status).toEqual(PlanStatus.DRAFT);
     expect(plan.visibility).toEqual(PlanVisibility.PRIVATE);
@@ -253,20 +262,58 @@ describe('Plan', () => {
     expect(plan.errors['versionedTemplateId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the dmpId field is missing and the status is PUBLISHED', async () => {
+  it('should return false when calling isValid if the dmpId field is missing but registered is present', async () => {
     plan.dmpId = null;
-    plan.status = PlanStatus.PUBLISHED;
+    plan.registered = casual.date('YYYY-MM-DD');
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['dmpId']).toBeTruthy();
   });
 
-  it('should return false when calling isValid if the registered field is missing and status is PUBLISHED', async () => {
+  it('should return false when calling isValid if the Plan is published but the registered field is missing', async () => {
     plan.registered = null;
-    plan.status = PlanStatus.PUBLISHED;
+    plan.dmpId = casual.uuid;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['registered']).toBeTruthy();
+  });
+
+  it('should return false when calling isValid if the Plan is published but a registeredById field is missing', async () => {
+    plan.registeredById = null;
+    plan.dmpId = casual.uuid;
+    expect(await plan.isValid()).toBe(false);
+    expect(Object.keys(plan.errors).length).toBe(1);
+    expect(plan.errors['registeredById']).toBeTruthy();
+  });
+
+  it('generateDMPId should return the existing DMP Id', async () => {
+    plan.dmpId = casual.uuid;
+
+    const dmpId = await plan.generateDMPId(context);
+    expect(dmpId).toEqual(plan.dmpId);
+  });
+
+  it('generateDMPId should generate a new DMP Id', async () => {
+    plan.dmpId = null;
+    jest.spyOn(Plan, 'query').mockResolvedValue([]);
+
+    const dmpId = await plan.generateDMPId(context);
+    expect(Plan.query).toHaveBeenCalledTimes(1);
+    expect(dmpId.startsWith(`${generalConfig.dmpIdBaseURL}${generalConfig.dmpIdShoulder}`)).toBe(true);
+  });
+
+  it('generateDMPId should generate a DMP Id with the temporary prefix if unable to generate a unique DMP Id', async () => {
+    plan.dmpId = null;
+    jest.spyOn(Plan, 'query').mockResolvedValue([plan]);
+
+    const dmpId = await plan.generateDMPId(context);
+    expect(Plan.query).toHaveBeenCalledTimes(5);
+    expect(dmpId.startsWith(DEFAULT_TEMPORARY_DMP_ID_PREFIX)).toBe(true);
+  });
+
+  it('isPublished should return true if the Plan has a dmpId', () => {
+    plan.dmpId = casual.uuid;
+    expect(plan.isPublished()).toBe(true);
   });
 });
 
@@ -286,7 +333,6 @@ describe('findBy Queries', () => {
       dmpId: casual.uuid,
       registeredById: casual.integer(1, 99),
       registered: casual.date('YYYY-MM-DD'),
-      lastSynced: casual.date('YYYY-MM-DD'),
       status: getRandomEnumValue(PlanStatus),
       visibility: getRandomEnumValue(PlanVisibility),
       languageId: defaultLanguageId,
@@ -356,6 +402,68 @@ describe('findBy Queries', () => {
   });
 });
 
+describe('publish', () => {
+  let plan;
+  let mockFindById;
+  let updateQuery;
+
+  beforeEach(() => {
+    mockFindById = jest.fn();
+    (Plan.findById as jest.Mock) = mockFindById;
+    updateQuery = jest.fn();
+    (Plan.update as jest.Mock) = updateQuery;
+
+    plan = new Plan({
+      id: casual.integer(1, 999),
+      dmpId: getMockDMPId(),
+      createdById: casual.integer(1, 99),
+      created: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
+      modifiedById: casual.integer(1, 99),
+      modified: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
+      projectId: casual.integer(1, 99),
+      versionedTemplateId: casual.integer(1, 99),
+      visibility: getRandomEnumValue(PlanVisibility),
+      languageId: defaultLanguageId,
+      featured: casual.boolean,
+    });
+  });
+
+  it('returns the newly published Plan', async () => {
+    updateQuery.mockResolvedValueOnce(plan);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
+
+    const result = await plan.publish(context);
+    const versionMockInput = versionMock.mock.calls[0][1] as Plan;
+
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(PlanVersionModule.updateVersion).toHaveBeenCalledTimes(1);
+
+    expect(result).toBeInstanceOf(Plan);
+    expect(versionMockInput.registered).toBeTruthy();
+    expect(versionMockInput.registeredById).toBeTruthy();
+  });
+
+  it('returns an error if the Plan is not valid', async () => {
+    const localValidator = jest.fn();
+    (plan.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValueOnce(false);
+
+    const result = await plan.publish(context);
+    expect(result instanceof Plan).toBe(true);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an error if the Plan is already published', async () => {
+    plan.dmpId = getMockDMPId();
+    plan.registered = getCurrentDate();
+    plan.registeredById = casual.integer(1, 99);
+    const result = await plan.publish(context);
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result.errors['general']).toBeTruthy();
+  });
+});
+
 describe('create', () => {
   const originalInsert = Plan.insert;
   let insertQuery;
@@ -368,12 +476,8 @@ describe('create', () => {
     plan = new Plan({
       projectId: casual.integer(1, 99),
       versionedTemplateId: casual.integer(1, 99),
-      dmpId: casual.url,
-      status: getRandomEnumValue(PlanStatus),
+      status: PlanStatus.DRAFT,
       visibility: getRandomEnumValue(PlanVisibility),
-      registeredById: casual.integer(1, 99),
-      registered: casual.date('YYYY-MM-DD'),
-      lastSynced: casual.date('YYYY-MM-DD'),
       languageId: defaultLanguageId,
       featured: casual.boolean,
     });
@@ -390,13 +494,18 @@ describe('create', () => {
   });
 
   it('returns the newly added Plan', async () => {
-    const mockFindById = jest.fn();
+    const createdPlan = new Plan({ ...plan, id: 123 });
+    insertQuery.mockResolvedValueOnce(createdPlan.id);
+    const mockFindById = jest.fn().mockResolvedValueOnce(createdPlan);
     (Plan.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(plan);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.addVersion as jest.Mock) = versionMock;
 
     const result = await plan.create(context);
+
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
+    expect(PlanVersionModule.addVersion).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Plan);
   });
@@ -419,7 +528,6 @@ describe('update', () => {
       visibility: getRandomEnumValue(PlanVisibility),
       registeredById: casual.integer(1, 99),
       registered: casual.date('YYYY-MM-DD'),
-      lastSynced: casual.date('YYYY-MM-DD'),
       languageId: defaultLanguageId,
       featured: casual.boolean,
     })
@@ -449,19 +557,53 @@ describe('update', () => {
   it('returns the updated Plan', async () => {
     const localValidator = jest.fn();
     (plan.isValid as jest.Mock) = localValidator;
-    localValidator.mockResolvedValueOnce(true);
+    localValidator.mockResolvedValue(true);
 
     updateQuery.mockResolvedValueOnce(plan);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
 
-    const mockFindById = jest.fn();
-    (Plan.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(plan);
+    const result = await plan.update(context);
+
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Plan);
+    expect(versionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not do any versioning if noTouch is true', async () => {
+    const localValidator = jest.fn();
+    (plan.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValue(true);
+
+    updateQuery.mockResolvedValueOnce(plan);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
+
+    const result = await plan.update(context, true);
+    expect(localValidator).toHaveBeenCalledTimes(1);
+    expect(updateQuery).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(Plan);
+    expect(versionMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('does not do any versioning if the Plan update failed', async () => {
+    const localValidator = jest.fn();
+    (plan.isValid as jest.Mock) = localValidator;
+    localValidator.mockResolvedValue(true);
+
+    updateQuery.mockResolvedValueOnce(null);
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.updateVersion as jest.Mock) = versionMock;
 
     const result = await plan.update(context);
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Plan);
+    expect(versionMock).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -501,8 +643,14 @@ describe('delete', () => {
     (Plan.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(plan);
 
+    const versionMock = jest.fn().mockResolvedValueOnce(plan);
+    (PlanVersionModule.removeVersions as jest.Mock) = versionMock;
+
     const result = await plan.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Plan);
+    expect(deleteQuery).toHaveBeenCalledTimes(1);
+    expect(mockFindById).toHaveBeenCalledTimes(1);
+    expect(versionMock).toHaveBeenCalledTimes(1);
   });
 });

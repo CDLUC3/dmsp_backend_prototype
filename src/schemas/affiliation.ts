@@ -9,7 +9,9 @@ export const typeDefs = gql`
     "Retrieve a specific Affiliation by its URI"
     affiliationByURI(uri: String!): Affiliation
     "Perform a search for Affiliations matching the specified name"
-    affiliations(name: String!, funderOnly: Boolean): [AffiliationSearch]
+    affiliations(name: String!, funderOnly: Boolean, paginationOptions: PaginationOptions): AffiliationSearchResults
+    "Returns a list of the top 20 funders ranked by popularity (nbr of plans) for the past year"
+    popularFunders: [FunderPopularityResult]
   }
 
   extend type Mutation {
@@ -23,9 +25,9 @@ export const typeDefs = gql`
 
   "Search result - An abbreviated version of an Affiliation"
   type AffiliationSearch {
-    "The unique identifer for the affiliation (typically the ROR id)"
+    "The unique identifer for the affiliation"
     id: Int!
-    "The URI of the affiliation"
+    "The URI of the affiliation (typically the ROR id)"
     uri: String!
     "The official display name"
     displayName: String!
@@ -35,6 +37,37 @@ export const typeDefs = gql`
     types: [AffiliationType!]
     "Has an API that be used to search for project/award information"
     apiTarget: String
+  }
+
+  type AffiliationSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [AffiliationSearch]
+    "The total number of possible items"
+    totalCount: Int
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
+  }
+
+  "A result of the most popular funders"
+  type FunderPopularityResult {
+    "The unique identifer for the affiliation"
+    id: Int!
+    "The URI of the affiliation (typically the ROR id)"
+    uri: String!
+    "The official display name"
+    displayName: String!
+    "The number of plans associated with this funder in the past year"
+    nbrPlans: Int!
   }
 
   "The provenance of an Affiliation record"

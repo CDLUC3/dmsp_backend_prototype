@@ -1,11 +1,13 @@
+import { QuestionSchemaMap } from "@dmptool/types";
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
+import { isNullOrUndefined, removeNullAndUndefinedFromJSON } from "../utils/helpers";
 
 export class VersionedQuestion extends MySqlModel {
   public versionedTemplateId: number;
   public versionedSectionId: number;
   public questionId: number;
-  public questionTypeId: number;
+  public json: string;
   public questionText: string;
   public requirementText?: string;
   public guidanceText?: string;
@@ -21,7 +23,12 @@ export class VersionedQuestion extends MySqlModel {
     this.versionedTemplateId = options.versionedTemplateId;
     this.versionedSectionId = options.versionedSectionId;
     this.questionId = options.questionId;
-    this.questionTypeId = options.questionTypeId;
+    // Ensure json is stored as a string
+    try {
+      this.json = removeNullAndUndefinedFromJSON(options.json);
+    } catch (e) {
+      this.addError('json', e.message);
+    }
     this.questionText = options.questionText;
     this.requirementText = options.requirementText;
     this.guidanceText = options.guidanceText;
@@ -34,11 +41,34 @@ export class VersionedQuestion extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.versionedTemplateId) this.addError('versionedTemplateId', 'Versioned Template can\'t be blank');
-    if (!this.versionedSectionId) this.addError('versionedSectionId', 'Versioned Section can\'t be blank');
-    if (!this.questionId) this.addError('questionId', 'Question can\'t be blank');
-    if (!this.questionTypeId) this.addError('questionTypeId', 'Question type can\'t be blank');
-    if (!this.questionText) this.addError('questionText', 'Question text can\'t be blank');
+    if (isNullOrUndefined(this.versionedTemplateId)) this.addError('versionedTemplateId', 'Versioned Template can\'t be blank');
+    if (isNullOrUndefined(this.versionedSectionId)) this.addError('versionedSectionId', 'Versioned Section can\'t be blank');
+    if (isNullOrUndefined(this.questionId)) this.addError('questionId', 'Question can\'t be blank');
+    if (isNullOrUndefined(this.questionText)) this.addError('questionText', 'Question text can\'t be blank');
+
+    // If json is not null or undefined and the type is in the schema map
+    if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
+      const parsedJSON = JSON.parse(this.json);
+      if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
+        // Validate the json against the Zod schema and if valid, set the questionType
+        try {
+          const result = QuestionSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+          if (result && !result.success) {
+            // If there are validation errors, add them to the errors object
+            this.addError('json', result.error.errors.map(e => `${JSON.stringify(e.path)} - ${e.message}`).join('; '));
+          }
+        } catch (e) {
+          this.addError('json', e.message);
+        }
+      } else {
+        // If the type is not in the schema map, add an error
+        this.addError('json', `Unknown question type "${parsedJSON['type']}"`);
+      }
+    } else {
+      if (this.errors['json'] === undefined) {
+        this.addError('json', 'Question type JSON can\'t be blank');
+      }
+    }
 
     return Object.keys(this.errors).length === 0;
   }
@@ -48,7 +78,7 @@ export class VersionedQuestion extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create');
+      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create', ['json']);
       return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
     }
     // Otherwise return as-is with all the errors

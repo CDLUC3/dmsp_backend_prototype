@@ -1,6 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { Tag } from "../types";
+import { Tag } from "./Tag";
 
 // A Template for creating a DMP
 export class Section extends MySqlModel {
@@ -56,24 +56,11 @@ export class Section extends MySqlModel {
 
     // First make sure the record is valid
     if (await this.isValid()) {
-      const current = await Section.findBySectionName(
-        'Section.create',
-        context,
-        this.name,
-        templateId
-      );
-
-      // Then make sure it doesn't already exist
-      if (current) {
-        this.addError('general', 'Section with this name already exists');
-      } else {
-        this.prepForSave();
-
-        // Save the record and then fetch it
-        const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
-        const response = await Section.findById('Section.create', context, newId);
-        return response;
-      }
+      this.templateId = templateId;
+      // Save the record and then fetch it
+      const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
+      const response = await Section.findById('Section.create', context, newId);
+      return response;
     }
     // Otherwise return as-is with all the errors
     return new Section(this);
@@ -113,6 +100,17 @@ export class Section extends MySqlModel {
     return null;
   }
 
+  // Find the current max section displayOrder for the specified templateId
+  static async findMaxDisplayOrder(reference: string, context: MyContext, templateId: number): Promise<number> {
+    const sql = 'SELECT MAX(displayOrder) as maxDisplayOrder FROM sections WHERE templateId = ?';
+    const results = await Section.query(context, sql, [templateId?.toString()], reference);
+    if (Array.isArray(results) && results.length > 0) {
+      const maxDisplayOrder = results[0].maxDisplayOrder;
+      return maxDisplayOrder ? parseInt(maxDisplayOrder) : 0;
+    }
+    return 0;
+  }
+
   // Find section by section name
   static async findBySectionName(
     reference: string,
@@ -127,10 +125,9 @@ export class Section extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new Section(results[0]) : null;
   }
 
-
   // Find all Sections associated with the specified templateId
   static async findByTemplateId(reference: string, context: MyContext, templateId: number): Promise<Section[]> {
-    const sql = 'SELECT * FROM sections WHERE templateId = ?';
+    const sql = 'SELECT * FROM sections WHERE templateId = ? ORDER BY displayOrder ASC';
     const results = await Section.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new Section(entry)) : [];
   }

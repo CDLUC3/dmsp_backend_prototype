@@ -1,22 +1,38 @@
 import casual from "casual";
-import { logger } from "../../__mocks__/logger";
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { MySQLDataSource } from "../../datasources/mySQLDataSource";
+import { logger } from "../../logger";
+import {
+  mockedMysqlInstance,
+  buildMockContextWithToken, mockUser
+} from "../../__mocks__/context";
 import { Project } from "../../models/Project";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { isAdmin, isSuperAdmin } from "../authService";
-import { hasPermissionOnProject } from "../projectService";
-import { ProjectCollaborator } from "../../models/Collaborator";
+import {
+  ensureDefaultProjectContact,
+  hasPermissionOnProject, setCurrentUserAsProjectOwner
+} from "../projectService";
+import { ProjectCollaborator, ProjectCollaboratorAccessLevel } from "../../models/Collaborator";
+import { User } from "../../models/User";
+import {ProjectMember} from "../../models/Member";
+import {MemberRole} from "../../models/MemberRole";
+import {MyContext} from "../../context";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
+jest.mock('../emailService');
+jest.mock('../PlanService.ts', () => {
+  return {
+    createPlanVersion: jest.fn(),
+    syncWithDMPHub: jest.fn(),
+  };
+});
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -30,15 +46,10 @@ describe('hasPermissionOnProject', () => {
   let mockIsAdmin;
   let mockCollaboratorQuery;
 
-  beforeEach(() => {
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = MySQLDataSource.getInstance();
+  beforeEach(async () => {
+    const instance = mockedMysqlInstance;
     mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+    context = await buildMockContextWithToken(logger);
 
     mockIsSuperAdmin = jest.fn();
     (isSuperAdmin as jest.Mock) = mockIsSuperAdmin;
@@ -80,12 +91,13 @@ describe('hasPermissionOnProject', () => {
   it('returns true if the current user\'s is an Admin and the project\'s owner are the same org', async () => {
     mockIsSuperAdmin.mockResolvedValueOnce(false);
     mockIsAdmin.mockResolvedValueOnce(true);
-    context.token = { id: casual.integer(1, 9999) };
-    mockQuery.mockResolvedValueOnce({ affiliationId: context.token.affiliationId });
+    context.token.id = casual.integer(1, 9999);
+    // mockQuery.mockResolvedValueOnce(new User({ affiliationId: context.token.affiliationId }));
+    jest.spyOn(User, 'findById').mockResolvedValueOnce(new User({ affiliationId: context.token.affiliationId }));
     expect(await hasPermissionOnProject(context, project)).toBe(true)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
     expect(mockIsAdmin).toHaveBeenCalledTimes(1);
-    expect(mockQuery).toHaveBeenCalledTimes(1);
+    expect(User.findById).toHaveBeenCalledTimes(1);
     expect(mockCollaboratorQuery).toHaveBeenCalledTimes(0);
   });
 
@@ -94,7 +106,9 @@ describe('hasPermissionOnProject', () => {
     mockIsAdmin.mockResolvedValueOnce(false);
     context.token = { id: casual.integer(1, 9999) };
     mockQuery.mockResolvedValueOnce({ affiliationId: context.token.affiliationId });
-    mockCollaboratorQuery.mockResolvedValueOnce([{ userId: context.token.id }]);
+    mockCollaboratorQuery.mockResolvedValueOnce([
+      { userId: context.token.id, accessLevel: ProjectCollaboratorAccessLevel.EDIT }
+    ]);
     expect(await hasPermissionOnProject(context, project)).toBe(true)
     expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
     expect(mockIsAdmin).toHaveBeenCalledTimes(1);
@@ -112,5 +126,215 @@ describe('hasPermissionOnProject', () => {
     expect(mockIsAdmin).toHaveBeenCalledTimes(1);
     expect(mockQuery).toHaveBeenCalledTimes(0);
     expect(mockCollaboratorQuery).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('setCurrentUserAsProjectOwner', () => {
+  let context: MyContext;
+  let project: Project;
+  let user: User;
+
+  let originalInsert: typeof ProjectCollaborator.insert;
+  let originalFindByProject: typeof ProjectCollaborator.findByProjectIdAndEmail;
+  let originalFindById: typeof ProjectCollaborator.findById;
+  let originalProjectById: typeof Project.findById;
+  let originalUserById: typeof User.findById;
+  let originalUserByEmail: typeof User.findByEmail;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+
+    user = mockUser();
+    context = await buildMockContextWithToken(logger, user)
+
+    project = new Project({
+      id: casual.integer(1, 999),
+      title: casual.sentence
+    });
+
+    originalInsert = ProjectCollaborator.insert;
+    originalFindByProject = ProjectCollaborator.findByProjectIdAndEmail;
+    originalFindById = ProjectCollaborator.findById;
+    originalUserByEmail = User.findByEmail;
+    originalUserById = User.findById;
+    originalProjectById = Project.findById;
+
+    jest.spyOn(ProjectCollaborator, 'findByProjectIdAndEmail').mockResolvedValue(null);
+    jest.spyOn(User, 'findByEmail').mockResolvedValue(null);
+    jest.spyOn(User, 'findById').mockResolvedValue(user);
+    jest.spyOn(Project, 'findById').mockResolvedValue(project);
+    jest.spyOn(ProjectCollaborator, 'insert');
+    jest.spyOn(ProjectCollaborator, 'findById');
+  });
+
+  afterEach(() => {
+    ProjectCollaborator.insert = originalInsert;
+    ProjectCollaborator.findByProjectIdAndEmail = originalFindByProject;
+    ProjectCollaborator.findById = originalFindById;
+    Project.findById = originalProjectById;
+    User.findById = originalUserById;
+    User.findByEmail = originalUserByEmail;
+  })
+
+  it('returns false if there is no token', async () => {
+    const originalToken = await context.token;
+    context.token = undefined;
+    expect(await setCurrentUserAsProjectOwner(context, project.id)).toBe(false)
+    context.token = originalToken;
+  });
+
+  it('returns false if the collaborator record could not be saved', async () => {
+    const msg = 'Test error';
+    jest.spyOn(ProjectCollaborator, 'findByProjectIdAndEmail').mockImplementation(() => {
+      throw new Error(msg);
+    });
+    await expect(setCurrentUserAsProjectOwner(context, project.id)).rejects.toThrow(msg);
+    expect(ProjectCollaborator.findByProjectIdAndEmail).toHaveBeenCalledTimes(1);
+    expect(User.findByEmail).toHaveBeenCalledTimes(0);
+  });
+
+  it('returns true if the collaborator was created', async () => {
+    const newId = casual.integer(1, 9999);
+    const collaborator = new ProjectCollaborator({
+      projectId: project.id,
+      email: context.token.email,
+      accessLevel: ProjectCollaboratorAccessLevel.OWN,
+      invitedById: context.token.id,
+    });
+    jest.spyOn(ProjectCollaborator, 'insert').mockResolvedValue(newId);
+    jest.spyOn(ProjectCollaborator, 'findById').mockResolvedValue(
+      new ProjectCollaborator({
+        ...collaborator,
+        id: newId,
+      })
+    );
+
+    expect(await setCurrentUserAsProjectOwner(context, project.id)).toBe(true)
+    expect(ProjectCollaborator.findByProjectIdAndEmail).toHaveBeenCalledTimes(1);
+    expect(User.findByEmail).toHaveBeenCalledTimes(1);
+    expect(ProjectCollaborator.insert).toHaveBeenCalledWith(
+      context,
+      'projectCollaborators',
+      {
+        ...collaborator,
+        userId: undefined,
+      },
+      'ProjectCollaborator.create'
+    );
+    expect(User.findById).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ensureDefaultProjectContact', () => {
+  let context: MyContext;
+  let project: Project;
+  let user: User;
+  let defaultRole: MemberRole;
+
+  let originalDefaultRole: typeof MemberRole.defaultRole;
+  let originalFindByProjectMemberId: typeof MemberRole.findByProjectMemberId;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+
+    originalDefaultRole = MemberRole.defaultRole;
+    originalFindByProjectMemberId = MemberRole.findByProjectMemberId;
+
+    defaultRole = new MemberRole({
+      id: casual.integer(1, 999),
+      label: 'Test',
+    });
+    jest.spyOn(MemberRole, 'defaultRole').mockResolvedValue(defaultRole);
+    jest.spyOn(MemberRole, 'findByProjectMemberId').mockResolvedValue([defaultRole]);
+
+    user = mockUser();
+    context = await buildMockContextWithToken(logger, user);
+
+    project = new Project({
+      id: casual.integer(1, 999),
+      title: casual.sentence
+    });
+  });
+
+  afterEach(() => {
+    MemberRole.defaultRole = originalDefaultRole;
+    MemberRole.findByProjectMemberId = originalFindByProjectMemberId;
+  })
+
+  it('sets default primary contact', async () => {
+    const originalFindPrimaryContact = ProjectMember.findPrimaryContact;
+    const originalInsert = ProjectMember.insert;
+    const originalFind = ProjectMember.findById;
+    const originalFindById = User.findById;
+    const originalFindByEmail = ProjectMember.findByProjectAndEmail;
+    const originalFindByName = ProjectMember.findByProjectAndName;
+
+    const newId = casual.integer(1, 9999);
+    const newMember = new ProjectMember({
+      ...user,
+      email: await user.getEmail(context),
+      projectId: project.id,
+      isPrimaryContact: true,
+      memberRoleIds: [defaultRole.id],
+      memberRoles: [defaultRole],
+    });
+    jest.spyOn(ProjectMember, 'findPrimaryContact').mockResolvedValue(null);
+    jest.spyOn(ProjectMember, 'findByProjectAndEmail').mockResolvedValue(null);
+    jest.spyOn(ProjectMember, 'findByProjectAndName').mockResolvedValue(null);
+    jest.spyOn(ProjectMember, 'insert').mockResolvedValue(newId);
+    jest.spyOn(ProjectMember, 'findById').mockResolvedValue(newMember);
+    jest.spyOn(User, 'findById').mockResolvedValue(user);
+
+    expect(await ensureDefaultProjectContact(context, project)).toBe(true);
+    expect(ProjectMember.insert).toHaveBeenCalledWith(
+      context,
+      'projectMembers',
+      newMember,
+      'ProjectMember.create',
+      ['memberRoles']
+    );
+    ProjectMember.findPrimaryContact = originalFindPrimaryContact;
+    ProjectMember.findById = originalFind;
+    ProjectMember.findByProjectAndEmail = originalFindByEmail;
+    ProjectMember.findByProjectAndName = originalFindByName;
+    User.findById = originalFindById;
+    ProjectMember.insert = originalInsert;
+  });
+
+  it('returns false if the project is missing', async () => {
+    expect(await ensureDefaultProjectContact(context, null)).toBe(false);
+  });
+
+  it('returns false if there was a problem creating the ProjectMember', async () => {
+    const originalFindPrimaryContact = ProjectMember.findPrimaryContact;
+    jest.spyOn(ProjectMember, 'findPrimaryContact').mockImplementation(() => {
+      throw new Error('test error');
+    });
+
+    await expect(ensureDefaultProjectContact(context, project)).rejects.toThrow('test error');
+    ProjectMember.findPrimaryContact = originalFindPrimaryContact;
+  });
+
+  it('returns false if the owner does not exist', async () => {
+    const originalFindPrimaryContact = ProjectMember.findPrimaryContact;
+    const originalFindById = User.findById;
+    jest.spyOn(ProjectMember, 'findPrimaryContact').mockResolvedValue(null);
+    jest.spyOn(User, 'findById').mockReturnValue(null);
+
+    expect(await ensureDefaultProjectContact(context, project)).toBe(false);
+    ProjectMember.findPrimaryContact = originalFindPrimaryContact;
+    User.findById = originalFindById;
+  });
+
+  it('returns true if the project already has a primary contact', async () => {
+    const originalFindPrimaryContact = ProjectMember.findPrimaryContact;
+    const current = new ProjectMember({
+      projectId: project.id,
+      email: casual.email,
+    });
+    jest.spyOn(ProjectMember, 'findPrimaryContact').mockResolvedValue(current);
+
+    expect(await ensureDefaultProjectContact(context, project)).toBe(true);
+    ProjectMember.findPrimaryContact = originalFindPrimaryContact;
   });
 });

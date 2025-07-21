@@ -1,15 +1,15 @@
-import { Resolvers } from "../types";
+import { ReorderQuestionsResult, Resolvers } from "../types";
 import { MyContext } from "../context";
-import { QuestionOption } from "../models/QuestionOption";
 import { Question } from "../models/Question";
 import { Template } from "../models/Template";
-import { getQuestionOptionsToRemove } from "../services/questionService";
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
+import { updateDisplayOrders } from "../services/questionService";
+import { AuthenticationError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { isAdmin, isAuthorized } from "../services/authService";
 import { hasPermissionOnSection } from "../services/sectionService";
 import { GraphQLError } from "graphql";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -24,7 +24,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -40,7 +40,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     }
@@ -52,14 +52,14 @@ export const resolvers: Resolvers = {
       sectionId,
       displayOrder,
       isDirty,
-      questionTypeId,
+      json,
       questionText,
       requirementText,
       guidanceText,
       sampleText,
       useSampleTextAsDefault,
-      required,
-      questionOptions } }, context: MyContext): Promise<Question> => {
+      required
+    } }, context: MyContext): Promise<Question> => {
 
       const reference = 'addQuestion resolver';
       try {
@@ -70,7 +70,7 @@ export const resolvers: Resolvers = {
             sectionId,
             displayOrder,
             isDirty,
-            questionTypeId,
+            json,
             questionText,
             requirementText,
             guidanceText,
@@ -92,22 +92,6 @@ export const resolvers: Resolvers = {
 
           if (newQuestion && !newQuestion.hasErrors()) {
             const questionId = newQuestion.id;
-            // Add all the associated question options to the questionOptions table
-            if (questionOptions && questionOptions.length > 0) {
-              await Promise.all(
-                questionOptions.map(async (option) => {
-                  const questionOption = new QuestionOption({
-                    questionId: newQuestion.id,
-                    text: option.text,
-                    orderNumber: option.orderNumber,
-                    isDefault: option.isDefault
-                  });
-
-                  await questionOption.create(context);
-                })
-              );
-            }
-
             // Update the associated template to set isDirty=1
             await Template.markTemplateAsDirty('Question resolver - addQuestion', context, templateId);
 
@@ -121,7 +105,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -129,15 +113,15 @@ export const resolvers: Resolvers = {
     // update an existing question
     updateQuestion: async (_, { input: {
       questionId,
-      questionTypeId,
       displayOrder,
+      json,
       questionText,
       requirementText,
       guidanceText,
       sampleText,
       useSampleTextAsDefault,
-      required,
-      questionOptions } }, context: MyContext): Promise<Question> => {
+      required
+    } }, context: MyContext): Promise<Question> => {
 
       const reference = 'updateQuestion resolver';
       try {
@@ -157,7 +141,7 @@ export const resolvers: Resolvers = {
             templateId: questionData.templateId,
             createdById: questionData.createdById,
             displayOrder: displayOrder ?? questionData.displayOrder,
-            questionTypeId: questionTypeId ?? questionData.questionTypeId,
+            json: json ?? questionData.json,
             questionText: questionText,
             requirementText: requirementText,
             guidanceText: guidanceText,
@@ -168,112 +152,73 @@ export const resolvers: Resolvers = {
           });
 
           const updatedQuestion = await question.update(context);
-          const associationErrors = [];
-
-          // If there are errors than throw a Bad User Input error
           if (updatedQuestion && !updatedQuestion.hasErrors()) {
-            // Get existing questionOptions
-            const existingQuestionOptions = await QuestionOption.findByQuestionId('question resolver', context, questionId);
+            // Update the associated template to set isDirty=1
+            await Template.markTemplateAsDirty('Question resolver - updateQuestion', context, questionData.templateId);
 
-            // Create a Map of existing options for quick lookup by ID or unique identifier
-            const existingOptionsMap = new Map(
-              existingQuestionOptions.map(option => [option.id, option])
-            );
+            // Refetch the question or the updated question with errors
+            const final = await Question.findById(reference, context, questionId);
 
-            // Get list of options that need to be removed
-            const optionsToRemove = await getQuestionOptionsToRemove(questionOptions as QuestionOption[], context, questionId);
-
-            const removeErrors = [];
-            // Remove question options that are no longer in the updated questionOptions array
-            if (optionsToRemove.length > 0) {
-              await Promise.all(
-                optionsToRemove.map(async (option) => {
-                  const questionOption = new QuestionOption({
-                    questionId: option.questionId,
-                    id: option.id
-                  });
-
-                  const result = await questionOption.delete(context);
-                  if (!result) {
-                    removeErrors.push(result.text);
-                  }
-                })
-              );
-            }
-            if (removeErrors.length > 0) {
-              associationErrors.push(`unable to remove options: ${removeErrors.join(', ')}`);
-            }
-
-            // Separate incoming options into "to update" and "to create"
-            const optionsToUpdate = [];
-            const optionsToCreate = [];
-
-            questionOptions.forEach(option => {
-              if (existingOptionsMap.has(option.id)) {
-                // Add to update list, merging the new data with the existing data
-                optionsToUpdate.push({
-                  ...existingOptionsMap.get(option.id), // existing option data
-                  ...option // updated fields from input
-                });
-              } else {
-                // Add to create list
-                optionsToCreate.push({
-                  questionId,
-                  ...option // new option fields
-                });
-              }
-            });
-
-            const updateErrors = [];
-            // Update existing options
-            if (optionsToUpdate.length > 0) {
-              await Promise.all(
-                optionsToUpdate.map(async option => {
-                  const questionOption = new QuestionOption(option);
-                  const result = await questionOption.update(context); // Call your update method
-                  if (!result) {
-                    updateErrors.push(result.text);
-                  }
-                })
-              );
-            }
-            if (updateErrors.length > 0) {
-              associationErrors.push(`unable to update options: ${updateErrors.join(', ')}`);
-            }
-
-            const createErrors = [];
-            // Create new options
-            if (optionsToCreate.length > 0) {
-              await Promise.all(
-                optionsToCreate.map(async option => {
-                  const questionOption = new QuestionOption(option);
-                  const result = await questionOption.create(context); // Call your create method
-                  if (!result) {
-                    createErrors.push(result.text);
-                  }
-                })
-              );
-            }
-            if (createErrors.length > 0) {
-              associationErrors.push(`unable to create options: ${createErrors.join(', ')}`);
-            }
-
-            if (associationErrors.length > 0) {
-              updatedQuestion.addError('questionOptions', `Update complete but we were ${associationErrors.join('; ')}`);
-            }
+            return final;
           }
 
-          // Update the associated template to set isDirty=1
-          await Template.markTemplateAsDirty('Question resolver - updateQuestion', context, questionData.templateId);
-
-          // Refetch the question or the updated question with errors
-          return updatedQuestion.hasErrors() ? updatedQuestion : await Question.findById(reference, context, questionId);
+          // Otherwise return the Question with errors
+          return updatedQuestion;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Change the section's display order
+    updateQuestionDisplayOrder: async (
+      _,
+      { questionId, newDisplayOrder },
+      context: MyContext
+    ): Promise<ReorderQuestionsResult> => {
+      const reference = 'updateQuestionDisplayOrder resolver';
+      try {
+        if (isAdmin(context.token)) {
+          // Find the question that is being repositioned
+          const question = await Question.findById(reference, context, questionId);
+
+          if (!question) {
+            throw NotFoundError();
+          }
+
+          // Check that the new display order has actually changed
+          if (question.displayOrder === newDisplayOrder) {
+            throw BadRequestError('The new display order is the same as the current one');
+          }
+
+          // Check that user has permission to update this question
+          if (await hasPermissionOnSection(context, question.templateId)) {
+            try {
+              // Reorder the sections
+              const reordered = await updateDisplayOrders(
+                context,
+                question.sectionId,
+                questionId,
+                newDisplayOrder
+              );
+
+              return { questions: reordered ?? [] };
+
+            } catch (err) {
+              context.logger.error(prepareObjectForLogs(err), `${reference} failed: questionId: ${questionId}`);
+              return { questions: [], errors: { general: err.message } };
+            }
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
@@ -306,7 +251,7 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     }
@@ -320,12 +265,11 @@ export const resolvers: Resolvers = {
         parent.id
       );
     },
-    questionOptions: async (parent: Question, _, context: MyContext): Promise<QuestionOption[]> => {
-      return await QuestionOption.findByQuestionId(
-        'Chained Question.questionOptions',
-        context,
-        parent.id
-      );
+    created: (parent: Question) => {
+      return formatISO9075(new Date(parent.created));
     },
+    modified: (parent: Question) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   }
 };

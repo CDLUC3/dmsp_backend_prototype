@@ -1,9 +1,8 @@
 import casual from "casual";
 import { Template } from "../../models/Template";
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
-import { MySQLDataSource } from "../../datasources/mySQLDataSource";
-import { cloneSection, generateSectionVersion, hasPermissionOnSection } from "../sectionService";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
+import { cloneSection, generateSectionVersion, hasPermissionOnSection, updateDisplayOrders } from "../sectionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
 import { NotFoundError } from "../../utils/graphQLErrors";
@@ -13,16 +12,16 @@ import { Tag } from "../../models/Tag";
 import { getCurrentDate } from "../../utils/helpers";
 import { Question } from "../../models/Question";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -31,22 +30,14 @@ afterEach(() => {
 
 describe('hasPermissionOnSection', () => {
   let template;
-  let mockQuery;
   let mockFindById;
   let mockHashPermissionOnTemplate;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+    context = await buildMockContextWithToken(logger);
 
     mockFindById = jest.fn();
     (Template.findById as jest.Mock) = mockFindById;
@@ -126,7 +117,7 @@ describe('cloneSection', () => {
     expect(copy.id).toBeFalsy();
     expect(copy.sourceSectionId).toEqual(section.id);
     expect(copy.templateId).toEqual(templateId);
-    expect(copy.name).toEqual(`Copy of ${section.name}`);
+    expect(copy.name).toEqual(section.name);
     expect(copy.introduction).toEqual(introduction);
     expect(copy.requirements).toEqual(requirements);
     expect(copy.guidance).toEqual(guidance);
@@ -156,7 +147,7 @@ describe('cloneSection', () => {
     expect(copy).toBeInstanceOf(Section);
     expect(copy.id).toBeFalsy();
     expect(copy.sourceSectionId).toEqual(published.sectionId);
-    expect(copy.name).toEqual(`Copy of ${published.name}`);
+    expect(copy.name).toEqual(published.name);
     expect(copy.introduction).toEqual(published.introduction);
     expect(copy.requirements).toEqual(published.requirements);
     expect(copy.guidance).toEqual(published.guidance);
@@ -353,5 +344,143 @@ describe('generateSectionVersion', () => {
     expect(updated.modifiedById).toEqual(section.modifiedById);
     expect(updated.modified).toEqual(section.modified);
     expect(updated.isDirty).toEqual(false);
+  });
+});
+
+describe('updateDisplayOrders', () => {
+  describe('updateDisplayOrders', () => {
+    let sectionStore;
+    let templateId;
+    let mockFindByTemplateId;
+    let mockUpdate;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+
+      const tstamp = getCurrentDate();
+
+      const templateId = casual.integer(1, 999);
+
+      // Setup the mock data store
+      sectionStore = [
+        new Section({
+          id: 1,
+          templateId: templateId,
+          name: casual.sentence,
+          introduction: casual.sentences(3),
+          requirements: casual.sentences(2),
+          guidance: casual.sentences(5),
+          displayOrder: 1,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+        new Section({
+          id: 2,
+          templateId: templateId,
+          name: casual.sentence,
+          introduction: casual.sentences(3),
+          requirements: casual.sentences(2),
+          guidance: casual.sentences(5),
+          displayOrder: 2,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+        new Section({
+          id: 3,
+          templateId: templateId,
+          name: casual.sentence,
+          introduction: casual.sentences(3),
+          requirements: casual.sentences(2),
+          guidance: casual.sentences(5),
+          displayOrder: 3,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+      ];
+
+      // Mock the findByTemplateId method
+      mockFindByTemplateId = jest.fn().mockResolvedValue(sectionStore);
+      (Section.findByTemplateId as jest.Mock) = mockFindByTemplateId;
+
+      // Mock the update method
+      mockUpdate = jest.fn().mockImplementation((context) => {
+        const tstamp = getCurrentDate();
+        const userId = context.token.id;
+        return new Section({
+          ...sectionStore[0],
+          modified: tstamp,
+          modifiedById: userId,
+        });
+      });
+      (Section.prototype.update as jest.Mock) = mockUpdate;
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('throws NotFoundError if no sections are found', async () => {
+      mockFindByTemplateId.mockResolvedValueOnce(null);
+
+      await expect(
+        updateDisplayOrders(context, templateId, casual.integer(1, 99), 1)
+      ).rejects.toThrow(NotFoundError());
+    });
+
+    it('reorders sections and updates them successfully', async () => {
+      const newDisplayOrder = 2;
+      const reorderedSections = await updateDisplayOrders(
+        context,
+        templateId,
+        sectionStore[0].id,
+        newDisplayOrder
+      );
+
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledTimes(2); // Should have updated the 1st and 2nd sections
+      expect(reorderedSections).toHaveLength(sectionStore.length);
+      expect(reorderedSections[0].displayOrder).toEqual(1);
+      expect(reorderedSections[0].id).toEqual(2);
+      expect(reorderedSections[1].displayOrder).toEqual(2);
+      expect(reorderedSections[1].id).toEqual(1);
+      expect(reorderedSections[2].displayOrder).toEqual(3);
+      expect(reorderedSections[2].id).toEqual(3);
+    });
+
+    it('skips updating sections with unchanged display order', async () => {
+      const newDisplayOrder = sectionStore[0].displayOrder;
+
+      const reorderedSections = await updateDisplayOrders(
+        context,
+        templateId,
+        sectionStore[0].id,
+        newDisplayOrder
+      );
+
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).not.toHaveBeenCalled(); // No updates should occur
+      expect(reorderedSections).toHaveLength(sectionStore.length);
+    });
+
+    it('throws an error if a section update fails', async () => {
+      mockUpdate.mockImplementationOnce(() => {
+        throw new Error('Update failed');
+      });
+
+      await expect(
+        updateDisplayOrders(context, templateId, sectionStore[0].id, 2)
+      ).rejects.toThrow('Update failed');
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -21,6 +21,8 @@ export const generalConfig = {
   domain: process.env.DOMAIN,
   applicationName: env === 'prd' ? process.env.APP_NAME : `${process.env.APP_NAME} (${env})`,
   defaultAffiliatioURI: process.env.DEFAULT_AFFILIATION_URI,
+  defaultSearchLimit: Number.parseInt(process.env.DEFAULT_SEARCH_LIMIT) || 20,
+  maximumSearchLimit: Number.parseInt(process.env.MAXIMUM_SEARCH_LIMIT) || 100,
 
   dmpIdBaseURL: process.env.DMP_ID_BASE_URL || 'https://doi.org/',
   dmpIdShoulder: process.env.DMP_ID_SHOULDER,
@@ -31,6 +33,9 @@ export const generalConfig = {
   bcryptSaltRounds: Number.parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10,
 
   hashTokenSecret: process.env.TOKEN_HASH_SECRET,
+
+  // Number of hours before we consider a change a new version
+  versionPlanAfter: Number.parseInt(process.env.VERSION_PLAN_AFTER) || 1,
 
   jwtSecret: process.env.JWT_SECRET,
   jwtTTL: Number.parseInt(process.env.JWT_TTL) || 1800000, // Default is 30 minutes (in milliseconds)

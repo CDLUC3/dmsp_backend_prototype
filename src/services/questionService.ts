@@ -5,12 +5,14 @@ import { Question } from "../models/Question";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { QuestionCondition } from "../models/QuestionCondition";
-import { QuestionOption } from "../models/QuestionOption";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
+import { reorderDisplayOrder } from "../utils/helpers";
 
 // Determine whether the specified user has permission to access the Section
 export const hasPermissionOnQuestion = async (context: MyContext, templateId: number): Promise<boolean> => {
+  if (!context || !context.token) return false;
+
   // Find associated template info
   const template = await Template.findById('question resolver.hasPermission', context, templateId);
 
@@ -41,7 +43,7 @@ export const generateQuestionVersion = async (
     versionedTemplateId,
     versionedSectionId,
     questionId: question.id,
-    questionTypeId: question.questionTypeId,
+    json: question.json,
     questionText: question.questionText,
     requirementText: question.requirementText,
     guidanceText: question.guidanceText,
@@ -86,17 +88,17 @@ export const generateQuestionVersion = async (
 
         // There were errors on the object so report them
         const msg = `Unable to set isDirty flag on question: ${question.id}`;
-        formatLogMessage(context).error(updated.errors, msg);
+        context.logger.error(prepareObjectForLogs(updated.errors), msg);
         throw new Error(msg);
       }
     } else {
       // There were errors on the object so report them
       const msg = `Unable to create new version for question: ${question.id}`;
-      formatLogMessage(context).error(saved.errors, msg);
+      context.logger.error(prepareObjectForLogs(saved.errors), msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(context).error(err, `Unable to generate a new version for question: ${question.id}`);
+    context.logger.error(prepareObjectForLogs(err), `Unable to generate a new version for question: ${question.id}`);
     throw err
   }
 
@@ -116,7 +118,7 @@ export const cloneQuestion = (
     templateId,
     sectionId,
     sourceQuestionId: sourceId,
-    questionTypeId: question.questionTypeId,
+    json: question.json,
     questionText: question.questionText,
     requirementText: question.requirementText,
     guidanceText: question.guidanceText,
@@ -163,22 +165,46 @@ export const generateQuestionConditionVersion = async (
 
   // There were errors on the object so report them
   const msg = `Unable to generate a new version for questionCondition: ${questionCondition.id}`;
-  formatLogMessage(context).error(created.errors, msg);
+  context.logger.error(prepareObjectForLogs(created.errors), msg);
   throw new Error(msg);
 }
 
+// Update the display order of the specified Section
+export const updateDisplayOrders = async (
+  context: MyContext,
+  sectionId: number,
+  questionId: number,
+  newDisplayOrder: number
+): Promise<Question[] | []> => {
+  // Load all of the questions that belong to the section
+  const questions = await Question.findBySectionId('questionService.updateDisplayOrders', context, sectionId);
+  if (!questions) {
+    throw NotFoundError();
+  }
 
-export const getQuestionOptionsToRemove = async (questionOptions: QuestionOption[], context: MyContext, questionId: number): Promise<QuestionOption[]> => {
-  //Get all the existing question options associated with this question
-  const existingOptions = await QuestionOption.findByQuestionId('questionService', context, questionId);
+  // Retain the original display orders
+  const originals = questions ? questions.map(section => ({ ...section })) : [];
+  // reorder the questions
+  const reorderedQuestions = reorderDisplayOrder(questionId, newDisplayOrder, questions);
 
-  // Create a Set of question option ids
-  const questionOptionIds = new Set(
-    questionOptions.map(option => option.id)
-  );
+  // Save the reordered questions
+  for (const reorderedQuestion of reorderedQuestions) {
+    const oldDisplayOrder = originals.find((s) => s.id === reorderedQuestion.id)?.displayOrder;
 
-  // Get options that exist in questionOptions table, but are not included in updated questionOptions
-  const optionsToRemove = existingOptions.filter(existing => !questionOptionIds.has(existing.id))
+    // If the display order is the same as the original display order, then skip it
+    if (reorderedQuestion.displayOrder === oldDisplayOrder) {
+      continue;
 
-  return Array.isArray(optionsToRemove) ? optionsToRemove : [];
+    } else {
+      const toUpdate = new Question({ ...reorderedQuestion });
+      const updatedSection = await toUpdate.update(context);
+      if (updatedSection && updatedSection.hasErrors()) {
+        // If one of them fais, throw an error
+        const msg = `Unable to update the display order for section: ${reorderedQuestion.id}`;
+        context.logger.error(prepareObjectForLogs(updatedSection.errors), msg);
+        throw new Error(msg);
+      }
+    }
+  }
+  return  reorderedQuestions;
 }

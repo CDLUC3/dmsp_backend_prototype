@@ -2,9 +2,8 @@ import casual from "casual";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { Template, TemplateVisibility } from "../../models/Template";
 import { generateTemplateVersion } from "../templateService";
-import { buildContext } from "../../context";
-import { logger } from "../../__mocks__/logger";
-import { mockToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { TemplateVersionType, VersionedTemplate } from "../../models/VersionedTemplate";
 import { Section } from "../../models/Section";
 import { getCurrentDate } from "../../utils/helpers";
@@ -15,8 +14,9 @@ import { MySqlModel } from "../../models/MySqlModel";
 import { VersionedQuestion } from "../../models/VersionedQuestion";
 import { QuestionCondition, QuestionConditionActionType, QuestionConditionCondition } from "../../models/QuestionCondition";
 import { VersionedQuestionCondition } from "../../models/VersionedQuestionCondition";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 let context;
@@ -55,11 +55,11 @@ function updateStore(store: any[], tableName: string, obj: MySqlModel) {
 }
 
 describe('Integration test: Template Versioning', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     // Mock the Apollo context
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     // Fetch an item from the templateStore
     mockFindTemplateById = jest.fn().mockImplementation(async (_, __, id) => {
@@ -281,7 +281,7 @@ describe('Integration test: Template Versioning', () => {
         id: casual.integer(1, 49),
         templateId: templateStore[0].id,
         sectionId: sectionStore[0].id,
-        questionTypeId: casual.integer(1, 9),
+        json: `{"type":"boolean","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
         questionText: casual.sentences(2),
         requirementText: casual.sentences(3),
         guidanceText: casual.sentences(2),
@@ -298,7 +298,7 @@ describe('Integration test: Template Versioning', () => {
         id: casual.integer(50, 99),
         templateId: templateStore[0].id,
         sectionId: sectionStore[1].id,
-        questionTypeId: casual.integer(1, 9),
+        json: `{"type":"text","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
         questionText: casual.sentences(2),
         requirementText: casual.sentences(3),
         guidanceText: casual.sentences(2),
@@ -315,7 +315,7 @@ describe('Integration test: Template Versioning', () => {
         id: casual.integer(100, 149),
         templateId: templateStore[0].id,
         sectionId: sectionStore[1].id,
-        questionTypeId: casual.integer(1, 9),
+        json: `{"type":"email","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
         questionText: casual.sentences(2),
         requirementText: casual.sentences(3),
         guidanceText: casual.sentences(2),

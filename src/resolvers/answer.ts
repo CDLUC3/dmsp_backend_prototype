@@ -1,21 +1,22 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
 import { Plan } from "../models/Plan";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { Resolvers } from "../types";
-import { createPlanVersion, syncWithDMPHub } from "../services/planService";
 import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
+import { addVersion } from "../models/PlanVersion";
+import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all of the projects that the current user owns or is a collaborator on
+    // return all of the answers for the given plan
     answers: async (_, { projectId, planId, versionedSectionId }, context: MyContext): Promise<Answer[]> => {
       const reference = 'planSectionAnswers resolver';
       try {
@@ -32,32 +33,56 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
-    // Find the plan by its id
+    // return the answer for the given versionedQuestionId
+    answerByVersionedQuestionId: async (_, { projectId, planId, versionedQuestionId }, context: MyContext): Promise<Answer> => {
+
+      const reference = 'planSectionAnswers resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const project = await Project.findById(reference, context, projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${projectId} not found`);
+          }
+          if (await hasPermissionOnProject(context, project)) {
+            const temp = await Answer.findByPlanIdAndVersionedQuestionId(reference, context, planId, versionedQuestionId);
+            return temp;
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Find the answer by its answerId
     answer: async (_, { projectId, answerId }, context: MyContext): Promise<Answer> => {
       const reference = 'plan resolver';
       try {
         const project = await Project.findById(reference, context, projectId);
-        if (project && hasPermissionOnProject(context, project)) {
+        if (project && await hasPermissionOnProject(context, project)) {
           return await Answer.findById(reference, context, answerId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
   },
 
   Mutation: {
-    // Create a new plan
-    addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, answerText }, context: MyContext): Promise<Answer> => {
+    // Create a new answer
+    addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, json }, context: MyContext): Promise<Answer> => {
       const reference = 'addAnswer resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -71,40 +96,26 @@ export const resolvers: Resolvers = {
           }
 
           if (await hasPermissionOnProject(context, project)) {
-            const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, answerText });
-
-            // First create a version snapshot (before making changes)
-            const newVersion = createPlanVersion(context, plan, reference);
-            if (newVersion) {
-
-              // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-
-              const newAnswer = await answer.create(context);
-              if (newAnswer) {
-                // asyncronously send the plan to the DMPHub so that it stores it and assigns a DMP ID
-                syncWithDMPHub(context, plan, reference);
-
-                return newAnswer;
-              }
-            } else {
-              answer.addError('general', 'Unable to add answer. Failed to create a plan version snapshot');
-              return answer;
+            const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, json });
+            const newAnswer = await answer.create(context);
+            if (newAnswer && !newAnswer.hasErrors()) {
+              // Version the plan
+              await addVersion(context, plan, reference);
             }
-
-            return answer;
+            return newAnswer;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
-    // Delete a plan
-    updateAnswer: async (_, { answerId, answerText }, context: MyContext): Promise<Answer> => {
+    // Delete an answer
+    updateAnswer: async (_, { answerId, json }, context: MyContext): Promise<Answer> => {
       const reference = 'updateAnswer resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -118,53 +129,43 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
-            // First create a version snapshot (before making changes)
-            const newVersion = createPlanVersion(context, plan, reference);
-            if (newVersion) {
-              answer.answerText = answerText;
+            answer.json = json;
+            const updatedAnswer = await answer.update(context);
 
-              // TODO: We need to generate the plan version snapshot and sync with DMPHub for each plan
-
-              const updatedAnswer = await answer.update(context);
-
-              if (updatedAnswer) {
-                // asyncronously tombstone the DMP in the DMPHub (after making changes)
-                syncWithDMPHub(context, plan, reference);
-
-                return updatedAnswer;
-              }
+            if (updatedAnswer && !updatedAnswer.hasErrors()) {
+              // Version the plan
+              await addVersion(context, plan, reference);
             }
 
-            answer.addError('general', 'Unable to archive plan. Failed to create a version snapshot');
-            return answer;
+            return updatedAnswer;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        formatLogMessage(context).error(err, `Failure in ${reference}`);
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
   },
 
   Answer: {
-    // The project the plan is associated with
+    // The plan the answer is associated with
     plan: async (parent: Answer, _, context: MyContext): Promise<Plan> => {
       if (parent?.planId) {
         return await Plan.findById('Answer plan resolver', context, parent.planId);
       }
       return null;
     },
-    // The template the plan is based on
+    // The section the answer's question belongs to
     versionedSection: async (parent: Answer, _, context: MyContext): Promise<VersionedSection> => {
       if (parent?.versionedSectionId) {
         return await VersionedSection.findById('Answer versionedSection resolver', context, parent.versionedSectionId);
       }
       return null;
     },
-    // The contributors to the plan
+    // The question the answer is associated with
     versionedQuestion: async (parent: Answer, _, context: MyContext): Promise<VersionedQuestion> => {
       if (parent?.versionedQuestionId) {
         return await VersionedQuestion.findById('Answer versionedQuestion resolver', context, parent.versionedQuestionId);
@@ -178,5 +179,11 @@ export const resolvers: Resolvers = {
       }
       return [];
     },
+    created: (parent: Answer) => {
+      return formatISO9075(new Date(parent.created));
+    },
+    modified: (parent: Answer) => {
+      return formatISO9075(new Date(parent.modified));
+    }
   },
 }

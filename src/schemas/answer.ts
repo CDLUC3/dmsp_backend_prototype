@@ -2,18 +2,21 @@ import gql from "graphql-tag";
 
 export const typeDefs = gql`
   extend type Query {
-    "Get all rounds of admin feedback for the plan"
+    "Get all answers for the given project and plan and section"
     answers(projectId: Int!, planId: Int!, versionedSectionId: Int!): [Answer]
 
-    "Get all of the comments associated with the round of admin feedback"
+    "Get an answer by versionedQuestionId"
+    answerByVersionedQuestionId(projectId: Int!, planId: Int!, versionedQuestionId: Int!): Answer
+
+    "Get the sepecific answer"
     answer(projectId: Int!, answerId: Int!): Answer
   }
 
   extend type Mutation {
     "Answer a question"
-    addAnswer(planId: Int!, versionedSectionId: Int!, versionedQuestionId: Int!, answerText: String): Answer
+    addAnswer(planId: Int!, versionedSectionId: Int!, versionedQuestionId: Int!, json: String): Answer
     "Edit an answer"
-    updateAnswer(answerId: Int!, answerText: String): Answer
+    updateAnswer(answerId: Int!, json: String): Answer
   }
 
   "An answer to a question on a Data Managament Plan (DMP)"
@@ -38,7 +41,7 @@ export const typeDefs = gql`
     "The DMP that the answer belongs to"
     plan: Plan
     "The answer to the question"
-    answerText: String
+    json: String
 
     "The comments associated with the answer"
     comments: [AnswerComment!]
@@ -52,7 +55,7 @@ export const typeDefs = gql`
     versionedSectionId: String
     versionedQuestionId: String
     planId: String
-    answerText: String
+    json: String
   }
 
   type AnswerComment {

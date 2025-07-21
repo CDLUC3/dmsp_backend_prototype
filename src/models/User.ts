@@ -1,15 +1,13 @@
 import bcrypt from 'bcryptjs';
-import { capitalizeFirstLetter, getCurrentDate, validateEmail, valueIsEmpty } from '../utils/helpers';
+import {capitalizeFirstLetter, formatORCID, getCurrentDate, isNullOrUndefined, validateEmail} from '../utils/helpers';
 import { buildContext } from '../context';
-import { logger, formatLogMessage } from '../logger';
+import { logger, prepareObjectForLogs } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
-
-export const DEFAULT_ORCID_URL = 'https://orcid.org/';
-export const ORCID_REGEX = /^(https?:\/\/)?(www\.)?(sandbox\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
+import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
 
 export enum UserRole {
   RESEARCHER = 'RESEARCHER',
@@ -23,7 +21,6 @@ export enum LogInType {
 }
 
 export class User extends MySqlModel {
-  public email: string;
   public password: string;
   public role: UserRole;
   public givenName?: string;
@@ -36,7 +33,7 @@ export class User extends MySqlModel {
 
   public last_sign_in?: string;
   public last_sign_in_via?: LogInType;
-  public failed_sign_in_attemps?: number;
+  public failed_sign_in_attempts?: number;
 
   public notify_on_comment_added?: boolean;
   public notify_on_template_shared?: boolean;
@@ -53,7 +50,6 @@ export class User extends MySqlModel {
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
-    this.email = options.email;
     this.password = options.password;
     this.role = options.role;
     this.givenName = options.givenName;
@@ -63,7 +59,7 @@ export class User extends MySqlModel {
     this.affiliationId = options.affiliationId;
     this.acceptedTerms = options.acceptedTerms;
     this.languageId = options.languageId ?? defaultLanguageId;
-    this.failed_sign_in_attemps = options.failed_sign_in_attemps ?? 0;
+    this.failed_sign_in_attempts = options.failed_sign_in_attempts ?? 0;
     this.locked = options.locked ?? false;
     this.active = options.active ?? true;
     this.notify_on_comment_added = options.notify_on_comment_added ?? true;
@@ -75,23 +71,15 @@ export class User extends MySqlModel {
     this.prepForSave();
   }
 
-  // Ensure that the ORCID is in the correct format (https://orcid.org/0000-0000-0000-0000)
-  static formatORCID(orcidIn: string): string {
-    // If it is blank or already in the correct format, return it
-    if (!valueIsEmpty(orcidIn) && (orcidIn.match(ORCID_REGEX) && orcidIn.startsWith('http'))) return orcidIn;
-
-    // If it matches the ORCID format but didn't start with http then its just the id
-    if (!valueIsEmpty(orcidIn) && orcidIn.match(ORCID_REGEX)) {
-      return `${DEFAULT_ORCID_URL}${orcidIn.split('/').pop()}`;
-    }
-
-    // Otherwise it's not an ORCID
-    return null;
+  // Async getter for primary email
+  public async getEmail(context: MyContext): Promise<string | null> {
+    const primaryEmail = await UserEmail.findPrimaryByUserId('User.getEmail', context, this.id);
+    return primaryEmail ? primaryEmail.email : null;
   }
+
 
   // Ensure data integrity
   prepForSave() {
-    this.email = this.email?.trim()?.replace('%40', '@');
     this.role = this.role ?? UserRole.RESEARCHER;
     this.givenName = capitalizeFirstLetter(this.givenName);
     this.surName = capitalizeFirstLetter(this.surName);
@@ -99,17 +87,17 @@ export class User extends MySqlModel {
     if (!supportedLanguages.map((l) => l.id).includes(this.languageId)){
       this.languageId = defaultLanguageId;
     }
-    this.orcid = this.orcid? User.formatORCID(this.orcid) : null;
+    this.orcid = this.orcid? formatORCID(this.orcid) : null;
   }
 
   // Verify that the email does not already exist and that the required fields have values
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!validateEmail(this.email)) this.addError('email', 'Invalid email address');
+    // email is validated in the table to which it belongs, UserEmail
     if (!this.password) this.addError('password', 'Password is required');
     if (!this.role) this.addError('role', 'Role can\'t be blank');
-    if (this.orcid && !this.orcid.match(ORCID_REGEX)) this.addError('orcid', 'Invalid ORCID');
+    if (this.orcid && formatORCID(this.orcid) === null) this.addError('orcid', 'Invalid ORCID');
 
     return Object.keys(this.errors).length === 0;
   }
@@ -146,7 +134,7 @@ export class User extends MySqlModel {
   }
 
   // Hashes the user's password
-  async hashPassword(password): Promise<string> {
+  async hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(generalConfig.bcryptSaltRounds);
     return await bcrypt.hash(password, salt);
   }
@@ -157,27 +145,33 @@ export class User extends MySqlModel {
     context: MyContext,
     email: string,
     password: string,
-  ): Promise<number> {
-    const sql = 'SELECT id, email, password FROM users WHERE email = ?';
-    const users = await User.query(context, sql, [email], reference);
+  ): Promise<number | null> {
+    const userEmails = await UserEmail.findByEmail(reference, context, email);
 
-    // If the user was found, check the password
-    if (Array.isArray(users) && users.length > 0) {
-      // TODO: Add logic to lock the account after too many failures
+    const userEmail = userEmails[0];
 
-      // Otherwise check the password
-      if (users[0] && await bcrypt.compare(password, users[0].password)) {
-        formatLogMessage(context).debug(`Successful authCheck for ${email}`);
-        return users[0].id;
-      }
+    if (!userEmail || (!userEmail.isPrimary && !userEmail.isConfirmed)) {
+      context.logger.debug(`No primary or confirmed UserEmail found for ${email}`);
+      return null;
     }
 
-    formatLogMessage(context).debug(`Failed authCheck for ${email}`);
+    const user = await User.findById(reference, context, userEmail.userId);
+
+    // If the user was found, check the password
+    // TODO: Add logic to lock the account after too many failures
+
+      // Otherwise check the password
+      if (user && await bcrypt.compare(password, user.password)) {
+        context.logger.debug(`Successful authCheck for ${email}`);
+        return user.id;
+      }
+
+    context.logger.debug(`Failed authCheck for ${email}`);
     return null;
   }
 
-  // Find the User by their Id
-  static async findById(reference: string, context: MyContext, userId: number): Promise<User> {
+  // Find the User by their id
+  static async findById(reference: string, context: MyContext, userId: number): Promise<User | null> {
     const sql = 'SELECT * FROM users WHERE id = ?';
 
     const results = await User.query(context, sql, [userId?.toString()], reference);
@@ -185,16 +179,141 @@ export class User extends MySqlModel {
   }
 
   // Find the User by their email address
-  static async findByEmail(reference: string, context: MyContext, email: string): Promise<User> {
-    const sql = 'SELECT * FROM users WHERE email = ?';
-    const results = await User.query(context, sql, [email], reference);
-    return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
+  static async findByEmail(reference: string, context: MyContext, email: string): Promise<User | null> {
+    const emails = await UserEmail.findByEmail(reference, context, email);
+    if (!emails || emails.length === 0) return null;
+
+    return await User.findById(reference, context, emails[0].userId);
   }
 
-  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<User[]> {
-    const sql = 'SELECT * FROM users WHERE affiliationId = ? ORDER BY created DESC';
-    const results = await User.query(context, sql, [affiliationId], reference);
-    return Array.isArray(results) ? results.map((item) => new User(item)) : [];
+  // Return all the Users associated with the specified affiliationId that match the search term
+  static async findByAffiliationId(
+    reference: string,
+    context: MyContext,
+    affiliationId: string,
+    term: string,
+    options: PaginationOptions = User.getDefaultPaginationOptions(),
+  ): Promise<PaginatedQueryResults<User>> {
+    const whereFilters = ['u.affiliationId = ?'];
+    const values = [affiliationId];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push(`(
+        (LOWER(u.givenName) LIKE ? OR
+        LOWER(u.surName) LIKE ? OR
+        LOWER(ue.email) LIKE ? OR
+        LOWER(u.orcid) LIKE ?))`);
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Join users with user_emails
+    const sqlStatement = `
+    SELECT u.* FROM users u
+    LEFT JOIN userEmails ue ON u.id = ue.userId AND ue.isPrimary = 1
+  `;
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'ue.email', 'u.orcid'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'CONCAT(ue.email, u.id)',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'u.created';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'u.id';
+
+    const response: PaginatedQueryResults<User> = await User.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    );
+
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
+    return response;
+  }
+
+  static async search(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptions = User.getDefaultPaginationOptions(),
+  ): Promise<PaginatedQueryResults<User>> {
+    const whereFilters = [];
+    const values = [];
+
+    // Handle the incoming search term
+    const searchTerm = (term ?? '').toLowerCase().trim();
+    if (searchTerm) {
+      whereFilters.push(`(
+        LOWER(u.givenName) LIKE ? OR
+        LOWER(u.surName) LIKE ? OR
+        LOWER(ue.email) LIKE ? OR
+        LOWER(u.orcid) LIKE ? OR
+        LOWER(a.searchName) LIKE ?)`);
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Determine the type of pagination being used
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = {
+        ...options,
+        // Specify the fields available for sorting
+        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'],
+      } as PaginationOptionsForOffsets;
+    } else {
+      opts = {
+        ...options,
+        // Specify the field we want to use for the cursor (should typically match the sort field)
+        cursorField: 'CONCAT(u.email, u.id)',
+      } as PaginationOptionsForCursors;
+    }
+
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'u.created';
+    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+
+    // Specify the field we want to use for the count
+    opts.countField = 'u.id';
+
+    // Join users with user_emails
+    const sqlStatement = `
+    SELECT u.* FROM users u
+                      LEFT JOIN affiliations a ON u.affiliationId = a.uri
+                      LEFT JOIN userEmails ue ON u.id = ue.userId AND ue.isPrimary = 1
+  `;
+
+    const response: PaginatedQueryResults<User> = await User.queryWithPagination(
+      context,
+      sqlStatement,
+      whereFilters,
+      '',
+      values,
+      opts,
+      reference,
+    )
+
+    context.logger.debug(prepareObjectForLogs({ options, response }), reference);
+    return response;
   }
 
   // Update the last_login fields
@@ -208,21 +327,22 @@ export class User extends MySqlModel {
       }
     }
     // This recordSignIn could not update the record for some reason
-    formatLogMessage(context).error(null, `recordSignIn failed for user ${this.id}`);
+    context.logger.error(`recordSignIn failed for user ${this.id}`);
     return false;
   }
 
   // Login making sure that the passwords match
-  async login(context: MyContext): Promise<User> {
+  async login(context: MyContext, email: string): Promise<User> {
     this.prepForSave();
 
-    if (!validateEmail(this.email) || !this.validatePassword()) {
+    // Validate the email and password
+    if (!validateEmail(email) || !this.validatePassword()) {
       return null;
     }
 
     try {
-      const userId = await User.authCheck('User.login', context, this.email, this.password);
-      formatLogMessage(context)?.debug({ userId }, 'User.login:');
+      const userId = await User.authCheck('User.login', context, email, this.password);
+      context.logger.debug(prepareObjectForLogs({ userId }), 'User.login');
       if (userId) {
         const existing = await User.findById('User.login', context, userId);
 
@@ -234,19 +354,25 @@ export class User extends MySqlModel {
       }
       return null;
     } catch (err) {
-      formatLogMessage(context).error({ err, email: this.email }, 'Error logging in User');
+      context.logger.error(prepareObjectForLogs({ err, email: email }), 'Error logging in User');
       return null;
     }
   }
 
   // Register the User if the data is valid
-  async register(context: MyContext): Promise<User> {
+  async register(context: MyContext, email: string): Promise<User> {
     this.prepForSave();
-    await this.isValid();
+    // We must save the email after the user is created so that we can add the
+    // foreign key to the UserEmail table that is generated by the User, but we
+    // could still check the format in here.
+
+    if (!validateEmail(email)) {
+      this.addError('email', 'Invalid email address');
+    }
 
     // Make sure the account does not already exist
-    const existing = await User.findByEmail('User.register', context, this.email);
-    if (existing) {
+    const existing = await UserEmail.findByEmail('User.register', context, email);
+    if (Array.isArray(existing) && existing.length > 0) {
       this.addError('general', 'Account already exists');
     }
 
@@ -264,19 +390,20 @@ export class User extends MySqlModel {
 
       try {
         const sql = `INSERT INTO users \
-                      (email, password, role, givenName, surName, affiliationId, acceptedTerms) \
-                     VALUES(?, ?, ?, ?, ?, ?, ?)`;
-        const vals = [this.email, this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
+                      (password, role, givenName, surName, affiliationId, acceptedTerms) \
+                     VALUES(?, ?, ?, ?, ?, ?)`;
+        const vals = [this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
         const context = buildContext(logger);
-        formatLogMessage(context)?.debug({ email: this.email }, 'User.register');
+        context.logger.debug(prepareObjectForLogs({ email }), 'User.register');
         const result = await User.query(context, sql, vals, 'User.register');
 
         if (!Array.isArray(result) || !result[0].insertId) {
           this.addError('general', 'Unable to register your account');
           return this;
         }
-        formatLogMessage(context).debug(
-          { email: this.email, userId: result[0].insertId }, 'User was created'
+        context.logger.debug(
+          prepareObjectForLogs({ email: email, userId: result[0].insertId }),
+          'User was created'
         );
 
         // Fetch the new record
@@ -288,21 +415,19 @@ export class User extends MySqlModel {
         await User.query(context, sqlUpdate, valsUpdate, 'User.register');
 
         // Add the email to the UserEmail table and send out a 'please confirm' email
-        const userEmail = new UserEmail({ userId: user.id, email: user.email, isPrimary: true });
+        const userEmail = new UserEmail({ userId: user.id, email: email, isPrimary: true });
         if (!await userEmail.create(context)){
-          // If we couldn't add the UserEmail record, log the error but let them continue
-          formatLogMessage(context).error({ email: userEmail }, 'User.register - unable to add UserEmail!');
+          context.logger.error(prepareObjectForLogs({ userEmail }), 'user.register - unable to add UserEmail');
         }
 
-        // Remove the password! No need to expose that to the caller
-        user.password = null;
         return user;
       } catch (err) {
-        formatLogMessage(context)?.error({ err, email: this.email }, 'Error creating User');
-        return null;
+        this.addError('general', 'There was an error creating user');
+        context.logger.error(prepareObjectForLogs({ err, email: email }), 'Error creating User');
+        return this;
       }
     } else {
-      formatLogMessage(context)?.debug({ email: this.email, errors: this.errors }, 'Invalid user');
+      context.logger.debug(prepareObjectForLogs({ email: email, errors: this.errors }), 'Invalid user');
       return this;
     }
   }
@@ -317,7 +442,7 @@ export class User extends MySqlModel {
           // If the user is an ADMIN then demote them to RESEARCHER
           if (this.role === UserRole.ADMIN) {
             const msg = `User.update Admin changed affiliation so their role must change to Researcher`;
-            formatLogMessage(context).info({ userId: this.id, email: this.email }, msg);
+            context.logger.info(prepareObjectForLogs({ userId: this.id }), msg);
             this.role = UserRole.RESEARCHER;
           }
 
@@ -341,11 +466,12 @@ export class User extends MySqlModel {
   async updatePassword(
     context: MyContext,
     oldPassword: string,
-    newPassword: string
+    newPassword: string,
+    email: string
   ): Promise<User> {
     const ref = 'User.updatePassword';
     // First make sure the current password is valid
-    const validPassword = await User.authCheck(ref, context, this.email, oldPassword);
+    const validPassword = await User.authCheck(ref, context, email, oldPassword);
     if (validPassword) {
       this.password = newPassword;
       if (this.validatePassword()) {

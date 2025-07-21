@@ -15,8 +15,9 @@
     - [Installation](#installation)
     - [Running the App](#running-the-app)
     - [Building for Production](#building-for-production)
-    - [Managing the database](#managing-the-database)
+    - [Managing the databases](#managing-the-database)
 - [Querying the Apollo Server](#querying-apollo-server)
+    - [Pagination](#pagination)
     - [Errors](#errors)
 - [Development](#development)
     - [Data Model](#data-model)
@@ -202,40 +203,32 @@ When deploying manually, you will need to ensure that all of the environment var
 
 If you plan on deploying to the AWS cloud, you can refer to the [corresponding AWS infrastructure repository](https://github.com/CDLUC3/dmsp_frontend_prototype?tab=readme-ov-file#running-the-app). For the CloudFormation templates needed to build this application using CodePipeline and then host it within an ECS cluster.
 
-### Managing the database
+### Managing the databases
 
-#### Running database migrations
+The system has a DynamoDB Table and a MySQL database. Please note that the Docker container must be running to execute any of these commands!
 
-**Local Docker container**
-- While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh` in a seperate terminal window.
+You can run AWS CLI commands to interact with the DynamoDB table or MySQL commands to interact with that database by using `docker-compose exec`.
 
-**AWS Cloud9 Bastion Host**
-- Login to the AWS console and start the bastion cloud9 instance.
-- Navigate to this repo on the instance (clone it if it is not there)
-- Checkout the appropriate branch/tag and pull down the latest
-- Run `./data-migrations/process.sh [env]`
+#### DynamoDB
 
-#### Dropping all of the tables in the local database
+- To create a local instance of the DynamoDB table, startup the Docker container and run `docker-compose exec apollo bash ./data-migrations/dynamo-init.sh`. This will create the table if it does not already exist
 
-In the event that you want to delete all of the tables and data from your database and rebuild a clean database you can run.
+#### MySQL
 
-**Local Docker container**
-- Drop the tables: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh`
-- Rebuild the tables and seed them: `docker-compose exec apollo bash ./data-migrations/process.sh`
+**Running Database Migrations**
+This system manages the database schema via SQL files located in the `./data-migrations` folder.
 
-Note that the container must be running!
+- While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh` in a seperate terminal window. This script will create both the database and the `dataMigrations` table if they do not yet exist.
+
+When you run `process.sh` the script checks each SQL file located in the `./data-migrations/` folder sequentially by the date/time prefix (e.g. `2025-04-18-1235-run-me.sql` is checked after `2025-04-17-1200-run-me.sql`).
+
+It queries the `dataMigrations` table to see if the file has already been run. If it has not, it executes the SQL within the file and then records the file name in the `dataMigrations` table so that it does not get run again.
+
+#### Dropping all of the MySQL tables in the local database
+
+In the event that you want to delete all of the tables and data from your database and rebuild a clean database you can run: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh`
 
 You may find that you receive an error that the `dataMigrations` table already exists when running the `process.sh` script. If so, restart the container and try again.
-
-**AWS Cloud9 Bastion Host**
-
-NEVER EVER do this in production! You will lose ALL data.
-
-- Login to the AWS console and start the bastion cloud9 instance.
-- Navigate to this repo on the instance (clone it if it is not there)
-- Checkout the appropriate branch/tag and pull down the latest
-- Drop the tables: `./data-migrations/nuke-db.sh`
-- Rebuild the tables and seed them: `./data-migrations/process.sh`
 
 ## Querying Apollo Server
 
@@ -297,6 +290,83 @@ async function fetchTemplateCollaborators() {
 fetchTemplateCollaborators();
 ```
 
+### Pagination
+
+The system supports both offset and cursor based pagination. Offset pagination uses `offset` and `limit` to allow you to move forward and backward within the resultset. Cursor pagination uses a `cursor` and `limit` to allow you to move forward within the resultset.
+
+Cursor pagination is designed to support endless-scroll or "load more" scenarios. It is more efficent than Offset pagination, so is preferred.
+
+Offset pagination is designed to support traditional `First 2, 3, 4, 5 ... Last` style page navigation. It is slower though so not the preferred approach unless you truly need to provide users with the ability to move forward and backward or jump to a specific page.
+
+When calling one of the queries that supports pagination, you pass in a set of `paginationOptions`.
+- `limit` the number of records that should be returned (default is 20 with a max of 100)
+- Cursor specific:
+  - `cursor` either `null` (the start of the list) or a cursor id
+- Offset specific:
+  - `offset` either `0` (the start of the list) or a specific position within the list
+  - `sortField` the field you want to sort the results on
+  - `sortDir` the direction of the sort, either `ASC` (default) or `DESC`
+
+For example this query sends cursor information to get the first 20 affiliations matching the criteria:
+```
+query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions: PaginationOptions){
+  affiliations(name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
+    limit
+    totalCount
+    nextCursor
+    hasNextPage
+  }
+}
+
+variables: {
+  "name": "NSF",
+  "funderOnly": true,
+  "paginationOptions": {
+    cursor: null
+  }
+}
+```
+
+The `hasNextPage` flag in the response indicates whether there are more items available, and the `nextCursor` contains the cursor that should be sent to fetch the next 20 records.
+
+This query sends offset information to get the first 20 affiliations matching the criteria:
+```
+query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions: PaginationOptions){
+  affiliations(name: $name, funderOnly: $funderOnly, paginationOptions: $paginationOptions) {
+    limit
+    totalCount
+    currentOffset
+    hasNextPage
+    hasPreviousPage
+    availableSortFields
+  }
+}
+
+variables: {
+  "name": "NSF",
+  "funderOnly": true,
+  "paginationOptions": {
+    offset: 0
+  }
+}
+```
+
+The response has:
+- `hasNextPage` a flag indicating whether or not there is a subsequent page of results
+- `hasPreviousPage` a flag indicating whether or not there is a prior page of results
+- `currentOffset` the current offset position of the first item in the results
+- `totalCount` the total number of possible results
+- `availableSortFields` a list of fields that can be used to sort the results
+
+To fetch the next set of results, you can use `currentOffset + limit`
+
+#### Making a query that supports pagination
+
+Pagination queries use the `queryWithPagination` function on the `MySqlModel` class (as opposed to the `query` function).
+
+Refer to the `AffiliationSearchResult.search` or `VersionedTemplateSearchResult.search` functions for examples of how to structure your query.
+
+
 ### Errors
 
 The system provides 2 levels of errors.
@@ -330,13 +400,27 @@ Run the following to check that your container is up:
 To run bash commands within the container (e.g. to run DB migrations):
 `docker-compose exec apollo bash path/to/script`
 
-### Data Model
+### Data Models
 
 This system uses several data sources: A MySQL database, a DynamoDB table and a Redis cache to store information.
 
 The Redis cache is used to store ephemeral data like refresh tokens and GraphQL query results. This data has TTL settings.
 
 The DynamoDB Table (aka the DMPHub) stores the metadata for a DMP in the [DMP Metadata Standard developed by the Research Data Alliance (RDA)](https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard).
+
+In development, you can review the JSON store in the DynamoDB table by executing AWS CLI commands from within the docker container for the apollo server application.
+
+The key structure we use is
+- Partition key: `PK` with a prefix of `DMP#` and then either:
+  - When the plan is published/registered, the DMP ID (DOI) without the protocol (e.g. `DMP#doi.org/11.22222/A1B2C3`)
+  - When the plan is NOT published/registered, the plan's MySQL record id (e.g. `DMP#example.com/dmps/123`)
+- Sort key: `SK` with a prefix of `VERSION#`. The version can be either `VERSION#latest` or a specific historical version as `VERSION#2025-04-08T09:20:00.000Z`
+
+To fetch a specific item you can run something like:
+`aws dynamodb get-item --key "{\"PK\":{\"S\":\"DMP#doi.org/11.22222/A1B2C3\"}}" --table-name $DYNAMO_TABLE_NAME --endpoint-url $DYNAMO_ENDPOINT`
+
+To scan the table for multiple items you can run something like this that returns all the unique `PK` and `SK`:
+`aws dynamodb scan --table-name $DYNAMO_TABLE_NAME --endpoint-url $DYNAMO_ENDPOINT --filter-expression "SK = :sk" --expression-attribute-values "{\":sk\":{\"S\":\"VERSION#latest\"}}" --projection-expression "PK, SK"`
 
 The MySQL database stores everything else (Templates, Guidance, Plan Feedback, Users, Affiliations, etc.). It also maintains a projectDOIs table that links Projects to the Plan DOIs to facilitate access to the DMPs stored in the DynamoDB table.
 

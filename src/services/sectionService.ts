@@ -6,7 +6,8 @@ import { VersionedSection } from "../models/VersionedSection";
 import { NotFoundError } from "../utils/graphQLErrors";
 import { Question } from "../models/Question";
 import { generateQuestionVersion } from "./questionService";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
+import { reorderDisplayOrder } from "../utils/helpers";
 
 // Creates a new Version/Snapshot the specified Section (as a point in time snapshot)
 //    - Creates a new VersionedSection including all of the related Questions
@@ -66,16 +67,16 @@ export const generateSectionVersion = async (
         if (updated && !updated.hasErrors()) return true;
 
         const msg = `Unable to set the isDirty flag for section: ${section.id}`;
-        formatLogMessage(context).error(updated.errors, msg);
+        context.logger.error(prepareObjectForLogs(updated.errors), msg);
         throw new Error(msg);
       }
     } else {
       const msg = `Unable to create a new version for section: ${section.id}`;
-      formatLogMessage(context).error(created.errors, msg);
+      context.logger.error(prepareObjectForLogs(created.errors), msg);
       throw new Error(msg);
     }
   } catch (err) {
-    formatLogMessage(context).error(err, `Unable to generate a new version for section: ${section.id}`);
+    context.logger.error(prepareObjectForLogs(err), `Unable to generate a new version for section: ${section.id}`);
     throw err;
   }
 
@@ -92,7 +93,7 @@ export const cloneSection = (
   const sourceId = Object.keys(section).includes('sectionId') ? section['sectionId'] : section.id;
   const sectionCopy = new Section({
     sourceSectionId: sourceId,
-    name: `Copy of ${section.name}`,
+    name: section.name,
     introduction: section.introduction,
     requirements: section.requirements,
     guidance: section.guidance,
@@ -106,6 +107,8 @@ export const cloneSection = (
 
 // Determine whether the specified user has permission to access the Section
 export const hasPermissionOnSection = async (context: MyContext, templateId: number): Promise<boolean> => {
+  if (!context || !context.token) return false;
+
   // Find associated template info
   const template = await Template.findById('section resolver.hasPermission', context, templateId);
 
@@ -115,4 +118,45 @@ export const hasPermissionOnSection = async (context: MyContext, templateId: num
 
   // Offload permission checks to the Template
   return await hasPermissionOnTemplate(context, template);
+}
+
+
+// Update the display order of the specified Section
+export const updateDisplayOrders = async (
+  context: MyContext,
+  templateId: number,
+  sectionId: number,
+  newDisplayOrder: number
+): Promise<Section[] | []> => {
+  // Load all of the sections that belong to the template
+  const sections = await Section.findByTemplateId('sectionService.updateDisplayOrders', context, templateId);
+  if (!sections) {
+    throw NotFoundError();
+  }
+
+  // Retain the original display orders
+  const originals = sections ? sections.map(section => ({ ...section })) : [];
+  // reorder the sections
+  const reorderedSections = reorderDisplayOrder(sectionId, newDisplayOrder, sections);
+
+  // Save the reordered sections
+  for (const reorderedSection of reorderedSections) {
+    const oldDisplayOrder = originals.find((s) => s.id === reorderedSection.id)?.displayOrder;
+
+    // If the display order is the same as the original display order, then skip it
+    if (reorderedSection.displayOrder === oldDisplayOrder) {
+      continue;
+
+    } else {
+      const toUpdate = new Section({ ...reorderedSection });
+      const updatedSection = await toUpdate.update(context);
+      if (updatedSection && updatedSection.hasErrors()) {
+        // If one of them fais, throw an error
+        const msg = `Unable to update the display order for section: ${reorderedSection.id}`;
+        context.logger.error(prepareObjectForLogs(updatedSection.errors), msg);
+        throw new Error(msg);
+      }
+    }
+  }
+  return  reorderedSections;
 }

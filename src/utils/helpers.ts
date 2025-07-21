@@ -4,6 +4,22 @@
 import { formatISO9075 } from "date-fns";
 import { generalConfig } from "../config/generalConfig";
 
+export const ORCID_REGEX = /^(https?:\/\/)?(www\.)?(sandbox\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
+
+// Ensure that the ORCID is in the correct format (https://orcid.org/0000-0000-0000-0000)
+export function formatORCID(orcidIn: string): string {
+  // If it is blank or already in the correct format, return it
+  if (!valueIsEmpty(orcidIn) && (orcidIn.match(ORCID_REGEX) && orcidIn.startsWith('http'))) return normaliseHttpProtocol(orcidIn);
+
+  // If it matches the ORCID format but didn't start with http then its just the id
+  if (!valueIsEmpty(orcidIn) && orcidIn.match(ORCID_REGEX)) {
+    return normaliseHttpProtocol(`${generalConfig.orcidBaseURL}${orcidIn.split('/').pop()}`);
+  }
+
+  // Otherwise it's not an ORCID
+  return null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function stringToArray(array: any, delimiter = ' ', defaultResponse: string[] = []): string[] {
   if (typeof array === 'string') {
@@ -35,14 +51,27 @@ export function capitalizeFirstLetter(str: string): string {
 }
 
 // Remove know Protocol and Domain portions of identifiers from the string
+// Handles removal of http:// and https:// protocols by removing them from string and base URLs
 export function stripIdentifierBaseURL(str: string): string {
   if (!str) return '';
 
-  return str.replace(generalConfig.dmpIdBaseURL, '')
-            .replace(generalConfig.orcidBaseURL, '')
-            .replace(generalConfig.rorBaseURL, '')
-            .replace(/^\//, '')
-            .trim();
+  const normalisedStr = normaliseHttpProtocol(str);
+  for (const baseUrl of [
+    generalConfig.dmpIdBaseURL,
+    generalConfig.orcidBaseURL,
+    generalConfig.rorBaseURL,
+  ]) {
+    const normalisedBase = normaliseHttpProtocol(baseUrl);
+    if (normalisedStr.startsWith(normalisedBase)) {
+      return normalisedStr
+        .slice(normalisedBase.length)
+        .trim();
+    }
+  }
+
+  return str
+    .replace(/^\//, '') // Strip leading /
+    .trim();
 }
 
 // Verify that a string is a valid identifier
@@ -62,6 +91,25 @@ export function valueIsEmpty(value: string | number | boolean): boolean {
   }
 
   return false;
+}
+
+// Parse the JSON string and handle null values
+export function removeNullAndUndefinedFromJSON(json: string): string {
+  try {
+    const jsonString = typeof json === 'string' ? json : JSON.stringify(json);
+    const parsedJSON = JSON.parse(jsonString, (_key, value) => {
+      if (Array.isArray(value)) {
+        // Filter out null values from arrays
+        return value.filter(item => !isNullOrUndefined(item));
+      } else {
+        // Keep the value if it's not null or undefined{
+        return isNullOrUndefined(value) ? undefined : value;
+      }
+    });
+    return  JSON.stringify(parsedJSON);
+  } catch (e) {
+    throw new Error(`Invalid JSON format: ${e.message}`);
+  }
 }
 
 // Date validation
@@ -118,4 +166,70 @@ export function getCurrentDate(): string {
 // Generate a random hex code
 export function randomHex(size: number): string {
   return [...Array(size)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+}
+
+// Normalises dates
+export function normaliseDate (date: string | null): string {
+  if (date === null || date === undefined) {
+    return null;
+  }
+
+  // Split into parts, convert to integers and only continue if 3 integer parts
+  const parts = date
+    .split("-")
+    .map((p) => parseInt(p.trim(), 10))
+    .filter((p) => Number.isInteger(p));
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  // Convert to numbers
+  return `${parts[0]}-${String(parts[1]).padStart(2, "0")}-${String(parts[2]).padStart(2, "0")}`;
+}
+
+export function stripHttpProtocol(input: string | null) {
+  if (isNullOrUndefined(input)) {
+    return null;
+  }
+  return input.trim().replace(/^https?:\/\//, '');
+}
+
+export function normaliseHttpProtocol(input: string | null) {
+  if (isNullOrUndefined(input)) {
+    return null;
+  }
+  return input.trim().replace(/^http:\/\//, 'https://');
+}
+
+// Reorder a list of objects that have a displayOrder property and an id property
+export function reorderDisplayOrder<T extends { id?: number, displayOrder?: number }>(
+  objectBeingMovedId: number,
+  newDisplayOrder: number,
+  list: T[],
+): T[] {
+  if (list.length === 0 || isNullOrUndefined(objectBeingMovedId) || isNullOrUndefined(newDisplayOrder)
+    || isNullOrUndefined(list.find((o) => o.id === objectBeingMovedId))) {
+    return list;
+  }
+
+  // Deep copy the list to avoid mutating the original
+  const clonedList = list.map(obj => ({ ...obj }));
+
+  const objectBeingMoved = clonedList.find((o) => o.id === objectBeingMovedId);
+  if (!objectBeingMoved) return clonedList;
+
+  // First remove the item we are moving and then sort the remaining sections by display order
+  const ordered = clonedList.filter((obj) => obj.id !== objectBeingMovedId)
+                            .sort((a, b) => a.displayOrder - b.displayOrder);
+
+  // Splice the object being moved into the correct position
+  const index = Math.max(0, Math.min(newDisplayOrder - 1, ordered.length));
+  ordered.splice(index, 0, objectBeingMoved);
+
+  // Update displayOrder values
+  let displayOrder = 1;
+  for (const obj of ordered) {
+    obj.displayOrder = displayOrder++;
+  }
+  return ordered;
 }

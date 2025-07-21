@@ -1,6 +1,6 @@
 import { MySqlModel } from "./MySqlModel";
 import { MyContext } from "../context";
-import { formatLogMessage } from "../logger";
+import { prepareObjectForLogs } from "../logger";
 
 const tableName = 'tags';
 export class Tag extends MySqlModel {
@@ -77,7 +77,7 @@ export class Tag extends MySqlModel {
     if (!results) {
       const payload = { tagId: this.id, sectionId };
       const msg = 'Unable to add the tag to the section';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), msg);
       return false;
     }
     return true;
@@ -93,7 +93,7 @@ export class Tag extends MySqlModel {
     if (!results) {
       const payload = { tagId: this.id, sectionId };
       const msg = 'Unable to remove the tag from the section';
-      formatLogMessage(context).error(payload, `${reference} - ${msg}`);
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
       return false;
     }
     return true;
@@ -108,6 +108,12 @@ export class Tag extends MySqlModel {
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Tag[]> {
     const sql = `SELECT tags.* FROM sectionTags JOIN tags ON sectionTags.tagId = tags.id WHERE sectionTags.sectionId = ?;`;
     const result = await Tag.query(context, sql, [sectionId?.toString()], reference);
+    return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
+  }
+
+  static async findByVersionedSectionId(reference: string, context: MyContext, versionedSectionId: number): Promise<Tag[]> {
+    const sql = `SELECT tags.* FROM versionedSectionTags vst JOIN tags ON vst.tagId = tags.id WHERE vst.versionedSectionId = ?;`;
+    const result = await Tag.query(context, sql, [versionedSectionId?.toString()], reference);
     return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
   }
 

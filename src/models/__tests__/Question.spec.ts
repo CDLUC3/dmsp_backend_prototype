@@ -1,16 +1,18 @@
 import casual from "casual";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Question } from "../Question";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
+import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
+import { logger } from "../../logger";
 
 jest.mock('../../context.ts');
 
 let context;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -23,7 +25,7 @@ describe('Question', () => {
   const questionData = {
     templateId: casual.integer(1, 9),
     sectionId: casual.integer(1, 9),
-    questionTypeId: casual.integer(1, 9),
+    json: `{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`,
     questionText: casual.sentences(5),
     requirementText: casual.sentences(3),
     guidanceText: casual.sentences(10),
@@ -36,7 +38,7 @@ describe('Question', () => {
   });
 
   it('should initialize options as expected', () => {
-    expect(question.questionTypeId).toEqual(questionData.questionTypeId);
+    expect(question.json).toEqual(questionData.json);
     expect(question.questionText).toEqual(questionData.questionText);
     expect(question.requirementText).toEqual(questionData.requirementText);
     expect(question.guidanceText).toEqual(questionData.guidanceText);
@@ -46,7 +48,77 @@ describe('Question', () => {
     expect(question.required).toEqual(false);
   });
 
-  it('should return true when calling isValid with a name field', async () => {
+  it('should call removeNullAndUndefinedFromJSON and set json as a string', () => {
+    const parsedJSON = removeNullAndUndefinedFromJSON(questionData.json);
+    expect(parsedJSON).toEqual(questionData.json);
+    expect(question.json).toEqual(parsedJSON);
+    expect(typeof question.json).toBe('string');
+  });
+
+  it('should add an error if removeNullAndUndefinedFromJSON fails', () => {
+    const invalidJSON = '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"invalidVersion"';
+    const q = new Question({ ...questionData, json: invalidJSON });
+    expect(q.errors['json']).toBeTruthy();
+    expect(q.errors['json'].includes('Invalid JSON format')).toBe(true);
+  });
+
+  it('should not be valid if the JSON is missing', async () => {
+    question.json = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['json']).toBeTruthy();
+    expect(question.errors['json']).toEqual('Question type JSON can\'t be blank');
+    question.json = questionData.json; // Reset to valid JSON
+  });
+
+  it('should not be valid if the JSON is for an unknown question type', async () => {
+    question.json = `{"type":"unknownType","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['json']).toBeTruthy();
+    expect(question.errors['json'].includes('Unknown question type')).toBe(true);
+    question.json = questionData.json; // Reset to valid JSON
+  });
+
+  it('should not be valid if Zod parse fails', async () => {
+    question.json = `{"type":"textArea"}`; // Missing meta
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['json']).toBeTruthy();
+    expect(question.errors['json'].includes('meta')).toBe(true);
+    question.json = questionData.json; // Reset to valid JSON
+  });
+
+  it('should not be valid if the questionText is missing', async () => {
+    question.questionText = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['questionText']).toBeTruthy();
+    expect(question.errors['questionText']).toEqual('Question text can\'t be blank');
+    question.questionText = questionData.questionText; // Reset to valid questionText
+  });
+
+  it('should not be valid if the displayOrder is missing', async () => {
+    question.displayOrder = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['displayOrder']).toBeTruthy();
+    expect(question.errors['displayOrder']).toEqual('Order number can\'t be blank');
+    question.displayOrder = questionData.displayOrder; // Reset to valid displayOrder
+  });
+
+  it('should not be valid if the templateId is missing', async () => {
+    question.templateId = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['templateId']).toBeTruthy();
+    expect(question.errors['templateId']).toEqual('Template can\'t be blank');
+    question.templateId = questionData.templateId; // Reset to valid templateId
+  });
+
+  it('should not be valid if the sectionId is missing', async () => {
+    question.sectionId = null;
+    expect(await question.isValid()).toBe(false);
+    expect(question.errors['sectionId']).toBeTruthy();
+    expect(question.errors['sectionId']).toEqual('Section can\'t be blank');
+    question.sectionId = questionData.sectionId; // Reset to valid sectionId
+  });
+
+  it('should return true when calling isValid', async () => {
     expect(await question.isValid()).toBe(true);
   });
 });
@@ -58,13 +130,13 @@ describe('findBy Queries', () => {
   let context;
   let question;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Question.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     question = new Question({
       templateId: casual.integer(1, 999),
@@ -72,6 +144,7 @@ describe('findBy Queries', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
+      json: '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     })
   });
 
@@ -101,7 +174,7 @@ describe('findBy Queries', () => {
     localQuery.mockResolvedValueOnce([question]);
     const questionId = casual.integer(1, 999);
     const result = await Question.findBySectionId('testing', context, questionId);
-    const expectedSql = 'SELECT * FROM questions WHERE sectionId = ?';
+    const expectedSql = 'SELECT * FROM questions WHERE sectionId = ? ORDER BY displayOrder ASC';
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [questionId.toString()], 'testing')
     expect(result).toEqual([question]);
@@ -129,6 +202,7 @@ describe('update', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
+      json: '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     })
   });
 
@@ -187,8 +261,15 @@ describe('create', () => {
       templateId: casual.integer(1, 999),
       sectionId: casual.integer(1, 999),
       id: casual.integer(1, 9),
+      questionType: {
+        type: 'number',
+        meta: {
+          schemaVersion: CURRENT_SCHEMA_VERSION
+        }
+      },
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
+      json: '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     })
   });
 
@@ -248,6 +329,7 @@ describe('delete', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
+      json: '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
     })
   })
 

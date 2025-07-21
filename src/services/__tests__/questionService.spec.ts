@@ -1,30 +1,30 @@
 import casual from "casual";
 import { Template } from "../../models/Template";
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
-import { MySQLDataSource } from "../../datasources/mySQLDataSource";
-import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion } from "../questionService";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
+import { cloneQuestion, generateQuestionConditionVersion, generateQuestionVersion, hasPermissionOnQuestion, updateDisplayOrders } from "../questionService";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { hasPermissionOnTemplate } from "../templateService";
 import { NotFoundError } from "../../utils/graphQLErrors";
 import { Question } from "../../models/Question";
 import { VersionedQuestion } from "../../models/VersionedQuestion";
-import { QuestionType } from "../../models/QuestionType";
 import { QuestionCondition, QuestionConditionActionType, QuestionConditionCondition } from "../../models/QuestionCondition";
 import { VersionedQuestionCondition } from "../../models/VersionedQuestionCondition";
 import { getRandomEnumValue } from "../../__tests__/helpers";
 import { getCurrentDate } from "../../utils/helpers";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
+import {MyContext} from "../../context";
 
-// Pulling context in here so that the MySQLDataSource gets mocked
+// Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-let context;
+let context: MyContext;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
-  context = buildContext(logger, mockToken());
+  context = await buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -33,22 +33,14 @@ afterEach(() => {
 
 describe('hasPermissionOnQuestion', () => {
   let template;
-  let mockQuery;
   let mockFindById;
   let mockHashPermissionOnTemplate;
   let context;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    // Cast getInstance to a jest.Mock type to use mockReturnValue
-    (MySQLDataSource.getInstance as jest.Mock).mockReturnValue({
-      query: jest.fn(), // Initialize the query mock function here
-    });
-
-    const instance = MySQLDataSource.getInstance();
-    mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
-    context = { logger, dataSources: { sqlDataSource: { query: mockQuery } } };
+    context = await buildMockContextWithToken(logger);
 
     mockFindById = jest.fn();
     (Template.findById as jest.Mock) = mockFindById;
@@ -97,7 +89,7 @@ describe('cloneQuestion', () => {
   let id;
   let templateId;
   let sectionId;
-  let questionType;
+  let json;
   let questionText;
   let sampleText;
   let requirementText;
@@ -108,10 +100,10 @@ describe('cloneQuestion', () => {
   let createdById;
 
   beforeEach(() => {
-    questionType = new QuestionType({ id: casual.integer(1, 9), name: casual.words });
     templateId = casual.integer(1, 999);
     sectionId = casual.integer(1, 999);
     id = casual.integer(1, 999);
+    json = '{"type":"url","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}';
     questionText = casual.sentence;
     sampleText = casual.sentences(3);
     requirementText = casual.sentences(5);
@@ -122,7 +114,7 @@ describe('cloneQuestion', () => {
     createdById = casual.integer(1, 999);
 
     question = new Question({
-      id, templateId, sectionId, questionTypeId: questionType.id, questionText, requirementText, guidanceText,
+      id, templateId, sectionId, json: json, questionText, requirementText, guidanceText,
       sampleText, displayOrder, required, isDirty, createdById
     });
   });
@@ -136,7 +128,7 @@ describe('cloneQuestion', () => {
     expect(copy.templateId).toEqual(templateId);
     expect(copy.sectionId).toEqual(sectionId);
     expect(copy.sourceQuestionId).toEqual(question.id);
-    expect(copy.questionTypeId).toEqual(questionType.id);
+    expect(copy.json).toEqual(json);
     expect(copy.questionText).toEqual(questionText);
     expect(copy.sampleText).toEqual(sampleText);
     expect(copy.requirementText).toEqual(requirementText);
@@ -156,7 +148,7 @@ describe('cloneQuestion', () => {
       versionedTemplateId: templateId,
       versionedSectionId: sectionId,
       questionId: question.id,
-      questionTypeId: questionType.id,
+      json: json,
       questionText: casual.sentence,
       sampleText: casual.sentences(3),
       requirementText: casual.sentences(5),
@@ -171,7 +163,7 @@ describe('cloneQuestion', () => {
     expect(copy).toBeInstanceOf(Question);
     expect(copy.id).toBeFalsy();
     expect(copy.sourceQuestionId).toEqual(published.questionId);
-    expect(copy.questionTypeId).toEqual(questionType.id);
+    expect(copy.json).toEqual(json);
     expect(copy.questionText).toEqual(published.questionText);
     expect(copy.sampleText).toEqual(published.sampleText);
     expect(copy.requirementText).toEqual(published.requirementText);
@@ -207,7 +199,30 @@ describe('generateQuestionVersion', () => {
         id: casual.integer(1, 99),
         templateId: casual.integer(1, 99),
         sectionId: casual.integer(1, 999),
-        questionTypeId: casual.integer(1, 9),
+        json: JSON.stringify({
+          type: 'filteredSearch',
+          attributes: {
+            multiple: casual.boolean
+          },
+          graphQL: {
+            displayFields: [
+              {
+                propertyName: casual.word,
+                label: casual.words(2),
+              },
+              {
+                propertyName: casual.word,
+                label: casual.words(2),
+              },
+            ],
+            localQueryId: casual.word,
+            responseField: casual.word
+          },
+          meta: {
+            multiple: casual.boolean,
+            schemaVersion: CURRENT_SCHEMA_VERSION
+          }
+        }),
         questionText: casual.sentences(2),
         requirementText: casual.sentences(3),
         guidanceText: casual.sentences(2),
@@ -354,7 +369,7 @@ describe('generateQuestionVersion', () => {
     expect(newVersion.versionedTemplateId).toEqual(versionedTemplateId);
     expect(newVersion.versionedSectionId).toEqual(versionedSectionId);
     expect(newVersion.questionId).toEqual(question.id);
-    expect(newVersion.questionTypeId).toEqual(question.questionTypeId);
+    expect(newVersion.json).toEqual(question.json);
     expect(newVersion.questionText).toEqual(question.questionText);
     expect(newVersion.requirementText).toEqual(question.requirementText);
     expect(newVersion.guidanceText).toEqual(question.guidanceText);
@@ -514,5 +529,141 @@ describe('generateQuestionConditionVersion', () => {
     expect(newVersion.conditionType).toEqual(questionCondition.conditionType);
     expect(newVersion.conditionMatch).toEqual(questionCondition.conditionMatch);
     expect(newVersion.target).toEqual(questionCondition.target);
+  });
+});
+
+describe('updateDisplayOrders', () => {
+  describe('updateDisplayOrders', () => {
+    let questionStore;
+    let sectionId;
+    let mockFindByTemplateId;
+    let mockUpdate;
+
+    beforeEach(() => {
+      jest.resetAllMocks();
+
+      const tstamp = getCurrentDate();
+
+      const templateId = casual.integer(1, 999);
+      const sectionId = casual.integer(1, 999);
+
+      // Setup the mock data store
+      questionStore = [
+        new Question({
+          id: 1,
+          templateId: templateId,
+          sectionId: sectionId,
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
+          questionText: casual.sentence,
+          displayOrder: 1,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+        new Question({
+          id: 2,
+          templateId: templateId,
+          sectionId: sectionId,
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
+          questionText: casual.sentence,
+          displayOrder: 2,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+        new Question({
+          id: 3,
+          templateId: templateId,
+          sectionId: sectionId,
+          json: '{"type":"text","meta":{"schemaVersion":"' + CURRENT_SCHEMA_VERSION + '"}}',
+          questionText: casual.sentence,
+          displayOrder: 3,
+          isDirty: false,
+          createdById: casual.integer(1, 999),
+          created: tstamp,
+          modifiedById: casual.integer(1, 999),
+          modified: tstamp,
+        }),
+      ];
+
+      // Mock the findByTemplateId method
+      mockFindByTemplateId = jest.fn().mockResolvedValue(questionStore);
+      (Question.findBySectionId as jest.Mock) = mockFindByTemplateId;
+
+      // Mock the update method
+      mockUpdate = jest.fn().mockImplementation((context) => {
+        const tstamp = getCurrentDate();
+        const userId = context.token.id;
+        return new Question({
+          ...questionStore[0],
+          modified: tstamp,
+          modifiedById: userId,
+        });
+      });
+      (Question.prototype.update as jest.Mock) = mockUpdate;
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('throws NotFoundError if no sections are found', async () => {
+      mockFindByTemplateId.mockResolvedValueOnce(null);
+
+      await expect(
+        updateDisplayOrders(context, sectionId, casual.integer(1, 99), 1)
+      ).rejects.toThrow(NotFoundError());
+    });
+
+    it('reorders sections and updates them successfully', async () => {
+      const newDisplayOrder = 2;
+      const reorderedSections = await updateDisplayOrders(
+        context,
+        sectionId,
+        questionStore[0].id,
+        newDisplayOrder
+      );
+
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledTimes(2); // Should have updated the 1st and 2nd sections
+      expect(reorderedSections).toHaveLength(questionStore.length);
+      expect(reorderedSections[0].displayOrder).toEqual(1);
+      expect(reorderedSections[0].id).toEqual(2);
+      expect(reorderedSections[1].displayOrder).toEqual(2);
+      expect(reorderedSections[1].id).toEqual(1);
+      expect(reorderedSections[2].displayOrder).toEqual(3);
+      expect(reorderedSections[2].id).toEqual(3);
+    });
+
+    it('skips updating sections with unchanged display order', async () => {
+      const newDisplayOrder = questionStore[0].displayOrder;
+
+      const reorderedSections = await updateDisplayOrders(
+        context,
+        sectionId,
+        questionStore[0].id,
+        newDisplayOrder
+      );
+
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).not.toHaveBeenCalled(); // No updates should occur
+      expect(reorderedSections).toHaveLength(questionStore.length);
+    });
+
+    it('throws an error if a section update fails', async () => {
+      mockUpdate.mockImplementationOnce(() => {
+        throw new Error('Update failed');
+      });
+
+      await expect(
+        updateDisplayOrders(context, sectionId, questionStore[0].id, 2)
+      ).rejects.toThrow('Update failed');
+      expect(mockFindByTemplateId).toHaveBeenCalledTimes(1);
+      expect(mockUpdate).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -1,7 +1,7 @@
 import casual from "casual";
 import { Tag } from "../Tag";
-import { logger } from '../../__mocks__/logger';
-import { buildContext, mockToken } from "../../__mocks__/context";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
 
 let context;
 jest.mock('../../context.ts');
@@ -155,10 +155,10 @@ describe('addToSection', () => {
   let context;
   let mockTag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockTag = new Tag({
       id: casual.integer(1, 99),
@@ -196,10 +196,10 @@ describe('removeFromSection', () => {
   let context;
   let mockTag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockTag = new Tag({
       id: casual.integer(1, 99),
@@ -239,13 +239,13 @@ describe('findAll', () => {
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),
@@ -277,13 +277,13 @@ describe('findBySectionId', () => {
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),
@@ -308,19 +308,57 @@ describe('findBySectionId', () => {
   });
 });
 
+describe('findByVersionedSectionId', () => {
+  const originalQuery = Tag.query;
+
+  let localQuery;
+  let context;
+  let tag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (Tag.query as jest.Mock) = localQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    tag = new Tag({
+      id: casual.integer(1, 9),
+      name: casual.sentence,
+      description: casual.sentence,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Tag.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the tag', async () => {
+    localQuery.mockResolvedValueOnce([tag]);
+    const versionedSectionId = 1;
+    const result = await Tag.findByVersionedSectionId('Tag query', context, versionedSectionId);
+    const expectedSql = `SELECT tags.* FROM versionedSectionTags vst JOIN tags ON vst.tagId = tags.id WHERE vst.versionedSectionId = ?;`;
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [versionedSectionId.toString()], 'Tag query')
+    expect(result).toEqual([tag]);
+  });
+});
+
 describe('findById', () => {
 
   let localQuery;
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),
@@ -351,13 +389,13 @@ describe('findByName', () => {
   let context;
   let tag;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetAllMocks();
 
     localQuery = jest.fn();
     (Tag.query as jest.Mock) = localQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     tag = new Tag({
       id: casual.integer(1, 9),

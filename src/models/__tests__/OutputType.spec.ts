@@ -1,7 +1,7 @@
 import casual from 'casual';
 import { OutputType } from '../OutputType';
-import { buildContext, mockToken } from '../../__mocks__/context';
-import { logger } from '../../__mocks__/logger';
+import { buildMockContextWithToken } from '../../__mocks__/context';
+import { logger } from "../../logger";
 
 describe('OutputType', () => {
   it('constructor should initialize as expected', () => {
@@ -53,13 +53,13 @@ describe('queries', () => {
   let context;
   let mockType;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
 
     mockQuery = jest.fn();
     (OutputType.insert as jest.Mock) = mockQuery;
 
-    context = buildContext(logger, mockToken());
+    context = await buildMockContextWithToken(logger);
 
     mockType = {
       id: casual.integer(1, 99),
@@ -76,7 +76,7 @@ describe('queries', () => {
     const querySpy = jest.spyOn(OutputType, 'query').mockResolvedValueOnce([mockType]);
     await OutputType.all('Testing', context);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'SELECT * FROM outputTypes ORDER BY name';
+    const expectedSql = 'SELECT * FROM projectOutputTypes ORDER BY name';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [], 'Testing')
   });
 
@@ -85,7 +85,7 @@ describe('queries', () => {
     const querySpy = jest.spyOn(OutputType, 'query').mockResolvedValueOnce([mockType]);
     await OutputType.findById('Testing', context, typeId);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'SELECT * FROM outputTypes WHERE id = ?';
+    const expectedSql = 'SELECT * FROM projectOutputTypes WHERE id = ?';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [typeId.toString()], 'Testing')
   });
 
@@ -94,7 +94,7 @@ describe('queries', () => {
     const querySpy = jest.spyOn(OutputType, 'query').mockResolvedValueOnce([mockType]);
     await OutputType.findByURL('Testing', context, uri);
     expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'SELECT * FROM outputTypes WHERE url = ?';
+    const expectedSql = 'SELECT * FROM projectOutputTypes WHERE url = ?';
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, [uri], 'Testing')
   });
 });

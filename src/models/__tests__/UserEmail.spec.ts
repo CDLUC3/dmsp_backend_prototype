@@ -1,6 +1,6 @@
 import casual from "casual";
-import { buildContext, mockToken } from "../../__mocks__/context";
-import { logger } from "../../__mocks__/logger";
+import { buildMockContextWithToken } from "../../__mocks__/context";
+import { logger } from "../../logger";
 import { User } from "../User";
 import { UserEmail } from "../UserEmail";
 import { TemplateCollaborator } from "../Collaborator";
@@ -10,19 +10,18 @@ import { sendEmailConfirmationNotification } from "../../services/emailService";
 let context;
 let mockUser;
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.resetAllMocks();
 
   mockUser = new User({
     id: casual.integer(1, 999),
-    email: casual.email,
     givenName: casual.first_name,
     surName: casual.last_name,
     affiliationId: casual.url,
     acceptedTerms: true,
   });
 
-  context = buildContext(logger, mockToken(mockUser));
+  context = buildMockContextWithToken(logger);
 });
 
 afterEach(() => {
@@ -33,8 +32,8 @@ describe('constructor', () => {
   it('should set the expected properties', () => {
     const props = {
       id: casual.integer(1, 99999),
-      email: casual.email,
       userId: casual.integer(1, 999),
+      email: casual.email,
       isPrimary: casual.boolean,
       isConfirmed: casual.boolean,
     }
@@ -206,19 +205,19 @@ describe('confirmEmail', () => {
   let mockUpdateTemplateCollaborator;
   let mockDelete;
 
-  beforeEach(() => {
-    context = buildContext(logger);
+  beforeEach(async () => {
+    context = buildMockContextWithToken(logger);
 
-    mockUserEmail = new UserEmail({ id: casual.integer(1, 99), email: mockUser.email, userId: mockUser.id });
+    mockUserEmail = new UserEmail({ id: casual.integer(1, 99), email: casual.email, userId: mockUser.id });
 
     mockOtherEmails = [
-      new UserEmail({ id: 1, email: mockUser.email, userId: casual.integer(99991, 999999) }),
-      new UserEmail({ id: 2, email: mockUser.email, userId: casual.integer(99991, 999999) }),
+      new UserEmail({ id: 1, email: mockUserEmail.email, userId: casual.integer(99991, 999999) }),
+      new UserEmail({ id: 2, email: mockUserEmail.email, userId: casual.integer(99991, 999999) }),
     ];
 
     mockTemplateCollaborators = [
-      new TemplateCollaborator({ id: 1, email: mockUser.email, templateId: casual.integer(1, 999) }),
-      new TemplateCollaborator({ id: 2, email: mockUser.email, templateId: casual.integer(1, 999) }),
+      new TemplateCollaborator({ id: 1, email: mockUserEmail.email, templateId: casual.integer(1, 999) }),
+      new TemplateCollaborator({ id: 2, email: mockUserEmail.email, templateId: casual.integer(1, 999) }),
     ]
 
     mockFindUserEmailById = jest.fn();
@@ -270,7 +269,7 @@ describe('confirmEmail', () => {
     mockFindUserEmailById.mockResolvedValue(confirmedEmail);
     mockFindTemplateCollaboratorByEmail.mockResolvedValue([]);
 
-    const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
+    const result = await UserEmail.confirmEmail(context, mockUser.id, mockUserEmail.email)
     expect(result).toEqual(confirmedEmail);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
@@ -286,10 +285,18 @@ describe('confirmEmail', () => {
     mockFindTemplateCollaboratorById.mockResolvedValue(mockTemplateCollaborators[0]);
     mockUpdateTemplateCollaborator.mockResolvedValue(mockTemplateCollaborators[0]);
 
-    const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
+    // Mock the instance method update for each collaborator
+    for (const collab of mockTemplateCollaborators) {
+      collab.update = jest.fn().mockResolvedValue(collab);
+    }
+
+    const result = await UserEmail.confirmEmail(context, mockUser.id, mockUserEmail.email)
     expect(result).toEqual(confirmedEmail);
     expect(Object.keys(result.errors).length).toBe(0);
-    expect(mockUpdate).toHaveBeenCalledTimes(3);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    for (const collab of mockTemplateCollaborators) {
+      expect(collab.update).toHaveBeenCalledTimes(1);
+    }
   });
 
   it('removes other unconfirmed records associated with other users if successful', async () => {
@@ -300,7 +307,7 @@ describe('confirmEmail', () => {
     mockFindUserEmailById.mockResolvedValue(confirmedEmail);
     mockFindTemplateCollaboratorByEmail.mockResolvedValue([]);
 
-    const result = await UserEmail.confirmEmail(context, mockUser.id, mockUser.email)
+    const result = await UserEmail.confirmEmail(context, mockUser.id, mockUserEmail.email)
     expect(result).toEqual(confirmedEmail);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(mockUpdate).toHaveBeenCalledTimes(1);
@@ -517,5 +524,139 @@ describe('delete', () => {
     expect(result).toBeFalsy();
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(mockDelete).toHaveBeenCalled();
+  });
+});
+
+describe('findPrimaryByUserId', () => {
+  const reference = 'test-ref';
+  const userId = casual.integer(1, 999);
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should return the primary email when it exists', async () => {
+    const primaryEmail = casual.email;
+    const mockResult = [{
+      id: casual.integer(1, 99999),
+      userId,
+      email: primaryEmail,
+      isPrimary: 1,
+      isConfirmed: true,
+      created: new Date().toISOString(),
+      createdById: userId,
+      modified: new Date().toISOString(),
+      modifiedById: userId,
+      errors: {},
+    }];
+    jest.spyOn(UserEmail, 'query').mockResolvedValueOnce(mockResult);
+    const result = await UserEmail.findPrimaryByUserId(reference, context, userId);
+    expect(result).toBeInstanceOf(UserEmail);
+    expect(result.email).toBe(primaryEmail);
+    expect(result.isPrimary).toBeTruthy();
+  });
+
+  it('should return null if no primary email exists', async () => {
+    jest.spyOn(UserEmail, 'query').mockResolvedValueOnce([]);
+    const result = await UserEmail.findPrimaryByUserId(reference, context, userId);
+    expect(result).toBeNull();
+  });
+
+  it('should only return the primary email if multiple emails exist', async () => {
+    const emails = [
+      {
+        id: casual.integer(1, 99999),
+        userId,
+        email: casual.email,
+        isPrimary: 0,
+        isConfirmed: true,
+        created: new Date().toISOString(),
+        createdById: userId,
+        modified: new Date().toISOString(),
+        modifiedById: userId,
+        errors: {},
+      },
+      {
+        id: casual.integer(1, 99999),
+        userId,
+        email: casual.email,
+        isPrimary: 1,
+        isConfirmed: true,
+        created: new Date().toISOString(),
+        createdById: userId,
+        modified: new Date().toISOString(),
+        modifiedById: userId,
+        errors: {},
+      }
+    ];
+    jest.spyOn(UserEmail, 'query').mockResolvedValueOnce([emails[1]]);
+    const result = await UserEmail.findPrimaryByUserId(reference, context, userId);
+    expect(result).toBeInstanceOf(UserEmail);
+    expect(result.isPrimary).toBeTruthy();
+  });
+});
+
+describe('createOrUpdatePrimary', () => {
+  const userId = casual.integer(1, 999);
+  const email = casual.email;
+  let mockFindPrimaryByUserId;
+  let mockFindByUserIdAndEmail;
+  let mockCreate;
+  let mockUpdate;
+
+  beforeEach(() => {
+    mockFindPrimaryByUserId = jest.spyOn(UserEmail, 'findPrimaryByUserId');
+    mockFindByUserIdAndEmail = jest.spyOn(UserEmail, 'findByUserIdAndEmail');
+    mockCreate = jest.fn();
+    mockUpdate = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('should create a new primary if none exists', async () => {
+    mockFindPrimaryByUserId.mockResolvedValueOnce(null);
+    mockFindByUserIdAndEmail.mockResolvedValueOnce(null);
+    const newPrimary = new UserEmail({ userId, email, isPrimary: true, isConfirmed: false });
+    mockCreate.mockResolvedValueOnce(newPrimary);
+    jest.spyOn(UserEmail.prototype, 'create').mockImplementation(mockCreate);
+    const result = await UserEmail.createOrUpdatePrimary(context, userId, email, false);
+    expect(result).toBe(newPrimary);
+    expect(mockCreate).toHaveBeenCalled();
+  });
+
+  it('should set an existing email as primary and unset the old primary', async () => {
+    const oldPrimary = new UserEmail({ id: 1, userId, email: casual.email, isPrimary: true, isConfirmed: true });
+    const existingEmail = new UserEmail({ id: 2, userId, email, isPrimary: false, isConfirmed: true });
+    mockFindPrimaryByUserId.mockResolvedValueOnce(oldPrimary);
+    mockFindByUserIdAndEmail.mockResolvedValueOnce(existingEmail);
+    mockUpdate.mockResolvedValueOnce(existingEmail);
+    jest.spyOn(existingEmail, 'update').mockImplementation(mockUpdate);
+    jest.spyOn(oldPrimary, 'update').mockImplementation(mockUpdate);
+    const result = await UserEmail.createOrUpdatePrimary(context, userId, email, true);
+    expect(result).toBe(existingEmail);
+    expect(existingEmail.isPrimary).toBe(true);
+    expect(mockUpdate).toHaveBeenCalled();
+  });
+
+  it('should do nothing if the email is already primary', async () => {
+    const primary = new UserEmail({ id: 1, userId, email, isPrimary: true, isConfirmed: true });
+    mockFindPrimaryByUserId.mockResolvedValueOnce(primary);
+    mockFindByUserIdAndEmail.mockResolvedValueOnce(primary);
+    const result = await UserEmail.createOrUpdatePrimary(context, userId, email, true);
+    expect(result).toBe(primary);
+  });
+
+  it('should update the current primary record to have the new email if email does not exist', async () => {
+    const oldPrimary = new UserEmail({ id: 1, userId, email: casual.email, isPrimary: true, isConfirmed: true });
+    mockFindPrimaryByUserId.mockResolvedValueOnce(oldPrimary);
+    mockFindByUserIdAndEmail.mockResolvedValueOnce(null);
+    mockUpdate.mockResolvedValueOnce(oldPrimary);
+    jest.spyOn(oldPrimary, 'update').mockImplementation(mockUpdate);
+    const result = await UserEmail.createOrUpdatePrimary(context, userId, email, true);
+    expect(oldPrimary.email).toBe(email);
+    expect(mockUpdate).toHaveBeenCalled();
+    expect(result).toBe(oldPrimary);
   });
 });
