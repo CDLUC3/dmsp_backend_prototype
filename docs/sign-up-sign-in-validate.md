@@ -116,39 +116,23 @@ Email verification may be triggered by signing up for a non-SSO account or by cr
 
 ```mermaid
 flowchart TD
-  A[Start: Enter email and click submit]
+  A[Start: User receives verification email] --> B[User clicks verification link]
 
-  A --> B{User found in system?}
-  B -- No --> D[Prompt for password]
-  B -- Yes --> C{User has SSO ID?}
-  C -- No --> D
-  C -- Yes --> SSO1[Begin SSO Login Workflow]
+  B --> C{Is token still valid?}
 
-  D --> E{Password correct?}
-  E -- No --> E1[Show login failure message]
-  E1 --> D
-  E -- Yes --> F[Redirect to dashboard as logged-in user]
+  C -- Yes --> D[Set email as verified in user record]
+  D --> E[Delete token from database]
+  E --> F[Show success message: Email verified]
 
-  SSO1 --> S1["Redirect to Shibboleth using entityID + callback URL"]
-  S1 --> S2["User logs in at external SSO site"]
-  S2 --> S3["SSO returns to callback URL"]
-  S3 --> S4["Match SSO ID to user record"]
+  C -- No --> G[Show error message: Link invalid or expired]
+  G --> H[Suggest resending verification link from user dashboard with link]
 
-  S4 --> S5{User profile complete?}
-  S5 -- Yes --> F
-  S5 -- No --> S6["Show profile completion form (pre-filled)"]
-  S6 --> S7{Form complete and valid?}
-  S7 -- No --> S6
-  S7 -- Yes --> F
-
-  style A fill:#cfe2ff
-  style F fill:#d4edda
-  style E1 fill:#f8d7da
+  F --> I[End]
+  H --> I
 ```
 
 ## Email verification workflow
-1. On non-sso account creation or new alias email creation, a "verify your account" email is sent to the user with a verification token.
-2. The user clicks the verification link.  (Do we need a separate "enter code" page if a user doesn't want to click links in an email?)
-3. User is taken to an endpoint for verifying their email with their verification token.
-  a. If the token isn't found or is expired (1 hour or 1 day expiration time?) then they receive a message that the link is not valid. If logged in, they also see a link to the page where they may generate another verification email.
-4. When verification link is valid then their userEmails record for the email address that goes with the verification token is updated and isConfirmed is set to true. They see a message that <email> has been confirmed.  The verification token is marked as expired so it cannot be used again without regenerating a new verification token.
+1. The user receives an email with a verification link that is sent from signing up or creating a new email alias.
+2. User clicks the verification link in the email
+3. If the link contains a valid token, then they receive a message that their email is verified, the verified flag is set to true in the user record, and the token is removed from the database.
+4. If no valid token is found, then they receive a message that the verification link is invalid or expired with the message that they may resend another verification link from their user dashboard page (with link to it).

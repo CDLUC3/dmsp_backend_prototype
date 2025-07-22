@@ -1,0 +1,42 @@
+flowchart TD
+  subgraph Client["User (Browser/Client)"]
+    A0(Initial Page Load or GET Request)
+    A1(Signup or Signin Request)
+    A2(Use Access Token for GraphQL)
+    A3(Refresh Token Request)
+    A4(Sign Out Request)
+  end
+
+  subgraph Server["Apollo Server"]
+    Z1(Generate CSRF Token)
+    Z2(Include CSRF Token in X-CSRF-Token Header)
+    Z3(Validate CSRF Token from Header)
+
+    B1(/apollo-signup or /apollo-signin)
+    B2(Validate Credentials)
+    B3(Generate Access & Refresh Tokens)
+    B4(Store Refresh Token in Redis)
+    B5(Set or Update HTTP-only Cookies)
+    B6(GraphQL API Request)
+    B7(Validate Access Token)
+    B8(/apollo-refresh)
+    B9(Validate Refresh Token in Redis)
+    B10(Generate New Tokens)
+    B12(/apollo-signout)
+    B13(Blacklist Access Token in Redis)
+    B14(Remove Refresh Token from Redis)
+    B15(Delete Cookies)
+  end
+
+  A0 --> Z1 --> Z2 --> A1
+  A1 -->|POST + X-CSRF-Token| Z3 --> B1 --> B2 --> B3 --> B4 --> B5 --> A2
+
+  A3 -->|POST + X-CSRF-Token| Z3 --> B8 --> B9 -->|Valid| B10 --> B4 --> B5 --> A2
+
+  A2 --> B6 --> B7
+  B7 -->|Valid| C1(Authorized Response)
+  B7 -->|Expired| A3
+
+  A4 -->|POST + X-CSRF-Token| Z3 --> B12 --> B13 --> B14 --> B15 --> D1(Session Ended)
+
+  C1 --> A2
