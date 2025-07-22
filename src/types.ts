@@ -1513,6 +1513,8 @@ export type Plan = {
   sections?: Maybe<Array<PlanSectionProgress>>;
   /** The status/state of the plan */
   status?: Maybe<PlanStatus>;
+  /** The title of the plan */
+  title?: Maybe<Scalars['String']['output']>;
   /** The template the plan is based on */
   versionedTemplate?: Maybe<VersionedTemplate>;
   /** Prior versions of the plan */
@@ -1540,6 +1542,7 @@ export type PlanErrors = {
   registered?: Maybe<Scalars['String']['output']>;
   registeredById?: Maybe<Scalars['String']['output']>;
   status?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
   versionedTemplateId?: Maybe<Scalars['String']['output']>;
   visibility?: Maybe<Scalars['String']['output']>;
 };
@@ -4745,6 +4748,7 @@ export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversP
   registeredById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   sections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   versionedTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType>;
   versions?: Resolver<Maybe<Array<ResolversTypes['PlanVersion']>>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['PlanVisibility']>, ParentType, ContextType>;
@@ -4760,6 +4764,7 @@ export type PlanErrorsResolvers<ContextType = MyContext, ParentType extends Reso
   registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   versionedTemplateId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

@@ -393,12 +393,14 @@ export class PopularFunder {
   public id: number;
   public uri: string;
   public displayName: string;
+  public apiTarget: string;
   public nbrPlans: number;
 
   constructor(options) {
     this.id = options.id;
     this.uri = options.uri;
     this.displayName = options.displayName;
+    this.apiTarget = options.apiTarget;
     this.nbrPlans = options.nbrPlans;
   }
 
@@ -411,7 +413,7 @@ export class PopularFunder {
     const endDate = today.toISOString().split('T')[0];
 
     // Get the top 20 funders based on the number of plans created in the past year
-    const sql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
+    const sql = 'SELECT a.id, a.uri, a.displayName, a.apiTarget, COUNT(p.id) AS nbrPlans ' +
                 'FROM affiliations a ' +
                 'LEFT JOIN projectFundings pf ON pf.affiliationId = a.uri ' +
                 'LEFT JOIN projects p ON p.id = pf.projectId ' +
