@@ -118,6 +118,8 @@ export const typeDefs = gql`
     project: Project
     "The template the plan is based on"
     versionedTemplate: VersionedTemplate
+    "The title of the plan"
+    title: String
     "The DMP ID/DOI for the plan"
     dmpId: String
     "The status/state of the plan"
@@ -154,6 +156,7 @@ export const typeDefs = gql`
 
     versionedTemplateId: String
     projectId: String
+    title: String
     dmp_id: String
     status: String
     visibility: String
