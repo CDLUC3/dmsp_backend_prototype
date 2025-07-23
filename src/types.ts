@@ -557,6 +557,8 @@ export type ExternalSearchInput = {
 /** A result of the most popular funders */
 export type FunderPopularityResult = {
   __typename?: 'FunderPopularityResult';
+  /** The apiTarget for the affiliation (if available) */
+  apiTarget: Scalars['String']['output'];
   /** The official display name */
   displayName: Scalars['String']['output'];
   /** The unique identifer for the affiliation */
@@ -4488,6 +4490,7 @@ export type ExternalProjectResolvers<ContextType = MyContext, ParentType extends
 };
 
 export type FunderPopularityResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['FunderPopularityResult'] = ResolversParentTypes['FunderPopularityResult']> = {
+  apiTarget?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   nbrPlans?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
