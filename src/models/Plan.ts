@@ -10,6 +10,7 @@ import {
 } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { addVersion, removeVersions, updateVersion } from "./PlanVersion";
+import {Project} from "./Project";
 
 export const DEFAULT_TEMPORARY_DMP_ID_PREFIX = 'temp-dmpId-';
 
@@ -69,7 +70,7 @@ export class PlanSearchResult {
     const sql = 'SELECT p.id, ' +
                 'CONCAT(cu.givenName, CONCAT(\' \', cu.surName)) createdBy, p.created, ' +
                 'CONCAT(cm.givenName, CONCAT(\' \', cm.surName)) modifiedBy, p.modified, ' +
-                'p.versionedTemplateId, vt.name title, p.status, p.visibility, p.dmpId, ' +
+                'p.versionedTemplateId, p.title, p.status, p.visibility, p.dmpId, ' +
                 'CONCAT(cr.givenName, CONCAT(\' \', cr.surName)) registeredBy, p.registered, p.featured, ' +
                 'GROUP_CONCAT(DISTINCT CONCAT(prc.givenName, CONCAT(\' \', prc.surName, ' +
                   'CONCAT(\' (\', CONCAT(r.label, \')\'))))) members, ' +
@@ -78,7 +79,6 @@ export class PlanSearchResult {
                 'LEFT JOIN users cu ON cu.id = p.createdById ' +
                 'LEFT JOIN users cm ON cm.id = p.modifiedById ' +
                 'LEFT JOIN users cr ON cr.id = p.registeredById ' +
-                'LEFT JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId ' +
                 'LEFT JOIN planMembers plc ON plc.planId = p.id ' +
                   'LEFT JOIN projectMembers prc ON prc.id = plc.projectMemberId ' +
                   'LEFT JOIN planMemberRoles plcr ON plc.id = plcr.planMemberId ' +
@@ -88,7 +88,7 @@ export class PlanSearchResult {
                     'LEFT JOIN affiliations fundings ON projectFundings.affiliationId = fundings.uri ' +
               'WHERE p.projectId = ? ' +
               'GROUP BY p.id, cu.givenName, cu.surName, cm.givenName, cm.surName, ' +
-                'vt.id, vt.name, p.status, p.visibility, ' +
+                'p.title, p.status, p.visibility, ' +
                 'p.dmpId, cr.givenName, cr.surName, p.registered, p.featured ' +
               'ORDER BY p.created DESC;';
     const results = await Plan.query(context, sql, [projectId?.toString()], reference);
@@ -134,6 +134,7 @@ export class PlanSectionProgress {
 export class Plan extends MySqlModel {
   public projectId: number;
   public versionedTemplateId: number;
+  public title: string;
   public status: PlanStatus;
   public visibility: PlanVisibility;
   public languageId: string;
@@ -152,6 +153,7 @@ export class Plan extends MySqlModel {
     this.projectId = options.projectId;
     this.versionedTemplateId = options.versionedTemplateId;
 
+    this.title = options.title;
     this.status = options.status ?? PlanStatus.DRAFT;
     this.visibility = options.visibility ?? PlanVisibility.PRIVATE;
     this.languageId = options.languageId ?? 'en-US';
@@ -196,6 +198,7 @@ export class Plan extends MySqlModel {
 
     if (!this.projectId) this.addError('projectId', 'Project can\'t be blank');
     if (!this.versionedTemplateId) this.addError('versionedTemplateId', 'Versioned template can\'t be blank');
+    if (valueIsEmpty(this.title)) this.addError('title', 'Title can\'t be blank');
     if (valueIsEmpty(this.dmpId)) {
       this.addError('dmpId', 'A plan must have a DMP ID');
     }
@@ -207,6 +210,12 @@ export class Plan extends MySqlModel {
     }
 
     return Object.keys(this.errors).length === 0;
+  }
+
+  // Ensure data integrity
+  prepForSave(): void {
+    // Remove leading/trailing blank spaces
+    this.title = this.title?.trim();
   }
 
   // Publish the plan (register a DOI)
@@ -240,8 +249,16 @@ export class Plan extends MySqlModel {
       // Generate a new DMP ID
       this.dmpId = await this.generateDMPId(context);
 
+      // If the title is blank use the title of the associated Project
+      if (isNullOrUndefined(this.title)) {
+        const project = await Project.findById(reference, context, this.projectId);
+        this.title = project?.title;
+      }
+
       // First make sure the record is valid
       if (await this.isValid()) {
+        this.prepForSave();
+
         // Create the new Plan
         const newId = await Plan.insert(context, Plan.tableName, this, reference);
 
@@ -266,6 +283,8 @@ export class Plan extends MySqlModel {
 
     if (this.id) {
       if (await this.isValid()) {
+        this.prepForSave();
+
         // Update the plan
         let updated = await Plan.update(context, Plan.tableName, this, reference, [], noTouch);
         if (updated) {
