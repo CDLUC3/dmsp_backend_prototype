@@ -2252,8 +2252,6 @@ export type Query = {
   question?: Maybe<Question>;
   /** Get the QuestionConditions that belong to a specific question */
   questionConditions?: Maybe<Array<Maybe<QuestionCondition>>>;
-  /** Get all the QuestionTypes */
-  questionTypes?: Maybe<Array<Maybe<QuestionType>>>;
   /** Get the Questions that belong to the associated sectionId */
   questions?: Maybe<Array<Maybe<Question>>>;
   /** Return the recommended Licenses */
@@ -2699,41 +2697,6 @@ export type QuestionErrors = {
   sectionId?: Maybe<Scalars['String']['output']>;
   sourceQestionId?: Maybe<Scalars['String']['output']>;
   templateId?: Maybe<Scalars['String']['output']>;
-};
-
-/** The type of Question, such as text field, radio buttons, etc */
-export type QuestionType = {
-  __typename?: 'QuestionType';
-  /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['String']['output']>;
-  /** The user who created the Object */
-  createdById?: Maybe<Scalars['Int']['output']>;
-  /** Errors associated with the Object */
-  errors?: Maybe<QuestionTypeErrors>;
-  /** The unique identifer for the Object */
-  id?: Maybe<Scalars['Int']['output']>;
-  /** Whether or not this is the default question type */
-  isDefault: Scalars['Boolean']['output'];
-  /** The default JSON for the QuestionType */
-  json: Scalars['String']['output'];
-  /** The timestamp when the Object was last modifed */
-  modified?: Maybe<Scalars['String']['output']>;
-  /** The user who last modified the Object */
-  modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** The name of the QuestionType, like 'Short text question' */
-  name: Scalars['String']['output'];
-  /** The description of the QuestionType */
-  usageDescription: Scalars['String']['output'];
-};
-
-/** A collection of errors related to the QuestionType */
-export type QuestionTypeErrors = {
-  __typename?: 'QuestionTypeErrors';
-  /** General error messages such as the object already exists */
-  general?: Maybe<Scalars['String']['output']>;
-  json?: Maybe<Scalars['String']['output']>;
-  name?: Maybe<Scalars['String']['output']>;
-  usageDescription?: Maybe<Scalars['String']['output']>;
 };
 
 /** A metadata standard used when describing a research output */
@@ -4087,8 +4050,6 @@ export type ResolversTypes = {
   QuestionConditionCondition: QuestionConditionCondition;
   QuestionConditionErrors: ResolverTypeWrapper<QuestionConditionErrors>;
   QuestionErrors: ResolverTypeWrapper<QuestionErrors>;
-  QuestionType: ResolverTypeWrapper<QuestionType>;
-  QuestionTypeErrors: ResolverTypeWrapper<QuestionTypeErrors>;
   RelatedWork: ResolverTypeWrapper<RelatedWork>;
   RelatedWorkDescriptor: RelatedWorkDescriptor;
   RelatedWorkErrors: ResolverTypeWrapper<RelatedWorkErrors>;
@@ -4240,8 +4201,6 @@ export type ResolversParentTypes = {
   QuestionCondition: QuestionCondition;
   QuestionConditionErrors: QuestionConditionErrors;
   QuestionErrors: QuestionErrors;
-  QuestionType: QuestionType;
-  QuestionTypeErrors: QuestionTypeErrors;
   RelatedWork: RelatedWork;
   RelatedWorkErrors: RelatedWorkErrors;
   ReorderQuestionsResult: ReorderQuestionsResult;
@@ -5168,7 +5127,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   publishedTemplates?: Resolver<Maybe<ResolversTypes['PublishedTemplateSearchResults']>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
   question?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<QueryQuestionArgs, 'questionId'>>;
   questionConditions?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryQuestionConditionsArgs, 'questionId'>>;
-  questionTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['QuestionType']>>>, ParentType, ContextType>;
   questions?: Resolver<Maybe<Array<Maybe<ResolversTypes['Question']>>>, ParentType, ContextType, RequireFields<QueryQuestionsArgs, 'sectionId'>>;
   recommendedLicenses?: Resolver<Maybe<Array<Maybe<ResolversTypes['License']>>>, ParentType, ContextType, RequireFields<QueryRecommendedLicensesArgs, 'recommended'>>;
   relatedWork?: Resolver<Maybe<ResolversTypes['RelatedWork']>, ParentType, ContextType, RequireFields<QueryRelatedWorkArgs, 'id'>>;
@@ -5250,28 +5208,6 @@ export type QuestionErrorsResolvers<ContextType = MyContext, ParentType extends 
   sectionId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sourceQestionId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   templateId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type QuestionTypeResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['QuestionType'] = ResolversParentTypes['QuestionType']> = {
-  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  errors?: Resolver<Maybe<ResolversTypes['QuestionTypeErrors']>, ParentType, ContextType>;
-  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  json?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  usageDescription?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type QuestionTypeErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['QuestionTypeErrors'] = ResolversParentTypes['QuestionTypeErrors']> = {
-  general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  json?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  usageDescription?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5878,8 +5814,6 @@ export type Resolvers<ContextType = MyContext> = {
   QuestionCondition?: QuestionConditionResolvers<ContextType>;
   QuestionConditionErrors?: QuestionConditionErrorsResolvers<ContextType>;
   QuestionErrors?: QuestionErrorsResolvers<ContextType>;
-  QuestionType?: QuestionTypeResolvers<ContextType>;
-  QuestionTypeErrors?: QuestionTypeErrorsResolvers<ContextType>;
   RelatedWork?: RelatedWorkResolvers<ContextType>;
   RelatedWorkErrors?: RelatedWorkErrorsResolvers<ContextType>;
   ReorderQuestionsResult?: ReorderQuestionsResultResolvers<ContextType>;

@@ -107,6 +107,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated to work with the new @dmptool/types v1.2.0
 - Updated all resolvers to call `normaliseDateTime` for the date fields 
 - Replace old `ProjectMember.findPrimaryByPlanId` function with `ProjectMember.findPrimaryContact`
 - Updated the `project` resolver and schema so that `searchExternalProjects` has its own `input` type definition
