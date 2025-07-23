@@ -3,6 +3,7 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added data migration to clean up old question JSON so it conforms with new @dmptool/types schemas
 - Added a `normaliseDateTime` function in `utils/helper.ts`
 - Added `projectMembers.isPrimaryContact` field to DB and `ProjectMember` model and GraphQL schema
 - Added `setCurrentUserAsProjectOwner` and `ensureDefaultProjectContact` functions to the `projectService` and updated the `project` resolver to call them.
