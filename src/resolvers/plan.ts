@@ -228,6 +228,29 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    updatePlanTitle: async (_, { planId, title }, context: MyContext): Promise<Plan> => {
+      const reference = 'update plan title resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findById(reference, context, planId);
+          if (!plan) {
+            throw NotFoundError(`Plan with id ${planId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
+            plan.title = title;
+            return await plan.update(context);
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
   },
 
   Plan: {

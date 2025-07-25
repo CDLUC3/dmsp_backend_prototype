@@ -4,6 +4,7 @@
 
 ### Added
 - Added 'apiTarget' to the PopularFunders objects and query for use in the frontend
+- Added `updatePlanTitle` resolver
 - Added a `title` field to the `plans` table and then updated Plan model and schema to use it
 - Added a `normaliseDateTime` function in `utils/helper.ts`
 - Added `projectMembers.isPrimaryContact` field to DB and `ProjectMember` model and GraphQL schema
