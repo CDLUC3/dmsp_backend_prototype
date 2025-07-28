@@ -1,5 +1,8 @@
 # DMP Tool Apollo Server Change Log
 
+### Fixed
+- Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
+
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
