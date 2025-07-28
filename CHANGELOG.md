@@ -5,6 +5,8 @@
 ### Added
 - Added data migration to clean up old question JSON so it conforms with new @dmptool/types schemas
 - Added data migration to drop the old `questionTypes` table
+- Added 'apiTarget' to the PopularFunders objects and query for use in the frontend
+- Added `updatePlanTitle` resolver
 - Added a `title` field to the `plans` table and then updated Plan model and schema to use it
 - Added a `normaliseDateTime` function in `utils/helper.ts`
 - Added `projectMembers.isPrimaryContact` field to DB and `ProjectMember` model and GraphQL schema
