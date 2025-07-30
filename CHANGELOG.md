@@ -1,5 +1,11 @@
 # DMP Tool Apollo Server Change Log
 
+### Added 
+- data migration to change collation to `utf8mb4` on all tables
+
+### Updated
+- updated all existing data migrations and scripts to use `utf8mb4` instead of `utf8mb3`
+
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
