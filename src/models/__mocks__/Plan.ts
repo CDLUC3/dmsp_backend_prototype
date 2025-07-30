@@ -37,6 +37,7 @@ export const generateNewPlan = (options) => {
   return {
     projectId: options.projectId ?? casual.integer(1, 9999),
     versionedTemplateId: options.versionedTemplateId ?? casual.integer(1, 9999),
+    title: options.title ?? casual.sentence,
     status: options.status ?? getRandomEnumValue(PlanStatus),
     visibility: options.visibility ?? getRandomEnumValue(PlanVisibility),
     dmpId: options.dmpId ?? getMockDMPId(),
@@ -56,7 +57,7 @@ const planToPlanSearchResult = (plan: Plan): PlanSearchResult => {
     created: plan.created,
     modifiedBy: casual.full_name,
     modified: plan.modified,
-    title: casual.sentence,
+    title: plan.title,
     status: plan.status,
     visibility: plan.visibility,
     dmpId: plan.dmpId,

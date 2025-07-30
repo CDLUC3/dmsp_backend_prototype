@@ -9,7 +9,7 @@ import { prepareObjectForLogs } from "../logger";
 import { isAdmin, isAuthorized } from "../services/authService";
 import { hasPermissionOnSection } from "../services/sectionService";
 import { GraphQLError } from "graphql";
-import {formatISO9075} from "date-fns";
+import { normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -266,10 +266,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: Question) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Question) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   }
 };

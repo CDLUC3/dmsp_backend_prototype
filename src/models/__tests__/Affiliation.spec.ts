@@ -511,6 +511,7 @@ describe('PopularFunder', () => {
     id: casual.integer(1, 9),
     uri: 'https://ror.org/01234',
     displayName: 'University of Virginia (virginia.edu)',
+    apiTarget: casual.url,
     nbrPlans: casual.integer(1, 999),
   }
   beforeEach(() => {
@@ -521,6 +522,7 @@ describe('PopularFunder', () => {
     expect(popularFunder.id).toEqual(popularFunderData.id);
     expect(popularFunder.uri).toEqual(popularFunderData.uri);
     expect(popularFunder.displayName).toEqual(popularFunderData.displayName);
+    expect(popularFunder.apiTarget).toEqual(popularFunderData.apiTarget);
     expect(popularFunder.nbrPlans).toEqual(popularFunderData.nbrPlans);
   });
 });
@@ -535,12 +537,13 @@ describe('top20', () => {
       id: casual.integer(1, 9),
       uri: 'https://ror.org/01234',
       displayName: 'University of Virginia (virginia.edu)',
+      apiTarget: casual.url,
       nbrPlans: casual.integer(1, 999),
     });
 
     localQuery.mockResolvedValueOnce([popularFunder]);
     const result = await PopularFunder.top20(context);
-    const expectedSql = 'SELECT a.id, a.uri, a.displayName, COUNT(p.id) AS nbrPlans ' +
+    const expectedSql = 'SELECT a.id, a.uri, a.displayName, a.apiTarget, COUNT(p.id) AS nbrPlans ' +
                         'FROM affiliations a LEFT JOIN projectFundings pf ON pf.affiliationId = a.uri ' +
                         'LEFT JOIN projects p ON p.id = pf.projectId WHERE a.active = 1 AND a.funder = 1 ' +
                         'AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? GROUP BY a.id, a.uri, ' +

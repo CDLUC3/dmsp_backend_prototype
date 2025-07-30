@@ -53,7 +53,7 @@ init_migrations_table() {
       migrationFile varchar(255) NOT NULL,
       created timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT unique_migration_file UNIQUE (migrationFile)
-    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;"
+    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;"
 
   echo "Creating the dataMigrations table if it does not already exist..."
   if [ "${1}" == "${MYSQL_DATABASE}" ]; then

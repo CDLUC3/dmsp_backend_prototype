@@ -14,7 +14,7 @@ import {
   formatORCID,
   normaliseHttpProtocol,
   reorderDisplayOrder,
-  removeNullAndUndefinedFromJSON
+  removeNullAndUndefinedFromJSON, normaliseDate, normaliseDateTime
 } from '../helpers';
 
 describe('Date validation', () => {
@@ -275,6 +275,46 @@ describe('formatORCID', () => {
   it('should convert http to https for valid ORCID URLs', () => {
     expect(formatORCID(`http://orcid.org/0000-0000-0000-000X`)).toEqual(`https://orcid.org/0000-0000-0000-000X`);
     expect(formatORCID('http://sandbox.orcid.org/0000-0000-0000-000X')).toEqual('https://sandbox.orcid.org/0000-0000-0000-000X');
+  });
+});
+
+describe('normaliseDateTime', () => {
+  it('should handle a null value', () => {
+    expect(normaliseDateTime(null)).toEqual(null);
+  });
+
+  it('should handle an undefined value', () => {
+    expect(normaliseDateTime(undefined)).toEqual(null);
+  });
+
+  it('should handle an invalid date', () => {
+    expect(normaliseDateTime('2021-AB-01')).toEqual(null);
+  });
+
+  it('should format the date as expected', () => {
+    expect(normaliseDateTime('01/01/2021')).toEqual('2021-01-01 00:00:00');
+  });
+
+  it('should format the date as expected', () => {
+    expect(normaliseDateTime('2021-01-01 00:00:00')).toEqual('2021-01-01 00:00:00');
+  });
+});
+
+describe('normaliseDate', () => {
+  it('should handle a null value', () => {
+    expect(normaliseDate(null)).toEqual(null);
+  });
+
+  it('should handle an undefined value', () => {
+    expect(normaliseDate(undefined)).toEqual(null);
+  });
+
+  it('should handle string that is not a valid date', () => {
+    expect(normaliseDate('2021-01-AB')).toEqual(null);
+  });
+
+  it('should handle a string value', () => {
+    expect(normaliseDate('2021-01-01')).toEqual('2021-01-01');
   });
 });
 

@@ -12,7 +12,7 @@ import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
 import { addVersion } from "../models/PlanVersion";
-import {formatISO9075} from "date-fns";
+import { normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -180,10 +180,10 @@ export const resolvers: Resolvers = {
       return [];
     },
     created: (parent: Answer) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Answer) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   },
 }

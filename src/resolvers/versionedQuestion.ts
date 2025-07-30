@@ -9,7 +9,7 @@ import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition
 import { prepareObjectForLogs } from "../logger";
 import { isAdmin } from "../services/authService";
 import { GraphQLError } from "graphql";
-import {formatISO9075} from "date-fns";
+import { normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -45,10 +45,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: VersionedQuestion) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: VersionedQuestion) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   }
 };
