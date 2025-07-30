@@ -2302,6 +2302,8 @@ export type Query = {
   user?: Maybe<User>;
   /** Returns all of the users associated with the current admin's affiliation (Super admins get everything) */
   users?: Maybe<UserSearchResults>;
+  /** Get a specific VersionedQuestion based on its id */
+  versionedQuestion?: Maybe<VersionedQuestion>;
 };
 
 
@@ -2588,6 +2590,11 @@ export type QueryUserArgs = {
 export type QueryUsersArgs = {
   paginationOptions?: InputMaybe<PaginationOptions>;
   term?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryVersionedQuestionArgs = {
+  versionedQuestionId: Scalars['Int']['input'];
 };
 
 /** Question always belongs to a Section, which always belongs to a Template */
@@ -3619,6 +3626,8 @@ export type VersionedQuestion = {
   requirementText?: Maybe<Scalars['String']['output']>;
   /** Sample text to possibly provide a starting point or example to answer question */
   sampleText?: Maybe<Scalars['String']['output']>;
+  /** Whether or not the sample text should be used as the default answer for this question */
+  useSampleTextAsDefault?: Maybe<Scalars['Boolean']['output']>;
   /** The conditional logic associated with this VersionedQuestion */
   versionedQuestionConditions?: Maybe<Array<VersionedQuestionCondition>>;
   /** The unique id of the VersionedSection that the VersionedQuestion belongs to */
@@ -5163,6 +5172,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   topLevelResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
   users?: Resolver<Maybe<ResolversTypes['UserSearchResults']>, ParentType, ContextType, Partial<QueryUsersArgs>>;
+  versionedQuestion?: Resolver<Maybe<ResolversTypes['VersionedQuestion']>, ParentType, ContextType, RequireFields<QueryVersionedQuestionArgs, 'versionedQuestionId'>>;
 };
 
 export type QuestionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Question'] = ResolversParentTypes['Question']> = {
@@ -5599,6 +5609,7 @@ export type VersionedQuestionResolvers<ContextType = MyContext, ParentType exten
   required?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   requirementText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sampleText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  useSampleTextAsDefault?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   versionedQuestionConditions?: Resolver<Maybe<Array<ResolversTypes['VersionedQuestionCondition']>>, ParentType, ContextType>;
   versionedSectionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   versionedTemplateId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
