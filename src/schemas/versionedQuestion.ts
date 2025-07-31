@@ -4,6 +4,9 @@ export const typeDefs = gql`
   extend type Query {
     "Search for VersionedQuestions that belong to Section specified by sectionId"
     publishedQuestions(versionedSectionId: Int!): [VersionedQuestion]
+
+    "Get a specific VersionedQuestion based on versionedQuestionId"
+    publishedQuestion(versionedQuestionId: Int!): VersionedQuestion
   }
 
 "A snapshot of a Question when it became published."
