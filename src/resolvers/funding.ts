@@ -191,37 +191,69 @@ export const resolvers: Resolvers = {
     },
 
     // add a new plan funding
-    addPlanFunding: async (_, { planId, projectFundingId }, context: MyContext): Promise<PlanFunding> => {
+    updatePlanFunding: async (_, { planId, projectFundingIds }, context: MyContext): Promise<PlanFunding[]> => {
       const reference = 'addPlanFunding resolver';
       try {
-        if (isAuthorized(context.token)) {
-          const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)) {
-            throw NotFoundError();
-          }
 
-          const projectFunding = await ProjectFunding.findById(
-            reference,
-            context,
-            projectFundingId
-          );
-          if (isNullOrUndefined(projectFunding)) {
-            throw NotFoundError();
-          }
+        if (!isAuthorized(context.token)) {
+          throw context.token ? ForbiddenError() : AuthenticationError();
+        }
 
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
-            const newFunding = new PlanFunding({ planId, projectFundingId });
+        const plan = await Plan.findById(reference, context, planId);
+        if (isNullOrUndefined(plan)) {
+          throw NotFoundError();
+        }
 
-            if (newFunding && !newFunding.hasErrors()) {
-              // Version all of the plans (if any) and sync with the DMPHub
-              await addVersion(context, plan, reference);
+        // Version all of the plans (if any) and sync with the DMPHub
+        await addVersion(context, plan, reference);
+
+
+        const associationErrors = [];
+        // Fetch all of the current Funders associated with this Plan
+        const fundings = await PlanFunding.findByPlanId(reference, context, plan.id);
+        const currentPlanFundingids = fundings ? fundings.map((d) => d.projectFundingId) : [];
+        // Use the helper function to determine which funders to keep and which to remove
+        const {
+          idsToBeRemoved,
+          idsToBeSaved
+        } = PlanFunding.reconcileAssociationIds(
+          currentPlanFundingids,
+          projectFundingIds
+        );
+
+        const removeErrors = [];
+        // Remove records that are not in the newly supplied projectFundingIds array
+        for (const id of idsToBeRemoved) {
+          const funding = await PlanFunding.findByProjectFundingId(reference, context, planId, id);
+          if (funding) {
+            const wasRemoved = funding.removeFromPlanFunding(context, planId, id);
+            if (!wasRemoved) {
+              removeErrors.push(funding.projectFundingId);
             }
-
-            return await newFunding.create(context);
           }
         }
-        throw context?.token ? ForbiddenError() : AuthenticationError();
+        // If any failed to be removed, then add an error
+        if (removeErrors.length > 0) {
+          associationErrors.push(`unable to remove funding: ${removeErrors.join(', ')}`);
+        }
+
+        const addErrors = [];
+        // Add new records for projectFundingIds that are not already in planFundings table
+        for (const id of idsToBeSaved) {
+          const funding = new PlanFunding({ planId, projectFundingId: id });
+
+          const wasAdded = funding.addToPlanFunding(context, planId, id);
+          if (!wasAdded) {
+            addErrors.push(funding.projectFundingId);
+          }
+
+        }
+        // If any failed to be added, then add an error to the ProjectMember
+        if (addErrors.length > 0) {
+          associationErrors.push(`unable to assign roles: ${addErrors.join(', ')}`);
+        }
+
+        return await PlanFunding.findByPlanId(reference, context, plan.id);
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
