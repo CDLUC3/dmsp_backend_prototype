@@ -882,6 +882,8 @@ export type Mutation = {
   updateMetadataStandard?: Maybe<MetadataStandard>;
   /** Change the current user's password */
   updatePassword?: Maybe<User>;
+  /** Update multiple Plan Fundings passing in an array of projectFundingIds */
+  updatePlanFunding?: Maybe<Array<Maybe<PlanFunding>>>;
   /** Chnage a Member's accessLevel on a Plan */
   updatePlanMember?: Maybe<PlanMember>;
   /** Change the plan's status */
@@ -1296,6 +1298,12 @@ export type MutationUpdatePasswordArgs = {
   email: Scalars['String']['input'];
   newPassword: Scalars['String']['input'];
   oldPassword: Scalars['String']['input'];
+};
+
+
+export type MutationUpdatePlanFundingArgs = {
+  planId: Scalars['Int']['input'];
+  projectFundingIds: Array<Scalars['Int']['input']>;
 };
 
 
@@ -4683,6 +4691,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateMemberRole?: Resolver<Maybe<ResolversTypes['MemberRole']>, ParentType, ContextType, RequireFields<MutationUpdateMemberRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'email' | 'newPassword' | 'oldPassword'>>;
+  updatePlanFunding?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFunding']>>>, ParentType, ContextType, RequireFields<MutationUpdatePlanFundingArgs, 'planId' | 'projectFundingIds'>>;
   updatePlanMember?: Resolver<Maybe<ResolversTypes['PlanMember']>, ParentType, ContextType, RequireFields<MutationUpdatePlanMemberArgs, 'planId' | 'planMemberId'>>;
   updatePlanStatus?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUpdatePlanStatusArgs, 'planId' | 'status'>>;
   updatePlanTitle?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUpdatePlanTitleArgs, 'planId' | 'title'>>;
