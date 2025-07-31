@@ -1,5 +1,4 @@
 import { MyContext } from "../context";
-import { prepareObjectForLogs } from "../logger";
 import { MySqlModel } from "./MySqlModel";
 
 export enum ProjectFundingStatus {
@@ -233,40 +232,5 @@ export class PlanFunding extends MySqlModel {
     const sql = `SELECT * FROM ${this.tableName} WHERE planId = ?`;
     const results = await PlanFunding.query(context, sql, [planId?.toString()], reference);
     return Array.isArray(results) ? results.map((item) => new PlanFunding(item)) : [];
-  }
-
-  // Remove an association of a Funder from PlanFunding using its planId and projectFundingId
-  async removeFromPlanFunding(context: MyContext, planId: number, projectFundingId: number): Promise<boolean> {
-    const reference = 'PlanFunding.removeFromPlanFunding';
-    const sql = 'DELETE FROM planFundings WHERE planId = ? and projectFundingId = ?';
-    const vals = [planId?.toString(), projectFundingId.toString()];
-
-    const results = await PlanFunding.query(context, sql, vals, reference);
-
-    if (!results) {
-      const payload = { planId, projectFundingId };
-      const msg = 'Unable to remove the funder from the planFundings';
-      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
-      return false;
-    }
-    return true;
-  }
-
-  // Add an association for a Funder with a Plan using the planId and projectFundingId
-  async addToPlanFunding(context: MyContext, planId: number, projectFundingId: number): Promise<boolean> {
-    const reference = 'PlanFunding.addToPlanFunding';
-    let sql = 'INSERT INTO planFundings (planId, projectFundingId, createdById, ';
-    sql += 'modifiedById) VALUES (?, ?, ?, ?)';
-    const userId = context.token?.id?.toString();
-    const vals = [planId.toString(), projectFundingId.toString(), userId, userId];
-    const results = await PlanFunding.query(context, sql, vals, reference);
-
-    if (!results) {
-      const payload = { planId: planId, projectFundingId: projectFundingId };
-      const msg = 'Unable to add the funder to planFundings';
-      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
-      return false;
-    }
-    return true;
   }
 }

@@ -266,7 +266,7 @@ export const resolvers: Resolvers = {
           for (const id of idsToBeRemoved) {
             const funding = await PlanFunding.findByProjectFundingId(reference, context, planId, id);
             if (funding) {
-              const wasRemoved = funding.removeFromPlanFunding(context, planId, id);
+              const wasRemoved = funding.delete(context);
               if (!wasRemoved) {
                 removeErrors.push(funding.projectFundingId);
               }
@@ -282,7 +282,7 @@ export const resolvers: Resolvers = {
           for (const id of idsToBeSaved) {
             const funding = new PlanFunding({ planId, projectFundingId: id });
 
-            const wasAdded = funding.addToPlanFunding(context, planId, id);
+            const wasAdded = funding.create(context);
             if (!wasAdded) {
               addErrors.push(funding.projectFundingId);
             }
@@ -290,7 +290,7 @@ export const resolvers: Resolvers = {
           }
           // If any failed to be added, then add an error to the ProjectMember
           if (addErrors.length > 0) {
-            associationErrors.push(`unable to assign roles: ${addErrors.join(', ')}`);
+            associationErrors.push(`unable to add funding: ${addErrors.join(', ')}`);
           }
           if (associationErrors.length > 0) {
             context.logger.warn(`Plan funding update had issues: ${associationErrors.join(', ')}`);
