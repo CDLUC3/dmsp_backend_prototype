@@ -236,66 +236,67 @@ export const resolvers: Resolvers = {
       const reference = 'updatePlanFunding resolver';
       try {
 
-        if (isAuthorized(context.token)) {
-          const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)) {
-            throw NotFoundError();
-          }
+        if (!isAuthorized(context.token)) {
+          throw context.token ? ForbiddenError() : AuthenticationError();
+        }
 
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
-            const associationErrors = [];
-            // Fetch all of the current Funders associated with this Plan
-            const fundings = await PlanFunding.findByPlanId(reference, context, plan.id);
-            const currentPlanFundingids = fundings ? fundings.map((d) => d.projectFundingId) : [];
-            // Use the helper function to determine which funders to keep and which to remove
-            const {
-              idsToBeRemoved,
-              idsToBeSaved
-            } = PlanFunding.reconcileAssociationIds(
-              currentPlanFundingids,
-              projectFundingIds
-            );
+        const plan = await Plan.findById(reference, context, planId);
+        if (isNullOrUndefined(plan)) {
+          throw NotFoundError();
+        }
 
-            const removeErrors = [];
-            // Remove records that are not in the newly supplied projectFundingIds array
-            for (const id of idsToBeRemoved) {
-              const funding = await PlanFunding.findByProjectFundingId(reference, context, planId, id);
-              if (funding) {
-                const wasRemoved = funding.removeFromPlanFunding(context, planId, id);
-                if (!wasRemoved) {
-                  removeErrors.push(funding.projectFundingId);
-                }
+        const project = await Project.findById(reference, context, plan.projectId);
+        if (await hasPermissionOnProject(context, project)) {
+
+          const associationErrors = [];
+          // Fetch all of the current Funders associated with this Plan
+          const fundings = await PlanFunding.findByPlanId(reference, context, plan.id);
+          const currentPlanFundingids = fundings ? fundings.map((d) => d.projectFundingId) : [];
+          // Use the helper function to determine which funders to keep and which to remove
+          const {
+            idsToBeRemoved,
+            idsToBeSaved
+          } = PlanFunding.reconcileAssociationIds(
+            currentPlanFundingids,
+            projectFundingIds
+          );
+
+          const removeErrors = [];
+          // Remove records that are not in the newly supplied projectFundingIds array
+          for (const id of idsToBeRemoved) {
+            const funding = await PlanFunding.findByProjectFundingId(reference, context, planId, id);
+            if (funding) {
+              const wasRemoved = funding.removeFromPlanFunding(context, planId, id);
+              if (!wasRemoved) {
+                removeErrors.push(funding.projectFundingId);
               }
             }
-            // If any failed to be removed, then add an error
-            if (removeErrors.length > 0) {
-              associationErrors.push(`unable to remove funding: ${removeErrors.join(', ')}`);
-            }
-
-            const addErrors = [];
-            // Add new records for projectFundingIds that are not already in planFundings table
-            for (const id of idsToBeSaved) {
-              const funding = new PlanFunding({ planId, projectFundingId: id });
-
-              const wasAdded = funding.addToPlanFunding(context, planId, id);
-              if (!wasAdded) {
-                addErrors.push(funding.projectFundingId);
-              }
-
-            }
-            // If any failed to be added, then add an error
-            if (addErrors.length > 0) {
-              associationErrors.push(`unable to assign roles: ${addErrors.join(', ')}`);
-            }
-
-            if (associationErrors.length > 0) {
-              context.logger.warn(`Plan funding update had issues: ${associationErrors.join(', ')}`);
-            }
-
-            await addVersion(context, plan, reference);
-            return await PlanFunding.findByPlanId(reference, context, plan.id);
           }
+          // If any failed to be removed, then add an error
+          if (removeErrors.length > 0) {
+            associationErrors.push(`unable to remove funding: ${removeErrors.join(', ')}`);
+          }
+
+          const addErrors = [];
+          // Add new records for projectFundingIds that are not already in planFundings table
+          for (const id of idsToBeSaved) {
+            const funding = new PlanFunding({ planId, projectFundingId: id });
+
+            const wasAdded = funding.addToPlanFunding(context, planId, id);
+            if (!wasAdded) {
+              addErrors.push(funding.projectFundingId);
+            }
+
+          }
+          // If any failed to be added, then add an error to the ProjectMember
+          if (addErrors.length > 0) {
+            associationErrors.push(`unable to assign roles: ${addErrors.join(', ')}`);
+          }
+          if (associationErrors.length > 0) {
+            context.logger.warn(`Plan funding update had issues: ${associationErrors.join(', ')}`);
+          }
+          await addVersion(context, plan, reference);
+          return await PlanFunding.findByPlanId(reference, context, plan.id);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
