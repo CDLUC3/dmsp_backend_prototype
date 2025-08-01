@@ -6,6 +6,7 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `updatePlanFunding` to allow the update of multiple `planFunding` records [#305]
 - Added 'apiTarget' to the PopularFunders objects and query for use in the frontend
 - Added `updatePlanTitle` resolver
 - Added a `title` field to the `plans` table and then updated Plan model and schema to use it
