@@ -1,10 +1,14 @@
 # DMP Tool Apollo Server Change Log
 
+### Fixed
+- Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
+
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
 - Added data migration to clean up old question JSON so it conforms with new @dmptool/types schemas
 - Added data migration to drop the old `questionTypes` table
+- Added `updatePlanFunding` to allow the update of multiple `planFunding` records [#305]
 - Added 'apiTarget' to the PopularFunders objects and query for use in the frontend
 - Added `updatePlanTitle` resolver
 - Added a `title` field to the `plans` table and then updated Plan model and schema to use it
