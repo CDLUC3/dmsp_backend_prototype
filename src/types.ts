@@ -1527,12 +1527,12 @@ export type Plan = {
   registered?: Maybe<Scalars['String']['output']>;
   /** The individual who registered the plan */
   registeredById?: Maybe<Scalars['Int']['output']>;
-  /** The section search results */
-  sections?: Maybe<Array<PlanSectionProgress>>;
   /** The status/state of the plan */
   status?: Maybe<PlanStatus>;
   /** The title of the plan */
   title?: Maybe<Scalars['String']['output']>;
+  /** The section search results */
+  versionedSections?: Maybe<Array<PlanSectionProgress>>;
   /** The template the plan is based on */
   versionedTemplate?: Maybe<VersionedTemplate>;
   /** Prior versions of the plan */
@@ -1755,14 +1755,14 @@ export type PlanSearchResult = {
   registered?: Maybe<Scalars['String']['output']>;
   /** The person who published/registered the plan */
   registeredBy?: Maybe<Scalars['String']['output']>;
-  /** The section search results */
-  sections?: Maybe<Array<PlanSectionProgress>>;
   /** The current status of the plan */
   status?: Maybe<PlanStatus>;
   /** The name of the template the plan is based on */
   templateTitle?: Maybe<Scalars['String']['output']>;
   /** The title of the plan */
   title?: Maybe<Scalars['String']['output']>;
+  /** The section search results */
+  versionedSections?: Maybe<Array<PlanSectionProgress>>;
   /** The visibility/permission setting */
   visibility?: Maybe<PlanVisibility>;
 };
@@ -1774,12 +1774,12 @@ export type PlanSectionProgress = {
   answeredQuestions: Scalars['Int']['output'];
   /** The display order of the section */
   displayOrder: Scalars['Int']['output'];
-  /** The id of the Section */
-  sectionId: Scalars['Int']['output'];
   /** The title of the section */
-  sectionTitle: Scalars['String']['output'];
+  title: Scalars['String']['output'];
   /** The number of questions in the section */
   totalQuestions: Scalars['Int']['output'];
+  /** The id of the Section */
+  versionedSectionId: Scalars['Int']['output'];
 };
 
 /** The status/state of the plan */
@@ -2263,8 +2263,12 @@ export type Query = {
   projectOutputs?: Maybe<Array<Maybe<ProjectOutput>>>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
   publishedConditionsForQuestion?: Maybe<Array<Maybe<VersionedQuestionCondition>>>;
+  /** Get a specific VersionedQuestion based on versionedQuestionId */
+  publishedQuestion?: Maybe<VersionedQuestion>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
   publishedQuestions?: Maybe<Array<Maybe<VersionedQuestion>>>;
+  /** Fetch a specific VersionedSection */
+  publishedSection?: Maybe<VersionedSection>;
   /** Search for VersionedSection whose name contains the search term */
   publishedSections?: Maybe<VersionedSectionSearchResults>;
   /** Search for VersionedTemplate whose name or owning Org's name contains the search term */
@@ -2310,8 +2314,6 @@ export type Query = {
   user?: Maybe<User>;
   /** Returns all of the users associated with the current admin's affiliation (Super admins get everything) */
   users?: Maybe<UserSearchResults>;
-  /** Get a specific VersionedQuestion based on its id */
-  versionedQuestion?: Maybe<VersionedQuestion>;
 };
 
 
@@ -2487,7 +2489,17 @@ export type QueryPublishedConditionsForQuestionArgs = {
 };
 
 
+export type QueryPublishedQuestionArgs = {
+  versionedQuestionId: Scalars['Int']['input'];
+};
+
+
 export type QueryPublishedQuestionsArgs = {
+  versionedSectionId: Scalars['Int']['input'];
+};
+
+
+export type QueryPublishedSectionArgs = {
   versionedSectionId: Scalars['Int']['input'];
 };
 
@@ -2598,11 +2610,6 @@ export type QueryUserArgs = {
 export type QueryUsersArgs = {
   paginationOptions?: InputMaybe<PaginationOptions>;
   term?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryVersionedQuestionArgs = {
-  versionedQuestionId: Scalars['Int']['input'];
 };
 
 /** Question always belongs to a Section, which always belongs to a Template */
@@ -4735,9 +4742,9 @@ export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversP
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
   registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  sections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  versionedSections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   versionedTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType>;
   versions?: Resolver<Maybe<Array<ResolversTypes['PlanVersion']>>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['PlanVisibility']>, ParentType, ContextType>;
@@ -4875,10 +4882,10 @@ export type PlanSearchResultResolvers<ContextType = MyContext, ParentType extend
   modifiedBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredBy?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  sections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
   templateTitle?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  versionedSections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['PlanVisibility']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -4886,9 +4893,9 @@ export type PlanSearchResultResolvers<ContextType = MyContext, ParentType extend
 export type PlanSectionProgressResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanSectionProgress'] = ResolversParentTypes['PlanSectionProgress']> = {
   answeredQuestions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  sectionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  sectionTitle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   totalQuestions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  versionedSectionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5157,7 +5164,9 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   projectOutputTypes?: Resolver<Maybe<Array<Maybe<ResolversTypes['OutputType']>>>, ParentType, ContextType>;
   projectOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryProjectOutputsArgs, 'projectId'>>;
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
+  publishedQuestion?: Resolver<Maybe<ResolversTypes['VersionedQuestion']>, ParentType, ContextType, RequireFields<QueryPublishedQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
+  publishedSection?: Resolver<Maybe<ResolversTypes['VersionedSection']>, ParentType, ContextType, RequireFields<QueryPublishedSectionArgs, 'versionedSectionId'>>;
   publishedSections?: Resolver<Maybe<ResolversTypes['VersionedSectionSearchResults']>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
   publishedTemplates?: Resolver<Maybe<ResolversTypes['PublishedTemplateSearchResults']>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
   question?: Resolver<Maybe<ResolversTypes['Question']>, ParentType, ContextType, RequireFields<QueryQuestionArgs, 'questionId'>>;
@@ -5181,7 +5190,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   topLevelResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
   users?: Resolver<Maybe<ResolversTypes['UserSearchResults']>, ParentType, ContextType, Partial<QueryUsersArgs>>;
-  versionedQuestion?: Resolver<Maybe<ResolversTypes['VersionedQuestion']>, ParentType, ContextType, RequireFields<QueryVersionedQuestionArgs, 'versionedQuestionId'>>;
 };
 
 export type QuestionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Question'] = ResolversParentTypes['Question']> = {

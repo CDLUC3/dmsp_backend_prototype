@@ -27,13 +27,13 @@ export const resolvers: Resolvers = {
       }
     },
 
-    versionedQuestion: async (_, { versionedQuestionId }, context: MyContext): Promise<VersionedQuestion> => {
+    publishedQuestion: async (_, { versionedQuestionId }, context: MyContext): Promise<VersionedQuestion> => {
       const reference = 'publishedQuestion resolver';
       try {
-        if (isAuthorized(context.token)) {
+        if (isAuthorized(context?.token)) {
+          // Grab the versionedSection so we can get the section, and then the templateId
           return await VersionedQuestion.findById(reference, context, versionedQuestionId);
         }
-        // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;

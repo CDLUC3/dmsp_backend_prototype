@@ -98,15 +98,15 @@ export class PlanSearchResult {
 
 // Represents a high level snapshot of the progress that has been made on a section of the plan
 export class PlanSectionProgress {
-  public sectionId: number;
-  public sectionTitle: string;
+  public versionedSectionId: number;
+  public title: string;
   public displayOrder: number;
   public totalQuestions: number;
   public answeredQuestions: number;
 
   constructor(options) {
-    this.sectionId = options.sectionId;
-    this.sectionTitle = options.sectionTitle;
+    this.versionedSectionId = options.versionedSectionId;
+    this.title = options.title;
     this.displayOrder = options.displayOrder;
     this.totalQuestions = options.totalQuestions;
     this.answeredQuestions = options.answeredQuestions;
@@ -114,7 +114,7 @@ export class PlanSectionProgress {
 
   // Return the progress information for a section on the plan
   static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanSectionProgress[]> {
-    const sql = 'SELECT vs.id sectionId, vs.displayOrder, vs.name sectionTitle, ' +
+    const sql = 'SELECT vs.id versionedSectionId, vs.displayOrder, vs.name title, ' +
                   'COUNT(DISTINCT vq.id) totalQuestions, ' +
                   'COUNT(DISTINCT CASE WHEN a.json IS NOT NULL THEN vs.id END) answeredQuestions ' +
                 'FROM plans p ' +

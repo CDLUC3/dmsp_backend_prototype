@@ -6,6 +6,8 @@ export const typeDefs = gql`
     sectionVersions(sectionId: Int!): [VersionedSection]
     "Search for VersionedSection whose name contains the search term"
     publishedSections(term: String!, paginationOptions: PaginationOptions): VersionedSectionSearchResults
+    "Fetch a specific VersionedSection"
+    publishedSection(versionedSectionId: Int!): VersionedSection
     "Get all of the best practice VersionedSection"
     bestPracticeSections: [VersionedSection]
   }
