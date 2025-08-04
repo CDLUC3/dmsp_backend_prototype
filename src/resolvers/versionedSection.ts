@@ -4,14 +4,13 @@ import { VersionedSection, VersionedSectionSearchResult } from "../models/Versio
 import { Section } from "../models/Section";
 import { Tag } from "../models/Tag";
 import { VersionedTemplate } from "../models/VersionedTemplate";
-import { InternalServerError } from "../utils/graphQLErrors";
+import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
-import {isAuthorized} from "../services/authService";
-import {UnauthorizedError} from "express-jwt";
+import { isAuthorized } from "../services/authService";
 
 export const resolvers: Resolvers = {
   Query: {
