@@ -557,6 +557,8 @@ export type ExternalSearchInput = {
 /** A result of the most popular funders */
 export type FunderPopularityResult = {
   __typename?: 'FunderPopularityResult';
+  /** The apiTarget for the affiliation (if available) */
+  apiTarget?: Maybe<Scalars['String']['output']>;
   /** The official display name */
   displayName: Scalars['String']['output'];
   /** The unique identifer for the affiliation */
@@ -880,10 +882,14 @@ export type Mutation = {
   updateMetadataStandard?: Maybe<MetadataStandard>;
   /** Change the current user's password */
   updatePassword?: Maybe<User>;
+  /** Update multiple Plan Fundings passing in an array of projectFundingIds */
+  updatePlanFunding?: Maybe<Array<Maybe<PlanFunding>>>;
   /** Chnage a Member's accessLevel on a Plan */
   updatePlanMember?: Maybe<PlanMember>;
   /** Change the plan's status */
   updatePlanStatus?: Maybe<Plan>;
+  /** Change the plan's title */
+  updatePlanTitle?: Maybe<Plan>;
   /** Edit a project */
   updateProject?: Maybe<Project>;
   /** Change a collaborator's accessLevel on a Plan */
@@ -1295,6 +1301,12 @@ export type MutationUpdatePasswordArgs = {
 };
 
 
+export type MutationUpdatePlanFundingArgs = {
+  planId: Scalars['Int']['input'];
+  projectFundingIds: Array<Scalars['Int']['input']>;
+};
+
+
 export type MutationUpdatePlanMemberArgs = {
   isPrimaryContact?: InputMaybe<Scalars['Boolean']['input']>;
   memberRoleIds?: InputMaybe<Array<Scalars['Int']['input']>>;
@@ -1306,6 +1318,12 @@ export type MutationUpdatePlanMemberArgs = {
 export type MutationUpdatePlanStatusArgs = {
   planId: Scalars['Int']['input'];
   status: PlanStatus;
+};
+
+
+export type MutationUpdatePlanTitleArgs = {
+  planId: Scalars['Int']['input'];
+  title: Scalars['String']['input'];
 };
 
 
@@ -1513,6 +1531,8 @@ export type Plan = {
   sections?: Maybe<Array<PlanSectionProgress>>;
   /** The status/state of the plan */
   status?: Maybe<PlanStatus>;
+  /** The title of the plan */
+  title?: Maybe<Scalars['String']['output']>;
   /** The template the plan is based on */
   versionedTemplate?: Maybe<VersionedTemplate>;
   /** Prior versions of the plan */
@@ -1540,6 +1560,7 @@ export type PlanErrors = {
   registered?: Maybe<Scalars['String']['output']>;
   registeredById?: Maybe<Scalars['String']['output']>;
   status?: Maybe<Scalars['String']['output']>;
+  title?: Maybe<Scalars['String']['output']>;
   versionedTemplateId?: Maybe<Scalars['String']['output']>;
   visibility?: Maybe<Scalars['String']['output']>;
 };
@@ -4485,6 +4506,7 @@ export type ExternalProjectResolvers<ContextType = MyContext, ParentType extends
 };
 
 export type FunderPopularityResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['FunderPopularityResult'] = ResolversParentTypes['FunderPopularityResult']> = {
+  apiTarget?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   nbrPlans?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -4669,8 +4691,10 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   updateMemberRole?: Resolver<Maybe<ResolversTypes['MemberRole']>, ParentType, ContextType, RequireFields<MutationUpdateMemberRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
   updatePassword?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationUpdatePasswordArgs, 'email' | 'newPassword' | 'oldPassword'>>;
+  updatePlanFunding?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFunding']>>>, ParentType, ContextType, RequireFields<MutationUpdatePlanFundingArgs, 'planId' | 'projectFundingIds'>>;
   updatePlanMember?: Resolver<Maybe<ResolversTypes['PlanMember']>, ParentType, ContextType, RequireFields<MutationUpdatePlanMemberArgs, 'planId' | 'planMemberId'>>;
   updatePlanStatus?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUpdatePlanStatusArgs, 'planId' | 'status'>>;
+  updatePlanTitle?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationUpdatePlanTitleArgs, 'planId' | 'title'>>;
   updateProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationUpdateProjectArgs>>;
   updateProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationUpdateProjectCollaboratorArgs, 'accessLevel' | 'projectCollaboratorId'>>;
   updateProjectFunding?: Resolver<Maybe<ResolversTypes['ProjectFunding']>, ParentType, ContextType, RequireFields<MutationUpdateProjectFundingArgs, 'input'>>;
@@ -4745,6 +4769,7 @@ export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversP
   registeredById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   sections?: Resolver<Maybe<Array<ResolversTypes['PlanSectionProgress']>>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['PlanStatus']>, ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   versionedTemplate?: Resolver<Maybe<ResolversTypes['VersionedTemplate']>, ParentType, ContextType>;
   versions?: Resolver<Maybe<Array<ResolversTypes['PlanVersion']>>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['PlanVisibility']>, ParentType, ContextType>;
@@ -4760,6 +4785,7 @@ export type PlanErrorsResolvers<ContextType = MyContext, ParentType extends Reso
   registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   status?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   versionedTemplateId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   visibility?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

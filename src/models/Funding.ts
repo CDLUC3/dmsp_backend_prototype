@@ -227,10 +227,10 @@ export class PlanFunding extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new PlanFunding(results[0]) : null;
   }
 
-  // Find all of the funding for the plan
-  static async findByPlanId(reference: string, context: MyContext, projectId: number): Promise<PlanFunding[]> {
+  // Find all of the funding for the plan using the planId
+  static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanFunding[]> {
     const sql = `SELECT * FROM ${this.tableName} WHERE planId = ?`;
-    const results = await PlanFunding.query(context, sql, [projectId?.toString()], reference);
+    const results = await PlanFunding.query(context, sql, [planId?.toString()], reference);
     return Array.isArray(results) ? results.map((item) => new PlanFunding(item)) : [];
   }
 }

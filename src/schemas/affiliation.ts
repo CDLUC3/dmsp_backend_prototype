@@ -66,6 +66,8 @@ export const typeDefs = gql`
     uri: String!
     "The official display name"
     displayName: String!
+    "The apiTarget for the affiliation (if available)"
+    apiTarget: String
     "The number of plans associated with this funder in the past year"
     nbrPlans: Int!
   }

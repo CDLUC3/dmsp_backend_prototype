@@ -21,10 +21,9 @@ import { MemberRole } from '../models/MemberRole';
 import { GraphQLError } from 'graphql';
 import { Plan, PlanSearchResult } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
-import { isNullOrUndefined, normaliseDate } from '../utils/helpers';
+import { isNullOrUndefined, normaliseDate, normaliseDateTime } from '../utils/helpers';
 import { parseMember } from '../services/commonStandardService';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
-import {formatISO9075} from "date-fns";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -357,10 +356,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: Project) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Project) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   },
 };

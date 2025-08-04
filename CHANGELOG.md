@@ -1,8 +1,16 @@
 # DMP Tool Apollo Server Change Log
 
+### Fixed
+- Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
+
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `updatePlanFunding` to allow the update of multiple `planFunding` records [#305]
+- Added 'apiTarget' to the PopularFunders objects and query for use in the frontend
+- Added `updatePlanTitle` resolver
+- Added a `title` field to the `plans` table and then updated Plan model and schema to use it
+- Added a `normaliseDateTime` function in `utils/helper.ts`
 - Added `projectMembers.isPrimaryContact` field to DB and `ProjectMember` model and GraphQL schema
 - Added `setCurrentUserAsProjectOwner` and `ensureDefaultProjectContact` functions to the `projectService` and updated the `project` resolver to call them.
 - Added the new `ensureDefaultPlanContact` function to the `planService` module and updated the `plan` resolver to use it
@@ -106,6 +114,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated all resolvers to call `normaliseDateTime` for the date fields 
 - Replace old `ProjectMember.findPrimaryByPlanId` function with `ProjectMember.findPrimaryContact`
 - Updated the `project` resolver and schema so that `searchExternalProjects` has its own `input` type definition
 - Exposed the DynamoDB port in the local `docker-compose.yaml` so that AWS CLI commands can be run against it

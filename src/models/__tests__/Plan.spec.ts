@@ -106,7 +106,7 @@ describe('PlanSearchResult.findByProjectId', () => {
     const sql = 'SELECT p.id, ' +
                 'CONCAT(cu.givenName, CONCAT(\' \', cu.surName)) createdBy, p.created, ' +
                 'CONCAT(cm.givenName, CONCAT(\' \', cm.surName)) modifiedBy, p.modified, ' +
-                'p.versionedTemplateId, vt.name title, p.status, p.visibility, p.dmpId, ' +
+                'p.versionedTemplateId, p.title, p.status, p.visibility, p.dmpId, ' +
                 'CONCAT(cr.givenName, CONCAT(\' \', cr.surName)) registeredBy, p.registered, p.featured, ' +
                 'GROUP_CONCAT(DISTINCT CONCAT(prc.givenName, CONCAT(\' \', prc.surName, ' +
                   'CONCAT(\' (\', CONCAT(r.label, \')\'))))) members, ' +
@@ -115,7 +115,6 @@ describe('PlanSearchResult.findByProjectId', () => {
                 'LEFT JOIN users cu ON cu.id = p.createdById ' +
                 'LEFT JOIN users cm ON cm.id = p.modifiedById ' +
                 'LEFT JOIN users cr ON cr.id = p.registeredById ' +
-                'LEFT JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId ' +
                 'LEFT JOIN planMembers plc ON plc.planId = p.id ' +
                   'LEFT JOIN projectMembers prc ON prc.id = plc.projectMemberId ' +
                   'LEFT JOIN planMemberRoles plcr ON plc.id = plcr.planMemberId ' +
@@ -125,7 +124,7 @@ describe('PlanSearchResult.findByProjectId', () => {
                     'LEFT JOIN affiliations fundings ON projectFundings.affiliationId = fundings.uri ' +
               'WHERE p.projectId = ? ' +
               'GROUP BY p.id, cu.givenName, cu.surName, cm.givenName, cm.surName, ' +
-                'vt.id, vt.name, p.status, p.visibility, ' +
+                'p.title, p.status, p.visibility, ' +
                 'p.dmpId, cr.givenName, cr.surName, p.registered, p.featured ' +
               'ORDER BY p.created DESC;';
 
@@ -223,6 +222,7 @@ describe('Plan', () => {
   const planData = {
     projectId: casual.integer(1, 99),
     versionedTemplateId: casual.integer(1, 99),
+    title: casual.sentence,
     dmpId: casual.uuid,
     registeredById: casual.integer(1, 99),
     registered: casual.date('YYYY-MM-DD'),
@@ -235,6 +235,7 @@ describe('Plan', () => {
   it('should initialize options as expected', () => {
     expect(plan.projectId).toEqual(planData.projectId);
     expect(plan.versionedTemplateId).toEqual(planData.versionedTemplateId);
+    expect(plan.title).toEqual(planData.title);
     expect(plan.dmpId).toEqual(planData.dmpId);
     expect(plan.registeredById).toEqual(planData.registeredById);
     expect(plan.registered).toEqual(planData.registered);
@@ -260,6 +261,13 @@ describe('Plan', () => {
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['versionedTemplateId']).toBeTruthy();
+  });
+
+  it('should return false when calling isValid if the title field is missing', async () => {
+    plan.title = null;
+    expect(await plan.isValid()).toBe(false);
+    expect(Object.keys(plan.errors).length).toBe(1);
+    expect(plan.errors['title']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the dmpId field is missing but registered is present', async () => {
@@ -422,6 +430,7 @@ describe('publish', () => {
       modified: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
       projectId: casual.integer(1, 99),
       versionedTemplateId: casual.integer(1, 99),
+      title: casual.sentence,
       visibility: getRandomEnumValue(PlanVisibility),
       languageId: defaultLanguageId,
       featured: casual.boolean,
@@ -476,6 +485,7 @@ describe('create', () => {
     plan = new Plan({
       projectId: casual.integer(1, 99),
       versionedTemplateId: casual.integer(1, 99),
+      title: casual.sentence,
       status: PlanStatus.DRAFT,
       visibility: getRandomEnumValue(PlanVisibility),
       languageId: defaultLanguageId,
@@ -523,6 +533,7 @@ describe('update', () => {
       id: casual.integer(1, 999),
       projectId: casual.integer(1, 99),
       versionedTemplateId: casual.integer(1, 99),
+      title: casual.sentence,
       dmpId: casual.url,
       status: getRandomEnumValue(PlanStatus),
       visibility: getRandomEnumValue(PlanVisibility),

@@ -18,6 +18,8 @@ export const typeDefs = gql`
     publishPlan(planId: Int!, visibility: PlanVisibility): Plan
     "Change the plan's status"
     updatePlanStatus(planId: Int!, status: PlanStatus!): Plan
+    "Change the plan's title"
+    updatePlanTitle(planId: Int!, title: String!): Plan
     "Archive a plan"
     archivePlan(planId: Int!): Plan
   }
@@ -118,6 +120,8 @@ export const typeDefs = gql`
     project: Project
     "The template the plan is based on"
     versionedTemplate: VersionedTemplate
+    "The title of the plan"
+    title: String
     "The DMP ID/DOI for the plan"
     dmpId: String
     "The status/state of the plan"
@@ -154,6 +158,7 @@ export const typeDefs = gql`
 
     versionedTemplateId: String
     projectId: String
+    title: String
     dmp_id: String
     status: String
     visibility: String
