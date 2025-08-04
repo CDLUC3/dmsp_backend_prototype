@@ -12,6 +12,7 @@ export class VersionedQuestion extends MySqlModel {
   public requirementText?: string;
   public guidanceText?: string;
   public sampleText?: string;
+  public useSampleTextAsDefault?: boolean;
   public required: boolean;
   public displayOrder: number;
 
@@ -34,6 +35,7 @@ export class VersionedQuestion extends MySqlModel {
     this.guidanceText = options.guidanceText;
     this.sampleText = options.sampleText;
     this.required = options.required ?? false;
+    this.useSampleTextAsDefault = options.useSampleTextAsDefault ?? false;
     this.displayOrder = options.displayOrder;
   }
 
@@ -78,7 +80,7 @@ export class VersionedQuestion extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create', ['json']);
+      const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create');
       return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
     }
     // Otherwise return as-is with all the errors
