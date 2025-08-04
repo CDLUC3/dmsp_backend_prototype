@@ -4,7 +4,6 @@ export const typeDefs = gql`
   extend type Query {
     "Search for VersionedQuestions that belong to Section specified by sectionId"
     publishedQuestions(versionedSectionId: Int!): [VersionedQuestion]
-
     "Get a specific VersionedQuestion based on versionedQuestionId"
     publishedQuestion(versionedQuestionId: Int!): VersionedQuestion
   }
@@ -42,6 +41,8 @@ type VersionedQuestion {
     guidanceText: String
     "Sample text to possibly provide a starting point or example to answer question"
     sampleText: String
+    "Whether or not the sample text should be used as the default answer for this question"
+    useSampleTextAsDefault: Boolean
     "To indicate whether the question is required to be completed"
     required: Boolean
 
