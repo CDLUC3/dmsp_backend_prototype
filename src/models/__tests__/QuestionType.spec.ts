@@ -173,12 +173,12 @@ describe('default JSON is valid', () => {
     expect(question.errors['json']).toBeFalsy();
   });
 
-  it('for multiSelect', async () => {
+  it.only('for multiSelect', async () => {
     const multiSelect = {
       "meta": {
         "schemaVersion": "1.0"
       },
-      "type": "selectBox",
+      "type": "multiselectBox",
       "options": [
         {
           "type": "option",

@@ -54,10 +54,20 @@ export class Question extends MySqlModel {
     // If json is not null or undefined and the type is in the schema map
     if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
       const parsedJSON = JSON.parse(this.json);
+
+console.log('parsedJSON', parsedJSON)
+
       if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
         // Validate the json against the Zod schema and if valid, set the questionType
         try {
+
+console.log('type', parsedJSON['type'])
+console.log('safeParsed', QuestionSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON))
+
           const result = QuestionSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+
+console.log('result', result)
+
           if (result && !result.success) {
             // If there are validation errors, add them to the errors object
             this.addError('json', result.error.errors.map(e => `${JSON.stringify(e.path)} - ${e.message}`).join('; '));

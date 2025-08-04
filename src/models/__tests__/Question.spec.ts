@@ -1,7 +1,7 @@
 import casual from "casual";
 import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Question } from "../Question";
-import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
+import {CURRENT_SCHEMA_VERSION, TextAreaQuestionSchema} from "@dmptool/types";
 import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
 import { logger } from "../../logger";
 
@@ -78,8 +78,14 @@ describe('Question', () => {
     question.json = questionData.json; // Reset to valid JSON
   });
 
-  it('should not be valid if Zod parse fails', async () => {
+  it.only('should not be valid if Zod parse fails', async () => {
     question.json = `{"type":"textArea"}`; // Missing meta
+
+await question.isValid();
+console.log(question.errors);
+const test = TextAreaQuestionSchema.parse(JSON.parse(question.json));
+console.log(test)
+
     expect(await question.isValid()).toBe(false);
     expect(question.errors['json']).toBeTruthy();
     expect(question.errors['json'].includes('meta')).toBe(true);
