@@ -1,7 +1,16 @@
 # DMP Tool Apollo Server Change Log
 
+### Added
+- added `publishedSection` resolver to `src/resolvers/versionedSection.ts`
+- added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
+
+### Updated
+- updated `PlanSectionProgress` to use better terminology. Changed `sectionId` to `versionedSectionId` (what it really was) and `sectionTtitle` to `title`
+- changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
+
 ### Fixed
 - Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
+- added a data migration script to repair bad option based question JSON
 
 ## v0.2 - Initial deploy to the stage environment
 
