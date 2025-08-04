@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Fixed
+- When generating a new `versionedTemplate`, we need to deactivate the old ones in the db [#363]
 - Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
 
 ## v0.2 - Initial deploy to the stage environment

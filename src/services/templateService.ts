@@ -89,6 +89,15 @@ export const generateTemplateVersion = async (
 
   // If the version was successfully created and there are no errors
   if (created && !created.hasErrors()) {
+
+    // Deactivate previous versions only *after* successful creation
+    for (const v of versions) {
+      if (v.active) {
+        const versionInstance = new VersionedTemplate({ ...v, active: false });
+        await versionInstance.update(context);
+      }
+    }
+
     const sections = await Section.findByTemplateId('generateTemplateVersion', context, template.id);
 
     try {
