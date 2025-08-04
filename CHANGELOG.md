@@ -6,6 +6,8 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added data migration to clean up old question JSON so it conforms with new @dmptool/types schemas
+- Added data migration to drop the old `questionTypes` table
 - Added `updatePlanFunding` to allow the update of multiple `planFunding` records [#305]
 - Added 'apiTarget' to the PopularFunders objects and query for use in the frontend
 - Added `updatePlanTitle` resolver
@@ -114,6 +116,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated to work with the new @dmptool/types v1.2.0
 - Updated all resolvers to call `normaliseDateTime` for the date fields 
 - Replace old `ProjectMember.findPrimaryByPlanId` function with `ProjectMember.findPrimaryContact`
 - Updated the `project` resolver and schema so that `searchExternalProjects` has its own `input` type definition
