@@ -1,38 +1,38 @@
-import {prepareObjectForLogs} from '../logger';
-import {ExternalProject, ProjectSearchResults, Resolvers} from "../types";
-import {Project, ProjectSearchResult} from "../models/Project";
+import { prepareObjectForLogs } from '../logger';
+import { ExternalProject, ProjectSearchResults, Resolvers } from "../types";
+import { Project, ProjectSearchResult } from "../models/Project";
 import {
   ProjectCollaborator,
   ProjectCollaboratorAccessLevel
 } from '../models/Collaborator';
-import {MyContext} from '../context';
-import {isAdmin, isAuthorized, isSuperAdmin} from '../services/authService';
+import { MyContext } from '../context';
+import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService';
 import {
   AuthenticationError,
   ForbiddenError,
   InternalServerError,
   NotFoundError
 } from '../utils/graphQLErrors';
-import {ProjectFunding} from '../models/Funding';
-import {ProjectMember} from '../models/Member';
+import { ProjectFunding } from '../models/Funding';
+import { ProjectMember } from '../models/Member';
 import {
   ensureDefaultProjectContact,
   hasPermissionOnProject,
   setCurrentUserAsProjectOwner
 } from '../services/projectService';
-import {Affiliation} from '../models/Affiliation';
-import {ResearchDomain} from '../models/ResearchDomain';
-import {ProjectOutput} from '../models/Output';
-import {MemberRole} from '../models/MemberRole';
-import {GraphQLError} from 'graphql';
-import {Plan, PlanSearchResult, PlanStatus} from '../models/Plan';
-import {addVersion} from '../models/PlanVersion';
+import { Affiliation } from '../models/Affiliation';
+import { ResearchDomain } from '../models/ResearchDomain';
+import { ProjectOutput } from '../models/Output';
+import { MemberRole } from '../models/MemberRole';
+import { GraphQLError } from 'graphql';
+import { Plan, PlanSearchResult } from '../models/Plan';
+import { addVersion } from '../models/PlanVersion';
 import {
   isNullOrUndefined,
   normaliseDate,
   normaliseDateTime
 } from '../utils/helpers';
-import {parseMember} from '../services/commonStandardService';
+import { parseMember } from '../services/commonStandardService';
 import {
   PaginationOptionsForCursors,
   PaginationOptionsForOffsets,

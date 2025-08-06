@@ -61,7 +61,7 @@ export class ProjectSearchResult {
     term: string,
     userId: number,
     affiliationId: string | null = null,
-    filterOptions: ProjectFilterOptions = Project.defaultSearchFilterOptions,
+    filterOptions: ProjectFilterOptions = {},
     options: PaginationOptions = Project.getDefaultPaginationOptions()
   ): Promise<PaginatedQueryResults<ProjectSearchResult>> {
     const whereFilters = [];
@@ -72,6 +72,10 @@ export class ProjectSearchResult {
     if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(p.title) LIKE ? OR LOWER(p.abstractText) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    if (isNullOrUndefined(filterOptions?.status)) {
+      filterOptions.status = PlanStatus.DRAFT;
     }
 
     // Handle the Plan.status filter
@@ -329,11 +333,6 @@ export class Project extends MySqlModel {
       }
     }
     return null;
-  }
-
-  // Default filter options
-  static defaultSearchFilterOptions: ProjectFilterOptions = {
-    status: PlanStatus.DRAFT
   }
 
   // Return all of projects for the User
