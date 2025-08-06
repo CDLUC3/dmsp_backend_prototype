@@ -182,8 +182,16 @@ export class MySqlModel {
       const fromClause = sqlParts[sqlParts.length - 1];
 
       const countSql = `SELECT COUNT(${countField}) total FROM ${fromClause} ${whereClause} ${groupByClause}`;
+
       const countResponse = await MySqlModel.query(apolloContext, countSql, values, reference);
-      return Array.isArray(countResponse) && countResponse.length > 0 ? countResponse?.[0]?.total : 0;
+
+      if (groupByClause.trim() && Array.isArray(countResponse)) {
+        // When using GROUP BY, count the number of rows returned (each row = one project)
+        return countResponse.length;
+      } else {
+        // No GROUP BY, return the count value
+        return Array.isArray(countResponse) && countResponse.length > 0 ? countResponse?.[0]?.total : 0;
+      }
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;
       apolloContext.logger.error(prepareObjectForLogs(err), msg);
@@ -387,9 +395,11 @@ export class MySqlModel {
       }
       const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
+      // Create WHERE clause WITHOUT cursor for total count
+      const originalWhereClause = whereFilters.length ? `WHERE ${whereFilters.join(' AND ')}` : '';
+
       // Add the limit
       const limitClause = 'LIMIT ?';
-      // Add 1 to the limit so that we can determine if there is a next page
       const extendedLimit = limit + 1;
       vals.push(extendedLimit.toString());
 
@@ -400,10 +410,11 @@ export class MySqlModel {
       const rows = await MySqlModel.query(apolloContext, sql, vals, reference);
       const items = Array.isArray(rows) ? rows : [];
 
+      // Use original WHERE clause and original values for total count
       const totalCount = await this.getTotalCountForPagination(
         apolloContext,
         sqlStatement,
-        `WHERE ${whereFilters.join(' AND ')}`,  // use only the original whereFilters
+        originalWhereClause,
         groupByClause,
         options.countField ?? 'id',
         values,
