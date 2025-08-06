@@ -1,8 +1,17 @@
 import { MyContext } from "../context";
 import { prepareObjectForLogs } from "../logger";
-import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import {
+  PaginatedQueryResults,
+  PaginationOptions,
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType
+} from "../types/general";
 import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
+import { PlanStatus } from "./Plan";
+import { ProjectFilterOptions } from "../types";
+
 export class ProjectSearchResult {
   public id: number;
   public title: string;
@@ -52,6 +61,7 @@ export class ProjectSearchResult {
     term: string,
     userId: number,
     affiliationId: string | null = null,
+    filterOptions: ProjectFilterOptions = Project.defaultSearchFilterOptions,
     options: PaginationOptions = Project.getDefaultPaginationOptions()
   ): Promise<PaginatedQueryResults<ProjectSearchResult>> {
     const whereFilters = [];
@@ -59,9 +69,23 @@ export class ProjectSearchResult {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(p.title) LIKE ? OR LOWER(p.abstractText) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Handle the Plan.status filter
+    switch (filterOptions.status) {
+      case PlanStatus.COMPLETE:
+        whereFilters.push('((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'COMPLETE\') >= 1)');
+        break;
+      case PlanStatus.ARCHIVED:
+        whereFilters.push('((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'ARCHIVED\') >= 1)')
+        break;
+      default:
+        // Include all plans marked as draft and projects that have no plans
+        whereFilters.push('((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'DRAFT\') >= 1 || (SELECT COUNT(*) FROM plans WHERE projectId = p.id) = 0)');
+        break;
     }
 
     // Determine the type of pagination being used
@@ -119,7 +143,10 @@ export class ProjectSearchResult {
                               'pm.orcid ' +
                           ') ORDER BY pm.created) as membersData, ' +
                           'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', fundings.name, pf.grantId) ' +
-                            'ORDER BY fundings.name SEPARATOR \',\') fundingsData ' +
+                            'ORDER BY fundings.name SEPARATOR \',\') fundingsData, ' +
+                          '(SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'DRAFT\') as draftPlans, ' +
+                          '(SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'COMPLETE\') as completePlans, ' +
+                          '(SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'ARCHIVED\') as archivedPlans ' +
                         'FROM projects p ' +
                           'LEFT JOIN researchDomains ON p.researchDomainId = researchDomains.id ' +
                           'LEFT JOIN users cu ON cu.id = p.createdById ' +
@@ -302,6 +329,11 @@ export class Project extends MySqlModel {
       }
     }
     return null;
+  }
+
+  // Default filter options
+  static defaultSearchFilterOptions: ProjectFilterOptions = {
+    status: PlanStatus.DRAFT
   }
 
   // Return all of projects for the User

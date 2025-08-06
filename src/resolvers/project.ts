@@ -1,45 +1,71 @@
-import { prepareObjectForLogs } from '../logger';
-import { ExternalProject, ProjectSearchResults, Resolvers } from "../types";
-import { Project, ProjectSearchResult } from "../models/Project";
+import {prepareObjectForLogs} from '../logger';
+import {ExternalProject, ProjectSearchResults, Resolvers} from "../types";
+import {Project, ProjectSearchResult} from "../models/Project";
 import {
   ProjectCollaborator,
   ProjectCollaboratorAccessLevel
 } from '../models/Collaborator';
-import { MyContext } from '../context';
+import {MyContext} from '../context';
 import {isAdmin, isAuthorized, isSuperAdmin} from '../services/authService';
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
-import { ProjectFunding } from '../models/Funding';
-import { ProjectMember } from '../models/Member';
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from '../utils/graphQLErrors';
+import {ProjectFunding} from '../models/Funding';
+import {ProjectMember} from '../models/Member';
 import {
   ensureDefaultProjectContact,
-  hasPermissionOnProject, setCurrentUserAsProjectOwner
+  hasPermissionOnProject,
+  setCurrentUserAsProjectOwner
 } from '../services/projectService';
-import { Affiliation } from '../models/Affiliation';
-import { ResearchDomain } from '../models/ResearchDomain';
-import { ProjectOutput } from '../models/Output';
-import { MemberRole } from '../models/MemberRole';
-import { GraphQLError } from 'graphql';
-import { Plan, PlanSearchResult } from '../models/Plan';
-import { addVersion } from '../models/PlanVersion';
-import { isNullOrUndefined, normaliseDate, normaliseDateTime } from '../utils/helpers';
-import { parseMember } from '../services/commonStandardService';
-import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import {Affiliation} from '../models/Affiliation';
+import {ResearchDomain} from '../models/ResearchDomain';
+import {ProjectOutput} from '../models/Output';
+import {MemberRole} from '../models/MemberRole';
+import {GraphQLError} from 'graphql';
+import {Plan, PlanSearchResult, PlanStatus} from '../models/Plan';
+import {addVersion} from '../models/PlanVersion';
+import {
+  isNullOrUndefined,
+  normaliseDate,
+  normaliseDateTime
+} from '../utils/helpers';
+import {parseMember} from '../services/commonStandardService';
+import {
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType
+} from '../types/general';
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the projects that the current user owns or is a collaborator on
-    myProjects: async (_, { term, paginationOptions }, context: MyContext): Promise<ProjectSearchResults> => {
+    myProjects: async (
+      _,
+      { term, paginationOptions, filterOptions },
+      context: MyContext
+    ): Promise<ProjectSearchResults> => {
       const reference = 'myProjects resolver';
       try {
         if (isAuthorized(context.token)) {
-          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+          const pagOpts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
                       ? paginationOptions as PaginationOptionsForOffsets
                       : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
           const userId = isAdmin(context.token) ? null : context.token?.id;
           const affiliationId = isSuperAdmin(context.token) ? null : context.token?.affiliationId;
 
-          return await ProjectSearchResult.search(reference, context, term, userId, affiliationId, opts);
+          return await ProjectSearchResult.search(
+            reference,
+            context,
+            term,
+            userId,
+            affiliationId,
+            filterOptions,
+            pagOpts
+          );
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
