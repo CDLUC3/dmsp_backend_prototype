@@ -340,7 +340,7 @@ export class AffiliationSearch {
 
     // Handle the incoming search term
     const searchTerm = (name ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(a.searchName) LIKE ?)');
       values.push(`%${searchTerm}%`);
     }

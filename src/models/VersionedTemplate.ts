@@ -57,7 +57,7 @@ export class VersionedTemplateSearchResult {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }

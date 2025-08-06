@@ -137,7 +137,7 @@ export class License extends MySqlModel {
 
     // Handle the incoming search term
     const searchTerm = (name ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(l.name) LIKE ? OR LOWER(l.description) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }

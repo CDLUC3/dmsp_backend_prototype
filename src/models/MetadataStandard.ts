@@ -181,7 +181,7 @@ export class MetadataStandard extends MySqlModel {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }

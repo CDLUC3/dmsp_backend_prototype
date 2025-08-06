@@ -61,7 +61,7 @@ export class TemplateSearchResult {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
