@@ -21,3 +21,5 @@ The following recipes can be used within the AWS console to startup a Cloudshell
 ## General
 
 You can also run any AWS CLI commands from the cloudshell env.
+
+
