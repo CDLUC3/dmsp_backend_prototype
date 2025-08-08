@@ -23,7 +23,7 @@ export const resolvers: Resolvers = {
 
           // Fetch answers for the questions
           const questionIds = questions.map(q => q.id);
-          const answers = await Answer.findFilledAnswersByQuestionIds(context, questionIds);
+          const answers = await Answer.findAnswersByQuestionIds(context, questionIds);
 
           // Map the answers to the questions
           const answersMap = new Set(answers.map(a => a.versionedQuestionId));
