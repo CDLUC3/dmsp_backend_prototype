@@ -67,8 +67,6 @@ export class VersionedTemplateSearchResult {
       whereFilters.push('vt.bestPractice = 1');
     }
 
-    console.log("***SELECT OWNER URIs", options.selectOwnerURIs);
-
     // Return only those templates whose ownerURIs exist in the given selectOwnerURIs array
     if (options.selectOwnerURIs && Array.isArray(options.selectOwnerURIs) && options.selectOwnerURIs.length > 0) {
       const placeholders = options.selectOwnerURIs.map(() => '?').join(', ');
@@ -76,7 +74,6 @@ export class VersionedTemplateSearchResult {
       values.push(...options.selectOwnerURIs);
     }
 
-    console.log("***WHERE FILTERS", whereFilters);
     // Determine the type of pagination being used
     let opts;
     if (options.type === PaginationType.OFFSET) {
@@ -283,7 +280,7 @@ export class VersionedTemplate extends MySqlModel {
     SELECT DISTINCT vt.ownerId as ownerURI
     FROM versionedTemplates vt 
     LEFT JOIN affiliations a ON a.uri = vt.ownerId
-    WHERE vt.active = 1 AND vt.versionType = ? 
+    WHERE ${whereFilters.join(' AND ')}
   `;
     const results = await VersionedTemplate.query(context, sql, values, reference);
     // Extract just the ownerURI values as strings
@@ -291,19 +288,21 @@ export class VersionedTemplate extends MySqlModel {
   }
 
   static async hasBestPracticeTemplates(reference: string, context: MyContext, term?: string): Promise<boolean> {
+    const whereFilters = ['vt.active = 1 AND vt.versionType = ?'];
+    const values = [TemplateVersionType.PUBLISHED.toString()];
+
+    // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    const values = [
-      TemplateVersionType.PUBLISHED.toString(),
-      searchTerm ? `%${searchTerm}%` : null,
-      searchTerm ? `%${searchTerm}%` : null
-    ];
+    if (searchTerm.length > 0) {
+      whereFilters.push('(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)');
+      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
 
     const sql = `
     SELECT COUNT(*) as count
     FROM versionedTemplates vt 
     LEFT JOIN affiliations a ON a.uri = vt.ownerId
-    WHERE vt.active = 1 AND vt.versionType = ? AND vt.bestPractice = 1
-      AND (? IS NULL OR (LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?))
+    WHERE ${whereFilters.join(' AND ')}
   `;
 
     const result = await VersionedTemplate.query(context, sql, values, reference);
