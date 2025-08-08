@@ -43,7 +43,20 @@ export const resolvers: Resolvers = {
                       ? paginationOptions as PaginationOptionsForOffsets
                       : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
-          return await VersionedTemplateSearchResult.search(reference, context, term, opts);
+          const results = await VersionedTemplateSearchResult.search(reference, context, term, opts);
+
+          //Get filter metadata (only on first page or when term changes)
+          const shouldIncludeMetadata = paginationOptions?.includeMetadata;
+
+          let filterMetadata = null;
+          if (shouldIncludeMetadata) {
+            filterMetadata = await VersionedTemplate.getFilterMetadata(reference, context, term);
+          }
+
+          return {
+            ...results,
+            ...(filterMetadata || {}) // Spread the metadata properties directly. Will be null on subsequent pages, populated on first page/new searches
+          }
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();

@@ -42,6 +42,12 @@ export const typeDefs = gql`
     sortField: String
     "The sort order (used for standard offset pagination only!)"
     sortDir: String
+    "Specify that you want additional metadata, like whether the result set includes bestPractice options"
+    includeMetadata: Boolean
+    "Request just the bestPractice templates"
+    bestPractice: Boolean
+    "Request templates whose ownerIds match the provided array of ownerURIs"
+    selectOwnerURIs: [String]
   }
 
   interface PaginatedQueryResults {

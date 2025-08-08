@@ -35,6 +35,10 @@ export const typeDefs = gql`
     hasPreviousPage: Boolean
     "The sortFields that are available for this query (for standard offset pagination only!)"
     availableSortFields: [String]
+    "Whether the result set includes bestPractice templates"
+    hasBestPracticeTemplates: Boolean
+    "The available affiliations in the result set"
+    availableAffiliations: [String]
   }
 
   "An abbreviated view of a Template for pages that allow search/filtering of published Templates"

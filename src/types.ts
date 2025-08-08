@@ -1473,12 +1473,18 @@ export type PaginatedQueryResults = {
 
 /** Pagination options, either cursor-based (inifite-scroll) or offset-based pagination (standard first, next, etc.) */
 export type PaginationOptions = {
+  /** Request just the bestPractice templates */
+  bestPractice?: InputMaybe<Scalars['Boolean']['input']>;
   /** The cursor to start the pagination from (used for cursor infinite scroll/load more only!) */
   cursor?: InputMaybe<Scalars['String']['input']>;
+  /** Specify that you want additional metadata, like whether the result set includes bestPractice options */
+  includeMetadata?: InputMaybe<Scalars['Boolean']['input']>;
   /** The number of items to return */
   limit?: InputMaybe<Scalars['Int']['input']>;
   /** The number of items to skip before starting the pagination (used for standard offset pagination only!) */
   offset?: InputMaybe<Scalars['Int']['input']>;
+  /** Request templates whose ownerIds match the provided array of ownerURIs */
+  selectOwnerURIs?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** The sort order (used for standard offset pagination only!) */
   sortDir?: InputMaybe<Scalars['String']['input']>;
   /** The sort field (used for standard offset pagination only!) */
@@ -2162,10 +2168,14 @@ export type ProjectSearchResults = PaginatedQueryResults & {
 
 export type PublishedTemplateSearchResults = PaginatedQueryResults & {
   __typename?: 'PublishedTemplateSearchResults';
+  /** The available affiliations in the result set */
+  availableAffiliations?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   /** The sortFields that are available for this query (for standard offset pagination only!) */
   availableSortFields?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   /** The current offset of the results (for standard offset pagination) */
   currentOffset?: Maybe<Scalars['Int']['output']>;
+  /** Whether the result set includes bestPractice templates */
+  hasBestPracticeTemplates?: Maybe<Scalars['Boolean']['output']>;
   /** Whether or not there is a next page */
   hasNextPage?: Maybe<Scalars['Boolean']['output']>;
   /** Whether or not there is a previous page */
@@ -5111,8 +5121,10 @@ export type ProjectSearchResultsResolvers<ContextType = MyContext, ParentType ex
 };
 
 export type PublishedTemplateSearchResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PublishedTemplateSearchResults'] = ResolversParentTypes['PublishedTemplateSearchResults']> = {
+  availableAffiliations?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
   availableSortFields?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
   currentOffset?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  hasBestPracticeTemplates?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   hasNextPage?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   hasPreviousPage?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   items?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplateSearchResult']>>>, ParentType, ContextType>;
