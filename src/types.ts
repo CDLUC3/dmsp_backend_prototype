@@ -2266,7 +2266,7 @@ export type Query = {
   /** Get a specific VersionedQuestion based on versionedQuestionId */
   publishedQuestion?: Maybe<VersionedQuestion>;
   /** Search for VersionedQuestions that belong to Section specified by sectionId */
-  publishedQuestions?: Maybe<Array<Maybe<VersionedQuestion>>>;
+  publishedQuestions?: Maybe<Array<Maybe<VersionedQuestionWithFilled>>>;
   /** Fetch a specific VersionedSection */
   publishedSection?: Maybe<VersionedSection>;
   /** Search for VersionedSection whose name contains the search term */
@@ -3731,6 +3731,7 @@ export type VersionedQuestionErrors = {
 
 /** A snapshot of a Question when it became published. */
 export type VersionedQuestionWithFilled = {
+  __typename?: 'VersionedQuestionWithFilled';
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
@@ -4028,7 +4029,6 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
   PaginatedQueryResults: ( AffiliationSearchResults ) | ( LicenseSearchResults ) | ( MetadataStandardSearchResults ) | ( ProjectSearchResults ) | ( PublishedTemplateSearchResults ) | ( RepositorySearchResults ) | ( ResearchDomainSearchResults ) | ( TemplateSearchResults ) | ( UserSearchResults ) | ( VersionedSectionSearchResults );
-  VersionedQuestionWithFilled: never;
 };
 
 /** Mapping between all available schema types and the resolvers types */
@@ -4185,7 +4185,7 @@ export type ResolversTypes = {
   VersionedQuestionConditionCondition: VersionedQuestionConditionCondition;
   VersionedQuestionConditionErrors: ResolverTypeWrapper<VersionedQuestionConditionErrors>;
   VersionedQuestionErrors: ResolverTypeWrapper<VersionedQuestionErrors>;
-  VersionedQuestionWithFilled: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['VersionedQuestionWithFilled']>;
+  VersionedQuestionWithFilled: ResolverTypeWrapper<VersionedQuestionWithFilled>;
   VersionedSection: ResolverTypeWrapper<VersionedSection>;
   VersionedSectionErrors: ResolverTypeWrapper<VersionedSectionErrors>;
   VersionedSectionSearchResult: ResolverTypeWrapper<VersionedSectionSearchResult>;
@@ -4328,7 +4328,7 @@ export type ResolversParentTypes = {
   VersionedQuestionCondition: VersionedQuestionCondition;
   VersionedQuestionConditionErrors: VersionedQuestionConditionErrors;
   VersionedQuestionErrors: VersionedQuestionErrors;
-  VersionedQuestionWithFilled: ResolversInterfaceTypes<ResolversParentTypes>['VersionedQuestionWithFilled'];
+  VersionedQuestionWithFilled: VersionedQuestionWithFilled;
   VersionedSection: VersionedSection;
   VersionedSectionErrors: VersionedSectionErrors;
   VersionedSectionSearchResult: VersionedSectionSearchResult;
@@ -5210,7 +5210,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   projectOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryProjectOutputsArgs, 'projectId'>>;
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestion?: Resolver<Maybe<ResolversTypes['VersionedQuestion']>, ParentType, ContextType, RequireFields<QueryPublishedQuestionArgs, 'versionedQuestionId'>>;
-  publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
+  publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionWithFilled']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
   publishedSection?: Resolver<Maybe<ResolversTypes['VersionedSection']>, ParentType, ContextType, RequireFields<QueryPublishedSectionArgs, 'versionedSectionId'>>;
   publishedSections?: Resolver<Maybe<ResolversTypes['VersionedSectionSearchResults']>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
   publishedTemplates?: Resolver<Maybe<ResolversTypes['PublishedTemplateSearchResults']>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;
@@ -5721,7 +5721,6 @@ export type VersionedQuestionErrorsResolvers<ContextType = MyContext, ParentType
 };
 
 export type VersionedQuestionWithFilledResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedQuestionWithFilled'] = ResolversParentTypes['VersionedQuestionWithFilled']> = {
-  __resolveType: TypeResolveFn<null, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   displayOrder?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -5741,6 +5740,7 @@ export type VersionedQuestionWithFilledResolvers<ContextType = MyContext, Parent
   versionedQuestionConditions?: Resolver<Maybe<Array<ResolversTypes['VersionedQuestionCondition']>>, ParentType, ContextType>;
   versionedSectionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   versionedTemplateId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type VersionedSectionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['VersionedSection'] = ResolversParentTypes['VersionedSection']> = {

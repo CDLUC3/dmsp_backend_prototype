@@ -4,7 +4,7 @@ import {VersionedQuestion} from "../models/VersionedQuestion";
 export const typeDefs = gql`
   extend type Query {
     "Search for VersionedQuestions that belong to Section specified by sectionId"
-    publishedQuestions(versionedSectionId: Int!): [VersionedQuestion]
+    publishedQuestions(versionedSectionId: Int!): [VersionedQuestionWithFilled]
     "Get a specific VersionedQuestion based on versionedQuestionId"
     publishedQuestion(versionedQuestionId: Int!): VersionedQuestion
   }
@@ -52,7 +52,7 @@ type VersionedQuestion {
 }
 
 "A snapshot of a Question when it became published."
-interface VersionedQuestionWithFilled {
+type VersionedQuestionWithFilled {
     "The unique identifer for the Object"
     id: Int
     "The user who created the Object"

@@ -9,35 +9,12 @@ import { isAuthorized } from "../services/authService";
 import { GraphQLError } from "graphql";
 import { normaliseDateTime } from "../utils/helpers";
 
+// Define new output structure for the published questions including whether they have an answer
 type VersionedQuestionWithFilled = VersionedQuestion & { hasAnswer: boolean };
-// Define the interface for VersionedQuestionWithFilled
-/*
-interface VersionedQuestionWithFilled {
-  id: number;
-  createdById: number;
-  created: string;
-  modifiedById: number;
-  modified: string;
-  errors: Record<string, string>;
-  versionedTemplateId: number;
-  versionedSectionId: number;
-  questionId: number;
-  displayOrder?: number;
-  json: string;
-  questionText: string;
-  requirementText?: string;
-  guidanceText?: string;
-  sampleText?: string;
-  useSampleTextAsDefault?: boolean;
-  required?: boolean;
-  versionedQuestionConditions?: VersionedQuestionCondition[];
-  hasAnswer: boolean;
-}
-*/
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all of the published questions for the specified versioned section
+    // return all published questions for the specified versioned section
     publishedQuestions: async (_, { versionedSectionId }, context: MyContext): Promise<VersionedQuestionWithFilled[]> => {
       const reference = 'publishedQuestions resolver';
       try {

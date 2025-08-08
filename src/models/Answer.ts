@@ -148,7 +148,8 @@ export class Answer extends MySqlModel {
   ): Promise<Answer[]> {
     if (!Array.isArray(questionIds) || questionIds.length === 0) return [];
 
-    const sql = `SELECT * FROM answers WHERE versionedQuestionId IN (?) AND json IS NOT NULL AND json != ''`;
+    const placeholders = questionIds.map(() => '?').join(', ');
+    const sql = `SELECT * FROM answers WHERE versionedQuestionId IN (${placeholders}) AND json IS NOT NULL AND json != ''`;
     const results = await Answer.query(context, sql, questionIds.map(String), 'Answer.findFilledAnswersByQuestionIds');
     return Array.isArray(results) && results.length > 0 ? results.map((ans) => new Answer(ans)) : [];
   }
