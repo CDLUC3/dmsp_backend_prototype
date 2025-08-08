@@ -139,6 +139,19 @@ describe('findBy Queries', () => {
     expect(result).toEqual([answer]);
   });
 
+  it('findAnswersByQuestionIds should call query with correct params and return the objects', async () => {
+    // Mock the localQuery to return an array of answers, these are the same answer repeated, but the mock simply
+    // returns what is written here if it's called. So mocking additional different answers doesn't add additional value to the test.
+    localQuery.mockResolvedValueOnce([answer, answer, answer]);
+    const questionIds = [ casual.integer(1, 9999), casual.integer(1, 9999), casual.integer(1, 9999)];
+    const result = await Answer.findAnswersByQuestionIds('testing', context, questionIds);
+    const expectedSql = 'SELECT * FROM answers WHERE versionedQuestionId IN (?, ?, ?) AND json IS NOT NULL AND json != \'\'';
+    const vals = questionIds.map(String)
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, vals, 'testing')
+    expect(result).toEqual([answer, answer, answer]);
+  });
+
   it('findByPlanIdAndVersionedSectionId should return an empty array if it finds no records', async () => {
     localQuery.mockResolvedValueOnce([]);
     const planId = casual.integer(1, 9999);
