@@ -2,7 +2,6 @@
 export interface TemplateFilterOptions {
   bestPractice?: boolean;        // Only return records where bestPractice = 1 if present
   selectOwnerURIs?: string[];    // Only return records with the specified ownerURIs
-  includeMetadata?: boolean;     // Request that metadata be included
 }
 
 export enum PaginationType {
@@ -51,8 +50,6 @@ export interface PaginatedQueryResults<T> {
   hasNextPage: boolean,             // Whether or not there is a next page
   hasPreviousPage?: boolean,        // Whether or not there is a previous page (offset based pagination only)
   availableSortFields?: string[],   // The available sort fields (offset based pagination only)
-  availableAffiliations?: string[], // Return the list of available affiliations in the result set
-  hasBestPracticeTemplates?: boolean  // Indicate whether the result set includes bestPractice templates
 }
 
 export type TemplateQueryOptions = TemplateFilterOptions & PaginationOptions;

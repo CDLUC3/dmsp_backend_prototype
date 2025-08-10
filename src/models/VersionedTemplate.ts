@@ -288,7 +288,7 @@ export class VersionedTemplate extends MySqlModel {
   }
 
   static async hasBestPracticeTemplates(reference: string, context: MyContext, term?: string): Promise<boolean> {
-    const whereFilters = ['vt.active = 1 AND vt.versionType = ?'];
+    const whereFilters = ['vt.active = 1 AND vt.bestPractice = 1 AND vt.versionType = ?'];
     const values = [TemplateVersionType.PUBLISHED.toString()];
 
     // Handle the incoming search term
@@ -305,6 +305,8 @@ export class VersionedTemplate extends MySqlModel {
     WHERE ${whereFilters.join(' AND ')}
   `;
 
+    console.log("***SQL", sql);
+    console.log("***VALUES", values);
     const result = await VersionedTemplate.query(context, sql, values, reference);
     const results = Array.isArray(result) ? result : [];
     return results.length > 0 && results[0].count > 0;

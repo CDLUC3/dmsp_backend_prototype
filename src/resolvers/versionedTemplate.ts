@@ -1,4 +1,8 @@
-import { PublishedTemplateSearchResults, Resolvers } from "../types";
+import {
+  PublishedTemplateSearchResults,
+  PublishedTemplateMetaDataResults,
+  Resolvers
+} from "../types";
 import { VersionedTemplate, VersionedTemplateSearchResult } from "../models/VersionedTemplate";
 import { User } from '../models/User';
 import { MyContext } from "../context";
@@ -40,23 +44,33 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
-                      ? paginationOptions as PaginationOptionsForOffsets
-                      : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+            ? paginationOptions as PaginationOptionsForOffsets
+            : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
-          const results = await VersionedTemplateSearchResult.search(reference, context, term, opts);
+          return await VersionedTemplateSearchResult.search(reference, context, term, opts);
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
 
-          //Get filter metadata (only on first page or when term changes)
-          const shouldIncludeMetadata = paginationOptions?.includeMetadata;
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
 
-          let filterMetadata = null;
-          if (shouldIncludeMetadata) {
-            filterMetadata = await VersionedTemplate.getFilterMetadata(reference, context, term);
-          }
+    // Get metadata for client to provide the unique template affiliations, as well as whether there are any best practice templates
+    publishedTemplatesMetaData: async (_, { term, paginationOptions }, context: MyContext): Promise<PublishedTemplateMetaDataResults> => {
+      const reference = 'publishedTemplatesMetaData resolver';
 
-          return {
-            ...results,
-            ...(filterMetadata || {}) // Spread the metadata properties directly. Will be null on subsequent pages, populated on first page/new searches
-          }
+      try {
+        if (isAuthorized(context.token)) {
+          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+            ? paginationOptions as PaginationOptionsForOffsets
+            : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+          // returns associated availableAffiliations and hasBestPracticeTemplates
+          return await VersionedTemplate.getFilterMetadata(reference, context, term);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
