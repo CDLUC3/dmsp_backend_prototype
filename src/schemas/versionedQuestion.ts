@@ -1,8 +1,4 @@
 import gql from 'graphql-tag';
-import {VersionedQuestion} from "../models/VersionedQuestion";
-
-// because ESLint doesn't like it, but removing it makes GraphQL build complain about the type not being defined
-void VersionedQuestion;
 
 export const typeDefs = gql`
   extend type Query {
