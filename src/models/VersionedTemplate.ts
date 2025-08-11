@@ -2,7 +2,7 @@ import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
-import { PaginatedQueryResults, PaginationOptions, TemplateQueryOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType, SortDirection } from "../types/general";
+import { PaginatedQueryResults, TemplateQueryOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType, SortDirection } from "../types/general";
 import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 
@@ -127,14 +127,14 @@ export class VersionedTemplateSearchResult {
     affiliationId: string
   ): Promise<VersionedTemplateSearchResult[]> {
     const sql = 'SELECT vt.id, vt.templateId, vt.name, vt.description, vt.version, vt.visibility, vt.bestPractice, ' +
-      'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
-      'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
-      'a.searchName as ownerSearchName ' +
-      'FROM versionedTemplates vt ' +
-      'LEFT JOIN users u ON u.id = vt.modifiedById ' +
-      'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
-      'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
-    'ORDER BY vt.modified DESC;';
+                'vt.modified, vt.modifiedById, TRIM(CONCAT(u.givenName, CONCAT(\' \', u.surName))) as modifiedByName, ' +
+                'a.id as ownerId, vt.ownerId as ownerURI, a.displayName as ownerDisplayName, ' +
+                'a.searchName as ownerSearchName ' +
+              'FROM versionedTemplates vt ' +
+                'LEFT JOIN users u ON u.id = vt.modifiedById ' +
+                'LEFT JOIN affiliations a ON a.uri = vt.ownerId ' +
+              'WHERE vt.ownerId = affiliationId AND vt.active = 1 AND vt.versionType = ? '
+              'ORDER BY vt.modified DESC;';
     const vals = [affiliationId, TemplateVersionType.PUBLISHED];
     const results = await VersionedTemplate.query(context, sql, vals, reference);
     return Array.isArray(results) ? results.map((entry) => new VersionedTemplateSearchResult(entry)) : [];
@@ -253,10 +253,10 @@ export class VersionedTemplate extends MySqlModel {
     return Array.isArray(results) ? results : [];
   }
 
-  static async getFilterMetadata(reference: string, context: MyContext, term?: string) {
+  static async getFilterMetadata(reference: string, context: MyContext) {
     const [availableAffiliations, hasBestPractice] = await Promise.all([
-      this.getAvailableOwners(reference, context, term),
-      this.hasBestPracticeTemplates(reference, context, term)
+      this.getAvailableOwners(reference, context),
+      this.hasBestPracticeTemplates(reference, context)
     ]);
 
     return {
@@ -265,16 +265,9 @@ export class VersionedTemplate extends MySqlModel {
     };
   }
 
-  static async getAvailableOwners(reference: string, context: MyContext, term?: string) {
+  static async getAvailableOwners(reference: string, context: MyContext) {
     const whereFilters = ['vt.active = 1 AND vt.versionType = ?'];
     const values = [TemplateVersionType.PUBLISHED.toString()];
-
-    // Handle the incoming search term
-    const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm.length > 0) {
-      whereFilters.push('(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)');
-      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
-    }
 
     const sql = `
     SELECT DISTINCT vt.ownerId as ownerURI
@@ -287,16 +280,9 @@ export class VersionedTemplate extends MySqlModel {
     return Array.isArray(results) ? results.map(row => row.ownerURI) : [];
   }
 
-  static async hasBestPracticeTemplates(reference: string, context: MyContext, term?: string): Promise<boolean> {
+  static async hasBestPracticeTemplates(reference: string, context: MyContext): Promise<boolean> {
     const whereFilters = ['vt.active = 1 AND vt.bestPractice = 1 AND vt.versionType = ?'];
     const values = [TemplateVersionType.PUBLISHED.toString()];
-
-    // Handle the incoming search term
-    const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm.length > 0) {
-      whereFilters.push('(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)');
-      values.push(`%${searchTerm}%`, `%${searchTerm}%`);
-    }
 
     const sql = `
     SELECT COUNT(*) as count
@@ -305,8 +291,6 @@ export class VersionedTemplate extends MySqlModel {
     WHERE ${whereFilters.join(' AND ')}
   `;
 
-    console.log("***SQL", sql);
-    console.log("***VALUES", values);
     const result = await VersionedTemplate.query(context, sql, values, reference);
     const results = Array.isArray(result) ? result : [];
     return results.length > 0 && results[0].count > 0;

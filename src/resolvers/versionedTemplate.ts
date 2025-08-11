@@ -38,14 +38,14 @@ export const resolvers: Resolvers = {
 
     // Search for PublishedTemplates whose name or owning Org's name contains the search term
     //    - called by the Template Builder - prior template selection page
-    publishedTemplates: async (_, { term, paginationOptions }, context: MyContext): Promise<PublishedTemplateSearchResults> => {
+      publishedTemplates: async (_, { term, paginationOptions }, context: MyContext): Promise<PublishedTemplateSearchResults> => {
       const reference = 'publishedTemplates resolver';
 
       try {
         if (isAuthorized(context.token)) {
           const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
-            ? paginationOptions as PaginationOptionsForOffsets
-            : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+                      ? paginationOptions as PaginationOptionsForOffsets
+                      : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
           return await VersionedTemplateSearchResult.search(reference, context, term, opts);
         }
@@ -60,17 +60,13 @@ export const resolvers: Resolvers = {
     },
 
     // Get metadata for client to provide the unique template affiliations, as well as whether there are any best practice templates
-    publishedTemplatesMetaData: async (_, { term, paginationOptions }, context: MyContext): Promise<PublishedTemplateMetaDataResults> => {
+    publishedTemplatesMetaData: async (_, __, context: MyContext): Promise<PublishedTemplateMetaDataResults> => {
       const reference = 'publishedTemplatesMetaData resolver';
 
       try {
         if (isAuthorized(context.token)) {
-          const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
-            ? paginationOptions as PaginationOptionsForOffsets
-            : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
-
           // returns associated availableAffiliations and hasBestPracticeTemplates
-          return await VersionedTemplate.getFilterMetadata(reference, context, term);
+          return await VersionedTemplate.getFilterMetadata(reference, context);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
