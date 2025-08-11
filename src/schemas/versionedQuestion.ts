@@ -1,10 +1,15 @@
 import gql from 'graphql-tag';
 import {VersionedQuestion} from "../models/VersionedQuestion";
 
+// because ESLint doesn't like it, but removing it makes GraphQL complain about the type not being defined
+void VersionedQuestion;
+
 export const typeDefs = gql`
   extend type Query {
     "Search for VersionedQuestions that belong to Section specified by sectionId"
-    publishedQuestions(versionedSectionId: Int!): [VersionedQuestionWithFilled]
+    publishedQuestions(versionedSectionId: Int!): [VersionedQuestion]
+    "Search for VersionedQuestions that belong to Section specified by sectionId, with an answered flag for a plan"
+    publishedQuestionsWithAnsweredFlag(planId: Int!, versionedSectionId: Int!): [VersionedQuestionWithFilled]
     "Get a specific VersionedQuestion based on versionedQuestionId"
     publishedQuestion(versionedQuestionId: Int!): VersionedQuestion
   }

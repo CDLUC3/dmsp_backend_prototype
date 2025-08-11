@@ -14,16 +14,33 @@ type VersionedQuestionWithFilled = VersionedQuestion & { hasAnswer: boolean };
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all published questions for the specified versioned section
-    publishedQuestions: async (_, { versionedSectionId }, context: MyContext): Promise<VersionedQuestionWithFilled[]> => {
+    // return all of the published questions for the specified versioned section
+    publishedQuestions: async (_, { versionedSectionId }, context: MyContext): Promise<VersionedQuestion[]> => {
       const reference = 'publishedQuestions resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          return await VersionedQuestion.findByVersionedSectionId(reference, context, versionedSectionId);
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // return all published questions for the specified versioned section
+    publishedQuestionsWithAnsweredFlag: async (_, { planId, versionedSectionId }, context: MyContext): Promise<VersionedQuestionWithFilled[]> => {
+      const reference = 'publishedQuestionsWithAnsweredFlag resolver';
       try {
         if (isAuthorized(context.token)) {
           const questions = await VersionedQuestion.findByVersionedSectionId(reference, context, versionedSectionId);
 
           // Fetch answers for the questions
           const questionIds = questions.map(q => q.id);
-          const answers = await Answer.findAnswersByQuestionIds(reference, context, questionIds);
+          const answers = await Answer.findFilledAnswersByQuestionIds(reference, context, planId, questionIds);
 
           // Map the answers to the questions
           const answersMap = new Set(answers.map(a => a.versionedQuestionId));

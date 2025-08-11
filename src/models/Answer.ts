@@ -142,16 +142,17 @@ export class Answer extends MySqlModel {
   }
 
   // given a list of question ids, return all filled answers, flexible to handle different groupings of question ids
-  static async findAnswersByQuestionIds(
+  static async findFilledAnswersByQuestionIds(
     reference: string,
     context: MyContext,
+    planId: number,
     questionIds: number[]
   ): Promise<Answer[]> {
     if (!Array.isArray(questionIds) || questionIds.length === 0) return [];
 
     const placeholders = questionIds.map(() => '?').join(', ');
-    const sql = `SELECT * FROM answers WHERE versionedQuestionId IN (${placeholders}) AND json IS NOT NULL AND json != ''`;
-    const results = await Answer.query(context, sql, questionIds.map(String), reference);
+    const sql = `SELECT * FROM answers WHERE planId = ? AND versionedQuestionId IN (${placeholders}) AND json IS NOT NULL AND json != ''`;
+    const results = await Answer.query(context, sql, [String(planId), ...questionIds.map(String)], reference);
     return Array.isArray(results) && results.length > 0 ? results.map((ans) => new Answer(ans)) : [];
   }
 };

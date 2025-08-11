@@ -16,6 +16,7 @@
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `findFilledAnswersByQuestionIds` which takes versionedQuestionIds and returns the answers for those questions.
 - Added data migration to clean up old question JSON so it conforms with new @dmptool/types schemas
 - Added data migration to drop the old `questionTypes` table
 - Added `updatePlanFunding` to allow the update of multiple `planFunding` records [#305]
