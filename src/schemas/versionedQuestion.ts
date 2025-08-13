@@ -2,10 +2,8 @@ import gql from 'graphql-tag';
 
 export const typeDefs = gql`
   extend type Query {
-    "Search for VersionedQuestions that belong to Section specified by sectionId"
-    publishedQuestions(versionedSectionId: Int!): [VersionedQuestion]
-    "Search for VersionedQuestions that belong to Section specified by sectionId, with an answered flag for a plan"
-    publishedQuestionsWithAnsweredFlag(planId: Int!, versionedSectionId: Int!): [VersionedQuestionWithFilled]
+    "Search for VersionedQuestions that belong to Section specified by sectionId and answer status for a plan"
+    publishedQuestions(planId: Int!, versionedSectionId: Int!): [VersionedQuestionWithFilled]
     "Get a specific VersionedQuestion based on versionedQuestionId"
     publishedQuestion(versionedQuestionId: Int!): VersionedQuestion
   }
@@ -52,7 +50,7 @@ type VersionedQuestion {
     versionedQuestionConditions: [VersionedQuestionCondition!]
 }
 
-"A snapshot of a Question when it became published."
+"A snapshot of a Question when it became published, but includes extra information about if answer is filled."
 type VersionedQuestionWithFilled {
     "The unique identifer for the Object"
     id: Int

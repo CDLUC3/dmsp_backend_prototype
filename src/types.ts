@@ -2265,10 +2265,8 @@ export type Query = {
   publishedConditionsForQuestion?: Maybe<Array<Maybe<VersionedQuestionCondition>>>;
   /** Get a specific VersionedQuestion based on versionedQuestionId */
   publishedQuestion?: Maybe<VersionedQuestion>;
-  /** Search for VersionedQuestions that belong to Section specified by sectionId */
-  publishedQuestions?: Maybe<Array<Maybe<VersionedQuestion>>>;
-  /** Search for VersionedQuestions that belong to Section specified by sectionId, with an answered flag for a plan */
-  publishedQuestionsWithAnsweredFlag?: Maybe<Array<Maybe<VersionedQuestionWithFilled>>>;
+  /** Search for VersionedQuestions that belong to Section specified by sectionId and answer status for a plan */
+  publishedQuestions?: Maybe<Array<Maybe<VersionedQuestionWithFilled>>>;
   /** Fetch a specific VersionedSection */
   publishedSection?: Maybe<VersionedSection>;
   /** Search for VersionedSection whose name contains the search term */
@@ -2497,11 +2495,6 @@ export type QueryPublishedQuestionArgs = {
 
 
 export type QueryPublishedQuestionsArgs = {
-  versionedSectionId: Scalars['Int']['input'];
-};
-
-
-export type QueryPublishedQuestionsWithAnsweredFlagArgs = {
   planId: Scalars['Int']['input'];
   versionedSectionId: Scalars['Int']['input'];
 };
@@ -3737,7 +3730,7 @@ export type VersionedQuestionErrors = {
   versionedTemplateId?: Maybe<Scalars['String']['output']>;
 };
 
-/** A snapshot of a Question when it became published. */
+/** A snapshot of a Question when it became published, but includes extra information about if answer is filled. */
 export type VersionedQuestionWithFilled = {
   __typename?: 'VersionedQuestionWithFilled';
   /** The timestamp when the Object was created */
@@ -5218,8 +5211,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   projectOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryProjectOutputsArgs, 'projectId'>>;
   publishedConditionsForQuestion?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionCondition']>>>, ParentType, ContextType, RequireFields<QueryPublishedConditionsForQuestionArgs, 'versionedQuestionId'>>;
   publishedQuestion?: Resolver<Maybe<ResolversTypes['VersionedQuestion']>, ParentType, ContextType, RequireFields<QueryPublishedQuestionArgs, 'versionedQuestionId'>>;
-  publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestion']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'versionedSectionId'>>;
-  publishedQuestionsWithAnsweredFlag?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionWithFilled']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsWithAnsweredFlagArgs, 'planId' | 'versionedSectionId'>>;
+  publishedQuestions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedQuestionWithFilled']>>>, ParentType, ContextType, RequireFields<QueryPublishedQuestionsArgs, 'planId' | 'versionedSectionId'>>;
   publishedSection?: Resolver<Maybe<ResolversTypes['VersionedSection']>, ParentType, ContextType, RequireFields<QueryPublishedSectionArgs, 'versionedSectionId'>>;
   publishedSections?: Resolver<Maybe<ResolversTypes['VersionedSectionSearchResults']>, ParentType, ContextType, RequireFields<QueryPublishedSectionsArgs, 'term'>>;
   publishedTemplates?: Resolver<Maybe<ResolversTypes['PublishedTemplateSearchResults']>, ParentType, ContextType, Partial<QueryPublishedTemplatesArgs>>;

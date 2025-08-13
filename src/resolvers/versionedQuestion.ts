@@ -14,25 +14,8 @@ type VersionedQuestionWithFilled = VersionedQuestion & { hasAnswer: boolean };
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all of the published questions for the specified versioned section
-    publishedQuestions: async (_, { versionedSectionId }, context: MyContext): Promise<VersionedQuestion[]> => {
-      const reference = 'publishedQuestions resolver';
-      try {
-        if (isAuthorized(context.token)) {
-          return await VersionedQuestion.findByVersionedSectionId(reference, context, versionedSectionId);
-        }
-        // Unauthorized!
-        throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch (err) {
-        if (err instanceof GraphQLError) throw err;
-
-        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
-        throw InternalServerError();
-      }
-    },
-
     // return all published questions for the specified versioned section
-    publishedQuestionsWithAnsweredFlag: async (_, { planId, versionedSectionId }, context: MyContext): Promise<VersionedQuestionWithFilled[]> => {
+    publishedQuestions: async (_, { planId, versionedSectionId }, context: MyContext): Promise<VersionedQuestionWithFilled[]> => {
       const reference = 'publishedQuestionsWithAnsweredFlag resolver';
       try {
         if (isAuthorized(context.token)) {
