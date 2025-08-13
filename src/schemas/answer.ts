@@ -8,8 +8,11 @@ export const typeDefs = gql`
     "Get an answer by versionedQuestionId"
     answerByVersionedQuestionId(projectId: Int!, planId: Int!, versionedQuestionId: Int!): Answer
 
-    "Get the sepecific answer"
+    "Get the specific answer"
     answer(projectId: Int!, answerId: Int!): Answer
+
+    "Get all of the comments associated with the answerId"
+    answerComments(projectId: Int!, answerId: Int!): [AnswerComment]
   }
 
   extend type Mutation {
@@ -17,6 +20,12 @@ export const typeDefs = gql`
     addAnswer(planId: Int!, versionedSectionId: Int!, versionedQuestionId: Int!, json: String): Answer
     "Edit an answer"
     updateAnswer(answerId: Int!, json: String): Answer
+    "Add comment for an answer "
+    addAnswerComment(answerId: Int!, commentText: String!): AnswerComment
+    "Update comment for an answer "
+    updateAnswerComment(answerCommentId: Int!, answerId: Int!, commentText: String!): AnswerComment
+    "Remove answer comment"
+    removeAnswerComment(answerCommentId: Int!, answerId: Int!): AnswerComment
   }
 
   "An answer to a question on a Data Managament Plan (DMP)"

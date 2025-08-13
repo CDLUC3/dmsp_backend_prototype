@@ -8,6 +8,7 @@ import { rorScalar } from './resolvers/scalars/ror';
 import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as answerResolvers } from './resolvers/answer';
 import { resolvers as collaboratorResolvers } from './resolvers/collaborator';
+import { resolvers as feedback } from './resolvers/feedback';
 import { resolvers as memberResolvers } from './resolvers/member';
 import { resolvers as memberRoleResolvers } from './resolvers/memberRole';
 import { resolvers as fundingResolvers } from './resolvers/funding';
@@ -43,6 +44,7 @@ export const resolvers: IResolvers = mergeResolvers([
   affiliationResolvers,
   answerResolvers,
   collaboratorResolvers,
+  feedback,
   memberResolvers,
   memberRoleResolvers,
   fundingResolvers,

@@ -752,7 +752,9 @@ export type Mutation = {
   addAffiliation?: Maybe<Affiliation>;
   /** Answer a question */
   addAnswer?: Maybe<Answer>;
-  /** Add a comment to an answer within a round of feedback */
+  /** Add comment for an answer  */
+  addAnswerComment?: Maybe<AnswerComment>;
+  /** Add feedback comment for an answer within a round of feedback */
   addFeedbackComment?: Maybe<PlanFeedbackComment>;
   /** Add a new License (don't make the URI up! should resolve to an taxonomy HTML/JSON representation of the object) */
   addLicense?: Maybe<License>;
@@ -820,7 +822,9 @@ export type Mutation = {
   publishPlan?: Maybe<Plan>;
   /** Delete an Affiliation (only applicable to AffiliationProvenance == DMPTOOL) */
   removeAffiliation?: Maybe<Affiliation>;
-  /** Remove a comment to an answer within a round of feedback */
+  /** Remove answer comment */
+  removeAnswerComment?: Maybe<AnswerComment>;
+  /** Remove feedback comment for an answer within a round of feedback */
   removeFeedbackComment?: Maybe<PlanFeedbackComment>;
   /** Delete a License */
   removeLicense?: Maybe<License>;
@@ -874,6 +878,10 @@ export type Mutation = {
   updateAffiliation?: Maybe<Affiliation>;
   /** Edit an answer */
   updateAnswer?: Maybe<Answer>;
+  /** Update comment for an answer  */
+  updateAnswerComment?: Maybe<AnswerComment>;
+  /** Update feedback comment for an answer within a round of feedback */
+  updateFeedbackComment?: Maybe<PlanFeedbackComment>;
   /** Update a License record */
   updateLicense?: Maybe<License>;
   /** Update the member role */
@@ -945,10 +953,17 @@ export type MutationAddAnswerArgs = {
 };
 
 
+export type MutationAddAnswerCommentArgs = {
+  answerId: Scalars['Int']['input'];
+  commentText: Scalars['String']['input'];
+};
+
+
 export type MutationAddFeedbackCommentArgs = {
   answerId: Scalars['Int']['input'];
   commentText: Scalars['String']['input'];
   planFeedbackId: Scalars['Int']['input'];
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -1086,6 +1101,7 @@ export type MutationArchiveTemplateArgs = {
 
 export type MutationCompleteFeedbackArgs = {
   planFeedbackId: Scalars['Int']['input'];
+  planId: Scalars['Int']['input'];
   summaryText?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1143,8 +1159,15 @@ export type MutationRemoveAffiliationArgs = {
 };
 
 
+export type MutationRemoveAnswerCommentArgs = {
+  answerCommentId: Scalars['Int']['input'];
+  answerId: Scalars['Int']['input'];
+};
+
+
 export type MutationRemoveFeedbackCommentArgs = {
-  PlanFeedbackCommentId: Scalars['Int']['input'];
+  planFeedbackCommentId: Scalars['Int']['input'];
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -1269,6 +1292,20 @@ export type MutationUpdateAffiliationArgs = {
 export type MutationUpdateAnswerArgs = {
   answerId: Scalars['Int']['input'];
   json?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type MutationUpdateAnswerCommentArgs = {
+  answerCommentId: Scalars['Int']['input'];
+  answerId: Scalars['Int']['input'];
+  commentText: Scalars['String']['input'];
+};
+
+
+export type MutationUpdateFeedbackCommentArgs = {
+  commentText: Scalars['String']['input'];
+  planFeedbackCommentId: Scalars['Int']['input'];
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -1572,8 +1609,6 @@ export type PlanErrors = {
 /** A round of administrative feedback for a Data Managament Plan (DMP) */
 export type PlanFeedback = {
   __typename?: 'PlanFeedback';
-  /** An overall summary that can be sent to the user upon completion */
-  adminSummary?: Maybe<Scalars['String']['output']>;
   /** The timestamp that the feedback was marked as complete */
   completed?: Maybe<Scalars['String']['output']>;
   /** The admin who completed the feedback round */
@@ -1593,11 +1628,13 @@ export type PlanFeedback = {
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The plan the user wants feedback on */
-  plan: Plan;
+  plan?: Maybe<Plan>;
   /** The timestamp of when the user requested the feedback */
-  requested: Scalars['String']['output'];
+  requested?: Maybe<Scalars['String']['output']>;
   /** The user who requested the round of feedback */
-  requestedBy: User;
+  requestedBy?: Maybe<User>;
+  /** An overall summary that can be sent to the user upon completion */
+  summaryText?: Maybe<Scalars['String']['output']>;
 };
 
 export type PlanFeedbackComment = {
@@ -1607,7 +1644,7 @@ export type PlanFeedbackComment = {
   /** The answer the comment is related to */
   answer?: Maybe<Answer>;
   /** The comment */
-  comment?: Maybe<Scalars['String']['output']>;
+  commentText?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
@@ -1635,13 +1672,13 @@ export type PlanFeedbackCommentErrors = {
 /** A collection of errors related to the PlanFeedback */
 export type PlanFeedbackErrors = {
   __typename?: 'PlanFeedbackErrors';
-  adminSummary?: Maybe<Scalars['String']['output']>;
   completedById?: Maybe<Scalars['String']['output']>;
   feedbackComments?: Maybe<Scalars['String']['output']>;
   /** General error messages such as the object already exists */
   general?: Maybe<Scalars['String']['output']>;
   planId?: Maybe<Scalars['String']['output']>;
   requestedById?: Maybe<Scalars['String']['output']>;
+  summaryText?: Maybe<Scalars['String']['output']>;
 };
 
 /** Funding associated with a plan */
@@ -2203,10 +2240,12 @@ export type Query = {
   affiliationTypes?: Maybe<Array<Scalars['String']['output']>>;
   /** Perform a search for Affiliations matching the specified name */
   affiliations?: Maybe<AffiliationSearchResults>;
-  /** Get the sepecific answer */
+  /** Get the specific answer */
   answer?: Maybe<Answer>;
   /** Get an answer by versionedQuestionId */
   answerByVersionedQuestionId?: Maybe<Answer>;
+  /** Get all of the comments associated with the answerId */
+  answerComments?: Maybe<Array<Maybe<AnswerComment>>>;
   /** Get all answers for the given project and plan and section */
   answers?: Maybe<Array<Maybe<Answer>>>;
   /** Get all of the best practice VersionedSection */
@@ -2361,6 +2400,12 @@ export type QueryAnswerByVersionedQuestionIdArgs = {
 };
 
 
+export type QueryAnswerCommentsArgs = {
+  answerId: Scalars['Int']['input'];
+  projectId: Scalars['Int']['input'];
+};
+
+
 export type QueryAnswersArgs = {
   planId: Scalars['Int']['input'];
   projectId: Scalars['Int']['input'];
@@ -2435,6 +2480,7 @@ export type QueryPlanFeedbackArgs = {
 
 export type QueryPlanFeedbackCommentsArgs = {
   planFeedbackId: Scalars['Int']['input'];
+  planId: Scalars['Int']['input'];
 };
 
 
@@ -4005,7 +4051,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
-  PaginatedQueryResults: (AffiliationSearchResults) | (LicenseSearchResults) | (MetadataStandardSearchResults) | (ProjectSearchResults) | (PublishedTemplateSearchResults) | (RepositorySearchResults) | (ResearchDomainSearchResults) | (TemplateSearchResults) | (UserSearchResults) | (VersionedSectionSearchResults);
+  PaginatedQueryResults: ( AffiliationSearchResults ) | ( LicenseSearchResults ) | ( MetadataStandardSearchResults ) | ( ProjectSearchResults ) | ( PublishedTemplateSearchResults ) | ( RepositorySearchResults ) | ( ResearchDomainSearchResults ) | ( TemplateSearchResults ) | ( UserSearchResults ) | ( VersionedSectionSearchResults );
 };
 
 /** Mapping between all available schema types and the resolvers types */
@@ -4623,7 +4669,8 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   activateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationActivateUserArgs, 'userId'>>;
   addAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationAddAffiliationArgs, 'input'>>;
   addAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationAddAnswerArgs, 'planId' | 'versionedQuestionId' | 'versionedSectionId'>>;
-  addFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationAddFeedbackCommentArgs, 'answerId' | 'commentText' | 'planFeedbackId'>>;
+  addAnswerComment?: Resolver<Maybe<ResolversTypes['AnswerComment']>, ParentType, ContextType, RequireFields<MutationAddAnswerCommentArgs, 'answerId' | 'commentText'>>;
+  addFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationAddFeedbackCommentArgs, 'answerId' | 'commentText' | 'planFeedbackId' | 'planId'>>;
   addLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationAddLicenseArgs, 'name'>>;
   addMemberRole?: Resolver<Maybe<ResolversTypes['MemberRole']>, ParentType, ContextType, RequireFields<MutationAddMemberRoleArgs, 'displayOrder' | 'label' | 'url'>>;
   addMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationAddMetadataStandardArgs, 'input'>>;
@@ -4647,7 +4694,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   archivePlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationArchivePlanArgs, 'planId'>>;
   archiveProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<MutationArchiveProjectArgs, 'projectId'>>;
   archiveTemplate?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationArchiveTemplateArgs, 'templateId'>>;
-  completeFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationCompleteFeedbackArgs, 'planFeedbackId'>>;
+  completeFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationCompleteFeedbackArgs, 'planFeedbackId' | 'planId'>>;
   createTemplateVersion?: Resolver<Maybe<ResolversTypes['Template']>, ParentType, ContextType, RequireFields<MutationCreateTemplateVersionArgs, 'templateId' | 'visibility'>>;
   deactivateUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationDeactivateUserArgs, 'userId'>>;
   mergeLicenses?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationMergeLicensesArgs, 'licenseToKeepId' | 'licenseToRemoveId'>>;
@@ -4657,7 +4704,8 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   projectImport?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, Partial<MutationProjectImportArgs>>;
   publishPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationPublishPlanArgs, 'planId'>>;
   removeAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationRemoveAffiliationArgs, 'affiliationId'>>;
-  removeFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationRemoveFeedbackCommentArgs, 'PlanFeedbackCommentId'>>;
+  removeAnswerComment?: Resolver<Maybe<ResolversTypes['AnswerComment']>, ParentType, ContextType, RequireFields<MutationRemoveAnswerCommentArgs, 'answerCommentId' | 'answerId'>>;
+  removeFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationRemoveFeedbackCommentArgs, 'planFeedbackCommentId' | 'planId'>>;
   removeLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationRemoveLicenseArgs, 'uri'>>;
   removeMemberRole?: Resolver<Maybe<ResolversTypes['MemberRole']>, ParentType, ContextType, RequireFields<MutationRemoveMemberRoleArgs, 'id'>>;
   removeMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationRemoveMetadataStandardArgs, 'uri'>>;
@@ -4684,6 +4732,8 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   superInitializePlanVersions?: Resolver<ResolversTypes['InitializePlanVersionOutput'], ParentType, ContextType>;
   updateAffiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<MutationUpdateAffiliationArgs, 'input'>>;
   updateAnswer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<MutationUpdateAnswerArgs, 'answerId'>>;
+  updateAnswerComment?: Resolver<Maybe<ResolversTypes['AnswerComment']>, ParentType, ContextType, RequireFields<MutationUpdateAnswerCommentArgs, 'answerCommentId' | 'answerId' | 'commentText'>>;
+  updateFeedbackComment?: Resolver<Maybe<ResolversTypes['PlanFeedbackComment']>, ParentType, ContextType, RequireFields<MutationUpdateFeedbackCommentArgs, 'commentText' | 'planFeedbackCommentId' | 'planId'>>;
   updateLicense?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<MutationUpdateLicenseArgs, 'name' | 'uri'>>;
   updateMemberRole?: Resolver<Maybe<ResolversTypes['MemberRole']>, ParentType, ContextType, RequireFields<MutationUpdateMemberRoleArgs, 'displayOrder' | 'id' | 'label' | 'url'>>;
   updateMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationUpdateMetadataStandardArgs, 'input'>>;
@@ -4789,7 +4839,6 @@ export type PlanErrorsResolvers<ContextType = MyContext, ParentType extends Reso
 };
 
 export type PlanFeedbackResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanFeedback'] = ResolversParentTypes['PlanFeedback']> = {
-  adminSummary?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   completed?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   completedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4799,16 +4848,17 @@ export type PlanFeedbackResolvers<ContextType = MyContext, ParentType extends Re
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  plan?: Resolver<ResolversTypes['Plan'], ParentType, ContextType>;
-  requested?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  requestedBy?: Resolver<ResolversTypes['User'], ParentType, ContextType>;
+  plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType>;
+  requested?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  requestedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  summaryText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type PlanFeedbackCommentResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanFeedbackComment'] = ResolversParentTypes['PlanFeedbackComment']> = {
   PlanFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType>;
-  comment?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  commentText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['PlanFeedbackCommentErrors']>, ParentType, ContextType>;
@@ -4827,12 +4877,12 @@ export type PlanFeedbackCommentErrorsResolvers<ContextType = MyContext, ParentTy
 };
 
 export type PlanFeedbackErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanFeedbackErrors'] = ResolversParentTypes['PlanFeedbackErrors']> = {
-  adminSummary?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   completedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   feedbackComments?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   planId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   requestedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  summaryText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5158,6 +5208,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
   answerByVersionedQuestionId?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerByVersionedQuestionIdArgs, 'planId' | 'projectId' | 'versionedQuestionId'>>;
+  answerComments?: Resolver<Maybe<Array<Maybe<ResolversTypes['AnswerComment']>>>, ParentType, ContextType, RequireFields<QueryAnswerCommentsArgs, 'answerId' | 'projectId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;
   bestPracticeSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType>;
   childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;
@@ -5176,7 +5227,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   myVersionedTemplates?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplateSearchResult']>>>, ParentType, ContextType>;
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
   planFeedback?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedback']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackArgs, 'planId'>>;
-  planFeedbackComments?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedbackComment']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackCommentsArgs, 'planFeedbackId'>>;
+  planFeedbackComments?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedbackComment']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackCommentsArgs, 'planFeedbackId' | 'planId'>>;
   planFundings?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFunding']>>>, ParentType, ContextType, RequireFields<QueryPlanFundingsArgs, 'planId'>>;
   planMembers?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanMember']>>>, ParentType, ContextType, RequireFields<QueryPlanMembersArgs, 'planId'>>;
   planOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryPlanOutputsArgs, 'planId'>>;
