@@ -234,8 +234,11 @@ describe('findBy Queries', () => {
     const result = await Repository.search('testing', context, null, researchDomainId, null);
     const sql = 'SELECT r.* FROM repositories r ' +
                 'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
-    const vals = [researchDomainId.toString()];
-    const whereFilters = ['rrd.researchDomainId = ?'];
+    const vals = ['%%', '%%', '%%', researchDomainId.toString()];
+    const whereFilters = [
+      '(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)',
+      'rrd.researchDomainId = ?'
+    ];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
@@ -255,8 +258,11 @@ describe('findBy Queries', () => {
     const result = await Repository.search('testing', context, null, null, repositoryType);
     const sql = 'SELECT r.* FROM repositories r ' +
                 'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
-    const vals = [repositoryType];
-    const whereFilters = ['JSON_CONTAINS(r.repositoryTypes, ?, \'$\')'];
+    const vals = ['%%', '%%', '%%', repositoryType];
+    const whereFilters = [
+      '(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)',
+      'JSON_CONTAINS(r.repositoryTypes, ?, \'$\')'
+    ];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
@@ -277,8 +283,12 @@ describe('findBy Queries', () => {
     const result = await Repository.search('testing', context, null, researchDomainId, repositoryType);
     const sql = 'SELECT r.* FROM repositories r ' +
                 'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
-    const vals = [repositoryType, researchDomainId.toString()];
-    const whereFilters = ['JSON_CONTAINS(r.repositoryTypes, ?, \'$\')', 'rrd.researchDomainId = ?'];
+    const vals = ['%%', '%%', '%%', repositoryType, researchDomainId.toString()];
+    const whereFilters = [
+      '(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)',
+      'JSON_CONTAINS(r.repositoryTypes, ?, \'$\')',
+      'rrd.researchDomainId = ?'
+    ];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,

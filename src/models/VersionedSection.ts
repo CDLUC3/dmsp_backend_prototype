@@ -46,7 +46,7 @@ export class VersionedSectionSearchResult {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('LOWER(vs.name) LIKE ?');
       values.push(`%${searchTerm}%`);
     }
@@ -186,7 +186,7 @@ export class VersionedSection extends MySqlModel {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('LOWER(vs.name) LIKE ?');
       values.push(`%${searchTerm}%`);
     }

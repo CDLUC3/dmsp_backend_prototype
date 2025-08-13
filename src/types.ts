@@ -1916,6 +1916,12 @@ export type ProjectErrors = {
   title?: Maybe<Scalars['String']['output']>;
 };
 
+/** Project search filter options */
+export type ProjectFilterOptions = {
+  /** Filter results by the plan's status */
+  status?: InputMaybe<PlanStatus>;
+};
+
 /** Funding that is supporting a research project */
 export type ProjectFunding = {
   __typename?: 'ProjectFunding';
@@ -2412,6 +2418,7 @@ export type QueryMetadataStandardsArgs = {
 
 
 export type QueryMyProjectsArgs = {
+  filterOptions?: InputMaybe<ProjectFilterOptions>;
   paginationOptions?: InputMaybe<PaginationOptions>;
   term?: InputMaybe<Scalars['String']['input']>;
 };
@@ -4086,6 +4093,7 @@ export type ResolversTypes = {
   ProjectCollaboratorAccessLevel: ProjectCollaboratorAccessLevel;
   ProjectCollaboratorErrors: ResolverTypeWrapper<ProjectCollaboratorErrors>;
   ProjectErrors: ResolverTypeWrapper<ProjectErrors>;
+  ProjectFilterOptions: ProjectFilterOptions;
   ProjectFunding: ResolverTypeWrapper<ProjectFunding>;
   ProjectFundingErrors: ResolverTypeWrapper<ProjectFundingErrors>;
   ProjectFundingStatus: ProjectFundingStatus;
@@ -4241,6 +4249,7 @@ export type ResolversParentTypes = {
   ProjectCollaborator: ProjectCollaborator;
   ProjectCollaboratorErrors: ProjectCollaboratorErrors;
   ProjectErrors: ProjectErrors;
+  ProjectFilterOptions: ProjectFilterOptions;
   ProjectFunding: ProjectFunding;
   ProjectFundingErrors: ProjectFundingErrors;
   ProjectImportInput: ProjectImportInput;

@@ -116,7 +116,10 @@ describe('ProjectSearchResult', () => {
                               'pm.orcid ' +
                             ') ORDER BY pm.created) as membersData, ' +
                             'GROUP_CONCAT(DISTINCT CONCAT_WS(\'|\', fundings.name, pf.grantId) ' +
-                              'ORDER BY fundings.name SEPARATOR \',\') fundingsData ' +
+                              'ORDER BY fundings.name SEPARATOR \',\') fundingsData, ' +
+                            '(SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'DRAFT\') as draftPlans, ' +
+                            '(SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'COMPLETE\') as completePlans, ' +
+                            '(SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'ARCHIVED\') as archivedPlans ' +
                             'FROM projects p ' +
                               'LEFT JOIN researchDomains ON p.researchDomainId = researchDomains.id ' +
                               'LEFT JOIN users cu ON cu.id = p.createdById ' +
@@ -130,8 +133,11 @@ describe('ProjectSearchResult', () => {
                                 'LEFT JOIN affiliations fundings ON pf.affiliationId = fundings.uri ';
       const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`,
                     projectSearchResult.createdById.toString(), projectSearchResult.createdById.toString()];
-      const whereFilters = ['(LOWER(p.title) LIKE ? OR LOWER(p.abstractText) LIKE ?)',
-            '(p.createdById = ? OR p.id IN (SELECT projectId FROM projectCollaborators WHERE userId = ?))'];
+      const whereFilters = [
+        '(LOWER(p.title) LIKE ? OR LOWER(p.abstractText) LIKE ?)',
+        '((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'DRAFT\') >= 1 || (SELECT COUNT(*) FROM plans WHERE projectId = p.id) = 0)',
+        '(p.createdById = ? OR p.id IN (SELECT projectId FROM projectCollaborators WHERE userId = ?))'
+      ];
       const groupBy = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
                         'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description';
       const opts = {

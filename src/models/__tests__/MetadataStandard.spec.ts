@@ -218,8 +218,11 @@ describe('findBy Queries', () => {
     const result = await MetadataStandard.search('testing', context, null, researchDomainId);
     const sql = 'SELECT m.* FROM metadataStandards m ' +
                 'LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
-    const whereFilters = ['msrd.researchDomainId = ?'];
-    const vals = [researchDomainId.toString()];
+    const whereFilters = [
+      "(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)",
+      'msrd.researchDomainId = ?'
+    ];
+    const vals = ["%%", "%%", researchDomainId.toString()];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
@@ -268,7 +271,9 @@ describe('findBy Queries', () => {
       cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
-    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, [], '', [], opts, 'testing')
+    const where = ["(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)"];
+    const vals = ["%%", "%%"];
+    expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, where, '', vals, opts, 'testing')
     expect(result).toEqual([standard]);
   });
 

@@ -1,14 +1,17 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added `ProjectFilterOptions` as a possible input for the `myProjects` resolver
 - added `publishedSection` resolver to `src/resolvers/versionedSection.ts`
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated the `ProjectSearchResult.search` query to provide plan counts by status and filter by status options
 - updated `PlanSectionProgress` to use better terminology. Changed `sectionId` to `versionedSectionId` (what it really was) and `sectionTtitle` to `title`
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed an issue with the null/undefined check on model queries that use 'searchTerm'
 - When generating a new `versionedTemplate`, we need to deactivate the old ones in the db [#363]
 - Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
 - added a data migration script to repair bad option based question JSON

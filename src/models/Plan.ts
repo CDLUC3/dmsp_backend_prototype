@@ -10,7 +10,7 @@ import {
 } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import { addVersion, removeVersions, updateVersion } from "./PlanVersion";
-import {Project} from "./Project";
+import { Project } from "./Project";
 
 export const DEFAULT_TEMPORARY_DMP_ID_PREFIX = 'temp-dmpId-';
 
