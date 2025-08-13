@@ -1,4 +1,8 @@
-import { PublishedTemplateSearchResults, Resolvers } from "../types";
+import {
+  PublishedTemplateSearchResults,
+  PublishedTemplateMetaDataResults,
+  Resolvers
+} from "../types";
 import { VersionedTemplate, VersionedTemplateSearchResult } from "../models/VersionedTemplate";
 import { User } from '../models/User';
 import { MyContext } from "../context";
@@ -44,6 +48,25 @@ export const resolvers: Resolvers = {
                       : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
           return await VersionedTemplateSearchResult.search(reference, context, term, opts);
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Get metadata for client to provide the unique template affiliations, as well as whether there are any best practice templates
+    publishedTemplatesMetaData: async (_, __, context: MyContext): Promise<PublishedTemplateMetaDataResults> => {
+      const reference = 'publishedTemplatesMetaData resolver';
+
+      try {
+        if (isAuthorized(context.token)) {
+          // returns associated availableAffiliations and hasBestPracticeTemplates
+          return await VersionedTemplate.getFilterMetadata(reference, context);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
