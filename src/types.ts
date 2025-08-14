@@ -440,6 +440,8 @@ export type Answer = {
   createdById?: Maybe<Scalars['Int']['output']>;
   /** Errors associated with the Object */
   errors?: Maybe<AffiliationErrors>;
+  /** The feedback comments associated with the answer */
+  feedbackComments?: Maybe<Array<PlanFeedbackComment>>;
   /** The unique identifer for the Object */
   id?: Maybe<Scalars['Int']['output']>;
   /** The answer to the question */
@@ -474,6 +476,8 @@ export type AnswerComment = {
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** User who made the comment */
+  user?: Maybe<User>;
 };
 
 /** A collection of errors related to the Answer Comment */
@@ -1641,8 +1645,8 @@ export type PlanFeedbackComment = {
   __typename?: 'PlanFeedbackComment';
   /** The round of plan feedback the comment belongs to */
   PlanFeedback?: Maybe<PlanFeedback>;
-  /** The answer the comment is related to */
-  answer?: Maybe<Answer>;
+  /** The answerId the comment is related to */
+  answerId?: Maybe<Scalars['Int']['output']>;
   /** The comment */
   commentText?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was created */
@@ -1657,6 +1661,8 @@ export type PlanFeedbackComment = {
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** User who made the comment */
+  user?: Maybe<User>;
 };
 
 /** A collection of errors related to the PlanFeedbackComment */
@@ -2244,8 +2250,6 @@ export type Query = {
   answer?: Maybe<Answer>;
   /** Get an answer by versionedQuestionId */
   answerByVersionedQuestionId?: Maybe<Answer>;
-  /** Get all of the comments associated with the answerId */
-  answerComments?: Maybe<Array<Maybe<AnswerComment>>>;
   /** Get all answers for the given project and plan and section */
   answers?: Maybe<Array<Maybe<Answer>>>;
   /** Get all of the best practice VersionedSection */
@@ -2397,12 +2401,6 @@ export type QueryAnswerByVersionedQuestionIdArgs = {
   planId: Scalars['Int']['input'];
   projectId: Scalars['Int']['input'];
   versionedQuestionId: Scalars['Int']['input'];
-};
-
-
-export type QueryAnswerCommentsArgs = {
-  answerId: Scalars['Int']['input'];
-  projectId: Scalars['Int']['input'];
 };
 
 
@@ -4472,6 +4470,7 @@ export type AnswerResolvers<ContextType = MyContext, ParentType extends Resolver
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['AffiliationErrors']>, ParentType, ContextType>;
+  feedbackComments?: Resolver<Maybe<Array<ResolversTypes['PlanFeedbackComment']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   json?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4491,6 +4490,7 @@ export type AnswerCommentResolvers<ContextType = MyContext, ParentType extends R
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -4857,7 +4857,7 @@ export type PlanFeedbackResolvers<ContextType = MyContext, ParentType extends Re
 
 export type PlanFeedbackCommentResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanFeedbackComment'] = ResolversParentTypes['PlanFeedbackComment']> = {
   PlanFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType>;
-  answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType>;
+  answerId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   commentText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -4865,6 +4865,7 @@ export type PlanFeedbackCommentResolvers<ContextType = MyContext, ParentType ext
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5208,7 +5209,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
   answerByVersionedQuestionId?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerByVersionedQuestionIdArgs, 'planId' | 'projectId' | 'versionedQuestionId'>>;
-  answerComments?: Resolver<Maybe<Array<Maybe<ResolversTypes['AnswerComment']>>>, ParentType, ContextType, RequireFields<QueryAnswerCommentsArgs, 'answerId' | 'projectId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;
   bestPracticeSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType>;
   childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;

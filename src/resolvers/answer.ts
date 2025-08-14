@@ -2,11 +2,11 @@ import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
 import { Plan } from "../models/Plan";
 import { prepareObjectForLogs } from "../logger";
-import { 
-  AuthenticationError, 
-  ForbiddenError, 
-  InternalServerError, 
-  NotFoundError 
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
 } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
@@ -16,6 +16,8 @@ import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
+import { User } from "../models/User";
+import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { addVersion } from "../models/PlanVersion";
 import { normaliseDateTime } from "../utils/helpers";
 
@@ -73,28 +75,6 @@ export const resolvers: Resolvers = {
         const project = await Project.findById(reference, context, projectId);
         if (project && await hasPermissionOnProject(context, project)) {
           return await Answer.findById(reference, context, answerId);
-        }
-        throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch (err) {
-        if (err instanceof GraphQLError) throw err;
-
-        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
-        throw InternalServerError();
-      }
-    },
-
-    // return all of the answer comments for a given answerId
-    answerComments: async (_, { projectId, answerId }, context: MyContext): Promise<AnswerComment[]> => {
-      const reference = 'answerComments resolver';
-      try {
-        if (isAuthorized(context.token)) {
-          const project = await Project.findById(reference, context, projectId);
-          if (!project) {
-            throw NotFoundError(`Project with ID ${projectId} not found`);
-          }
-          if (await hasPermissionOnProject(context, project)) {
-            return await AnswerComment.findByAnswerId(reference, context, answerId);
-          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -226,7 +206,7 @@ export const resolvers: Resolvers = {
             }
 
             // Only user who added the comment can update it
-            if(answerComment.createdById === context.token.id) {
+            if (answerComment.createdById === context.token.id) {
               answerComment.commentText = commentText;
               return await answerComment.update(context);
             }
@@ -268,7 +248,7 @@ export const resolvers: Resolvers = {
             }
 
             // Only user who added the comment can remove it
-            if(answerComment.createdById === context.token.id) {
+            if (answerComment.createdById === context.token.id) {
               return await answerComment.delete(context);
             }
 
@@ -315,6 +295,13 @@ export const resolvers: Resolvers = {
       }
       return [];
     },
+    //Feedback comments associated with answer
+    feedbackComments: async (parent: PlanFeedbackComment, _, context: MyContext): Promise<PlanFeedbackComment[]> => {
+      if (parent?.id) {
+        return await PlanFeedbackComment.findByAnswerId('Answer feedbackComemnts resolver', context, parent.id);
+      }
+      return [];
+    },
     created: (parent: Answer) => {
       return normaliseDateTime(parent.created);
     },
@@ -322,4 +309,13 @@ export const resolvers: Resolvers = {
       return normaliseDateTime(parent.modified);
     }
   },
+  AnswerComment: {
+    // Resolver to get the user who created the comment
+    user: async (parent: AnswerComment, _, context: MyContext): Promise<User> => {
+      if (parent?.createdById) {
+        return await User.findById('AnswerComment user resolver', context, parent.createdById);
+      }
+      return null;
+    },
+  }
 }

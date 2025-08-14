@@ -1,21 +1,21 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
 import { Plan } from "../models/Plan";
-import {PlanFeedback} from "../models/PlanFeedback";
+import { PlanFeedback } from "../models/PlanFeedback";
 import { prepareObjectForLogs } from "../logger";
-import { 
-  AuthenticationError, 
-  ForbiddenError, 
-  InternalServerError, 
-  NotFoundError 
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
 } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { Resolvers } from "../types";
-import {User} from "../models/User";
-import {PlanFeedbackComment} from "../models/PlanFeedbackComment";
-import {PlanFeedbackResolvers} from "../types";
+import { User } from "../models/User";
+import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
+import { PlanFeedbackResolvers } from "../types";
 import { getCurrentDate } from "../utils/helpers";
 
 
@@ -84,7 +84,7 @@ export const resolvers: Resolvers = {
 
   Mutation: {
     //Request a round of admin feedback
-    requestFeedback: async (_, { planId}, context: MyContext): Promise<PlanFeedback> => {
+    requestFeedback: async (_, { planId }, context: MyContext): Promise<PlanFeedback> => {
       const reference = 'requestFeedback resolver';
 
       try {
@@ -99,11 +99,11 @@ export const resolvers: Resolvers = {
           }
 
           if (await hasPermissionOnProject(context, project)) {
-            const feedbackComment = new PlanFeedback({ 
-              planId, 
+            const feedbackComment = new PlanFeedback({
+              planId,
               requestedById: context.token.id,
               requested: getCurrentDate()
-             });
+            });
 
             return await feedbackComment.create(context);
           }
@@ -117,7 +117,7 @@ export const resolvers: Resolvers = {
       }
     },
     // Mark the feedback round as complete
-    completeFeedback: async (_, { planId, planFeedbackId, summaryText}, context: MyContext): Promise<PlanFeedback> => {
+    completeFeedback: async (_, { planId, planFeedbackId, summaryText }, context: MyContext): Promise<PlanFeedback> => {
       const reference = 'completeFeedback resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -155,7 +155,7 @@ export const resolvers: Resolvers = {
       }
     },
     // Add feedback comment to an answer within a round of feedback
-    addFeedbackComment: async (_, { planId, planFeedbackId, answerId, commentText}, context: MyContext): Promise<PlanFeedbackComment> => {
+    addFeedbackComment: async (_, { planId, planFeedbackId, answerId, commentText }, context: MyContext): Promise<PlanFeedbackComment> => {
       const reference = 'addFeedbackComment resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -182,7 +182,7 @@ export const resolvers: Resolvers = {
       }
     },
     //Update feedback comment for an answer within a round of feedback
-    updateFeedbackComment: async (_, { planId, planFeedbackCommentId, commentText}, context: MyContext): Promise<PlanFeedbackComment> => {
+    updateFeedbackComment: async (_, { planId, planFeedbackCommentId, commentText }, context: MyContext): Promise<PlanFeedbackComment> => {
       const reference = 'updateFeedbackComment resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -222,7 +222,7 @@ export const resolvers: Resolvers = {
       }
     },
     //Remove comment for an answer within a round of feedback
-    removeFeedbackComment: async (_, { planId, planFeedbackCommentId}, context: MyContext): Promise<PlanFeedbackComment> => {
+    removeFeedbackComment: async (_, { planId, planFeedbackCommentId }, context: MyContext): Promise<PlanFeedbackComment> => {
       const reference = 'removeFeedbackComment resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -289,4 +289,13 @@ export const resolvers: Resolvers = {
       return await PlanFeedbackComment.findByFeedbackId('Chained PlanFeedback.feedbackComments', context, parent.id)
     }
   } as PlanFeedbackResolvers,
+  PlanFeedbackComment: {
+    // Resolver to get the user who created the comment
+    user: async (parent: PlanFeedbackComment, _, context: MyContext): Promise<User> => {
+      if (parent?.createdById) {
+        return await User.findById('PlanFeedbackComment user resolver', context, parent.createdById);
+      }
+      return null;
+    },
+  }
 }

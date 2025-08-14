@@ -10,9 +10,6 @@ export const typeDefs = gql`
 
     "Get the specific answer"
     answer(projectId: Int!, answerId: Int!): Answer
-
-    "Get all of the comments associated with the answerId"
-    answerComments(projectId: Int!, answerId: Int!): [AnswerComment]
   }
 
   extend type Mutation {
@@ -54,6 +51,9 @@ export const typeDefs = gql`
 
     "The comments associated with the answer"
     comments: [AnswerComment!]
+
+    "The feedback comments associated with the answer"
+    feedbackComments: [PlanFeedbackComment!]
   }
 
   "A collection of errors related to the Answer"
@@ -85,6 +85,8 @@ export const typeDefs = gql`
     answerId: Int!
     "The comment"
     commentText: String!
+    "User who made the comment"
+    user: User
   }
 
   "A collection of errors related to the Answer Comment"

@@ -68,12 +68,14 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: PlanFeedbackCommentErrors
 
-    "The answer the comment is related to"
-    answer: Answer
+    "The answerId the comment is related to"
+    answerId: Int
     "The round of plan feedback the comment belongs to"
     PlanFeedback: PlanFeedback
     "The comment"
     commentText: String
+    "User who made the comment"
+    user: User
   }
 
   "A collection of errors related to the PlanFeedback"
