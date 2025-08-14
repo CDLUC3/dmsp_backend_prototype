@@ -16,7 +16,6 @@ import { Resolvers } from "../types";
 import {User} from "../models/User";
 import {PlanFeedbackComment} from "../models/PlanFeedbackComment";
 import {PlanFeedbackResolvers} from "../types";
-import { addVersion } from "../models/PlanVersion";
 import { getCurrentDate } from "../utils/helpers";
 
 
@@ -264,7 +263,7 @@ export const resolvers: Resolvers = {
     }
   },
 
-  PlanFeedback: <PlanFeedbackResolvers> {
+  PlanFeedback: {
     // The plan the feedback is associated with
     plan: async (parent, _, context: MyContext): Promise<Plan> => {
       if (parent?.plan?.id) {
@@ -289,5 +288,5 @@ export const resolvers: Resolvers = {
     feedbackComments: async (parent, _, context: MyContext): Promise<PlanFeedbackComment[]> => {
       return await PlanFeedbackComment.findByFeedbackId('Chained PlanFeedback.feedbackComments', context, parent.id)
     }
-  },
+  } as PlanFeedbackResolvers,
 }

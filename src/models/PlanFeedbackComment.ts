@@ -1,7 +1,6 @@
 import { MyContext } from "../context";
 import { valueIsEmpty } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
-import {PlanFeedback}  from './PlanFeedback';
 
 export class PlanFeedbackComment extends MySqlModel {
   public answerId: number;
@@ -22,10 +21,8 @@ export class PlanFeedbackComment extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    console.log("ANSWER ID", this.answerId);
-    console.log("COMMENT TEXT", this.commentText);
     if (!this.answerId) this.addError('answerId', 'Answer can\'t be blank');
-    if (valueIsEmpty(this.commentText)) this.addError('comment', 'Comment can\'t be blank');
+    if (valueIsEmpty(this.commentText)) this.addError('commentText', 'Comment can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
   }
@@ -43,7 +40,6 @@ export class PlanFeedbackComment extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
-      console.log("***THIS IS VALID");
       const newId = await PlanFeedbackComment.insert(context, PlanFeedbackComment.tableName, this, reference);
       const response = await PlanFeedbackComment.findById(reference, context, newId);
       return response;

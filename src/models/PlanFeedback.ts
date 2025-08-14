@@ -1,8 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { PlanFeedbackComment } from "./PlanFeedbackComment";
-import { removeNullAndUndefinedFromJSON } from "../utils/helpers";
-
 
 export class PlanFeedback extends MySqlModel {
   public planId: number;
@@ -48,26 +46,15 @@ export class PlanFeedback extends MySqlModel {
   async create(context: MyContext): Promise<PlanFeedback> {
     const reference = 'PlanFeedback.create';
 
-    console.log("***CREATE");
     // First make sure the record is valid
     if (await this.isValid()) {
-      const current = await PlanFeedback.findByPlanIdAndRequestedById(
-        reference,
-        context,
-        this.planId,
-        this.requestedById
-      );
 
-      // // Then make sure it doesn't already exist
-      // if (current) {
-      //   this.addError('general', 'PlanFeedback already exists');
-      // } else {
-        // My assumption is that you can have multiple rounds of requests for the same planId, so we don't need to check if it already exists
-        // Save the record and then fetch it
-        const newId = await PlanFeedback.insert(context, PlanFeedback.tableName, this, reference, ['planFeedbackComments']);
-        const response = await PlanFeedback.findById(reference, context, newId);
-        return response;
-      // }
+      // My assumption is that you can have multiple rounds of requests for the same planId, so we don't need to check if it already exists
+      // Save the record and then fetch it
+      const newId = await PlanFeedback.insert(context, PlanFeedback.tableName, this, reference, ['planFeedbackComments']);
+      const response = await PlanFeedback.findById(reference, context, newId);
+      return response;
+
     }
     // Otherwise return as-is with all the errors
     return new PlanFeedback(this);
