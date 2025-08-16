@@ -8,6 +8,7 @@ import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { PlanMember } from "../models/Member";
 import { PlanFunding } from "../models/Funding";
+import { PlanFeedback } from "../models/PlanFeedback";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
@@ -279,6 +280,13 @@ export const resolvers: Resolvers = {
     fundings: async (parent: Plan, _, context: MyContext): Promise<PlanFunding[]> => {
       if (parent?.id) {
         return await PlanFunding.findByPlanId('plan fundings resolver', context, parent.id);
+      }
+      return [];
+    },
+    // The feedback associated with the plan
+    feedback: async (parent: Plan, _, context: MyContext): Promise<PlanFeedback[]> => {
+      if (parent?.id) {
+        return await PlanFeedback.findByPlanId('plan feedback resolver', context, parent.id);
       }
       return [];
     },

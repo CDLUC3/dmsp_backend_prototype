@@ -15,8 +15,13 @@ import { hasPermissionOnProject } from "../services/projectService";
 import { Resolvers } from "../types";
 import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
-import { PlanFeedbackResolvers } from "../types";
+import { ResolversParentTypes } from "../types";
 import { getCurrentDate } from "../utils/helpers";
+
+type PlanFeedbackParent = ResolversParentTypes['PlanFeedback'] & {
+  requestedById?: number;
+  completedById?: number;
+};
 
 
 export const resolvers: Resolvers = {
@@ -39,7 +44,9 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
           if (await hasPermissionOnProject(context, project)) {
-            return await PlanFeedback.findByPlanId(reference, context, planId);
+            const temp = await PlanFeedback.findByPlanId(reference, context, planId);
+            console.log("****PLAN FEEDBACK", temp);
+            return temp;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -198,7 +205,7 @@ export const resolvers: Resolvers = {
           if (await hasPermissionOnProject(context, project)) {
             // Get referenced feedbackComment
             const feedbackComment = await PlanFeedbackComment.findById(reference, context, planFeedbackCommentId);
-            
+
             if (!feedbackComment) {
               throw NotFoundError(`Feedback comment with id ${planFeedbackCommentId} not found`);
             }
@@ -209,7 +216,7 @@ export const resolvers: Resolvers = {
               feedbackComment.commentText = commentText;
               return await feedbackComment.update(context);
             }
-                        
+
             throw ForbiddenError(`Inadequate permission to update feedback comment ${feedbackComment.id}`)
           }
         }
@@ -238,7 +245,7 @@ export const resolvers: Resolvers = {
           if (await hasPermissionOnProject(context, project)) {
             // Get referenced feedbackComment
             const feedbackComment = await PlanFeedbackComment.findById(reference, context, planFeedbackCommentId);
-            
+
             if (!feedbackComment) {
               throw NotFoundError(`Feedback comment with id ${planFeedbackCommentId} not found`);
             }
@@ -272,23 +279,23 @@ export const resolvers: Resolvers = {
       return null;
     },
     // The user id that the feedback belongs to
-    requestedBy: async (parent, _, context: MyContext): Promise<User> => {
-      if (parent?.requestedBy?.id) {
-        return await User.findById('User resolver', context, parent?.requestedBy.id);
+    requestedBy: async (parent: PlanFeedbackParent, _, context: MyContext): Promise<User> => {
+      if (parent?.requestedById) {
+        return await User.findById('User resolver', context, parent?.requestedById);
       }
       return null;
     },
     // The completed by user id that the feedback belongs to
-    completedBy: async (parent, _, context: MyContext): Promise<User> => {
-      if (parent?.completedBy?.id) {
-        return await User.findById('User resolver', context, parent?.completedBy?.id);
+    completedBy: async (parent: PlanFeedbackParent, _, context: MyContext): Promise<User> => {
+      if (parent?.completedById) {
+        return await User.findById('User resolver', context, parent?.completedById);
       }
       return null;
     },
     feedbackComments: async (parent, _, context: MyContext): Promise<PlanFeedbackComment[]> => {
       return await PlanFeedbackComment.findByFeedbackId('Chained PlanFeedback.feedbackComments', context, parent.id)
     }
-  } as PlanFeedbackResolvers,
+  },
   PlanFeedbackComment: {
     // Resolver to get the user who created the comment
     user: async (parent: PlanFeedbackComment, _, context: MyContext): Promise<User> => {

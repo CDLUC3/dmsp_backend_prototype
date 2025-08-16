@@ -1541,6 +1541,7 @@ export type PaginationType =
 /** A Data Managament Plan (DMP) */
 export type Plan = {
   __typename?: 'Plan';
+  /** Answers associated with the plan */
   answers?: Maybe<Array<Answer>>;
   /** The timestamp when the Object was created */
   created?: Maybe<Scalars['String']['output']>;
@@ -1552,6 +1553,8 @@ export type Plan = {
   errors?: Maybe<PlanErrors>;
   /** Whether or not the plan is featured on the public plans page */
   featured?: Maybe<Scalars['Boolean']['output']>;
+  /** Feedback associated with the plan */
+  feedback?: Maybe<Array<PlanFeedback>>;
   /** The funding for the plan */
   fundings?: Maybe<Array<PlanFunding>>;
   /** The unique identifer for the Object */
@@ -4804,6 +4807,7 @@ export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversP
   dmpId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['PlanErrors']>, ParentType, ContextType>;
   featured?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  feedback?: Resolver<Maybe<Array<ResolversTypes['PlanFeedback']>>, ParentType, ContextType>;
   fundings?: Resolver<Maybe<Array<ResolversTypes['PlanFunding']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   languageId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
