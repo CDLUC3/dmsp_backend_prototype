@@ -16,7 +16,8 @@ import {
   emailSubjects,
   sendEmailConfirmationNotification,
   sendProjectCollaborationEmail,
-  sendTemplateCollaborationEmail
+  sendTemplateCollaborationEmail,
+  sendProjectCollaboratorsCommentsAddedEmail
 } from "../emailService";
 import { generalConfig } from "../../config/generalConfig";
 import { emailConfig } from "../../config/emailConfig";
@@ -160,11 +161,68 @@ describe('sendEmail', () => {
     jest.spyOn(User.prototype, 'getEmail').mockResolvedValue(email);
 
     (User.findById as jest.Mock) = jest.fn().
-    mockResolvedValueOnce(user);
+      mockResolvedValueOnce(user);
     const sent = await sendProjectCollaborationEmail(context, projectName, inviterName, email, user.id);
 
     const expectedSubject = `${subjectPrefix} - ${emailSubjects.projectCollaboration}`
     const expectedMessage = emailMessages.projectCollaboration;
+
+    expect(sent).toBe(true);
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    expect(mockSendEmail).toHaveBeenCalledWith({
+      "bcc": "",
+      "cc": "",
+      "from": `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
+      "html": expectedMessage.replace('%{projectTitle}', projectName).replace('%{inviterName}', inviterName),
+      "replyTo": emailConfig.helpDeskAddress,
+      "sender": emailConfig.doNotReplyAddress,
+      "subject": expectedSubject,
+      "to": email,
+    });
+  });
+
+  it('sends the project collaborators an email when comments added', async () => {
+    jest.spyOn(logger, 'info');
+    const email = casual.email;
+    jest.spyOn(User.prototype, 'getEmail').mockResolvedValue(email);
+    const sent = await sendProjectCollaboratorsCommentsAddedEmail(context, email);
+
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.projectCollaboratorCommentsAdded}`
+    const expectedMessage = emailMessages.projectCollaboratorCommentsAdded;
+
+    expect(sent).toBe(true);
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    expect(mockSendEmail).toHaveBeenCalledWith({
+      "bcc": "",
+      "cc": "",
+      "from": `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
+      "html": expectedMessage,
+      "replyTo": emailConfig.helpDeskAddress,
+      "sender": emailConfig.doNotReplyAddress,
+      "subject": expectedSubject,
+      "to": email,
+    });
+  });
+
+  it('sends the project collaborators an email to the user\'s primary email', async () => {
+    jest.spyOn(logger, 'info');
+    const email = casual.email;
+    const user = new User({
+      id: casual.integer(1, 99),
+      givenName: casual.first_name,
+      surName: casual.last_name,
+    });
+    const projectName = casual.sentence;
+    const inviterName = `${casual.first_name} ${casual.last_name}`;
+
+    jest.spyOn(User.prototype, 'getEmail').mockResolvedValue(email);
+
+    (User.findById as jest.Mock) = jest.fn().
+      mockResolvedValueOnce(user);
+    const sent = await sendProjectCollaboratorsCommentsAddedEmail(context, email, user.id);
+
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.projectCollaboratorCommentsAdded}`
+    const expectedMessage = emailMessages.projectCollaboratorCommentsAdded;
 
     expect(sent).toBe(true);
     expect(logger.info).toHaveBeenCalledTimes(1);

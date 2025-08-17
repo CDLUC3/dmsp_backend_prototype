@@ -11,6 +11,7 @@ import {
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
+import { sendProjectCollaboratorsAddedCommentEmail } from '../services/emailService';
 import { Resolvers } from "../types";
 import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
@@ -20,6 +21,7 @@ import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { addVersion } from "../models/PlanVersion";
 import { normaliseDateTime } from "../utils/helpers";
+
 
 export const resolvers: Resolvers = {
   Query: {
@@ -169,6 +171,10 @@ export const resolvers: Resolvers = {
           }
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
+            // Send out email to project collaborators to let them know that comments were added
+            await sendProjectCollaboratorsAddedCommentEmail(context, context.token.email, context.token.id)
+
+            //Return answerComment response
             const answerComment = new AnswerComment({ answerId, commentText });
             return await answerComment.create(context);
           }
