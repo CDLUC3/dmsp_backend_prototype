@@ -12,7 +12,7 @@ import {
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
-import { sendProjectCollaboratorsAddedCommentEmail } from '../services/emailService';
+import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
 import { Resolvers } from "../types";
 import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
@@ -178,7 +178,7 @@ export const resolvers: Resolvers = {
 
           if (await hasPermissionOnProject(context, project)) {
             // Send out email to project collaborators to let them know that comments were added
-            await sendProjectCollaboratorsAddedCommentEmail(context, context.token.email, context.token.id)
+            await sendProjectCollaboratorsCommentsAddedEmail(context, context.token.email, context.token.id)
 
             const feedbackComment = new PlanFeedbackComment({ answerId, feedbackId: planFeedbackId, commentText });
             return await feedbackComment.create(context);
