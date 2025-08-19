@@ -266,13 +266,8 @@ export const resolvers: Resolvers = {
               throw NotFoundError(`Feedback comment with id ${planFeedbackCommentId} not found`);
             }
 
-            // Only user who added the comment can delete it
-            if (feedbackComment.createdById === context.token.id) {
-              // Delete the comment
-              return await feedbackComment.delete(context);
-            }
-
-            throw ForbiddenError(`Inadequate permission to delete feedback comment ${feedbackComment.id}`)
+            // Delete the comment
+            return await feedbackComment.delete(context);
 
           }
         }

@@ -1,6 +1,9 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added `PlanFeedback` and `PlanFeedbackComments` models [#243]
+- Added `projectCollaboratorCommentsAdded` to `emailService` so that we can email `project collaborators` when new comments added [#243]
+- Added comment mutations to `answers` resolver and created `feedback` resolver [#243]
 - added `publishedSection` resolver to `src/resolvers/versionedSection.ts`
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 

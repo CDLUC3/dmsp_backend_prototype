@@ -253,12 +253,7 @@ export const resolvers: Resolvers = {
               throw NotFoundError(`Answer comment ${answerCommentId} not found`);
             }
 
-            // Only user who added the comment can remove it
-            if (answerComment.createdById === context.token.id) {
-              return await answerComment.delete(context);
-            }
-
-            throw ForbiddenError(`Inadequate permission to delete answer comment ${answerComment.id}`)
+            return await answerComment.delete(context);
 
           }
         }
