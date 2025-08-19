@@ -176,6 +176,18 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Project with ID ${plan.projectId} not found`);
           }
 
+          const feedback = await PlanFeedback.findById(reference, context, planFeedbackId);
+          if (!feedback) {
+            throw NotFoundError(`Feedback with ID ${planFeedbackId} not found`);
+          }
+
+          // ADMINs and SUPERADMINS can only add comments if feedback is requested and has not yet been completed
+          if (context.token.role === 'ADMIN' || context.token.role === 'SUPERADMIN') {
+            if (!feedback.requested || (feedback.requested && feedback.completed !== null)) {
+              throw ForbiddenError(`Feedback with ID ${planFeedbackId} is not requested`);
+            }
+          }
+
           if (await hasPermissionOnProject(context, project)) {
             // Send out email to project collaborators to let them know that comments were added
             await sendProjectCollaboratorsCommentsAddedEmail(context, context.token.email, context.token.id)
