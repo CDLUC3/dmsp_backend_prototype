@@ -103,14 +103,14 @@ export class Answer extends MySqlModel {
     return null;
   }
 
-  // Fetch a Answer by it's id
+  // Fetch a Answer by its id
   static async findById(reference: string, context: MyContext, licenseId: number): Promise<Answer> {
     const sql = `SELECT * FROM ${Answer.tableName} WHERE id = ?`;
     const results = await Answer.query(context, sql, [licenseId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Answer(results[0]) : null;
   }
 
-  // Fetch a Answer by it's planId and versionedQuestionId
+  // Fetch an Answer by its planId and versionedQuestionId
   static async findByPlanIdAndVersionedQuestionId(
     reference: string,
     context: MyContext,
@@ -138,6 +138,21 @@ export class Answer extends MySqlModel {
   static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<Answer[]> {
     const sql = `SELECT * FROM answers WHERE planId = ?`;
     const results = await Answer.query(context, sql, [planId.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? results.map((ans) => new Answer(ans)) : [];
+  }
+
+  // given a list of question ids, return all filled answers, flexible to handle different groupings of question ids
+  static async findFilledAnswersByQuestionIds(
+    reference: string,
+    context: MyContext,
+    planId: number,
+    questionIds: number[]
+  ): Promise<Answer[]> {
+    if (!Array.isArray(questionIds) || questionIds.length === 0) return [];
+
+    const placeholders = questionIds.map(() => '?').join(', ');
+    const sql = `SELECT * FROM answers WHERE planId = ? AND versionedQuestionId IN (${placeholders}) AND json IS NOT NULL AND json != ''`;
+    const results = await Answer.query(context, sql, [String(planId), ...questionIds.map(String)], reference);
     return Array.isArray(results) && results.length > 0 ? results.map((ans) => new Answer(ans)) : [];
   }
 };

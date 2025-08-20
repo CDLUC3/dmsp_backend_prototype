@@ -146,8 +146,8 @@ describe('PlanSectionProgress', () => {
   let progress;
 
   const progressData = {
-    sectionId: casual.integer(1, 99),
-    sectionTitle: casual.sentence,
+    versionedSectionId: casual.integer(1, 99),
+    title: casual.sentence,
     displayOrder: casual.integer(1, 9),
     totalQuestions: casual.integer(1, 9),
     answeredQuestions: casual.integer(1, 9),
@@ -157,8 +157,8 @@ describe('PlanSectionProgress', () => {
   });
 
   it('should initialize options as expected', () => {
-    expect(progress.sectionId).toEqual(progressData.sectionId);
-    expect(progress.sectionTitle).toEqual(progressData.sectionTitle);
+    expect(progress.versionedSectionId).toEqual(progressData.versionedSectionId);
+    expect(progress.title).toEqual(progressData.title);
     expect(progress.displayOrder).toEqual(progressData.displayOrder);
     expect(progress.totalQuestions).toEqual(progressData.totalQuestions);
     expect(progress.answeredQuestions).toEqual(progressData.answeredQuestions);
@@ -191,7 +191,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
   it('should call the correct SQL query', async () => {
     localQuery.mockResolvedValueOnce([progress]);
     const planId = casual.integer(1, 99);
-    const sql = 'SELECT vs.id sectionId, vs.displayOrder, vs.name sectionTitle, ' +
+    const sql = 'SELECT vs.id versionedSectionId, vs.displayOrder, vs.name title, ' +
                   'COUNT(DISTINCT vq.id) totalQuestions, ' +
                   'COUNT(DISTINCT CASE WHEN a.json IS NOT NULL THEN vs.id END) answeredQuestions ' +
                 'FROM plans p ' +

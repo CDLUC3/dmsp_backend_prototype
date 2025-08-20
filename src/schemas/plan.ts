@@ -55,15 +55,15 @@ export const typeDefs = gql`
     "The name of the template the plan is based on"
     templateTitle: String
     "The section search results"
-    sections: [PlanSectionProgress!]
+    versionedSections: [PlanSectionProgress!]
   }
 
   "The progress the user has made within a section of the plan"
   type PlanSectionProgress {
     "The id of the Section"
-    sectionId: Int!
+    versionedSectionId: Int!
     "The title of the section"
-    sectionTitle: String!
+    title: String!
     "The display order of the section"
     displayOrder: Int!
     "The number of questions in the section"
@@ -137,7 +137,7 @@ export const typeDefs = gql`
     "Whether or not the plan is featured on the public plans page"
     featured: Boolean
     "The section search results"
-    sections: [PlanSectionProgress!]
+    versionedSections: [PlanSectionProgress!]
 
     "The members for the plan"
     members: [PlanMember!]

@@ -4,13 +4,13 @@ import { VersionedSection, VersionedSectionSearchResult } from "../models/Versio
 import { Section } from "../models/Section";
 import { Tag } from "../models/Tag";
 import { VersionedTemplate } from "../models/VersionedTemplate";
-import { ForbiddenError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
-import { hasPermissionOnSection } from "../services/sectionService";
+import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
+import { isAuthorized } from "../services/authService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -19,14 +19,7 @@ export const resolvers: Resolvers = {
       const reference = 'sectionVersions resolver';
       try {
         // Find versionedSections with matching sectionId
-        const versionedSections = await VersionedSection.findBySectionId(reference, context, sectionId);
-
-        // Check if the array has data and access the first versioned section
-        const templateId = versionedSections[0].versionedTemplateId;
-        if (await hasPermissionOnSection(context, templateId)) {
-          return versionedSections;
-        }
-        throw context?.token ? ForbiddenError() : AuthenticationError();
+        return await VersionedSection.findBySectionId(reference, context, sectionId);
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -51,6 +44,21 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+    // Get a specific VersionedSection
+    publishedSection: async (_, { versionedSectionId }, context: MyContext): Promise<VersionedSection> => {
+      const reference = 'publishedSection resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          return await VersionedSection.findById(reference, context, versionedSectionId);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    }
   },
 
   VersionedSection: {

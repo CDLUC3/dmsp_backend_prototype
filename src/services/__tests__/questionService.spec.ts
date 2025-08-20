@@ -200,26 +200,24 @@ describe('generateQuestionVersion', () => {
         templateId: casual.integer(1, 99),
         sectionId: casual.integer(1, 999),
         json: JSON.stringify({
-          type: 'filteredSearch',
+          type: 'radioButtons',
           attributes: {
-            multiple: casual.boolean
+            label: casual.words(3),
+            help: casual.sentence
           },
-          graphQL: {
-            displayFields: [
-              {
-                propertyName: casual.word,
-                label: casual.words(2),
-              },
-              {
-                propertyName: casual.word,
-                label: casual.words(2),
-              },
-            ],
-            localQueryId: casual.word,
-            responseField: casual.word
-          },
+          options: [
+            {
+              label: casual.word,
+              value: casual.integer(1, 999).toString(),
+              selected: casual.boolean
+            },
+            {
+              label: casual.word,
+              value: casual.integer(1, 999).toString(),
+              selected: casual.boolean
+            }
+          ],
           meta: {
-            multiple: casual.boolean,
             schemaVersion: CURRENT_SCHEMA_VERSION
           }
         }),

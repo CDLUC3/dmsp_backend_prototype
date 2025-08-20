@@ -2,13 +2,26 @@
 
 ### Added 
 - data migration to change collation to `utf8mb4` on all tables
+- added `publishedSection` resolver to `src/resolvers/versionedSection.ts`
+- added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
 - updated all existing data migrations and scripts to use `utf8mb4` instead of `utf8mb3`
+- updated `PlanSectionProgress` to use better terminology. Changed `sectionId` to `versionedSectionId` (what it really was) and `sectionTtitle` to `title`
+- changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
+
+### Fixed
+- When generating a new `versionedTemplate`, we need to deactivate the old ones in the db [#363]
+- Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
+- added a data migration script to repair bad option based question JSON
 
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added `findFilledAnswersByQuestionIds` which takes plan and question ids and only returns filled answers for those questions.
+- Added data migration to clean up old question JSON so it conforms with new @dmptool/types schemas
+- Added data migration to drop the old `questionTypes` table
+- Added `updatePlanFunding` to allow the update of multiple `planFunding` records [#305]
 - Added 'apiTarget' to the PopularFunders objects and query for use in the frontend
 - Added `updatePlanTitle` resolver
 - Added a `title` field to the `plans` table and then updated Plan model and schema to use it
@@ -116,6 +129,7 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated to work with the new @dmptool/types v1.2.0
 - Updated all resolvers to call `normaliseDateTime` for the date fields 
 - Replace old `ProjectMember.findPrimaryByPlanId` function with `ProjectMember.findPrimaryContact`
 - Updated the `project` resolver and schema so that `searchExternalProjects` has its own `input` type definition
@@ -228,6 +242,7 @@
 - Old DMPHubAPI datasource and renamed DMPToolAPI to DMPHubAPI since that one had all of the new auth logic
 
 ### Fixed
+- Added `publishedQuestions` to the `versionedQuestion` resolver to return all published questions with boolean for answered or not.
 - Fixed a bug where clients calling `createTemplateVersion` in the `template` resolver would get an error when trying to publish because adding data to `versionedQuestions` required that `questionTypeId` not be null. I added a data-migration script to allow null because I believe we store the question type in the `json` field now and do not require `questionTypeId` [#328]
 - Update profile was not working due to missing `createdById` and `modifiedById` values in db. Added data migration script to populate those fields [#278]
 - Fixed myTemplates query so that `TemplateSearchResult` returns the `ownerDisplayName` specified in schema.

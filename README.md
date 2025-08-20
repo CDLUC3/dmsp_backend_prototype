@@ -230,6 +230,15 @@ In the event that you want to delete all of the tables and data from your databa
 
 You may find that you receive an error that the `dataMigrations` table already exists when running the `process.sh` script. If so, restart the container and try again.
 
+#### Connecting to an AWS RDS instance
+
+The development, stage and production environments use AWS RDS to host the MySQL databases. You can use the session manager utility to setup port forwarding on your local machine so that you can connect to these MySQL databases using Sequel Ace or similar tools. To establish the port forwarding connection:
+- Log into the AWS console 
+- Navigate to the ECS page and note the name of our Fargate cluster
+- Navigate to the RDS page and note the endpoint URL for the RDS instance
+- Open a terminal window
+- run `session port [CLUSTER-NAME] [RDS-ENDPOINT]  3306:3306`
+
 ## Querying Apollo Server
 
 You can interact with the Apollo server from your external system by submitting requests to any of the server's GraphQL queries or mutations.

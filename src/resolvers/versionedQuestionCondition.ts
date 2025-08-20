@@ -1,12 +1,9 @@
 import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition";
-import { VersionedQuestion } from "../models/VersionedQuestion";
-import { Question } from "../models/Question";
-import { hasPermissionOnQuestion } from "../services/questionService";
 import { AuthenticationError, ForbiddenError, InternalServerError } from "../utils/graphQLErrors";
 import { prepareObjectForLogs } from "../logger";
-import { isAdmin } from "../services/authService";
+import { isAuthorized } from "../services/authService";
 import { GraphQLError } from "graphql";
 import { normaliseDateTime } from "../utils/helpers";
 
@@ -16,16 +13,11 @@ export const resolvers: Resolvers = {
     publishedConditionsForQuestion: async (_, { versionedQuestionId }, context: MyContext): Promise<VersionedQuestionCondition[]> => {
       const reference = 'publishedConditionsForQuestion resolver';
       try {
-        if (isAdmin(context.token)) {
-          // Grab the versionedQuestion so we can get the question, and then the templateId
-          const versionedQuestion = await VersionedQuestion.findById(reference, context, versionedQuestionId);
-          const question = await Question.findById(reference, context, versionedQuestion.questionId);
-
-          if (await hasPermissionOnQuestion(context, question.templateId)) {
-            return await VersionedQuestionCondition.findByVersionedQuestionId(reference, context, versionedQuestionId);
-          }
+        if (isAuthorized(context.token)) {
+          return await VersionedQuestionCondition.findByVersionedQuestionId(reference, context, versionedQuestionId);
         }
-        context?.token ? ForbiddenError() : AuthenticationError();
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
