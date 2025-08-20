@@ -1,10 +1,12 @@
 # DMP Tool Apollo Server Change Log
 
-### Added
+### Added 
+- data migration to change collation to `utf8mb4` on all tables
 - added `publishedSection` resolver to `src/resolvers/versionedSection.ts`
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- updated all existing data migrations and scripts to use `utf8mb4` instead of `utf8mb3`
 - updated `PlanSectionProgress` to use better terminology. Changed `sectionId` to `versionedSectionId` (what it really was) and `sectionTtitle` to `title`
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
