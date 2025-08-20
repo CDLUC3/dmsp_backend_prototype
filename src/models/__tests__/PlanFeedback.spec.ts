@@ -123,15 +123,15 @@ describe('findBy Queries', () => {
     const expectedVals = [planId.toString(), requestedById.toString()];
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, expectedVals, 'testing')
-    expect(result).toEqual(planFeedback);
+    expect(result).toEqual([planFeedback]);
   });
 
-  it('findByPlanIdAndRequestedById should return null if it finds no records', async () => {
+  it('findByPlanIdAndRequestedById should return empty array if it finds no records', async () => {
     localQuery.mockResolvedValueOnce([]);
     const planId = casual.integer(1, 9999);
     const requestedById = casual.integer(1, 9999);
     const result = await PlanFeedback.findByPlanIdAndRequestedById('testing', context, planId, requestedById);
-    expect(result).toEqual(null);
+    expect(result).toEqual([]);
   });
 
   it('findByPlanId should call query with correct params and return the objects', async () => {

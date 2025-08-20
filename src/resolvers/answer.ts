@@ -17,6 +17,7 @@ import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
+import { ProjectCollaborator } from "../models/Collaborator";
 import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { addVersion } from "../models/PlanVersion";
@@ -172,7 +173,12 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
             // Send out email to project collaborators to let them know that comments were added
-            await sendProjectCollaboratorsCommentsAddedEmail(context, context.token.email, context.token.id)
+            // Get project collaborators emails, minus the user's own email
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+            const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
+
+            // Send emails to
+            await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails);
 
             //Return answerComment response
             const answerComment = new AnswerComment({ answerId, commentText });

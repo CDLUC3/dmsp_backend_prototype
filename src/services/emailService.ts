@@ -179,29 +179,25 @@ export const sendProjectCollaborationEmail = async (
 
 export const sendProjectCollaboratorsCommentsAddedEmail = async (
   context: MyContext,
-  email: string,
-  userId?: number,
+  collaboratorEmails: string[],
 ): Promise<boolean> => {
-  let toAddress = email;
+  if (collaboratorEmails.length === 0) {
+    return false;
+  };
+
   const message = emailMessages.projectCollaboratorCommentsAdded;
 
-  if (userId) {
-    const user = await User.findById('sendProjectCollaborationEmail', context, userId);
-    // Bail out if the user has asked us not to send these notifications
-    if (!user.notify_on_template_shared) {
-      return false;
-    }
-    // Use the user's primary email address, regardless of what was provided
-    toAddress = await user.getEmail(context);
+  // Send each collaborator, minus the user, their own email
+  for (const email of collaboratorEmails) {
+    await sendEmail(
+      context,
+      'ProjectCommentsAdded',
+      [email],
+      [],
+      [],
+      emailSubjects.projectCollaboratorCommentsAdded,
+      message,
+    );
   }
-
-  return await sendEmail(
-    context,
-    'ProjectCommentsAdded',
-    [toAddress],
-    [],
-    [],
-    emailSubjects.projectCollaboratorCommentsAdded,
-    message,
-  );
+  return true;
 }

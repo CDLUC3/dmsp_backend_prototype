@@ -15,6 +15,7 @@ import { hasPermissionOnProject } from "../services/projectService";
 import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
 import { Resolvers } from "../types";
 import { User } from "../models/User";
+import { ProjectCollaborator } from "../models/Collaborator";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { ResolversParentTypes } from "../types";
 import { getCurrentDate } from "../utils/helpers";
@@ -45,9 +46,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
           if (await hasPermissionOnProject(context, project)) {
-            const temp = await PlanFeedback.findByPlanId(reference, context, planId);
-            console.log("****PLAN FEEDBACK", temp);
-            return temp;
+            return await PlanFeedback.findByPlanId(reference, context, planId);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -139,13 +138,13 @@ export const resolvers: Resolvers = {
           }
 
           if (await hasPermissionOnProject(context, project)) {
-            const feedbackComment = await PlanFeedback.findById(reference, context, planFeedbackId);
+            const feedback = await PlanFeedback.findById(reference, context, planFeedbackId);
 
             const newFeedbackComment = new PlanFeedback({
-              id: feedbackComment.id,
-              planId: feedbackComment.planId,
-              requested: feedbackComment.requested,
-              requestedById: feedbackComment.requestedById,
+              id: feedback.id,
+              planId: feedback.planId,
+              requested: feedback.requested,
+              requestedById: feedback.requestedById,
               completedById: context.token.id,
               completed: getCurrentDate(),
               summaryText: summaryText
@@ -190,7 +189,11 @@ export const resolvers: Resolvers = {
 
           if (await hasPermissionOnProject(context, project)) {
             // Send out email to project collaborators to let them know that comments were added
-            await sendProjectCollaboratorsCommentsAddedEmail(context, context.token.email, context.token.id)
+            // Get project collaborators emails, minus the user's own email
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+            const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
+
+            await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails)
 
             const feedbackComment = new PlanFeedbackComment({ answerId, feedbackId: planFeedbackId, commentText });
             return await feedbackComment.create(context);

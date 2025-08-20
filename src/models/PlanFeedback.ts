@@ -64,6 +64,7 @@ export class PlanFeedback extends MySqlModel {
   async update(context: MyContext, noTouch = false): Promise<PlanFeedback> {
     if (await this.isValid()) {
       if (this.id) {
+        this.prepForSave();
         await PlanFeedback.update(context, PlanFeedback.tableName, this, 'PlanFeedback.update', ['planFeedbackComments'], noTouch);
         return await PlanFeedback.findById('PlanFeedback.update', context, this.id);
       }
@@ -106,10 +107,10 @@ export class PlanFeedback extends MySqlModel {
     context: MyContext,
     planId: number,
     requestedById: number
-  ): Promise<PlanFeedback> {
+  ): Promise<PlanFeedback[]> {
     const sql = `SELECT * FROM ${PlanFeedback.tableName} WHERE planId = ? AND requestedById = ?`;
     const results = await PlanFeedback.query(context, sql, [planId.toString(), requestedById.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? new PlanFeedback(results[0]) : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((ans) => new PlanFeedback(ans)) : [];
   }
 
   // Fetch all of the feedback for a plan

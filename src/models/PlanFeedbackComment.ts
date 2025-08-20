@@ -39,6 +39,7 @@ export class PlanFeedbackComment extends MySqlModel {
 
     // First make sure the record is valid
     if (await this.isValid()) {
+      this.prepForSave();
       // Save the record and then fetch it
       const newId = await PlanFeedbackComment.insert(context, PlanFeedbackComment.tableName, this, reference);
       const response = await PlanFeedbackComment.findById(reference, context, newId);
@@ -52,6 +53,7 @@ export class PlanFeedbackComment extends MySqlModel {
   async update(context: MyContext, noTouch = false): Promise<PlanFeedbackComment> {
     if (await this.isValid()) {
       if (this.id) {
+        this.prepForSave();
         await PlanFeedbackComment.update(context, PlanFeedbackComment.tableName, this, 'PlanFeedbackComment.update', [], noTouch);
         return await PlanFeedbackComment.findById('PlanFeedbackComment.update', context, this.id);
       }
