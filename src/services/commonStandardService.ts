@@ -518,8 +518,8 @@ export const loadNarrativeTemplateInfo = async (
 
     const question = section.questions.find((q) => q.questionId === row.questionId);
     if (!question) {
-      const answerJSON = row.answerJSON ? JSON.parse(row.answerJSON) : null;
-      const answer = Array.isArray(answerJSON?.answer) ? answerJSON.answer.join(', ') : answerJSON?.answer;
+      const answerJSON = row.answerJSON?.answer ? row.answerJSON?.answer : null;
+      const answer = Array.isArray(answerJSON) ? answerJSON.join(', ') : answerJSON;
 
       // Its a new question and answer so add it to the list
       section.questions.push({

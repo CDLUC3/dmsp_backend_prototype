@@ -87,7 +87,7 @@ const mockNarrativeResult = [
     questionText: 'Question 1',
     questionOrder: 1,
     answerId: 1,
-    answerJSON: '{"type": "text", "answer": "Answer 1"}',
+    answerJSON: { type: "text", answer: "Answer 1" },
   },
   {
     templateId: 1,
@@ -101,7 +101,7 @@ const mockNarrativeResult = [
     questionText: 'Question 2',
     questionOrder: 2,
     answerId: 2,
-    answerJSON: '{"type": "checkBoxes", "answer": ["a","b"]}',
+    answerJSON: { type: "checkBoxes", answer: ["a","b"] },
   },
   {
     templateId: 1,
@@ -115,7 +115,7 @@ const mockNarrativeResult = [
     questionText: 'Question 3',
     questionOrder: 1,
     answerId: 3,
-    answerJSON: '{"type": "textArea", "answer": "<p>Answer 3</p>"}',
+    answerJSON: { type: "textArea", answer: "<p>Answer 3</p>" },
   }
 ];
 
