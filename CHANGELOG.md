@@ -11,6 +11,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed an issue causing the DMP version to not include sections/questions in the narrative if they had not been answered
 - When generating a new `versionedTemplate`, we need to deactivate the old ones in the db [#363]
 - Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
 - added a data migration script to repair bad option based question JSON
