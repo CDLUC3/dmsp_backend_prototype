@@ -1,4 +1,8 @@
-export type PaginationOptions = PaginationOptionsForOffsets | PaginationOptionsForCursors;
+
+export interface TemplateFilterOptions {
+  bestPractice?: boolean;        // Only return records where bestPractice = 1 if present
+  selectOwnerURIs?: string[];    // Only return records with the specified ownerURIs
+}
 
 export enum PaginationType {
   OFFSET = 'OFFSET', // Standard pagination using offsets (first, next, previous, last)
@@ -34,6 +38,8 @@ export interface PaginationOptionsForCursors {
   sortDir?: string;             // The order to sort by (must be 'ASC' or 'DESC')
 }
 
+export type PaginationOptions = PaginationOptionsForOffsets | PaginationOptionsForCursors;
+
 // The results of a query that supports pagination.
 export interface PaginatedQueryResults<T> {
   items: T[],
@@ -45,3 +51,5 @@ export interface PaginatedQueryResults<T> {
   hasPreviousPage?: boolean,      // Whether or not there is a previous page (offset based pagination only)
   availableSortFields?: string[], // The available sort fields (offset based pagination only)
 }
+
+export type TemplateQueryOptions = TemplateFilterOptions & PaginationOptions;

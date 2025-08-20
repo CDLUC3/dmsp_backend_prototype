@@ -177,7 +177,7 @@ describe('MySqlModel abstract class', () => {
       const countField = 'id';
       const values = ['value'];
       const reference = 'Testing';
-      const mockResponse = [{ total: 42 }];
+      const mockResponse = [{ total: 4 }, { total: 3 }, { total: 4 }];
 
       localQuery.mockResolvedValueOnce(mockResponse);
 
@@ -198,7 +198,7 @@ describe('MySqlModel abstract class', () => {
         values,
         reference
       );
-      expect(result).toEqual(42);
+      expect(result).toEqual(3);
     });
 
     it('returns 0 when the query returns an empty array', async () => {
@@ -268,7 +268,7 @@ describe('MySqlModel abstract class', () => {
       const countField = 't1.id';
       const values = ['value'];
       const reference = 'Testing';
-      const mockResponse = [{ total: 10 }];
+      const mockResponse = [{ total: 10 }, { total: 3 }, { total: 5 }];
 
       localQuery.mockResolvedValueOnce(mockResponse);
 
@@ -289,7 +289,7 @@ describe('MySqlModel abstract class', () => {
         values,
         reference
       );
-      expect(result).toEqual(10);
+      expect(result).toEqual(3);
     });
   });
 });
