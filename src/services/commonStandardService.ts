@@ -230,7 +230,7 @@ const planNarrativeToDMPCommonStandard = (narrative): DMPCommonStandardNarrative
         question_order: question?.questionOrder,
 
         answer_id: question?.answerId,
-        answer_text: question?.answerText,
+        answer_json: question?.answerJSON,
       })) : [],
     })) : [],
   };
@@ -389,7 +389,7 @@ interface LoadNarrativeQuestionResult {
   questionText: string;
   questionOrder: number;
   answerId: number;
-  answerText: string;
+  answerJSON: string;
 }
 
 // Functions to fetch all of the data necessary to build the DMP
@@ -518,16 +518,13 @@ export const loadNarrativeTemplateInfo = async (
 
     const question = section.questions.find((q) => q.questionId === row.questionId);
     if (!question) {
-      const answerJSON = row.answerJSON?.answer ? row.answerJSON?.answer : null;
-      const answer = Array.isArray(answerJSON) ? answerJSON.join(', ') : answerJSON;
-
       // Its a new question and answer so add it to the list
       section.questions.push({
         questionId: row.questionId,
         questionText: row.questionText,
         questionOrder: row.questionOrder,
         answerId: row.answerId,
-        answerText: answer ?? '',
+        answerJSON: row.answerJSON,
       });
     }
     return acc;
