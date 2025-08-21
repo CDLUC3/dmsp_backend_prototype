@@ -1,6 +1,5 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { PlanFeedbackComment } from "./PlanFeedbackComment";
 
 export class PlanFeedback extends MySqlModel {
   public planId: number;
@@ -9,7 +8,6 @@ export class PlanFeedback extends MySqlModel {
   public completed?: string; //Optional - won't exist initially when request is made
   public completedById?: number; //Optional - won't exist initially when request is made
   public summaryText?: string; //Optional - won't exist initially when request is made
-  public planFeedbackComments?: PlanFeedbackComment[];
 
   private static tableName = 'feedback';
 
@@ -21,7 +19,6 @@ export class PlanFeedback extends MySqlModel {
     this.requestedById = options.requestedById;
     this.completed = options.completed;
     this.completedById = options.completedById;
-    this.planFeedbackComments = options.planFeedbackComments;
     this.summaryText = options.summaryText;
   }
 
@@ -51,7 +48,7 @@ export class PlanFeedback extends MySqlModel {
 
       // My assumption is that you can have multiple rounds of requests for the same planId, so we don't need to check if it already exists
       // Save the record and then fetch it
-      const newId = await PlanFeedback.insert(context, PlanFeedback.tableName, this, reference, ['planFeedbackComments']);
+      const newId = await PlanFeedback.insert(context, PlanFeedback.tableName, this, reference);
       const response = await PlanFeedback.findById(reference, context, newId);
       return response;
 
@@ -65,7 +62,7 @@ export class PlanFeedback extends MySqlModel {
     if (await this.isValid()) {
       if (this.id) {
         this.prepForSave();
-        await PlanFeedback.update(context, PlanFeedback.tableName, this, 'PlanFeedback.update', ['planFeedbackComments'], noTouch);
+        await PlanFeedback.update(context, PlanFeedback.tableName, this, 'PlanFeedback.update', [], noTouch);
         return await PlanFeedback.findById('PlanFeedback.update', context, this.id);
       }
       // This feedback has never been saved before so we cannot update it!
