@@ -1,7 +1,5 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
-import { Plan } from "../models/Plan";
-import { PlanFeedback } from "../models/PlanFeedback";
 import { prepareObjectForLogs } from "../logger";
 import {
   AuthenticationError,
@@ -9,15 +7,20 @@ import {
   InternalServerError,
   NotFoundError
 } from "../utils/graphQLErrors";
-import { Project } from "../models/Project";
+
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
-import { Resolvers } from "../types";
+import { isAdmin, isSuperAdmin } from "../services/authService";
+import { Project } from "../models/Project";
+import { Plan } from "../models/Plan";
+import { PlanFeedback } from "../models/PlanFeedback";
 import { User } from "../models/User";
 import { ProjectCollaborator } from "../models/Collaborator";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
+import { VersionedTemplate } from "../models/VersionedTemplate";
 import { ResolversParentTypes } from "../types";
+import { Resolvers } from "../types";
 import { getCurrentDate } from "../utils/helpers";
 
 type PlanFeedbackParent = ResolversParentTypes['PlanFeedback'] & {
@@ -32,21 +35,29 @@ export const resolvers: Resolvers = {
     planFeedback: async (_, { planId }, context: MyContext): Promise<PlanFeedback[]> => {
       const reference = 'feedback resolver';
       try {
-        if (isAuthorized(context.token)) {
+        // if the user is an admin
+        if (isAdmin(context.token)) {
           // Check to see if planId exists in our records
           const plan = await Plan.findById(reference, context, planId);
           if (!planId) {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
 
-          // Check that user has permissions to access feedback
-          const projectId = plan.projectId;
-          const project = await Project.findById(reference, context, projectId);
-          if (!project) {
-            throw NotFoundError(`Project with ID ${projectId} not found`);
-          }
-          if (await hasPermissionOnProject(context, project)) {
-            return await PlanFeedback.findByPlanId(reference, context, planId);
+          // Get versionedTemplate associated with the plan
+          const versionedTemplate = await VersionedTemplate.findById(reference, context, plan.versionedTemplateId);
+
+          // If the user is a superAdmin or an admin for the same affiliation
+          if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.affiliationId === versionedTemplate.ownerId)) {
+
+            // Check that user has permissions to access feedback
+            const projectId = plan.projectId;
+            const project = await Project.findById(reference, context, projectId);
+            if (!project) {
+              throw NotFoundError(`Project with ID ${projectId} not found`);
+            }
+            if (await hasPermissionOnProject(context, project)) {
+              return await PlanFeedback.findByPlanId(reference, context, planId);
+            }
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -165,39 +176,46 @@ export const resolvers: Resolvers = {
     addFeedbackComment: async (_, { planId, planFeedbackId, answerId, commentText }, context: MyContext): Promise<PlanFeedbackComment> => {
       const reference = 'addFeedbackComment resolver';
       try {
-        if (isAuthorized(context.token)) {
+        // if the user is an admin
+        if (isAdmin(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           if (!plan) {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (!project) {
-            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
-          }
 
-          const feedback = await PlanFeedback.findById(reference, context, planFeedbackId);
-          if (!feedback) {
-            throw NotFoundError(`Feedback with ID ${planFeedbackId} not found`);
-          }
+          // Get versionedTemplate associated with the plan
+          const versionedTemplate = await VersionedTemplate.findById(reference, context, plan.versionedTemplateId);
 
-          // ADMINs and SUPERADMINS can only add comments if feedback is requested and has not yet been completed
-          if (context.token.role === 'ADMIN' || context.token.role === 'SUPERADMIN') {
+          // If the user is a superAdmin or an admin for the same affiliation
+          if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.affiliationId === versionedTemplate.ownerId)) {
+
+            const project = await Project.findById(reference, context, plan.projectId);
+            if (!project) {
+              throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+            }
+
+            const feedback = await PlanFeedback.findById(reference, context, planFeedbackId);
+            if (!feedback) {
+              throw NotFoundError(`Feedback with ID ${planFeedbackId} not found`);
+            }
+
+            // ADMINs and SUPERADMINS can only add comments if feedback is requested and has not yet been completed
             if (!feedback.requested || (feedback.requested && feedback.completed !== null)) {
               throw ForbiddenError(`Feedback with ID ${planFeedbackId} is not requested`);
             }
-          }
 
-          if (await hasPermissionOnProject(context, project)) {
-            // Send out email to project collaborators to let them know that comments were added
-            // Get project collaborators emails, minus the user's own email
-            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
-            // Filter out the user's own email if it exists in the collaborators list
-            const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
+            if (await hasPermissionOnProject(context, project)) {
+              // Send out email to project collaborators to let them know that comments were added
+              // Get project collaborators emails, minus the user's own email
+              const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+              // Filter out the user's own email if it exists in the collaborators list
+              const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
 
-            await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails)
+              await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails)
 
-            const feedbackComment = new PlanFeedbackComment({ answerId, feedbackId: planFeedbackId, commentText });
-            return await feedbackComment.create(context);
+              const feedbackComment = new PlanFeedbackComment({ answerId, feedbackId: planFeedbackId, commentText });
+              return await feedbackComment.create(context);
+            }
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -212,17 +230,24 @@ export const resolvers: Resolvers = {
     updateFeedbackComment: async (_, { planId, planFeedbackCommentId, commentText }, context: MyContext): Promise<PlanFeedbackComment> => {
       const reference = 'updateFeedbackComment resolver';
       try {
-        if (isAuthorized(context.token)) {
+        // if the user is an admin
+        if (isAdmin(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
           if (!plan) {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (!project) {
-            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
-          }
 
-          if (await hasPermissionOnProject(context, project)) {
+          // Get versionedTemplate associated with the plan
+          const versionedTemplate = await VersionedTemplate.findById(reference, context, plan.versionedTemplateId);
+
+          // If the user is a superAdmin or an admin for the same affiliation
+          if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.affiliationId === versionedTemplate.ownerId)) {
+
+            const project = await Project.findById(reference, context, plan.projectId);
+            if (!project) {
+              throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+            }
+
             // Get referenced feedbackComment
             const feedbackComment = await PlanFeedbackComment.findById(reference, context, planFeedbackCommentId);
 
@@ -236,8 +261,6 @@ export const resolvers: Resolvers = {
               feedbackComment.commentText = commentText;
               return await feedbackComment.update(context);
             }
-
-            throw ForbiddenError(`Inadequate permission to update feedback comment ${feedbackComment.id}`)
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
