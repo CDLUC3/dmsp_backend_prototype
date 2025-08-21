@@ -116,6 +116,22 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Project with ID ${plan.projectId} not found`);
           }
 
+          // Get existing feedback for the given planId
+          const existingFeedback = await PlanFeedback.findByPlanId(
+            reference,
+            context,
+            planId,
+          );
+
+          // If there is already an active feedback round, then do not allow creation of a new one
+          const hasOpenFeedback = existingFeedback.some(
+            (fb) => fb.completed === null
+          );
+
+          if (hasOpenFeedback) {
+            throw ForbiddenError(`There is already feedback in progress for plan ${planId}`);
+          }
+
           if (await hasPermissionOnProject(context, project)) {
             const feedbackComment = new PlanFeedback({
               planId,
@@ -204,18 +220,17 @@ export const resolvers: Resolvers = {
               throw ForbiddenError(`Feedback with ID ${planFeedbackId} is not requested`);
             }
 
-            if (await hasPermissionOnProject(context, project)) {
-              // Send out email to project collaborators to let them know that comments were added
-              // Get project collaborators emails, minus the user's own email
-              const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
-              // Filter out the user's own email if it exists in the collaborators list
-              const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
+            // Send out email to project collaborators to let them know that comments were added
+            // Get project collaborators emails, minus the user's own email
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+            // Filter out the user's own email if it exists in the collaborators list
+            const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
 
-              await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails)
+            await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails)
 
-              const feedbackComment = new PlanFeedbackComment({ answerId, feedbackId: planFeedbackId, commentText });
-              return await feedbackComment.create(context);
-            }
+            const feedbackComment = new PlanFeedbackComment({ answerId, feedbackId: planFeedbackId, commentText });
+            return await feedbackComment.create(context);
+
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
