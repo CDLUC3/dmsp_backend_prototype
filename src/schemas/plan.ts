@@ -149,7 +149,11 @@ export const typeDefs = gql`
     "Prior versions of the plan"
     versions: [PlanVersion!]
 
+    "Answers associated with the plan"
     answers: [Answer!]
+
+    "Feedback associated with the plan"
+    feedback: [PlanFeedback!]
   }
 
   "The error messages for the plan"
