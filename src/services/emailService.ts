@@ -187,7 +187,7 @@ export const sendProjectCollaboratorsCommentsAddedEmail = async (
 
   const message = emailMessages.projectCollaboratorCommentsAdded;
 
-  // Send each collaborator, minus the user, their own email
+  // Send each collaborator their own email
   for (const email of collaboratorEmails) {
     await sendEmail(
       context,

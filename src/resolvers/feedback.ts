@@ -140,7 +140,7 @@ export const resolvers: Resolvers = {
           if (await hasPermissionOnProject(context, project)) {
             const feedback = await PlanFeedback.findById(reference, context, planFeedbackId);
 
-            const newFeedbackComment = new PlanFeedback({
+            const newFeedback = new PlanFeedback({
               id: feedback.id,
               planId: feedback.planId,
               requested: feedback.requested,
@@ -150,7 +150,7 @@ export const resolvers: Resolvers = {
               summaryText: summaryText
             });
 
-            return await newFeedbackComment.update(context);
+            return await newFeedback.update(context);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -191,6 +191,7 @@ export const resolvers: Resolvers = {
             // Send out email to project collaborators to let them know that comments were added
             // Get project collaborators emails, minus the user's own email
             const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+            // Filter out the user's own email if it exists in the collaborators list
             const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
 
             await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails)
@@ -269,8 +270,13 @@ export const resolvers: Resolvers = {
               throw NotFoundError(`Feedback comment with id ${planFeedbackCommentId} not found`);
             }
 
-            // Delete the comment
-            return await feedbackComment.delete(context);
+            // Only user who added the comment can delete it
+            if (feedbackComment.createdById === context.token.id) {
+              // Delete the comment
+              return await feedbackComment.delete(context);
+            }
+
+            throw ForbiddenError(`Inadequate permission to delete feedback comment ${feedbackComment.id}`)
 
           }
         }

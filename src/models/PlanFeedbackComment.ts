@@ -21,7 +21,7 @@ export class PlanFeedbackComment extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!this.answerId) this.addError('answerId', 'Answer can\'t be blank');
+    if (!this.feedbackId) this.addError('feedbackId', 'Feedback can\'t be blank');
     if (valueIsEmpty(this.commentText)) this.addError('commentText', 'Comment can\'t be blank');
 
     return Object.keys(this.errors).length === 0;

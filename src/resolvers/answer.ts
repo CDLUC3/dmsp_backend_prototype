@@ -175,6 +175,7 @@ export const resolvers: Resolvers = {
             // Send out email to project collaborators to let them know that comments were added
             // Get project collaborators emails, minus the user's own email
             const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+            // Filter out the user's own email if it exists in the collaborators list
             const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
 
             // Send emails to
@@ -258,8 +259,12 @@ export const resolvers: Resolvers = {
             if (!answerComment) {
               throw NotFoundError(`Answer comment ${answerCommentId} not found`);
             }
+            // Only user who created plan can remove comments
+            if (answerComment.createdById === context.token.id) {
+              return await answerComment.delete(context);
+            }
 
-            return await answerComment.delete(context);
+            throw ForbiddenError(`Inadequate permission to delete answer comment ${answerComment.id}`)
 
           }
         }

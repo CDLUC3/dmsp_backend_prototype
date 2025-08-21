@@ -39,11 +39,11 @@ describe('PlanFeedbackComment', () => {
     expect(await planFeedbackComment.isValid()).toBe(true);
   });
 
-  it('should return false when calling isValid if the answerId field is missing', async () => {
-    planFeedbackComment.answerId = null;
+  it('should return false when calling isValid if the feedbackId field is missing', async () => {
+    planFeedbackComment.feedbackId = null;
     expect(await planFeedbackComment.isValid()).toBe(false);
     expect(Object.keys(planFeedbackComment.errors).length).toBe(1);
-    expect(planFeedbackComment.errors['answerId']).toBeTruthy();
+    expect(planFeedbackComment.errors['feedbackId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the commentText field is missing', async () => {
@@ -68,7 +68,7 @@ describe('findBy Queries', () => {
     context = await buildMockContextWithToken(logger);
 
     planFeedbackComment = new PlanFeedbackComment({
-      id: casual.integer(1,9999),
+      id: casual.integer(1, 9999),
       answerId: casual.integer(1, 9999),
       feebackId: casual.integer(1, 9999),
       commentText: casual.sentences(3),
@@ -141,7 +141,7 @@ describe('update', () => {
     (PlanFeedbackComment.update as jest.Mock) = updateQuery;
 
     planFeedbackComment = new PlanFeedbackComment({
-      id: casual.integer(1,9999),
+      id: casual.integer(1, 9999),
       answerId: casual.integer(1, 9999),
       feebackId: casual.integer(1, 9999),
       commentText: casual.sentences(3),
@@ -198,7 +198,7 @@ describe('create', () => {
     (PlanFeedbackComment.insert as jest.Mock) = insertQuery;
 
     planFeedbackComment = new PlanFeedbackComment({
-      id: casual.integer(1,9999),
+      id: casual.integer(1, 9999),
       answerId: 20,
       feebackId: 10,
       commentText: "Test comment"
@@ -220,16 +220,16 @@ describe('create', () => {
   });
 
   it('returns the PlanFeedbackComment with errors if it is invalid', async () => {
-    planFeedbackComment.answerId = undefined;
+    planFeedbackComment.feedbackId = undefined;
     const response = await planFeedbackComment.create(context);
-    expect(response.errors['answerId']).toBe('Answer can\'t be blank');
+    expect(response.errors['feedbackId']).toBe('Feedback can\'t be blank');
   });
 
   it('returns the newly added PlanFeedbackComment', async () => {
     const mockFindById = jest.fn();
     (PlanFeedbackComment.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(planFeedbackComment);
-
+    planFeedbackComment.feedbackId = 20;
     const result = await planFeedbackComment.create(context);
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
@@ -243,7 +243,7 @@ describe('delete', () => {
 
   beforeEach(() => {
     planFeedbackComment = new PlanFeedbackComment({
-      id: casual.integer(1,9999),
+      id: casual.integer(1, 9999),
       answerId: casual.integer(1, 9999),
       feebackId: casual.integer(1, 9999),
       commentText: casual.sentences(3),
