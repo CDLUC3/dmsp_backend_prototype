@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
-### Added 
+### Added
+- Added `ProjectFilterOptions` as a possible input for the `myProjects` resolver
 - Added `PlanFeedback` and `PlanFeedbackComments` models [#243]
 - Added `projectCollaboratorCommentsAdded` to `emailService` so that we can email `project collaborators` when new comments added [#243]
 - Added comment mutations to `answers` resolver and created `feedback` resolver [#243]
@@ -9,11 +10,13 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated the `ProjectSearchResult.search` query to provide plan counts by status and filter by status options
 - updated all existing data migrations and scripts to use `utf8mb4` instead of `utf8mb3`
 - updated `PlanSectionProgress` to use better terminology. Changed `sectionId` to `versionedSectionId` (what it really was) and `sectionTtitle` to `title`
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed an issue with the null/undefined check on model queries that use 'searchTerm'
 - When generating a new `versionedTemplate`, we need to deactivate the old ones in the db [#363]
 - Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
 - added a data migration script to repair bad option based question JSON
