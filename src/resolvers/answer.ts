@@ -2,17 +2,27 @@ import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
 import { Plan } from "../models/Plan";
 import { prepareObjectForLogs } from "../logger";
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
+import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
 import { Resolvers } from "../types";
 import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
+import { ProjectCollaborator } from "../models/Collaborator";
+import { User } from "../models/User";
+import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { addVersion } from "../models/PlanVersion";
 import { normaliseDateTime } from "../utils/helpers";
+
 
 export const resolvers: Resolvers = {
   Query: {
@@ -40,7 +50,6 @@ export const resolvers: Resolvers = {
 
     // return the answer for the given versionedQuestionId
     answerByVersionedQuestionId: async (_, { projectId, planId, versionedQuestionId }, context: MyContext): Promise<Answer> => {
-
       const reference = 'planSectionAnswers resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -148,6 +157,125 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+    // Add answer comment
+    addAnswerComment: async (_, { answerId, commentText }, context: MyContext): Promise<AnswerComment> => {
+      const reference = 'addAnswerComment resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const answer = await Answer.findById(reference, context, answerId);
+          if (!answer) {
+            throw NotFoundError(`Answer with ID ${answerId} not found`);
+          }
+          const plan = await Plan.findById(reference, context, answer.planId);
+          if (!plan) {
+            throw NotFoundError(`Plan ${answer.planId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
+            // Send out email to project collaborators to let them know that comments were added
+            // Get project collaborators emails, minus the user's own email
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+            // Filter out the user's own email if it exists in the collaborators list
+            const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
+
+            // Send emails to
+            await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails);
+
+            //Return answerComment response
+            const answerComment = new AnswerComment({ answerId, commentText });
+            return await answerComment.create(context);
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+    // Update answer comment
+    updateAnswerComment: async (_, { answerCommentId, answerId, commentText }, context: MyContext): Promise<AnswerComment> => {
+      const reference = 'updateAnswerComment resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const answer = await Answer.findById(reference, context, answerId);
+
+          if (!answer) {
+            throw NotFoundError(`Answer with ID ${answerId} not found`);
+          }
+
+          const plan = await Plan.findById(reference, context, answer.planId);
+          if (!plan) {
+            throw NotFoundError(`Plan ${answer.planId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+
+          if (await hasPermissionOnProject(context, project)) {
+            const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
+
+            if (!answerComment) {
+              throw NotFoundError(`Answer comment ${answerCommentId} not found`);
+            }
+
+            // Only user who added the comment can update it
+            if (answerComment.createdById === context.token.id) {
+              answerComment.commentText = commentText;
+              return await answerComment.update(context);
+            }
+
+            throw ForbiddenError(`Inadequate permission to update answer comment ${answerComment.id}`)
+
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+    // Remove answer comment
+    removeAnswerComment: async (_, { answerCommentId, answerId }, context: MyContext): Promise<AnswerComment> => {
+      const reference = 'removeAnswerComment resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const answer = await Answer.findById(reference, context, answerId);
+
+          if (!answer) {
+            throw NotFoundError(`Answer with ID ${answerId} not found`);
+          }
+
+          const plan = await Plan.findById(reference, context, answer.planId);
+          if (!plan) {
+            throw NotFoundError(`Plan ${answer.planId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+
+          if (await hasPermissionOnProject(context, project)) {
+            const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
+
+            if (!answerComment) {
+              throw NotFoundError(`Answer comment ${answerCommentId} not found`);
+            }
+            // Only user who created plan can remove comments
+            if (answerComment.createdById === context.token.id) {
+              return await answerComment.delete(context);
+            }
+
+            throw ForbiddenError(`Inadequate permission to delete answer comment ${answerComment.id}`)
+
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
   },
 
   Answer: {
@@ -179,6 +307,13 @@ export const resolvers: Resolvers = {
       }
       return [];
     },
+    //Feedback comments associated with answer
+    feedbackComments: async (parent: PlanFeedbackComment, _, context: MyContext): Promise<PlanFeedbackComment[]> => {
+      if (parent?.id) {
+        return await PlanFeedbackComment.findByAnswerId('Answer feedbackComemnts resolver', context, parent.id);
+      }
+      return [];
+    },
     created: (parent: Answer) => {
       return normaliseDateTime(parent.created);
     },
@@ -186,4 +321,13 @@ export const resolvers: Resolvers = {
       return normaliseDateTime(parent.modified);
     }
   },
+  AnswerComment: {
+    // Resolver to get the user who created the comment
+    user: async (parent: AnswerComment, _, context: MyContext): Promise<User> => {
+      if (parent?.createdById) {
+        return await User.findById('AnswerComment user resolver', context, parent.createdById);
+      }
+      return null;
+    },
+  }
 }
