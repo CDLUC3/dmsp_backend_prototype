@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { JWTAccessToken } from "../services/tokenService";
+import { JWTAccessToken, JWTAccessTokenDMPId } from "../services/tokenService";
 import { MyContext } from "../context";
 import { Authorizer, DMPHubAPI } from "../datasources/dmphubAPI";
 import { MySQLConnection } from "../datasources/mysql";
@@ -96,7 +96,8 @@ export const mockUser = (
 // Generate a mock JWToken
 export const mockToken = async (
   user: User = mockUser(),
-  context?: MyContext
+  context?: MyContext,
+  mockTokenDmps: JWTAccessTokenDMPId[] = []
 ): Promise<JWTAccessToken> => {
   const email = await user.getEmail(context);
   return {
@@ -107,6 +108,7 @@ export const mockToken = async (
     affiliationId: user.affiliationId,
     role: user.role,
     languageId: defaultLanguageId,
+    dmpIds: mockTokenDmps,
     jti: casual.integer(1, 999999).toString(),
     expiresIn: casual.integer(1, 999999999),
   }
@@ -129,14 +131,19 @@ export function buildContext(logger: Logger, token: JWTAccessToken = null, cache
 }
 
 // disabling the any since it's the same as above and I think whoever wrote this wanted to avoid the type error
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const buildMockContextWithToken = async (logger: Logger, user: User = mockUser(),  cache: any = null): Promise<MyContext> => {
+export const buildMockContextWithToken = async (
+  logger: Logger,
+  user: User = mockUser(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cache: any = null,
+  mockTokenDMPs: JWTAccessTokenDMPId[] = []
+): Promise<MyContext> => {
   // Only spy on the prototype if user.getEmail is not defined
   if (!user.getEmail && !jest.isMockFunction(User.prototype.getEmail)) {
     jest.spyOn(User.prototype, 'getEmail').mockImplementation(async () => casual.email);
   }
   const context = buildContext(logger, null, cache);
-  const token = await mockToken(user, context);
+  const token = await mockToken(user, context, mockTokenDMPs);
   context.token = token;
   return context;
 };

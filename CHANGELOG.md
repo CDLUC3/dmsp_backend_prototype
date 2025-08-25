@@ -1,6 +1,8 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added `findDMPIdsForEmail` helper method to `TokenService` so that the JWT will now contain a list of DMP ids and the user's access level
+- Added `hasPermissionOnPlan` to the `planService` that checks the info contained within the token to determine access instead of making DB calls
 - Added `ProjectFilterOptions` as a possible input for the `myProjects` resolver
 - Added `PlanFeedback` and `PlanFeedbackComments` models [#243]
 - Added `projectCollaboratorCommentsAdded` to `emailService` so that we can email `project collaborators` when new comments added [#243]
@@ -10,6 +12,8 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated `answer`, `fundings`, `members` and `plans` resolver to use new `hasPermissionOnPlan` function
+- Update the `tokenService` to add `dmpIds` array that stores the DMPs the user has access to
 - Updated the `ProjectSearchResult.search` query to provide plan counts by status and filter by status options
 - updated all existing data migrations and scripts to use `utf8mb4` instead of `utf8mb3`
 - updated `PlanSectionProgress` to use better terminology. Changed `sectionId` to `versionedSectionId` (what it really was) and `sectionTtitle` to `title`

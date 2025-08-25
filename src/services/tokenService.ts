@@ -4,6 +4,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import { Response } from "express";
 import { logger, prepareObjectForLogs } from '../logger';
 import { User } from '../models/User';
+import { Plan } from '../models/Plan';
 import { generalConfig } from '../config/generalConfig';
 import { UserRole } from '../models/User';
 import {
@@ -15,7 +16,12 @@ import {
 import { Cache } from '../datasources/cache';
 import { MyContext } from '../context';
 import { defaultLanguageId } from '../models/Language';
-import {KeyvAdapter} from "@apollo/utils.keyvadapter";
+import { KeyvAdapter } from "@apollo/utils.keyvadapter";
+
+export interface JWTAccessTokenDMPId {
+  dmpId: string,
+  accessLevel: string,
+}
 
 export interface JWTAccessToken extends JwtPayload {
   id: number,
@@ -25,6 +31,7 @@ export interface JWTAccessToken extends JwtPayload {
   role: string,
   affiliationId: string,
   languageId: string,
+  dmpIds: JWTAccessTokenDMPId[],
   jti: string,
   expiresIn: number,
  }
@@ -67,18 +74,23 @@ export const generateCSRFToken = async (cache: KeyvAdapter): Promise<string> => 
 
 // Generate an access token for the User
 const generateAccessToken = async (context: MyContext, jti: string, user: User): Promise<string> => {
+  const email = await user.getEmail(context);
+  const dmpIds = await findDMPIdsForEmail('generateAccessToken', context, email) ?? [];
+
   try {
     const payload: JWTAccessToken = {
       id: user.id,
-      email: await user.getEmail(context),
+      email,
       givenName: user.givenName,
       surName: user.surName,
       affiliationId: user.affiliationId,
       role: user.role.toString() || UserRole.RESEARCHER,
       languageId: user.languageId || defaultLanguageId,
+      dmpIds,
       jti,
       expiresIn: generalConfig.jwtTTL,
     };
+
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTTL });
   } catch(err) {
     if (context?.logger) {
@@ -247,4 +259,20 @@ export const revokeAccessToken = async (context: MyContext, jti: string): Promis
     context.logger.error(prepareObjectForLogs(err), 'revokeAccessToken - unable to add token to black list');
     throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
   }
+}
+
+// Fetch all the DMP ids associated with the given email address
+const findDMPIdsForEmail = async (
+  reference: string,
+  context: MyContext,
+  email: string,
+): Promise<JWTAccessTokenDMPId[]> => {
+  const sql = 'SELECT DISTINCT p.dmpId as dmpId, pcs.accessLevel as accessLevel ' +
+    'FROM plans p ' +
+    'INNER JOIN projects prj ON p.projectId = prj.id ' +
+    'INNER JOIN projectCollaborators pcs ON prj.id = pcs.projectId ' +
+    'WHERE pcs.email = ? ' +
+    'ORDER BY p.dmpId;';
+  const results = await Plan.query(context, sql, [email], reference);
+  return Array.isArray(results) ? results : [];
 }

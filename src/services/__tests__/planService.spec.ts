@@ -1,12 +1,26 @@
 import { MyContext } from '../../context';
-import { buildMockContextWithToken } from '../../__mocks__/context';
-import {ensureDefaultPlanContact, updateMemberRoles} from '../planService';
+import {
+  buildMockContextWithToken,
+  mockedMysqlInstance,
+} from '../../__mocks__/context';
+import {
+  ensureDefaultPlanContact,
+  hasPermissionOnPlan,
+  updateMemberRoles
+} from '../planService';
 import { MemberRole } from '../../models/MemberRole';
 import { logger } from '../../logger';
-import {PlanMember, ProjectMember} from "../../models/Member";
+import { PlanMember, ProjectMember } from "../../models/Member";
 import casual from "casual";
-import {Project} from "../../models/Project";
-import {Plan} from "../../models/Plan";
+import { Project } from "../../models/Project";
+import { Plan } from "../../models/Plan";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { isAdmin, isSuperAdmin } from "../authService";
+import {
+  ProjectCollaboratorAccessLevel
+} from "../../models/Collaborator";
+import { User } from "../../models/User";
+import { getMockDMPId } from "../../__tests__/helpers";
 
 jest.mock('../commonStandardService');
 jest.mock('../../datasources/dynamo');
@@ -23,6 +37,89 @@ describe('planService', () => {
   });
 
   jest.mock('../../models/MemberRole');
+
+  describe('hasPermissionOnPlan', () => {
+    let plan;
+    let mockQuery;
+    let mockIsSuperAdmin;
+    let mockIsAdmin;
+
+    beforeEach(async () => {
+      const instance = mockedMysqlInstance;
+      mockQuery = instance.query as jest.MockedFunction<typeof instance.query>;
+      context = await buildMockContextWithToken(logger);
+
+      mockIsSuperAdmin = jest.fn();
+      (isSuperAdmin as jest.Mock) = mockIsSuperAdmin;
+
+      mockIsAdmin = jest.fn();
+      (isAdmin as jest.Mock) = mockIsAdmin;
+
+      plan = new Plan({
+        id: casual.integer(1, 999),
+        title: casual.sentence,
+        createdById: casual.integer(1, 9999),
+        dmpId: getMockDMPId()
+      });
+    });
+
+    it('returns true if the current user is a Super Admin', async () => {
+      mockIsSuperAdmin.mockResolvedValueOnce(true);
+
+      expect(await hasPermissionOnPlan(context, plan)).toBe(true)
+      expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+      expect(mockIsAdmin).toHaveBeenCalledTimes(0);
+      expect(mockQuery).toHaveBeenCalledTimes(0);
+    });
+
+    it('returns true if the current user\'s id is the same as the project\'s owner', async () => {
+      mockIsSuperAdmin.mockResolvedValueOnce(false);
+
+      context.token.id = plan.createdById;
+
+      expect(await hasPermissionOnPlan(context, plan)).toBe(true)
+      expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+      expect(mockIsAdmin).toHaveBeenCalledTimes(0);
+      expect(mockQuery).toHaveBeenCalledTimes(0);
+    });
+
+    it('returns true if the current user\'s is an Admin and the project\'s owner are the same org', async () => {
+      mockIsSuperAdmin.mockResolvedValueOnce(false);
+      mockIsAdmin.mockResolvedValueOnce(true);
+      context.token.id = casual.integer(1, 9999);
+      jest.spyOn(User, 'findById').mockResolvedValueOnce(new User({ affiliationId: context.token.affiliationId }));
+      expect(await hasPermissionOnPlan(context, plan)).toBe(true)
+      expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+      expect(mockIsAdmin).toHaveBeenCalledTimes(1);
+      expect(User.findById).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns true if the current user\'s is a collaborator on the project', async () => {
+      mockIsSuperAdmin.mockResolvedValueOnce(false);
+      mockIsAdmin.mockResolvedValueOnce(false);
+      context.token.id = casual.integer(1, 9999);
+      context.token.dmpIds = [{
+        dmpId: plan.dmpId,
+        accessLevel: ProjectCollaboratorAccessLevel.EDIT
+      }]
+      mockQuery.mockResolvedValueOnce({ affiliationId: context.token.affiliationId });
+      expect(await hasPermissionOnPlan(context, plan)).toBe(true)
+      expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+      expect(mockIsAdmin).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledTimes(0);
+    });
+
+    it('returns false when the user does not have permission', async () => {
+      mockIsSuperAdmin.mockResolvedValueOnce(false);
+      mockIsAdmin.mockResolvedValueOnce(false);
+      context.token.id = casual.integer(1, 9999);
+      context.token.dmpIds = [];
+      expect(await hasPermissionOnPlan(context, plan)).toBe(false)
+      expect(mockIsSuperAdmin).toHaveBeenCalledTimes(1);
+      expect(mockIsAdmin).toHaveBeenCalledTimes(1);
+      expect(mockQuery).toHaveBeenCalledTimes(0);
+    });
+  });
 
   describe('updateMemberRoles', () => {
     it('should remove roles and return updated role IDs', async () => {

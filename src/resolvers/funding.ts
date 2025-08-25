@@ -13,6 +13,7 @@ import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
+import { hasPermissionOnPlan } from "../services/planService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -69,8 +70,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (plan && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
+          if (plan && await hasPermissionOnPlan(context, plan, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanFunding.findByPlanId(reference, context, plan.id);
           }
         }
@@ -209,8 +209,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             const newFunding = new PlanFunding({ planId, projectFundingId });
 
             if (newFunding && !newFunding.hasErrors()) {
@@ -245,8 +244,7 @@ export const resolvers: Resolvers = {
           throw NotFoundError();
         }
 
-        const project = await Project.findById(reference, context, plan.projectId);
-        if (await hasPermissionOnProject(context, project)) {
+        if (await hasPermissionOnPlan(context, plan)) {
 
           const associationErrors = [];
           // Fetch all of the current Funders associated with this Plan
@@ -318,8 +316,7 @@ export const resolvers: Resolvers = {
           }
 
           const plan = await Plan.findById(reference, context, funding.planId);
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             const deletedFunding = await funding.delete(context);
 
             if (deletedFunding && !deletedFunding.hasErrors()) {
