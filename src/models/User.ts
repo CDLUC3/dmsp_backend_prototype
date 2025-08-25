@@ -199,7 +199,7 @@ export class User extends MySqlModel {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push(`(
         (LOWER(u.givenName) LIKE ? OR
         LOWER(u.surName) LIKE ? OR
@@ -262,7 +262,7 @@ export class User extends MySqlModel {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push(`(
         LOWER(u.givenName) LIKE ? OR
         LOWER(u.surName) LIKE ? OR

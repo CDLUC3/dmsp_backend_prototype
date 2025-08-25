@@ -6,7 +6,11 @@ import {typeDefs as funderTypeDefs} from "./funding"
 export const projectTypeDefs = gql`
   extend type Query {
     "Get all of the user's projects"
-    myProjects(term: String, paginationOptions: PaginationOptions): ProjectSearchResults
+    myProjects(
+      term: String,
+      paginationOptions: PaginationOptions,
+      filterOptions: ProjectFilterOptions
+    ): ProjectSearchResults
 
     "Get a specific project"
     project(projectId: Int!): Project
@@ -160,6 +164,12 @@ export const projectTypeDefs = gql`
     name: String
     "The grant id/url"
     grantId: String
+  }
+
+  "Project search filter options"
+  input ProjectFilterOptions {
+    "Filter results by the plan's status"
+    status: PlanStatus
   }
 
   input UpdateProjectInput {
