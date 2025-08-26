@@ -9,7 +9,7 @@ import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
-import { updateMemberRoles } from '../services/planService';
+import {hasPermissionOnPlan, updateMemberRoles} from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
@@ -74,12 +74,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (isNullOrUndefined(project)){
-            throw NotFoundError();
-          }
-
-          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
+          if (await hasPermissionOnPlan(context, plan, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanMember.findByPlanId(reference, context, plan.id);
           }
         }
@@ -306,8 +301,7 @@ export const resolvers: Resolvers = {
             roles = currentProjectRoles ? currentProjectRoles.map((d) => d.id) : [];
           }
 
-          const project = await Project.findById(reference, context, projectMember.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             const newPlanMember = new PlanMember({ planId, projectMemberId, memberRoleIds: roles });
             const created = await newPlanMember.create(context);
 
@@ -365,13 +359,8 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          const projectMember = await ProjectMember.findById(reference, context, member.projectMemberId);
-          const project = await Project.findById(reference, context, projectMember?.projectId);
-          if (isNullOrUndefined(project) || isNullOrUndefined(projectMember)){
-            throw NotFoundError();
-          }
-
-          const hasPermission = await hasPermissionOnProject(context, project);
+          const plan = await Plan.findById(reference, context, member?.planId);
+          const hasPermission = await hasPermissionOnPlan(context, plan);
 
           if (hasPermission) {
             // Fetch current roles
@@ -395,7 +384,7 @@ export const resolvers: Resolvers = {
             const toUpdate = new PlanMember({
               id: planMemberId,
               planId: planId,
-              projectMemberId: projectMember.id,
+              projectMemberId: member.projectMemberId,
               isPrimaryContact,
               memberRoleIds: updatedRoleIds ?? currentRoleIds,
             });
@@ -452,17 +441,9 @@ export const resolvers: Resolvers = {
           }
 
           // Fetch the project and run a permission check
-          const projectMember = await ProjectMember.findById(
-            reference,
-            context,
-            member.projectMemberId
-          );
-          const project = await Project.findById(reference, context, projectMember.projectId);
-          if (isNullOrUndefined(project) || isNullOrUndefined(projectMember)){
-            throw NotFoundError();
-          }
+          const plan = await Plan.findById(reference, context, member.planId);
 
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             // Any related MemberRoles will be automatically deleted within the DB
             const removed = await member.delete(context);
 

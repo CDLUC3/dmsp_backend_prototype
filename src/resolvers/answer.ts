@@ -8,9 +8,7 @@ import {
   InternalServerError,
   NotFoundError
 } from "../utils/graphQLErrors";
-import { Project } from "../models/Project";
 import { isAuthorized } from "../services/authService";
-import { hasPermissionOnProject } from "../services/projectService";
 import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
 import { Resolvers } from "../types";
 import { Answer } from "../models/Answer";
@@ -22,20 +20,21 @@ import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { addVersion } from "../models/PlanVersion";
 import { normaliseDateTime } from "../utils/helpers";
+import { hasPermissionOnPlan } from "../services/planService";
 
 
 export const resolvers: Resolvers = {
   Query: {
     // return all of the answers for the given plan
-    answers: async (_, { projectId, planId, versionedSectionId }, context: MyContext): Promise<Answer[]> => {
+    answers: async (_, { planId, versionedSectionId }, context: MyContext): Promise<Answer[]> => {
       const reference = 'planSectionAnswers resolver';
       try {
         if (isAuthorized(context.token)) {
-          const project = await Project.findById(reference, context, projectId);
-          if (!project) {
-            throw NotFoundError(`Project with ID ${projectId} not found`);
+          const plan = await Plan.findById(reference, context, planId);
+          if (!plan) {
+            throw NotFoundError(`Plan with ID ${planId} not found`);
           }
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             return await Answer.findByPlanIdAndVersionedSectionId(reference, context, planId, versionedSectionId);
           }
         }
@@ -49,15 +48,15 @@ export const resolvers: Resolvers = {
     },
 
     // return the answer for the given versionedQuestionId
-    answerByVersionedQuestionId: async (_, { projectId, planId, versionedQuestionId }, context: MyContext): Promise<Answer> => {
+    answerByVersionedQuestionId: async (_, { planId, versionedQuestionId }, context: MyContext): Promise<Answer> => {
       const reference = 'planSectionAnswers resolver';
       try {
         if (isAuthorized(context.token)) {
-          const project = await Project.findById(reference, context, projectId);
-          if (!project) {
-            throw NotFoundError(`Project with ID ${projectId} not found`);
+          const plan = await Plan.findById(reference, context, planId);
+          if (!plan) {
+            throw NotFoundError(`Plan with ID ${planId} not found`);
           }
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             const temp = await Answer.findByPlanIdAndVersionedQuestionId(reference, context, planId, versionedQuestionId);
             return temp;
           }
@@ -72,11 +71,16 @@ export const resolvers: Resolvers = {
     },
 
     // Find the answer by its answerId
-    answer: async (_, { projectId, answerId }, context: MyContext): Promise<Answer> => {
+    answer: async (_, { answerId }, context: MyContext): Promise<Answer> => {
       const reference = 'plan resolver';
       try {
-        const project = await Project.findById(reference, context, projectId);
-        if (project && await hasPermissionOnProject(context, project)) {
+        const answer = await Answer.findById(reference, context, answerId);
+        if (!answer) {
+          throw NotFoundError(`Answer with ID: ${answerId} not found`);
+        }
+
+        const plan = await Plan.findById(reference, context, answer.planId);
+        if (plan && await hasPermissionOnPlan(context, plan)) {
           return await Answer.findById(reference, context, answerId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -99,12 +103,8 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (!project) {
-            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
-          }
 
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, json });
             const newAnswer = await answer.create(context);
             if (newAnswer && !newAnswer.hasErrors()) {
@@ -136,8 +136,7 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             answer.json = json;
             const updatedAnswer = await answer.update(context);
 
@@ -170,11 +169,10 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             // Send out email to project collaborators to let them know that comments were added
             // Get project collaborators emails, minus the user's own email
-            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, project.id);
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
             // Filter out the user's own email if it exists in the collaborators list
             const collaboratorEmails = collaborators.map(c => c.email).filter(email => email !== context.token.email);
 
@@ -209,9 +207,8 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
 
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
             if (!answerComment) {
@@ -251,9 +248,8 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
 
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnPlan(context, plan)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
             if (!answerComment) {

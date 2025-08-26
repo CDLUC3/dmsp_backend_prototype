@@ -14,7 +14,10 @@ import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
-import { ensureDefaultPlanContact } from "../services/planService";
+import {
+  ensureDefaultPlanContact,
+  hasPermissionOnPlan
+} from "../services/planService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -50,8 +53,7 @@ export const resolvers: Resolvers = {
           throw NotFoundError(`Plan with ID ${planId} not found`);
         }
 
-        const project = await Project.findById(reference, context, plan.projectId);
-        if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
+        if (await hasPermissionOnPlan(context, plan, ProjectCollaboratorAccessLevel.COMMENT)) {
           return plan;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -113,12 +115,11 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
 
-          const project = await Project.findById(reference, context, plan.projectId);
           if (plan.isPublished()) {
             plan.addError('general', 'Plan is already published and cannot be archived');
           }
 
-          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
+          if (await hasPermissionOnPlan(context, plan, ProjectCollaboratorAccessLevel.OWN)) {
             if (!plan.hasErrors()) {
               return await plan.delete(context);
             } else {
@@ -176,7 +177,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
+          if (await hasPermissionOnPlan(context, plan, ProjectCollaboratorAccessLevel.OWN)) {
             if (!plan.hasErrors()) {
               if (project.isTestProject) {
                 plan.addError('general', 'Test projects cannot be published');
@@ -215,8 +216,7 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
+          if (await hasPermissionOnPlan(context, plan, ProjectCollaboratorAccessLevel.OWN)) {
             plan.status = status as PlanStatus;
             return await plan.update(context);
           }
@@ -238,8 +238,7 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
+          if (await hasPermissionOnPlan(context, plan, ProjectCollaboratorAccessLevel.OWN)) {
             plan.title = title;
             return await plan.update(context);
           }
