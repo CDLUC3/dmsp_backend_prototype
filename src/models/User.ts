@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import {capitalizeFirstLetter, formatORCID, getCurrentDate, isNullOrUndefined, validateEmail} from '../utils/helpers';
-import { buildContext } from '../context';
-import { logger, prepareObjectForLogs } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
