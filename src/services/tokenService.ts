@@ -91,6 +91,8 @@ const generateAccessToken = async (context: MyContext, jti: string, user: User):
       expiresIn: generalConfig.jwtTTL,
     };
 
+    context.logger.debug(prepareObjectForLogs(payload), 'generateAccessToken payload');
+
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTTL });
   } catch(err) {
     if (context?.logger) {
@@ -274,5 +276,9 @@ const findDMPIdsForEmail = async (
     'WHERE pcs.email = ? ' +
     'ORDER BY p.dmpId;';
   const results = await Plan.query(context, sql, [email], reference);
+
+  logger.debug({ email, results }, reference);
+  context.logger.debug(prepareObjectForLogs({ email, results }), `${reference} - findDMPIdsForEmail`);
+
   return Array.isArray(results) ? results : [];
 }
