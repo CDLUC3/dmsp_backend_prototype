@@ -1,6 +1,8 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added checks in `ProjectMember` and `PlanMember` to prevent the deletion of a member if they are the last one [#358]
+- Added a fallback to set a `default` role if none was provided while adding a new `ProjectMember` [#358]
 - Added `findDMPIdsForEmail` helper method to `TokenService` so that the JWT will now contain a list of DMP ids and the user's access level
 - Added `hasPermissionOnPlan` to the `planService` that checks the info contained within the token to determine access instead of making DB calls
 - Added `ProjectFilterOptions` as a possible input for the `myProjects` resolver

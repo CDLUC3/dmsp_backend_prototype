@@ -142,10 +142,38 @@ export class ProjectMember extends MySqlModel {
   //Delete ProjectMember
   async delete(context: MyContext): Promise<ProjectMember> {
     if (this.id) {
-      const ref = 'ProjectMember.delete';
-      const deleted = await ProjectMember.findById(ref, context, this.id);
+      const reference = 'ProjectMember.delete';
 
-      const successfullyDeleted = await ProjectMember.delete(context, ProjectMember.tableName, this.id, ref);
+      // If there is only one project member, then it cannot be deleted
+      const projectMembers = await ProjectMember.findByProjectId(reference, context, this.projectId);
+      if (projectMembers.length === 1) {
+        this.addError('general', 'A project needs at least one member, so you cannot remove the last one.');
+        return this;
+      }
+
+      // Get all the plans that are associated with the given projectMemberId
+      const planMembers = await PlanMember.findByProjectMemberId(reference, context, this.id);
+
+      // Check each plan to ensure it has more than one member
+      for (const planMember of planMembers) {
+        const membersInPlan = await PlanMember.findByPlanId(reference, context, planMember.planId);
+        if (membersInPlan.length === 1) {
+          this.addError(
+            'general',
+            'You cannot remove this member because it would leave a plan in the project without any members. Each plan must have at least one member.'
+          );
+          return this;
+        }
+      }
+
+      // Delete all planMember records associated with this projectMember
+      for (const planMember of planMembers) {
+        await PlanMember.delete(context, PlanMember.tableName, planMember.id, reference);
+      }
+
+      // Delete the projectMember itself
+      const deleted = await ProjectMember.findById(reference, context, this.id);
+      const successfullyDeleted = await ProjectMember.delete(context, ProjectMember.tableName, this.id, reference);
       if (successfullyDeleted) {
         return deleted;
       } else {
@@ -323,18 +351,27 @@ export class PlanMember extends MySqlModel {
   //Delete PlanMember
   async delete(context: MyContext): Promise<PlanMember> {
     if (this.id) {
-      const deleted = await PlanMember.findById('PlanMember.delete', context, this.id);
+      const reference = 'PlanMember.delete';
 
-      const successfullyDeleted = await PlanMember.delete(
-        context,
-        PlanMember.tableName,
-        this.id,
-        'PlanMember.delete'
-      );
-      if (successfullyDeleted) {
-        return deleted;
+      // If there is only one plan member, then it cannot be deleted
+      const members = await PlanMember.findByPlanId(reference, context, this.planId);
+      if (members.length === 1) {
+        this.addError('general', 'A plan needs at least one member, so you cannot remove the last one.');
+        return this;
       } else {
-        return null
+        const deleted = await PlanMember.findById('PlanMember.delete', context, this.id);
+
+        const successfullyDeleted = await PlanMember.delete(
+          context,
+          PlanMember.tableName,
+          this.id,
+          'PlanMember.delete'
+        );
+        if (successfullyDeleted) {
+          return deleted;
+        } else {
+          return null
+        }
       }
     }
     return null;
@@ -374,6 +411,16 @@ export class PlanMember extends MySqlModel {
   static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanMember[]> {
     const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? ORDER BY isPrimaryContact DESC`;
     const results = await PlanMember.query(context, sql, [planId?.toString()], reference);
+    return Array.isArray(results) ? results.map((item) => new PlanMember(item)) : [];
+  }
+
+  // Fetch all plan members by a projectId
+  static async findByProjectId(reference: string, context: MyContext, projectId: number): Promise<PlanMember[]> {
+    const sql = `SELECT pm.* FROM ${this.tableName} pm`;
+    const joinClause = 'JOIN projectMembers pjm ON pm.projectMemberId = pjm.id';
+    const whereClause = 'WHERE pjm.projectId = ?';
+    const vals = [projectId?.toString()];
+    const results = await PlanMember.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
     return Array.isArray(results) ? results.map((item) => new PlanMember(item)) : [];
   }
 
