@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import {capitalizeFirstLetter, formatORCID, getCurrentDate, isNullOrUndefined, validateEmail} from '../utils/helpers';
-import { buildContext } from '../context';
-import { logger, prepareObjectForLogs } from '../logger';
+import { prepareObjectForLogs } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
@@ -393,7 +392,6 @@ export class User extends MySqlModel {
                       (password, role, givenName, surName, affiliationId, acceptedTerms) \
                      VALUES(?, ?, ?, ?, ?, ?)`;
         const vals = [this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
-        const context = buildContext(logger);
         context.logger.debug(prepareObjectForLogs({ email }), 'User.register');
         const result = await User.query(context, sql, vals, 'User.register');
 
