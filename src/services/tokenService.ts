@@ -277,7 +277,6 @@ const findDMPIdsForEmail = async (
     'ORDER BY p.dmpId;';
   const results = await Plan.query(context, sql, [email], reference);
 
-  logger.debug({ email, results }, reference);
   context.logger.debug(prepareObjectForLogs({ email, results }), `${reference} - findDMPIdsForEmail`);
 
   return Array.isArray(results) ? results : [];
