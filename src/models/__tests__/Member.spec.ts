@@ -382,7 +382,14 @@ describe('create', () => {
 });
 
 describe('delete', () => {
+  const originalFindById = ProjectMember.findById;
+  const originalPlanMemberFindByPlanId = PlanMember.findByPlanId;
+  const originalFindByProjectMemberId = PlanMember.findByProjectMemberId;
+
   let projectMember;
+  let projectMember2;
+  let memberData1;
+  let memberData2
 
   beforeEach(() => {
     projectMember = new ProjectMember({
@@ -395,7 +402,41 @@ describe('delete', () => {
       email: casual.email,
       memberRoles: [new MemberRole({ id: casual.integer(1, 99) })]
     });
+
+    projectMember2 = new ProjectMember({
+      id: casual.integer(1, 9999),
+      projectId: casual.integer(1, 999),
+      affiliationId: casual.url,
+      givenName: casual.first_name,
+      surName: casual.last_name,
+      orcid: getMockORCID(),
+      email: casual.email,
+      memberRoles: [new MemberRole({ id: casual.integer(1, 99) })]
+    });
+
+    memberData1 = new PlanMember({
+      id: casual.integer(1, 99),
+      planId: casual.integer(1, 999),
+      projectMemberId: casual.integer(1, 99),
+      isPrimaryContact: true,
+      error: null
+    });
+
+    memberData2 = new PlanMember({
+      id: casual.integer(1, 99),
+      planId: casual.integer(1, 999),
+      projectMemberId: casual.integer(1, 99),
+      isPrimaryContact: true,
+      error: null
+    });
   })
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    ProjectMember.findById = originalFindById;
+    PlanMember.findByPlanId = originalPlanMemberFindByPlanId;
+    PlanMember.findByProjectMemberId = originalFindByProjectMemberId;
+  });
 
   it('returns null if the ProjectMember has no id', async () => {
     projectMember.id = null;
@@ -403,10 +444,33 @@ describe('delete', () => {
   });
 
   it('returns null if it was not able to delete the record', async () => {
+
+    // Mock ProjectMember.delete
     const deleteQuery = jest.fn();
     (ProjectMember.delete as jest.Mock) = deleteQuery;
-
     deleteQuery.mockResolvedValueOnce(null);
+
+    // Mock PlanMember.delete
+    const mockPlanMemberDelete = jest.fn();
+    (PlanMember.delete as jest.Mock) = mockPlanMemberDelete;
+    mockPlanMemberDelete.mockResolvedValue(true); // or whatever you want it to return
+
+    const mockFindByProjectId = jest.fn();
+    (ProjectMember.findByProjectId as jest.Mock) = mockFindByProjectId;
+    mockFindByProjectId.mockResolvedValueOnce([projectMember, projectMember2]);//Need more than just one projectMember in order to get to the delete function
+
+    const mockPlanMemberFindByProjectMemberId = jest.fn();
+    (PlanMember.findByProjectMemberId as jest.Mock) = mockPlanMemberFindByProjectMemberId;
+    mockPlanMemberFindByProjectMemberId.mockResolvedValueOnce([memberData1, memberData2]);
+
+    const mockPlanMemberFindByPlanId = jest.fn();
+    (PlanMember.findByPlanId as jest.Mock) = mockPlanMemberFindByPlanId;
+    mockPlanMemberFindByPlanId.mockResolvedValue([memberData1, memberData2]); // Need more than one, or it won't reach the delete function
+
+    const mockFindById = jest.fn();
+    (ProjectMember.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValue(projectMember);
+
     expect(await projectMember.delete(context)).toBe(null);
   });
 
@@ -415,13 +479,67 @@ describe('delete', () => {
     (ProjectMember.delete as jest.Mock) = deleteQuery;
     deleteQuery.mockResolvedValueOnce(projectMember);
 
+    // Mock PlanMember.delete
+    const mockPlanMemberDelete = jest.fn();
+    (PlanMember.delete as jest.Mock) = mockPlanMemberDelete;
+    mockPlanMemberDelete.mockResolvedValue(true); // or whatever you want it to return
+
+    const mockFindByProjectId = jest.fn();
+    (ProjectMember.findByProjectId as jest.Mock) = mockFindByProjectId;
+    mockFindByProjectId.mockResolvedValueOnce([projectMember, projectMember2]);//Need more than just one projectMember in order to get to the delete function
+
+    const mockPlanMemberFindByProjectMemberId = jest.fn();
+    (PlanMember.findByProjectMemberId as jest.Mock) = mockPlanMemberFindByProjectMemberId;
+    mockPlanMemberFindByProjectMemberId.mockResolvedValueOnce([memberData1, memberData2]);
+
+    const mockPlanMemberFindByPlanId = jest.fn();
+    (PlanMember.findByPlanId as jest.Mock) = mockPlanMemberFindByPlanId;
+    mockPlanMemberFindByPlanId.mockResolvedValue([memberData1, memberData2]); // Need more than one, or it won't reach the delete function
+
     const mockFindById = jest.fn();
     (ProjectMember.findById as jest.Mock) = mockFindById;
-    mockFindById.mockResolvedValueOnce(projectMember);
+    mockFindById.mockResolvedValue(projectMember);
 
     const result = await projectMember.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(ProjectMember);
+    // Test that PlanMember.delete was called for each plan member
+    expect(mockPlanMemberDelete).toHaveBeenCalledTimes(2); // Called once for memberData1 and once for memberData2
+
+    // Test the specific calls to PlanMember.delete
+    expect(mockPlanMemberDelete).toHaveBeenNthCalledWith(1, context, PlanMember.tableName, memberData1.id, 'ProjectMember.delete');
+    expect(mockPlanMemberDelete).toHaveBeenNthCalledWith(2, context, PlanMember.tableName, memberData2.id, 'ProjectMember.delete');
+
+    // You can also test that ProjectMember.delete was called
+    expect(deleteQuery).toHaveBeenCalledTimes(1);
+    expect(deleteQuery).toHaveBeenCalledWith(context, ProjectMember.tableName, projectMember.id, 'ProjectMember.delete');
+  });
+
+  it('returns an error if there is only one project member', async () => {
+    const deleteQuery = jest.fn();
+    (ProjectMember.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(projectMember);
+
+    const mockFindByProjectId = jest.fn();
+    (ProjectMember.findByProjectId as jest.Mock) = mockFindByProjectId;
+    mockFindByProjectId.mockResolvedValueOnce([projectMember]);
+
+    const mockPlanMemberFindByProjectMemberId = jest.fn();
+    (PlanMember.findByProjectMemberId as jest.Mock) = mockPlanMemberFindByProjectMemberId;
+    mockPlanMemberFindByProjectMemberId.mockResolvedValueOnce([memberData1, memberData2]);
+
+    const mockPlanMemberFindByPlanId = jest.fn();
+    (PlanMember.findByPlanId as jest.Mock) = mockPlanMemberFindByPlanId;
+    mockPlanMemberFindByPlanId.mockResolvedValue([memberData1, memberData2]); // Need more than one, or it won't reach the delete function
+
+    const mockFindById = jest.fn();
+    (ProjectMember.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValue(projectMember);
+
+    const result = await projectMember.delete(context);
+    expect(Object.keys(result.errors).length).toBe(1);
+    expect(result).toBeInstanceOf(ProjectMember);
+    expect(result.errors.general).toBe('A project needs at least one member, so you cannot remove the last one.');
   });
 });
 
@@ -693,9 +811,17 @@ describe('create', () => {
 
 describe('delete', () => {
   let planMember;
+  let planMember2;
 
   beforeEach(() => {
     planMember = new PlanMember({
+      id: casual.integer(1, 9999),
+      planId: casual.integer(1, 999),
+      projectMemberId: casual.integer(1, 999),
+      memberRoleIds: [casual.integer(1, 99)],
+    });
+
+    planMember2 = new PlanMember({
       id: casual.integer(1, 9999),
       planId: casual.integer(1, 999),
       projectMemberId: casual.integer(1, 999),
@@ -712,6 +838,14 @@ describe('delete', () => {
     const deleteQuery = jest.fn();
     (PlanMember.delete as jest.Mock) = deleteQuery;
 
+    const mockFindByPlanId = jest.fn();
+    (PlanMember.findByPlanId as jest.Mock) = mockFindByPlanId;
+    mockFindByPlanId.mockResolvedValueOnce([planMember, planMember2]);
+
+    const mockFindById = jest.fn();
+    (PlanMember.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planMember);
+
     deleteQuery.mockResolvedValueOnce(null);
     expect(await planMember.delete(context)).toBe(null);
   });
@@ -721,12 +855,34 @@ describe('delete', () => {
     (PlanMember.delete as jest.Mock) = deleteQuery;
     deleteQuery.mockResolvedValueOnce(planMember);
 
+    const mockFindByPlanId = jest.fn();
+    (PlanMember.findByPlanId as jest.Mock) = mockFindByPlanId;
+    mockFindByPlanId.mockResolvedValueOnce([planMember, planMember2]);
+
     const mockFindById = jest.fn();
     (PlanMember.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(planMember);
 
     const result = await planMember.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
+    expect(result).toBeInstanceOf(PlanMember);
+  });
+
+  it('returns error when there is only one plan member for the given planId', async () => {
+    const deleteQuery = jest.fn();
+    (PlanMember.delete as jest.Mock) = deleteQuery;
+    deleteQuery.mockResolvedValueOnce(planMember);
+
+    const mockFindByPlanId = jest.fn();
+    (PlanMember.findByPlanId as jest.Mock) = mockFindByPlanId;
+    mockFindByPlanId.mockResolvedValueOnce([planMember]);
+
+    const mockFindById = jest.fn();
+    (PlanMember.findById as jest.Mock) = mockFindById;
+    mockFindById.mockResolvedValueOnce(planMember);
+
+    const result = await planMember.delete(context);
+    expect(Object.keys(result.errors).length).toBe(1);
     expect(result).toBeInstanceOf(PlanMember);
   });
 });

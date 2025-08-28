@@ -9,7 +9,7 @@ import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
-import {hasPermissionOnPlan, updateMemberRoles} from '../services/planService';
+import { hasPermissionOnPlan, updateMemberRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
@@ -24,7 +24,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-          if (isNullOrUndefined(project)){
+          if (isNullOrUndefined(project)) {
             throw NotFoundError();
           }
 
@@ -46,7 +46,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const member = await ProjectMember.findById(reference, context, projectMemberId);
-          if (isNullOrUndefined(member)){
+          if (isNullOrUndefined(member)) {
             throw NotFoundError();
           }
 
@@ -70,7 +70,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)){
+          if (isNullOrUndefined(plan)) {
             throw NotFoundError();
           }
 
@@ -130,6 +130,10 @@ export const resolvers: Resolvers = {
                   created.addError('memberRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
                 }
               }
+            } else {
+              // Since no roles were provided, we will default to one
+              const role = await MemberRole.defaultRole(context, reference);
+              await role.addToProjectMember(context, created.id);
             }
             return created;
           }
@@ -155,7 +159,7 @@ export const resolvers: Resolvers = {
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, member.projectId);
-          if (isNullOrUndefined(project)){
+          if (isNullOrUndefined(project)) {
             throw NotFoundError();
           }
 
@@ -252,7 +256,7 @@ export const resolvers: Resolvers = {
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, member.projectId);
-          if (isNullOrUndefined(project)){
+          if (isNullOrUndefined(project)) {
             throw NotFoundError();
           }
 
@@ -284,12 +288,12 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)){
+          if (isNullOrUndefined(plan)) {
             throw NotFoundError();
           }
 
           const projectMember = await ProjectMember.findById(reference, context, projectMemberId);
-          if (isNullOrUndefined(projectMember)){
+          if (isNullOrUndefined(projectMember)) {
             throw NotFoundError();
           }
 
@@ -440,7 +444,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          // Fetch the project and run a permission check
+          // Fetch the plan and run a permission check
           const plan = await Plan.findById(reference, context, member.planId);
 
           if (await hasPermissionOnPlan(context, plan)) {
