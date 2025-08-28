@@ -33,13 +33,11 @@ export interface JWTAccessToken extends JwtPayload {
   languageId: string,
   dmpIds: JWTAccessTokenDMPId[],
   jti: string,
-  expiresIn: number,
  }
 
 export interface JWTRefreshToken extends JwtPayload {
   jti: string,
   id: number,
-  expiresIn: number,
 }
 
 // Hash a token before placing it in the cache
@@ -88,11 +86,9 @@ const generateAccessToken = async (context: MyContext, jti: string, user: User):
       languageId: user.languageId || defaultLanguageId,
       dmpIds,
       jti,
-      expiresIn: generalConfig.jwtTTL,
     };
 
     context.logger.debug(prepareObjectForLogs(payload), 'generateAccessToken payload');
-
     return jwt.sign(payload, generalConfig.jwtSecret as string, { expiresIn: generalConfig.jwtTTL });
   } catch(err) {
     if (context?.logger) {
@@ -108,7 +104,6 @@ const generateRefreshToken = async (context: MyContext, jti: string, userId: num
     const payload: JWTRefreshToken = {
       jti,
       id: userId,
-      expiresIn: generalConfig.jwtRefreshTTL,
     };
 
     const token = jwt.sign(payload, generalConfig.jwtRefreshSecret, { expiresIn: generalConfig.jwtRefreshTTL });
