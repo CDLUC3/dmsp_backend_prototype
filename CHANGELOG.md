@@ -22,6 +22,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- When user publishes a template, they can change the `visibility`, but it only saves in the `versionedTemplate` when it should also be updated in the original `template` itself [#715]
 - Fixed an issue where signup failed because context had been reset to different object
 - Fixed an issue causing the DMP version to not include sections/questions in the narrative if they had not been answered
 - Fixed an issue with the null/undefined check on model queries that use 'searchTerm'

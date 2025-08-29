@@ -230,14 +230,20 @@ export const resolvers: Resolvers = {
         if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
           // Need to create an instance of template in order to access the "update" method below
-          const templateInstance = new Template({ ...template });
+          const templateInstance = new Template({
+            ...template,
+            visibility
+          });
 
           if (templateInstance) {
             if (await hasPermissionOnTemplate(context, template)) {
-              const versions = await VersionedTemplate.findByTemplateId(reference, context, templateId);
-
               let versionedTemplate: VersionedTemplate | null = null;
               try {
+                // First update original template record with new visibility status
+                await templateInstance.update(context);
+
+                const versions = await VersionedTemplate.findByTemplateId(reference, context, templateId);
+
                 versionedTemplate = await generateTemplateVersion(
                   context,
                   templateInstance,
