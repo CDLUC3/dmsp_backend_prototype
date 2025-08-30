@@ -7,6 +7,7 @@ import {
   Plan,
   PlanSearchResult,
   PlanSectionProgress,
+  PlanProgress,
   PlanStatus,
   PlanVisibility
 } from "../Plan";
@@ -222,6 +223,80 @@ describe('PlanSectionProgress.findByPlanId', () => {
     const projectId = casual.integer(1, 999);
     const result = await PlanSectionProgress.findByPlanId('testing', context, projectId);
     expect(result).toEqual([]);
+  });
+});
+
+
+describe('PlanProgress', () => {
+  let progress;
+
+  const progressData = {
+    totalQuestions: 10,
+    answeredQuestions: 6,
+  }
+
+  beforeEach(() => {
+    progress = new PlanProgress(progressData);
+  });
+
+  it('should initialize options as expected', () => {
+    expect(progress.totalQuestions).toEqual(progressData.totalQuestions);
+    expect(progress.answeredQuestions).toEqual(progressData.answeredQuestions);
+    expect(progress.percentComplete).toEqual(Math.round(
+        progressData.answeredQuestions / progressData.totalQuestions * 100));
+  });
+});
+
+describe('PlanProgress.findByPlanId', () => {
+  const originalQuery = Plan.query;
+
+  let localQuery;
+  let progress;
+
+  beforeEach(() => {
+    localQuery = jest.fn();
+    (Plan.query as jest.Mock) = localQuery;
+
+    progress = new PlanProgress({
+      totalQuestions: casual.integer(50, 100),
+      answeredQuestions: casual.integer(0, 50)
+    });
+  });
+
+  afterEach(() => {
+    Plan.query = originalQuery;
+  });
+
+  it('should call the correct SQL query', async () => {
+    localQuery.mockResolvedValueOnce([progress]);
+    const planId = casual.integer(1, 99);
+    const sql = `SELECT COUNT(DISTINCT vq.id) AS totalQuestions,
+        COUNT(DISTINCT CASE
+            WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
+            THEN vq.id
+        END) AS answeredQuestions
+        FROM plans p
+            JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId
+            JOIN versionedSections  vs ON vs.versionedTemplateId = vt.id
+            JOIN versionedQuestions vq ON vq.versionedSectionId = vs.id
+            LEFT JOIN answers a
+                ON a.planId = p.id
+                AND a.versionedQuestionId = vq.id
+        WHERE p.id = ?;
+`
+    const result = await PlanProgress.findByPlanId('testing', context, planId);
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, sql, [planId.toString()], 'testing')
+    expect(result).toEqual(progress);
+  });
+
+  it('should return 0 if no questions are found', async () => {
+    progress = new PlanProgress({
+      totalQuestions: 0,
+      answeredQuestions: 0
+    });
+    localQuery.mockResolvedValueOnce([]);
+    expect(progress.percentComplete).toEqual(0);
   });
 });
 
