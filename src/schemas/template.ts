@@ -36,7 +36,7 @@ export const typeDefs = gql`
     name: String
     "A description of the purpose of the template"
     description: String
-    "The last published visibility"
+    "Visibility set for the last published template"
     latestPublishVisibility: TemplateVisibility
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean
@@ -107,7 +107,7 @@ export const typeDefs = gql`
     description: String
     "The affiliation that the template belongs to"
     owner: Affiliation
-    "The last published visibility"
+    "Visibility set for the last published template"
     latestPublishVisibility: TemplateVisibility
     "The last published version"
     latestPublishVersion: String
