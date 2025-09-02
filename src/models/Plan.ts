@@ -154,7 +154,7 @@ export class PlanProgress {
     this.totalQuestions = options.totalQuestions;
     this.answeredQuestions = options.answeredQuestions;
     this.percentComplete = this.totalQuestions > 0
-      ? Math.round((this.answeredQuestions / this.totalQuestions) * 100)
+      ? Number(((this.answeredQuestions / this.totalQuestions) * 100).toFixed(1))
       : 0;
   }
 
