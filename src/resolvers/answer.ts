@@ -20,7 +20,8 @@ import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { addVersion } from "../models/PlanVersion";
 import { normaliseDateTime } from "../utils/helpers";
-import { hasPermissionOnPlan } from "../services/planService";
+import { hasPermissionOnProject } from "../services/projectService";
+import { Project } from "../models/Project";
 
 
 export const resolvers: Resolvers = {
@@ -34,7 +35,8 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             return await Answer.findByPlanIdAndVersionedSectionId(reference, context, planId, versionedSectionId);
           }
         }
@@ -56,7 +58,8 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             const temp = await Answer.findByPlanIdAndVersionedQuestionId(reference, context, planId, versionedQuestionId);
             return temp;
           }
@@ -80,7 +83,8 @@ export const resolvers: Resolvers = {
         }
 
         const plan = await Plan.findById(reference, context, answer.planId);
-        if (plan && await hasPermissionOnPlan(context, plan)) {
+        const project = await Project.findById(reference, context, plan.projectId);
+        if (plan && await hasPermissionOnProject(context, project)) {
           return await Answer.findById(reference, context, answerId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -104,7 +108,8 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
 
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, json });
             const newAnswer = await answer.create(context);
             if (newAnswer && !newAnswer.hasErrors()) {
@@ -136,7 +141,8 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             answer.json = json;
             const updatedAnswer = await answer.update(context);
 
@@ -169,7 +175,8 @@ export const resolvers: Resolvers = {
           if (!plan) {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             // Send out email to project collaborators to let them know that comments were added
             // Get project collaborators emails, minus the user's own email
             const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
@@ -208,7 +215,8 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
 
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
             if (!answerComment) {
@@ -249,7 +257,8 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
 
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
             if (!answerComment) {
