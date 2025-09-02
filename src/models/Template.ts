@@ -15,7 +15,7 @@ export class TemplateSearchResult {
   public id: number;
   public name: string;
   public description?: string;
-  public visibility: TemplateVisibility;
+  public latestPublishVisibility?: TemplateVisibility;
   public bestPractice: boolean;
   public latestPublishVersion?: string;
   public latestPublishDate?: string;
@@ -33,7 +33,7 @@ export class TemplateSearchResult {
     this.id = options.id;
     this.name = options.name;
     this.description = options.description;
-    this.visibility = options.visibility;
+    this.latestPublishVisibility = options.latestPublishVisibility;
     this.bestPractice = options.bestPractice;
     this.latestPublishVersion = options.latestPublishVersion;
     this.latestPublishDate = options.latestPublishDate;
@@ -72,7 +72,7 @@ export class TemplateSearchResult {
       opts = {
         ...options,
         // Specify the fields available for sorting
-        availableSortFields: ['t.name', 't.created', 't.visibility', 't.bestPractice', 't.latestPublishDate'],
+        availableSortFields: ['t.name', 't.created', 't.latestPublishVisibility', 't.bestPractice', 't.latestPublishDate'],
       } as PaginationOptionsForOffsets;
     } else {
       opts = {
@@ -89,7 +89,7 @@ export class TemplateSearchResult {
     // Specify the field we want to use for the count
     opts.countField = 't.id';
 
-    const sqlStatement = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
+    const sqlStatement = 'SELECT t.id, t.name, t.description, t.latestPublishVisibility, t.bestPractice, t.isDirty, ' +
                                 't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
                                 't.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created, ' +
                                 't.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified ' +
@@ -119,7 +119,7 @@ export class Template extends MySqlModel {
   public name: string;
   public description?: string;
   public ownerId?: string;
-  public visibility: TemplateVisibility;
+  public latestPublishVisibility?: TemplateVisibility;
   public latestPublishVersion?: string;
   public latestPublishDate?: string;
   public isDirty: boolean;
@@ -135,7 +135,7 @@ export class Template extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
     this.sourceTemplateId = options.sourceTemplateId
-    this.visibility = options.visibility ?? TemplateVisibility.ORGANIZATION;
+    this.latestPublishVisibility = options.latestPublishVisibility ?? TemplateVisibility.ORGANIZATION;    
     this.latestPublishVersion = options.latestPublishVersion ?? '';
     this.latestPublishDate = options.latestPublishDate ?? null;
     this.isDirty = options.isDirty ?? true;

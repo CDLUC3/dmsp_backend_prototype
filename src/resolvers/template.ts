@@ -151,7 +151,7 @@ export const resolvers: Resolvers = {
 
     // Update the specified template
     //    - called by the Template options page
-    updateTemplate: async (_, { templateId, name, visibility, bestPractice }, context: MyContext): Promise<Template> => {
+    updateTemplate: async (_, { templateId, name, bestPractice }, context: MyContext): Promise<Template> => {
       const reference = 'updateTemplate resolver';
       try {
         if (isAdmin(context.token)) {
@@ -169,7 +169,6 @@ export const resolvers: Resolvers = {
             if (await hasPermissionOnTemplate(context, template)) {
               // Update the fields and then save
               templateInstance.name = name;
-              templateInstance.visibility = TemplateVisibility[visibility];
               const updated = await templateInstance.update(context);
               if (!updated || updated.hasErrors()) {
                 updated?.addError('general', 'Unable to update Template');
@@ -224,7 +223,7 @@ export const resolvers: Resolvers = {
 
     // Publish the template or save as a draft
     //     - called from the Template overview page
-    createTemplateVersion: async (_, { templateId, comment, versionType, visibility }, context: MyContext): Promise<Template> => {
+    createTemplateVersion: async (_, { templateId, comment, versionType, latestPublishVisibility }, context: MyContext): Promise<Template> => {
       const reference = 'createTemplateVersion resolver';
       try {
         if (isAdmin(context.token)) {
@@ -232,7 +231,7 @@ export const resolvers: Resolvers = {
           // Need to create an instance of template in order to access the "update" method below
           const templateInstance = new Template({
             ...template,
-            visibility
+            latestPublishVisibility
           });
 
           if (templateInstance) {
@@ -250,7 +249,7 @@ export const resolvers: Resolvers = {
                   versions,
                   context.token.id,
                   comment,
-                  visibility as TemplateVisibility,
+                  latestPublishVisibility as TemplateVisibility,
                   TemplateVersionType[versionType]
                 );
               } catch (err) {

@@ -1,6 +1,8 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added a data migration script to update `visibility` to `latestPublishVisibility` in `templates` table. [#405]
+- Added code to update `latestPublishVisibility` whenever a `template` is published [#405]
 - Added checks in `ProjectMember` and `PlanMember` to prevent the deletion of a member if they are the last one [#358]
 - Added a fallback to set a `default` role if none was provided while adding a new `ProjectMember` [#358]
 - Added `findDMPIdsForEmail` helper method to `TokenService` so that the JWT will now contain a list of DMP ids and the user's access level

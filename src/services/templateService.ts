@@ -46,7 +46,7 @@ export const generateTemplateVersion = async (
   versions: VersionedTemplate[],
   versionerId: number,
   comment = '',
-  visibility = TemplateVisibility.ORGANIZATION,
+  latestPublishVisibility = TemplateVisibility.ORGANIZATION,
   versionType = TemplateVersionType.DRAFT,
 ): Promise<VersionedTemplate> => {
   // If the template has no id then it has not yet been saved so throw an error
@@ -74,7 +74,7 @@ export const generateTemplateVersion = async (
     description: template.description,
     ownerId: template.ownerId,
     versionedById: versionerId,
-    visibility: visibility || template.visibility,
+    visibility: latestPublishVisibility || template.latestPublishVisibility,
     bestPactice: template.bestPractice,
     languageId: template.languageId,
     versionType,
@@ -119,6 +119,7 @@ export const generateTemplateVersion = async (
         // Update the template's version and reset the dirty flag
         template.latestPublishVersion = newVersion;
         template.latestPublishDate = created.created;
+        template.latestPublishVisibility = latestPublishVisibility;
         // Only set isDirty to true if it's published. Otherwise, publishing is prevented when we save any drafts.
         versionType === TemplateVersionType.PUBLISHED ? template.isDirty = false : template.isDirty = true;
 
