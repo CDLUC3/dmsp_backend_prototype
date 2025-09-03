@@ -1,5 +1,5 @@
 import { Logger } from "pino";
-import { JWTAccessToken, JWTAccessTokenDMPId } from "../services/tokenService";
+import { JWTAccessToken } from "../services/tokenService";
 import { MyContext } from "../context";
 import { Authorizer, DMPHubAPI } from "../datasources/dmphubAPI";
 import { MySQLConnection } from "../datasources/mysql";
@@ -97,7 +97,6 @@ export const mockUser = (
 export const mockToken = async (
   user: User = mockUser(),
   context?: MyContext,
-  mockTokenDmps: JWTAccessTokenDMPId[] = []
 ): Promise<JWTAccessToken> => {
   const email = await user.getEmail(context);
   return {
@@ -108,7 +107,6 @@ export const mockToken = async (
     affiliationId: user.affiliationId,
     role: user.role,
     languageId: defaultLanguageId,
-    dmpIds: mockTokenDmps,
     jti: casual.integer(1, 999999).toString(),
     expiresIn: casual.integer(1, 999999999),
   }
@@ -136,14 +134,13 @@ export const buildMockContextWithToken = async (
   user: User = mockUser(),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cache: any = null,
-  mockTokenDMPs: JWTAccessTokenDMPId[] = []
 ): Promise<MyContext> => {
   // Only spy on the prototype if user.getEmail is not defined
   if (!user.getEmail && !jest.isMockFunction(User.prototype.getEmail)) {
     jest.spyOn(User.prototype, 'getEmail').mockImplementation(async () => casual.email);
   }
   const context = buildContext(logger, null, cache);
-  const token = await mockToken(user, context, mockTokenDMPs);
+  const token = await mockToken(user, context);
   context.token = token;
   return context;
 };

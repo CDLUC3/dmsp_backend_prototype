@@ -9,7 +9,7 @@ import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
 import { hasPermissionOnProject } from '../services/projectService';
-import { hasPermissionOnPlan, updateMemberRoles } from '../services/planService';
+import { updateMemberRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
 import { addVersion } from '../models/PlanVersion';
@@ -74,7 +74,8 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          if (await hasPermissionOnPlan(context, plan, ProjectCollaboratorAccessLevel.COMMENT)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanMember.findByPlanId(reference, context, plan.id);
           }
         }
@@ -305,7 +306,8 @@ export const resolvers: Resolvers = {
             roles = currentProjectRoles ? currentProjectRoles.map((d) => d.id) : [];
           }
 
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             const newPlanMember = new PlanMember({ planId, projectMemberId, memberRoleIds: roles });
             const created = await newPlanMember.create(context);
 
@@ -364,7 +366,11 @@ export const resolvers: Resolvers = {
           }
 
           const plan = await Plan.findById(reference, context, member?.planId);
-          const hasPermission = await hasPermissionOnPlan(context, plan);
+          if (isNullOrUndefined(plan)) {
+            throw NotFoundError();
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+          const hasPermission = await hasPermissionOnProject(context, project);
 
           if (hasPermission) {
             // Fetch current roles
@@ -447,7 +453,8 @@ export const resolvers: Resolvers = {
           // Fetch the plan and run a permission check
           const plan = await Plan.findById(reference, context, member.planId);
 
-          if (await hasPermissionOnPlan(context, plan)) {
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
             // Any related MemberRoles will be automatically deleted within the DB
             const removed = await member.delete(context);
 
