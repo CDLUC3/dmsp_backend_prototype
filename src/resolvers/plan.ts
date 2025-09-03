@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
-import { Plan, PlanSearchResult, PlanSectionProgress, PlanStatus, PlanVisibility } from "../models/Plan";
+import { Plan, PlanSearchResult, PlanSectionProgress, PlanProgress, PlanStatus, PlanVisibility } from "../models/Plan";
 import { prepareObjectForLogs } from "../logger";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
@@ -301,6 +301,12 @@ export const resolvers: Resolvers = {
         return await PlanSectionProgress.findByPlanId('plan versionedSections resolver', context, parent.id);
       }
       return [];
+    },
+    progress: async (parent: Plan, _, context: MyContext): Promise<PlanProgress> => {
+      if (parent?.id) {
+        return await PlanProgress.findByPlanId('plan progress resolver', context, parent.id);
+      }
+      return null;
     },
     registered: (parent: Plan) => {
       return normaliseDateTime(parent.registered);
