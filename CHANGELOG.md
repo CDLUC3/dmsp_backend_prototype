@@ -15,6 +15,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated `docker-compose.yaml` to use the `dmptool-network` which will be shared with other repos
 - Updated `answer`, `fundings`, `members` and `plans` resolver to use new `hasPermissionOnPlan` function
 - Update the `tokenService` to add `dmpIds` array that stores the DMPs the user has access to
 - Updated the `ProjectSearchResult.search` query to provide plan counts by status and filter by status options
