@@ -112,21 +112,71 @@ export class PlanSectionProgress {
     this.answeredQuestions = options.answeredQuestions;
   }
 
-  // Return the progress information for a section on the plan
+  // Return the progress information for sections of the plan
   static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanSectionProgress[]> {
-    const sql = 'SELECT vs.id versionedSectionId, vs.displayOrder, vs.name title, ' +
-                  'COUNT(DISTINCT vq.id) totalQuestions, ' +
-                  'COUNT(DISTINCT CASE WHEN a.json IS NOT NULL THEN vs.id END) answeredQuestions ' +
-                'FROM plans p ' +
-                  'INNER JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id ' +
-                  'INNER JOIN versionedSections vs ON vt.id = vs.versionedTemplateId ' +
-                  'LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId ' +
-                  'LEFT JOIN answers a ON p.id = a.planId AND vs.id = a.versionedSectionId ' +
-                'WHERE p.id = ? ' +
-                'GROUP BY vs.id, vs.displayOrder, vs.name ' +
-                'ORDER BY vs.displayOrder;';
+    const sql = `SELECT
+        vs.id AS versionedSectionId,
+        vs.displayOrder,
+        vs.name AS title,
+        COUNT(DISTINCT vq.id) AS totalQuestions,
+        COUNT(DISTINCT CASE
+            WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
+            THEN vq.id
+            END) AS answeredQuestions
+        FROM plans p
+            JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
+            JOIN versionedSections  vs ON vt.id = vs.versionedTemplateId
+            LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
+            LEFT JOIN answers a
+            ON a.planId = p.id
+            AND a.versionedQuestionId = vq.id
+        WHERE p.id = ?
+        GROUP BY vs.id, vs.displayOrder, vs.name
+        ORDER BY vs.displayOrder;
+`
+    // if requirements make detecting answered questions more complex (e.g. based on question type)
+    // and based on what constitutes really answered for each, then we may need to call special functions
+    // against each question to get the real count. It'll also use more resources to check them all.
+    // But we may be able to do something like the following to check for non-empty in JSON
+    // "JSON_EXTRACT(a.json, '$.answer') IS NOT NULL AND JSON_UNQUOTE(JSON_EXTRACT(a.json, '$.answer')) <> ''"
+
     const results = await Plan.query(context, sql, [planId?.toString()], reference);
     return Array.isArray(results) ? results.map((entry) => new PlanSectionProgress(entry)) : [];
+  }
+}
+
+export class PlanProgress {
+  public totalQuestions: number;
+  public answeredQuestions: number;
+  public percentComplete: number;
+
+  constructor(options) {
+    this.totalQuestions = options.totalQuestions;
+    this.answeredQuestions = options.answeredQuestions;
+    this.percentComplete = this.totalQuestions > 0
+      ? Number(((this.answeredQuestions / this.totalQuestions) * 100).toFixed(1))
+      : 0;
+  }
+
+  // Return the overall progress information for a plan
+  static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanProgress> {
+    const sql = `SELECT COUNT(DISTINCT vq.id) AS totalQuestions,
+        COUNT(DISTINCT CASE
+            WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
+            THEN vq.id
+        END) AS answeredQuestions
+        FROM plans p
+            JOIN versionedTemplates vt ON vt.id = p.versionedTemplateId
+            JOIN versionedSections  vs ON vs.versionedTemplateId = vt.id
+            JOIN versionedQuestions vq ON vq.versionedSectionId = vs.id
+            LEFT JOIN answers a
+                ON a.planId = p.id
+                AND a.versionedQuestionId = vq.id
+        WHERE p.id = ?;
+`
+
+    const results = await Plan.query(context, sql, [planId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new PlanProgress(results[0]) : null;
   }
 }
 

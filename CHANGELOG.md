@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added model/resolver for `PlanProgress` and nested `progress` in `Plan` resolver [#720]
 - Added checks in `ProjectMember` and `PlanMember` to prevent the deletion of a member if they are the last one [#358]
 - Added a fallback to set a `default` role if none was provided while adding a new `ProjectMember` [#358]
 - Added `findDMPIdsForEmail` helper method to `TokenService` so that the JWT will now contain a list of DMP ids and the user's access level
@@ -23,6 +24,7 @@
 
 ### Fixed
 - Fixed issue where the title of the DMP in the common standard JSON is using the template title instead of plan title
+- Updated `PlanSectionProgress`model so it correctly shows how many answers have been filled. [#719]
 - Fixed an issue where signup failed because context had been reset to different object
 - Fixed an issue causing the DMP version to not include sections/questions in the narrative if they had not been answered
 - Fixed an issue with the null/undefined check on model queries that use 'searchTerm'
