@@ -84,7 +84,7 @@ export const resolvers: Resolvers = {
 
         const plan = await Plan.findById(reference, context, answer.planId);
         const project = await Project.findById(reference, context, plan.projectId);
-        if (plan && await hasPermissionOnProject(context, project)) {
+        if (project && await hasPermissionOnProject(context, project)) {
           return await Answer.findById(reference, context, answerId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();

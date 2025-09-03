@@ -366,6 +366,9 @@ export const resolvers: Resolvers = {
           }
 
           const plan = await Plan.findById(reference, context, member?.planId);
+          if (isNullOrUndefined(plan)) {
+            throw NotFoundError();
+          }
           const project = await Project.findById(reference, context, plan.projectId);
           const hasPermission = await hasPermissionOnProject(context, project);
 
