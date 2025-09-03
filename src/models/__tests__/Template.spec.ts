@@ -41,7 +41,7 @@ describe('TemplateSearchResult', () => {
       id: casual.integer(1, 9),
       name: casual.sentence,
       description: casual.sentences(5),
-      visibility: getRandomEnumValue(TemplateVisibility),
+      latestPublishVisibility: getRandomEnumValue(TemplateVisibility),
       bestPractice: casual.boolean,
       latestPublishVersion: `v${casual.integer(1, 9)}`,
       latestPublishDate: casual.date('YYYY-MM-DD'),
@@ -66,7 +66,7 @@ describe('TemplateSearchResult', () => {
       localPaginationQuery.mockResolvedValueOnce([templateSearchResult]);
       const term = 'test';
       const result = await TemplateSearchResult.findByAffiliationIdAndTerm('Test', context, templateSearchResult.ownerId, term);
-      const sql = 'SELECT t.id, t.name, t.description, t.visibility, t.bestPractice, t.isDirty, ' +
+      const sql = 'SELECT t.id, t.name, t.description, t.latestPublishVisibility, t.bestPractice, t.isDirty, ' +
                         't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +
                         't.createdById, TRIM(CONCAT(cu.givenName, CONCAT(\' \', cu.surName))) as createdByName, t.created, ' +
                         't.modifiedById, TRIM(CONCAT(mu.givenName, CONCAT(\' \', mu.surName))) as modifiedByName, t.modified ' +
@@ -119,7 +119,7 @@ describe('Template', () => {
     expect(template.id).toBeFalsy();
     expect(template.name).toEqual(name);
     expect(template.ownerId).toEqual(ownerId);
-    expect(template.visibility).toEqual(TemplateVisibility.ORGANIZATION);
+    expect(template.latestPublishVisibility).toEqual(TemplateVisibility.ORGANIZATION);
     expect(template.created).toBeTruthy();
     expect(template.modified).toBeTruthy();
     expect(template.latestPublishVersion).toBeFalsy();
