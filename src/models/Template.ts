@@ -135,7 +135,7 @@ export class Template extends MySqlModel {
     this.ownerId = options.ownerId;
     this.description = options.description;
     this.sourceTemplateId = options.sourceTemplateId
-    this.latestPublishVisibility = options.latestPublishVisibility ?? TemplateVisibility.ORGANIZATION;    
+    this.latestPublishVisibility = options.latestPublishVisibility ?? TemplateVisibility.ORGANIZATION;
     this.latestPublishVersion = options.latestPublishVersion ?? '';
     this.latestPublishDate = options.latestPublishDate ?? null;
     this.isDirty = options.isDirty ?? true;
