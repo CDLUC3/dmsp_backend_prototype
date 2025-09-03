@@ -173,6 +173,7 @@ beforeEach(async () => {
     modified: '2023-01-02',
     registered: '2023-01-03',
     status: PlanStatus.COMPLETE,
+    title: 'My test plan',
     languageId: 'eng',
     featured: true,
     visibility: PlanVisibility.PUBLIC,
@@ -391,7 +392,7 @@ describe('commonStandardService', () => {
         },
       ],
       registered: "2023-01-03T00:00:00Z",
-      title: "DMP for: Template name"
+      title: "My test plan"
     });
   });
 
@@ -421,7 +422,7 @@ describe('commonStandardService', () => {
       created: '2023-01-01T00:00:00Z',
       modified: '2023-01-02T00:00:00Z',
       registered: '2023-01-03T00:00:00Z',
-      title: 'DMP for: Template name',
+      title: 'My test plan',
       language: 'eng',
       ethical_issues_exist: DMPYesNoUnknown.UNKNOWN,
       dmproadmap_featured: '1',

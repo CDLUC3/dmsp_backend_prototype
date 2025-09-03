@@ -25,6 +25,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed issue where the title of the DMP in the common standard JSON is using the template title instead of plan title
 - Updated `PlanSectionProgress`model so it correctly shows how many answers have been filled. [#719]
 - Fixed an issue where signup failed because context had been reset to different object
 - Fixed an issue causing the DMP version to not include sections/questions in the narrative if they had not been answered

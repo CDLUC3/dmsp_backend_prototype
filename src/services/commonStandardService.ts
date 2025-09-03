@@ -115,10 +115,10 @@ export async function planToDMPCommonStandard(
 
     // Include the required part of the project
     project: [{
-      title: project?.title,
+      title: project?.title ?? plan?.title,
     }],
 
-    title: `DMP for: ${project?.name ?? project?.title}`,
+    title: plan?.title ?? project?.title,
   }
 
   // Only add these properties if they have values we don't want 'undefined' or 'null' in the JSON
