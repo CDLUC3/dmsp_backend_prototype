@@ -29,6 +29,10 @@
 - Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
 - added a data migration script to repair bad option based question JSON
 
+### Removed
+- Removed `dmpIds` array from the JWT payload.
+- Removed `hasPermissionOnPlan` function from `planService` since JWT no longer has `dmpIds` array
+
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
