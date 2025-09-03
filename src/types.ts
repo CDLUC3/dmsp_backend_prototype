@@ -1568,6 +1568,8 @@ export type Plan = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** Anticipated research outputs */
   outputs?: Maybe<Array<PlanOutput>>;
+  /** The progress the user has made within the plan */
+  progress?: Maybe<PlanProgress>;
   /** The project the plan is associated with */
   project?: Maybe<Project>;
   /** The timestamp for when the Plan was registered */
@@ -1780,6 +1782,16 @@ export type PlanOutputErrors = {
   __typename?: 'PlanOutputErrors';
   /** General error messages such as the object already exists */
   general?: Maybe<Scalars['String']['output']>;
+};
+
+export type PlanProgress = {
+  __typename?: 'PlanProgress';
+  /** The total number of questions the user has answered */
+  answeredQuestions: Scalars['Int']['output'];
+  /** The percentage of questions the user has answered */
+  percentComplete: Scalars['Float']['output'];
+  /** The total number of questions in the plan */
+  totalQuestions: Scalars['Int']['output'];
 };
 
 export type PlanSearchResult = {
@@ -4140,6 +4152,7 @@ export type ResolversTypes = {
   ExternalMember: ResolverTypeWrapper<ExternalMember>;
   ExternalProject: ResolverTypeWrapper<ExternalProject>;
   ExternalSearchInput: ExternalSearchInput;
+  Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   FunderPopularityResult: ResolverTypeWrapper<FunderPopularityResult>;
   InitializePlanVersionOutput: ResolverTypeWrapper<InitializePlanVersionOutput>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
@@ -4173,6 +4186,7 @@ export type ResolversTypes = {
   PlanMemberErrors: ResolverTypeWrapper<PlanMemberErrors>;
   PlanOutput: ResolverTypeWrapper<PlanOutput>;
   PlanOutputErrors: ResolverTypeWrapper<PlanOutputErrors>;
+  PlanProgress: ResolverTypeWrapper<PlanProgress>;
   PlanSearchResult: ResolverTypeWrapper<PlanSearchResult>;
   PlanSectionProgress: ResolverTypeWrapper<PlanSectionProgress>;
   PlanStatus: PlanStatus;
@@ -4303,6 +4317,7 @@ export type ResolversParentTypes = {
   ExternalMember: ExternalMember;
   ExternalProject: ExternalProject;
   ExternalSearchInput: ExternalSearchInput;
+  Float: Scalars['Float']['output'];
   FunderPopularityResult: FunderPopularityResult;
   InitializePlanVersionOutput: InitializePlanVersionOutput;
   Int: Scalars['Int']['output'];
@@ -4333,6 +4348,7 @@ export type ResolversParentTypes = {
   PlanMemberErrors: PlanMemberErrors;
   PlanOutput: PlanOutput;
   PlanOutputErrors: PlanOutputErrors;
+  PlanProgress: PlanProgress;
   PlanSearchResult: PlanSearchResult;
   PlanSectionProgress: PlanSectionProgress;
   PlanVersion: PlanVersion;
@@ -4869,6 +4885,7 @@ export type PlanResolvers<ContextType = MyContext, ParentType extends ResolversP
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   outputs?: Resolver<Maybe<Array<ResolversTypes['PlanOutput']>>, ParentType, ContextType>;
+  progress?: Resolver<Maybe<ResolversTypes['PlanProgress']>, ParentType, ContextType>;
   project?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType>;
   registered?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   registeredById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -4999,6 +5016,13 @@ export type PlanOutputResolvers<ContextType = MyContext, ParentType extends Reso
 
 export type PlanOutputErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanOutputErrors'] = ResolversParentTypes['PlanOutputErrors']> = {
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type PlanProgressResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanProgress'] = ResolversParentTypes['PlanProgress']> = {
+  answeredQuestions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  percentComplete?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  totalQuestions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5996,6 +6020,7 @@ export type Resolvers<ContextType = MyContext> = {
   PlanMemberErrors?: PlanMemberErrorsResolvers<ContextType>;
   PlanOutput?: PlanOutputResolvers<ContextType>;
   PlanOutputErrors?: PlanOutputErrorsResolvers<ContextType>;
+  PlanProgress?: PlanProgressResolvers<ContextType>;
   PlanSearchResult?: PlanSearchResultResolvers<ContextType>;
   PlanSectionProgress?: PlanSectionProgressResolvers<ContextType>;
   PlanVersion?: PlanVersionResolvers<ContextType>;
