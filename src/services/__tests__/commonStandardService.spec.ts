@@ -382,10 +382,6 @@ describe('commonStandardService', () => {
       dmproadmap_featured: '1',
       dmproadmap_privacy: "public",
       dmproadmap_status: "complete",
-      dmproadmap_template: {
-        id: 1,
-        title: "Template name",
-      },
       ethical_issues_exist: "unknown",
       language: "eng",
       modified: "2023-01-02T00:00:00Z",
@@ -432,10 +428,6 @@ describe('commonStandardService', () => {
       dmproadmap_featured: '1',
       dmproadmap_privacy: DMPPrivacy.PUBLIC,
       dmproadmap_status: DMPStatus.COMPLETE,
-      dmproadmap_template: {
-        id: 1,
-        title: "Template name",
-      },
       dmp_id: {
         identifier: '10.1234/dmp',
         type: 'doi',

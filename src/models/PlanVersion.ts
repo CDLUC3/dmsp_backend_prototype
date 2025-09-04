@@ -75,6 +75,7 @@ export const updateVersion = async (
 
   // If the lastModified date is not within the last hour, create a new version snapshot
   const mostRecentVersion = await latestVersion(context, plan, reference);
+
   if (mostRecentVersion) {
     const lastModified = new Date(mostRecentVersion?.modified);
     const now = new Date();
@@ -85,16 +86,16 @@ export const updateVersion = async (
     if (diff >= generalConfig.versionPlanAfter) {
       const msg = `Plan last changed over ${generalConfig.versionPlanAfter} hour(s) ago, so creating a new version`;
       context.logger.debug(prepareObjectForLogs({ planId: plan.id }), msg);
-      return addVersion(context, plan, reference);
+      await addVersion(context, plan, reference);
+    }
 
-    } else {
-      context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - updating Plan Version`);
-      const updatedVersion = await updateDMP(context, commonStandard);
-      if (!updatedVersion) {
-        const msg = 'Unable to update the version snapshot';
-        context.logger.error(prepareObjectForLogs({ plan }), `${reference} - ${msg}`);
-        plan.addError('general', msg);
-      }
+    // Now update the latest version
+    context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - updating Plan Version`);
+    const updatedVersion = await updateDMP(context, commonStandard);
+    if (!updatedVersion) {
+      const msg = 'Unable to update the version snapshot';
+      context.logger.error(prepareObjectForLogs({ plan }), `${reference} - ${msg}`);
+      plan.addError('general', msg);
     }
   } else {
     plan.addError('general', 'Unable to find the latest version of the DMP');

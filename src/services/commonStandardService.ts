@@ -108,10 +108,6 @@ export async function planToDMPCommonStandard(
     dmproadmap_featured: plan.featured ? '1' : '0',
     dmproadmap_privacy: plan.visibility === PlanVisibility.PUBLIC ? DMPPrivacy.PUBLIC : DMPPrivacy.PRIVATE,
     dmproadmap_status: DMPStatus[plan.status],
-    dmproadmap_template: {
-      id: plan.versionedTemplateId,
-      title: project.name
-    },
 
     ethical_issues_exist: DMPYesNoUnknown.UNKNOWN,
     language: plan.languageId?.length > 3 ? convertFiveCharToThreeChar(plan.languageId) : plan.languageId,
