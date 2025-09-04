@@ -168,6 +168,8 @@ export interface DMPCommonStandard {
 
   // TODO: Define the the Version model and move this to it
   dmphub_versions?: DMPCommonStandardVersion[],
+
+  dmproadmap_template?: DMPCommonStandardTemplate,
 }
 
 export interface DMPCommonStandardAffiliation {
@@ -370,4 +372,9 @@ export interface DMPCommonStandardTechnicalResource {
 export interface DMPCommonStandardVersion {
   timestamp: string;
   url: string;
+}
+
+export interface DMPCommonStandardTemplate {
+  id: number;
+  title: string;
 }
