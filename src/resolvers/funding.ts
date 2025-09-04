@@ -10,7 +10,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
-import { addVersion } from '../models/PlanVersion';
+import { updateVersion } from '../models/PlanVersion';
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
@@ -142,7 +142,10 @@ export const resolvers: Resolvers = {
               const plans = await Plan.findByProjectId(reference, context, funding.projectId);
               for (const plan of plans) {
                 // Version all of the plans (if any) and sync with the DMPHub
-                await addVersion(context, plan, reference);
+                const planVersion = await updateVersion(context, plan, reference);
+                if (!planVersion || planVersion.hasErrors()) {
+                  updated.addError("general", "Unable to version the plans");
+                }
               }
             }
             return updated;
@@ -175,7 +178,10 @@ export const resolvers: Resolvers = {
               const plans = await Plan.findByProjectId(reference, context, funding.projectId);
               for (const plan of plans) {
                 // Version all of the plans (if any) and sync with the DMPHub
-                addVersion(context, plan, reference);
+                const planVersion = await updateVersion(context, plan, reference);
+                if (!planVersion || planVersion.hasErrors()) {
+                  removed.addError("general", "Unable to version the plans");
+                }
               }
             }
             return removed;
@@ -215,7 +221,10 @@ export const resolvers: Resolvers = {
 
             if (newFunding && !newFunding.hasErrors()) {
               // Version all of the plans (if any) and sync with the DMPHub
-              await addVersion(context, plan, reference);
+              const planVersion = await updateVersion(context, plan, reference);
+              if (!planVersion || planVersion.hasErrors()) {
+                newFunding.addError("general", "Unable to version the plan");
+              }
             }
 
             return await newFunding.create(context);
@@ -295,8 +304,13 @@ export const resolvers: Resolvers = {
           if (associationErrors.length > 0) {
             context.logger.warn(`Plan funding update had issues: ${associationErrors.join(', ')}`);
           }
-          await addVersion(context, plan, reference);
-          return await PlanFunding.findByPlanId(reference, context, plan.id);
+
+          const planVersion = await updateVersion(context, plan, reference);
+          if (!planVersion || planVersion.hasErrors()) {
+            context.logger.error(prepareObjectForLogs({ plan: plan.id }),"Unable to update version");
+          }
+
+          return await PlanFunding.findByPlanId(reference, context, plan.id);;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -324,7 +338,10 @@ export const resolvers: Resolvers = {
 
             if (deletedFunding && !deletedFunding.hasErrors()) {
               // Version the plan
-              await addVersion(context, plan, reference);
+              const planVersion = await updateVersion(context, plan, reference);
+              if (!planVersion || planVersion.hasErrors()) {
+                deletedFunding.addError("general", "Unable to version the plan");
+              }
             }
 
             return deletedFunding;

@@ -18,7 +18,7 @@ import { AnswerComment } from "../models/AnswerComment";
 import { ProjectCollaborator } from "../models/Collaborator";
 import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
-import { addVersion } from "../models/PlanVersion";
+import { updateVersion } from "../models/PlanVersion";
 import { normaliseDateTime } from "../utils/helpers";
 import { hasPermissionOnProject } from "../services/projectService";
 import { Project } from "../models/Project";
@@ -113,8 +113,11 @@ export const resolvers: Resolvers = {
             const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, json });
             const newAnswer = await answer.create(context);
             if (newAnswer && !newAnswer.hasErrors()) {
-              // Version the plan
-              await addVersion(context, plan, reference);
+              // Update the version history of the plan
+              const planVersion = await updateVersion(context, plan, reference);
+              if (!planVersion || planVersion.hasErrors()) {
+                newAnswer.addError("general", "Unable to version the plan");
+              }
             }
             return newAnswer;
           }
@@ -147,8 +150,11 @@ export const resolvers: Resolvers = {
             const updatedAnswer = await answer.update(context);
 
             if (updatedAnswer && !updatedAnswer.hasErrors()) {
-              // Version the plan
-              await addVersion(context, plan, reference);
+              // Update the version history of the plan
+              const planVersion = await updateVersion(context, plan, reference);
+              if (!planVersion || planVersion.hasErrors()) {
+                updatedAnswer.addError("general", "Unable to version the plan");
+              }
             }
 
             return updatedAnswer;
