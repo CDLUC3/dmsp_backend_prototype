@@ -421,8 +421,9 @@ In development, you can review the JSON store in the DynamoDB table by executing
 
 The key structure we use is
 - Partition key: `PK` with a prefix of `DMP#` and then either:
-  - When the plan is published/registered, the DMP ID (DOI) without the protocol (e.g. `DMP#doi.org/11.22222/A1B2C3`)
-  - When the plan is NOT published/registered, the plan's MySQL record id (e.g. `DMP#example.com/dmps/123`)
+  - The structure of the DMP ID is a DOI without the protocol (e.g. `DMP#doi.org/11.22222/A1B2C3`)
+  - When the plan's DMP ID is published/registered with EZID/DataCite, the record will include a `registered` timestamp
+  - If the plan doesn't have a `registered` value then we have only "reserved" the DOI. It has not yet been minted/published
 - Sort key: `SK` with a prefix of `VERSION#`. The version can be either `VERSION#latest` or a specific historical version as `VERSION#2025-04-08T09:20:00.000Z`
 
 To fetch a specific item you can run something like:
@@ -430,6 +431,9 @@ To fetch a specific item you can run something like:
 
 To scan the table for multiple items you can run something like this that returns all the unique `PK` and `SK`:
 `aws dynamodb scan --table-name $DYNAMO_TABLE_NAME --endpoint-url $DYNAMO_ENDPOINT --filter-expression "SK = :sk" --expression-attribute-values "{\":sk\":{\"S\":\"VERSION#latest\"}}" --projection-expression "PK, SK"`
+
+When querying the local DynamoDB Table you will need to specify the dummy credentials and the endpoint url:
+`AWS_ACCESS_KEY_ID=DUMMYIDEXAMPLE AWS_SECRET_ACCESS_KEY=DUMMYEXAMPLEKEY aws dynamodb get-item --table-name localDMPTable --endpoint-url http://localhost:8000 --key "{\"PK\":{\"S\":\"DMP#dmsp.com/10.48321/D11bcc3acd\"},\"SK\":{\"S\":\"VERSION#latest\"}}"`
 
 The MySQL database stores everything else (Templates, Guidance, Plan Feedback, Users, Affiliations, etc.). It also maintains a projectDOIs table that links Projects to the Plan DOIs to facilitate access to the DMPs stored in the DynamoDB table.
 
