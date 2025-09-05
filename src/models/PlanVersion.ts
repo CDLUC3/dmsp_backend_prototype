@@ -47,11 +47,9 @@ export const generateVersionSnapshot = async (
   try {
     const snapshot = await createDMP(context, dmpId, latestVersion, modified);
     if (isNullOrUndefined(snapshot)) {
-      context.logger.error(prepareObjectForLogs(latestVersion), `${reference} - Dynamo table createDMP failed`);
       return errMsg;
     }
   } catch (err) {
-    context.logger.error(prepareObjectForLogs({ err, latestVersion }), `${reference} - Fatal error for Dynamo createDMP`);
     return errMsg
   }
   return null;
