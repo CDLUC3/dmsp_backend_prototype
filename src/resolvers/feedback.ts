@@ -288,6 +288,7 @@ export const resolvers: Resolvers = {
     },
     //Remove comment for an answer within a round of feedback
     removeFeedbackComment: async (_, { planId, planFeedbackCommentId }, context: MyContext): Promise<PlanFeedbackComment> => {
+      console.log("***REMOVE FEEDBACK CALLED")
       const reference = 'removeFeedbackComment resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -300,6 +301,8 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Project with ID ${plan.projectId} not found`);
           }
 
+          const temp = await hasPermissionOnProject(context, project);
+          console.log('***hasPermissionOnProject', temp);
           if (await hasPermissionOnProject(context, project)) {
             // Get referenced feedbackComment
             const feedbackComment = await PlanFeedbackComment.findById(reference, context, planFeedbackCommentId);
@@ -308,8 +311,18 @@ export const resolvers: Resolvers = {
               throw NotFoundError(`Feedback comment with id ${planFeedbackCommentId} not found`);
             }
 
-            // Only user who added the comment can delete it
-            if (feedbackComment.createdById === context.token.id) {
+            // Get project collaborators emails, minus the user's own email
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
+
+            // Allow deletion by comment creator, plan creator, or OWN-level collaborator
+            const isCommentCreator = feedbackComment.createdById === context.token.id;
+            const isPlanCreator = plan.createdById === context.token.id;
+            const isOwnCollaborator = collaborators.some(
+              c => c.userId === context.token.id && c.accessLevel === "OWN"
+            );
+
+            // Only user who added the comment, the plan creator, or OWN-level collaborator can delete it
+            if (isCommentCreator || isPlanCreator || isOwnCollaborator) {
               // Delete the comment
               return await feedbackComment.delete(context);
             }
