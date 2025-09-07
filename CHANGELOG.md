@@ -17,6 +17,8 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated `answer` and `addAnswerComment` permissions to include a collaborator who has `COMMENT` privileges [#243]
+- Updated `removeAnswerComment` and `removeFeedbackComment` to allow deletion by creator, plan creator, or OWN-level collaborator [#243]
 - Updated `docker-compose.yaml` to use the `dmptool-network` which will be shared with other repos
 - Updated `answer`, `fundings`, `members` and `plans` resolver to use new `hasPermissionOnPlan` function
 - Update the `tokenService` to add `dmpIds` array that stores the DMPs the user has access to
