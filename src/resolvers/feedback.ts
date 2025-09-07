@@ -308,18 +308,8 @@ export const resolvers: Resolvers = {
               throw NotFoundError(`Feedback comment with id ${planFeedbackCommentId} not found`);
             }
 
-            // Get project collaborators
-            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
-
-            // Allow deletion by comment creator, plan creator, or OWN-level collaborator
-            const isCommentCreator = feedbackComment.createdById === context.token.id;
-            const isPlanCreator = plan.createdById === context.token.id;
-            const isOwnCollaborator = collaborators.some(
-              c => c.userId === context.token.id && c.accessLevel === "OWN"
-            );
-
-            // Only user who added the comment, the plan creator, or OWN-level collaborator can delete it
-            if (isCommentCreator || isPlanCreator || isOwnCollaborator) {
+            // Only user who added the comment can delete it
+            if (feedbackComment.createdById === context.token.id) {
               // Delete the comment
               return await feedbackComment.delete(context);
             }
