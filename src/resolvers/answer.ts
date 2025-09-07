@@ -15,7 +15,7 @@ import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
-import { ProjectCollaborator } from "../models/Collaborator";
+import { ProjectCollaborator, ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { updateVersion } from "../models/PlanVersion";
@@ -84,7 +84,7 @@ export const resolvers: Resolvers = {
 
         const plan = await Plan.findById(reference, context, answer.planId);
         const project = await Project.findById(reference, context, plan.projectId);
-        if (project && await hasPermissionOnProject(context, project)) {
+        if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
           return await Answer.findById(reference, context, answerId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -182,7 +182,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             // Send out email to project collaborators to let them know that comments were added
             // Get project collaborators emails, minus the user's own email
             const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
@@ -270,8 +270,18 @@ export const resolvers: Resolvers = {
             if (!answerComment) {
               throw NotFoundError(`Answer comment ${answerCommentId} not found`);
             }
-            // Only user who created plan can remove comments
-            if (answerComment.createdById === context.token.id) {
+            // Get project collaborators
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
+
+            // Allow deletion by comment creator, plan creator, or OWN-level collaborator
+            const isCommentCreator = answerComment.createdById === context.token.id;
+            const isPlanCreator = plan.createdById === context.token.id;
+            const isOwnCollaborator = collaborators.some(
+              c => c.userId === context.token.id && c.accessLevel === "OWN"
+            );
+
+            // Only user who added the comment, the plan creator, or OWN-level collaborator can delete it
+            if (isCommentCreator || isPlanCreator || isOwnCollaborator) {
               return await answerComment.delete(context);
             }
 
