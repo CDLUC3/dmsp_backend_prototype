@@ -1,9 +1,9 @@
 import { MyContext } from "../context";
 import { MemberRole } from "../models/MemberRole";
-import {isNullOrUndefined} from "../utils/helpers";
-import {PlanMember, ProjectMember} from "../models/Member";
-import {Plan} from "../models/Plan";
-import {Project} from "../models/Project";
+import { isNullOrUndefined } from "../utils/helpers";
+import { PlanMember, ProjectMember } from "../models/Member";
+import { Plan } from "../models/Plan";
+import { Project } from "../models/Project";
 
 export async function updateMemberRoles(
   reference: string,
@@ -93,3 +93,4 @@ export const ensureDefaultPlanContact = async (
   }
   return false
 }
+

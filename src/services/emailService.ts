@@ -13,6 +13,7 @@ export const emailSubjects = {
   emailConfirmation: 'Please confirm your email address',
   projectCollaboration: 'You were invited to collaborate on a data management plan',
   templateCollaboration: 'You were invited to collaborate on a template',
+  projectCollaboratorCommentsAdded: 'New comments added to the plan'
 }
 
 export const emailMessages = {
@@ -24,6 +25,9 @@ export const emailMessages = {
   templateCollaboration: `
 <p>%{inviterName} has invited you to collaborate on their template: "%{templateTitle}".</p>
 <p>Placeholder text for a template collaboration email.</p>
+`,
+  projectCollaboratorCommentsAdded: `
+<p>New comments were added to the plan.</p>
 `,
 }
 
@@ -147,7 +151,7 @@ export const sendProjectCollaborationEmail = async (
   projectTitle: string,
   inviterName: string,
   email: string,
-  userId?: number
+  userId?: number,
 ): Promise<boolean> => {
   let toAddress = email;
   const message = emailMessages.projectCollaboration;
@@ -171,4 +175,29 @@ export const sendProjectCollaborationEmail = async (
     emailSubjects.projectCollaboration,
     message.replace('%{inviterName}', inviterName).replace('%{projectTitle}', projectTitle),
   );
+}
+
+export const sendProjectCollaboratorsCommentsAddedEmail = async (
+  context: MyContext,
+  collaboratorEmails: string[],
+): Promise<boolean> => {
+  if (collaboratorEmails.length === 0) {
+    return false;
+  };
+
+  const message = emailMessages.projectCollaboratorCommentsAdded;
+
+  // Send each collaborator their own email
+  for (const email of collaboratorEmails) {
+    await sendEmail(
+      context,
+      'ProjectCommentsAdded',
+      [email],
+      [],
+      [],
+      emailSubjects.projectCollaboratorCommentsAdded,
+      message,
+    );
+  }
+  return true;
 }

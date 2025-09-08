@@ -1,12 +1,17 @@
 import { MyContext } from '../../context';
-import { buildMockContextWithToken } from '../../__mocks__/context';
-import {ensureDefaultPlanContact, updateMemberRoles} from '../planService';
+import {
+  buildMockContextWithToken,
+} from '../../__mocks__/context';
+import {
+  ensureDefaultPlanContact,
+  updateMemberRoles
+} from '../planService';
 import { MemberRole } from '../../models/MemberRole';
 import { logger } from '../../logger';
-import {PlanMember, ProjectMember} from "../../models/Member";
+import { PlanMember, ProjectMember } from "../../models/Member";
 import casual from "casual";
-import {Project} from "../../models/Project";
-import {Plan} from "../../models/Plan";
+import { Project } from "../../models/Project";
+import { Plan } from "../../models/Plan";
 
 jest.mock('../commonStandardService');
 jest.mock('../../datasources/dynamo');

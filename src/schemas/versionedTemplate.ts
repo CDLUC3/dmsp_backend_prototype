@@ -6,6 +6,8 @@ export const typeDefs = gql`
     templateVersions(templateId: Int!): [VersionedTemplate]
     "Search for VersionedTemplate whose name or owning Org's name contains the search term"
     publishedTemplates(term: String, paginationOptions: PaginationOptions): PublishedTemplateSearchResults
+    "Search for templates for lightweight info on what unique affiliations are in the data set, and whether any of them have best practice"
+    publishedTemplatesMetaData(term: String, paginationOptions: PaginationOptions): PublishedTemplateMetaDataResults
     "Get the VersionedTemplates that belong to the current user's affiliation (user must be an Admin)"
     myVersionedTemplates: [VersionedTemplateSearchResult]
   }
@@ -16,6 +18,13 @@ export const typeDefs = gql`
     DRAFT
     "Published - saved state for use when creating DMPs"
     PUBLISHED
+  }
+
+  type PublishedTemplateMetaDataResults {
+    "Whether the result set includes bestPractice templates"
+    hasBestPracticeTemplates: Boolean
+    "The available affiliations in the result set"
+    availableAffiliations: [String]
   }
 
   type PublishedTemplateSearchResults implements PaginatedQueryResults {

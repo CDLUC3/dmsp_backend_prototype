@@ -209,7 +209,7 @@ export class ResearchDomain extends MySqlModel {
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(rd.name) LIKE ? OR LOWER(rd.description) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }

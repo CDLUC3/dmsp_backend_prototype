@@ -72,6 +72,15 @@ export const typeDefs = gql`
     answeredQuestions: Int!
   }
 
+  type PlanProgress {
+    "The total number of questions in the plan"
+    totalQuestions: Int!
+    "The total number of questions the user has answered"
+    answeredQuestions: Int!
+    "The percentage of questions the user has answered"
+    percentComplete: Float!
+  }
+
   enum PlanDownloadFormat {
     CSV
     DOCX
@@ -138,6 +147,8 @@ export const typeDefs = gql`
     featured: Boolean
     "The section search results"
     versionedSections: [PlanSectionProgress!]
+    "The progress the user has made within the plan"
+    progress: PlanProgress
 
     "The members for the plan"
     members: [PlanMember!]
@@ -149,7 +160,11 @@ export const typeDefs = gql`
     "Prior versions of the plan"
     versions: [PlanVersion!]
 
+    "Answers associated with the plan"
     answers: [Answer!]
+
+    "Feedback associated with the plan"
+    feedback: [PlanFeedback!]
   }
 
   "The error messages for the plan"
