@@ -12,6 +12,7 @@ import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
 import { isAdmin, isSuperAdmin } from "../services/authService";
+import { canDeleteComment } from "../services/commentPermissions";
 import { Project } from "../models/Project";
 import { Plan } from "../models/Plan";
 import { PlanFeedback } from "../models/PlanFeedback";
@@ -308,8 +309,16 @@ export const resolvers: Resolvers = {
               throw NotFoundError(`Feedback comment with id ${planFeedbackCommentId} not found`);
             }
 
-            // Only user who added the comment can delete it
-            if (feedbackComment.createdById === context.token.id) {
+            // Get project collaborators emails
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
+
+            // Allow deletion by comment creator, plan creator, or OWN-level collaborator
+            if (canDeleteComment({
+              commentCreatedById: feedbackComment.createdById,
+              planCreatedById: plan.createdById,
+              userId: context.token.id,
+              collaborators
+            })) {
               // Delete the comment
               return await feedbackComment.delete(context);
             }

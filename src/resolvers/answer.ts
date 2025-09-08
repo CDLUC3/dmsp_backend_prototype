@@ -10,12 +10,13 @@ import {
 } from "../utils/graphQLErrors";
 import { isAuthorized } from "../services/authService";
 import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
+import { canDeleteComment } from "../services/commentPermissions";
 import { Resolvers } from "../types";
 import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
 import { VersionedSection } from "../models/VersionedSection";
 import { AnswerComment } from "../models/AnswerComment";
-import { ProjectCollaborator } from "../models/Collaborator";
+import { ProjectCollaborator, ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { User } from "../models/User";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { addVersion } from "../models/PlanVersion";
@@ -59,7 +60,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             const temp = await Answer.findByPlanIdAndVersionedQuestionId(reference, context, planId, versionedQuestionId);
             return temp;
           }
@@ -84,7 +85,8 @@ export const resolvers: Resolvers = {
 
         const plan = await Plan.findById(reference, context, answer.planId);
         const project = await Project.findById(reference, context, plan.projectId);
-        if (project && await hasPermissionOnProject(context, project)) {
+
+        if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
           return await Answer.findById(reference, context, answerId);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -176,7 +178,7 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             // Send out email to project collaborators to let them know that comments were added
             // Get project collaborators emails, minus the user's own email
             const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
@@ -203,6 +205,7 @@ export const resolvers: Resolvers = {
     updateAnswerComment: async (_, { answerCommentId, answerId, commentText }, context: MyContext): Promise<AnswerComment> => {
       const reference = 'updateAnswerComment resolver';
       try {
+
         if (isAuthorized(context.token)) {
           const answer = await Answer.findById(reference, context, answerId);
 
@@ -216,7 +219,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
             if (!answerComment) {
@@ -258,14 +261,23 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
             if (!answerComment) {
               throw NotFoundError(`Answer comment ${answerCommentId} not found`);
             }
-            // Only user who created plan can remove comments
-            if (answerComment.createdById === context.token.id) {
+            // Get project collaborators emails, minus the user's own email
+            const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
+
+            // Allow deletion by comment creator, plan creator, or OWN-level collaborator
+            if (canDeleteComment({
+              commentCreatedById: answerComment.createdById,
+              planCreatedById: plan.createdById,
+              userId: context.token.id,
+              collaborators
+            })) {
+              // Delete the comment
               return await answerComment.delete(context);
             }
 
