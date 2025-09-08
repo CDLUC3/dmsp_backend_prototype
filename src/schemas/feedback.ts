@@ -6,18 +6,20 @@ export const typeDefs = gql`
     planFeedback(planId: Int!): [PlanFeedback]
 
     "Get all of the comments associated with the round of admin feedback"
-    planFeedbackComments(planFeedbackId: Int!): [PlanFeedbackComment]
+    planFeedbackComments(planId: Int!, planFeedbackId: Int!): [PlanFeedbackComment]
   }
 
   extend type Mutation {
     "Request a round of admin feedback"
     requestFeedback(planId: Int!): PlanFeedback
     "Mark the feedback round as complete"
-    completeFeedback(planFeedbackId: Int!, summaryText: String): PlanFeedback
-    "Add a comment to an answer within a round of feedback"
-    addFeedbackComment(planFeedbackId: Int!, answerId: Int!, commentText: String!): PlanFeedbackComment
-    "Remove a comment to an answer within a round of feedback"
-    removeFeedbackComment(PlanFeedbackCommentId: Int!): PlanFeedbackComment
+    completeFeedback(planId: Int!, planFeedbackId: Int!, summaryText: String): PlanFeedback
+    "Add feedback comment for an answer within a round of feedback"
+    addFeedbackComment(planId: Int!, planFeedbackId: Int!, answerId: Int!, commentText: String!): PlanFeedbackComment
+    "Update feedback comment for an answer within a round of feedback"
+    updateFeedbackComment(planId: Int!, planFeedbackCommentId: Int!, commentText: String!): PlanFeedbackComment
+    "Remove feedback comment for an answer within a round of feedback"
+    removeFeedbackComment(planId: Int!, planFeedbackCommentId: Int!): PlanFeedbackComment
   }
 
   "A round of administrative feedback for a Data Managament Plan (DMP)"
@@ -36,17 +38,17 @@ export const typeDefs = gql`
     errors: PlanFeedbackErrors
 
     "The plan the user wants feedback on"
-    plan: Plan!
+    plan: Plan
     "The timestamp of when the user requested the feedback"
-    requested: String!
+    requested: String
     "The user who requested the round of feedback"
-    requestedBy: User!
+    requestedBy: User
     "The timestamp that the feedback was marked as complete"
     completed: String
     "The admin who completed the feedback round"
     completedBy: User
     "An overall summary that can be sent to the user upon completion"
-    adminSummary: String
+    summaryText: String
 
     "The specific contextual commentary"
     feedbackComments: [PlanFeedbackComment!]
@@ -66,12 +68,14 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: PlanFeedbackCommentErrors
 
-    "The answer the comment is related to"
-    answer: Answer
+    "The answerId the comment is related to"
+    answerId: Int
     "The round of plan feedback the comment belongs to"
     PlanFeedback: PlanFeedback
     "The comment"
-    comment: String
+    commentText: String
+    "User who made the comment"
+    user: User
   }
 
   "A collection of errors related to the PlanFeedback"
@@ -82,7 +86,7 @@ export const typeDefs = gql`
     planId: String
     requestedById: String
     completedById: String
-    adminSummary: String
+    summaryText: String
     feedbackComments: String
   }
 

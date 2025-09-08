@@ -16,7 +16,8 @@ import {
   emailSubjects,
   sendEmailConfirmationNotification,
   sendProjectCollaborationEmail,
-  sendTemplateCollaborationEmail
+  sendTemplateCollaborationEmail,
+  sendProjectCollaboratorsCommentsAddedEmail
 } from "../emailService";
 import { generalConfig } from "../../config/generalConfig";
 import { emailConfig } from "../../config/emailConfig";
@@ -160,7 +161,7 @@ describe('sendEmail', () => {
     jest.spyOn(User.prototype, 'getEmail').mockResolvedValue(email);
 
     (User.findById as jest.Mock) = jest.fn().
-    mockResolvedValueOnce(user);
+      mockResolvedValueOnce(user);
     const sent = await sendProjectCollaborationEmail(context, projectName, inviterName, email, user.id);
 
     const expectedSubject = `${subjectPrefix} - ${emailSubjects.projectCollaboration}`
@@ -178,5 +179,40 @@ describe('sendEmail', () => {
       "subject": expectedSubject,
       "to": email,
     });
+  });
+
+  it('should send the project collaborators emails when a comment is added', async () => {
+    jest.spyOn(logger, 'info');
+    const email = casual.email;
+    const emails = Array.from({ length: 5 }, () => casual.email);
+    jest.spyOn(User.prototype, 'getEmail').mockResolvedValue(email);
+    const sent = await sendProjectCollaboratorsCommentsAddedEmail(context, emails);
+
+    const expectedSubject = `${subjectPrefix} - ${emailSubjects.projectCollaboratorCommentsAdded}`
+    const expectedMessage = emailMessages.projectCollaboratorCommentsAdded;
+
+    expect(sent).toBe(true);
+    expect(logger.info).toHaveBeenCalledTimes(5);
+    // sendEmail should have been called once per email
+    expect(mockSendEmail).toHaveBeenCalledTimes(emails.length);
+    for (const email of emails) {
+      expect(mockSendEmail).toHaveBeenCalledWith({
+        "bcc": "",
+        "cc": "",
+        "from": `"${generalConfig.applicationName}" <${emailConfig.doNotReplyAddress}>`,
+        "html": expectedMessage,
+        "replyTo": emailConfig.helpDeskAddress,
+        "sender": emailConfig.doNotReplyAddress,
+        "subject": expectedSubject,
+        "to": email,
+      });
+    }
+  });
+
+  it('should return false and does not send email when no collaborator emails provided', async () => {
+    const sent = await sendProjectCollaboratorsCommentsAddedEmail(context, []);
+
+    expect(sent).toBe(false);
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 });

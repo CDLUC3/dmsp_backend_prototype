@@ -12,12 +12,12 @@ export const typeDefs = gql`
     "Create a new Template. Leave the 'copyFromTemplateId' blank to create a new template from scratch"
     addTemplate(name: String!, copyFromTemplateId: Int): Template
     "Update a Template"
-    updateTemplate(templateId: Int!, name: String!, visibility: TemplateVisibility!, bestPractice: Boolean): Template
+    updateTemplate(templateId: Int!, name: String!, bestPractice: Boolean): Template
     "Archive a Template (unpublishes any associated PublishedTemplate"
     archiveTemplate(templateId: Int!): Template
 
     "Publish the template or save as a draft"
-    createTemplateVersion(templateId: Int!, comment: String, versionType: TemplateVersionType, visibility: TemplateVisibility!): Template
+    createTemplateVersion(templateId: Int!, comment: String, versionType: TemplateVersionType, latestPublishVisibility: TemplateVisibility!): Template
   }
 
   "Template visibility"
@@ -36,8 +36,8 @@ export const typeDefs = gql`
     name: String
     "A description of the purpose of the template"
     description: String
-    "The template's availability setting: Public is available to everyone, Private only your affiliation"
-    visibility: TemplateVisibility
+    "Visibility set for the last published template"
+    latestPublishVisibility: TemplateVisibility
     "Whether or not this Template is designated as a 'Best Practice' template"
     bestPractice: Boolean
     "The last published version"
@@ -107,8 +107,8 @@ export const typeDefs = gql`
     description: String
     "The affiliation that the template belongs to"
     owner: Affiliation
-    "The template's availability setting: Public is available to everyone, Private only your affiliation"
-    visibility: TemplateVisibility!
+    "Visibility set for the last published template"
+    latestPublishVisibility: TemplateVisibility
     "The last published version"
     latestPublishVersion: String
     "The last published date"
@@ -137,7 +137,7 @@ export const typeDefs = gql`
     name: String
     description: String
     ownerId: String
-    visibility: String
+    latestPublishVisibility: String
     latestPublishVersion: String
     sectionIds: String
     languageId: String

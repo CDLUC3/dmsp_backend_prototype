@@ -3,7 +3,7 @@ import { buildMockContextWithToken } from "../../__mocks__/context";
 import {
   addVersion,
   findVersionByTimestamp,
-  findVersionsByDMPId,
+  findVersionsByDMPId, generateVersionSnapshot,
   latestVersion,
   removeVersions,
   updateVersion
@@ -14,6 +14,12 @@ import * as DynamoModule from '../../datasources/dynamo';
 import * as CommonStandardModule from '../../services/commonStandardService';
 import { getCurrentDate } from "../../utils/helpers";
 import { logger } from "../../logger";
+import {
+  DMPIdentifierType,
+  DMPPrivacy,
+  DMPStatus,
+  DMPYesNoUnknown
+} from "../../types/DMP";
 
 jest.mock('../../context.ts');
 
@@ -46,6 +52,64 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
+const dmp = {
+  dmp_id: { type: DMPIdentifierType.OTHER, identifier: "foo" },
+  title: "testing",
+  modified: "2025-08-01T13:00:00Z",
+  created: "2025-01-01T12:00:00Z",
+  dmphub_provenance_id: "TEST",
+  dmproadmap_featured: "no",
+  dmproadmap_privacy: DMPPrivacy.PRIVATE,
+  dmproadmap_status: DMPStatus.DRAFT,
+  language: "en-US",
+  ethical_issues_exist: "no",
+  contact: {
+    name: "tester",
+    mbox: "tester@example.com",
+    contact_id: { type: DMPIdentifierType.OTHER, identifier: "1234567890" }
+  },
+  dataset: [{
+    title: "test dataset",
+    type: "dataset",
+    dataset_id: { type: DMPIdentifierType.OTHER, identifier: "123" },
+    personal_data: DMPYesNoUnknown.NO,
+    sensitive_data: DMPYesNoUnknown.UNKNOWN
+  }],
+  project: [{
+    title: "testing"
+  }]
+};
+
+describe('generateVersionSnapshot', () => {
+  it("should generate a version snapshot of the plan", async () => {
+    const mockResponse = jest.fn().mockResolvedValueOnce({ id: "test" });
+    (DynamoModule.createDMP as jest.Mock) = mockResponse;
+    expect(await generateVersionSnapshot(context, dmp, 'test')).toBeNull();
+  });
+
+  it("should handle error when generating a version snapshot of the plan", async () => {
+    const mockError = jest.fn().mockImplementation(() => { throw new Error("Test error"); });
+    (DynamoModule.createDMP as jest.Mock) = mockError;
+    const expected = "Unable to create a new version snapshot";
+    expect(await generateVersionSnapshot(context, dmp, 'test')).toEqual(expected);
+  });
+
+  it("should handle a null response from the DynamoDB datasource", async () => {
+    const mockResponse = jest.fn().mockResolvedValueOnce(null);
+    (DynamoModule.createDMP as jest.Mock) = mockResponse;
+    const expected = "Unable to create a new version snapshot";
+    expect(await generateVersionSnapshot(context, dmp, 'test')).toEqual(expected);
+  });
+
+  it("should return an error if the common standard is not valid", async () => {
+    const expected = "Invalid DMP Id or Modified Timestamp";
+    const tstDmp1 = { ...dmp, dmp_id: { type: DMPIdentifierType.OTHER, identifier: null } };
+    expect(await generateVersionSnapshot(context, tstDmp1, "test")).toEqual(expected);
+    const tstDmp2 = { ...dmp, modified: null };
+    expect(await generateVersionSnapshot(context, tstDmp2, "test")).toEqual(expected);
+  });
+});
+
 describe('addVersion', () => {
   it('should add an initial version of the plan', async () => {
     const reference = 'addVersion';
@@ -63,8 +127,8 @@ describe('addVersion', () => {
 
   it('should create a version snapshot of the plan', async () => {
     const reference = 'addVersion';
-    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: getCurrentDate() }]);
-    const mockVersion = jest.fn().mockResolvedValueOnce(plan);
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([dmp]);
+    const mockVersion = jest.fn().mockResolvedValueOnce({ id: "test" });
     (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
     (DynamoModule.createDMP as jest.Mock) = mockVersion;
 
@@ -77,12 +141,12 @@ describe('addVersion', () => {
 
   it('should handle error when adding a version to the plan', async () => {
     const reference = 'addVersion';
-    const mockLatestVersion = jest.fn().mockResolvedValueOnce([{ modified: getCurrentDate() }]);
-    const mockVersion = jest.fn().mockImplementation(() => { throw new Error('Error adding versions'); });
+    const mockLatestVersion = jest.fn().mockResolvedValueOnce([]);
+    const mockVersion = jest.fn().mockImplementation(() => { throw new Error("Test error"); });
     (DynamoModule.getDMP as jest.Mock) = mockLatestVersion;
     (DynamoModule.createDMP as jest.Mock) = mockVersion;
 
-    await expect(addVersion(context, plan, reference)).rejects.toThrow('Error adding version');
+    await expect(addVersion(context, plan, reference)).rejects.toThrow('Test error');
     expect(mockCommonStandard).toHaveBeenCalledTimes(1);
     expect(mockVersion).toHaveBeenCalledTimes(1)
   });

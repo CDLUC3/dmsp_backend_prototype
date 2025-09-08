@@ -115,10 +115,10 @@ export async function planToDMPCommonStandard(
 
     // Include the required part of the project
     project: [{
-      title: project?.title,
+      title: project?.title ?? plan?.title,
     }],
 
-    title: `DMP for: ${project?.name ?? project?.title}`,
+    title: plan?.title ?? project?.title,
   }
 
   // Only add these properties if they have values we don't want 'undefined' or 'null' in the JSON
@@ -228,7 +228,6 @@ const planNarrativeToDMPCommonStandard = (narrative): DMPCommonStandardNarrative
         question_id: question?.questionId,
         question_text: question?.questionText,
         question_order: question?.questionOrder,
-        question_json: question?.questionJSON,
 
         answer_id: question?.answerId,
         answer_json: question?.answerJSON,
@@ -389,7 +388,6 @@ interface LoadNarrativeQuestionResult {
   questionId: number;
   questionText: string;
   questionOrder: number;
-  questionJSON: string;
   answerId: number;
   answerJSON: string;
 }
@@ -480,13 +478,12 @@ export const loadNarrativeTemplateInfo = async (
   const sql = 'SELECT t.id templateId, t.name templateTitle, t.version templateVersion, ' +
                         's.id sectionId, s.name sectionTitle, s.introduction sectionDescription, s.displayOrder sectionOrder, ' +
                         'q.id questionId, q.questionText questionText, q.displayOrder questionOrder, ' +
-                        'q.json questionJSON, ' +
                         'a.id answerId, a.json answerJSON ' +
                       'FROM plans p ' +
-                        `LEFT JOIN answers a ON p.id = a.planId ` +
-                          'LEFT JOIN versionedQuestions q ON a.versionedQuestionId = q.id ' +
-                            'LEFT JOIN versionedSections s ON q.versionedSectionId = s.id ' +
-                              'LEFT JOIN versionedTemplates t ON s.versionedTemplateId = t.id ' +
+                        'INNER JOIN versionedTemplates t ON p.versionedTemplateId = t.id ' +
+                          'LEFT JOIN versionedSections s ON s.versionedTemplateId = t.id ' +
+                            'LEFT JOIN versionedQuestions q ON q.versionedSectionId = s.id ' +
+                              'LEFT JOIN answers a ON a.versionedQuestionId = q.id AND p.id = a.planId ' +
                         'WHERE p.id = ? '
                         'ORDER BY s.displayOrder, q.displayOrder;';
   let results = await Answer.query(context, sql, [planId.toString()], reference);
@@ -526,7 +523,6 @@ export const loadNarrativeTemplateInfo = async (
         questionId: row.questionId,
         questionText: row.questionText,
         questionOrder: row.questionOrder,
-        questionJSON: row.questionJSON,
         answerId: row.answerId,
         answerJSON: row.answerJSON,
       });

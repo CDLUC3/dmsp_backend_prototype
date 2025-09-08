@@ -4,7 +4,7 @@
 # It is intended to run the Apollo server in an "offline" mode. All data will be mocked.
 #
 networks:
-  apollo-network:
+  dmptool-network:
     driver: bridge
 
 services:
@@ -20,7 +20,7 @@ services:
       - MYSQL_ROOT_PASSWORD=d0ckerSecr3t
       - MYSQL_DATABASE=dmsp
     networks:
-      - apollo-network
+      - dmptool-network
     volumes:
       - ./docker/mysql:/var/lib/mysql
 
@@ -29,7 +29,7 @@ services:
     container_name: dynamodb
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
     networks:
-      - apollo-network
+      - dmptool-network
     ports:
       - "8000:8000"
     expose:
@@ -43,7 +43,7 @@ services:
     container_name: apollo-redis
     command: redis-server
     networks:
-      - apollo-network
+      - dmptool-network
     ports:
       - "6379:6379"
     volumes:
@@ -61,7 +61,7 @@ services:
     ports:
       - "4000:4000"
     networks:
-      - apollo-network
+      - dmptool-network
     expose:
       - 4000
     env_file:

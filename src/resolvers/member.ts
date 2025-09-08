@@ -24,7 +24,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-          if (isNullOrUndefined(project)){
+          if (isNullOrUndefined(project)) {
             throw NotFoundError();
           }
 
@@ -46,7 +46,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const member = await ProjectMember.findById(reference, context, projectMemberId);
-          if (isNullOrUndefined(member)){
+          if (isNullOrUndefined(member)) {
             throw NotFoundError();
           }
 
@@ -70,15 +70,11 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)){
+          if (isNullOrUndefined(plan)) {
             throw NotFoundError();
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (isNullOrUndefined(project)){
-            throw NotFoundError();
-          }
-
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanMember.findByPlanId(reference, context, plan.id);
           }
@@ -135,6 +131,10 @@ export const resolvers: Resolvers = {
                   created.addError('memberRoles', `Created but unable to assign roles: ${addErrors.join(', ')}`);
                 }
               }
+            } else {
+              // Since no roles were provided, we will default to one
+              const role = await MemberRole.defaultRole(context, reference);
+              await role.addToProjectMember(context, created.id);
             }
             return created;
           }
@@ -160,7 +160,7 @@ export const resolvers: Resolvers = {
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, member.projectId);
-          if (isNullOrUndefined(project)){
+          if (isNullOrUndefined(project)) {
             throw NotFoundError();
           }
 
@@ -257,7 +257,7 @@ export const resolvers: Resolvers = {
 
           // Fetch the project and run a permission check
           const project = await Project.findById(reference, context, member.projectId);
-          if (isNullOrUndefined(project)){
+          if (isNullOrUndefined(project)) {
             throw NotFoundError();
           }
 
@@ -289,12 +289,12 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)){
+          if (isNullOrUndefined(plan)) {
             throw NotFoundError();
           }
 
           const projectMember = await ProjectMember.findById(reference, context, projectMemberId);
-          if (isNullOrUndefined(projectMember)){
+          if (isNullOrUndefined(projectMember)) {
             throw NotFoundError();
           }
 
@@ -306,7 +306,7 @@ export const resolvers: Resolvers = {
             roles = currentProjectRoles ? currentProjectRoles.map((d) => d.id) : [];
           }
 
-          const project = await Project.findById(reference, context, projectMember.projectId);
+          const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
             const newPlanMember = new PlanMember({ planId, projectMemberId, memberRoleIds: roles });
             const created = await newPlanMember.create(context);
@@ -365,12 +365,11 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          const projectMember = await ProjectMember.findById(reference, context, member.projectMemberId);
-          const project = await Project.findById(reference, context, projectMember?.projectId);
-          if (isNullOrUndefined(project) || isNullOrUndefined(projectMember)){
+          const plan = await Plan.findById(reference, context, member?.planId);
+          if (isNullOrUndefined(plan)) {
             throw NotFoundError();
           }
-
+          const project = await Project.findById(reference, context, plan.projectId);
           const hasPermission = await hasPermissionOnProject(context, project);
 
           if (hasPermission) {
@@ -395,7 +394,7 @@ export const resolvers: Resolvers = {
             const toUpdate = new PlanMember({
               id: planMemberId,
               planId: planId,
-              projectMemberId: projectMember.id,
+              projectMemberId: member.projectMemberId,
               isPrimaryContact,
               memberRoleIds: updatedRoleIds ?? currentRoleIds,
             });
@@ -451,17 +450,10 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          // Fetch the project and run a permission check
-          const projectMember = await ProjectMember.findById(
-            reference,
-            context,
-            member.projectMemberId
-          );
-          const project = await Project.findById(reference, context, projectMember.projectId);
-          if (isNullOrUndefined(project) || isNullOrUndefined(projectMember)){
-            throw NotFoundError();
-          }
+          // Fetch the plan and run a permission check
+          const plan = await Plan.findById(reference, context, member.planId);
 
+          const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
             // Any related MemberRoles will be automatically deleted within the DB
             const removed = await member.delete(context);

@@ -128,7 +128,7 @@ describe('cloneTemplate', () => {
     expect(copy.sourceTemplateId).toEqual(tmplt.id);
     expect(copy.name).toEqual(tmplt.name);
     expect(copy.ownerId).toEqual(newOwnerId);
-    expect(copy.visibility).toEqual(TemplateVisibility.ORGANIZATION);
+    expect(copy.latestPublishVisibility).toEqual(TemplateVisibility.ORGANIZATION);
     expect(copy.latestPublishVersion).toBeFalsy();
     expect(copy.errors).toEqual({});
     expect(copy.description).toEqual(description);
@@ -157,7 +157,7 @@ describe('cloneTemplate', () => {
     expect(copy.sourceTemplateId).toEqual(published.templateId);
     expect(copy.name).toEqual(published.name);
     expect(copy.ownerId).toEqual(newOwnerId);
-    expect(copy.visibility).toEqual(TemplateVisibility.ORGANIZATION);
+    expect(copy.latestPublishVisibility).toEqual(TemplateVisibility.ORGANIZATION);
     expect(copy.latestPublishVersion).toBeFalsy();
     expect(copy.errors).toEqual({});
     expect(copy.createdById).toEqual(clonedById);
@@ -189,7 +189,7 @@ describe('template versioning', () => {
         name: casual.sentence,
         description: casual.sentences(5),
         ownerId: casual.url,
-        visibility: getRandomEnumValue(TemplateVisibility),
+        latestPublishVisibility: getRandomEnumValue(TemplateVisibility),
         latestPublishVersion: '',
         isDirty: true,
         bestPractice: false,
@@ -325,7 +325,7 @@ describe('template versioning', () => {
   it('versions the Template when it has no prior versions', async () => {
     const tmplt = new Template(templateStore[0]);
     const comment = casual.sentences(3);
-    const visibility = TemplateVisibility.ORGANIZATION;
+    const latestPublishVisibility = TemplateVisibility.ORGANIZATION;
     const versionType = TemplateVersionType.PUBLISHED;
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
     (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindVersionedTemplatebyId;
@@ -338,7 +338,7 @@ describe('template versioning', () => {
       [],
       context.token.id,
       comment,
-      visibility,
+      latestPublishVisibility,
       versionType
     );
 
@@ -353,7 +353,7 @@ describe('template versioning', () => {
     expect(newVersion.name).toEqual(tmplt.name);
     expect(newVersion.description).toEqual(tmplt.description);
     expect(newVersion.ownerId).toEqual(tmplt.ownerId);
-    expect(newVersion.visibility).toEqual(visibility);
+    expect(newVersion.visibility).toEqual(latestPublishVisibility);
     expect(newVersion.bestPractice).toEqual(tmplt.bestPractice);
     expect(newVersion.version).toEqual('v1');
     expect(newVersion.versionedById).toEqual(context.token.id);
@@ -384,13 +384,13 @@ describe('template versioning', () => {
       versionedById: casual.integer(1, 99),
       comment: casual.sentences(5),
       active: true,
-      visibility: getRandomEnumValue(TemplateVisibility),
+      latestPublishVisibility: getRandomEnumValue(TemplateVisibility),
       bestPractice: true,
     });
     versionedTemplateStore.push(oldVersion);
     const comment = casual.sentences(3);
     const versionType = TemplateVersionType.DRAFT;
-    const visibility = TemplateVisibility.PUBLIC;
+    const latestPublishVisibility = TemplateVisibility.PUBLIC;
 
     (VersionedTemplate.insert as jest.Mock) = mockInsert;
     (VersionedTemplate.findVersionedTemplateById as jest.Mock) = mockFindVersionedTemplatebyId;
@@ -403,7 +403,7 @@ describe('template versioning', () => {
       [oldVersion],
       context.token.id,
       comment,
-      visibility,
+      latestPublishVisibility,
       versionType
     );
 
@@ -418,7 +418,7 @@ describe('template versioning', () => {
     expect(newVersion.name).toEqual(tmplt.name);
     expect(newVersion.description).toEqual(tmplt.description);
     expect(newVersion.ownerId).toEqual(tmplt.ownerId);
-    expect(newVersion.visibility).toEqual(visibility);
+    expect(newVersion.visibility).toEqual(latestPublishVisibility);
     expect(newVersion.bestPractice).toEqual(tmplt.bestPractice);
     expect(newVersion.version).toEqual('v2');
     expect(newVersion.versionedById).toEqual(context.token.id);

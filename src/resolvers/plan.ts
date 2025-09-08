@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import { MyContext } from "../context";
-import { Plan, PlanSearchResult, PlanSectionProgress, PlanStatus, PlanVisibility } from "../models/Plan";
+import { Plan, PlanSearchResult, PlanSectionProgress, PlanProgress, PlanStatus, PlanVisibility } from "../models/Plan";
 import { prepareObjectForLogs } from "../logger";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { Project } from "../models/Project";
@@ -8,6 +8,7 @@ import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { PlanMember } from "../models/Member";
 import { PlanFunding } from "../models/Funding";
+import { PlanFeedback } from "../models/PlanFeedback";
 import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
@@ -50,7 +51,7 @@ export const resolvers: Resolvers = {
         }
 
         const project = await Project.findById(reference, context, plan.projectId);
-        if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
+        if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
           return plan;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -112,11 +113,11 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
 
-          const project = await Project.findById(reference, context, plan.projectId);
           if (plan.isPublished()) {
             plan.addError('general', 'Plan is already published and cannot be archived');
           }
 
+          const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
             if (!plan.hasErrors()) {
               return await plan.delete(context);
@@ -282,6 +283,13 @@ export const resolvers: Resolvers = {
       }
       return [];
     },
+    // The feedback associated with the plan
+    feedback: async (parent: Plan, _, context: MyContext): Promise<PlanFeedback[]> => {
+      if (parent?.id) {
+        return await PlanFeedback.findByPlanId('plan feedback resolver', context, parent.id);
+      }
+      return [];
+    },
     answers: async (parent: Plan, _, context: MyContext): Promise<Answer[]> => {
       if (parent?.id) {
         return await Answer.findByPlanId('plan answers resolver', context, parent.id);
@@ -293,6 +301,12 @@ export const resolvers: Resolvers = {
         return await PlanSectionProgress.findByPlanId('plan versionedSections resolver', context, parent.id);
       }
       return [];
+    },
+    progress: async (parent: Plan, _, context: MyContext): Promise<PlanProgress> => {
+      if (parent?.id) {
+        return await PlanProgress.findByPlanId('plan progress resolver', context, parent.id);
+      }
+      return null;
     },
     registered: (parent: Plan) => {
       return normaliseDateTime(parent.registered);

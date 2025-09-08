@@ -2,7 +2,7 @@ import { TemplateVisibility } from "./Template";
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { defaultLanguageId } from "./Language";
-import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType, SortDirection } from "../types/general";
+import { PaginatedQueryResults, TemplateQueryOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType, SortDirection } from "../types/general";
 import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 
@@ -50,16 +50,28 @@ export class VersionedTemplateSearchResult {
     reference: string,
     context: MyContext,
     term: string,
-    options: PaginationOptions = VersionedTemplate.getDefaultPaginationOptions(),
+    options: TemplateQueryOptions = VersionedTemplate.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<VersionedTemplateSearchResult>> {
     const whereFilters = ['vt.active = 1 AND vt.versionType = ?'];
     const values = [TemplateVersionType.PUBLISHED.toString()];
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
-    if (searchTerm) {
+    if (!isNullOrUndefined(searchTerm)) {
       whereFilters.push('(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)');
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    // Return only bestPractice templates
+    if (options.bestPractice) {
+      whereFilters.push('vt.bestPractice = 1');
+    }
+
+    // Return only those templates whose ownerURIs exist in the given selectOwnerURIs array
+    if (options.selectOwnerURIs && Array.isArray(options.selectOwnerURIs) && options.selectOwnerURIs.length > 0) {
+      const placeholders = options.selectOwnerURIs.map(() => '?').join(', ');
+      whereFilters.push(`vt.ownerId IN (${placeholders})`);
+      values.push(...options.selectOwnerURIs);
     }
 
     // Determine the type of pagination being used
@@ -239,5 +251,48 @@ export class VersionedTemplate extends MySqlModel {
     const results = await VersionedTemplate.query(context, sql, [affiliationId], reference);
     // No need to instantiate the objects here
     return Array.isArray(results) ? results : [];
+  }
+
+  static async getFilterMetadata(reference: string, context: MyContext) {
+    const [availableAffiliations, hasBestPractice] = await Promise.all([
+      this.getAvailableOwners(reference, context),
+      this.hasBestPracticeTemplates(reference, context)
+    ]);
+
+    return {
+      availableAffiliations,
+      hasBestPracticeTemplates: hasBestPractice
+    };
+  }
+
+  static async getAvailableOwners(reference: string, context: MyContext) {
+    const whereFilters = ['vt.active = 1 AND vt.versionType = ?'];
+    const values = [TemplateVersionType.PUBLISHED.toString()];
+
+    const sql = `
+    SELECT DISTINCT vt.ownerId as ownerURI
+    FROM versionedTemplates vt 
+    LEFT JOIN affiliations a ON a.uri = vt.ownerId
+    WHERE ${whereFilters.join(' AND ')}
+  `;
+    const results = await VersionedTemplate.query(context, sql, values, reference);
+    // Extract just the ownerURI values as strings
+    return Array.isArray(results) ? results.map(row => row.ownerURI) : [];
+  }
+
+  static async hasBestPracticeTemplates(reference: string, context: MyContext): Promise<boolean> {
+    const whereFilters = ['vt.active = 1 AND vt.bestPractice = 1 AND vt.versionType = ?'];
+    const values = [TemplateVersionType.PUBLISHED.toString()];
+
+    const sql = `
+    SELECT COUNT(*) as count
+    FROM versionedTemplates vt 
+    LEFT JOIN affiliations a ON a.uri = vt.ownerId
+    WHERE ${whereFilters.join(' AND ')}
+  `;
+
+    const result = await VersionedTemplate.query(context, sql, values, reference);
+    const results = Array.isArray(result) ? result : [];
+    return results.length > 0 && results[0].count > 0;
   }
 }
