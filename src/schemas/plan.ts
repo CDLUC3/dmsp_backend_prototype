@@ -18,6 +18,8 @@ export const typeDefs = gql`
     publishPlan(planId: Int!, visibility: PlanVisibility): Plan
     "Change the plan's status"
     updatePlanStatus(planId: Int!, status: PlanStatus!): Plan
+    "Change the plan's title"
+    updatePlanTitle(planId: Int!, title: String!): Plan
     "Archive a plan"
     archivePlan(planId: Int!): Plan
   }
@@ -53,15 +55,15 @@ export const typeDefs = gql`
     "The name of the template the plan is based on"
     templateTitle: String
     "The section search results"
-    sections: [PlanSectionProgress!]
+    versionedSections: [PlanSectionProgress!]
   }
 
   "The progress the user has made within a section of the plan"
   type PlanSectionProgress {
     "The id of the Section"
-    sectionId: Int!
+    versionedSectionId: Int!
     "The title of the section"
-    sectionTitle: String!
+    title: String!
     "The display order of the section"
     displayOrder: Int!
     "The number of questions in the section"
@@ -118,6 +120,8 @@ export const typeDefs = gql`
     project: Project
     "The template the plan is based on"
     versionedTemplate: VersionedTemplate
+    "The title of the plan"
+    title: String
     "The DMP ID/DOI for the plan"
     dmpId: String
     "The status/state of the plan"
@@ -133,7 +137,7 @@ export const typeDefs = gql`
     "Whether or not the plan is featured on the public plans page"
     featured: Boolean
     "The section search results"
-    sections: [PlanSectionProgress!]
+    versionedSections: [PlanSectionProgress!]
 
     "The members for the plan"
     members: [PlanMember!]
@@ -154,6 +158,7 @@ export const typeDefs = gql`
 
     versionedTemplateId: String
     projectId: String
+    title: String
     dmp_id: String
     status: String
     visibility: String

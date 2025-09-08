@@ -1,8 +1,28 @@
 # DMP Tool Apollo Server Change Log
 
+### Added
+- added `publishedSection` resolver to `src/resolvers/versionedSection.ts`
+- added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
+
+### Updated
+- updated `PlanSectionProgress` to use better terminology. Changed `sectionId` to `versionedSectionId` (what it really was) and `sectionTtitle` to `title`
+- changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
+
+### Fixed
+- When generating a new `versionedTemplate`, we need to deactivate the old ones in the db [#363]
+- Bug with `FunderPopularityResult` in the GraphQL schema that was making `apiTarget` non-nullable
+- added a data migration script to repair bad option based question JSON
+
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
+- Added data migration to clean up old question JSON so it conforms with new @dmptool/types schemas
+- Added data migration to drop the old `questionTypes` table
+- Added `updatePlanFunding` to allow the update of multiple `planFunding` records [#305]
+- Added 'apiTarget' to the PopularFunders objects and query for use in the frontend
+- Added `updatePlanTitle` resolver
+- Added a `title` field to the `plans` table and then updated Plan model and schema to use it
+- Added a `normaliseDateTime` function in `utils/helper.ts`
 - Added `projectMembers.isPrimaryContact` field to DB and `ProjectMember` model and GraphQL schema
 - Added `setCurrentUserAsProjectOwner` and `ensureDefaultProjectContact` functions to the `projectService` and updated the `project` resolver to call them.
 - Added the new `ensureDefaultPlanContact` function to the `planService` module and updated the `plan` resolver to use it
@@ -106,6 +126,8 @@
 - Added models and resolvers for ProjectContributor, ProjectFunder, ProjectOutput and Project
 
 ### Updated
+- Updated to work with the new @dmptool/types v1.2.0
+- Updated all resolvers to call `normaliseDateTime` for the date fields 
 - Replace old `ProjectMember.findPrimaryByPlanId` function with `ProjectMember.findPrimaryContact`
 - Updated the `project` resolver and schema so that `searchExternalProjects` has its own `input` type definition
 - Exposed the DynamoDB port in the local `docker-compose.yaml` so that AWS CLI commands can be run against it

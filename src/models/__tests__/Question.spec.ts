@@ -79,10 +79,10 @@ describe('Question', () => {
   });
 
   it('should not be valid if Zod parse fails', async () => {
-    question.json = `{"type":"textArea"}`; // Missing meta
+    question.json = `{"type":"textArea","attributes":{"asRichText":"abc"}}`;
     expect(await question.isValid()).toBe(false);
     expect(question.errors['json']).toBeTruthy();
-    expect(question.errors['json'].includes('meta')).toBe(true);
+    expect(question.errors['json'].includes('asRichText')).toBe(true);
     question.json = questionData.json; // Reset to valid JSON
   });
 

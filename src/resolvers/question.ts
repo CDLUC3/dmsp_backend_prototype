@@ -9,7 +9,7 @@ import { prepareObjectForLogs } from "../logger";
 import { isAdmin, isAuthorized } from "../services/authService";
 import { hasPermissionOnSection } from "../services/sectionService";
 import { GraphQLError } from "graphql";
-import {formatISO9075} from "date-fns";
+import { normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -81,6 +81,8 @@ export const resolvers: Resolvers = {
 
           // create the new question
           const newQuestion = await question.create(context);
+
+console.log(newQuestion);
 
           if (!newQuestion?.id) {
             // A null was returned so add a generic error and return it
@@ -266,10 +268,10 @@ export const resolvers: Resolvers = {
       );
     },
     created: (parent: Question) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Question) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   }
 };

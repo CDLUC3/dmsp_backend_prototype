@@ -12,9 +12,8 @@ import { Resolvers } from "../types";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { Answer } from "../models/Answer";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
-import {isNullOrUndefined} from "../utils/helpers";
-import {formatISO9075} from "date-fns";
-import {ensureDefaultPlanContact} from "../services/planService";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
+import { ensureDefaultPlanContact } from "../services/planService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -229,6 +228,29 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    updatePlanTitle: async (_, { planId, title }, context: MyContext): Promise<Plan> => {
+      const reference = 'update plan title resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findById(reference, context, planId);
+          if (!plan) {
+            throw NotFoundError(`Plan with id ${planId} not found`);
+          }
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
+            plan.title = title;
+            return await plan.update(context);
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
   },
 
   Plan: {
@@ -266,27 +288,27 @@ export const resolvers: Resolvers = {
       }
       return [];
     },
-    sections: async (parent: Plan, _, context: MyContext): Promise<PlanSectionProgress[]> => {
+    versionedSections: async (parent: Plan, _, context: MyContext): Promise<PlanSectionProgress[]> => {
       if (parent?.id) {
-        return await PlanSectionProgress.findByPlanId('plan sections resolver', context, parent.id);
+        return await PlanSectionProgress.findByPlanId('plan versionedSections resolver', context, parent.id);
       }
       return [];
     },
     registered: (parent: Plan) => {
-      return formatISO9075(new Date(parent.registered));
+      return normaliseDateTime(parent.registered);
     },
     created: (parent: Plan) => {
-      return formatISO9075(new Date(parent.created));
+      return normaliseDateTime(parent.created);
     },
     modified: (parent: Plan) => {
-      return formatISO9075(new Date(parent.modified));
+      return normaliseDateTime(parent.modified);
     }
   },
 
   PlanSearchResult: {
-    sections: async (parent: PlanSearchResult, _, context: MyContext): Promise<PlanSectionProgress[]> => {
+    versionedSections: async (parent: PlanSearchResult, _, context: MyContext): Promise<PlanSectionProgress[]> => {
       if (parent?.id) {
-        return await PlanSectionProgress.findByPlanId('plan sections resolver', context, parent.id);
+        return await PlanSectionProgress.findByPlanId('planSearchresult versionedSections resolver', context, parent.id);
       }
       return [];
     }
