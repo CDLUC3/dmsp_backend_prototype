@@ -10,6 +10,7 @@ import {
 } from "../utils/graphQLErrors";
 import { isAuthorized } from "../services/authService";
 import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
+import { canDeleteComment } from "../services/commentPermissions";
 import { Resolvers } from "../types";
 import { Answer } from "../models/Answer";
 import { VersionedQuestion } from "../models/VersionedQuestion";
@@ -204,6 +205,7 @@ export const resolvers: Resolvers = {
     updateAnswerComment: async (_, { answerCommentId, answerId, commentText }, context: MyContext): Promise<AnswerComment> => {
       const reference = 'updateAnswerComment resolver';
       try {
+
         if (isAuthorized(context.token)) {
           const answer = await Answer.findById(reference, context, answerId);
 
@@ -217,7 +219,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
             if (!answerComment) {
@@ -245,7 +247,6 @@ export const resolvers: Resolvers = {
     // Remove answer comment
     removeAnswerComment: async (_, { answerCommentId, answerId }, context: MyContext): Promise<AnswerComment> => {
       const reference = 'removeAnswerComment resolver';
-      console.log("***REMOVE ANSWER COMMENT CALLED")
       try {
         if (isAuthorized(context.token)) {
           const answer = await Answer.findById(reference, context, answerId);
@@ -260,9 +261,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          const temp = await hasPermissionOnProject(context, project);
-          console.log('***hasPermissionOnProject', temp);
-          if (await hasPermissionOnProject(context, project)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
             if (!answerComment) {
@@ -272,14 +271,13 @@ export const resolvers: Resolvers = {
             const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
 
             // Allow deletion by comment creator, plan creator, or OWN-level collaborator
-            const isCommentCreator = answerComment.createdById === context.token.id;
-            const isPlanCreator = plan.createdById === context.token.id;
-            const isOwnCollaborator = collaborators.some(
-              c => c.userId === context.token.id && c.accessLevel === "OWN"
-            );
-
-            // Only user who added the comment, the plan creator, or OWN-level collaborator can delete it
-            if (isCommentCreator || isPlanCreator || isOwnCollaborator) {
+            if (canDeleteComment({
+              commentCreatedById: answerComment.createdById,
+              planCreatedById: plan.createdById,
+              userId: context.token.id,
+              collaborators
+            })) {
+              // Delete the comment
               return await answerComment.delete(context);
             }
 

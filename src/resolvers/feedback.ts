@@ -12,6 +12,7 @@ import { isAuthorized } from "../services/authService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService';
 import { isAdmin, isSuperAdmin } from "../services/authService";
+import { canDeleteComment } from "../services/commentPermissions";
 import { Project } from "../models/Project";
 import { Plan } from "../models/Plan";
 import { PlanFeedback } from "../models/PlanFeedback";
@@ -288,7 +289,6 @@ export const resolvers: Resolvers = {
     },
     //Remove comment for an answer within a round of feedback
     removeFeedbackComment: async (_, { planId, planFeedbackCommentId }, context: MyContext): Promise<PlanFeedbackComment> => {
-      console.log("***REMOVE FEEDBACK CALLED")
       const reference = 'removeFeedbackComment resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -301,8 +301,6 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Project with ID ${plan.projectId} not found`);
           }
 
-          const temp = await hasPermissionOnProject(context, project);
-          console.log('***hasPermissionOnProject', temp);
           if (await hasPermissionOnProject(context, project)) {
             // Get referenced feedbackComment
             const feedbackComment = await PlanFeedbackComment.findById(reference, context, planFeedbackCommentId);
@@ -311,18 +309,16 @@ export const resolvers: Resolvers = {
               throw NotFoundError(`Feedback comment with id ${planFeedbackCommentId} not found`);
             }
 
-            // Get project collaborators emails, minus the user's own email
+            // Get project collaborators emails
             const collaborators = await ProjectCollaborator.findByProjectId(reference, context, plan.projectId);
 
             // Allow deletion by comment creator, plan creator, or OWN-level collaborator
-            const isCommentCreator = feedbackComment.createdById === context.token.id;
-            const isPlanCreator = plan.createdById === context.token.id;
-            const isOwnCollaborator = collaborators.some(
-              c => c.userId === context.token.id && c.accessLevel === "OWN"
-            );
-
-            // Only user who added the comment, the plan creator, or OWN-level collaborator can delete it
-            if (isCommentCreator || isPlanCreator || isOwnCollaborator) {
+            if (canDeleteComment({
+              commentCreatedById: feedbackComment.createdById,
+              planCreatedById: plan.createdById,
+              userId: context.token.id,
+              collaborators
+            })) {
               // Delete the comment
               return await feedbackComment.delete(context);
             }
