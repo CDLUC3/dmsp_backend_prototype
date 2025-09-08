@@ -26,6 +26,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed bug with maintaining the latest PlanVersion (common standard JSON) when a plan is updated
 - Fixed issue where the title of the DMP in the common standard JSON is using the template title instead of plan title
 - Updated `PlanSectionProgress`model so it correctly shows how many answers have been filled. [#719]
 - Fixed an issue where signup failed because context had been reset to different object
@@ -36,6 +37,7 @@
 - added a data migration script to repair bad option based question JSON
 
 ### Removed
+- Removed `dmproadmap_template` from the common standard. That information is now stored in `dmproadmap_narrative`
 - Removed `dmpIds` array from the JWT payload.
 - Removed `hasPermissionOnPlan` function from `planService` since JWT no longer has `dmpIds` array
 
