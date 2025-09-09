@@ -172,7 +172,7 @@ export const findVersionByTimestamp = async (
   versionTimestamp: string,
   reference = 'PlanVersion.findVersionByTimestamp'
 ): Promise<DMPCommonStandard | null> => {
-  context.logger.error(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - retrieving the versions of the DMP`);
+  context.logger.debug(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - retrieving the versions of the DMP`);
   const dmps = await getDMP(context, plan.dmpId, versionTimestamp);
   return Array.isArray(dmps) && dmps.length > 0 ? dmps[0] : null;
 }
@@ -183,7 +183,7 @@ export const latestVersion = async (
   plan: Plan,
   reference = 'PlanVersion.latestVersion'
 ): Promise<DMPCommonStandard | null> => {
-  context.logger.error(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - retrieving the latest version of the DMP`);
+  context.logger.debug(prepareObjectForLogs({ dmpId: plan.dmpId }), `${reference} - retrieving the latest version of the DMP`);
   const dmps = await getDMP(context, plan.dmpId, null);
   return Array.isArray(dmps) && dmps.length > 0 ? dmps[0] : null;
 }
