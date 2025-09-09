@@ -29,6 +29,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed issue where updating an answer, funding or members was not triggering the creation of a new PlanVersion
 - Fixed bug with maintaining the latest PlanVersion (common standard JSON) when a plan is updated
 - Fixed issue where the title of the DMP in the common standard JSON is using the template title instead of plan title
 - Updated `PlanSectionProgress`model so it correctly shows how many answers have been filled. [#719]
