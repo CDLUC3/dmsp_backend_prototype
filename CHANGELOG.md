@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added bash to AWS Dockerfile for session manager
 - Added a data migration script to update `visibility` to `latestPublishVisibility` in `templates` table. [#405]
 - Added code to update `latestPublishVisibility` whenever a `template` is published [#405]
 - Added model/resolver for `PlanProgress` and nested `progress` in `Plan` resolver [#720]

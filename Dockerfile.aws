@@ -42,6 +42,8 @@ RUN ls -la dist/
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
 WORKDIR /app
 
+RUN apk add --no-cache bash
+
 # Copy necessary files from builder stage
 COPY --from=builder /app/dist/ ./dist
 
