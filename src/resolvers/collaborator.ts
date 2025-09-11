@@ -12,6 +12,7 @@ import { isAdmin } from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { hasPermissionOnTemplate } from "../services/templateService";
 import { hasPermissionOnProject } from "../services/projectService";
+import { sendProjectCollaborationEmail } from '../services/emailService';
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
@@ -236,6 +237,40 @@ export const resolvers: Resolvers = {
         // If the user has permission on the Project
         if (await hasPermissionOnProject(context, project)) {
           return await projectCollaborator.delete(context);
+        }
+
+        // Unauthorized! or Forbidden
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+    // Resend invite to collaborator
+    resendInviteToProjectCollaborator: async (_, { projectCollaboratorId }, context: MyContext): Promise<ProjectCollaborator> => {
+      const reference = 'resendInviteToProjectCollaborator resolver';
+
+      try {
+        const projectCollaborator = await ProjectCollaborator.findById(reference, context, projectCollaboratorId);
+
+        // The projectCollaborator doesn't exist
+        if (!projectCollaborator) {
+          throw NotFoundError();
+        }
+
+        // Get project info to check permissions
+        const project = await Project.findById(reference, context, projectCollaborator.projectId);
+
+        // If the user has permission on the Project
+        if (await hasPermissionOnProject(context, project)) {
+          const inviter = await User.findById(reference, context, context.token?.id);
+
+          // Send out the invitation notification (no async here, can happen in the background)
+          await sendProjectCollaborationEmail(context, project.title, inviter.getName(), projectCollaborator.email, projectCollaborator.userId);
+
+          return projectCollaborator;
         }
 
         // Unauthorized! or Forbidden
