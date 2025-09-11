@@ -250,7 +250,7 @@ export const resolvers: Resolvers = {
     },
     // Resend invite to collaborator
     resendInviteToProjectCollaborator: async (_, { projectCollaboratorId }, context: MyContext): Promise<ProjectCollaborator> => {
-      const reference = 'removeProjectCollaborator resolver';
+      const reference = 'resendInviteToProjectCollaborator resolver';
 
       try {
         const projectCollaborator = await ProjectCollaborator.findById(reference, context, projectCollaboratorId);
