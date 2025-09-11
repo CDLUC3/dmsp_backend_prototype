@@ -24,6 +24,8 @@ export const typeDefs = gql`
     updateProjectCollaborator(projectCollaboratorId: Int!, accessLevel: ProjectCollaboratorAccessLevel!): ProjectCollaborator
     "Remove a ProjectCollaborator from a Plan"
     removeProjectCollaborator(projectCollaboratorId: Int!): ProjectCollaborator
+    "Resend an invite to a ProjectCollaborator"
+    resendInviteToProjectCollaborator(projectCollaboratorId: Int!): ProjectCollaborator
   }
 
   enum ProjectCollaboratorAccessLevel {

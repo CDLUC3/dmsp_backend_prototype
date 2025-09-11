@@ -870,6 +870,8 @@ export type Mutation = {
   removeUserEmail?: Maybe<UserEmail>;
   /** Request a round of admin feedback */
   requestFeedback?: Maybe<PlanFeedback>;
+  /** Resend an invite to a ProjectCollaborator */
+  resendInviteToProjectCollaborator?: Maybe<ProjectCollaborator>;
   /** Add an Output to a Plan */
   selectProjectOutputForPlan?: Maybe<ProjectOutput>;
   /** Designate the email as the current user's primary email address */
@@ -1269,6 +1271,11 @@ export type MutationRemoveUserEmailArgs = {
 
 export type MutationRequestFeedbackArgs = {
   planId: Scalars['Int']['input'];
+};
+
+
+export type MutationResendInviteToProjectCollaboratorArgs = {
+  projectCollaboratorId: Scalars['Int']['input'];
 };
 
 
@@ -3222,7 +3229,7 @@ export type Template = {
   latestPublishDate?: Maybe<Scalars['String']['output']>;
   /** The last published version */
   latestPublishVersion?: Maybe<Scalars['String']['output']>;
-  /** The last published visibility */
+  /** Visibility set for the last published template */
   latestPublishVisibility?: Maybe<TemplateVisibility>;
   /** The timestamp when the Object was last modifed */
   modified?: Maybe<Scalars['String']['output']>;
@@ -3311,7 +3318,7 @@ export type TemplateSearchResult = {
   latestPublishDate?: Maybe<Scalars['String']['output']>;
   /** The last published version */
   latestPublishVersion?: Maybe<Scalars['String']['output']>;
-  /** The last published visibility */
+  /** Visibility set for the last published template */
   latestPublishVisibility?: Maybe<TemplateVisibility>;
   /** The timestamp when the Template was last modified */
   modified?: Maybe<Scalars['String']['output']>;
@@ -4799,6 +4806,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   removeUser?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   removeUserEmail?: Resolver<Maybe<ResolversTypes['UserEmail']>, ParentType, ContextType, RequireFields<MutationRemoveUserEmailArgs, 'email'>>;
   requestFeedback?: Resolver<Maybe<ResolversTypes['PlanFeedback']>, ParentType, ContextType, RequireFields<MutationRequestFeedbackArgs, 'planId'>>;
+  resendInviteToProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationResendInviteToProjectCollaboratorArgs, 'projectCollaboratorId'>>;
   selectProjectOutputForPlan?: Resolver<Maybe<ResolversTypes['ProjectOutput']>, ParentType, ContextType, RequireFields<MutationSelectProjectOutputForPlanArgs, 'planId' | 'projectOutputId'>>;
   setPrimaryUserEmail?: Resolver<Maybe<Array<Maybe<ResolversTypes['UserEmail']>>>, ParentType, ContextType, RequireFields<MutationSetPrimaryUserEmailArgs, 'email'>>;
   setUserOrcid?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationSetUserOrcidArgs, 'orcid'>>;
