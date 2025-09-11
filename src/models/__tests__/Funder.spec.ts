@@ -102,8 +102,18 @@ describe('findBy Queries', () => {
     const result = await ProjectFunding.findById('testing', context, projectFundingId);
     const expectedSql = 'SELECT * FROM projectFundings WHERE id = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectFundingId.toString()], 'testing')
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectFundingId.toString()], 'testing');
     expect(result).toEqual(projectFunding);
+  });
+
+  it('findByIds should call query with correct params and return the default', async () => {
+    localQuery.mockResolvedValueOnce([projectFunding]);
+    const projectFundingId = casual.integer(1, 999);
+    const result = await ProjectFunding.findByIds('testing', context, [projectFundingId]);
+    const expectedSql = 'SELECT * FROM projectFundings WHERE id IN (?)';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [projectFundingId.toString()], 'testing')
+    expect(result).toEqual([projectFunding]);
   });
 
   it('findById should return null if it finds no default', async () => {

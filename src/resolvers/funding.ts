@@ -232,7 +232,7 @@ export const resolvers: Resolvers = {
           throw context?.token ? ForbiddenError() : AuthenticationError();
         }
 
-        // todo: remove this once I see the promise/map version is working
+        // todo: remove this once I see the promise/map version is working (below it)
         // const newFundings = [];
         // for(const projectFundingId of pfids) {
         //   const newFunding = new PlanFunding({planId, projectFundingId});
