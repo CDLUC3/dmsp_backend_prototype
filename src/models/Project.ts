@@ -358,10 +358,16 @@ export class Project extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new Project(results[0]) : null;
   }
 
-  // Fetch a Project by it's id
-  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<Project> {
-    const sql = 'SELECT * FROM projects WHERE id = ?';
-    const results = await Project.query(context, sql, [projectFundingId?.toString()], reference);
-    return Array.isArray(results) && results.length > 0 ? new Project(results[0]) : null;
+  static async findByIds(reference: string, context: MyContext, ids: number[]): Promise<Project[]> {
+    if (!Array.isArray(ids) || ids.length === 0) return [];
+    const placeholders = ids.map(() => '?').join(', ');
+    const sql = `SELECT * FROM projects WHERE id IN (${placeholders})`;
+    const results = await Project.query(context, sql, ids.map(id => id.toString()), reference);
+    return Array.isArray(results) ? results.map((item) => new Project(item)) : [];
+  }
+
+  static async findById(reference: string, context: MyContext, projectId: number): Promise<Project> {
+    const projects = await Project.findByIds(reference, context, [projectId]);
+    return projects.length > 0 ? projects[0] : null;
   }
 };

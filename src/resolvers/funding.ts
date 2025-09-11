@@ -1,4 +1,3 @@
-
 import { prepareObjectForLogs } from '../logger';
 import { Resolvers } from "../types";
 import { Affiliation } from '../models/Affiliation';
@@ -196,31 +195,66 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // add a new plan funding
-    addPlanFunding: async (_, { planId, projectFundingId }, context: MyContext): Promise<PlanFunding> => {
-      const reference = 'addPlanFunding resolver';
+    // add new plan fundings
+    addPlanFunding: async (_,{ planId, input }: { planId: number; input: { projectFundingId?: number; projectFundingIds?: number[] } },
+      context: MyContext
+    ): Promise<PlanFunding[]> => {
+      const reference = 'addPlanFunding mutator';
+
+      // Accept either a single projectFundingId or an array of projectFundingIds
+      let pfids: number[] = [];
+      if (input.projectFundingIds && Array.isArray(input.projectFundingIds)) {
+        pfids = input.projectFundingIds;
+      } else if (typeof input.projectFundingId === 'number') {
+        pfids = [input.projectFundingId];
+      }
+
       try {
-        if (isAuthorized(context.token)) {
-          const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)) {
-            throw NotFoundError();
-          }
+        if (!isAuthorized(context.token)) {
+          throw context.token ? ForbiddenError() : AuthenticationError();
+        }
 
-          const projectFunding = await ProjectFunding.findById(
-            reference,
-            context,
-            projectFundingId
-          );
-          if (isNullOrUndefined(projectFunding)) {
-            throw NotFoundError();
-          }
+        const plan = await Plan.findById(reference, context, planId);
 
-          const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+        const projectFundings = await ProjectFunding.findByIds(
+          reference,
+          context,
+          pfids
+        );
+
+        // we should have as many project Fundings found as ProjectFunding IDs that were passed in
+        if(projectFundings.length != pfids.length){
+          throw NotFoundError();
+        }
+
+        const project = await Project.findById(reference, context, plan.projectId);
+        if (!await hasPermissionOnProject(context, project)) {
+          throw context?.token ? ForbiddenError() : AuthenticationError();
+        }
+
+        // todo: remove this once I see the map version is working
+        // const newFundings = [];
+        // for(const projectFundingId of pfids) {
+        //   const newFunding = new PlanFunding({planId, projectFundingId});
+        //
+        //   if (newFunding && !newFunding.hasErrors()) {
+        //     // Version all of the plans (if any) and sync with the DMPHub
+        //     const planVersion = await updateVersion(context, plan, reference);
+        //     if (!planVersion || planVersion.hasErrors()) {
+        //       newFunding.addError("general", "Unable to version the plan");
+        //     }
+        //   }
+        //
+        //   newFundings.push(await newFunding.create(context));
+        // }
+        // return newFundings;
+
+
+        return await Promise.all(
+          pfids.map(async (projectFundingId) => {
             const newFunding = new PlanFunding({ planId, projectFundingId });
 
             if (newFunding && !newFunding.hasErrors()) {
-              // Version all of the plans (if any) and sync with the DMPHub
               const planVersion = await updateVersion(context, plan, reference);
               if (!planVersion || planVersion.hasErrors()) {
                 newFunding.addError("general", "Unable to version the plan");
@@ -228,12 +262,10 @@ export const resolvers: Resolvers = {
             }
 
             return await newFunding.create(context);
-          }
-        }
-        throw context?.token ? ForbiddenError() : AuthenticationError();
+          })
+        );
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
-
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
