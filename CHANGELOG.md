@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added ability for `VersionedSections` `search` function to return only `bestPractice` sections, only sections without `bestPractice` or all sections[#436]
 - Added resolver to handle resending of invite for project collaborators [#433]
 - Added bash to AWS Dockerfile for session manager
 - Added a data migration script to update `visibility` to `latestPublishVisibility` in `templates` table. [#405]
