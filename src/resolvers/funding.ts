@@ -196,18 +196,8 @@ export const resolvers: Resolvers = {
     },
 
     // add new plan fundings
-    addPlanFunding: async (_,{ planId, input }: { planId: number; input: { projectFundingId?: number; projectFundingIds?: number[] } },
-      context: MyContext
-    ): Promise<PlanFunding[]> => {
+    addPlanFunding: async (_,{ planId, projectFundingIds },context: MyContext): Promise<PlanFunding[]> => {
       const reference = 'addPlanFunding mutator';
-
-      // Accept either a single projectFundingId or an array of projectFundingIds
-      let pfids: number[] = [];
-      if (input.projectFundingIds && Array.isArray(input.projectFundingIds)) {
-        pfids = input.projectFundingIds;
-      } else if (typeof input.projectFundingId === 'number') {
-        pfids = [input.projectFundingId];
-      }
 
       try {
         if (!isAuthorized(context.token)) {
@@ -215,55 +205,43 @@ export const resolvers: Resolvers = {
         }
 
         const plan = await Plan.findById(reference, context, planId);
-
-        const projectFundings = await ProjectFunding.findByIds(
-          reference,
-          context,
-          pfids
-        );
-
-        // we should have as many project Fundings found as ProjectFunding IDs that were passed in
-        if(projectFundings.length != pfids.length){
+        if (isNullOrUndefined(plan)) {
           throw NotFoundError();
         }
 
         const project = await Project.findById(reference, context, plan.projectId);
-        if (!await hasPermissionOnProject(context, project)) {
-          throw context?.token ? ForbiddenError() : AuthenticationError();
-        }
+        if (await hasPermissionOnProject(context, project)) {
 
-        // todo: remove this once I see the promise/map version is working (below it)
-        // const newFundings = [];
-        // for(const projectFundingId of pfids) {
-        //   const newFunding = new PlanFunding({planId, projectFundingId});
-        //
-        //   if (newFunding && !newFunding.hasErrors()) {
-        //     // Version all of the plans (if any) and sync with the DMPHub
-        //     const planVersion = await updateVersion(context, plan, reference);
-        //     if (!planVersion || planVersion.hasErrors()) {
-        //       newFunding.addError("general", "Unable to version the plan");
-        //     }
-        //   }
-        //
-        //   newFundings.push(await newFunding.create(context));
-        // }
-        // return newFundings;
+        // Fetch all of the current Funders associated with this Plan
+          const fundings = await PlanFunding.findByPlanId(reference, context, plan.id);
+          const currentPlanFundingids = fundings ? fundings.map((d) => d.projectFundingId) : [];
+          // Use the helper function to determine which funders to add
+          const {
+            idsToBeSaved
+          } = PlanFunding.reconcileAssociationIds(
+            currentPlanFundingids,
+            projectFundingIds
+          );
 
+          const addErrors = [];
+          // Add new records for projectFundingIds that are not already in planFundings table
+          for (const id of idsToBeSaved) {
+            const funding = new PlanFunding({ planId, projectFundingId: id });
 
-        return await Promise.all(
-          pfids.map(async (projectFundingId) => {
-            const newFunding = new PlanFunding({ planId, projectFundingId });
-
-            if (newFunding && !newFunding.hasErrors()) {
-              const planVersion = await updateVersion(context, plan, reference);
-              if (!planVersion || planVersion.hasErrors()) {
-                newFunding.addError("general", "Unable to version the plan");
-              }
+            const wasAdded = funding.create(context);
+            if (!wasAdded) {
+              addErrors.push(funding.projectFundingId);
             }
+          }
 
-            return await newFunding.create(context);
-          })
-        );
+          const planVersion = await updateVersion(context, plan, reference);
+          if (!planVersion || planVersion.hasErrors()) {
+            context.logger.error(prepareObjectForLogs({ plan: plan.id }),"Unable to update version");
+          }
+
+          return await PlanFunding.findByPlanId(reference, context, plan.id);
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);

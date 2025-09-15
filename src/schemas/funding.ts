@@ -1,13 +1,6 @@
 import gql from "graphql-tag";
 
 export const typeDefs = gql`
-
-  input AddPlanFundingInput {
-    "Either a single ProjectFundingId or multiple ProjectFundingIds. Only one should be provided."
-    projectFundingId: Int
-    projectFundingIds: [Int!]
-  }
-
   extend type Query {
     "Get all of the Funding information for the research project"
     projectFundings(projectId: Int!): [ProjectFunding]
@@ -28,7 +21,7 @@ export const typeDefs = gql`
     removeProjectFunding(projectFundingId: Int!): ProjectFunding
 
     "Add Funding information to a Plan"
-    addPlanFunding(planId: Int!, input: AddPlanFundingInput!): [PlanFunding]
+    addPlanFunding(planId: Int!, projectFundingIds: [Int!]!): [PlanFunding]
     "Update multiple Plan Fundings passing in an array of projectFundingIds"
     updatePlanFunding(planId: Int!, projectFundingIds: [Int!]!): [PlanFunding]
     "Remove a Funding from a Plan"
