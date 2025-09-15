@@ -48,22 +48,23 @@ export class VersionedSectionSearchResult {
     options: SectionQueryOptions = VersionedSection.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<VersionedSectionSearchResult>> {
     // Only include active published templates that are owned by the user's affiliation or marked as best practice
-    let whereFilters: string[];
+    const whereFilters: string[] = ['vt.active = 1', 'vt.versionType = ?'];
     let values: string[];
 
     if (options.bestPractice === true) {
       // Only bestPractice templates
-      whereFilters = ['vt.active = 1 AND vt.versionType = ? AND vt.bestPractice = 1'];
+      whereFilters.push('vt.bestPractice = 1');
       values = [TemplateVersionType.PUBLISHED.toString()];
     } else if (options.bestPractice === false) {
       // Only non-bestPractice templates
-      whereFilters = ['vt.active = 1 AND vt.versionType = ? AND vt.bestPractice = 0 AND vt.ownerId = ?'];
+      whereFilters.push('vt.bestPractice = 0', 'vt.ownerId = ?');
       values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
     } else {
       // Owned by user or bestPractice templates
-      whereFilters = ['vt.active = 1 AND vt.versionType = ? AND (vt.ownerId = ? OR vt.bestPractice = 1)'];
+      whereFilters.push('(vt.ownerId = ? OR vt.bestPractice = 1)');
       values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
     }
+
     // filter nulls/undefined and convert all to strings
     values = values.filter(v => v != null).map(v => v.toString());
     

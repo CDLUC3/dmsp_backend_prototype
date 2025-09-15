@@ -98,7 +98,7 @@ describe('VersionedSectionSearchResult', () => {
                     'LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId';
 
       const vals = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId, `%${term.toLowerCase()}%`];
-      const whereFilters = ['vt.active = 1 AND vt.versionType = ? AND (vt.ownerId = ? OR vt.bestPractice = 1)',
+      const whereFilters = ['vt.active = 1','vt.versionType = ?', '(vt.ownerId = ? OR vt.bestPractice = 1)',
                             'LOWER(vs.name) LIKE ?'];
       const groupBy = 'GROUP BY vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, ' +
                         'vt.bestPractice, vt.id, vt.name'
