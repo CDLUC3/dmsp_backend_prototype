@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added `redact` to the pino logger to prevent sensitive information from being logged
 - Added resolver to handle resending of invite for project collaborators [#433]
 - Added bash to AWS Dockerfile for session manager
 - Added a data migration script to update `visibility` to `latestPublishVisibility` in `templates` table. [#405]

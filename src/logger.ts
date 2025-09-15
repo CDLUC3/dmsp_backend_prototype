@@ -13,7 +13,14 @@ import { isNullOrUndefined } from "./utils/helpers";
 
 const logLevel = process.env.LOG_LEVEL || 'info';
 
-export const logger: Logger = pino({ level: logLevel, ...ecsFormat() })
+export const logger: Logger = pino({
+  level: logLevel,
+  redact: {
+    paths: ['email', 'givenName', 'surName', 'password', 'pwd'],
+    censor: '[MASKED]'
+  },
+  ...ecsFormat()
+});
 
 export interface LoggerContext {
   app: string;
