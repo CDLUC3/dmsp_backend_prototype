@@ -11,13 +11,27 @@ import { isNullOrUndefined } from "./utils/helpers";
  *    10 = trace, 20 = debug, 30 = info, 40 = debug, 50 = error, 60 = fatal
  */
 
+// The fields that should be redacted from the logs
+export const REDACTION_KEYS = [
+  'email',
+  'givenName',
+  'surName',
+  'password',
+  'pwd',
+  'token',
+  'secret',
+  'jwtSecret',
+];
+
+export const REDACTION_MESSAGE = '[MASKED]';
+
 const logLevel = process.env.LOG_LEVEL || 'info';
 
 export const logger: Logger = pino({
   level: logLevel,
   redact: {
-    paths: ['email', 'givenName', 'surName', 'password', 'pwd'],
-    censor: '[MASKED]'
+    paths: REDACTION_KEYS,
+    censor: REDACTION_MESSAGE
   },
   ...ecsFormat()
 });
@@ -44,8 +58,16 @@ export function initLogger(baseLogger: Logger, contextFields: LoggerContext): Lo
 
 // Filter out undefined fields for cleaner logs
 export function prepareObjectForLogs(obj: object): object {
-  return Object.fromEntries(
+  const cleansed = Object.fromEntries(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     Object.entries(obj).filter(([_, v]) => !isNullOrUndefined(v))
   );
+
+  // Redact the values of any keys that are sensitive
+  for (const key of REDACTION_KEYS) {
+    if (key in cleansed) {
+      cleansed[key] = REDACTION_MESSAGE;
+    }
+  }
+  return cleansed;
 }
