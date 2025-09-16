@@ -66,10 +66,12 @@ function maskEmail(email: string): string {
 }
 
 // Inspect the keys and values of the object and recursively mask any sensitive information
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function redactSensitiveInfo(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map(redactSensitiveInfo);
   } else if (obj !== null && typeof obj === 'object') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const redactedObj: any = {};
     for (const [key, value] of Object.entries(obj)) {
       if (REDACTION_KEYS.includes(key)) {
