@@ -13,7 +13,6 @@ import { isNullOrUndefined } from "./utils/helpers";
 
 // The fields that should be redacted from the logs
 export const REDACTION_KEYS = [
-  'email',
   'givenName',
   'surName',
   'password',
@@ -44,6 +43,53 @@ export interface LoggerContext {
   userId?: number;
 }
 
+function maskEmail(email: string): string {
+  const parts = email.split('@');
+  if (parts.length !== 2) {
+    // Not a valid email format
+    return email;
+  }
+
+  const localPart = parts[0];
+  const domainPart = parts[1];
+
+  if (localPart.length <= 2) {
+    // If the local part is too short, we can't mask it properly, so we just return the redaction message
+    return REDACTION_MESSAGE;
+  }
+
+  const firstChar = localPart.charAt(0);
+  const lastChar = localPart.charAt(localPart.length - 1);
+  const maskedSection = '*'.repeat(localPart.length - 2);
+
+  return `${firstChar}${maskedSection}${lastChar}@${domainPart}`;
+}
+
+// Inspect the keys and values of the object and recursively mask any sensitive information
+function redactSensitiveInfo(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(redactSensitiveInfo);
+  } else if (obj !== null && typeof obj === 'object') {
+    const redactedObj: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (REDACTION_KEYS.includes(key)) {
+        redactedObj[key] = REDACTION_MESSAGE;
+      } else {
+        redactedObj[key] = redactSensitiveInfo(value);
+      }
+    }
+    return redactedObj;
+  } else if (typeof obj === 'string') {
+    // Replace any email addresses with the redaction message
+    const emailRegex = /\s?[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s?/g;
+    if (emailRegex.test(obj)) {
+      return obj.replace(emailRegex, maskEmail);
+    }
+    return obj;
+  }
+  return obj;
+}
+
 // Initialize the logger. Called by buildContext and in non-GraphQL controllers.
 // Spawns an instance of the pino logger with the specified contextFields.
 // The newly spawned instance is then used throughout the request's lifecycle
@@ -58,16 +104,12 @@ export function initLogger(baseLogger: Logger, contextFields: LoggerContext): Lo
 
 // Filter out undefined fields for cleaner logs
 export function prepareObjectForLogs(obj: object): object {
-  const cleansed = Object.fromEntries(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    Object.entries(obj).filter(([_, v]) => !isNullOrUndefined(v))
-  );
+  if (isNullOrUndefined(obj)) return {};
 
-  // Redact the values of any keys that are sensitive
-  for (const key of REDACTION_KEYS) {
-    if (key in cleansed) {
-      cleansed[key] = REDACTION_MESSAGE;
-    }
-  }
-  return cleansed;
+  const cleansed = redactSensitiveInfo(obj);
+  return Object.fromEntries(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    Object.entries(cleansed).filter(([_, v]) => !isNullOrUndefined(v))
+  );
 }
+

@@ -150,7 +150,7 @@ export class User extends MySqlModel {
     const userEmail = userEmails[0];
 
     if (!userEmail || (!userEmail.isPrimary && !userEmail.isConfirmed)) {
-      context.logger.debug(`No primary or confirmed UserEmail found for ${email}`);
+      context.logger.debug("No primary or confirmed UserEmail found");
       return null;
     }
 
@@ -161,11 +161,11 @@ export class User extends MySqlModel {
 
       // Otherwise check the password
       if (user && await bcrypt.compare(password, user.password)) {
-        context.logger.debug(`Successful authCheck for ${email}`);
+        context.logger.debug(prepareObjectForLogs({ id: user.id }), "Successful authCheck");
         return user.id;
       }
 
-    context.logger.debug(`Failed authCheck for ${email}`);
+    context.logger.debug("Failed authCheck");
     return null;
   }
 

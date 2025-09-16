@@ -215,11 +215,10 @@ export class MySqlModel {
     // The dataSource, logger and sqlStatement are required so bail if they are not provided
     if (dataSources && logger && dataSources.sqlDataSource && sqlStatement) {
       const sql = sqlStatement.split(/[\s\t\n]+/).join(' ');
-      const logMessage = `${reference}, sql: ${sql}, vals: ${values}`;
       const vals = values.map((entry) => this.prepareValue(entry, typeof (entry)));
 
       try {
-        apolloContext.logger.debug(logMessage);
+        apolloContext.logger.debug(prepareObjectForLogs({ sql, values }), reference);
         const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {

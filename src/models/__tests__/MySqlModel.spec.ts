@@ -389,7 +389,7 @@ describe('query function', () => {
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql, ['1'], 'Testing');
     expect(context.logger.debug).toHaveBeenCalledTimes(1);
-    expect(context.logger.debug).toHaveBeenCalledWith(`Testing, sql: ${sql}, vals: 1`);
+    expect(context.logger.debug).toHaveBeenCalledWith({ sql, values: ["1"] }, "Testing");
     expect(result).toEqual(['test']);
   });
 
@@ -398,7 +398,7 @@ describe('query function', () => {
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql,);
     expect(context.logger.debug).toHaveBeenCalledTimes(1);
-    expect(context.logger.debug).toHaveBeenCalledWith(`undefined caller, sql: ${sql}, vals: `);
+    expect(context.logger.debug).toHaveBeenCalledWith({ sql, values: [] }, "undefined caller");
     expect(result).toEqual([]);
   });
 
@@ -409,7 +409,7 @@ describe('query function', () => {
     const result = await MySqlModel.query(context, sql, ['123'], 'testing failure');
     expect(context.logger.debug).toHaveBeenCalledTimes(1);
     expect(context.logger.error).toHaveBeenCalledTimes(1);
-    expect(context.logger.debug).toHaveBeenCalledWith(`testing failure, sql: ${sql}, vals: 123`);
+    expect(context.logger.debug).toHaveBeenCalledWith({ sql, values: ["123"] }, "testing failure");
     expect(context.logger.error).toHaveBeenCalledWith({}, "testing failure, ERROR: Testing error handler");
     expect(result).toEqual([]);
   });

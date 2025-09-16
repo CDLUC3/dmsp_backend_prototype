@@ -5,7 +5,7 @@ import { JWTAccessToken } from './services/tokenService';
 import { randomHex } from './utils/helpers';
 import { BaseContext } from "@apollo/server";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
-import { initLogger } from "./logger";
+import {initLogger, prepareObjectForLogs} from "./logger";
 import { generalConfig } from "./config/generalConfig";
 
 // The Apollo Server Context object passed in to the Resolver on each request
@@ -67,17 +67,15 @@ export function buildContext(
   } catch(err) {
     const msg = `Unable to buildContext - ${err.message}`;
     if (logger) {
-      logger.error(
-        {
-          err,
-          sqlDataSource,
-          dmphubAPIDataSource,
-          logger,
-          cache,
-          token
-        },
-        msg
-      );
+      logger.error(prepareObjectForLogs({
+        err,
+        sqlDataSource,
+        dmphubAPIDataSource,
+        logger,
+        cache,
+        token
+      }),
+      msg);
     } else {
       console.log(msg);
     }
