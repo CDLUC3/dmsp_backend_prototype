@@ -1,4 +1,7 @@
 
+export interface SectionFilterOptions {
+  bestPractice?: boolean;        // Only return records where bestPractice = 1 if present
+}
 export interface TemplateFilterOptions {
   bestPractice?: boolean;        // Only return records where bestPractice = 1 if present
   selectOwnerURIs?: string[];    // Only return records with the specified ownerURIs
@@ -53,3 +56,5 @@ export interface PaginatedQueryResults<T> {
 }
 
 export type TemplateQueryOptions = TemplateFilterOptions & PaginationOptions;
+
+export type SectionQueryOptions = SectionFilterOptions & PaginationOptions;

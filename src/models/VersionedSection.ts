@@ -2,7 +2,14 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
 import { Tag } from "./Tag";
-import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import {
+  PaginatedQueryResults,
+  PaginationOptions,
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType,
+  SectionQueryOptions
+} from "../types/general";
 import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 import { TemplateVersionType } from "./VersionedTemplate";
@@ -33,17 +40,34 @@ export class VersionedSectionSearchResult {
     this.versionedQuestionCount = options.versionedQuestionCount ?? 0;
   }
 
-  // Find all of the high level details about the published templates matching the search term
+  // Find all of the high level details about the published sections matching the search term
   static async search(
     reference: string,
     context: MyContext,
     term: string,
-    options: PaginationOptions = VersionedSection.getDefaultPaginationOptions(),
+    options: SectionQueryOptions = VersionedSection.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<VersionedSectionSearchResult>> {
     // Only include active published templates that are owned by the user's affiliation or marked as best practice
-    const whereFilters = ['vt.active = 1 AND vt.versionType = ? AND (vt.ownerId = ? OR vt.bestPractice = 1)'];
-    const values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
+    const whereFilters: string[] = ['vt.active = 1', 'vt.versionType = ?'];
+    let values: string[];
 
+    if (options.bestPractice === true) {
+      // Only bestPractice templates
+      whereFilters.push('vt.bestPractice = 1');
+      values = [TemplateVersionType.PUBLISHED.toString()];
+    } else if (options.bestPractice === false) {
+      // Only non-bestPractice templates
+      whereFilters.push('vt.bestPractice = 0', 'vt.ownerId = ?');
+      values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
+    } else {
+      // Owned by user or bestPractice templates
+      whereFilters.push('(vt.ownerId = ? OR vt.bestPractice = 1)');
+      values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
+    }
+
+    // filter nulls/undefined and convert all to strings
+    values = values.filter(v => v != null).map(v => v.toString());
+    
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
     if (!isNullOrUndefined(searchTerm)) {

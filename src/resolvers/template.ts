@@ -107,7 +107,7 @@ export const resolvers: Resolvers = {
             // Fetch and copy versionedSections to sections table for new template
             const versionedSections = await VersionedSection.findByTemplateId(reference, context, copyFromTemplateId);
             for (const versionedSection of versionedSections) {
-              const versionedSectionId = versionedSection.sectionId;
+              const versionedSectionId = versionedSection.id;
               const section = cloneSection(context.token?.id, templateId, versionedSection)
               if (section && !section.hasErrors()) {
                 const newSection = await section.create(context, templateId);
