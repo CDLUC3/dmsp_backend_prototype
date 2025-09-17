@@ -196,50 +196,48 @@ export const resolvers: Resolvers = {
     },
 
     // add new plan fundings
-    addPlanFunding: async (_,{ planId, projectFundingIds },context: MyContext): Promise<PlanFunding[]> => {
+    addPlanFunding: async (_, { planId, projectFundingIds }, context: MyContext): Promise<PlanFunding[]> => {
       const reference = 'addPlanFunding mutator';
 
       try {
-        if (!isAuthorized(context.token)) {
-          throw context.token ? ForbiddenError() : AuthenticationError();
-        }
+        if (isAuthorized(context.token)) {
+          const plan = await Plan.findById(reference, context, planId);
+          if (isNullOrUndefined(plan)) {
+            throw NotFoundError();
+          }
 
-        const plan = await Plan.findById(reference, context, planId);
-        if (isNullOrUndefined(plan)) {
-          throw NotFoundError();
-        }
+          const project = await Project.findById(reference, context, plan.projectId);
+          if (await hasPermissionOnProject(context, project)) {
 
-        const project = await Project.findById(reference, context, plan.projectId);
-        if (await hasPermissionOnProject(context, project)) {
+            // Fetch all of the current Funders associated with this Plan
+            const fundings = await PlanFunding.findByPlanId(reference, context, plan.id);
+            const currentPlanFundingids = fundings ? fundings.map((d) => d.projectFundingId) : [];
+            // Use the helper function to determine which funders to add
+            const {
+              idsToBeSaved
+            } = PlanFunding.reconcileAssociationIds(
+              currentPlanFundingids,
+              projectFundingIds
+            );
 
-        // Fetch all of the current Funders associated with this Plan
-          const fundings = await PlanFunding.findByPlanId(reference, context, plan.id);
-          const currentPlanFundingids = fundings ? fundings.map((d) => d.projectFundingId) : [];
-          // Use the helper function to determine which funders to add
-          const {
-            idsToBeSaved
-          } = PlanFunding.reconcileAssociationIds(
-            currentPlanFundingids,
-            projectFundingIds
-          );
+            const addErrors = [];
+            // Add new records for projectFundingIds that are not already in planFundings table
+            for (const id of idsToBeSaved) {
+              const funding = new PlanFunding({ planId, projectFundingId: id });
 
-          const addErrors = [];
-          // Add new records for projectFundingIds that are not already in planFundings table
-          for (const id of idsToBeSaved) {
-            const funding = new PlanFunding({ planId, projectFundingId: id });
-
-            const wasAdded = funding.create(context);
-            if (!wasAdded) {
-              addErrors.push(funding.projectFundingId);
+              const wasAdded = funding.create(context);
+              if (!wasAdded) {
+                addErrors.push(funding.projectFundingId);
+              }
             }
-          }
 
-          const planVersion = await updateVersion(context, plan, reference);
-          if (!planVersion || planVersion.hasErrors()) {
-            context.logger.error(prepareObjectForLogs({ plan: plan.id }),"Unable to update version");
-          }
+            const planVersion = await updateVersion(context, plan, reference);
+            if (!planVersion || planVersion.hasErrors()) {
+              context.logger.error(prepareObjectForLogs({ plan: plan.id }), "Unable to update version");
+            }
 
-          return await PlanFunding.findByPlanId(reference, context, plan.id);
+            return await PlanFunding.findByPlanId(reference, context, plan.id);
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -317,7 +315,7 @@ export const resolvers: Resolvers = {
 
           const planVersion = await updateVersion(context, plan, reference);
           if (!planVersion || planVersion.hasErrors()) {
-            context.logger.error(prepareObjectForLogs({ plan: plan.id }),"Unable to update version");
+            context.logger.error(prepareObjectForLogs({ plan: plan.id }), "Unable to update version");
           }
 
           return await PlanFunding.findByPlanId(reference, context, plan.id);;
