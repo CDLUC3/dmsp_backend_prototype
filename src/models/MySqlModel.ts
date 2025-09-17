@@ -218,7 +218,15 @@ export class MySqlModel {
       const vals = values.map((entry) => this.prepareValue(entry, typeof (entry)));
 
       try {
-        apolloContext.logger.debug(prepareObjectForLogs({ sql, values }), reference);
+        // Mask all of the values like 'a***e' before logging
+        const maskedValues = vals.map((val) => {
+          if (typeof val === 'string' && val.length > 3) {
+            const mask = val.slice(1, val.length - 2).replace(/./g, '*');
+            return `${val[0]}${mask.slice(0, 10)}${val[val.length - 1]}`;
+          }
+          return val;
+        });
+        apolloContext.logger.debug(prepareObjectForLogs({ sql, values: maskedValues }), reference);
         const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
