@@ -16,6 +16,9 @@ coverage/
 # Ignore the persisted data sources for the local Docker dev env
 docker/
 
+# Skip the tmp directory (used by Jest to cache)
+tmp/
+
 # Ignore VS Code files, like the launch.json file
 .vscode/
 

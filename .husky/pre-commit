@@ -4,17 +4,14 @@ npm run lint
 echo "Running Tests ..."
 npm test
 
+echo "Ensuring build compiles ..."
+npm run build
+
 echo "Running Trivy scans..."
 
 # Run Trivy to check for vulnerabilities in the filesystem
-trivy fs --exit-code 1 --severity HIGH,CRITICAL . || {
+trivy fs --exit-code 1 --skip-dirs docker/mysql --skip-dirs docker/mysql-bak --severity HIGH,CRITICAL . || {
   echo "Trivy found high/critical vulnerabilities. Commit aborted."
-  exit 1
-}
-
-# Run Trivy to check for secrets in the filesystem
-trivy secret --exit-code 1 --severity HIGH,CRITICAL . || {
-  echo "Trivy found high/critical secrets. Commit aborted."
   exit 1
 }
 
