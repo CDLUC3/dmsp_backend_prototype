@@ -5,7 +5,7 @@ import { MockCache, mockDataSources } from '../__mocks__/context';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { randomHex } from '../utils/helpers';
 import { MySQLConnection } from "../datasources/mysql";
-import { logger } from '../logger';
+import { logger, REDACTION_MESSAGE } from '../logger';
 
 // Mock dependencies
 jest.mock('../datasources/dmpHubAPI');
@@ -99,12 +99,10 @@ describe('buildContext', () => {
     // Ensure the error is logged with the expected message
     expect(loggerMock.error).toHaveBeenCalledWith(
       {
-        err: err,
+        err: {},
         logger: loggerMock,
         cache: cacheMock,
-        token: tokenMock,
-        dmphubAPIDataSource: null,
-        sqlDataSource: null,
+        token: REDACTION_MESSAGE,
       },
       'Unable to buildContext - testing error'
     );

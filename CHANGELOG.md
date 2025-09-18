@@ -1,6 +1,8 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added some logic to the `prepareObjectForLogs` function to redact sensitive info
+- Added `redact` to the pino logger to prevent sensitive information from being logged
 - Added ability for `VersionedSections` `search` function to return only `bestPractice` sections, only sections without `bestPractice` or all sections[#436]
 - Added resolver to handle resending of invite for project collaborators [#433]
 - Added bash to AWS Dockerfile for session manager
