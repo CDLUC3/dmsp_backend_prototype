@@ -13,7 +13,7 @@ const config: Config = {
   // bail: 0,
 
   // The directory where Jest should store its cached dependency information
-  cacheDirectory: "./tmp/jest",
+  // cacheDirectory: "/private/var/folders/_r/5bm_9p6n4tg90cqfqfpk0d0jb0nfj9/T/jest_nvg5d5",
 
   // Automatically clear mock calls, instances, contexts and results before every test
   clearMocks: true,
