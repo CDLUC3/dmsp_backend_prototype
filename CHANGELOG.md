@@ -1,6 +1,8 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added tmp dir for jest caching (ignored by git)
+- Added Trivy scan and `npm run build` to precommit hooks
 - Added some logic to the `prepareObjectForLogs` function to redact sensitive info
 - Added `redact` to the pino logger to prevent sensitive information from being logged
 - Added ability for `VersionedSections` `search` function to return only `bestPractice` sections, only sections without `bestPractice` or all sections[#436]
@@ -22,6 +24,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Upgraded @dmptool/types to v1.2.3 in package.json and rebuilt package-lock
 - Updated `answer` and `addAnswerComment` permissions to include a collaborator who has `COMMENT` privileges [#243]
 - Update `removeAnswerComment` and `removeFeedbackComment` to allow deletion by creator, plan creator, or OWN-level collaborator [#243]
 - Created `commentPermissions.ts` service to determine if a comment can be deleted [#243]
