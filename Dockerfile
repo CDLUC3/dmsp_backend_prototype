@@ -24,7 +24,7 @@ COPY package*.json tsconfig.json codegen.ts .env ./
 COPY . .
 
 # Install dependencies in /app
-RUN npm install
+RUN npm ci
 
 # Ensure port 3000 is accessible to our system
 EXPOSE 4000

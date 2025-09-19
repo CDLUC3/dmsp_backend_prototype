@@ -13,7 +13,10 @@
     "dev": "ts-node-dev --respawn ./src/index.ts",
     "start": "npm run build && nodemon ./dist/index.js",
     "aws_start": "node ./dist/index.js",
-    "prepare": "is-ci || npx husky install"
+    "prepare": "is-ci || npx husky install",
+    "trivy-high": "sh ./src/scripts/trivy-high.sh",
+    "trivy-med": "sh ./src/scripts/trivy-med.sh",
+    "trivy-all": "npm run trivy-high && npm run trivy-med"
   },
   "compilerOptions": {
     "sourceMap": true
