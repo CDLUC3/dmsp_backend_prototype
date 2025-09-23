@@ -108,6 +108,8 @@ export const resolvers: Resolvers = {
               if (!wasAdded) {
                 addTagErrors.push(tag.name);
               }
+            } else {
+              addTagErrors.push(`Tag ${item.id} not found`);
             }
           }
           if (addTagErrors.length > 0) {
