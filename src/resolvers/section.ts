@@ -99,19 +99,24 @@ export const resolvers: Resolvers = {
             return section;
           }
 
-          // Add any new Tag associations
+          // Add any new Tags provided in the request
           const addTagErrors = [];
-          for (const item of tags) {
-            const tag = await Tag.findById(reference, context, item.id);
-            if (tag) {
+          if (Array.isArray(tags) && tags.length > 0) {
+            for (const item of tags) {
+              const tag = await Tag.findById(reference, context, item.id);
+
+              if (!tag) {
+                addTagErrors.push(`Tag ${item.id} not found`);
+              }
+
               const wasAdded = tag.addToSection(context, newSection.id)
               if (!wasAdded) {
                 addTagErrors.push(tag.name);
               }
-            } else {
-              addTagErrors.push(`Tag ${item.id} not found`);
+
             }
           }
+
           if (addTagErrors.length > 0) {
             newSection.addError('tags', `Saved but we were unable to assign tags: ${addTagErrors.join(', ')}`);
           }
