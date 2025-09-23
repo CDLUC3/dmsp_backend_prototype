@@ -24,6 +24,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated cursor pagination logic to accept sort information
 - Upgraded @dmptool/types to v1.2.3 in package.json and rebuilt package-lock
 - Updated `answer` and `addAnswerComment` permissions to include a collaborator who has `COMMENT` privileges [#243]
 - Update `removeAnswerComment` and `removeFeedbackComment` to allow deletion by creator, plan creator, or OWN-level collaborator [#243]

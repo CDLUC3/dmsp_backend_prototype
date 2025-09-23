@@ -3,7 +3,11 @@ import { MySqlModel } from "../MySqlModel";
 import { buildMockContextWithToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 import { generalConfig } from '../../config/generalConfig';
-import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
+import {
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType
+} from '../../types/general';
 import { logger } from "../../logger";
 
 jest.mock('../../dataSources/mysql', () => {
@@ -459,7 +463,7 @@ describe('queryWithPagination', () => {
     const groupByClause = 'GROUP BY field';
     const values = ['value'];
     const options = {
-      type: 'CURSOR',
+      type: PaginationType.CURSOR,
       cursorField: 'id',
       limit: 10,
       cursor: '5',
@@ -488,7 +492,11 @@ describe('queryWithPagination', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      {
+        ...options,
+        availableSortFields: [],
+        cursorField: 'LOWER(REPLACE(CONCAT(p.modified, id), \' \', \'_\'))'
+      },
       reference
     );
     expect(result).toEqual(mockResponse);
@@ -500,6 +508,7 @@ describe('queryWithPagination', () => {
     const groupByClause = 'GROUP BY field';
     const values = ['value'];
     const options = {
+      type: PaginationType.OFFSET,
       limit: 10,
       offset: 0,
       sortField: 'id',
@@ -527,7 +536,10 @@ describe('queryWithPagination', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      {
+        ...options,
+        availableSortFields: []
+      },
       reference
     );
     expect(result).toEqual(mockResponse);
@@ -539,10 +551,13 @@ describe('queryWithPagination', () => {
     const groupByClause = 'GROUP BY field';
     const values = ['value'];
     const options = {
+      type: PaginationType.OFFSET,
       limit: 10,
       offset: 0,
       sortField: 'id',
       sortDir: 'ASC',
+      cursorField: 'id',
+      availableSortFields: ['id', 'name'],
     };
     const reference = 'Testing';
 

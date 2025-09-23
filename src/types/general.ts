@@ -31,14 +31,14 @@ export interface PaginationOptionsForOffsets {
 // The options for a paginatated query using cursors (useful when using: infinite scroll / load more).
 // Note that cursor-base pagination cannot support sort options!
 export interface PaginationOptionsForCursors {
-  type: PaginationType;         // Discriminator for cursor-based pagination
-  limit?: number;               // The number of items to return (integer)
-  cursor?: string;              // Used for cursor-based pagination for endless scroll functionality (ISO string)
-  cursorField?: string;         // The field to use for cursor-based pagination (string)
-  cursorSortDir?: SortDirection; // The sort direction for the cursor (default is 'ASC')
-  countField?: string;          // The field to count for totalCount (string)
-  sortField?: string;           // The field to sort by (string)
-  sortDir?: string;             // The order to sort by (must be 'ASC' or 'DESC')
+  type: PaginationType;           // Discriminator for cursor-based pagination
+  limit?: number;                 // The number of items to return (integer)
+  cursor?: string;                // Used for cursor-based pagination for endless scroll functionality (ISO string)
+  cursorField?: string;           // The field to use for cursor-based pagination (string)
+  countField?: string;            // The field to count for totalCount (string)
+  sortField?: string;             // The field to sort by (string)
+  sortDir?: string;               // The order to sort by (must be 'ASC' or 'DESC')
+  availableSortFields?: string[]; // The available sort fields (string array)
 }
 
 export type PaginationOptions = PaginationOptionsForOffsets | PaginationOptionsForCursors;

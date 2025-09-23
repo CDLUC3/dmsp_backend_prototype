@@ -102,14 +102,15 @@ describe('VersionedSectionSearchResult', () => {
                             'LOWER(vs.name) LIKE ?'];
       const groupBy = 'GROUP BY vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, ' +
                         'vt.bestPractice, vt.id, vt.name'
-
+      const sortFields = ["vs.name", "vs.created", "vs.bestPractice", "vt.name", "vs.modified", "versionedQuestionCount"];
       const opts = {
         cursor: null,
         limit: generalConfig.defaultSearchLimit,
         sortField: 'vs.modified',
         sortDir: 'DESC',
         countField: 'vs.id',
-        cursorField: 'LOWER(REPLACE(CONCAT(vs.modified, vs.id), \' \', \'_\'))',
+        cursorField: 'vs.id',
+        availableSortFields: sortFields,
       };
       expect(localPaginationQuery).toHaveBeenCalledTimes(1);
       expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, groupBy, vals, opts, 'Test')
@@ -236,14 +237,15 @@ describe('findByName', () => {
     const sql = 'SELECT vs.* FROM versionedSections vs';
     const vals = [`%${versionedSection.name.toLowerCase()}%`];
     const whereFilters = ['LOWER(vs.name) LIKE ?'];
-
+    const sortFields = ["vs.name", "vs.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'vs.name',
       sortDir: 'ASC',
       countField: 'vs.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\'))',
+      cursorField: 'vs.id',
+      availableSortFields: sortFields,
     };
 
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);

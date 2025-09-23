@@ -335,8 +335,12 @@ variables: {
   }
 }
 ```
-
-The `hasNextPage` flag in the response indicates whether there are more items available, and the `nextCursor` contains the cursor that should be sent to fetch the next 20 records.
+The response has:
+- `hasNextPage` a flag indicating whether there is a subsequent page of results
+- `hasPreviousPage` a flag indicating whether there is a prior page of results
+- `nextCursor` the cursor that should be sent to fetch the next set of records
+- `totalCount` the total number of possible results
+- `availableSortFields` a list of fields that can be used to sort the results
 
 This query sends offset information to get the first 20 affiliations matching the criteria:
 ```
