@@ -570,7 +570,7 @@ describe('register()', () => {
       affiliationId: casual.url,
       acceptedTerms: true,
     });
-    
+
     // First call to Mock mysql query from findByEmail()
     jest.spyOn(UserEmail, "findByEmail").mockResolvedValue([]);
     // Second call to Mock mysql query from register()
