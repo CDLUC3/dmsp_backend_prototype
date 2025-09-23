@@ -316,6 +316,8 @@ When calling one of the queries that supports pagination, you pass in a set of `
   - `sortField` the field you want to sort the results on
   - `sortDir` the direction of the sort, either `ASC` (default) or `DESC`
 
+Note that when changing the `sortField`, the cursor/offset should be reset to ensure that the results are correct.
+
 For example this query sends cursor information to get the first 20 affiliations matching the criteria:
 ```
 query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions: PaginationOptions){
