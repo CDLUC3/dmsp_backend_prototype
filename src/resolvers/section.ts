@@ -62,6 +62,7 @@ export const resolvers: Resolvers = {
           introduction,
           requirements,
           guidance,
+          tags,
           displayOrder
         }
       },
@@ -96,6 +97,28 @@ export const resolvers: Resolvers = {
               section.addError('general', 'Unable to create the section');
             }
             return section;
+          }
+
+          // Add any new Tags provided in the request
+          const addTagErrors = [];
+          if (Array.isArray(tags) && tags.length > 0) {
+            for (const item of tags) {
+              const tag = await Tag.findById(reference, context, item.id);
+
+              if (!tag) {
+                addTagErrors.push(`Tag ${item.id} not found`);
+              }
+
+              const wasAdded = tag.addToSection(context, newSection.id)
+              if (!wasAdded) {
+                addTagErrors.push(tag.name);
+              }
+
+            }
+          }
+
+          if (addTagErrors.length > 0) {
+            newSection.addError('tags', `Saved but we were unable to assign tags: ${addTagErrors.join(', ')}`);
           }
 
           // if a copyFromVersionedSectionId is provided, clone all the questions
