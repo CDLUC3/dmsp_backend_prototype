@@ -298,6 +298,72 @@ describe('MySqlModel abstract class', () => {
   });
 });
 
+describe('preparePaginationOptions', () => {
+  it('returns offset pagination options when type is OFFSET', () => {
+    const options = {
+      type: PaginationType.OFFSET,
+      limit: 10,
+      offset: 0,
+      sortField: 'id',
+      sortDir: 'ASC',
+      availableSortFields: ['id', 'name']
+    };
+
+    const result = MySqlModel.preparePaginationOptions(options);
+    expect(result).toEqual(options);
+  });
+
+  it('returns cursor pagination options with default cursor field when no cursor field is provided', () => {
+    const options = {
+      type: PaginationType.CURSOR,
+      limit: 10,
+      sortField: 'name',
+      sortDir: 'ASC',
+      availableSortFields: ['id', 'name']
+    };
+
+    const result = MySqlModel.preparePaginationOptions(options);
+    expect(result).toEqual({
+      ...options,
+      cursorField: 'LOWER(REPLACE(CONCAT(name, id), \' \', \'_\'))'
+    });
+  });
+
+  it('returns cursor pagination options with custom cursor field when provided', () => {
+    const options = {
+      type: PaginationType.CURSOR,
+      limit: 10,
+      cursorField: 'custom_field',
+      sortField: 'name',
+      sortDir: 'ASC',
+      availableSortFields: ['id', 'name']
+    };
+
+    const result = MySqlModel.preparePaginationOptions(options);
+    expect(result).toEqual({
+      ...options,
+      cursorField: 'LOWER(REPLACE(CONCAT(name, custom_field), \' \', \'_\'))'
+    });
+  });
+
+  it('handles undefined availableSortFields', () => {
+    const options = {
+      type: PaginationType.CURSOR,
+      limit: 10,
+      cursorField: 'custom_field',
+      sortField: 'name',
+      sortDir: 'ASC'
+    };
+
+    const result = MySqlModel.preparePaginationOptions(options);
+    expect(result).toEqual({
+      ...options,
+      availableSortFields: [],
+      cursorField: 'LOWER(REPLACE(CONCAT(custom_field), \' \', \'_\'))'
+    });
+  });
+});
+
 describe('prepareValue', () => {
   it('can handle a string', () => {
     const val = 'test';
@@ -495,7 +561,7 @@ describe('queryWithPagination', () => {
       {
         ...options,
         availableSortFields: [],
-        cursorField: 'LOWER(REPLACE(CONCAT(p.modified, id), \' \', \'_\'))'
+        cursorField: 'LOWER(REPLACE(CONCAT(id), \' \', \'_\'))'
       },
       reference
     );

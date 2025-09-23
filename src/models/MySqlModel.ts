@@ -225,12 +225,9 @@ export class MySqlModel {
       opts = paginationOptions as PaginationOptionsForCursors;
       const cursorFields = isNullOrUndefined(opts.cursorField) ? ['id'] : [opts.cursorField];
 
-      // If a sort field iwas provided and its in the list of available sort fields
+      // If a sort field was provided and its in the list of available sort fields
       if (!isNullOrUndefined(paginationOptions.sortField) && sortFields.includes(paginationOptions.sortField)) {
         cursorFields.unshift(paginationOptions.sortField);
-      } else {
-        // Otherwise default to the modification date
-        cursorFields.unshift('p.modified');
       }
 
       return {
