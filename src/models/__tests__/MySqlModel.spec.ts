@@ -6,7 +6,7 @@ import { generalConfig } from '../../config/generalConfig';
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
 import { logger } from "../../logger";
 
-jest.mock('../../dataSources/mysql', () => {
+jest.mock('../../datasources/mysql', () => {
   return {
     __esModule: true,
     MySQLConnection: {
