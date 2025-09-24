@@ -492,8 +492,14 @@ export type AnswerCommentErrors = {
 /** The result of the findCollaborator query */
 export type CollaboratorSearchResult = {
   __typename?: 'CollaboratorSearchResult';
-  /** The collaborator's affiliation */
-  affiliation?: Maybe<Affiliation>;
+  /** The collaborator's affiliation name */
+  affiliationName?: Maybe<Scalars['String']['output']>;
+  /** The affiliation's ROR ID */
+  affiliationRORId?: Maybe<Scalars['String']['output']>;
+  /** The affiliation's ROR URL */
+  affiliationURL?: Maybe<Scalars['String']['output']>;
+  /** The collaborator's email */
+  email?: Maybe<Scalars['String']['output']>;
   /** The collaborator's first/given name */
   givenName?: Maybe<Scalars['String']['output']>;
   /** The unique identifier for the Object */
@@ -1468,25 +1474,6 @@ export type MutationUploadPlanArgs = {
   projectId: Scalars['Int']['input'];
 };
 
-/** A result from searching the ORCID API */
-export type OrcidUserSearchResult = {
-  __typename?: 'OrcidUserSearchResult';
-  /** The user's organizational affiliation */
-  affiliationName?: Maybe<Scalars['String']['output']>;
-  /** The affiliation's ROR ID */
-  affiliationRORId?: Maybe<Scalars['String']['output']>;
-  /** The affiliation's URL */
-  affiliationURL?: Maybe<Scalars['String']['output']>;
-  /** The user's primary email */
-  email?: Maybe<Scalars['String']['output']>;
-  /** The user's first/given name */
-  givenName?: Maybe<Scalars['String']['output']>;
-  /** The user's ORCID */
-  orcid?: Maybe<Scalars['String']['output']>;
-  /** The user's last/family name */
-  surName?: Maybe<Scalars['String']['output']>;
-};
-
 /** An output collected/produced during or as a result of a research project */
 export type OutputType = {
   __typename?: 'OutputType';
@@ -2415,8 +2402,6 @@ export type Query = {
   topLevelResearchDomains?: Maybe<Array<Maybe<ResearchDomain>>>;
   /** Returns the specified user (Admin only) */
   user?: Maybe<User>;
-  /** Look up a user by their ORCID iD */
-  userByOrcid?: Maybe<OrcidUserSearchResult>;
   /** Returns all of the users associated with the current admin's affiliation (Super admins get everything) */
   users?: Maybe<UserSearchResults>;
 };
@@ -2718,11 +2703,6 @@ export type QueryTemplateVersionsArgs = {
 
 export type QueryUserArgs = {
   userId: Scalars['Int']['input'];
-};
-
-
-export type QueryUserByOrcidArgs = {
-  orcid: Scalars['String']['input'];
 };
 
 
@@ -4201,7 +4181,6 @@ export type ResolversTypes = {
   MetadataStandardSearchResults: ResolverTypeWrapper<MetadataStandardSearchResults>;
   Mutation: ResolverTypeWrapper<{}>;
   Orcid: ResolverTypeWrapper<Scalars['Orcid']['output']>;
-  OrcidUserSearchResult: ResolverTypeWrapper<OrcidUserSearchResult>;
   OutputType: ResolverTypeWrapper<OutputType>;
   OutputTypeErrors: ResolverTypeWrapper<OutputTypeErrors>;
   PaginatedQueryResults: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['PaginatedQueryResults']>;
@@ -4366,7 +4345,6 @@ export type ResolversParentTypes = {
   MetadataStandardSearchResults: MetadataStandardSearchResults;
   Mutation: {};
   Orcid: Scalars['Orcid']['output'];
-  OrcidUserSearchResult: OrcidUserSearchResult;
   OutputType: OutputType;
   OutputTypeErrors: OutputTypeErrors;
   PaginatedQueryResults: ResolversInterfaceTypes<ResolversParentTypes>['PaginatedQueryResults'];
@@ -4610,7 +4588,10 @@ export type AnswerCommentErrorsResolvers<ContextType = MyContext, ParentType ext
 };
 
 export type CollaboratorSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['CollaboratorSearchResult'] = ResolversParentTypes['CollaboratorSearchResult']> = {
-  affiliation?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType>;
+  affiliationName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  affiliationRORId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  affiliationURL?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4873,17 +4854,6 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
 export interface OrcidScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Orcid'], any> {
   name: 'Orcid';
 }
-
-export type OrcidUserSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['OrcidUserSearchResult'] = ResolversParentTypes['OrcidUserSearchResult']> = {
-  affiliationName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  affiliationRORId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  affiliationURL?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  email?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  givenName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  orcid?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  surName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
 
 export type OutputTypeResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['OutputType'] = ResolversParentTypes['OutputType']> = {
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -5398,7 +5368,6 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   templateVersions?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedTemplate']>>>, ParentType, ContextType, RequireFields<QueryTemplateVersionsArgs, 'templateId'>>;
   topLevelResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
-  userByOrcid?: Resolver<Maybe<ResolversTypes['OrcidUserSearchResult']>, ParentType, ContextType, RequireFields<QueryUserByOrcidArgs, 'orcid'>>;
   users?: Resolver<Maybe<ResolversTypes['UserSearchResults']>, ParentType, ContextType, Partial<QueryUsersArgs>>;
 };
 
@@ -6053,7 +6022,6 @@ export type Resolvers<ContextType = MyContext> = {
   MetadataStandardSearchResults?: MetadataStandardSearchResultsResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Orcid?: GraphQLScalarType;
-  OrcidUserSearchResult?: OrcidUserSearchResultResolvers<ContextType>;
   OutputType?: OutputTypeResolvers<ContextType>;
   OutputTypeErrors?: OutputTypeErrorsResolvers<ContextType>;
   PaginatedQueryResults?: PaginatedQueryResultsResolvers<ContextType>;

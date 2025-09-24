@@ -1,4 +1,4 @@
-import { OrcidUserSearchResult, Resolvers, UserSearchResults } from "../types";
+import { Resolvers, UserSearchResults } from "../types";
 import { MyContext} from '../context';
 import { User } from '../models/User';
 import { UserEmail } from "../models/UserEmail";
@@ -11,13 +11,7 @@ import { processOtherAffiliationName } from "../services/affiliationService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
-import {
-  formatORCID,
-  isNullOrUndefined,
-  normaliseDateTime, stripIdentifierBaseURL
-} from "../utils/helpers";
-import { OrcidAPI, OrcidPerson } from "../datasources/orcid";
-import { ProjectMember } from "../models/Member";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -87,97 +81,6 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
-
-    // Find a user by their ORCID id
-    userByOrcid: async (_, { orcid }, context: MyContext): Promise<OrcidUserSearchResult | null> => {
-      const reference = 'userByOrcid resolver';
-
-      // Get the fully formatted ORCID
-      const fullOrcid = formatORCID(orcid);
-      // Get the ORCID without the base URL
-      const orcidId = stripIdentifierBaseURL(orcid);
-
-      if (isNullOrUndefined(fullOrcid) || isNullOrUndefined(orcidId)) {
-        throw new GraphQLError('The ORCID provided is not valid', {
-          extensions: { code: 'BAD_USER_INPUT' }
-        });
-      }
-
-      try {
-        if (isAuthorized(context.token)) {
-          // First try to find the user in the User table
-          const user: User = await User.findByOrcid(reference, context, fullOrcid);
-
-          if (!isNullOrUndefined(user)) {
-            // We found the person in our users table, so just return the info we have
-            const affiliation = await Affiliation.findByURI(
-              reference,
-              context,
-              user.affiliationId
-            );
-
-            return {
-              givenName: user.givenName,
-              surName: user.surName,
-              orcid: user.orcid || '',
-              email: await user.getEmail(context),
-              affiliationName: affiliation?.name,
-              affiliationRORId: affiliation?.uri,
-              affiliationURL: affiliation?.homepage
-            };
-
-          } else {
-            // Try to find a member in the Member table
-            const member: ProjectMember = await ProjectMember.findByOrcid(reference, context, fullOrcid);
-            if (!isNullOrUndefined(member)) {
-              // We found the person in our members table, so just return the info we have
-              const affiliation = await Affiliation.findByURI(
-                reference,
-                context,
-                member.affiliationId
-              );
-
-              return {
-                givenName: member.givenName,
-                surName: member.surName,
-                orcid: member.orcid || '',
-                email: member.email || null,
-                affiliationName: affiliation?.name,
-                affiliationRORId: affiliation?.uri,
-                affiliationURL: affiliation?.homepage
-              };
-
-            } else {
-              // Finally, call the ORCID API to get the person's details
-              const orcidAPI: OrcidAPI = await new OrcidAPI({cache: context.cache});
-              const orcidData: OrcidPerson = await orcidAPI.getPerson(context, orcidId, reference);
-
-              if (isNullOrUndefined(orcidData)) {
-                return null;
-              }
-
-              // Return the results provided by the ORCID API
-              return {
-                givenName: orcidData.givenName,
-                surName: orcidData.surName,
-                orcid: orcidData.orcid,
-                email: orcidData.email,
-                affiliationName: orcidData.employment?.name,
-                affiliationRORId: orcidData.employment?.rorId,
-                affiliationURL: orcidData.employment?.url
-              };
-            }
-          }
-        }
-        // Unauthorized!
-        throw context?.token ? ForbiddenError() : AuthenticationError();
-      } catch (err) {
-        if (err instanceof GraphQLError) throw err;
-
-        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
-        throw InternalServerError();
-      }
-    }
   },
 
   Mutation: {

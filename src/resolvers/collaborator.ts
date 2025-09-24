@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import {CollaboratorSearchResult, Resolvers} from "../types";
 import {
   TemplateCollaborator,
   ProjectCollaborator,
@@ -8,14 +8,20 @@ import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
 import { Project } from "../models/Project";
-import { isAdmin } from "../services/authService";
+import {isAdmin, isAuthorized, isSuperAdmin} from "../services/authService";
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
 import { hasPermissionOnTemplate } from "../services/templateService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { sendProjectCollaborationEmail } from '../services/emailService';
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
-import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
+import { isNullOrUndefined, normaliseDateTime, ORCID_REGEX } from "../utils/helpers";
+import { Affiliation } from "../models/Affiliation";
+import { PaginatedQueryResults } from "../types/general";
+import {
+  findCollaboratorByAffiliationAndTerm,
+  findCollaboratorByOrcid
+} from "../services/collaboratorService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -45,6 +51,7 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
     projectCollaborators: async (_, { projectId }, context: MyContext): Promise<ProjectCollaborator[]> => {
       const reference = 'projectCollaborators resolver';
       try {
@@ -66,6 +73,78 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    findCollaborator: async (_, { term }, context: MyContext): Promise<CollaboratorSearchResult[]> => {
+      const reference = 'userByOrcid resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          if (!isNullOrUndefined(term) && term.length > 3) {
+            // If the incoming term is an ORCID then search by that
+            if (term.match(ORCID_REGEX)) {
+              const person: CollaboratorSearchResult = await findCollaboratorByOrcid(
+                reference,
+                context,
+                term
+              );
+              return isNullOrUndefined(person) ? [] : [person];
+            }
+
+            let users: PaginatedQueryResults<User>;
+
+            // If the user is a super admin then search all users
+            if (isSuperAdmin(context.token)) {
+              users = await User.search(reference, context, term);
+            } else {
+              // Otherwise just search the current user's affiliation
+              users = await User.findByAffiliationId(
+                reference,
+                context,
+                context.token?.affiliationId,
+                term
+              );
+            }
+
+            // Convert everything from a User to a CollaboratorSearchResult
+            const results: CollaboratorSearchResult[] = await Promise.all(users.items.map(async (user) => {
+              const affiliation = await Affiliation.findByURI(
+                reference,
+                context,
+                user.affiliationId
+              );
+
+              return {
+                givenName: user.givenName,
+                surName: user.surName,
+                orcid: user.orcid || '',
+                email: await user.getEmail(context),
+                affiliationName: affiliation?.name,
+                affiliationId: affiliation?.homepage,
+                affiliationRORId: user.affiliationId,
+              }
+            }));
+
+            const collaborators = await findCollaboratorByAffiliationAndTerm(
+              reference,
+              context,
+              term
+            );
+            collaborators.forEach(c => {
+              if (!results.find(r => r.email === c.email || r.orcid === c.orcid)) {
+                results.push(c);
+              }
+            });
+            return results;
+          }
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    }
   },
 
   Mutation: {

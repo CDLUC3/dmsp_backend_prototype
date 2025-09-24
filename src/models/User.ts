@@ -268,6 +268,7 @@ export class User extends MySqlModel {
     return response;
   }
 
+  // Find all the Users that match the search term
   static async search(
     reference: string,
     context: MyContext,

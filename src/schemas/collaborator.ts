@@ -124,7 +124,13 @@ export const typeDefs = gql`
     surName: String
     "The collaborator's ORCID"
     orcid: String
-    "The collaborator's affiliation"
-    affiliation: Affiliation
+    "The collaborator's email"
+    email: String
+    "The collaborator's affiliation name"
+    affiliationName: String
+    "The affiliation's ROR ID"
+    affiliationRORId: String
+    "The affiliation's ROR URL"
+    affiliationURL: String
   }
 `;

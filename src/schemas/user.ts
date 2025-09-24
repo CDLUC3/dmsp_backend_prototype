@@ -8,8 +8,6 @@ export const typeDefs = gql`
     users(term: String, paginationOptions: PaginationOptions): UserSearchResults
     "Returns the specified user (Admin only)"
     user(userId: Int!): User
-    "Look up a user by their ORCID iD"
-    userByOrcid(orcid: String!): OrcidUserSearchResult
   }
 
   extend type Mutation {
@@ -131,24 +129,6 @@ export const typeDefs = gql`
     hasPreviousPage: Boolean
     "The sortFields that are available for this query (for standard offset pagination only!)"
     availableSortFields: [String]
-  }
-
-  "A result from searching the ORCID API"
-  type OrcidUserSearchResult {
-    "The user's ORCID"
-    orcid: String!
-    "The user's first/given name"
-    givenName: String
-    "The user's last/family name"
-    surName: String
-    "The user's primary email"
-    email: String
-    "The user's organizational affiliation"
-    affiliationName: String
-    "The affiliation's ROR ID"
-    affiliationRORId: String
-    "The affiliation's URL"
-    affiliationURL: String
   }
 
   "A collection of errors related to the User"
