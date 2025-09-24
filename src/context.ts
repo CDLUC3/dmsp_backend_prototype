@@ -5,7 +5,7 @@ import { JWTAccessToken } from './services/tokenService';
 import { randomHex } from './utils/helpers';
 import { BaseContext } from "@apollo/server";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
-import {initLogger, prepareObjectForLogs} from "./logger";
+import { initLogger, prepareObjectForLogs } from "./logger";
 import { generalConfig } from "./config/generalConfig";
 
 // The Apollo Server Context object passed in to the Resolver on each request

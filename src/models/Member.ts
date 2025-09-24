@@ -197,6 +197,13 @@ export class ProjectMember extends MySqlModel {
     return Array.isArray(results) ? results.map((item) => new ProjectMember(item)) : [];
   }
 
+  // Fetch the latest member by its ORCID
+  static async findByOrcid(reference: string, context: MyContext, orcid: string): Promise<ProjectMember> {
+    const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE orcid = ? ORDER BY created DESC LIMIT 1`;
+    const results = await ProjectMember.query(context, sql, [orcid], reference);
+    return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
+  }
+
   // Fetch a member by its id
   static async findById(reference: string, context: MyContext, projectMemberId: number): Promise<ProjectMember> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE id = ?`;

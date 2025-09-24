@@ -800,3 +800,151 @@ describe('findByAffiliationId', () => {
     expect(result.totalCount).toBe(0);
   });
 });
+
+describe('findByEmail', () => {
+  const originalQuery = User.findById;
+  const originalEmailQuery = UserEmail.findByEmail;
+
+  let localQuery;
+  let emailQuery;
+  let context;
+  let user;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    emailQuery = jest.fn();
+    (User.findById as jest.Mock) = localQuery;
+    (UserEmail.findByEmail as jest.Mock) = emailQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      givenName: casual.first_name,
+      surName: casual.last_name,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    User.findById = originalQuery;
+    UserEmail.findByEmail = originalEmailQuery;
+  });
+
+  it('should call query with correct params and return the user', async () => {
+    const email = casual.email;
+    emailQuery.mockResolvedValueOnce([{ userId: user.id }]);
+    localQuery.mockResolvedValueOnce(user);
+    const result = await User.findByEmail('Testing', context, email);
+    expect(emailQuery).toHaveBeenCalledTimes(1);
+    expect(emailQuery).toHaveBeenLastCalledWith('Testing', context, email);
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith('Testing', context, user.id);
+    expect(result).toEqual(user);
+  });
+
+  it('should return null if it finds no users', async () => {
+    const email = casual.email;
+    emailQuery.mockResolvedValueOnce([]);
+    const result = await User.findByEmail('Testing', context, email);
+    expect(emailQuery).toHaveBeenCalledTimes(1);
+    expect(emailQuery).toHaveBeenLastCalledWith('Testing', context, email);
+    expect(localQuery).not.toHaveBeenCalled();
+    expect(result).toEqual(null);
+  });
+});
+
+describe('findById', () => {
+  const originalQuery = User.query;
+
+  let localQuery;
+  let context;
+  let user;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (User.query as jest.Mock) = localQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      givenName: casual.first_name,
+      surName: casual.last_name,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    User.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the user', async () => {
+    localQuery.mockResolvedValueOnce([user]);
+    const id = casual.integer(1, 9);
+    const result = await User.findById('Testing', context, id);
+    const expectedSql = 'SELECT * FROM users WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Testing')
+    expect(result).toEqual(user);
+  });
+
+  it('should return null if it finds no users', async () => {
+    localQuery.mockResolvedValueOnce(null);
+    const id = casual.integer(1, 9);
+    const result = await User.findById('Testing', context, id);
+    expect(result).toEqual(null);
+  });
+});
+
+describe('findByOrcid', () => {
+  const originalQuery = User.query;
+
+  let localQuery;
+  let context;
+  let user;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (User.query as jest.Mock) = localQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      givenName: casual.first_name,
+      surName: casual.last_name,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    User.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the user', async () => {
+    localQuery.mockResolvedValueOnce([user]);
+    const orcid = casual.url;
+    const result = await User.findByOrcid('Testing', context, orcid);
+    const expectedSql = 'SELECT * FROM users WHERE orcid = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [orcid], 'Testing')
+    expect(result).toEqual(user);
+  });
+
+  it('should return null if it finds no users', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const orcid = casual.url;
+    const result = await User.findByOrcid('Testing', context, orcid);
+    expect(result).toEqual(null);
+  });
+});
