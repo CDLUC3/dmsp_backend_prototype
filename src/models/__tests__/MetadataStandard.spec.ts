@@ -199,13 +199,15 @@ describe('findBy Queries', () => {
     const whereFilters = ['(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)',
                           'msrd.researchDomainId = ?'];
     const vals = [`%${term.toLowerCase().trim()}%`, `%${term.toLowerCase().trim()}%`, researchDomainId.toString()];
+    const sortFields = ["m.name", "m.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'm.name',
       sortDir: 'ASC',
       countField: 'm.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
+      cursorField: 'm.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
@@ -223,13 +225,15 @@ describe('findBy Queries', () => {
       'msrd.researchDomainId = ?'
     ];
     const vals = ["%%", "%%", researchDomainId.toString()];
+    const sortFields = ["m.name", "m.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'm.name',
       sortDir: 'ASC',
       countField: 'm.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
+      cursorField: 'm.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
@@ -244,13 +248,15 @@ describe('findBy Queries', () => {
                 'LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
     const whereFilters = ['(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)'];
     const vals = [`%${term.toLowerCase().trim()}%`, `%${term.toLowerCase().trim()}%`];
+    const sortFields = ["m.name", "m.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'm.name',
       sortDir: 'ASC',
       countField: 'm.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
+      cursorField: 'm.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')
@@ -262,13 +268,15 @@ describe('findBy Queries', () => {
     const result = await MetadataStandard.search('testing', context, null, null);
     const sql = 'SELECT m.* FROM metadataStandards m ' +
                 'LEFT OUTER JOIN metadataStandardResearchDomains msrd ON m.id = msrd.metadataStandardId';
+    const sortFields = ["m.name", "m.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'm.name',
       sortDir: 'ASC',
       countField: 'm.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(m.name, m.id), \' \', \'_\'))',
+      cursorField: 'm.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     const where = ["(LOWER(m.name) LIKE ? OR LOWER(m.keywords) LIKE ?)"];

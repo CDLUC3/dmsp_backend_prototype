@@ -215,13 +215,15 @@ describe('findBy Queries', () => {
                   repositoryType, researchDomainId.toString()];
     const whereFilters = ['(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)',
                           'JSON_CONTAINS(r.repositoryTypes, ?, \'$\')', 'rrd.researchDomainId = ?'];
+    const sortFields = ["r.name", "r.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
       sortDir: 'ASC',
       countField: 'r.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+      cursorField: 'r.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
@@ -239,13 +241,15 @@ describe('findBy Queries', () => {
       '(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)',
       'rrd.researchDomainId = ?'
     ];
+    const sortFields = ["r.name", "r.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
       sortDir: 'ASC',
       countField: 'r.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+      cursorField: 'r.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
@@ -263,13 +267,15 @@ describe('findBy Queries', () => {
       '(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)',
       'JSON_CONTAINS(r.repositoryTypes, ?, \'$\')'
     ];
+    const sortFields = ["r.name", "r.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
       sortDir: 'ASC',
       countField: 'r.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+      cursorField: 'r.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')
@@ -289,13 +295,15 @@ describe('findBy Queries', () => {
       'JSON_CONTAINS(r.repositoryTypes, ?, \'$\')',
       'rrd.researchDomainId = ?'
     ];
+    const sortFields = ["r.name", "r.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
       sortDir: 'ASC',
       countField: 'r.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+      cursorField: 'r.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenCalledWith(context, sql, whereFilters, '', vals, opts, 'testing');
@@ -310,13 +318,15 @@ describe('findBy Queries', () => {
                 'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
     const vals = [`%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
     const whereFilters = ['(LOWER(r.name) LIKE ? OR LOWER(r.description) LIKE ? OR LOWER(r.keywords) LIKE ?)'];
+    const sortFields = ["r.name", "r.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'r.name',
       sortDir: 'ASC',
       countField: 'r.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
+      cursorField: 'r.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')

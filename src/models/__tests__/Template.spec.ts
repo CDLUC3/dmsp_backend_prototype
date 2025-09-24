@@ -78,13 +78,15 @@ describe('TemplateSearchResult', () => {
       const vals = [templateSearchResult.ownerId, `%${term.toLowerCase()}%`, `%${term.toLowerCase()}%`];
       const whereFilters = ['t.ownerId = ?', '(LOWER(t.name) LIKE ? OR LOWER(t.description) LIKE ?)'];
 
+      const sortFields = ["t.name", "t.created", "t.latestPublishVisibility", "t.bestPractice", "t.latestPublishDate"];
       const opts = {
         cursor: null,
         limit: generalConfig.defaultSearchLimit,
         sortField: 't.modified',
         sortDir: 'DESC',
         countField: 't.id',
-        cursorField: 'LOWER(REPLACE(CONCAT(t.modified, t.id), \' \', \'_\'))',
+        cursorField: 't.id',
+        availableSortFields: sortFields,
       };
       expect(localPaginationQuery).toHaveBeenCalledTimes(1);
       expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')

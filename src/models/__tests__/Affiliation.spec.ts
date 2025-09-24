@@ -464,13 +464,15 @@ describe('search', () => {
     const sql = 'SELECT a.* FROM affiliations a';
     const whereFilters = ['a.active = 1', '(LOWER(a.searchName) LIKE ?)', 'a.funder = 1'];
     const vals = [`%${term.toLowerCase().trim()}%`];
+    const sortFields =  ["a.displayName", "a.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'a.displayName',
       sortDir: 'ASC',
       countField: 'a.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
+      cursorField: 'a.id',
+      availableSortFields: sortFields,
     };
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')
@@ -484,13 +486,15 @@ describe('search', () => {
     const sql = 'SELECT a.* FROM affiliations a';
     const whereFilters = ['a.active = 1', '(LOWER(a.searchName) LIKE ?)'];
     const vals = [`%${term.toLowerCase().trim()}%`];
+    const sortFields =  ["a.displayName", "a.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'a.displayName',
       sortDir: 'ASC',
       countField: 'a.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
+      cursorField: 'a.id',
+      availableSortFields: sortFields,
     };
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')
