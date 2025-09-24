@@ -45,12 +45,6 @@ export type AddMetadataStandardInput = {
   uri?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type AddPlanFundingInput = {
-  /** Either a single ProjectFundingId or multiple ProjectFundingIds. Only one should be provided. */
-  projectFundingId?: InputMaybe<Scalars['Int']['input']>;
-  projectFundingIds?: InputMaybe<Array<Scalars['Int']['input']>>;
-};
-
 export type AddProjectFundingInput = {
   /** The funder URI */
   affiliationId: Scalars['String']['input'];
@@ -775,7 +769,7 @@ export type Mutation = {
   /** Create a plan */
   addPlan?: Maybe<Plan>;
   /** Add Funding information to a Plan */
-  addPlanFunding?: Maybe<Array<Maybe<PlanFunding>>>;
+  addPlanFunding?: Maybe<Plan>;
   /** Add a Member to a Plan */
   addPlanMember?: Maybe<PlanMember>;
   /** Create a project */
@@ -4134,7 +4128,6 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
 export type ResolversTypes = {
   AccessLevel: AccessLevel;
   AddMetadataStandardInput: AddMetadataStandardInput;
-  AddPlanFundingInput: AddPlanFundingInput;
   AddProjectFundingInput: AddProjectFundingInput;
   AddProjectMemberInput: AddProjectMemberInput;
   AddProjectOutputInput: AddProjectOutputInput;
@@ -4302,7 +4295,6 @@ export type ResolversTypes = {
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
   AddMetadataStandardInput: AddMetadataStandardInput;
-  AddPlanFundingInput: AddPlanFundingInput;
   AddProjectFundingInput: AddProjectFundingInput;
   AddProjectMemberInput: AddProjectMemberInput;
   AddProjectOutputInput: AddProjectOutputInput;
@@ -4763,7 +4755,7 @@ export type MutationResolvers<ContextType = MyContext, ParentType extends Resolv
   addMemberRole?: Resolver<Maybe<ResolversTypes['MemberRole']>, ParentType, ContextType, RequireFields<MutationAddMemberRoleArgs, 'displayOrder' | 'label' | 'url'>>;
   addMetadataStandard?: Resolver<Maybe<ResolversTypes['MetadataStandard']>, ParentType, ContextType, RequireFields<MutationAddMetadataStandardArgs, 'input'>>;
   addPlan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationAddPlanArgs, 'projectId' | 'versionedTemplateId'>>;
-  addPlanFunding?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFunding']>>>, ParentType, ContextType, RequireFields<MutationAddPlanFundingArgs, 'planId' | 'projectFundingIds'>>;
+  addPlanFunding?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<MutationAddPlanFundingArgs, 'planId' | 'projectFundingIds'>>;
   addPlanMember?: Resolver<Maybe<ResolversTypes['PlanMember']>, ParentType, ContextType, RequireFields<MutationAddPlanMemberArgs, 'planId' | 'projectMemberId'>>;
   addProject?: Resolver<Maybe<ResolversTypes['Project']>, ParentType, ContextType, RequireFields<MutationAddProjectArgs, 'title'>>;
   addProjectCollaborator?: Resolver<Maybe<ResolversTypes['ProjectCollaborator']>, ParentType, ContextType, RequireFields<MutationAddProjectCollaboratorArgs, 'email' | 'projectId'>>;

@@ -21,7 +21,7 @@ export const typeDefs = gql`
     removeProjectFunding(projectFundingId: Int!): ProjectFunding
 
     "Add Funding information to a Plan"
-    addPlanFunding(planId: Int!, projectFundingIds: [Int!]!): [PlanFunding]
+    addPlanFunding(planId: Int!, projectFundingIds: [Int!]!): Plan
     "Update multiple Plan Fundings passing in an array of projectFundingIds"
     updatePlanFunding(planId: Int!, projectFundingIds: [Int!]!): [PlanFunding]
     "Remove a Funding from a Plan"

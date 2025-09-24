@@ -86,7 +86,7 @@ export const resolvers: Resolvers = {
   Mutation: {
     // add a new project funding
     addProjectFunding: async (_, { input }, context: MyContext) => {
-      const reference = 'addprojectFunding resolver';
+      const reference = 'addProjectFunding resolver';
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
@@ -196,7 +196,7 @@ export const resolvers: Resolvers = {
     },
 
     // add new plan fundings
-    addPlanFunding: async (_, { planId, projectFundingIds }, context: MyContext): Promise<PlanFunding[]> => {
+    addPlanFunding: async (_, { planId, projectFundingIds }, context: MyContext): Promise<Plan> => {
       const reference = 'addPlanFunding mutator';
 
       try {
@@ -220,23 +220,38 @@ export const resolvers: Resolvers = {
               projectFundingIds
             );
 
-            const addErrors = [];
+            const failedFundings = [];
+
             // Add new records for projectFundingIds that are not already in planFundings table
             for (const id of idsToBeSaved) {
               const funding = new PlanFunding({ planId, projectFundingId: id });
-
-              const wasAdded = funding.create(context);
+              const wasAdded = await funding.create(context);
               if (!wasAdded) {
-                addErrors.push(funding.projectFundingId);
+                // Get errors from the failed object creation
+                failedFundings.push(`Unable to add projectFundingId: ${id}`);
+                context.logger.error(
+                  prepareObjectForLogs({ planId, projectFundingId: id }),
+                  `Failed to add PlanFunding in ${reference}`
+                );
               }
             }
 
-            const planVersion = await updateVersion(context, plan, reference);
-            if (!planVersion || planVersion.hasErrors()) {
-              context.logger.error(prepareObjectForLogs({ plan: plan.id }), "Unable to update version");
+            // Get plan with new fundings
+            const returnedPlan = await Plan.findById(reference, context, plan.id);
+
+            // Merge in the failed ids so the client can see their errors
+            for (const failed of failedFundings) {
+              returnedPlan.addError('general', failed);
             }
 
-            return await PlanFunding.findByPlanId(reference, context, plan.id);
+            // Version the plan
+            const planVersion = await updateVersion(context, plan, reference);
+            if (!planVersion || planVersion.hasErrors()) {
+              context.logger.error(prepareObjectForLogs({ plan: plan.id }), `Unable to update version in ${reference}`);
+            }
+
+            // We want to return the Plan and attach one set of errors for any failed fundings
+            return returnedPlan;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
