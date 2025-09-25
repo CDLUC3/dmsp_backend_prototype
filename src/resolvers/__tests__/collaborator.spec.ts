@@ -418,4 +418,3 @@ describe.skip('removeTemplateCollaborator mutation', () => {
     expect(templateCollaboratorStore.length).toEqual(originalRecordCount);
   });
 });
-

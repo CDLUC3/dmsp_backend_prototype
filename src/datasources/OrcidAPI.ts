@@ -99,7 +99,8 @@ export class OrcidAPI extends RESTDataSource {
       const returnedOrcid = jsonResponse['orcid-identifier']?.path;
       const person = jsonResponse?.person;
 
-      if (!isNullOrUndefined(returnedOrcid) && !isNullOrUndefined(person) && returnedOrcid === orcid) {
+      if (!isNullOrUndefined(returnedOrcid) && !isNullOrUndefined(person)
+          && (returnedOrcid === orcid || returnedOrcid.endsWith(`/${orcid}`))) {
         const name: OrcidSchemaPerson = person?.name;
         const email: OrcidSchemaEmail = person?.emails?.email?.find((e: OrcidSchemaEmail) => {
           return e.primary === true && e.verified === true
@@ -141,7 +142,8 @@ export class OrcidAPI extends RESTDataSource {
       const employments = jsonResponse['affiliation-group']?.map(e => e.summaries);
       if (Array.isArray(employments) && employments.length > 0) {
         const current: OrcidSchemaEmployment = employments?.flat()?.find((e: OrcidSchemaEmployment) => {
-          return e['employment-summary']['display-index'] === "0"
+          const summary = e['employment-summary'];
+          return summary?.['display-index'] === "0"
         })?.['employment-summary'];
 
         if (!isNullOrUndefined(current)) {

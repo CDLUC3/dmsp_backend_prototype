@@ -127,23 +127,6 @@ describe('findBy Queries', () => {
     expect(result).toEqual(null);
   });
 
-  it('findByOrcid should call query with correct params and return the default', async () => {
-    localQuery.mockResolvedValueOnce([projectMember]);
-    const orcid = casual.url;
-    const result = await ProjectMember.findByOrcid('testing', context, orcid);
-    const expectedSql = 'SELECT * FROM projectMembers WHERE orcid = ? ORDER BY created DESC LIMIT 1';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [orcid], 'testing')
-    expect(result).toEqual(projectMember);
-  });
-
-  it('findByOrcid should return null if it finds no default', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const orcid = casual.url;
-    const result = await ProjectMember.findByOrcid('testing', context, orcid);
-    expect(result).toEqual(null);
-  });
-
   it('findByProjectId should call query with correct params and return the default', async () => {
     localQuery.mockResolvedValueOnce([projectMember]);
     const projectId = casual.integer(1, 999);

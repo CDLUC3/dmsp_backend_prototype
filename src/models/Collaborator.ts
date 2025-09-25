@@ -13,8 +13,7 @@ import { User } from './User';
 import { PaginatedQueryResults, PaginationOptionsForCursors } from "../types/general";
 import { CollaboratorSearchResult } from "../types";
 import { Affiliation } from "./Affiliation";
-import { ProjectMember } from "./Member";
-import { OrcidAPI, OrcidPerson } from "../datasources/orcid";
+import { OrcidAPI, OrcidPerson } from "../datasources/OrcidAPI";
 
 export interface ProjectCollaboratorSearchResult {
   cursorId?: string;
@@ -433,46 +432,24 @@ export class ProjectCollaborator extends Collaborator {
         };
 
       } else {
-        // Try to find a member in the Member table
-        const member: ProjectMember = await ProjectMember.findByOrcid(reference, context, fullOrcid);
-        if (!isNullOrUndefined(member)) {
-          // We found the person in our members table, so just return the info we have
-          const affiliation = await Affiliation.findByURI(
-            reference,
-            context,
-            member.affiliationId
-          );
+        // Finally, call the ORCID API to get the person's details
+        const orcidAPI: OrcidAPI = await new OrcidAPI({cache: context.cache});
+        const orcidData: OrcidPerson = await orcidAPI.getPerson(context, orcidId, reference);
 
-          return {
-            givenName: member.givenName,
-            surName: member.surName,
-            orcid: member.orcid || '',
-            email: member.email || null,
-            affiliationName: affiliation?.name,
-            affiliationRORId: affiliation?.uri,
-            affiliationURL: affiliation?.homepage,
-          };
-
-        } else {
-          // Finally, call the ORCID API to get the person's details
-          const orcidAPI: OrcidAPI = await new OrcidAPI({cache: context.cache});
-          const orcidData: OrcidPerson = await orcidAPI.getPerson(context, orcidId, reference);
-
-          if (isNullOrUndefined(orcidData)) {
-            return null;
-          }
-
-          // Return the results provided by the ORCID API
-          return {
-            givenName: orcidData.givenName,
-            surName: orcidData.surName,
-            orcid: orcidData.orcid,
-            email: orcidData.email,
-            affiliationName: orcidData.employment?.name,
-            affiliationRORId: orcidData.employment?.rorId,
-            affiliationURL: orcidData.employment?.url,
-          };
+        if (isNullOrUndefined(orcidData)) {
+          return null;
         }
+
+        // Return the results provided by the ORCID API
+        return {
+          givenName: orcidData.givenName,
+          surName: orcidData.surName,
+          orcid: orcidData.orcid,
+          email: orcidData.email,
+          affiliationName: orcidData.employment?.name,
+          affiliationRORId: orcidData.employment?.rorId,
+          affiliationURL: orcidData.employment?.url,
+        };
       }
     }
     return null;

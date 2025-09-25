@@ -1,6 +1,11 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Add new ENV variables `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_BASE_URL`, `ORCID_AUTH_PATH` and `ORCID_READ_ONLY_SCOPE`.
+- Added `src/config/ocidConfig` to provide access to the above ENV variables and also defaults for some of them
+- Added new `src/datasources/orcid` to support interactions with the ORCID API
+- Added `findPotentialCollaboratorByORCID` and `findPotentialCollaboratorsByTerm` to the `ProjectCollaborator` model:
+- Added a `findByOrcid` function to the `User` model
 - Added tmp dir for jest caching (ignored by git)
 - Added Trivy scan and `npm run build` to precommit hooks
 - Added some logic to the `prepareObjectForLogs` function to redact sensitive info
@@ -24,6 +29,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated the `findCollaborator` resolver to allow for searching by ORCID or by a search term. 
 - Upgraded @dmptool/types to v1.2.3 in package.json and rebuilt package-lock
 - Updated `answer` and `addAnswerComment` permissions to include a collaborator who has `COMMENT` privileges [#243]
 - Update `removeAnswerComment` and `removeFeedbackComment` to allow deletion by creator, plan creator, or OWN-level collaborator [#243]

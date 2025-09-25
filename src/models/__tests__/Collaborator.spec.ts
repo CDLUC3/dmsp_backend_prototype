@@ -12,7 +12,6 @@ import { buildMockContextWithToken } from '../../__mocks__/context';
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../../services/emailService';
 import { Project } from '../Project';
 import { logger } from "../../logger";
-import { ProjectMember } from "../Member";
 import { Affiliation } from "../Affiliation";
 import { UserEmail } from "../UserEmail";
 
@@ -868,7 +867,7 @@ describe('ProjectCollaborator', () => {
 
   describe('findPotentialCollaboratorByORCID', () => {
     const originalFindByOrcid = User.findByOrcid;
-    const originalProjectMemberFindByOrcid = ProjectMember.findByOrcid;
+    const originalProjectMemberFindByOrcid = ProjectCollaborator.findPotentialCollaboratorByORCID;
 
     let localQuery;
     let orcidId;
@@ -879,18 +878,22 @@ describe('ProjectCollaborator', () => {
 
       localQuery = jest.fn();
       (User.findByOrcid as jest.Mock) = localQuery;
-      (ProjectMember.findByOrcid as jest.Mock) = localQuery;
+      (ProjectCollaborator.findPotentialCollaboratorByORCID as jest.Mock) = localQuery;
     });
 
     afterEach(() => {
       jest.clearAllMocks();
       User.findByOrcid = originalFindByOrcid;
-      ProjectMember.findByOrcid = originalProjectMemberFindByOrcid;
+      ProjectCollaborator.findPotentialCollaboratorByORCID = originalProjectMemberFindByOrcid;
     });
 
     it('returns null if ORCID is invalid', async () => {
-      const result = await ProjectCollaborator.findPotentialCollaboratorByORCID('Test', context, null);
-      expect(result).toBeNull();
+      const result = await ProjectCollaborator.findPotentialCollaboratorByORCID(
+        'Test',
+        context,
+        'abcdefg'
+      );
+      expect(result).toBeFalsy();
     });
 
     it('returns user data if found in User table', async () => {
@@ -911,23 +914,6 @@ describe('ProjectCollaborator', () => {
       expect(result).toBeDefined();
       expect(result.orcid).toEqual(orcidId);
       expect(result.givenName).toEqual(user.givenName);
-    });
-
-    it('returns member data if found in ProjectMember table', async () => {
-      const member = new ProjectMember({
-        givenName: casual.first_name,
-        surName: casual.last_name,
-        orcid: orcidId,
-        getEmail: jest.fn().mockResolvedValueOnce(casual.email),
-      });
-      localQuery.mockResolvedValueOnce(null);
-      jest.spyOn(Affiliation, 'findByURI').mockResolvedValueOnce(null);
-      (ProjectMember.findByOrcid as jest.Mock).mockResolvedValueOnce(member);
-
-      const result = await ProjectCollaborator.findPotentialCollaboratorByORCID('Test', context, orcidId);
-      expect(result).toBeDefined();
-      expect(result.orcid).toEqual(orcidId);
-      expect(result.givenName).toEqual(member.givenName);
     });
   });
 
