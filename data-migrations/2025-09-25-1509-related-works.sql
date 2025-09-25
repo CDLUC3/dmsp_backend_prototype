@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `workVersions`
   `authors`          JSON         NOT NULL,
   `institutions`     JSON         NOT NULL,
   `funders`          JSON         NOT NULL,
-  `awardIds`         JSON         NOT NULL,
+  `awards`         JSON         NOT NULL,
   `publicationVenue` VARCHAR(255) NULL,
   `sourceName`       VARCHAR(255) NOT NULL,
   `sourceUrl`        VARCHAR(255) NOT NULL,
@@ -51,20 +51,17 @@ CREATE TABLE IF NOT EXISTS `relatedWorks`
   `authorMatches`      JSON         NOT NULL,
   `institutionMatches` JSON         NOT NULL,
   `funderMatches`      JSON         NOT NULL,
-  `awardIdMatches`     JSON         NOT NULL,
+  `awardMatches`     JSON         NOT NULL,
   `created`            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById`        INT,
   `modified`           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `modifiedById`       INT,
-  `reviewed`           TIMESTAMP    NULL,
-  `reviewedById`       INT          NULL,
 
   CONSTRAINT unique_planId_workVersionId UNIQUE (`planId`, `workVersionId`),
   CONSTRAINT fk_relatedWorks_workVersions_workVersionId FOREIGN KEY (workVersionId) REFERENCES workVersions (id),
   CONSTRAINT fk_relatedWorks_plans_planId FOREIGN KEY (planId) REFERENCES plans (id),
   CONSTRAINT fk_relatedWorks_users_createdById FOREIGN KEY (createdById) REFERENCES users (id),
-  CONSTRAINT fk_relatedWorks_users_modifiedById FOREIGN KEY (modifiedById) REFERENCES users (id),
-  CONSTRAINT fk_relatedWorks_users_reviewedById FOREIGN KEY (reviewedById) REFERENCES users (id)
+  CONSTRAINT fk_relatedWorks_users_modifiedById FOREIGN KEY (modifiedById) REFERENCES users (id)
 ) ENGINE = InnoDB
   AUTO_INCREMENT = 1
   DEFAULT CHARSET = utf8mb4
@@ -89,7 +86,7 @@ BEGIN
     `authors`          JSON         NOT NULL,
     `institutions`     JSON         NOT NULL,
     `funders`          JSON         NOT NULL,
-    `awardIds`         JSON         NOT NULL,
+    `awards`         JSON         NOT NULL,
     `publicationVenue` VARCHAR(255) NULL,
     `sourceName`       VARCHAR(255) NOT NULL,
     `sourceUrl`        VARCHAR(255) NOT NULL
@@ -110,7 +107,7 @@ BEGIN
     `authorMatches`      JSON         NOT NULL,
     `institutionMatches` JSON         NOT NULL,
     `funderMatches`      JSON         NOT NULL,
-    `awardIdMatches`     JSON         NOT NULL,
+    `awardMatches`     JSON         NOT NULL,
 
     INDEX (`dmpDoi`, `workDoi`),
     CONSTRAINT unique_hash UNIQUE (`dmpDoi`, `workDoi`)
@@ -143,7 +140,7 @@ BEGIN
   -- workVersions: insert new work versions
   INSERT IGNORE INTO workVersions (workId, hash, type, publishedDate, title,
                                    abstract, authors, institutions, funders,
-                                   awardIds, publicationVenue, sourceName,
+                                   awards, publicationVenue, sourceName,
                                    sourceUrl)
   SELECT w.id,
          s.hash,
@@ -154,7 +151,7 @@ BEGIN
          s.authors,
          s.institutions,
          s.funders,
-         s.awardIds,
+         s.awards,
          s.publicationVenue,
          s.sourceName,
          s.sourceUrl
@@ -189,7 +186,7 @@ BEGIN
   -- relatedWorks: insert new related works
   INSERT INTO relatedWorks (planId, workVersionId, score, doiMatch,
                             contentMatch, authorMatches, institutionMatches,
-                            funderMatches, awardIdMatches)
+                            funderMatches, awardMatches)
   SELECT links.planId,
          links.workVersionId,
          s.score,
@@ -198,7 +195,7 @@ BEGIN
          s.authorMatches,
          s.institutionMatches,
          s.funderMatches,
-         s.awardIdMatches
+         s.awardMatches
   FROM resolvedStagingLinks links
          JOIN stagingRelatedWorks s ON links.id = s.id
          LEFT JOIN (
@@ -223,7 +220,7 @@ BEGIN
       r.authorMatches      = s.authorMatches,
       r.institutionMatches = s.institutionMatches,
       r.funderMatches      = s.funderMatches,
-      r.awardIdMatches     = s.awardIdMatches
+      r.awardMatches     = s.awardMatches
 
   WHERE r.status = 'pending'
     AND (
@@ -234,7 +231,7 @@ BEGIN
       OR NOT (r.authorMatches <=> s.authorMatches)
       OR NOT (r.institutionMatches <=> s.institutionMatches)
       OR NOT (r.funderMatches <=> s.funderMatches)
-      OR NOT (r.awardIdMatches <=> s.awardIdMatches)
+      OR NOT (r.awardMatches <=> s.awardMatches)
     );
 
   -- relatedWorks: delete with pending status that don't exist in stagingRelatedWorks

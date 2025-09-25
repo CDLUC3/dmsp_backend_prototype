@@ -4,12 +4,18 @@ import { PoolConnection } from "mysql2/promise";
 interface DoiMatch {
   found: boolean;
   score: number;
-  url: string;
+  sources: DoiMatchSource[];
+}
+
+interface DoiMatchSource {
+  parentAwardId?: string;
+  awardId: string;
+  awardUrl: string;
 }
 
 interface ContentMatch {
   score: number;
-  titleHighlight: string;
+  titleHighlight: string | null;
   abstractHighlights: string[];
 }
 
@@ -29,7 +35,7 @@ interface RelatedWork {
   authorMatches: ItemMatch[];
   institutionMatches: ItemMatch[];
   funderMatches: ItemMatch[];
-  awardIdMatches: ItemMatch[];
+  awardMatches: ItemMatch[];
 }
 
 interface WorkVersion {
@@ -42,10 +48,14 @@ interface WorkVersion {
   authors: Author[];
   institutions: Institution[];
   funders: Funder[];
-  awardIds: string[];
+  awards: Award[];
   publicationVenue: string | null;
   sourceName: string;
   sourceUrl: string;
+}
+
+interface Award {
+  awardId: string;
 }
 
 interface Author {
@@ -76,7 +86,7 @@ export async function insertRelatedWorks(
     return;
   }
   const sql =
-    "INSERT INTO stagingRelatedWorks (dmpDoi, workDoi, hash, score, doiMatch, contentMatch, authorMatches, institutionMatches, funderMatches, awardIdMatches) VALUES ?";
+    "INSERT INTO stagingRelatedWorks (dmpDoi, workDoi, hash, score, doiMatch, contentMatch, authorMatches, institutionMatches, funderMatches, awardMatches) VALUES ?";
   const values = data.map((item) => [
     item.dmpDoi,
     item.workDoi,
@@ -87,7 +97,7 @@ export async function insertRelatedWorks(
     JSON.stringify(item.authorMatches),
     JSON.stringify(item.institutionMatches),
     JSON.stringify(item.funderMatches),
-    JSON.stringify(item.awardIdMatches),
+    JSON.stringify(item.awardMatches),
   ]);
 
   await connection.query(sql, [values]);
@@ -101,7 +111,7 @@ export async function insertWorkVersions(
     return;
   }
   const sql =
-    "INSERT INTO stagingWorkVersions (doi, hash, type, publishedDate, title, abstract, authors, institutions, funders, awardIds, publicationVenue, sourceName, sourceUrl) VALUES ?";
+    "INSERT INTO stagingWorkVersions (doi, hash, type, publishedDate, title, abstract, authors, institutions, funders, awards, publicationVenue, sourceName, sourceUrl) VALUES ?";
   const values = data.map((item) => [
     item.doi,
     item.hash,
@@ -112,7 +122,7 @@ export async function insertWorkVersions(
     JSON.stringify(item.authors),
     JSON.stringify(item.institutions),
     JSON.stringify(item.funders),
-    JSON.stringify(item.awardIds),
+    JSON.stringify(item.awards),
     item.publicationVenue,
     item.sourceName,
     item.sourceUrl,
@@ -189,7 +199,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
         sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
@@ -229,7 +239,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Nature",
         sourceName: "OpenAlex",
         sourceUrl: "https://openalex.org/works/W0000000001",
@@ -244,7 +254,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -273,7 +288,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -288,7 +303,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -317,7 +337,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -345,7 +365,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -374,7 +399,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -390,7 +415,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -419,7 +449,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -460,7 +490,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
         sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
@@ -501,7 +531,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Nature",
         sourceName: "OpenAlex",
         sourceUrl: "https://openalex.org/works/W0000000001",
@@ -555,7 +585,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
         sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
@@ -599,7 +629,7 @@ describe("Related Works Tables", () => {
         funders: [
           { name: "National Science Foundation, USA", ror: "021nxhr62" },
         ], // Funders changed
-        awardIds: ["ABC", "123"], // Award IDs changed
+        awards: [{ awardId: "ABC" }, { awardId: "123" }], // Award IDs changed
         publicationVenue: "Nature Publications", // Publication venue changed
         sourceName: "DataCite", // Source Changed
         sourceUrl:
@@ -615,7 +645,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -644,7 +679,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -660,7 +695,12 @@ describe("Related Works Tables", () => {
           // doiMatch changed
           found: true,
           score: 2.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           // contentMatch changed
@@ -693,8 +733,8 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
-          // awardIdMatches changed
+        awardMatches: [
+          // awardMatches changed
           {
             index: 1,
             score: 10.0,
@@ -722,7 +762,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -751,7 +796,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -767,7 +812,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 2.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 20.0,
@@ -796,7 +846,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 1,
             score: 10.0,
@@ -837,7 +887,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
         sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
@@ -880,7 +930,7 @@ describe("Related Works Tables", () => {
         funders: [
           { name: "National Science Foundation, USA", ror: "021nxhr62" },
         ],
-        awardIds: ["ABC", "123"],
+        awards: [{ awardId: "ABC" }, { awardId: "123" }],
         publicationVenue: "Nature Publications",
         sourceName: "DataCite",
         sourceUrl:
@@ -946,7 +996,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -975,7 +1030,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -991,7 +1046,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 2.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 20.0,
@@ -1020,7 +1080,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 1,
             score: 10.0,
@@ -1061,7 +1121,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
         sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
@@ -1104,7 +1164,7 @@ describe("Related Works Tables", () => {
         funders: [
           { name: "National Science Foundation, USA", ror: "021nxhr62" },
         ],
-        awardIds: ["ABC", "123"],
+        awards: [{ awardId: "ABC" }, { awardId: "123" }],
         publicationVenue: "Nature Publications",
         sourceName: "DataCite",
         sourceUrl:
@@ -1168,7 +1228,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
         sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
@@ -1183,7 +1243,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -1212,7 +1277,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -1240,7 +1305,12 @@ describe("Related Works Tables", () => {
         doiMatch: {
           found: true,
           score: 1.0,
-          url: "https://url-of-funder/award-page",
+          sources: [
+            {
+              awardId: "ABC",
+              awardUrl: "https://url-of-funder/award-page",
+            },
+          ],
         },
         contentMatch: {
           score: 18.0,
@@ -1269,7 +1339,7 @@ describe("Related Works Tables", () => {
             fields: ["name"],
           },
         ],
-        awardIdMatches: [
+        awardMatches: [
           {
             index: 0,
             score: 10.0,
@@ -1310,7 +1380,7 @@ describe("Related Works Tables", () => {
           },
         ],
         funders: [{ name: "National Science Foundation", ror: "021nxhr62" }],
-        awardIds: ["ABC"],
+        awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
         sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
