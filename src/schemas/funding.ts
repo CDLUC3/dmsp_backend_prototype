@@ -20,8 +20,8 @@ export const typeDefs = gql`
     "Remove Funding from the research project"
     removeProjectFunding(projectFundingId: Int!): ProjectFunding
 
-    "Add a Funding information to a Plan"
-    addPlanFunding(planId: Int!, projectFundingId: Int!): PlanFunding
+    "Add Funding information to a Plan"
+    addPlanFunding(planId: Int!, projectFundingIds: [Int!]!): Plan
     "Update multiple Plan Fundings passing in an array of projectFundingIds"
     updatePlanFunding(planId: Int!, projectFundingIds: [Int!]!): [PlanFunding]
     "Remove a Funding from a Plan"
