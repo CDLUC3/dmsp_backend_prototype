@@ -10,7 +10,7 @@ import {
 } from '../../types/general';
 import { logger } from "../../logger";
 
-jest.mock('../../dataSources/mysql', () => {
+jest.mock('../../datasources/mysql', () => {
   return {
     __esModule: true,
     MySQLConnection: {

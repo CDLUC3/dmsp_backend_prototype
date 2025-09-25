@@ -50,6 +50,7 @@ phases:
       - npm run lint
 
       # Run the tests
+      # TODO: ignore tests in relatedWorksTables.spec.ts
       # - echo "Running tests"
       # - npm run test
 

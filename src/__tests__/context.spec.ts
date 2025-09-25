@@ -8,7 +8,7 @@ import { MySQLConnection } from "../datasources/mysql";
 import { logger, REDACTION_MESSAGE } from '../logger';
 
 // Mock dependencies
-jest.mock('../datasources/dmpHubAPI');
+jest.mock('../datasources/dmphubAPI');
 jest.mock('../datasources/mysql');
 // jest.mock('../logger');
 
