@@ -1,10 +1,32 @@
 import { MyContext } from '../context';
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../services/emailService';
-import { isNullOrUndefined, validateEmail, valueIsEmpty } from '../utils/helpers';
+import {
+  formatORCID,
+  isNullOrUndefined, stripIdentifierBaseURL,
+  validateEmail,
+  valueIsEmpty
+} from '../utils/helpers';
 import { MySqlModel } from './MySqlModel';
 import { Project } from './Project';
 import { Template } from './Template';
 import { User } from './User';
+import { PaginatedQueryResults, PaginationOptionsForCursors } from "../types/general";
+import { CollaboratorSearchResult } from "../types";
+import { Affiliation } from "./Affiliation";
+import { ProjectMember } from "./Member";
+import { OrcidAPI, OrcidPerson } from "../datasources/orcid";
+
+export interface ProjectCollaboratorSearchResult {
+  cursorId?: string;
+  id?: number;
+  givenName?: string;
+  surName?: string;
+  email?: string;
+  orcid?: string;
+  affiliationName?: string;
+  affiliationRORId?: string;
+  affiliationURL?: string;
+}
 
 // An abstract class that represents a User who has been invited to Collaborate on another
 // entity (e.g. Template or Plan)
@@ -375,5 +397,182 @@ export class ProjectCollaborator extends Collaborator {
     const vals = [projectId?.toString(), email];
     const results = await ProjectCollaborator.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;
+  }
+
+  // Find a potential collaborator by their ORCID
+  static async findPotentialCollaboratorByORCID(
+    reference: string,
+    context: MyContext,
+    orcid: string
+  ): Promise<CollaboratorSearchResult> {
+    // Get the fully formatted ORCID
+    const fullOrcid = formatORCID(orcid);
+    // Get the ORCID without the base URL
+    const orcidId = stripIdentifierBaseURL(orcid);
+
+    if (!isNullOrUndefined(fullOrcid) && !isNullOrUndefined(orcid)) {
+      // First try to find the user in the User table
+      const user: User = await User.findByOrcid(reference, context, fullOrcid);
+      if (!isNullOrUndefined(user)) {
+        // We found the person in our users table, so just return the info we have
+        const affiliation = await Affiliation.findByURI(
+          reference,
+          context,
+          user.affiliationId
+        );
+
+        return {
+          id: user.id,
+          givenName: user.givenName,
+          surName: user.surName,
+          orcid: user.orcid || '',
+          email: await user.getEmail(context),
+          affiliationName: affiliation?.name,
+          affiliationRORId: affiliation?.uri,
+          affiliationURL: affiliation?.homepage,
+        };
+
+      } else {
+        // Try to find a member in the Member table
+        const member: ProjectMember = await ProjectMember.findByOrcid(reference, context, fullOrcid);
+        if (!isNullOrUndefined(member)) {
+          // We found the person in our members table, so just return the info we have
+          const affiliation = await Affiliation.findByURI(
+            reference,
+            context,
+            member.affiliationId
+          );
+
+          return {
+            givenName: member.givenName,
+            surName: member.surName,
+            orcid: member.orcid || '',
+            email: member.email || null,
+            affiliationName: affiliation?.name,
+            affiliationRORId: affiliation?.uri,
+            affiliationURL: affiliation?.homepage,
+          };
+
+        } else {
+          // Finally, call the ORCID API to get the person's details
+          const orcidAPI: OrcidAPI = await new OrcidAPI({cache: context.cache});
+          const orcidData: OrcidPerson = await orcidAPI.getPerson(context, orcidId, reference);
+
+          if (isNullOrUndefined(orcidData)) {
+            return null;
+          }
+
+          // Return the results provided by the ORCID API
+          return {
+            givenName: orcidData.givenName,
+            surName: orcidData.surName,
+            orcid: orcidData.orcid,
+            email: orcidData.email,
+            affiliationName: orcidData.employment?.name,
+            affiliationRORId: orcidData.employment?.rorId,
+            affiliationURL: orcidData.employment?.url,
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  // Find potential collaborators by search term
+  static async findPotentialCollaboratorsByTerm(
+    reference: string,
+    context: MyContext,
+    term: string,
+    options: PaginationOptionsForCursors = Project.getDefaultPaginationOptions()
+  ): Promise<PaginatedQueryResults<CollaboratorSearchResult>> {
+    let results: ProjectCollaboratorSearchResult[] = [];
+    let totalCount = 0;
+    let hasNextPage = false;
+    let nextCursor: string = null;
+    const limit = ProjectCollaborator.getPaginationLimit(options?.limit);
+
+    // Gather all the projects associated with the current user's affiliation
+    const projects: Project[] = await Project.findByAffiliation(
+      reference,
+      context,
+      context.token?.affiliationId
+    );
+
+    if (Array.isArray(projects) && projects.length > 0) {
+      // Fetch all the collaborators for these projects
+      const placeholder = projects.map(() => '?').join(',');
+      const sortField = options?.sortField ?? 'u.surName';
+      const sortDir = options?.sortDir ?? 'ASC';
+      const cursorId = `CONCAT(LOWER(REPLACE(${sortField}, ' ', '_')), '-', LOWER(u.id))`;
+
+      const fromWhereClause = `
+        FROM users u
+            INNER JOIN userEmails ue on ue.userId = u.id AND ue.isPrimary = 1
+            LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri
+        WHERE u.active = 1
+            AND (
+                (
+                  a.uri = ?
+                  AND (LOWER(u.givenName) LIKE ? OR LOWER(u.surName) LIKE ? OR LOWER(ue.email) LIKE ?)
+                ) OR (
+                  u.id IN (
+                    SELECT pc.userId
+                    FROM projectCollaborators pc
+                    WHERE pc.projectId IN (${placeholder})
+                  )
+                  AND (LOWER(u.givenName) LIKE ? OR LOWER(u.surName) LIKE ? OR LOWER(ue.email) LIKE ?)
+                )
+            )
+            ${options?.cursor ? `AND ${cursorId} >= ?` : ''}
+      `;
+      const sql = `
+        SELECT DISTINCT ${cursorId} cursorId,
+            u.id, u.givenName givenName, u.surName surName, ue.email email, u.orcid orcid,
+            a.name affiliationName, a.uri affiliationRORId, a.homepage affiliationURL
+        ${fromWhereClause}
+        ORDER BY cursorId ${sortDir}
+        LIMIT ${limit + 1};
+      `;
+
+      // Prepare the values for the SQL query placeholders
+      const values = [
+        ...(context.token?.affiliationId ? [context.token?.affiliationId] : []),
+        ...Array.from({length: 3}, () => `%${term.toLowerCase()}%`),
+        ...projects.map(p => p.id.toString()),
+        ...Array.from({length: 3}, () => `%${term.toLowerCase()}%`),
+      ].flat().filter(v => v !== undefined);
+      if (options?.cursor) values.push(options.cursor);
+
+      results = await ProjectCollaborator.query(
+        context,
+        sql,
+        values,
+        reference
+      );
+
+      if (Array.isArray(results) && results.length > 0) {
+        // Get the total count of all the collaborators
+        const countSql = `SELECT COUNT(DISTINCT u.id) ${fromWhereClause}`;
+        const countResults = await ProjectCollaborator.query(
+          context,
+          countSql,
+          values,
+          reference
+        );
+        totalCount = Array.isArray(countResults) && countResults.length > 0 ? countResults[0]?.total : 0;
+
+        nextCursor = results.length > 0 ? results[results.length - 1]?.cursorId : undefined;
+        hasNextPage = nextCursor !== undefined && options?.cursor !== nextCursor && results.length > limit;
+      }
+    }
+
+    return {
+      items: results.slice(0, limit), // Return only the first 'limit' items
+      limit,
+      totalCount,
+      nextCursor: hasNextPage ? nextCursor : null,
+      hasNextPage,
+      availableSortFields: ['u.surName', 'u.givenName', 'ue.email'],
+    };
   }
 }

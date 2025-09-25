@@ -1,4 +1,4 @@
-import {CollaboratorSearchResult, Resolvers} from "../types";
+import { CollaboratorSearchResult, CollaboratorSearchResults, Resolvers } from "../types";
 import {
   TemplateCollaborator,
   ProjectCollaborator,
@@ -9,19 +9,20 @@ import { MyContext } from "../context";
 import { Template } from "../models/Template";
 import { Project } from "../models/Project";
 import {isAdmin, isAuthorized, isSuperAdmin} from "../services/authService";
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
+import {
+  AuthenticationError,
+  BadRequestError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from "../utils/graphQLErrors";
 import { hasPermissionOnTemplate } from "../services/templateService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { sendProjectCollaborationEmail } from '../services/emailService';
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { isNullOrUndefined, normaliseDateTime, ORCID_REGEX } from "../utils/helpers";
-import { Affiliation } from "../models/Affiliation";
-import { PaginatedQueryResults } from "../types/general";
-import {
-  findCollaboratorByAffiliationAndTerm,
-  findCollaboratorByOrcid
-} from "../services/collaboratorService";
+import { PaginationOptionsForCursors } from "../types/general";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -74,66 +75,47 @@ export const resolvers: Resolvers = {
       }
     },
 
-    findCollaborator: async (_, { term }, context: MyContext): Promise<CollaboratorSearchResult[]> => {
-      const reference = 'userByOrcid resolver';
+    findCollaborator: async (_, { term, options }, context: MyContext): Promise<CollaboratorSearchResults> => {
+      const reference = 'findCollaborator resolver';
       try {
         if (isAuthorized(context.token)) {
-          if (!isNullOrUndefined(term) && term.length > 3) {
-            // If the incoming term is an ORCID then search by that
-            if (term.match(ORCID_REGEX)) {
-              const person: CollaboratorSearchResult = await findCollaboratorByOrcid(
-                reference,
-                context,
-                term
-              );
-              return isNullOrUndefined(person) ? [] : [person];
-            }
+          if (isNullOrUndefined(term) || term.length < 4) {
+            throw BadRequestError("The search term must be at least 4 characters long");
+          }
 
-            let users: PaginatedQueryResults<User>;
-
-            // If the user is a super admin then search all users
-            if (isSuperAdmin(context.token)) {
-              users = await User.search(reference, context, term);
-            } else {
-              // Otherwise just search the current user's affiliation
-              users = await User.findByAffiliationId(
-                reference,
-                context,
-                context.token?.affiliationId,
-                term
-              );
-            }
-
-            // Convert everything from a User to a CollaboratorSearchResult
-            const results: CollaboratorSearchResult[] = await Promise.all(users.items.map(async (user) => {
-              const affiliation = await Affiliation.findByURI(
-                reference,
-                context,
-                user.affiliationId
-              );
-
-              return {
-                givenName: user.givenName,
-                surName: user.surName,
-                orcid: user.orcid || '',
-                email: await user.getEmail(context),
-                affiliationName: affiliation?.name,
-                affiliationId: affiliation?.homepage,
-                affiliationRORId: user.affiliationId,
-              }
-            }));
-
-            const collaborators = await findCollaboratorByAffiliationAndTerm(
+          // If the incoming term is an ORCID then search by that
+          if (term.match(ORCID_REGEX)) {
+            const person: CollaboratorSearchResult = await ProjectCollaborator.findPotentialCollaboratorByORCID(
               reference,
               context,
               term
             );
-            collaborators.forEach(c => {
-              if (!results.find(r => r.email === c.email || r.orcid === c.orcid)) {
-                results.push(c);
-              }
-            });
-            return results;
+
+            return {
+              items: isNullOrUndefined(person) ? [] : [person],
+              limit: options?.limit,
+              totalCount: 1,
+              nextCursor: null,
+              hasNextPage: false,
+            };
+          }
+
+          // If the user is a super admin then search all users
+          if (isSuperAdmin(context.token)) {
+            return await User.search(
+              reference,
+              context,
+              term,
+              options as PaginationOptionsForCursors
+            );
+          } else {
+            // Otherwise search the current user's affiliation and past projects
+            return await ProjectCollaborator.findPotentialCollaboratorsByTerm(
+              reference,
+              context,
+              term,
+              options as PaginationOptionsForCursors
+            );
           }
         }
         // Unauthorized!
