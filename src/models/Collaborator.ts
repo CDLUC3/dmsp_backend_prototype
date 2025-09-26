@@ -513,7 +513,7 @@ export class ProjectCollaborator extends Collaborator {
 
       // Prepare the values for the SQL query placeholders
       const values = [
-        ...(context.token?.affiliationId ? context.token.affiliationId : 'NULL'),
+        context.token?.affiliationId ? context.token.affiliationId : 'NULL',
         ...Array.from({length: 3}, () => `%${term.toLowerCase()}%`),
         ...projects.map(p => p.id.toString()),
         ...Array.from({length: 3}, () => `%${term.toLowerCase()}%`),
