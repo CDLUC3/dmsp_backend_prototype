@@ -1,4 +1,9 @@
-import mysql, {Connection} from "mysql2/promise";
+import mysql, { Connection } from "mysql2/promise";
+import { generalConfig } from "../../config/generalConfig";
+import { getParameter } from "../parameterStore";
+import { MyContext } from "../../context";
+import { buildContext } from "../../__mocks__/context";
+import { logger } from "../../logger";
 
 interface DoiMatch {
   found: boolean;
@@ -131,18 +136,41 @@ export async function insertWorkVersions(
 }
 
 let connection: mysql.Connection | null = null;
+let context: MyContext;
 
 // Function to attempt to connect to the database in certain situations
-async function tryGetConnection() {
+async function tryGetConnection(context: MyContext) {
   try {
-    const connection: Connection = await mysql.createConnection({
-      host: "localhost",
-      user: "root",
-      password: "d0ckerSecr3t",
-      database: "dmsp",
-      multipleStatements: true,
-    });
-    return connection;
+    let connection: Connection
+
+    // If we are running locally (test) or in the AWS development env (dev)
+    if (["dev", "test"].includes(generalConfig.env)) {
+      if (generalConfig.env === "test") {
+        // Running locally so use the Docker compose MySQL instance
+        connection = await mysql.createConnection({
+          host: "localhost",
+          port: 3306,
+          user: "root",
+          password: "d0ckerSecr3t",
+          database: "dmsp",
+          multipleStatements: true,
+        });
+      } else {
+        // Running in the AWS development environment so use the RDS instance
+        connection = await mysql.createConnection({
+          host: await getParameter(context,"/uc3/dmp/tool/dev/RdsHost"),
+          port: Number(await getParameter(context,"/uc3/dmp/tool/dev/RdsPort")),
+          user: await getParameter(context,"/uc3/dmp/tool/dev/RdsUsername"),
+          password: await getParameter(context,"/uc3/dmp/tool/dev/RdsPassword"),
+          database: await getParameter(context,"/uc3/dmp/tool/dev/RdsName"),
+          multipleStatements: true,
+        });
+      }
+      return connection;
+    } else {
+      // We are running in a different environment so skip the tests!
+      return null;
+    }
   } catch (err) {
     if (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND") {
       console.warn("MySQL is not running, skipping tests.");
@@ -153,7 +181,8 @@ async function tryGetConnection() {
 }
 
 beforeAll(async () => {
-  connection = await tryGetConnection();
+  context = buildContext(logger);
+  connection = await tryGetConnection(context);
 });
 
 afterAll(async () => {
