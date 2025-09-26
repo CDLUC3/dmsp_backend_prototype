@@ -1,5 +1,10 @@
 import casual from 'casual';
-import { Collaborator, ProjectCollaborator, ProjectCollaboratorAccessLevel, TemplateCollaborator } from "../Collaborator";
+import {
+  Collaborator,
+  ProjectCollaborator,
+  ProjectCollaboratorAccessLevel,
+  TemplateCollaborator
+} from "../Collaborator";
 import { Template } from '../Template';
 import { User } from '../User';
 import { buildMockContextWithToken } from '../../__mocks__/context';
@@ -7,6 +12,8 @@ import { buildMockContextWithToken } from '../../__mocks__/context';
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../../services/emailService';
 import { Project } from '../Project';
 import { logger } from "../../logger";
+import { Affiliation } from "../Affiliation";
+import { UserEmail } from "../UserEmail";
 
 jest.mock('../../logger.ts');
 jest.mock('../../context.ts');
@@ -857,4 +864,107 @@ describe('ProjectCollaborator', () => {
       expect(result).toBeInstanceOf(ProjectCollaborator);
     });
   });
+
+  describe('findPotentialCollaboratorByORCID', () => {
+    const originalFindByOrcid = User.findByOrcid;
+    const originalProjectMemberFindByOrcid = ProjectCollaborator.findPotentialCollaboratorByORCID;
+
+    let localQuery;
+    let orcidId;
+
+    beforeEach(async () => {
+      jest.resetAllMocks();
+      orcidId = 'https://sandbox.orcid.org/0000-0002-1825-0097';
+
+      localQuery = jest.fn();
+      (User.findByOrcid as jest.Mock) = localQuery;
+      (ProjectCollaborator.findPotentialCollaboratorByORCID as jest.Mock) = localQuery;
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+      User.findByOrcid = originalFindByOrcid;
+      ProjectCollaborator.findPotentialCollaboratorByORCID = originalProjectMemberFindByOrcid;
+    });
+
+    it('returns null if ORCID is invalid', async () => {
+      const result = await ProjectCollaborator.findPotentialCollaboratorByORCID(
+        'Test',
+        context,
+        'abcdefg'
+      );
+      expect(result).toBeFalsy();
+    });
+
+    it('returns user data if found in User table', async () => {
+      const user = new User({
+        id: casual.integer(1, 99),
+        givenName: casual.first_name,
+        surName: casual.last_name,
+        orcid: orcidId,
+      });
+      localQuery.mockResolvedValueOnce(user);
+      jest.spyOn(Affiliation, 'findByURI').mockResolvedValueOnce(null);
+      jest.spyOn(UserEmail, 'findPrimaryByUserId').mockResolvedValueOnce(new UserEmail({
+        userId: user.id,
+        email: casual.email
+      }));
+
+      const result = await ProjectCollaborator.findPotentialCollaboratorByORCID('Test', context, orcidId);
+      expect(result).toBeDefined();
+      expect(result.orcid).toEqual(orcidId);
+      expect(result.givenName).toEqual(user.givenName);
+    });
+  });
+
+  describe('findPotentialCollaboratorsByTerm', () => {
+    let localQuery;
+
+    beforeEach(async () => {
+      jest.resetAllMocks();
+
+      localQuery = jest.fn();
+      (ProjectCollaborator.query as jest.Mock) = localQuery;
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('returns empty results if no projects found', async () => {
+      const mockFindByAffiliation = jest.fn().mockResolvedValueOnce([]);
+      (Project.findByAffiliation as jest.Mock) = mockFindByAffiliation;
+
+      const result = await ProjectCollaborator.findPotentialCollaboratorsByTerm('Test', context, 'search');
+      expect(result.items).toEqual([]);
+      expect(result.totalCount).toBe(0);
+      expect(result.hasNextPage).toBe(false);
+    });
+
+    it('returns paginated results when projects exist', async () => {
+      const projects = [
+        new Project({id: casual.integer(1, 99)}),
+        new Project({id: casual.integer(100, 199)})
+      ];
+      const mockFindByAffiliation = jest.fn().mockResolvedValueOnce(projects);
+      (Project.findByAffiliation as jest.Mock) = mockFindByAffiliation;
+
+      const collaborators = Array.from({length: 3}, () => ({
+        id: casual.integer(1, 99),
+        givenName: casual.first_name,
+        surName: casual.last_name,
+        email: casual.email,
+        cursorId: casual.uuid
+      }));
+      localQuery.mockResolvedValueOnce(collaborators);
+      localQuery.mockResolvedValueOnce([{total: collaborators.length}]);
+
+      const result = await ProjectCollaborator.findPotentialCollaboratorsByTerm('Test', context, 'search');
+      expect(result.items).toHaveLength(collaborators.length);
+      expect(result.totalCount).toBe(collaborators.length);
+      expect(result.hasNextPage).toBe(false);
+    });
+  });
+
+
 });

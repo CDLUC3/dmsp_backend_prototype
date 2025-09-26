@@ -163,7 +163,7 @@ export const resolvers: Resolvers = {
               created.addError('general', 'Unable to set the default owner of the project');
             }
             if (!contactWasSet) {
-              created.addError('general', 'Uable to set the default primary contact');
+              created.addError('general', 'Unable to set the default primary contact');
             }
             return created;
           }
