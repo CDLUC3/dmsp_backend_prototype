@@ -9,7 +9,7 @@ export const typeDefs = gql`
     projectCollaborators(projectId: Int!): [ProjectCollaborator]
 
     "Search for a User to add as a collaborator"
-    findCollaborator(term: String, options: PaginationOptions): CollaboratorSearchResults
+    findCollaborator(term: String!, options: PaginationOptions): CollaboratorSearchResults
   }
 
   extend type Mutation {

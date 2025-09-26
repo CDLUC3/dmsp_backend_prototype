@@ -433,7 +433,7 @@ export class ProjectCollaborator extends Collaborator {
 
       } else {
         // Finally, call the ORCID API to get the person's details
-        const orcidAPI: OrcidAPI = await new OrcidAPI({cache: context.cache});
+        const orcidAPI: OrcidAPI = new OrcidAPI({cache: context.cache});
         const orcidData: OrcidPerson = await orcidAPI.getPerson(context, orcidId, reference);
 
         if (isNullOrUndefined(orcidData)) {
@@ -513,7 +513,7 @@ export class ProjectCollaborator extends Collaborator {
 
       // Prepare the values for the SQL query placeholders
       const values = [
-        ...(context.token?.affiliationId ? [context.token?.affiliationId] : []),
+        ...(context.token?.affiliationId ? context.token.affiliationId : 'NULL'),
         ...Array.from({length: 3}, () => `%${term.toLowerCase()}%`),
         ...projects.map(p => p.id.toString()),
         ...Array.from({length: 3}, () => `%${term.toLowerCase()}%`),

@@ -90,7 +90,7 @@ export class OrcidAPI extends RESTDataSource {
     reference = 'OrcidAPI.getPerson'
   ): Promise<OrcidPerson | null> {
     try {
-      const path = `v3.0/${orcid}`;
+      const path = `${OrcidConfig.apiPath}${orcid}`;
 
       context.logger.debug(`${reference} calling OrcidAPI: ${this.baseURL}/${path}`);
       const response = await this.get(path);
@@ -133,7 +133,7 @@ export class OrcidAPI extends RESTDataSource {
     reference = 'OrcidAPI.getPerson'
   ): Promise<OrcidEmployment | null> {
     try {
-      const path = `v3.0/${orcid}/employments`;
+      const path = `${OrcidConfig.apiPath}${orcid}/employments`;
 
       context.logger.debug(`${reference} calling OrcidAPI: ${this.baseURL}/${path}`);
       const response = await this.get(path);

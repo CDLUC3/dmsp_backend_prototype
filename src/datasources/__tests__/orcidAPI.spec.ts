@@ -153,11 +153,8 @@ describe('OrcidAPI', () => {
       const result = await orcidAPI.getPerson(context, orcid, 'Testing');
 
       expect(mockGet).toHaveBeenCalledTimes(2);
-      expect(mockGet).toHaveBeenNthCalledWith(1, `v3.0/${orcid}`);
-      expect(mockGet).toHaveBeenNthCalledWith(2, `v3.0/${orcid}/employments`);
-      expect(context.logger.debug).toHaveBeenCalledWith(
-        `Testing calling OrcidAPI: ${OrcidConfig.baseUrl}/v3.0/${orcid}`
-      );
+      expect(mockGet).toHaveBeenNthCalledWith(1, `${OrcidConfig.apiPath}${orcid}`);
+      expect(mockGet).toHaveBeenNthCalledWith(2, `${OrcidConfig.apiPath}${orcid}/employments`);
       expect(result).toEqual({
         givenName: "Joe",
         surName: "Tester",

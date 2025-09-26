@@ -69,6 +69,7 @@ jest.mock('../config/orcidConfig', () => ({
     clientSecret: "DUMMY_CLIENT_SECRET",
     baseUrl: "http://sandbox.orcid.org",
     authPath: "/oauth/token",
+    apiPath: "/v3.0/",
     readOnlyScope: "/read-public",
   }
 }));
