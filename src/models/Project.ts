@@ -92,28 +92,23 @@ export class ProjectSearchResult {
         break;
     }
 
-    // Determine the type of pagination being used
-    let opts;
-    if (options.type === PaginationType.OFFSET) {
-      opts = {
-        ...options,
-        // Specify the fields available for sorting
-        availableSortFields: ['p.title', 'p.created', 'p.modified', 'p.startDate', 'p.endDate', 'p.isTestProject'],
-      } as PaginationOptionsForOffsets;
-    } else {
-      opts = {
-        ...options,
-        // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(p.modified, p.id), \' \', \'_\'))',
-      } as PaginationOptionsForCursors;
-    }
+    // Specify the fields available for sorting
+    options.availableSortFields = ['p.title', 'p.created', 'p.modified', 'p.startDate', 'p.endDate', 'p.isTestProject'];
+    // Specify the field we want to use for the totalCount
+    options.countField = 'p.id';
 
     // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'p.modified';
-    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'p.modified';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
 
-    // Specify the field we want to use for the totalCount
-    opts.countField = 'p.id';
+    // Determine the type of pagination we are using and then set any additional options we need
+    let opts;
+    if (options.type === PaginationType.OFFSET) {
+      opts = options as PaginationOptionsForOffsets;
+    } else {
+      opts = options as PaginationOptionsForCursors;
+      opts.cursorField = 'p.id';
+    }
 
     // If a userId was provided, add it to the filters
     if (userId) {
@@ -211,6 +206,8 @@ export class ProjectSearchResult {
       });
       return new ProjectSearchResult(item)
     });
+
+console.log(response)
 
     context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;

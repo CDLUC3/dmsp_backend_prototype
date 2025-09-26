@@ -6,6 +6,7 @@
 - Added new `src/datasources/orcid` to support interactions with the ORCID API
 - Added `findPotentialCollaboratorByORCID` and `findPotentialCollaboratorsByTerm` to the `ProjectCollaborator` model:
 - Added a `findByOrcid` function to the `User` model
+- Added relatedWorks, workVersions, and works tables to database and two stored procedures that will be used to update the related works.
 - Added tmp dir for jest caching (ignored by git)
 - Added Trivy scan and `npm run build` to precommit hooks
 - Added some logic to the `prepareObjectForLogs` function to redact sensitive info
@@ -30,6 +31,8 @@
 
 ### Updated
 - Updated the `findCollaborator` resolver to allow for searching by ORCID or by a search term. 
+- Updated cursor pagination logic to accept sort information
+- Update `user.register` model function to auto-accept all open template and project collaboration invites
 - Upgraded @dmptool/types to v1.2.3 in package.json and rebuilt package-lock
 - Updated `answer` and `addAnswerComment` permissions to include a collaborator who has `COMMENT` privileges [#243]
 - Update `removeAnswerComment` and `removeFeedbackComment` to allow deletion by creator, plan creator, or OWN-level collaborator [#243]
@@ -43,6 +46,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed breaking build by removing `NODE_ENV=production` before `npm ci` which was skipping devDependencies, but needed for the build process.
 - `addSection` mutation resolver was not saving `tags`. Added code to add tags for new section [#445]
 - Fixed issue where updating an answer, funding or members was not triggering the creation of a new PlanVersion
 - Fixed bug with maintaining the latest PlanVersion (common standard JSON) when a plan is updated

@@ -79,14 +79,16 @@ describe('VersionedTemplateSearchResult', () => {
       const whereFilters = ['vt.active = 1 AND vt.versionType = ?',
                             '(LOWER(vt.name) LIKE ? OR LOWER(a.searchName) LIKE ?)'];
 
+      const sortFields = ["vt.name", "vt.created", "vt.visibility", "vt.bestPractice", "vt.modified"];
+
       const opts = {
         cursor: null,
         limit: generalConfig.defaultSearchLimit,
         sortField: 'vt.modified',
         sortDir: 'DESC',
         countField: 'vt.id',
-        cursorField: 'LOWER(REPLACE(CONCAT(vt.modified, vt.id), \' \', \'_\'))',
-        cursorSortDir: "DESC",
+        cursorField: 'vt.id',
+        availableSortFields: sortFields
       };
       expect(localPaginationQuery).toHaveBeenCalledTimes(1);
       expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'Test')

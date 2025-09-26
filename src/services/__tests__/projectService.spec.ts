@@ -20,7 +20,7 @@ import {MyContext} from "../../context";
 // Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
 jest.mock('../emailService');
-jest.mock('../PlanService.ts', () => {
+jest.mock('../planService.ts', () => {
   return {
     createPlanVersion: jest.fn(),
     syncWithDMPHub: jest.fn(),
