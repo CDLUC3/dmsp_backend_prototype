@@ -1,13 +1,4 @@
 import mysql, {Connection} from "mysql2/promise";
-import dotenv from "dotenv";
-import { PoolConnection } from "mysql2/promise";
-import {generalConfig} from "../../config/generalConfig";
-import {mysqlGeneralConfig, mysqlPoolConfig} from "../../config/mysqlConfig";
-
-// Fetch the actual local DB credentials from the .env file
-if (["development", "test"].includes(process.env.NODE_ENV)) {
-  dotenv.config();
-}
 
 interface DoiMatch {
   found: boolean;
@@ -144,21 +135,15 @@ let connection: mysql.Connection | null = null;
 // Function to attempt to connect to the database in certain situations
 async function tryGetConnection() {
   try {
-    // If we are running in the dev environment (local or AWS)
-    if (generalConfig.env === "dev") {
-      const connection: Connection = await mysql.createConnection({
-        host: mysqlPoolConfig.host,
-        user: mysqlPoolConfig.user,
-        password: mysqlPoolConfig.password,
-        database: mysqlPoolConfig.database,
-        multipleStatements: true,
-      });
-      return connection;
-    } else {
-      console.warn("Non-dev environment, skipping MySQL tests.");
-      return null;
-    }
-  } catch (err: any) {
+    const connection: Connection = await mysql.createConnection({
+      host: "localhost",
+      user: "root",
+      password: "d0ckerSecr3t",
+      database: "dmsp",
+      multipleStatements: true,
+    });
+    return connection;
+  } catch (err) {
     if (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND") {
       console.warn("MySQL is not running, skipping tests.");
       return null;
@@ -178,16 +163,13 @@ afterAll(async () => {
 describe("Related Works Tables", () => {
   // Tests that the related works tables stored procedures insert, update and
   // delete records correctly.
-  beforeAll(async () => {
+  test("1. should insert works", async () => {
+    // Inserts new related works, work versions and works and checks that
+    // they have been inserted correctly
     if (!connection) {
       console.warn("Skipping test: MySQL not available");
       return;
     }
-  });
-
-  test("1. should insert works", async () => {
-    // Inserts new related works, work versions and works and checks that
-    // they have been inserted correctly
 
     const workVersionsData = [
       {
@@ -574,6 +556,10 @@ describe("Related Works Tables", () => {
   test("2. should update works", async () => {
     // Updates the second related work and links an updated work version to this
     // related work, then checks that the data has been updated correctly.
+    if (!connection) {
+      console.warn("Skipping test: MySQL not available");
+      return;
+    }
 
     const workVersionsData = [
       {
@@ -975,6 +961,10 @@ describe("Related Works Tables", () => {
     // Updates the status of the two related works to accepted and rejected
     // and then runs procedures with empty data, which tests that accepted and
     // rejected related works, work version and works are not deleted.
+    if (!connection) {
+      console.warn("Skipping test: MySQL not available");
+      return;
+    }
 
     // Accept work
     await connection.query(
@@ -1210,6 +1200,10 @@ describe("Related Works Tables", () => {
     // are deleted. Sets all works to pending, then makes an update where only
     // one related work is in staging table, all other pending related works, work
     // versions and works should be deleted.
+    if (!connection) {
+      console.warn("Skipping test: MySQL not available");
+      return;
+    }
 
     // Set work to pending
     await connection.query(
