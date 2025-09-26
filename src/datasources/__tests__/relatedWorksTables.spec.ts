@@ -180,12 +180,43 @@ async function tryGetConnection(context: MyContext) {
   }
 }
 
+const testWorkDOIs = [
+  "10.1234/fake-doi-001",
+  "10.5678/sample.abc.2025"
+];
+
+function clearTestRecords() {
+  if (connection) {
+    const placeholders = testWorkDOIs.map(() => "?").join(", ");
+    connection.query(`
+      DELETE FROM relatedWorks
+        WHERE workVersionId IN (
+          SELECT workVersions.id
+          FROM workVersions
+              INNER JOIN works ON workVersions.workId = works.id
+          WHERE works.doi IN (${placeholders})
+      );
+    `, testWorkDOIs);
+
+    connection.query(`
+      DELETE FROM workVersions
+        WHERE workId IN (SELECT id FROM works WHERE doi IN (${placeholders}))
+    `, testWorkDOIs);
+
+    connection.query(`
+      DELETE FROM works
+        WHERE doi IN (${placeholders})
+    `, testWorkDOIs);
+  }
+}
+
 beforeAll(async () => {
   context = buildContext(logger);
   connection = await tryGetConnection(context);
 });
 
 afterAll(async () => {
+  clearTestRecords();
   if (connection) await connection.end();
 });
 
@@ -202,7 +233,7 @@ describe("Related Works Tables", () => {
 
     const workVersionsData = [
       {
-        doi: "10.1234/fake-doi-001",
+        doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         type: "dataset",
         publishedDate: "2025-01-01",
@@ -229,10 +260,10 @@ describe("Related Works Tables", () => {
         awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
-        sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
       {
-        doi: "10.5678/sample.abc.2025",
+        doi: testWorkDOIs[1],
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
         type: "article",
         publishedDate: "2025-02-01",
@@ -275,7 +306,7 @@ describe("Related Works Tables", () => {
     const relatedWorksData = [
       {
         dmpDoi: "10.11111/2A3B4C",
-        workDoi: "10.1234/fake-doi-001",
+        workDoi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         score: 1.0,
         doiMatch: {
@@ -324,7 +355,7 @@ describe("Related Works Tables", () => {
       },
       {
         dmpDoi: "10.11111/2A3B4C",
-        workDoi: "10.5678/sample.abc.2025",
+        workDoi: testWorkDOIs[1],
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
         score: 0.8,
         doiMatch: {
@@ -384,9 +415,9 @@ describe("Related Works Tables", () => {
     expect(relatedWorksRows).toHaveLength(2);
     expect(relatedWorksRows).toMatchObject([
       {
-        id: 1,
+        id: expect.any(Number),   // 👈 auto-increment id
         planId: 1,
-        workVersionId: 1,
+        workVersionId: expect.any(Number),   // 👈 auto-increment id
         score: 1,
         status: "pending",
         doiMatch: {
@@ -434,9 +465,9 @@ describe("Related Works Tables", () => {
         ],
       },
       {
-        id: 2,
+        id: expect.any(Number),   // 👈 auto-increment id
         planId: 1,
-        workVersionId: 2,
+        workVersionId: expect.any(Number),   // 👈 auto-increment id
         score: expect.closeTo(0.8, 5),
         status: "pending",
         doiMatch: {
@@ -492,8 +523,8 @@ describe("Related Works Tables", () => {
     expect(workVersionsRows).toHaveLength(2);
     expect(workVersionsRows).toMatchObject([
       {
-        id: 1,
-        workId: 1,
+        id: expect.any(Number),   // 👈 auto-increment id
+        workId: expect.any(Number),   // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         type: "dataset",
         publishedDate: expect.any(Date),
@@ -520,11 +551,11 @@ describe("Related Works Tables", () => {
         awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
-        sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
       {
-        id: 2,
-        workId: 2,
+        id: expect.any(Number),   // 👈 auto-increment id
+        workId: expect.any(Number),   // 👈 auto-increment id
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
         type: "article",
         publishedDate: expect.any(Date),
@@ -570,13 +601,13 @@ describe("Related Works Tables", () => {
     expect(worksRows).toHaveLength(2);
     expect(worksRows).toMatchObject([
       {
-        id: 1,
-        doi: "10.1234/fake-doi-001",
+        id: expect.any(Number),   // 👈 auto-increment id
+        doi: testWorkDOIs[0],
         created: expect.any(Date),
       },
       {
-        id: 2,
-        doi: "10.5678/sample.abc.2025",
+        id: expect.any(Number),   // 👈 auto-increment id
+        doi: testWorkDOIs[1],
         created: expect.any(Date),
       },
     ]);
@@ -592,7 +623,7 @@ describe("Related Works Tables", () => {
 
     const workVersionsData = [
       {
-        doi: "10.1234/fake-doi-001",
+        doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         type: "dataset",
         publishedDate: "2025-01-01",
@@ -619,10 +650,10 @@ describe("Related Works Tables", () => {
         awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
-        sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
       {
-        doi: "10.5678/sample.abc.2025",
+        doi: testWorkDOIs[1],
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"), // Hash changed
         type: "dataset", // Type changed
         publishedDate: "2025-02-02", // Date changed
@@ -664,13 +695,13 @@ describe("Related Works Tables", () => {
         publicationVenue: "Nature Publications", // Publication venue changed
         sourceName: "DataCite", // Source Changed
         sourceUrl:
-          "https://commons.datacite.org/doi.org/10.5678/sample.abc.2025", // Source URL changed
+          `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`, // Source URL changed
       },
     ];
     const relatedWorksData = [
       {
         dmpDoi: "10.11111/2A3B4C",
-        workDoi: "10.1234/fake-doi-001",
+        workDoi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         score: 1.0,
         doiMatch: {
@@ -719,7 +750,7 @@ describe("Related Works Tables", () => {
       },
       {
         dmpDoi: "10.11111/2A3B4C",
-        workDoi: "10.5678/sample.abc.2025",
+        workDoi: testWorkDOIs[1],
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"), // Hash changed
         score: 0.9, // Score changed
         doiMatch: {
@@ -785,9 +816,9 @@ describe("Related Works Tables", () => {
     expect(relatedWorksRows).toHaveLength(2);
     expect(relatedWorksRows).toMatchObject([
       {
-        id: 1,
+        id: expect.any(Number),   // 👈 auto-increment id
         planId: 1,
-        workVersionId: 1,
+        workVersionId: expect.any(Number),   // 👈 auto-increment id
         score: 1,
         status: "pending",
         doiMatch: {
@@ -835,9 +866,9 @@ describe("Related Works Tables", () => {
         ],
       },
       {
-        id: 2,
+        id: expect.any(Number),   // 👈 auto-increment id
         planId: 1,
-        workVersionId: 4, // 4 rather than 3 because the duplicate work causes an auto increment
+        workVersionId: expect.any(Number),   // 👈 auto-increment id
         score: expect.closeTo(0.9, 5),
         status: "pending",
         doiMatch: {
@@ -893,8 +924,8 @@ describe("Related Works Tables", () => {
     expect(workVersionsRows).toHaveLength(2);
     expect(workVersionsRows).toMatchObject([
       {
-        id: 1,
-        workId: 1,
+        id: expect.any(Number),   // 👈 auto-increment id
+        workId: expect.any(Number),   // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         type: "dataset",
         publishedDate: expect.any(Date),
@@ -921,11 +952,11 @@ describe("Related Works Tables", () => {
         awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
-        sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
       {
-        id: 4,
-        workId: 2,
+        id: expect.any(Number),   // 👈 auto-increment id
+        workId: expect.any(Number),   // 👈 auto-increment id
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"),
         type: "dataset",
         publishedDate: expect.any(Date),
@@ -965,7 +996,7 @@ describe("Related Works Tables", () => {
         publicationVenue: "Nature Publications",
         sourceName: "DataCite",
         sourceUrl:
-          "https://commons.datacite.org/doi.org/10.5678/sample.abc.2025",
+          `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`,
       },
     ]);
 
@@ -974,13 +1005,13 @@ describe("Related Works Tables", () => {
     expect(worksRows).toHaveLength(2);
     expect(worksRows).toMatchObject([
       {
-        id: 1,
-        doi: "10.1234/fake-doi-001",
+        id: expect.any(Number),   // 👈 auto-increment id
+        doi: testWorkDOIs[0],
         created: expect.any(Date),
       },
       {
-        id: 2,
-        doi: "10.5678/sample.abc.2025",
+        id: expect.any(Number),   // 👈 auto-increment id
+        doi: testWorkDOIs[1],
         created: expect.any(Date),
       },
     ]);
@@ -996,18 +1027,28 @@ describe("Related Works Tables", () => {
     }
 
     // Accept work
-    await connection.query(
-      `UPDATE relatedWorks
-       SET status = 'accepted'
-       WHERE id = 1;`,
-    );
+    await connection.query(`
+      UPDATE relatedWorks
+      SET status = 'accepted'
+      WHERE workVersionId = (
+        SELECT workVersions.id
+        FROM workVersions
+          INNER JOIN works ON works.id = workVersions.workId
+        WHERE works.doi = '${testWorkDOIs[0]}'
+      );
+    `);
 
     // Reject work
-    await connection.query(
-      `UPDATE relatedWorks
-       SET status = 'rejected'
-       WHERE id = 2;`,
-    );
+    await connection.query(`
+      UPDATE relatedWorks
+      SET status = 'rejected'
+      WHERE workVersionId = (
+        SELECT workVersions.id
+        FROM workVersions
+          INNER JOIN works ON works.id = workVersions.workId
+        WHERE works.doi = '${testWorkDOIs[1]}'
+      );
+    `);
 
     // Load empty data, which would delete any unlinked pending results
     // but should keep accepted and rejected works
@@ -1023,9 +1064,9 @@ describe("Related Works Tables", () => {
     expect(relatedWorksRows).toHaveLength(2);
     expect(relatedWorksRows).toMatchObject([
       {
-        id: 1,
+        id: expect.any(Number),   // 👈 auto-increment id
         planId: 1,
-        workVersionId: 1,
+        workVersionId: expect.any(Number),   // 👈 auto-increment id
         score: 1,
         status: "accepted",
         doiMatch: {
@@ -1073,9 +1114,9 @@ describe("Related Works Tables", () => {
         ],
       },
       {
-        id: 2,
+        id: expect.any(Number),   // 👈 auto-increment id
         planId: 1,
-        workVersionId: 4, // 4 rather than 3 because the duplicate work causes an auto increment
+        workVersionId: expect.any(Number),   // 👈 auto-increment id
         score: expect.closeTo(0.9, 5),
         status: "rejected",
         doiMatch: {
@@ -1131,8 +1172,8 @@ describe("Related Works Tables", () => {
     expect(workVersionsRows).toHaveLength(2);
     expect(workVersionsRows).toMatchObject([
       {
-        id: 1,
-        workId: 1,
+        id: expect.any(Number),   // 👈 auto-increment id
+        workId: expect.any(Number),   // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         type: "dataset",
         publishedDate: expect.any(Date),
@@ -1159,11 +1200,11 @@ describe("Related Works Tables", () => {
         awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
-        sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
       {
-        id: 4,
-        workId: 2,
+        id: expect.any(Number),   // 👈 auto-increment id
+        workId: expect.any(Number),   // 👈 auto-increment id
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"),
         type: "dataset",
         publishedDate: expect.any(Date),
@@ -1203,7 +1244,7 @@ describe("Related Works Tables", () => {
         publicationVenue: "Nature Publications",
         sourceName: "DataCite",
         sourceUrl:
-          "https://commons.datacite.org/doi.org/10.5678/sample.abc.2025",
+          `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`,
       },
     ]);
 
@@ -1212,13 +1253,13 @@ describe("Related Works Tables", () => {
     expect(worksRows).toHaveLength(2);
     expect(worksRows).toMatchObject([
       {
-        id: 1,
-        doi: "10.1234/fake-doi-001",
+        id: expect.any(Number),   // 👈 auto-increment id
+        doi: testWorkDOIs[0],
         created: expect.any(Date),
       },
       {
-        id: 2,
-        doi: "10.5678/sample.abc.2025",
+        id: expect.any(Number),   // 👈 auto-increment id
+        doi: testWorkDOIs[1],
         created: expect.any(Date),
       },
     ]);
@@ -1243,7 +1284,7 @@ describe("Related Works Tables", () => {
     // Only keep one work
     const workVersionsData = [
       {
-        doi: "10.1234/fake-doi-001",
+        doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         type: "dataset",
         publishedDate: "2025-01-01",
@@ -1270,13 +1311,13 @@ describe("Related Works Tables", () => {
         awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
-        sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
     ];
     const relatedWorksData = [
       {
         dmpDoi: "10.11111/2A3B4C",
-        workDoi: "10.1234/fake-doi-001",
+        workDoi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         score: 1.0,
         doiMatch: {
@@ -1336,9 +1377,9 @@ describe("Related Works Tables", () => {
     expect(relatedWorksRows).toHaveLength(1);
     expect(relatedWorksRows).toMatchObject([
       {
-        id: 1,
+        id: expect.any(Number),   // 👈 auto-increment id
         planId: 1,
-        workVersionId: 1,
+        workVersionId: expect.any(Number),   // 👈 auto-increment id
         score: 1,
         status: "pending",
         doiMatch: {
@@ -1394,8 +1435,8 @@ describe("Related Works Tables", () => {
     expect(workVersionsRows).toHaveLength(1);
     expect(workVersionsRows).toMatchObject([
       {
-        id: 1,
-        workId: 1,
+        id: expect.any(Number),   // 👈 auto-increment id
+        workId: expect.any(Number),   // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         type: "dataset",
         publishedDate: expect.any(Date),
@@ -1422,7 +1463,7 @@ describe("Related Works Tables", () => {
         awards: [{ awardId: "ABC" }],
         publicationVenue: "Zenodo",
         sourceName: "DataCite",
-        sourceUrl: "https://commons.datacite.org/doi.org/10.1234/fake-doi-001",
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
     ]);
 
@@ -1431,8 +1472,8 @@ describe("Related Works Tables", () => {
     expect(worksRows).toHaveLength(1);
     expect(worksRows).toMatchObject([
       {
-        id: 1,
-        doi: "10.1234/fake-doi-001",
+        id: expect.any(Number),   // 👈 auto-increment id
+        doi: testWorkDOIs[0],
         created: expect.any(Date),
       },
     ]);
