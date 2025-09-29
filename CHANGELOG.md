@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added dependabot config
 - Added new `parameterStore` datasource to fetch values from AWS Systems Manager Parameter Store
 - Add new ENV variables `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_BASE_URL`, `ORCID_AUTH_PATH` and `ORCID_READ_ONLY_SCOPE`.
 - Added `src/config/ocidConfig` to provide access to the above ENV variables and also defaults for some of them
