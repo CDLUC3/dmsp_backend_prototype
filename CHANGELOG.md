@@ -65,6 +65,9 @@
 - Removed `dmpIds` array from the JWT payload.
 - Removed `hasPermissionOnPlan` function from `planService` since JWT no longer has `dmpIds` array
 
+### Chore
+- Addressed `fast-redact` vulnerability by updating the `pino` version to `9.12.0`, which removes fast-redact
+
 ## v0.2 - Initial deploy to the stage environment
 
 ### Added
