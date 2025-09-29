@@ -1,4 +1,4 @@
-import { Resolvers } from "../types";
+import { CollaboratorSearchResult, CollaboratorSearchResults, Resolvers } from "../types";
 import {
   TemplateCollaborator,
   ProjectCollaborator,
@@ -8,14 +8,21 @@ import { User } from '../models/User';
 import { MyContext } from "../context";
 import { Template } from "../models/Template";
 import { Project } from "../models/Project";
-import { isAdmin } from "../services/authService";
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from "../utils/graphQLErrors";
+import {isAdmin, isAuthorized, isSuperAdmin} from "../services/authService";
+import {
+  AuthenticationError,
+  BadRequestError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from "../utils/graphQLErrors";
 import { hasPermissionOnTemplate } from "../services/templateService";
 import { hasPermissionOnProject } from "../services/projectService";
 import { sendProjectCollaborationEmail } from '../services/emailService';
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
-import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
+import { isNullOrUndefined, normaliseDateTime, ORCID_REGEX } from "../utils/helpers";
+import { PaginationOptionsForCursors } from "../types/general";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -45,6 +52,7 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
     projectCollaborators: async (_, { projectId }, context: MyContext): Promise<ProjectCollaborator[]> => {
       const reference = 'projectCollaborators resolver';
       try {
@@ -66,6 +74,59 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    findCollaborator: async (_, { term, options }, context: MyContext): Promise<CollaboratorSearchResults> => {
+      const reference = 'findCollaborator resolver';
+      try {
+        if (isAuthorized(context.token)) {
+          if (isNullOrUndefined(term) || term.length < 4) {
+            throw BadRequestError("The search term must be at least 4 characters long");
+          }
+
+          // If the incoming term is an ORCID then search by that
+          if (term.match(ORCID_REGEX)) {
+            const person: CollaboratorSearchResult = await ProjectCollaborator.findPotentialCollaboratorByORCID(
+              reference,
+              context,
+              term
+            );
+
+            return {
+              items: isNullOrUndefined(person) ? [] : [person],
+              limit: options?.limit,
+              totalCount: 1,
+              nextCursor: null,
+              hasNextPage: false,
+            };
+          }
+
+          // If the user is a super admin then search all users
+          if (isSuperAdmin(context.token)) {
+            return await User.search(
+              reference,
+              context,
+              term,
+              options as PaginationOptionsForCursors
+            );
+          } else {
+            // Otherwise search the current user's affiliation and past projects
+            return await ProjectCollaborator.findPotentialCollaboratorsByTerm(
+              reference,
+              context,
+              term,
+              options as PaginationOptionsForCursors
+            );
+          }
+        }
+        // Unauthorized!
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    }
   },
 
   Mutation: {

@@ -1,12 +1,24 @@
 import bcrypt from 'bcryptjs';
-import {capitalizeFirstLetter, formatORCID, getCurrentDate, isNullOrUndefined, validateEmail} from '../utils/helpers';
+import {
+  capitalizeFirstLetter,
+  formatORCID,
+  getCurrentDate,
+  isNullOrUndefined,
+  validateEmail
+} from '../utils/helpers';
 import { prepareObjectForLogs } from '../logger';
 import { MySqlModel } from './MySqlModel';
 import { MyContext } from '../context';
 import { generalConfig } from '../config/generalConfig';
 import { defaultLanguageId, supportedLanguages } from './Language';
 import { UserEmail } from './UserEmail';
-import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import {
+  PaginatedQueryResults,
+  PaginationOptions,
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType
+} from '../types/general';
 import { ProjectCollaborator, TemplateCollaborator } from "./Collaborator";
 
 export enum UserRole {
@@ -173,8 +185,14 @@ export class User extends MySqlModel {
   // Find the User by their id
   static async findById(reference: string, context: MyContext, userId: number): Promise<User | null> {
     const sql = 'SELECT * FROM users WHERE id = ?';
-
     const results = await User.query(context, sql, [userId?.toString()], reference);
+    return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
+  }
+
+  // Find the User by their ORCID
+  static async findByOrcid(reference: string, context: MyContext, orcid: string): Promise<User | null> {
+    const sql = 'SELECT * FROM users WHERE orcid = ?';
+    const results = await User.query(context, sql, [orcid], reference);
     return Array.isArray(results) && results.length > 0 ? new User(results[0]) : null;
   }
 
@@ -251,6 +269,7 @@ export class User extends MySqlModel {
     return response;
   }
 
+  // Find all the Users that match the search term
   static async search(
     reference: string,
     context: MyContext,

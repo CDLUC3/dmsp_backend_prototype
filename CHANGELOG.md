@@ -3,6 +3,12 @@
 ### Added
 - Added tables to support template customizations
 - Added stub models for each new template customization table with comments on what needs to be done
+- Added new `parameterStore` datasource to fetch values from AWS Systems Manager Parameter Store
+- Add new ENV variables `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_BASE_URL`, `ORCID_AUTH_PATH` and `ORCID_READ_ONLY_SCOPE`.
+- Added `src/config/ocidConfig` to provide access to the above ENV variables and also defaults for some of them
+- Added new `src/datasources/orcid` to support interactions with the ORCID API
+- Added `findPotentialCollaboratorByORCID` and `findPotentialCollaboratorsByTerm` to the `ProjectCollaborator` model:
+- Added a `findByOrcid` function to the `User` model
 - Added relatedWorks, workVersions, and works tables to database and two stored procedures that will be used to update the related works.
 - Added tmp dir for jest caching (ignored by git)
 - Added Trivy scan and `npm run build` to precommit hooks
@@ -27,6 +33,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated the `findCollaborator` resolver to allow for searching by ORCID or by a search term. 
 - Updated cursor pagination logic to accept sort information
 - Update `user.register` model function to auto-accept all open template and project collaboration invites
 - Upgraded @dmptool/types to v1.2.3 in package.json and rebuilt package-lock
