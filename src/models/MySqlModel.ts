@@ -86,6 +86,10 @@ export class MySqlModel {
       return null;
     }
 
+    if (Buffer.isBuffer(val)) {
+      return val;
+    }
+
     switch (type) {
       case 'number':
         return Number(val);
@@ -245,7 +249,7 @@ export class MySqlModel {
   static async query(
     apolloContext: MyContext,
     sqlStatement: string,
-    values: MixedArray<string | boolean> = [],
+    values: MixedArray<string | boolean | Buffer> = [],
     reference = 'undefined caller',
   ): Promise<any[]> { // eslint-disable-line @typescript-eslint/no-explicit-any
     const { logger, dataSources } = apolloContext;
@@ -361,7 +365,7 @@ export class MySqlModel {
       const vals = [...values];
 
       // Add the limit and offset
-      vals.push(limit.toString(), options.offset.toString() ?? '0');
+      vals.push(limit.toString(), options.offset != null ? options.offset.toString(): '0');
 
       const whereClause = whereFilters.length ? `WHERE ${whereFilters.join(' AND ')}` : '';
       const orderByClause = `ORDER BY ${options.sortField} ${options.sortDir ?? 'ASC'}`;

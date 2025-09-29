@@ -1,111 +1,201 @@
-import casual from "casual";
-import {
-  addEntryToMockTable,
-  addMockTableStore,
-  clearMockTableStore,
-  deleteEntryFromMockTable,
-  findEntriesInMockTableByFilter,
-  findEntryInMockTableByFilter,
-  findEntryInMockTableById,
-  getMockTableStore,
-  updateEntryInMockTable
-} from "./MockStore";
-import { getCurrentDate } from "../../utils/helpers";
-import { RelatedWork, RelatedWorkRelationDescriptor, RelatedWorkType } from "../RelatedWork";
-import { MyContext } from "../../context";
-import { getRandomEnumValue } from "../../__tests__/helpers";
+import casual from 'casual';
+import { createHash } from 'node:crypto';
+import { getRandomEnumValue } from '../../__tests__/helpers';
+import { RelatedWorkSourceType, RelatedWorkStatus, WorkType } from '../RelatedWork';
+import { ContentMatch, DoiMatch, ItemMatch } from '../../types';
 
-export const getRelatedWorkStore = () => {
-  return getMockTableStore('relatedWorks');
+export function getMockHash() {
+  return Buffer.from(createHash('md5').update(casual.string).digest('hex'));
 }
 
-export const getRandomRelatedWork = (): RelatedWork => {
-  const store = getMockTableStore('relatedWorks');
-  if (!store || store.length === 0) {
-    return null;
-  }
-  return store[Math.floor(Math.random() * store.length)];
-}
-
-export const clearRelatedWorkStore = () => {
-  clearMockTableStore('relatedWorks');
-}
-
-export const generateNewRelatedWork = (options) => {
+export function getMockWork() {
   return {
-    projectId: options.projectId ?? casual.integer(1, 9999),
-    workType: options.workType ?? getRandomEnumValue(RelatedWorkType),
-    relationDescriptor: options.relationDescriptor ?? getRandomEnumValue(RelatedWorkRelationDescriptor),
-    identifier: options.identifier ?? casual.uuid,
-    citation: options.citation ?? casual.sentences(3),
-  }
+    doi: casual.uuid,
+  };
 }
 
-// Initialize the table
-export const initRelatedWorkStore = (count = 10): RelatedWork[] => {
-  addMockTableStore('relatedWorks', []);
-
-  for (let i = 0; i < count; i++) {
-    addEntryToMockTable('relatedWorks', generateNewRelatedWork({}));
-  }
-
-  return getRelatedWorkStore();
+export function getMockWorkVersion() {
+  return {
+    workId: casual.integer(1, 9999),
+    hash: getMockHash(),
+    type: getRandomEnumValue(WorkType),
+    publishedDate: casual.date('YYYY-MM-DD'),
+    title: casual.title,
+    abstract: casual.title,
+    authors: getMockList(10, getMockAuthor),
+    institutions: getMockList(10, getMockInstitutionOrFunder),
+    funders: getMockList(10, getMockInstitutionOrFunder),
+    awards: getMockList(3, getMockAward),
+    publicationVenue: casual.name,
+    sourceName: casual.name,
+    sourceUrl: casual.url,
+  };
 }
 
-// Mock the queries
-export const mockFindRelatedWorkById = async (_, __, id: number): Promise<RelatedWork> => {
-  const result = findEntryInMockTableById('relatedWorks', id);
-  return result ? new RelatedWork(result) : null;
-};
+export function getMockRelatedWork() {
+  return {
+    planId: casual.integer(1, 9999),
+    workVersionId: casual.integer(1, 9999),
+    sourceType: getRandomEnumValue(RelatedWorkSourceType),
+    score: 1.0,
+    scoreMax: 1.0,
+    status: getRandomEnumValue(RelatedWorkStatus),
+    doiMatch: getMockDoiMatch(),
+    contentMatch: getMockContentMatch(),
+    authorMatches: getMockList(5, getMockAuthorMatch),
+    institutionMatches: getMockList(5, getMockInstitutionMatch),
+    funderMatches: getMockList(5, getMockFunderMatch),
+    awardMatches: getMockList(5, getMockAwardMatch),
+  };
+}
 
-export const mockFindRelatedWorkByProjectAndIdentifier = async (_, __, projectId: number, identifier: string): Promise<RelatedWork> => {
-  const result = findEntryInMockTableByFilter(
-    'relatedWorks',
-    (entry) => { return entry.identifier.trim() === identifier.trim() && entry.projectId === projectId }
-  );
-  return result ? new RelatedWork(result) : null;
-};
+export function getMockRelatedWorkSearchResult() {
+  const score = casual.double(0, 1);
+  return {
+    id: casual.integer(1, 9999),
+    planId: casual.integer(1, 9999),
+    workVersion: {
+      id: casual.integer(1, 9999),
+      work: {
+        id: casual.integer(1, 9999),
+        doi: `https://doi.org/${casual.string}`,
+        created: randomISODate(),
+        createdById: casual.integer(1, 9999),
+        modified: randomISODate(),
+        modifiedById: casual.integer(1, 9999),
+      },
+      hash: Buffer.from(createHash('md5').update(casual.string).digest('hex')),
+      type: getRandomEnumValue(WorkType),
+      publishedDate: casual.date('YYYY-MM-DD'),
+      title: casual.title,
+      abstract: casual.title,
+      authors: getMockList(10, getMockAuthor),
+      institutions: getMockList(10, getMockInstitutionOrFunder),
+      funders: getMockList(10, getMockInstitutionOrFunder),
+      awards: getMockList(3, getMockAward),
+      publicationVenue: casual.name,
+      sourceName: casual.name,
+      sourceUrl: casual.url,
+      created: randomISODate(),
+      createdById: casual.integer(1, 9999),
+      modified: randomISODate(),
+      modifiedById: casual.integer(1, 9999),
+    },
+    sourceType: getRandomEnumValue(RelatedWorkSourceType),
+    score: score,
+    scoreMax: 1.0,
+    scoreNorm: score,
+    status: getRandomEnumValue(RelatedWorkStatus),
+    doiMatch: getMockDoiMatch(),
+    contentMatch: getMockContentMatch(),
+    authorMatches: getMockList(5, getMockAuthorMatch),
+    institutionMatches: getMockList(5, getMockInstitutionMatch),
+    funderMatches: getMockList(5, getMockFunderMatch),
+    awardMatches: getMockList(5, getMockAwardMatch),
+    created: randomISODate(),
+    createdById: casual.integer(1, 9999),
+    modified: randomISODate(),
+    modifiedById: casual.integer(1, 9999),
+  };
+}
 
-export const mockFindRelatedWorksByIdentifier = async (_, __, identifier: string): Promise<RelatedWork[]> => {
-  // Filter the relatedWorks based on the search term
-  const results = findEntriesInMockTableByFilter(
-    'relatedWorks',
-    (entry) => { return entry.identifier.trim() === identifier.trim() }
-  );
-  return results ? results.map((entry) => { return new RelatedWork(entry) }) : [];
-};
+export function getMockList(maxLength: number, generatorFn) {
+  const length = casual.integer(0, maxLength);
+  return Array.from({ length }, () => generatorFn());
+}
 
-export const mockFindRelatedWorksByProjectId = async (_, __, projectId: number): Promise<RelatedWork[]> => {
-  // Filter the relatedWorks based on the search term
-  const results = findEntriesInMockTableByFilter(
-    'relatedWorks',
-    (entry) => { return entry.projectId === projectId }
-  );
-  return results ? results.map((entry) => { return new RelatedWork(entry) }) : [];
-};
+export function getMockAuthor() {
+  const givenName = casual.first_name;
+  const surname = casual.last_name;
+  const middleNames = casual.first_name;
 
-// Mock the mutations
-export const mockInsertRelatedWork = async (context: MyContext, _, obj: RelatedWork): Promise<number> => {
-  const { insertId } = addEntryToMockTable('relatedWorks', {
-    ...obj,
-    createdById: context.token.id,
-    created: getCurrentDate(),
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return insertId;
-};
+  return {
+    orcid: casual.uuid,
+    firstInitial: givenName.slice(0, 1),
+    givenName: givenName,
+    middleInitials: middleNames.slice(0, 1),
+    middleNames: middleNames,
+    surname: surname,
+    full: `${givenName} ${surname}`,
+  };
+}
 
-export const mockUpdateRelatedWork = async (context: MyContext, _, obj: RelatedWork): Promise<RelatedWork> => {
-  const result = updateEntryInMockTable('relatedWorks', {
-    ...obj,
-    modifiedById: context.token.id,
-    modified: getCurrentDate(),
-  });
-  return result ? new RelatedWork(result) : null;
-};
+export function getMockInstitutionOrFunder() {
+  return {
+    name: casual.name,
+    ror: casual.uuid,
+  };
+}
 
-export const mockDeleteRelatedWork = async (_, __, id: number): Promise<boolean> => {
-  const result = deleteEntryFromMockTable('relatedWorks', id);
-  return result ? true : false;
-};
+export function getMockAward() {
+  return {
+    awardId: casual.uuid,
+  };
+}
+
+export function randomISODate() {
+  return new Date(casual.unix_time * 1000).toISOString();
+}
+
+export function getMockDoiMatch(): DoiMatch {
+  return {
+    found: casual.boolean,
+    score: casual.double(0, 10),
+    sources: [
+      {
+        awardId: casual.uuid,
+        awardUrl: casual.url,
+      },
+    ],
+  };
+}
+
+export function getMockContentMatch(): ContentMatch {
+  return {
+    score: casual.double(0, 20),
+    titleHighlight: `${casual.title} <mark>${casual.word}</mark> ${casual.word}`,
+    abstractHighlights: [`An <mark>${casual.word}</mark>`],
+  };
+}
+
+export function getMockAuthorMatch(): ItemMatch {
+  return {
+    index: casual.integer(0, 10),
+    score: casual.integer(0, 2),
+    fields: ['full', 'ror'],
+  };
+}
+
+export function getMockInstitutionMatch(): ItemMatch {
+  return {
+    index: casual.integer(0, 10),
+    score: casual.integer(0, 2),
+    fields: ['name', 'ror'],
+  };
+}
+
+export function getMockFunderMatch(): ItemMatch {
+  return {
+    index: casual.integer(0, 10),
+    score: casual.integer(0, 2),
+    fields: ['name'],
+  };
+}
+
+export function getMockAwardMatch(): ItemMatch {
+  return {
+    index: casual.integer(0, 10),
+    score: casual.double(0, 10),
+  };
+}
+
+export function getMockPaginatedSearchResults(options) {
+  return {
+    items: options.items,
+    limit: 20,
+    currentOffset: 0,
+    totalCount: 2,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
+}

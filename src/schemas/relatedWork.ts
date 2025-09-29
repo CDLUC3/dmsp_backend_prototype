@@ -2,159 +2,364 @@ import gql from 'graphql-tag';
 
 export const typeDefs = gql`
   extend type Query {
-    "Get all the realted works for the Project"
-    relatedWorks(projectId: Int): [RelatedWork]
-    "Fetch a specific related work"
-    relatedWork(id: Int!): RelatedWork
+    "Get all of the related works for a project"
+    relatedWorksByProject(
+      projectId: Int!
+      paginationOptions: PaginationOptions
+      filterOptions: RelatedWorksFilterOptions
+    ): RelatedWorkSearchResults
+
+    "Get all of the related works for a plan"
+    relatedWorksByPlan(
+      planId: Int!
+      paginationOptions: PaginationOptions
+      filterOptions: RelatedWorksFilterOptions
+    ): RelatedWorkSearchResults
   }
 
-  extend type Mutation {
-    "Add a related work to a research project"
-    addRelatedWork(input: AddRelatedWorkInput!): RelatedWork
-    "Update a related work on the research project"
-    updateRelatedWork(input: UpdateRelatedWorkInput!): RelatedWork
-    "Remove a related work from a research project"
-    removeRelatedWork(id: Int!): RelatedWork
+  "Related work search filter options"
+  input RelatedWorksFilterOptions {
+    "Filter results by the related work status"
+    status: RelatedWorkStatus
+    "The confidence of the match"
+    confidence: RelatedWorkConfidence
+    "The type of work to filter by"
+    type: WorkType
   }
 
-  "A metadata standard used when describing a research output"
-  type RelatedWork {
-    "The unique identifer for the Object"
+  type RelatedWorkSearchResults implements PaginatedQueryResults {
+    "The TemplateSearchResults that match the search criteria"
+    items: [RelatedWorkSearchResult]
+    "The total number of possible items"
+    totalCount: Int
+    "The number of items returned"
+    limit: Int
+    "The cursor to use for the next page of results (for infinite scroll/load more)"
+    nextCursor: String
+    "The current offset of the results (for standard offset pagination)"
+    currentOffset: Int
+    "Whether or not there is a next page"
+    hasNextPage: Boolean
+    "Whether or not there is a previous page"
+    hasPreviousPage: Boolean
+    "The sortFields that are available for this query (for standard offset pagination only!)"
+    availableSortFields: [String]
+  }
+
+  type RelatedWorkSearchResult {
+    "The unique identifier for the Object"
     id: Int
-    "The user who created the Object"
-    createdById: Int
+    "The unique identifier of the plan that this related work has been matched to"
+    planId: Int
+    "The version of the work that the plan was matched to"
+    workVersion: WorkVersion
+    "Whether the related work was automatically or manually added"
+    sourceType: RelatedWorkSourceType
+    "The confidence score indicating how well the work matches the plan"
+    score: Float
+    "The maximum confidence score returned when this work was matched to the plan"
+    scoreMax: Float
+    "The normalised confidence score from 0.0-1.0"
+    scoreNorm: Float
+    "The confidence of the related work match"
+    confidence: RelatedWorkConfidence
+    "The status of the related work"
+    status: RelatedWorkStatus
+    "Details whether the work's DOI was found on a funder award page"
+    doiMatch: DoiMatch
+    "Details how relevant the title and abstract of the work were to the plan"
+    contentMatch: ContentMatch
+    "Details which authors matched from the work and the fields they matched on"
+    authorMatches: [ItemMatch!]
+    "Details which institutions matched from the work and the fields they matched on"
+    institutionMatches: [ItemMatch!]
+    "Details which funders matched from the work and the fields they matched on"
+    funderMatches: [ItemMatch!]
+    "Details which awards matched from the work and the fields they matched on"
+    awardMatches: [ItemMatch!]
     "The timestamp when the Object was created"
     created: String
+    "The user who created the Object. Null if the related work was automatically found"
+    createdById: Int
+    "The timestamp when the Object was last modified"
+    modified: String
     "The user who last modified the Object"
     modifiedById: Int
-    "The timestamp when the Object was last modifed"
+  }
+
+  "The origin of the related work entry"
+  enum RelatedWorkSourceType {
+    USER_ADDED
+    SYSTEM_MATCHED
+  }
+
+  type WorkVersion {
+    "The unique identifier for the Object"
+    id: Int
+    "The work"
+    work: Work
+    "A hash of the content of this version of a work"
+    hash: MD5
+    "The type of the work"
+    type: WorkType
+    "The date that the work was published YYYY-MM-DD"
+    publishedDate: String
+    "The title of the work"
+    title: String
+    "The authors of the work"
+    authors: [Author!]!
+    "The unique institutions of the authors of the work"
+    institutions: [Institution!]!
+    "The funders of the work"
+    funders: [Funder!]!
+    "The awards that funded the work"
+    awards: [Award!]!
+    "The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc"
+    publicationVenue: String
+    "The name of the source where the work was found"
+    sourceName: String
+    "The URL for the source of the work"
+    sourceUrl: String
+    "The timestamp when the Object was created"
+    created: String
+    "The user who created the Object. Null if the work was automatically found"
+    createdById: Int
+    "The timestamp when the Object was last modified"
     modified: String
-    "Errors associated with the Object"
-    errors: RelatedWorkErrors
-
-    "The projectId that the related work is associated with"
-    projectId: Int
-    "The related work's relationship to the research project (e.g. references, isReferencedBy, etc.)"
-    relationDescriptor: RelatedWorkDescriptor
-    "The type of the related work (e.g. dataset, software, etc.)"
-    workType: RelatedWorkType
-    "The unique identifier for the work (e.g. DOI, URL, etc."
-    identifier: String
-    "The citation for the related work"
-    citation: String
+    "The user who last modified the Object"
+    modifiedById: Int
   }
 
-  "A collection of errors related to the MetadataStandard"
-  type RelatedWorkErrors {
-    "General error messages such as the object already exists"
-    general: String
-
-    projectId: String
-    relationDescriptor: String
-    workType: String
-    identifier: String
+  type Work {
+    "The unique identifier for the Object"
+    id: Int
+    "The Digital Object Identifier (DOI) of the work"
+    doi: String
+    "The timestamp when the Object was created"
+    created: String
+    "The user who created the Object. Null if the work was automatically found"
+    createdById: Int
+    "The timestamp when the Object was last modified"
+    modified: String
+    "The user who last modified the Object"
+    modifiedById: Int
   }
 
-  type AddRelatedWorkInput {
-    "The project that the related work is associated with"
-    projectId: Int!
-    "The related work's relationship to the research project (e.g. references, isReferencedBy, etc.)"
-    relationDescriptor: RelatedWorkDescriptor!
-    "The type of the related work (e.g. dataset, software, etc.)"
-    workType: RelatedWorkType!
-    "The unique identifier for the work (e.g. DOI, URL, etc."
-    identifier: String!
-    "The citation for the related work"
-    citation: String
-  }
-
-  type UpdateRelatedWorkInput {
-    "The related work"
-    relatedWorkId: Int!
-    "The related work's relationship to the research project (e.g. references, isReferencedBy, etc.)"
-    relationDescriptor: RelatedWorkDescriptor
-    "The type of the related work (e.g. dataset, software, etc.)"
-    workType: RelatedWorkType
-    "The unique identifier for the work (e.g. DOI, URL, etc."
-    identifier: String
-    "The citation for the related work"
-    citation: String
-  }
-
-  "Relationship types between a plan and a related work (derived from the DataCite metadata schema"
-  enum RelatedWorkDescriptor {
-    IS_CITED_BY
-    CITES
-    IS_SUPPLEMENT_TO
-    IS_SUPPLEMENTED_BY
-    IS_CONTINUED_BY
-    CONTINUES
-    IS_DESCRIBED_BY
-    DESCRIBES
-    HAS_METADATA
-    IS_METADATA_FOR
-    HAS_VERSION
-    IS_VERSION_OF
-    IS_NEW_VERSION_OF
-    IS_PREVIOUS_VERSION_OF
-    IS_PART_OF
-    HAS_PART
-    IS_PUBLISHED_IN
-    IS_REFERENCED_BY
-    REFERENCES
-    IS_DOCUMENTED_BY
-    DOCUMENTS
-    IS_COMPILED_BY
-    COMPILES
-    IS_VARIANT_FORM_OF
-    IS_ORIGINAL_FORM_OF
-    IS_IDENTICAL_TO
-    IS_REVIEWED_BY
-    REVIEWS
-    IS_DERIVED_FROM
-    IS_SOURCE_OF
-    IS_REQUIRED_BY
-    REQUIRES
-    OBSOLETES
-    IS_OBSOLETED_BY
-    IS_COLLECTED_BY
-    COLLECTS
-    IS_TRANSLATION_OF
-    HAS_TRANSLATION
-  }
-
-  "The type of work that is related to the plan (derived from the DataCite metadata schema)"
-  enum RelatedWorkType {
-    AUDIOVISUAL
+  "The type of work"
+  enum WorkType {
+    ARTICLE
+    AUDIO_VISUAL
     BOOK
     BOOK_CHAPTER
     COLLECTION
-    COMPUTATIONAL_NOTEBOOK
-    CONFERENCE_PAPER
-    CONFERENCE_PROCEEDING
     DATA_PAPER
     DATASET
     DISSERTATION
+    EDITORIAL
+    ERRATUM
     EVENT
+    GRANT
     IMAGE
-    INSTRUMENT
     INTERACTIVE_RESOURCE
-    JOURNAL
-    JOURNAL_ARTICLE
+    LETTER
+    LIBGUIDES
     MODEL
-    OUTPUT_MANAGEMENT_PLAN
+    OTHER
+    PARATEXT
     PEER_REVIEW
     PHYSICAL_OBJECT
     PREPRINT
-    PROJECT
+    REFERENCE_ENTRY
     REPORT
+    RETRACTION
+    REVIEW
     SERVICE
     SOFTWARE
     SOUND
     STANDARD
-    STUDY_REGISTRATION
+    SUPPLEMENTARY_MATERIALS
     TEXT
     WORKFLOW
-    OTHER
+  }
+
+  "An award that funded a work"
+  type Award {
+    "The Award ID"
+    awardId: String
+  }
+
+  "An author of a work"
+  type Author {
+    "The author's ORCID ID"
+    orcid: String
+    "The author's first initial"
+    firstInitial: String
+    "The author's given name"
+    givenName: String
+    "The author's middle initials"
+    middleInitials: String
+    "The author's middle names"
+    middleNames: String
+    "The author's surname"
+    surname: String
+    "The author's full name"
+    full: String
+  }
+
+  "An institution of an author of a work"
+  type Institution {
+    "The name of the institution"
+    name: String
+    "The ROR ID of the institution"
+    ror: String
+  }
+
+  "A funder of a work"
+  type Funder {
+    "The name of the funder"
+    name: String
+    "The ROR ID of the funder"
+    ror: String
+  }
+
+  "The confidence of the related work match"
+  enum RelatedWorkConfidence {
+    "High confidence"
+    HIGH
+    "Medium confidence"
+    MEDIUM
+    "Low confidence"
+    LOW
+  }
+
+  "The status of the related work"
+  enum RelatedWorkStatus {
+    "The related work is pending assessment by a user"
+    PENDING
+    "The related work has been marked as related to a plan by a user"
+    ACCEPTED
+    "The related work has been marked as not related to a plan by a user"
+    REJECTED
+  }
+
+  type DoiMatch {
+    "Indicates whether the work's DOI was found on a funder award page associated with the plan"
+    found: Boolean!
+    "A confidence score representing the strength or reliability of the DOI match"
+    score: Float!
+    "The funder award entries and specific award pages where the DOI was found"
+    sources: [DoiMatchSource!]!
+  }
+
+  type DoiMatchSource {
+    "The parent award ID, if the award has a parent"
+    parentAwardId: String
+    "The award ID"
+    awardId: String!
+    "The award URL"
+    awardUrl: String!
+  }
+
+  type ContentMatch {
+    "The confidence score indicating how well the work content matches the plan content"
+    score: Float!
+    "Highlighted title showing relevant matched terms"
+    titleHighlight: String
+    "Highlighted fragments from the abstract showing relevant matched terms"
+    abstractHighlights: [String!]!
+  }
+
+  type ItemMatch {
+    "The position of the matched item within the work (zero-based index)"
+    index: Int!
+    "A confidence score representing how strongly this item matches the corresponding item in the plan"
+    score: Float!
+    "The specific fields that contributed to the match (e.g. name, orcid etc)"
+    fields: [String!]
+  }
+
+  extend type Mutation {
+    "Add a related work"
+    addRelatedWork(input: AddRelatedWorkInput!): RelatedWorkSearchResult
+    "Update the status of a related work"
+    updateRelatedWorkStatus(input: UpdateRelatedWorkStatusInput!): RelatedWorkSearchResult
+  }
+
+  "An award that funded a work"
+  input AwardInput {
+    "The Award ID"
+    awardId: String!
+  }
+
+  "An author of a work"
+  input AuthorInput {
+    "The author's ORCID ID"
+    orcid: String
+    "The author's first initial"
+    firstInitial: String
+    "The author's given name"
+    givenName: String
+    "The author's middle initials"
+    middleInitials: String
+    "The author's middle names"
+    middleNames: String
+    "The author's surname"
+    surname: String
+    "The author's full name"
+    full: String
+  }
+
+  "An institution of an author of a work"
+  input InstitutionInput {
+    "The name of the institution"
+    name: String
+    "The ROR ID of the institution"
+    ror: String
+  }
+
+  "A funder of a work"
+  input FunderInput {
+    "The name of the funder"
+    name: String
+    "The ROR ID of the funder"
+    ror: String
+  }
+
+  input AddRelatedWorkInput {
+    "The unique identifier of the plan that this related work has been matched to"
+    planId: Int
+    "The Digital Object Identifier (DOI) of the work"
+    doi: String!
+    "A hash of the content of this version of a work"
+    hash: MD5!
+    "The type of the work"
+    type: WorkType!
+    "The date that the work was published YYYY-MM-DD"
+    publishedDate: String
+    "The title of the work"
+    title: String
+    "The abstract of the work"
+    abstract: String
+    "The authors of the work"
+    authors: [AuthorInput!]!
+    "The unique institutions of the authors of the work"
+    institutions: [InstitutionInput!]!
+    "The funders of the work"
+    funders: [FunderInput!]!
+    "The awards that funded the work"
+    awards: [AwardInput!]!
+    "The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc"
+    publicationVenue: String
+    "The name of the source where the work was found"
+    sourceName: String!
+    "The URL for the source of the work"
+    sourceUrl: String!
+  }
+
+  input UpdateRelatedWorkStatusInput {
+    "The related work ID"
+    id: Int!
+    "The status of the related work"
+    status: RelatedWorkStatus
   }
 `;
