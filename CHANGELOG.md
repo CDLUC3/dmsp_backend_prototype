@@ -2,6 +2,7 @@
 
 ### Added
 - Added tables to support template customizations
+- Added stub models for each new template customization table with comments on what needs to be done
 - Added relatedWorks, workVersions, and works tables to database and two stored procedures that will be used to update the related works.
 - Added tmp dir for jest caching (ignored by git)
 - Added Trivy scan and `npm run build` to precommit hooks
