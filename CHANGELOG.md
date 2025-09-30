@@ -1,6 +1,8 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added tables to support template customizations
+- Added stub models for each new template customization table with comments on what needs to be done
 - Added dependabot config
 - Added new `parameterStore` datasource to fetch values from AWS Systems Manager Parameter Store
 - Add new ENV variables `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_BASE_URL`, `ORCID_AUTH_PATH` and `ORCID_READ_ONLY_SCOPE`.
