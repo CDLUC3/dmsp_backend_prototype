@@ -102,12 +102,32 @@ export const resolvers: Resolvers = {
 
           // If the user is a super admin then search all users
           if (isSuperAdmin(context.token)) {
-            return await User.search(
+            const userSearchResults = await User.search(
               reference,
               context,
               term,
               options as PaginationOptionsForCursors
             );
+
+            // Transform user data to CollaboratorSearchResult format
+            const transformedItems = userSearchResults.items.map(user => ({
+              id: user.id,
+              givenName: user.givenName,
+              surName: user.surName,
+              orcid: user.orcid,
+              affiliationId: user.affiliationId,
+            }));
+
+            return {
+              items: transformedItems,
+              limit: userSearchResults.limit,
+              totalCount: userSearchResults.totalCount,
+              nextCursor: userSearchResults.nextCursor,
+              currentOffset: userSearchResults.currentOffset,
+              hasNextPage: userSearchResults.hasNextPage,
+              hasPreviousPage: userSearchResults.hasPreviousPage,
+              availableSortFields: userSearchResults.availableSortFields
+            };
           } else {
             // Otherwise search the current user's affiliation and past projects
             return await ProjectCollaborator.findPotentialCollaboratorsByTerm(

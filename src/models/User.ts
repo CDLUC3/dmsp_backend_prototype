@@ -297,13 +297,13 @@ export class User extends MySqlModel {
       opts = {
         ...options,
         // Specify the fields available for sorting
-        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'],
+        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'ue.email', 'u.orcid'],
       } as PaginationOptionsForOffsets;
     } else {
       opts = {
         ...options,
         // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'CONCAT(u.email, u.id)',
+        cursorField: 'CONCAT(ue.email, u.id)',
       } as PaginationOptionsForCursors;
     }
 

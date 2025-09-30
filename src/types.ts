@@ -492,6 +492,8 @@ export type AnswerCommentErrors = {
 /** The result of the findCollaborator query */
 export type CollaboratorSearchResult = {
   __typename?: 'CollaboratorSearchResult';
+  /** The collaborator's affiliation ID (ROR URL) */
+  affiliationId?: Maybe<Scalars['String']['output']>;
   /** The collaborator's affiliation name */
   affiliationName?: Maybe<Scalars['String']['output']>;
   /** The affiliation's ROR ID */
@@ -4611,6 +4613,7 @@ export type AnswerCommentErrorsResolvers<ContextType = MyContext, ParentType ext
 };
 
 export type CollaboratorSearchResultResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['CollaboratorSearchResult'] = ResolversParentTypes['CollaboratorSearchResult']> = {
+  affiliationId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   affiliationName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   affiliationRORId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   affiliationURL?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
