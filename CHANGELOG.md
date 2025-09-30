@@ -3,6 +3,7 @@
 ### Added
 - Added tables to support template customizations
 - Added stub models for each new template customization table with comments on what needs to be done
+- Added dependabot config
 - Added new `parameterStore` datasource to fetch values from AWS Systems Manager Parameter Store
 - Add new ENV variables `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_BASE_URL`, `ORCID_AUTH_PATH` and `ORCID_READ_ONLY_SCOPE`.
 - Added `src/config/ocidConfig` to provide access to the above ENV variables and also defaults for some of them
@@ -66,6 +67,9 @@
 - Removed `dmproadmap_template` from the common standard. That information is now stored in `dmproadmap_narrative`
 - Removed `dmpIds` array from the JWT payload.
 - Removed `hasPermissionOnPlan` function from `planService` since JWT no longer has `dmpIds` array
+
+### Chore
+- Addressed `fast-redact` vulnerability by updating the `pino` version to `9.12.0`, which removes fast-redact
 
 ## v0.2 - Initial deploy to the stage environment
 
