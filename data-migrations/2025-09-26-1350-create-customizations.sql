@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS `versionedTemplateCustomizations` (
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT unique_templateCusts UNIQUE (`affiliationId`, `templateCustomizationId`),
+  CONSTRAINT unique_vTemplateCusts UNIQUE (`affiliationId`, `templateCustomizationId`),
   CONSTRAINT fk_vTemplateCust_affiliationId FOREIGN KEY (affiliationId) REFERENCES affiliations (uri),
   CONSTRAINT fk_vTemplateCust_templateId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_vTemplateCust_currentId FOREIGN KEY (currentVersionedTemplateId) REFERENCES versionedTemplates (id),
