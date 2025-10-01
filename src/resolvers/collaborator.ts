@@ -116,6 +116,7 @@ export const resolvers: Resolvers = {
               surName: user.surName,
               orcid: user.orcid,
               affiliationId: user.affiliationId,
+              affiliationName: user['name']
             }));
 
             return {

@@ -316,7 +316,7 @@ export class User extends MySqlModel {
 
     // Join users with user_emails
     const sqlStatement = `
-    SELECT u.* FROM users u
+    SELECT u.*, a.name FROM users u
                       LEFT JOIN affiliations a ON u.affiliationId = a.uri
                       LEFT JOIN userEmails ue ON u.id = ue.userId AND ue.isPrimary = 1
   `;
