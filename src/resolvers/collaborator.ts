@@ -120,14 +120,8 @@ export const resolvers: Resolvers = {
             }));
 
             return {
+              ...userSearchResults,
               items: transformedItems,
-              limit: userSearchResults.limit,
-              totalCount: userSearchResults.totalCount,
-              nextCursor: userSearchResults.nextCursor,
-              currentOffset: userSearchResults.currentOffset,
-              hasNextPage: userSearchResults.hasNextPage,
-              hasPreviousPage: userSearchResults.hasPreviousPage,
-              availableSortFields: userSearchResults.availableSortFields
             };
           } else {
             // Otherwise search the current user's affiliation and past projects
