@@ -297,13 +297,13 @@ export class User extends MySqlModel {
       opts = {
         ...options,
         // Specify the fields available for sorting
-        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'u.email', 'u.orcid'],
+        availableSortFields: ['u.surName', 'u.givenName', 'u.created', 'ue.email', 'u.orcid'],
       } as PaginationOptionsForOffsets;
     } else {
       opts = {
         ...options,
         // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'CONCAT(u.email, u.id)',
+        cursorField: 'CONCAT(ue.email, u.id)',
       } as PaginationOptionsForCursors;
     }
 
@@ -316,7 +316,7 @@ export class User extends MySqlModel {
 
     // Join users with user_emails
     const sqlStatement = `
-    SELECT u.* FROM users u
+    SELECT u.*, a.name FROM users u
                       LEFT JOIN affiliations a ON u.affiliationId = a.uri
                       LEFT JOIN userEmails ue ON u.id = ue.userId AND ue.isPrimary = 1
   `;

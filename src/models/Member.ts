@@ -79,7 +79,8 @@ export class ProjectMember extends MySqlModel {
       if (orcid) {
         current = await ProjectMember.findByProjectAndORCID(reference, context, projectId, orcid);
       }
-      if (!current) {
+      // If email is not provided, then skip this check
+      if (!current && this.email && this.email.trim().length > 0) {
         current = await ProjectMember.findByProjectAndEmail(reference, context, projectId, this.email);
       }
       if (!current) {

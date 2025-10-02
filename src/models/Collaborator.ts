@@ -482,7 +482,8 @@ export class ProjectCollaborator extends Collaborator {
       const sortDir = options?.sortDir ?? 'ASC';
       const cursorId = `CONCAT(LOWER(REPLACE(${sortField}, ' ', '_')), '-', LOWER(u.id))`;
 
-      const fromWhereClause = `
+      // Base FROM/WHERE clause without cursor filtering (for total count)
+      const baseFromWhereClause = `
         FROM users u
             INNER JOIN userEmails ue on ue.userId = u.id AND ue.isPrimary = 1
             LEFT OUTER JOIN affiliations a ON u.affiliationId = a.uri
@@ -500,8 +501,11 @@ export class ProjectCollaborator extends Collaborator {
                   AND (LOWER(u.givenName) LIKE ? OR LOWER(u.surName) LIKE ? OR LOWER(ue.email) LIKE ?)
                 )
             )
-            ${options?.cursor ? `AND ${cursorId} >= ?` : ''}
       `;
+
+      // FROM/WHERE clause with cursor filtering (for paginated results)
+      const fromWhereClause = `${baseFromWhereClause}${options?.cursor ? `AND ${cursorId} >= ?` : ''}`;
+
       const sql = `
         SELECT DISTINCT ${cursorId} cursorId,
             u.id, u.givenName givenName, u.surName surName, ue.email email, u.orcid orcid,
@@ -511,15 +515,19 @@ export class ProjectCollaborator extends Collaborator {
         LIMIT ${limit + 1};
       `;
 
-      // Prepare the values for the SQL query placeholders
-      const values = [
+      // Base values without cursor (for count query)
+      const baseValues = [
         context.token?.affiliationId ? context.token.affiliationId : 'NULL',
-        ...Array.from({length: 3}, () => `%${term.toLowerCase()}%`),
+        ...Array.from({ length: 3 }, () => `%${term.toLowerCase()}%`),
         ...projects.map(p => p.id.toString()),
-        ...Array.from({length: 3}, () => `%${term.toLowerCase()}%`),
+        ...Array.from({ length: 3 }, () => `%${term.toLowerCase()}%`),
       ].flat().filter(v => v !== undefined);
+
+      // Values with cursor (for paginated query)
+      const values = [...baseValues];
       if (options?.cursor) values.push(options.cursor);
 
+      // Execute the main query
       results = await ProjectCollaborator.query(
         context,
         sql,
@@ -527,17 +535,18 @@ export class ProjectCollaborator extends Collaborator {
         reference
       );
 
-      if (Array.isArray(results) && results.length > 0) {
-        // Get the total count of all the collaborators
-        const countSql = `SELECT COUNT(DISTINCT u.id) ${fromWhereClause}`;
-        const countResults = await ProjectCollaborator.query(
-          context,
-          countSql,
-          values,
-          reference
-        );
-        totalCount = Array.isArray(countResults) && countResults.length > 0 ? countResults[0]?.total : 0;
+      // Always execute count query to get total across all pages
+      const countSql = `SELECT COUNT(DISTINCT u.id) as total ${baseFromWhereClause}`;
+      const countResults = await ProjectCollaborator.query(
+        context,
+        countSql,
+        baseValues, // Use baseValues without cursor
+        reference
+      );
 
+      totalCount = Array.isArray(countResults) && countResults.length > 0 ? countResults[0]?.total : 0;
+
+      if (Array.isArray(results) && results.length > 0) {
         nextCursor = results.length > 0 ? results[results.length - 1]?.cursorId : undefined;
         hasNextPage = nextCursor !== undefined && options?.cursor !== nextCursor && results.length > limit;
       }

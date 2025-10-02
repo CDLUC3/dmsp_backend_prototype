@@ -126,6 +126,8 @@ export const typeDefs = gql`
     orcid: String
     "The collaborator's email"
     email: String
+    "The collaborator's affiliation ID (ROR URL)"
+    affiliationId: String
     "The collaborator's affiliation name"
     affiliationName: String
     "The affiliation's ROR ID"
