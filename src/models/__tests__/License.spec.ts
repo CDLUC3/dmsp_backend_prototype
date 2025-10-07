@@ -152,13 +152,15 @@ describe('findBy Queries', () => {
     const sql = 'SELECT l.* FROM licenses l';
     const whereFilters = ['(LOWER(l.name) LIKE ? OR LOWER(l.description) LIKE ?)'];
     const vals = [`%${term.toLowerCase().trim()}%`, `%${term.toLowerCase().trim()}%`];
+    const sortFields = ["l.name", "l.created", "l.recommended"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'l.name',
       sortDir: 'ASC',
       countField: 'l.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(l.name, l.id), \' \', \'_\'))',
+      cursorField: 'l.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')

@@ -1,6 +1,24 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added data migration to ensure collaborator tables allow for NULL in `userId` field
+- Added tables to support template customizations
+- Added stub models for each new template customization table with comments on what needs to be done
+- Added dependabot config
+- Added new `parameterStore` datasource to fetch values from AWS Systems Manager Parameter Store
+- Add new ENV variables `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_BASE_URL`, `ORCID_AUTH_PATH` and `ORCID_READ_ONLY_SCOPE`.
+- Added `src/config/ocidConfig` to provide access to the above ENV variables and also defaults for some of them
+- Added new `src/datasources/orcid` to support interactions with the ORCID API
+- Added `findPotentialCollaboratorByORCID` and `findPotentialCollaboratorsByTerm` to the `ProjectCollaborator` model:
+- Added a `findByOrcid` function to the `User` model
+- Added relatedWorks, workVersions, and works tables to database and two stored procedures that will be used to update the related works.
+- Added tmp dir for jest caching (ignored by git)
+- Added Trivy scan and `npm run build` to precommit hooks
+- Added some logic to the `prepareObjectForLogs` function to redact sensitive info
+- Added `redact` to the pino logger to prevent sensitive information from being logged
+- Added ability for `VersionedSections` `search` function to return only `bestPractice` sections, only sections without `bestPractice` or all sections[#436]
+- Added resolver to handle resending of invite for project collaborators [#433]
+- Added bash to AWS Dockerfile for session manager
 - Added a data migration script to update `visibility` to `latestPublishVisibility` in `templates` table. [#405]
 - Added code to update `latestPublishVisibility` whenever a `template` is published [#405]
 - Added model/resolver for `PlanProgress` and nested `progress` in `Plan` resolver [#720]
@@ -17,6 +35,10 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated the `findCollaborator` resolver to allow for searching by ORCID or by a search term. 
+- Updated cursor pagination logic to accept sort information
+- Update `user.register` model function to auto-accept all open template and project collaboration invites
+- Upgraded @dmptool/types to v1.2.3 in package.json and rebuilt package-lock
 - Updated `answer` and `addAnswerComment` permissions to include a collaborator who has `COMMENT` privileges [#243]
 - Update `removeAnswerComment` and `removeFeedbackComment` to allow deletion by creator, plan creator, or OWN-level collaborator [#243]
 - Created `commentPermissions.ts` service to determine if a comment can be deleted [#243]
@@ -29,6 +51,9 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed breaking build by removing `NODE_ENV=production` before `npm ci` which was skipping devDependencies, but needed for the build process.
+- `addSection` mutation resolver was not saving `tags`. Added code to add tags for new section [#445]
+- Fixed issue where updating an answer, funding or members was not triggering the creation of a new PlanVersion
 - Fixed bug with maintaining the latest PlanVersion (common standard JSON) when a plan is updated
 - Fixed issue where the title of the DMP in the common standard JSON is using the template title instead of plan title
 - Updated `PlanSectionProgress`model so it correctly shows how many answers have been filled. [#719]
@@ -43,6 +68,9 @@
 - Removed `dmproadmap_template` from the common standard. That information is now stored in `dmproadmap_narrative`
 - Removed `dmpIds` array from the JWT payload.
 - Removed `hasPermissionOnPlan` function from `planService` since JWT no longer has `dmpIds` array
+
+### Chore
+- Addressed `fast-redact` vulnerability by updating the `pino` version to `9.12.0`, which removes fast-redact
 
 ## v0.2 - Initial deploy to the stage environment
 

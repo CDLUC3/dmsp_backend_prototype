@@ -1,4 +1,3 @@
-
 import { prepareObjectForLogs } from '../logger';
 import { Resolvers } from "../types";
 import { Affiliation } from '../models/Affiliation';
@@ -10,7 +9,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError
 import { hasPermissionOnProject } from '../services/projectService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
-import { addVersion } from '../models/PlanVersion';
+import { updateVersion } from '../models/PlanVersion';
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 
@@ -87,7 +86,7 @@ export const resolvers: Resolvers = {
   Mutation: {
     // add a new project funding
     addProjectFunding: async (_, { input }, context: MyContext) => {
-      const reference = 'addprojectFunding resolver';
+      const reference = 'addProjectFunding resolver';
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, input.projectId);
@@ -142,7 +141,10 @@ export const resolvers: Resolvers = {
               const plans = await Plan.findByProjectId(reference, context, funding.projectId);
               for (const plan of plans) {
                 // Version all of the plans (if any) and sync with the DMPHub
-                await addVersion(context, plan, reference);
+                const planVersion = await updateVersion(context, plan, reference);
+                if (!planVersion || planVersion.hasErrors()) {
+                  updated.addError("general", "Unable to version the plans");
+                }
               }
             }
             return updated;
@@ -175,7 +177,10 @@ export const resolvers: Resolvers = {
               const plans = await Plan.findByProjectId(reference, context, funding.projectId);
               for (const plan of plans) {
                 // Version all of the plans (if any) and sync with the DMPHub
-                addVersion(context, plan, reference);
+                const planVersion = await updateVersion(context, plan, reference);
+                if (!planVersion || planVersion.hasErrors()) {
+                  removed.addError("general", "Unable to version the plans");
+                }
               }
             }
             return removed;
@@ -190,9 +195,10 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // add a new plan funding
-    addPlanFunding: async (_, { planId, projectFundingId }, context: MyContext): Promise<PlanFunding> => {
-      const reference = 'addPlanFunding resolver';
+    // add new plan fundings
+    addPlanFunding: async (_, { planId, projectFundingIds }, context: MyContext): Promise<Plan> => {
+      const reference = 'addPlanFunding mutator';
+
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
@@ -200,31 +206,57 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          const projectFunding = await ProjectFunding.findById(
-            reference,
-            context,
-            projectFundingId
-          );
-          if (isNullOrUndefined(projectFunding)) {
-            throw NotFoundError();
-          }
-
           const project = await Project.findById(reference, context, plan.projectId);
           if (await hasPermissionOnProject(context, project)) {
-            const newFunding = new PlanFunding({ planId, projectFundingId });
 
-            if (newFunding && !newFunding.hasErrors()) {
-              // Version all of the plans (if any) and sync with the DMPHub
-              await addVersion(context, plan, reference);
+            // Fetch all of the current Funders associated with this Plan
+            const fundings = await PlanFunding.findByPlanId(reference, context, plan.id);
+            const currentPlanFundingids = fundings ? fundings.map((d) => d.projectFundingId) : [];
+            // Use the helper function to determine which funders to add
+            const {
+              idsToBeSaved
+            } = PlanFunding.reconcileAssociationIds(
+              currentPlanFundingids,
+              projectFundingIds
+            );
+
+            const failedFundings = [];
+
+            // Add new records for projectFundingIds that are not already in planFundings table
+            for (const id of idsToBeSaved) {
+              const funding = new PlanFunding({ planId, projectFundingId: id });
+              const wasAdded = await funding.create(context);
+              if (!wasAdded) {
+                // Get errors from the failed object creation
+                failedFundings.push(`Unable to add projectFundingId: ${id}`);
+                context.logger.error(
+                  prepareObjectForLogs({ planId, projectFundingId: id }),
+                  `Failed to add PlanFunding in ${reference}`
+                );
+              }
             }
 
-            return await newFunding.create(context);
+            // Get plan with new fundings
+            const returnedPlan = await Plan.findById(reference, context, plan.id);
+
+            // Merge in the failed ids so the client can see their errors
+            for (const failed of failedFundings) {
+              returnedPlan.addError('general', failed);
+            }
+
+            // Version the plan
+            const planVersion = await updateVersion(context, plan, reference);
+            if (!planVersion || planVersion.hasErrors()) {
+              context.logger.error(prepareObjectForLogs({ plan: plan.id }), `Unable to update version in ${reference}`);
+            }
+
+            // We want to return the Plan and attach one set of errors for any failed fundings
+            return returnedPlan;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
-
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -295,8 +327,13 @@ export const resolvers: Resolvers = {
           if (associationErrors.length > 0) {
             context.logger.warn(`Plan funding update had issues: ${associationErrors.join(', ')}`);
           }
-          await addVersion(context, plan, reference);
-          return await PlanFunding.findByPlanId(reference, context, plan.id);
+
+          const planVersion = await updateVersion(context, plan, reference);
+          if (!planVersion || planVersion.hasErrors()) {
+            context.logger.error(prepareObjectForLogs({ plan: plan.id }), "Unable to update version");
+          }
+
+          return await PlanFunding.findByPlanId(reference, context, plan.id);;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -324,7 +361,10 @@ export const resolvers: Resolvers = {
 
             if (deletedFunding && !deletedFunding.hasErrors()) {
               // Version the plan
-              await addVersion(context, plan, reference);
+              const planVersion = await updateVersion(context, plan, reference);
+              if (!planVersion || planVersion.hasErrors()) {
+                deletedFunding.addError("general", "Unable to version the plan");
+              }
             }
 
             return deletedFunding;

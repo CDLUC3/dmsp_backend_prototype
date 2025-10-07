@@ -2,7 +2,6 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { removeNullAndUndefinedFromJSON } from "../utils/helpers";
 
-
 export class Answer extends MySqlModel {
   public planId: number;
   public versionedSectionId: number;

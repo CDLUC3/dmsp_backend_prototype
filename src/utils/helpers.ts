@@ -4,7 +4,7 @@
 import { formatISO9075 } from "date-fns";
 import { generalConfig } from "../config/generalConfig";
 
-export const ORCID_REGEX = /^(https?:\/\/)?(www\.)?(sandbox\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
+export const ORCID_REGEX = /^(https?:\/\/)?(www|pub\.)?(sandbox\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
 
 // Ensure that the ORCID is in the correct format (https://orcid.org/0000-0000-0000-0000)
 export function formatORCID(orcidIn: string): string {

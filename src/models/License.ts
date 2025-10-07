@@ -142,28 +142,23 @@ export class License extends MySqlModel {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
-    // Determine the type of pagination being used
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'l.name';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
+
+    // Specify the fields available for sorting
+    options.availableSortFields = ['l.name', 'l.created', 'l.recommended'];
+    // Specify the field we want to use for the count
+    options.countField = 'l.id';
+
+    // Determine the type of pagination we are using and then set any additional options we need
     let opts;
     if (options.type === PaginationType.OFFSET) {
-      opts = {
-        ...options,
-        // Specify the fields available for sorting
-        availableSortFields: ['l.name', 'l.created', 'l.recommended'],
-      } as PaginationOptionsForOffsets;
+      opts = options as PaginationOptionsForOffsets;
     } else {
-      opts = {
-        ...options,
-        // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(l.name, l.id), \' \', \'_\'))',
-      } as PaginationOptionsForCursors;
+      opts = options as PaginationOptionsForCursors;
+      opts.cursorField = 'l.id';
     }
-
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'l.name';
-    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
-
-    // Specify the field we want to use for the count
-    opts.countField = 'l.id';
 
     const sqlStatement = 'SELECT l.* FROM licenses l';
 

@@ -13,7 +13,7 @@ ENV CI=true
 COPY package*.json ./
 
 # Install dependencies in /app (excluding devDependencies)
-RUN npm install
+RUN npm ci
 
 
 #Stage 2: Builder
@@ -42,6 +42,8 @@ RUN ls -la dist/
 FROM public.ecr.aws/docker/library/node:lts-alpine3.19 as runner
 WORKDIR /app
 
+RUN apk add --no-cache bash
+
 # Copy necessary files from builder stage
 COPY --from=builder /app/dist/ ./dist
 
@@ -50,7 +52,7 @@ COPY --from=builder /app/dist/ ./dist
 ENV CI=true
 RUN echo "production=false" >> .npmrc
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Ensure port so it is accessible to our system
 EXPOSE 4000

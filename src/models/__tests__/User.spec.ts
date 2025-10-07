@@ -10,6 +10,7 @@ import { getRandomEnumValue } from '../../__tests__/helpers';
 import { logger } from "../../logger";
 import { UserEmail } from '../UserEmail';
 import { PaginationType } from '../../types/general';
+import {ProjectCollaborator, TemplateCollaborator} from "../Collaborator";
 
 jest.mock('../../context.ts');
 jest.mock('../UserEmail');
@@ -558,6 +559,113 @@ describe('register()', () => {
     expect(response).toBeInstanceOf(User);
     expect(Object.keys(response.errors).length > 0).toBe(true);
   });
+
+  it('should return the user if successfully created', async () => {
+    const email = 'tester@example.com';
+    const user = new User({
+      id: 123,
+      password: '@bcd3fGhijklmnop',
+      givenName: 'Test',
+      surName: 'Simple',
+      affiliationId: casual.url,
+      acceptedTerms: true,
+    });
+
+    // First call to Mock mysql query from findByEmail()
+    jest.spyOn(UserEmail, "findByEmail").mockResolvedValue([]);
+    // Second call to Mock mysql query from register()
+    jest.spyOn(User, "query").mockResolvedValueOnce([{ insertId: 1 }]);
+    // Third call to Mock mysql query from findById()
+    jest.spyOn(User, "findById").mockResolvedValueOnce(user);
+    // Fourth call to update the createdById and modifiedById
+    jest.spyOn(User, "query").mockResolvedValueOnce([user]);
+    // Fifth call to add the email
+    mockQuery.mockResolvedValueOnce({ email });
+    // Sixth call to fetch template collaborators
+    jest.spyOn(TemplateCollaborator, "findByEmail").mockResolvedValueOnce([]);
+    // Seventh call to fetch project collaborators
+    jest.spyOn(ProjectCollaborator, "findByEmail").mockResolvedValueOnce([]);
+
+    jest.spyOn(user, 'validatePassword').mockReturnValue(true);
+
+    const response = await user.register(context, email);
+    expect(response).not.toBeNull();
+    expect(user.validatePassword).toHaveBeenCalledTimes(1);
+  });
+
+  it('should accept all template collaboration invites', async () => {
+    const email = 'tester@example.com';
+    const user = new User({
+      id: 123,
+      password: '@bcd3fGhijklmnop',
+      givenName: 'Test',
+      surName: 'Simple',
+      affiliationId: casual.url,
+      acceptedTerms: true,
+    });
+    const mockInviteUpdate = jest.fn().mockResolvedValue(true);
+    const collabs = [new TemplateCollaborator({ email })];
+
+    // First call to Mock mysql query from findByEmail()
+    jest.spyOn(UserEmail, "findByEmail").mockResolvedValue([]);
+    // Second call to Mock mysql query from register()
+    jest.spyOn(User, "query").mockResolvedValueOnce([{ insertId: 1 }]);
+    // Third call to Mock mysql query from findById()
+    jest.spyOn(User, "findById").mockResolvedValueOnce(user);
+    // Fourth call to update the createdById and modifiedById
+    jest.spyOn(User, "query").mockResolvedValueOnce([user]);
+    // Fifth call to add the email
+    mockQuery.mockResolvedValueOnce({ email });
+    // Sixth call to fetch template collaborators
+    jest.spyOn(TemplateCollaborator, "findByEmail").mockResolvedValueOnce(collabs);
+    // Seventh call to fetch project collaborators
+    jest.spyOn(ProjectCollaborator, "findByEmail").mockResolvedValueOnce([]);
+
+    jest.spyOn(user, 'validatePassword').mockReturnValue(true);
+    jest.spyOn(collabs[0], 'update').mockImplementation(mockInviteUpdate);
+
+    const response = await user.register(context, email);
+    expect(response).not.toBeNull();
+    expect(user.validatePassword).toHaveBeenCalledTimes(1);
+    expect(mockInviteUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('should accept all project collaboration invites', async () => {
+    const email = 'tester@example.com';
+    const user = new User({
+      id: 123,
+      password: '@bcd3fGhijklmnop',
+      givenName: 'Test',
+      surName: 'Simple',
+      affiliationId: casual.url,
+      acceptedTerms: true,
+    });
+    const mockInviteUpdate = jest.fn().mockResolvedValue(true);
+    const collabs = [new ProjectCollaborator({ email })];
+
+    // First call to Mock mysql query from findByEmail()
+    jest.spyOn(UserEmail, "findByEmail").mockResolvedValue([]);
+    // Second call to Mock mysql query from register()
+    jest.spyOn(User, "query").mockResolvedValueOnce([{ insertId: 1 }]);
+    // Third call to Mock mysql query from findById()
+    jest.spyOn(User, "findById").mockResolvedValueOnce(user);
+    // Fourth call to update the createdById and modifiedById
+    jest.spyOn(User, "query").mockResolvedValueOnce([user]);
+    // Fifth call to add the email
+    mockQuery.mockResolvedValueOnce({ email });
+    // Sixth call to fetch template collaborators
+    jest.spyOn(TemplateCollaborator, "findByEmail").mockResolvedValueOnce([]);
+    // Seventh call to fetch project collaborators
+    jest.spyOn(ProjectCollaborator, "findByEmail").mockResolvedValueOnce(collabs);
+
+    jest.spyOn(user, 'validatePassword').mockReturnValue(true);
+    jest.spyOn(collabs[0], 'update').mockImplementation(mockInviteUpdate);
+
+    const response = await user.register(context, email);
+    expect(response).not.toBeNull();
+    expect(user.validatePassword).toHaveBeenCalledTimes(1);
+    expect(mockInviteUpdate).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('update', () => {
@@ -798,5 +906,153 @@ describe('findByAffiliationId', () => {
     const result = await User.findByAffiliationId('testRef', context, 'affil-2', '', options);
     expect(result.items).toEqual([]);
     expect(result.totalCount).toBe(0);
+  });
+});
+
+describe('findByEmail', () => {
+  const originalQuery = User.findById;
+  const originalEmailQuery = UserEmail.findByEmail;
+
+  let localQuery;
+  let emailQuery;
+  let context;
+  let user;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    emailQuery = jest.fn();
+    (User.findById as jest.Mock) = localQuery;
+    (UserEmail.findByEmail as jest.Mock) = emailQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      givenName: casual.first_name,
+      surName: casual.last_name,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    User.findById = originalQuery;
+    UserEmail.findByEmail = originalEmailQuery;
+  });
+
+  it('should call query with correct params and return the user', async () => {
+    const email = casual.email;
+    emailQuery.mockResolvedValueOnce([{ userId: user.id }]);
+    localQuery.mockResolvedValueOnce(user);
+    const result = await User.findByEmail('Testing', context, email);
+    expect(emailQuery).toHaveBeenCalledTimes(1);
+    expect(emailQuery).toHaveBeenLastCalledWith('Testing', context, email);
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith('Testing', context, user.id);
+    expect(result).toEqual(user);
+  });
+
+  it('should return null if it finds no users', async () => {
+    const email = casual.email;
+    emailQuery.mockResolvedValueOnce([]);
+    const result = await User.findByEmail('Testing', context, email);
+    expect(emailQuery).toHaveBeenCalledTimes(1);
+    expect(emailQuery).toHaveBeenLastCalledWith('Testing', context, email);
+    expect(localQuery).not.toHaveBeenCalled();
+    expect(result).toEqual(null);
+  });
+});
+
+describe('findById', () => {
+  const originalQuery = User.query;
+
+  let localQuery;
+  let context;
+  let user;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (User.query as jest.Mock) = localQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      givenName: casual.first_name,
+      surName: casual.last_name,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    User.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the user', async () => {
+    localQuery.mockResolvedValueOnce([user]);
+    const id = casual.integer(1, 9);
+    const result = await User.findById('Testing', context, id);
+    const expectedSql = 'SELECT * FROM users WHERE id = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Testing')
+    expect(result).toEqual(user);
+  });
+
+  it('should return null if it finds no users', async () => {
+    localQuery.mockResolvedValueOnce(null);
+    const id = casual.integer(1, 9);
+    const result = await User.findById('Testing', context, id);
+    expect(result).toEqual(null);
+  });
+});
+
+describe('findByOrcid', () => {
+  const originalQuery = User.query;
+
+  let localQuery;
+  let context;
+  let user;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (User.query as jest.Mock) = localQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    user = new User({
+      id: casual.integer(1, 9),
+      createdById: casual.integer(1, 999),
+      givenName: casual.first_name,
+      surName: casual.last_name,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    User.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the user', async () => {
+    localQuery.mockResolvedValueOnce([user]);
+    const orcid = casual.url;
+    const result = await User.findByOrcid('Testing', context, orcid);
+    const expectedSql = 'SELECT * FROM users WHERE orcid = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [orcid], 'Testing')
+    expect(result).toEqual(user);
+  });
+
+  it('should return null if it finds no users', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const orcid = casual.url;
+    const result = await User.findByOrcid('Testing', context, orcid);
+    expect(result).toEqual(null);
   });
 });

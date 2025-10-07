@@ -12,7 +12,7 @@ import { hasPermissionOnProject } from '../services/projectService';
 import { updateMemberRoles } from '../services/planService';
 import { GraphQLError } from 'graphql';
 import { Plan } from '../models/Plan';
-import { addVersion } from '../models/PlanVersion';
+import { updateVersion } from '../models/PlanVersion';
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
 
@@ -225,7 +225,10 @@ export const resolvers: Resolvers = {
                 const plans = await Plan.findByProjectId(reference, context, member.projectId);
                 for (const plan of plans) {
                   // Version all of the plans (if any) and sync with the DMPHub
-                  await addVersion(context, plan, reference);
+                  const planVersion = await updateVersion(context, plan, reference);
+                  if (!planVersion || planVersion.hasErrors()) {
+                    updated.addError("general", "Unable to version the plan");
+                  }
                 }
               }
 
@@ -268,7 +271,10 @@ export const resolvers: Resolvers = {
               const plans = await Plan.findByProjectId(reference, context, member.projectId);
               for (const plan of plans) {
                 // Version all of the plans (if any) and sync with the DMPHub
-                await addVersion(context, plan, reference);
+                const planVersion = await updateVersion(context, plan, reference);
+                if (!planVersion || planVersion.hasErrors()) {
+                  removed.addError("general", "Unable to version the plan");
+                }
               }
             }
             return removed;
@@ -341,7 +347,10 @@ export const resolvers: Resolvers = {
             }
 
             // Version the plan
-            await addVersion(context, plan, reference);
+            const planVersion = await updateVersion(context, plan, reference);
+            if (!planVersion || planVersion.hasErrors()) {
+              created.addError("general", "Unable to version the plan");
+            }
 
             return created;
           }
@@ -424,11 +433,14 @@ export const resolvers: Resolvers = {
               const plan = await Plan.findById(reference, context, planId);
               if (plan) {
                 // Version all of the plans (if any) and sync with the DMPHub
-                await addVersion(context, plan, reference);
+                const planVersion = await updateVersion(context, plan, reference);
+                if (!planVersion || planVersion.hasErrors()) {
+                  member.addError("general", "Unable to version the plan");
+                }
               }
             }
 
-            return await PlanMember.findById(reference, context, member.id);
+            return member.hasErrors() ? member : await PlanMember.findById(reference, context, member.id);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -462,7 +474,10 @@ export const resolvers: Resolvers = {
               const plan = await Plan.findById(reference, context, member.planId);
               if (plan) {
                 // Version all of the plans (if any) and sync with the DMPHub
-                addVersion(context, plan, reference);
+                const planVersion = await updateVersion(context, plan, reference);
+                if (!planVersion || planVersion.hasErrors()) {
+                  removed.addError("general", "Unable to version the plan");
+                }
               }
             }
             return removed;

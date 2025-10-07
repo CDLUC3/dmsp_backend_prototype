@@ -3,9 +3,15 @@ import { MyContext } from '../context';
 import { isNullOrUndefined, validateDate } from "../utils/helpers";
 import { getCurrentDate } from "../utils/helpers";
 import { formatISO9075, isDate } from "date-fns";
-import { PaginatedQueryResults, PaginationOptionsForCursors, PaginationOptionsForOffsets, SortDirection } from "../types/general";
+import {
+  PaginatedQueryResults,
+  PaginationOptions,
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType,
+  SortDirection
+} from "../types/general";
 import { generalConfig } from "../config/generalConfig";
-import { PaginationOptions } from "../types";
 
 type MixedArray<T> = T[];
 
@@ -199,6 +205,38 @@ export class MySqlModel {
     }
   }
 
+  // Prepare the pagination options for use in a paginated query
+  static preparePaginationOptions(options: PaginationOptions): PaginationOptions {
+    const sortFields = options?.availableSortFields ?? [];
+
+    // Determine the type of pagination being used
+    let opts;
+    const paginationOptions = {
+      ...options,
+      availableSortFields: sortFields,
+    } as PaginationOptions;
+
+    // If pagination type is cursor, cast the opts as PaginationOptionsForCursors
+    // and add the cursorField.
+    if (options.type === PaginationType.OFFSET) {
+      return paginationOptions as PaginationOptionsForOffsets;
+
+    } else {
+      opts = paginationOptions as PaginationOptionsForCursors;
+      const cursorFields = isNullOrUndefined(opts.cursorField) ? ['id'] : [opts.cursorField];
+
+      // If a sort field was provided and its in the list of available sort fields
+      if (!isNullOrUndefined(paginationOptions.sortField) && sortFields.includes(paginationOptions.sortField)) {
+        cursorFields.unshift(paginationOptions.sortField);
+      }
+
+      return {
+        ...paginationOptions,
+        cursorField: `LOWER(REPLACE(CONCAT(${cursorFields.join(', ')}), ' ', '_'))`
+      };
+    }
+  }
+
   // Execute a SQL query
   //    - apolloContext:   The Apollo server context
   //    - sqlStatement:    The SQL statement to perform e.g. `SELECT * FROM table WHERE id = ?`
@@ -215,11 +253,18 @@ export class MySqlModel {
     // The dataSource, logger and sqlStatement are required so bail if they are not provided
     if (dataSources && logger && dataSources.sqlDataSource && sqlStatement) {
       const sql = sqlStatement.split(/[\s\t\n]+/).join(' ');
-      const logMessage = `${reference}, sql: ${sql}, vals: ${values}`;
       const vals = values.map((entry) => this.prepareValue(entry, typeof (entry)));
 
       try {
-        apolloContext.logger.debug(logMessage);
+        // Mask all of the values like 'a***e' before logging
+        const maskedValues = vals.map((val) => {
+          if (typeof val === 'string' && val.length > 3) {
+            const mask = val.slice(1, val.length - 2).replace(/./g, '*');
+            return `${val[0]}${mask.slice(0, 10)}${val[val.length - 1]}`;
+          }
+          return val;
+        });
+        apolloContext.logger.debug(prepareObjectForLogs({ sql, values: maskedValues }), reference);
         const resp = await dataSources.sqlDataSource.query(apolloContext, sql, vals);
         return Array.isArray(resp) ? resp : [resp];
       } catch (err) {
@@ -255,6 +300,7 @@ export class MySqlModel {
     options: PaginationOptions,
     reference = 'undefined caller',
   ): Promise<PaginatedQueryResults<T>> {
+    const paginationOptions = this.preparePaginationOptions(options);
     try {
       // If the options contain a cursorField then this is a cursor-based query
       if (options.type === 'CURSOR') {
@@ -264,7 +310,7 @@ export class MySqlModel {
           whereFilters,
           groupByClause ?? '',
           values,
-          options as PaginationOptionsForCursors,
+          paginationOptions,
           reference
         );
 
@@ -276,7 +322,7 @@ export class MySqlModel {
           whereFilters,
           groupByClause ?? '',
           values,
-          options as PaginationOptionsForOffsets,
+          paginationOptions,
           reference
         );
       }
@@ -388,7 +434,7 @@ export class MySqlModel {
       const vals = [...values];
 
       // Add the cursor to the where clause if one is provided
-      const cursorSortDir = options.cursorSortDir ?? SortDirection.ASC;
+      const cursorSortDir = options.sortDir ?? SortDirection.ASC;
       if (!isNullOrUndefined(options.cursor)) {
         filters.push(`${options.cursorField} ${cursorSortDir === SortDirection.DESC ? '<=' : '>='} ?`);
         vals.push(options.cursor ?? '');
@@ -430,7 +476,7 @@ export class MySqlModel {
         totalCount,
         nextCursor: hasNextPage ? nextCursor : null,
         hasNextPage,
-        availableSortFields: [],
+        availableSortFields: options.availableSortFields ?? [],
       };
     } catch (err) {
       const msg = `${reference}, ERROR: ${err.message}`;

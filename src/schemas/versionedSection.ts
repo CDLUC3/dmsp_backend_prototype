@@ -80,7 +80,7 @@ export const typeDefs = gql`
   }
 
   type VersionedSectionSearchResults implements PaginatedQueryResults {
-    "The TemplateSearchResults that match the search criteria"
+    "The SectionSearchResults that match the search criteria"
     items: [VersionedSectionSearchResult]
     "The total number of possible items"
     totalCount: Int

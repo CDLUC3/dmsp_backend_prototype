@@ -3,10 +3,14 @@ import { MySqlModel } from "../MySqlModel";
 import { buildMockContextWithToken } from '../../__mocks__/context';
 import { getCurrentDate } from '../../utils/helpers';
 import { generalConfig } from '../../config/generalConfig';
-import { PaginationOptionsForCursors, PaginationOptionsForOffsets } from '../../types/general';
+import {
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType
+} from '../../types/general';
 import { logger } from "../../logger";
 
-jest.mock('../../dataSources/mysql', () => {
+jest.mock('../../datasources/mysql', () => {
   return {
     __esModule: true,
     MySQLConnection: {
@@ -294,6 +298,72 @@ describe('MySqlModel abstract class', () => {
   });
 });
 
+describe('preparePaginationOptions', () => {
+  it('returns offset pagination options when type is OFFSET', () => {
+    const options = {
+      type: PaginationType.OFFSET,
+      limit: 10,
+      offset: 0,
+      sortField: 'id',
+      sortDir: 'ASC',
+      availableSortFields: ['id', 'name']
+    };
+
+    const result = MySqlModel.preparePaginationOptions(options);
+    expect(result).toEqual(options);
+  });
+
+  it('returns cursor pagination options with default cursor field when no cursor field is provided', () => {
+    const options = {
+      type: PaginationType.CURSOR,
+      limit: 10,
+      sortField: 'name',
+      sortDir: 'ASC',
+      availableSortFields: ['id', 'name']
+    };
+
+    const result = MySqlModel.preparePaginationOptions(options);
+    expect(result).toEqual({
+      ...options,
+      cursorField: 'LOWER(REPLACE(CONCAT(name, id), \' \', \'_\'))'
+    });
+  });
+
+  it('returns cursor pagination options with custom cursor field when provided', () => {
+    const options = {
+      type: PaginationType.CURSOR,
+      limit: 10,
+      cursorField: 'custom_field',
+      sortField: 'name',
+      sortDir: 'ASC',
+      availableSortFields: ['id', 'name']
+    };
+
+    const result = MySqlModel.preparePaginationOptions(options);
+    expect(result).toEqual({
+      ...options,
+      cursorField: 'LOWER(REPLACE(CONCAT(name, custom_field), \' \', \'_\'))'
+    });
+  });
+
+  it('handles undefined availableSortFields', () => {
+    const options = {
+      type: PaginationType.CURSOR,
+      limit: 10,
+      cursorField: 'custom_field',
+      sortField: 'name',
+      sortDir: 'ASC'
+    };
+
+    const result = MySqlModel.preparePaginationOptions(options);
+    expect(result).toEqual({
+      ...options,
+      availableSortFields: [],
+      cursorField: 'LOWER(REPLACE(CONCAT(custom_field), \' \', \'_\'))'
+    });
+  });
+});
+
 describe('prepareValue', () => {
   it('can handle a string', () => {
     const val = 'test';
@@ -389,7 +459,7 @@ describe('query function', () => {
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql, ['1'], 'Testing');
     expect(context.logger.debug).toHaveBeenCalledTimes(1);
-    expect(context.logger.debug).toHaveBeenCalledWith(`Testing, sql: ${sql}, vals: 1`);
+    expect(context.logger.debug).toHaveBeenCalledWith({ sql, values: ["1"] }, "Testing");
     expect(result).toEqual(['test']);
   });
 
@@ -398,7 +468,7 @@ describe('query function', () => {
     const sql = 'SELECT * FROM tests WHERE field = ?';
     const result = await MySqlModel.query(context, sql,);
     expect(context.logger.debug).toHaveBeenCalledTimes(1);
-    expect(context.logger.debug).toHaveBeenCalledWith(`undefined caller, sql: ${sql}, vals: `);
+    expect(context.logger.debug).toHaveBeenCalledWith({ sql, values: [] }, "undefined caller");
     expect(result).toEqual([]);
   });
 
@@ -409,7 +479,7 @@ describe('query function', () => {
     const result = await MySqlModel.query(context, sql, ['123'], 'testing failure');
     expect(context.logger.debug).toHaveBeenCalledTimes(1);
     expect(context.logger.error).toHaveBeenCalledTimes(1);
-    expect(context.logger.debug).toHaveBeenCalledWith(`testing failure, sql: ${sql}, vals: 123`);
+    expect(context.logger.debug).toHaveBeenCalledWith({ sql, values: ["123"] }, "testing failure");
     expect(context.logger.error).toHaveBeenCalledWith({}, "testing failure, ERROR: Testing error handler");
     expect(result).toEqual([]);
   });
@@ -459,7 +529,7 @@ describe('queryWithPagination', () => {
     const groupByClause = 'GROUP BY field';
     const values = ['value'];
     const options = {
-      type: 'CURSOR',
+      type: PaginationType.CURSOR,
       cursorField: 'id',
       limit: 10,
       cursor: '5',
@@ -488,7 +558,11 @@ describe('queryWithPagination', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      {
+        ...options,
+        availableSortFields: [],
+        cursorField: 'LOWER(REPLACE(CONCAT(id), \' \', \'_\'))'
+      },
       reference
     );
     expect(result).toEqual(mockResponse);
@@ -500,6 +574,7 @@ describe('queryWithPagination', () => {
     const groupByClause = 'GROUP BY field';
     const values = ['value'];
     const options = {
+      type: PaginationType.OFFSET,
       limit: 10,
       offset: 0,
       sortField: 'id',
@@ -527,7 +602,10 @@ describe('queryWithPagination', () => {
       whereFilters,
       groupByClause,
       values,
-      options,
+      {
+        ...options,
+        availableSortFields: []
+      },
       reference
     );
     expect(result).toEqual(mockResponse);
@@ -539,10 +617,13 @@ describe('queryWithPagination', () => {
     const groupByClause = 'GROUP BY field';
     const values = ['value'];
     const options = {
+      type: PaginationType.OFFSET,
       limit: 10,
       offset: 0,
       sortField: 'id',
       sortDir: 'ASC',
+      cursorField: 'id',
+      availableSortFields: ['id', 'name'],
     };
     const reference = 'Testing';
 

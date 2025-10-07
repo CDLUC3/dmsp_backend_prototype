@@ -66,28 +66,23 @@ export class TemplateSearchResult {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
-    // Determine the type of pagination being used
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 't.modified';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
+
+    // Specify the fields available for sorting
+    options.availableSortFields = ['t.name', 't.created', 't.latestPublishVisibility', 't.bestPractice', 't.latestPublishDate'];
+    // Specify the field we want to use for the count
+    options.countField = 't.id';
+
+    // Determine the type of pagination we are using and then set any additional options we need
     let opts;
     if (options.type === PaginationType.OFFSET) {
-      opts = {
-        ...options,
-        // Specify the fields available for sorting
-        availableSortFields: ['t.name', 't.created', 't.latestPublishVisibility', 't.bestPractice', 't.latestPublishDate'],
-      } as PaginationOptionsForOffsets;
+      opts = options as PaginationOptionsForOffsets;
     } else {
-      opts = {
-        ...options,
-        // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(t.modified, t.id), \' \', \'_\'))',
-      } as PaginationOptionsForCursors;
+      opts = options as PaginationOptionsForCursors;
+      opts.cursorField = 't.id';
     }
-
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(opts.sortField)) opts.sortField = 't.modified';
-    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
-
-    // Specify the field we want to use for the count
-    opts.countField = 't.id';
 
     const sqlStatement = 'SELECT t.id, t.name, t.description, t.latestPublishVisibility, t.bestPractice, t.isDirty, ' +
                                 't.latestPublishVersion, t.latestPublishDate, t.ownerId, a.displayName, ' +

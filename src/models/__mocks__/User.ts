@@ -4,6 +4,7 @@ import { isNullOrUndefined } from "../../utils/helpers";
 import { User, UserRole } from "../User";
 import { MyContext } from "../../context";
 import { getMockROR, getRandomEnumValue } from "../../__tests__/helpers";
+import {prepareObjectForLogs} from "../../logger";
 
 // Store for all mock/test Users that were persisted to the DB
 const addedUserIds: number[] = [];
@@ -49,9 +50,9 @@ export const persistUser = async (
       addedUserIds.push(created.id);
       return created;
     }
-    console.error(`Unable to persist user: ${email}`);
+    console.error(prepareObjectForLogs({ errors: user.errors }), "Unable to persist user");
   } catch (e) {
-    console.error(`Error persisting user ${email}: ${e.message}`);
+    console.error("Error persisting user");
   }
   return null;
 }
