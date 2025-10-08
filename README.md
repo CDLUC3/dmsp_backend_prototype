@@ -32,9 +32,10 @@
     - [Conect to ECS instance](#connect-to-ecs-instance)
 - [Environment variables](#environment-variables)
 - [Routes](#routes)
-- [Contributing](#contributing)
-- [Contributors](#contributors)
 - [License](#license)
+- [Contributing Guidelines](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Changelog](CHANGELOG.md)
 
 ## Introduction
 
@@ -617,19 +618,6 @@ If you are running elsewhere, you will need to either make a copy of the `.env.e
 - `/apollo-authenticate` - OAuth2 endpoint to authenticate an external system and receive an access token
 - `/apollo-authorize` - OAuth2 endpoint to allow a user to authorize the external system to access their data. Returns a short lived authorization code
 - `apollo-token` - OAuth2 endpoint to exchange an authorization code for a long lived access token
-
-## Contributing
-
-1. Clone this repo
-2. Create a new branch prefixing branch with `bug`, `chore` or `feature` based on type of update: `git checkout -b feature/your-feature`
-3. Add your changes and add commit message: `git add .; git commit -m "added new feature`. A pre-commit is run with the commit which checks to make sure linting and test coverage pass before a commit goes through
-4. Push your branch up to this repo: `git push --set-upstream origin feature/your-feature`
-5. Open a Pull Request in github
-
-## Contributors
-
-- [Brian Riley](https://github.com/briri)
-- [Juliet Shin](https://github.com/jupiter007)
 
 ## License
 
