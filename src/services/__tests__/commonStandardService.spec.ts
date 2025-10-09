@@ -551,7 +551,7 @@ describe('commonStandardService', () => {
             identifier: doi,
             type: DMPIdentifierType.DOI,
             descriptor: DMPRelatedIdentifierDescriptor.CITES,
-            work_type: work.workVersion.type.toLowerCase(),
+            work_type: work.workVersion.workType.toLowerCase(),
             title: work.workVersion.title,
             published_date: work.workVersion.publishedDate,
             authors: work.workVersion.authors.map(author => ({

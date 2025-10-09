@@ -98,7 +98,6 @@ export const resolvers: Resolvers = {
             if (project && (await hasPermissionOnProject(context, project))) {
               // Fetch or create work
               let work = await Work.findByDoi(reference, context, input.doi);
-
               if (!work) {
                 work = new Work({ doi: input.doi });
                 work = await work.create(context);
@@ -112,6 +111,10 @@ export const resolvers: Resolvers = {
                 workVersion = new WorkVersion(options);
                 workVersion.workId = work.id;
                 workVersion = await workVersion.create(context, work.doi);
+              }
+              if (isNullOrUndefined(workVersion) || workVersion.hasErrors())
+              {
+                throw InternalServerError('Unable to create or find workVersion');
               }
 
               // Create related work

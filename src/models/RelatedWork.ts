@@ -21,11 +21,12 @@ import {
 import { prepareObjectForLogs } from '../logger';
 import { Plan } from './Plan';
 
+
 export class Work extends MySqlModel {
   public id: number;
   public doi: string;
 
-  private tableName = 'works';
+  private static tableName = 'works';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -41,11 +42,8 @@ export class Work extends MySqlModel {
   }
 
   prepForSave(): void {
-    // Trim, lowercase and Strip URL prefix.
-    this.doi = this.doi
-      ?.trim()
-      .toLowerCase()
-      .replace(/^https?:\/\/[^/]+\/?/, '');
+    // Only store the DOI identifier not full URL
+    this.doi = parseDOI(this.doi);
   }
 
   async create(context: MyContext): Promise<Work> {
@@ -61,7 +59,7 @@ export class Work extends MySqlModel {
         this.addError('general', 'Work already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await Work.insert(context, this.tableName, this, reference);
+        const newId = await Work.insert(context, Work.tableName, this, reference);
         return await Work.findById(reference, context, newId);
       }
     }
@@ -75,7 +73,7 @@ export class Work extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await Work.update(context, this.tableName, this, 'Work.update', [], noTouch);
+        await Work.update(context, Work.tableName, this, 'Work.update', [], noTouch);
         return await Work.findById('Work.update', context, id);
       }
       this.addError('general', 'Work has never been saved');
@@ -87,7 +85,7 @@ export class Work extends MySqlModel {
     if (this.id) {
       const deleted = await Work.findById('Work.delete', context, this.id);
 
-      const successfullyDeleted = await Work.delete(context, this.tableName, this.id, 'Work.delete');
+      const successfullyDeleted = await Work.delete(context, Work.tableName, this.id, 'Work.delete');
       if (successfullyDeleted) {
         return deleted;
       } else {
@@ -112,14 +110,33 @@ export class Work extends MySqlModel {
   }
 }
 
+export const parseDOI = (doi: string | undefined | null): string =>  {
+  if (isNullOrUndefined(doi)) return null;
+
+  const trimmed = doi.trim();
+
+  try {
+    // Parse URL, get pathname and decode
+    const url = new URL(trimmed);
+    return decodeURIComponent(url.pathname.slice(1)).toLowerCase();
+  } catch (error) {
+    // Non URL based DOI
+    try {
+      return decodeURIComponent(trimmed).toLowerCase();
+    } catch (e) {
+      return trimmed.toLowerCase();
+    }
+  }
+}
+
 export class WorkVersion extends MySqlModel {
   public id: number;
   public workId: number;
   public hash: Buffer;
-  public type: WorkType;
+  public workType: WorkType;
   public publishedDate: string;
   public title: string;
-  public abstract: string;
+  public abstractText: string;
   public authors: Author[];
   public institutions: Institution[];
   public funders: Funder[];
@@ -128,16 +145,16 @@ export class WorkVersion extends MySqlModel {
   public sourceName: string;
   public sourceUrl: string;
 
-  private tableName = 'workVersions';
+  private static tableName = 'workVersions';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
     this.workId = options.workId;
     this.hash = options.hash;
-    this.type = options.type;
+    this.workType = options.workType;
     this.publishedDate = options.publishedDate;
     this.title = options.title;
-    this.abstract = options.abstract;
+    this.abstractText = options.abstractText;
     this.authors = options.authors;
     this.institutions = options.institutions;
     this.funders = options.funders;
@@ -152,7 +169,7 @@ export class WorkVersion extends MySqlModel {
 
     if (isNullOrUndefined(this.workId)) this.addError('workId', "Work ID can't be blank");
     if (isNullOrUndefined(this.hash)) this.addError('hash', "Hash can't be blank");
-    if (isNullOrUndefined(this.type) || valueIsEmpty(this.type)) this.addError('type', "Type can't be blank");
+    if (isNullOrUndefined(this.workType) || valueIsEmpty(this.workType)) this.addError('workType', "Work type can't be blank");
     if (!this.authors) this.addError('authors', "Authors can't be blank");
     if (!this.institutions) this.addError('institutions', "Institutions can't be blank");
     if (!this.funders) this.addError('funders', "Funders can't be blank");
@@ -177,7 +194,7 @@ export class WorkVersion extends MySqlModel {
         this.addError('general', 'Work version already exists');
       } else {
         // Save the record and then fetch it
-        const newId = await WorkVersion.insert(context, this.tableName, this, reference);
+        const newId = await WorkVersion.insert(context, WorkVersion.tableName, this, reference);
         return await WorkVersion.findById(reference, context, newId);
       }
     }
@@ -191,7 +208,7 @@ export class WorkVersion extends MySqlModel {
 
     if (await this.isValid()) {
       if (id) {
-        await WorkVersion.update(context, this.tableName, this, 'WorkVersion.update', [], noTouch);
+        await WorkVersion.update(context, WorkVersion.tableName, this, 'WorkVersion.update', [], noTouch);
         return await WorkVersion.findById('WorkVersion.update', context, id);
       }
       this.addError('general', 'WorkVersion has never been saved');
@@ -203,7 +220,7 @@ export class WorkVersion extends MySqlModel {
     if (this.id) {
       const deleted = await WorkVersion.findById('WorkVersion.delete', context, this.id);
 
-      const successfullyDeleted = await WorkVersion.delete(context, this.tableName, this.id, 'WorkVersion.delete');
+      const successfullyDeleted = await WorkVersion.delete(context, WorkVersion.tableName, this.id, 'WorkVersion.delete');
       if (successfullyDeleted) {
         return deleted;
       } else {
@@ -286,7 +303,6 @@ export class RelatedWork extends MySqlModel {
     if (await this.isValid()) {
       // Check that work version exists
       const workVersion = await WorkVersion.findById(reference, context, this.workVersionId);
-      console.log(`workVersion: ${workVersion}`);
       if (!workVersion) {
         this.addError('workVersion', 'Work version does not exist');
       }
@@ -382,10 +398,10 @@ export class RelatedWorkSearchResult extends MySqlModel {
       modifiedById: number;
     };
     hash: Buffer;
-    type: WorkType;
+    workType: WorkType;
     publishedDate: string;
     title: string;
-    abstract: string;
+    abstractText: string;
     authors: Author[];
     institutions: Institution[];
     funders: Funder[];
@@ -410,7 +426,6 @@ export class RelatedWorkSearchResult extends MySqlModel {
   public funderMatches: ItemMatch[];
   public awardMatches: ItemMatch[];
 
-  private static tableName = 'relatedWorks';
   public static sqlStatement =
     `SELECT ` + // requires 'SELECT ' for cursor pagination to work
     `rw.id,
@@ -422,11 +437,11 @@ export class RelatedWorkSearchResult extends MySqlModel {
          'doi', w.doi,
          'created', w.created,
          'createdById', w.createdById,
-         'modifiedBy', w.modified,
+         'modified', w.modified,
          'modifiedById', w.modifiedById
        ),
        'hash', wv.hash,
-       'type', wv.type,
+       'workType', wv.workType,
        'publishedDate', wv.publishedDate,
        'title', wv.title,
        'authors', wv.authors,
@@ -549,9 +564,9 @@ export class RelatedWorkSearchResult extends MySqlModel {
       );
       values.push(filterOptions.confidence);
     }
-    if (!isNullOrUndefined(filterOptions.type)) {
-      whereFilters.push('wv.type = ?');
-      values.push(filterOptions.type);
+    if (!isNullOrUndefined(filterOptions.workType)) {
+      whereFilters.push('wv.workType = ?');
+      values.push(filterOptions.workType);
     }
     if (!isNullOrUndefined(filterOptions.status)) {
       whereFilters.push('rw.status = ?');

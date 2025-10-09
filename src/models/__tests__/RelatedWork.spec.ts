@@ -1,6 +1,6 @@
 import casual from "casual";
 import { buildMockContextWithToken } from "../../__mocks__/context";
-import { RelatedWork, RelatedWorkSearchResult, Work, WorkVersion } from "../RelatedWork";
+import { RelatedWork, RelatedWorkSearchResult, Work, WorkVersion, parseDOI } from "../RelatedWork";
 import { logger } from "../../logger";
 import { Plan } from "../Plan";
 import {
@@ -31,6 +31,29 @@ describe("Work", () => {
 
   beforeEach(async () => {
     work = new Work(workData);
+  });
+
+  it("should parse DOIs correctly", () => {
+    const examples = [
+      ["https://doi.org/10.11/JOURNAL.v12.i4.p33-45?abc=123", "10.11/journal.v12.i4.p33-45"],
+      ["https://dx.doi.org/10.3333/nature.2025.1a", "10.3333/nature.2025.1a"],
+      ["10.3333/pnas.110.10107", "10.3333/pnas.110.10107"],
+      ["10.80000/1061-4036(1996)017<0023:MM>2.0.CO;2-I", "10.80000/1061-4036(1996)017<0023:mm>2.0.co;2-i"],
+      ["https://doi.org/10.11/ENTRY%2Fitem%201", "10.11/entry/item 1"],
+      ["http://dx.doi.org/10.3333/dataset[v2]+results", "10.3333/dataset[v2]+results"],
+      ["https://dx.doi.org/10.80000/chapter%234%3Cmain%3E", '10.80000/chapter#4<main>'],
+      ["http://doi.org/10.11/a%22quoted%22{section}", '10.11/a"quoted"{section}'],
+      [" https://doi.crossref.org/10.3333/formula^x%7Cy ", "10.3333/formula^x|y"],
+      ["https://doi.org/10.80000/codeexample+path%5Cfile", "10.80000/codeexample+path\\file"],
+      ["https://dx.doi.org/10.11/complex%2Fpath%23id%20%25", "10.11/complex/path#id %"],
+      ["10.11/review<draft>%20V1", "10.11/review<draft> v1"],
+      ["10.3333/archive[2025]%5Cbackup", "10.3333/archive[2025]\\backup"]
+    ];
+
+    for (const [text, actual] of examples) {
+      console.log(text);
+      expect(parseDOI(text)).toEqual(actual);
+    }
   });
 
   it("should initialize options as expected", () => {
@@ -265,10 +288,10 @@ describe("WorkVersion", () => {
   it("should initialize options as expected", () => {
     expect(workVersion.workId).toEqual(workVersionData.workId);
     expect(workVersion.hash).toEqual(workVersionData.hash);
-    expect(workVersion.type).toEqual(workVersionData.type);
+    expect(workVersion.workType).toEqual(workVersionData.workType);
     expect(workVersion.publishedDate).toEqual(workVersionData.publishedDate);
     expect(workVersion.title).toEqual(workVersionData.title);
-    expect(workVersion.abstract).toEqual(workVersionData.abstract);
+    expect(workVersion.abstractText).toEqual(workVersionData.abstractText);
     expect(workVersion.authors).toEqual(workVersionData.authors);
     expect(workVersion.institutions).toEqual(workVersionData.institutions);
     expect(workVersion.funders).toEqual(workVersionData.funders);
@@ -285,7 +308,7 @@ describe("WorkVersion", () => {
   for (const field of [
     "workId",
     "hash",
-    "type",
+    "workType",
     "authors",
     "institutions",
     "funders",

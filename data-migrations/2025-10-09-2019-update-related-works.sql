@@ -7,8 +7,9 @@ ALTER TABLE `works`
 ALTER TABLE `workVersions`
   ADD COLUMN `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   ADD COLUMN `modifiedById` INT NULL,
-  MODIFY COLUMN `sourceName` VARCHAR(255) NULL,
-  MODIFY COLUMN `sourceUrl` VARCHAR(255) NULL;
+  MODIFY COLUMN `sourceUrl` VARCHAR(255) NULL,
+  RENAME COLUMN abstract TO abstractText,
+  RENAME COLUMN type TO workType;
 
 ALTER TABLE `relatedWorks`
   ADD COLUMN `scoreMax` FLOAT NOT NULL,
@@ -32,10 +33,10 @@ BEGIN
   (
     `doi`              VARCHAR(255) NOT NULL PRIMARY KEY,
     `hash`             BINARY(16)   NOT NULL,
-    `type`             VARCHAR(255) NOT NULL,
+    `workType`         VARCHAR(255) NOT NULL,
     `publishedDate`    DATE         NULL,
     `title`            TEXT         NULL,
-    `abstract`         TEXT         NULL,
+    `abstractText`         TEXT         NULL,
     `authors`          JSON         NOT NULL,
     `institutions`     JSON         NOT NULL,
     `funders`          JSON         NOT NULL,
@@ -93,16 +94,16 @@ SELECT doi
 FROM stagingWorkVersions;
 
 -- workVersions: insert new work versions
-INSERT IGNORE INTO workVersions (workId, hash, type, publishedDate, title,
-                                   abstract, authors, institutions, funders,
+INSERT IGNORE INTO workVersions (workId, hash, workType, publishedDate, title,
+                                   abstractText, authors, institutions, funders,
                                    awards, publicationVenue, sourceName,
                                    sourceUrl)
 SELECT w.id,
        s.hash,
-       s.type,
+       s.workType,
        s.publishedDate,
        s.title,
-       s.abstract,
+       s.abstractText,
        s.authors,
        s.institutions,
        s.funders,
@@ -181,7 +182,7 @@ UPDATE relatedWorks r
     r.funderMatches      = s.funderMatches,
     r.awardMatches       = s.awardMatches
 
-WHERE r.status = 'pending'
+WHERE r.status = 'PENDING'
   AND (
   r.workVersionId <> links.workVersionId
    OR NOT (r.score <=> s.score)
@@ -200,7 +201,7 @@ DELETE r
          LEFT JOIN resolvedStagingLinks links ON r.planId = links.planId AND
                                                  r.workVersionId =
                                                  links.workVersionId
-  WHERE r.status = 'pending'
+  WHERE r.status = 'PENDING'
     AND links.id IS NULL;
 
   -- workVersions: delete those that have no remaining relatedWorks

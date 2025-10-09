@@ -144,7 +144,7 @@ export type AddQuestionInput = {
 
 export type AddRelatedWorkInput = {
   /** The abstract of the work */
-  abstract?: InputMaybe<Scalars['String']['input']>;
+  abstractText?: InputMaybe<Scalars['String']['input']>;
   /** The authors of the work */
   authors: Array<AuthorInput>;
   /** The awards that funded the work */
@@ -170,7 +170,7 @@ export type AddRelatedWorkInput = {
   /** The title of the work */
   title?: InputMaybe<Scalars['String']['input']>;
   /** The type of the work */
-  type: WorkType;
+  workType: WorkType;
 };
 
 export type AddRepositoryInput = {
@@ -3087,7 +3087,7 @@ export type RelatedWorksFilterOptions = {
   /** Filter results by the related work status */
   status?: InputMaybe<RelatedWorkStatus>;
   /** The type of work to filter by */
-  type?: InputMaybe<WorkType>;
+  workType?: InputMaybe<WorkType>;
 };
 
 /** The results of reordering the questions */
@@ -4234,6 +4234,8 @@ export type WorkType =
   | 'PEER_REVIEW'
   | 'PHYSICAL_OBJECT'
   | 'PREPRINT'
+  | 'PRE_REGISTRATION'
+  | 'PROTOCOL'
   | 'REFERENCE_ENTRY'
   | 'REPORT'
   | 'RETRACTION'
@@ -4244,6 +4246,7 @@ export type WorkType =
   | 'STANDARD'
   | 'SUPPLEMENTARY_MATERIALS'
   | 'TEXT'
+  | 'TRADITIONAL_KNOWLEDGE'
   | 'WORKFLOW';
 
 export type WorkVersion = {
@@ -4278,10 +4281,10 @@ export type WorkVersion = {
   sourceUrl?: Maybe<Scalars['String']['output']>;
   /** The title of the work */
   title?: Maybe<Scalars['String']['output']>;
-  /** The type of the work */
-  type?: Maybe<WorkType>;
   /** The work */
   work?: Maybe<Work>;
+  /** The type of the work */
+  workType?: Maybe<WorkType>;
 };
 
 
@@ -6345,8 +6348,8 @@ export type WorkVersionResolvers<ContextType = MyContext, ParentType extends Res
   sourceName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sourceUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  type?: Resolver<Maybe<ResolversTypes['WorkType']>, ParentType, ContextType>;
   work?: Resolver<Maybe<ResolversTypes['Work']>, ParentType, ContextType>;
+  workType?: Resolver<Maybe<ResolversTypes['WorkType']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 

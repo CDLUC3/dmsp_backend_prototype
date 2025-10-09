@@ -17,14 +17,11 @@ export const typeDefs = gql`
     ): RelatedWorkSearchResults
   }
 
-  "Related work search filter options"
-  input RelatedWorksFilterOptions {
-    "Filter results by the related work status"
-    status: RelatedWorkStatus
-    "The confidence of the match"
-    confidence: RelatedWorkConfidence
-    "The type of work to filter by"
-    type: WorkType
+  extend type Mutation {
+    "Add a related work"
+    addRelatedWork(input: AddRelatedWorkInput!): RelatedWorkSearchResult
+    "Update the status of a related work"
+    updateRelatedWorkStatus(input: UpdateRelatedWorkStatusInput!): RelatedWorkSearchResult
   }
 
   type RelatedWorkSearchResults implements PaginatedQueryResults {
@@ -87,12 +84,6 @@ export const typeDefs = gql`
     modifiedById: Int
   }
 
-  "The origin of the related work entry"
-  enum RelatedWorkSourceType {
-    USER_ADDED
-    SYSTEM_MATCHED
-  }
-
   type WorkVersion {
     "The unique identifier for the Object"
     id: Int
@@ -101,7 +92,7 @@ export const typeDefs = gql`
     "A hash of the content of this version of a work"
     hash: MD5
     "The type of the work"
-    type: WorkType
+    workType: WorkType
     "The date that the work was published YYYY-MM-DD"
     publishedDate: String
     "The title of the work"
@@ -145,43 +136,6 @@ export const typeDefs = gql`
     modifiedById: Int
   }
 
-  "The type of work"
-  enum WorkType {
-    ARTICLE
-    AUDIO_VISUAL
-    BOOK
-    BOOK_CHAPTER
-    COLLECTION
-    DATA_PAPER
-    DATASET
-    DISSERTATION
-    EDITORIAL
-    ERRATUM
-    EVENT
-    GRANT
-    IMAGE
-    INTERACTIVE_RESOURCE
-    LETTER
-    LIBGUIDES
-    MODEL
-    OTHER
-    PARATEXT
-    PEER_REVIEW
-    PHYSICAL_OBJECT
-    PREPRINT
-    REFERENCE_ENTRY
-    REPORT
-    RETRACTION
-    REVIEW
-    SERVICE
-    SOFTWARE
-    SOUND
-    STANDARD
-    SUPPLEMENTARY_MATERIALS
-    TEXT
-    WORKFLOW
-  }
-
   "An award that funded a work"
   type Award {
     "The Award ID"
@@ -222,26 +176,6 @@ export const typeDefs = gql`
     ror: String
   }
 
-  "The confidence of the related work match"
-  enum RelatedWorkConfidence {
-    "High confidence"
-    HIGH
-    "Medium confidence"
-    MEDIUM
-    "Low confidence"
-    LOW
-  }
-
-  "The status of the related work"
-  enum RelatedWorkStatus {
-    "The related work is pending assessment by a user"
-    PENDING
-    "The related work has been marked as related to a plan by a user"
-    ACCEPTED
-    "The related work has been marked as not related to a plan by a user"
-    REJECTED
-  }
-
   type DoiMatch {
     "Indicates whether the work's DOI was found on a funder award page associated with the plan"
     found: Boolean!
@@ -278,11 +212,118 @@ export const typeDefs = gql`
     fields: [String!]
   }
 
-  extend type Mutation {
-    "Add a related work"
-    addRelatedWork(input: AddRelatedWorkInput!): RelatedWorkSearchResult
-    "Update the status of a related work"
-    updateRelatedWorkStatus(input: UpdateRelatedWorkStatusInput!): RelatedWorkSearchResult
+  "The origin of the related work entry"
+  enum RelatedWorkSourceType {
+    USER_ADDED
+    SYSTEM_MATCHED
+  }
+
+  "The type of work"
+  enum WorkType {
+    ARTICLE
+    AUDIO_VISUAL
+    BOOK
+    BOOK_CHAPTER
+    COLLECTION
+    DATASET
+    DATA_PAPER
+    DISSERTATION
+    EDITORIAL
+    ERRATUM
+    EVENT
+    GRANT
+    IMAGE
+    INTERACTIVE_RESOURCE
+    LETTER
+    LIBGUIDES
+    MODEL
+    OTHER
+    PARATEXT
+    PEER_REVIEW
+    PHYSICAL_OBJECT
+    PREPRINT
+    PRE_REGISTRATION
+    PROTOCOL
+    REFERENCE_ENTRY
+    REPORT
+    RETRACTION
+    REVIEW
+    SERVICE
+    SOFTWARE
+    SOUND
+    STANDARD
+    SUPPLEMENTARY_MATERIALS
+    TEXT
+    TRADITIONAL_KNOWLEDGE
+    WORKFLOW
+  }
+
+  "The confidence of the related work match"
+  enum RelatedWorkConfidence {
+    "High confidence"
+    HIGH
+    "Medium confidence"
+    MEDIUM
+    "Low confidence"
+    LOW
+  }
+
+  "The status of the related work"
+  enum RelatedWorkStatus {
+    "The related work is pending assessment by a user"
+    PENDING
+    "The related work has been marked as related to a plan by a user"
+    ACCEPTED
+    "The related work has been marked as not related to a plan by a user"
+    REJECTED
+  }
+
+  "Related work search filter options"
+  input RelatedWorksFilterOptions {
+    "Filter results by the related work status"
+    status: RelatedWorkStatus
+    "The confidence of the match"
+    confidence: RelatedWorkConfidence
+    "The type of work to filter by"
+    workType: WorkType
+  }
+
+  input AddRelatedWorkInput {
+    "The unique identifier of the plan that this related work has been matched to"
+    planId: Int
+    "The Digital Object Identifier (DOI) of the work"
+    doi: String!
+    "A hash of the content of this version of a work"
+    hash: MD5!
+    "The type of the work"
+    workType: WorkType!
+    "The date that the work was published YYYY-MM-DD"
+    publishedDate: String
+    "The title of the work"
+    title: String
+    "The abstract of the work"
+    abstractText: String
+    "The authors of the work"
+    authors: [AuthorInput!]!
+    "The unique institutions of the authors of the work"
+    institutions: [InstitutionInput!]!
+    "The funders of the work"
+    funders: [FunderInput!]!
+    "The awards that funded the work"
+    awards: [AwardInput!]!
+    "The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc"
+    publicationVenue: String
+    "The name of the source where the work was found"
+    sourceName: String!
+    "The URL for the source of the work"
+    sourceUrl: String!
+  }
+
+  input UpdateRelatedWorkStatusInput {
+    "The related work ID"
+    id: Int!
+    "The status of the related work"
+    status: RelatedWorkStatus
   }
 
   "An award that funded a work"
@@ -323,43 +364,5 @@ export const typeDefs = gql`
     name: String
     "The ROR ID of the funder"
     ror: String
-  }
-
-  input AddRelatedWorkInput {
-    "The unique identifier of the plan that this related work has been matched to"
-    planId: Int
-    "The Digital Object Identifier (DOI) of the work"
-    doi: String!
-    "A hash of the content of this version of a work"
-    hash: MD5!
-    "The type of the work"
-    type: WorkType!
-    "The date that the work was published YYYY-MM-DD"
-    publishedDate: String
-    "The title of the work"
-    title: String
-    "The abstract of the work"
-    abstract: String
-    "The authors of the work"
-    authors: [AuthorInput!]!
-    "The unique institutions of the authors of the work"
-    institutions: [InstitutionInput!]!
-    "The funders of the work"
-    funders: [FunderInput!]!
-    "The awards that funded the work"
-    awards: [AwardInput!]!
-    "The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc"
-    publicationVenue: String
-    "The name of the source where the work was found"
-    sourceName: String!
-    "The URL for the source of the work"
-    sourceUrl: String!
-  }
-
-  input UpdateRelatedWorkStatusInput {
-    "The related work ID"
-    id: Int!
-    "The status of the related work"
-    status: RelatedWorkStatus
   }
 `;

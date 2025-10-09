@@ -24,10 +24,10 @@ interface RelatedWork {
 interface WorkVersion {
   doi: string;
   hash: Buffer;
-  type: string;
+  workType: string;
   publishedDate: string | null;
   title: string | null;
-  abstract: string | null;
+  abstractText: string | null;
   authors: Author[];
   institutions: Institution[];
   funders: Funder[];
@@ -66,14 +66,14 @@ export async function insertWorkVersions(connection: Connection, data: WorkVersi
     return;
   }
   const sql =
-    "INSERT INTO stagingWorkVersions (doi, hash, type, publishedDate, title, abstract, authors, institutions, funders, awards, publicationVenue, sourceName, sourceUrl) VALUES ?";
+    "INSERT INTO stagingWorkVersions (doi, hash, workType, publishedDate, title, abstractText, authors, institutions, funders, awards, publicationVenue, sourceName, sourceUrl) VALUES ?";
   const values = data.map((item) => [
     item.doi,
     item.hash,
-    item.type,
+    item.workType,
     item.publishedDate,
     item.title,
-    item.abstract,
+    item.abstractText,
     JSON.stringify(item.authors),
     JSON.stringify(item.institutions),
     JSON.stringify(item.funders),
@@ -192,10 +192,10 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -222,10 +222,10 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[1],
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
-        type: "ARTICLE",
+        workType: "ARTICLE",
         publishedDate: "2025-02-01",
         title: "Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -482,10 +482,10 @@ describe("Related Works Tables", () => {
         id: expect.any(Number), // 👈 auto-increment id
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -513,10 +513,10 @@ describe("Related Works Tables", () => {
         id: expect.any(Number), // 👈 auto-increment id
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
-        type: "ARTICLE",
+        workType: "ARTICLE",
         publishedDate: expect.any(Date),
         title: "Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -580,10 +580,10 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -610,10 +610,10 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[1],
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"), // Hash changed
-        type: "DATASET", // Type changed
+        workType: "DATASET", // Type changed
         publishedDate: "2025-02-02", // Date changed
         title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study", // Title changed
-        abstract: "An abstract abstract", // Abstract changed
+        abstractText: "An abstract abstract", // Abstract changed
         authors: [
           // Authors changed
           {
@@ -878,10 +878,10 @@ describe("Related Works Tables", () => {
         id: expect.any(Number), // 👈 auto-increment id
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -909,10 +909,10 @@ describe("Related Works Tables", () => {
         id: expect.any(Number), // 👈 auto-increment id
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: expect.any(Date),
         title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
-        abstract: "An abstract abstract",
+        abstractText: "An abstract abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -1120,10 +1120,10 @@ describe("Related Works Tables", () => {
         id: expect.any(Number), // 👈 auto-increment id
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -1151,10 +1151,10 @@ describe("Related Works Tables", () => {
         id: expect.any(Number), // 👈 auto-increment id
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: expect.any(Date),
         title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
-        abstract: "An abstract abstract",
+        abstractText: "An abstract abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -1227,10 +1227,10 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
@@ -1377,10 +1377,10 @@ describe("Related Works Tables", () => {
         id: expect.any(Number), // 👈 auto-increment id
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "DATASET",
+        workType: "DATASET",
         publishedDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
