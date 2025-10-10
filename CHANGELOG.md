@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added related works resolvers and tests.
 - Added data migration to ensure collaborator tables allow for NULL in `userId` field
 - Added tables to support template customizations
 - Added stub models for each new template customization table with comments on what needs to be done

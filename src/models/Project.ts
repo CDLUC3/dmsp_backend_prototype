@@ -207,8 +207,6 @@ export class ProjectSearchResult {
       return new ProjectSearchResult(item)
     });
 
-console.log(response)
-
     context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }

@@ -4,6 +4,7 @@ import { IResolvers } from '@graphql-tools/utils';
 import { dmspIdScalar } from './resolvers/scalars/dmspId';
 import { orcidScalar } from './resolvers/scalars/orcid';
 import { rorScalar } from './resolvers/scalars/ror';
+import { md5Scalar } from "./resolvers/scalars/md5";
 
 import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as answerResolvers } from './resolvers/answer';
@@ -21,6 +22,7 @@ import { resolvers as projectResolvers } from './resolvers/project';
 import { resolvers as questionResolvers } from './resolvers/question';
 import { resolvers as questionConditionResolvers } from './resolvers/questionCondition';
 import { resolvers as templateResolvers } from './resolvers/template';
+import { resolvers as relatedWorkResolvers } from './resolvers/relatedWork';
 import { resolvers as repositoryResolvers } from './resolvers/repository';
 import { resolvers as researchDomainResolvers } from './resolvers/researchDomain';
 import { resolvers as sectionResolvers } from './resolvers/section';
@@ -35,7 +37,8 @@ import { resolvers as versionedTemplateResolvers } from './resolvers/versionedTe
 const scalarResolvers = {
   DmspId: dmspIdScalar,
   Orcid: orcidScalar,
-  Ror: rorScalar
+  Ror: rorScalar,
+  MD5: md5Scalar
 }
 
 export const resolvers: IResolvers = mergeResolvers([
@@ -56,6 +59,7 @@ export const resolvers: IResolvers = mergeResolvers([
   projectResolvers,
   questionResolvers,
   questionConditionResolvers,
+  relatedWorkResolvers,
   repositoryResolvers,
   researchDomainResolvers,
   templateResolvers,
