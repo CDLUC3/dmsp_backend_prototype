@@ -1,8 +1,15 @@
-# Contributor Covenant Code of Conduct
+[# Contributor Covenant Code of Conduct
 
 ## Our Pledge
 
 In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to making participation in our project and our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
+
+## UC3 Community Values and Institutional Code of Conduct
+
+This project is maintained by the [University of California Curation Center (UC3)](https://uc3.cdlib.org) at the California Digital Library, within the University of California Office of the President.  
+All contributors, maintainers, and participants are expected to follow not only this Contributor Covenant but also the [UC3 Code of Conduct](https://uc3.cdlib.org/code-of-conduct/), which reflects the University of California’s commitment to equity, diversity, inclusion, and respectful professional collaboration.
+
+This repository is part of the [CDLUC3 GitHub organization](https://github.com/CDLUC3), and participation in its repositories constitutes agreement to uphold these community standards.
 
 ## Our Standards
 
@@ -44,3 +51,4 @@ This Code of Conduct is adapted from the [Contributor Covenant][homepage], versi
 
 [homepage]: http://contributor-covenant.org
 [version]: http://contributor-covenant.org/version/3/0/
+]()
