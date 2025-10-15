@@ -134,7 +134,7 @@ export class WorkVersion extends MySqlModel {
   public workId: number;
   public hash: Buffer;
   public workType: WorkType;
-  public publishedDate: string;
+  public publicationDate: string;
   public title: string;
   public abstractText: string;
   public authors: Author[];
@@ -152,7 +152,7 @@ export class WorkVersion extends MySqlModel {
     this.workId = options.workId;
     this.hash = options.hash;
     this.workType = options.workType;
-    this.publishedDate = options.publishedDate;
+    this.publicationDate = options.publicationDate;
     this.title = options.title;
     this.abstractText = options.abstractText;
     this.authors = options.authors;
@@ -399,7 +399,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
     };
     hash: Buffer;
     workType: WorkType;
-    publishedDate: string;
+    publicationDate: string;
     title: string;
     abstractText: string;
     authors: Author[];
@@ -442,7 +442,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
        ),
        'hash', wv.hash,
        'workType', wv.workType,
-       'publishedDate', wv.publishedDate,
+       'publicationDate', wv.publicationDate,
        'title', wv.title,
        'authors', wv.authors,
        'institutions', wv.institutions,
@@ -516,7 +516,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
     sortMapping.set('scoreNorm', '(rw.score / rw.scoreMax)');
     sortMapping.set('created', 'rw.created');
     sortMapping.set('modified', 'rw.modified');
-    sortMapping.set('publishedDate', 'wv.publishedDate');
+    sortMapping.set('publicationDate', 'wv.publicationDate');
     options.availableSortFields = Array.from(sortMapping.keys());
 
     if (!isNullOrUndefined(options.sortField) && !sortMapping.has(options.sortField)) {
@@ -532,7 +532,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
       } else if (filterOptions.status == 'REJECTED') {
         options.sortField = 'modified';
       } else {
-        options.sortField = 'publishedDate';
+        options.sortField = 'publicationDate';
       }
     }
     options.sortField = sortMapping.get(options.sortField);

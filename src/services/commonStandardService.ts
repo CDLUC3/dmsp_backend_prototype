@@ -201,7 +201,7 @@ export async function planToDMPCommonStandard(
         descriptor: DMPRelatedIdentifierDescriptor.CITES,
         work_type: work.workVersion.workType.toLowerCase(),
         title: work.workVersion.title,
-        published_date: work.workVersion.publishedDate,
+        publication_date: work.workVersion.publicationDate,
         authors: work.workVersion.authors.map(author => ({
           orcid: author.orcid,
           first_initial: author.firstInitial,

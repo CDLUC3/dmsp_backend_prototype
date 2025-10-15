@@ -289,7 +289,7 @@ describe("WorkVersion", () => {
     expect(workVersion.workId).toEqual(workVersionData.workId);
     expect(workVersion.hash).toEqual(workVersionData.hash);
     expect(workVersion.workType).toEqual(workVersionData.workType);
-    expect(workVersion.publishedDate).toEqual(workVersionData.publishedDate);
+    expect(workVersion.publicationDate).toEqual(workVersionData.publicationDate);
     expect(workVersion.title).toEqual(workVersionData.title);
     expect(workVersion.abstractText).toEqual(workVersionData.abstractText);
     expect(workVersion.authors).toEqual(workVersionData.authors);

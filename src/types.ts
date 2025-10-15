@@ -159,10 +159,10 @@ export type AddRelatedWorkInput = {
   institutions: Array<InstitutionInput>;
   /** The unique identifier of the plan that this related work has been matched to */
   planId?: InputMaybe<Scalars['Int']['input']>;
+  /** The date that the work was published YYYY-MM-DD */
+  publicationDate?: InputMaybe<Scalars['String']['input']>;
   /** The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc */
   publicationVenue?: InputMaybe<Scalars['String']['input']>;
-  /** The date that the work was published YYYY-MM-DD */
-  publishedDate?: InputMaybe<Scalars['String']['input']>;
   /** The name of the source where the work was found */
   sourceName: Scalars['String']['input'];
   /** The URL for the source of the work */
@@ -4271,10 +4271,10 @@ export type WorkVersion = {
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The date that the work was published YYYY-MM-DD */
+  publicationDate?: Maybe<Scalars['String']['output']>;
   /** The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc */
   publicationVenue?: Maybe<Scalars['String']['output']>;
-  /** The date that the work was published YYYY-MM-DD */
-  publishedDate?: Maybe<Scalars['String']['output']>;
   /** The name of the source where the work was found */
   sourceName?: Maybe<Scalars['String']['output']>;
   /** The URL for the source of the work */
@@ -6343,8 +6343,8 @@ export type WorkVersionResolvers<ContextType = MyContext, ParentType extends Res
   institutions?: Resolver<Array<ResolversTypes['Institution']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  publicationDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   publicationVenue?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  publishedDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sourceName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   sourceUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
