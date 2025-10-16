@@ -1,9 +1,9 @@
 import { prepareObjectForLogs } from '../logger';
-import { RelatedWorkSearchResults, Resolvers } from '../types';
+import { Resolvers } from '../types';
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
-import { RelatedWorkSearchResult, RelatedWork, Work, WorkVersion } from '../models/RelatedWork';
+import { RelatedWorkSearchResults, RelatedWorkSearchResult, RelatedWork, Work, WorkVersion } from '../models/RelatedWork';
 import { GraphQLError } from 'graphql';
 import { Project } from '../models/Project';
 import { hasPermissionOnProject } from '../services/projectService';
@@ -18,7 +18,7 @@ export const resolvers: Resolvers = {
       _,
       { projectId, filterOptions, paginationOptions },
       context: MyContext,
-    ): Promise<RelatedWorkSearchResults> {
+    ): Promise<RelatedWorkSearchResults<RelatedWorkSearchResult>> {
       const reference = 'relatedWorksByProject resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -52,7 +52,7 @@ export const resolvers: Resolvers = {
       _,
       { planId, filterOptions, paginationOptions },
       context: MyContext,
-    ): Promise<RelatedWorkSearchResults> {
+    ): Promise<RelatedWorkSearchResults<RelatedWorkSearchResult>> {
       const reference = 'relatedWorksByPlan resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -179,10 +179,10 @@ export const resolvers: Resolvers = {
     },
   },
   RelatedWorkSearchResult: {
-    created: (parent: RelatedWork) => {
+    created: (parent: RelatedWorkSearchResult) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: RelatedWork) => {
+    modified: (parent: RelatedWorkSearchResult) => {
       return normaliseDateTime(parent.modified);
     },
   },

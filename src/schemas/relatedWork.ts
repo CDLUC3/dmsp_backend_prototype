@@ -41,6 +41,15 @@ export const typeDefs = gql`
     hasPreviousPage: Boolean
     "The sortFields that are available for this query (for standard offset pagination only!)"
     availableSortFields: [String]
+    "Counts of work types returned in the query"
+    workTypeCounts: [TypeCount!]
+    "Count of confidence values returned in the query"
+    confidenceCounts: [TypeCount!]
+  }
+
+  type TypeCount {
+    typeId: String!
+    count: Int!
   }
 
   type RelatedWorkSearchResult {

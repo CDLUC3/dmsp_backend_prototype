@@ -197,5 +197,7 @@ export function getMockPaginatedSearchResults(options) {
     totalCount: 2,
     hasNextPage: false,
     hasPreviousPage: false,
+    workTypeCounts: [],
+    confidenceCounts: []
   };
 }
