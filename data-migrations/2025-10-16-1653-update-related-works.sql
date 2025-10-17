@@ -1,6 +1,8 @@
 -- Add modified and modifiedById to workVersions table
 ALTER TABLE `workVersions`
-  RENAME COLUMN publishedDate TO publicationDate;
+  RENAME COLUMN publishedDate TO publicationDate,
+  MODIFY COLUMN abstractText MEDIUMTEXT,
+  MODIFY COLUMN publicationVenue VARCHAR(1000);
 
 -- Procedure to create staging tables for related works
 DELIMITER $$
@@ -14,14 +16,14 @@ BEGIN
     `doi`              VARCHAR(255) NOT NULL PRIMARY KEY,
     `hash`             BINARY(16)   NOT NULL,
     `workType`         VARCHAR(255) NOT NULL,
-    `publicationDate`    DATE         NULL,
+    `publicationDate`  DATE         NULL,
     `title`            TEXT         NULL,
-    `abstractText`         TEXT         NULL,
+    `abstractText`     MEDIUMTEXT         NULL,
     `authors`          JSON         NOT NULL,
     `institutions`     JSON         NOT NULL,
     `funders`          JSON         NOT NULL,
     `awards`           JSON         NOT NULL,
-    `publicationVenue` VARCHAR(255) NULL,
+    `publicationVenue` VARCHAR(1000) NULL,
     `sourceName`       VARCHAR(255) NOT NULL,
     `sourceUrl`        VARCHAR(255) NOT NULL
   ) ENGINE = InnoDB

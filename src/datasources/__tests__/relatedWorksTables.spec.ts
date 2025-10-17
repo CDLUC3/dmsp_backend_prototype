@@ -173,7 +173,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // clearTestRecords();
+  clearTestRecords();
   if (connection) await connection.end();
 });
 

@@ -41,6 +41,8 @@ export const typeDefs = gql`
     hasPreviousPage: Boolean
     "The sortFields that are available for this query (for standard offset pagination only!)"
     availableSortFields: [String]
+    "The count of the number of related works after the status filter is applied but doesn't include any other filters"
+    statusOnlyCount: Int
     "Counts of work types returned in the query"
     workTypeCounts: [TypeCount!]
     "Count of confidence values returned in the query"

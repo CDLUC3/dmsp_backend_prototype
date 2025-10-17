@@ -390,6 +390,7 @@ export class RelatedWork extends MySqlModel {
 }
 
 export interface RelatedWorkSearchResults<T> extends PaginatedQueryResults<T> {
+  statusOnlyCount?: number;
   workTypeCounts: { count: number; typeId: string }[];
   confidenceCounts: { count: number; typeId: string }[];
 }
@@ -638,6 +639,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
 
     aggSql.push(`
     SELECT JSON_OBJECT(
+    'statusOnlyCount', (SELECT COUNT(*) FROM data),
     'workTypeCounts',
     (
       SELECT JSON_ARRAYAGG(
@@ -673,6 +675,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
     if (Array.isArray(aggResults) && aggResults.length > 0) {
       return {
         ...response,
+        statusOnlyCount: aggResults[0]?.result?.statusOnlyCount ?? 0,
         workTypeCounts: aggResults[0]?.result?.workTypeCounts ?? [],
         confidenceCounts: aggResults[0]?.result?.confidenceCounts ?? [],
       };
@@ -680,6 +683,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
 
     return {
       ...response,
+      statusOnlyCount: 0,
       workTypeCounts: [],
       confidenceCounts: [],
     };
