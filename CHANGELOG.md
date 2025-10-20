@@ -36,6 +36,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated related works resolvers to return aggregated counts for the UI, and modifications to some fields in database for UI.
 - Updated the `findCollaborator` resolver to allow for searching by ORCID or by a search term. 
 - Updated cursor pagination logic to accept sort information
 - Update `user.register` model function to auto-accept all open template and project collaboration invites
