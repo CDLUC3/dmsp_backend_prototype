@@ -159,10 +159,10 @@ export type AddRelatedWorkInput = {
   institutions: Array<InstitutionInput>;
   /** The unique identifier of the plan that this related work has been matched to */
   planId?: InputMaybe<Scalars['Int']['input']>;
+  /** The date that the work was published YYYY-MM-DD */
+  publicationDate?: InputMaybe<Scalars['String']['input']>;
   /** The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc */
   publicationVenue?: InputMaybe<Scalars['String']['input']>;
-  /** The date that the work was published YYYY-MM-DD */
-  publishedDate?: InputMaybe<Scalars['String']['input']>;
   /** The name of the source where the work was found */
   sourceName: Scalars['String']['input'];
   /** The URL for the source of the work */
@@ -3015,7 +3015,7 @@ export type RelatedWorkSearchResult = {
   /** Details how relevant the title and abstract of the work were to the plan */
   contentMatch?: Maybe<ContentMatch>;
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['String']['output']>;
+  created: Scalars['String']['output'];
   /** The user who created the Object. Null if the related work was automatically found */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** Details whether the work's DOI was found on a funder award page */
@@ -3023,27 +3023,27 @@ export type RelatedWorkSearchResult = {
   /** Details which funders matched from the work and the fields they matched on */
   funderMatches?: Maybe<Array<ItemMatch>>;
   /** The unique identifier for the Object */
-  id?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['Int']['output'];
   /** Details which institutions matched from the work and the fields they matched on */
   institutionMatches?: Maybe<Array<ItemMatch>>;
   /** The timestamp when the Object was last modified */
-  modified?: Maybe<Scalars['String']['output']>;
+  modified: Scalars['String']['output'];
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The unique identifier of the plan that this related work has been matched to */
-  planId?: Maybe<Scalars['Int']['output']>;
+  planId: Scalars['Int']['output'];
   /** The confidence score indicating how well the work matches the plan */
   score?: Maybe<Scalars['Float']['output']>;
   /** The maximum confidence score returned when this work was matched to the plan */
-  scoreMax?: Maybe<Scalars['Float']['output']>;
+  scoreMax: Scalars['Float']['output'];
   /** The normalised confidence score from 0.0-1.0 */
-  scoreNorm?: Maybe<Scalars['Float']['output']>;
+  scoreNorm: Scalars['Float']['output'];
   /** Whether the related work was automatically or manually added */
-  sourceType?: Maybe<RelatedWorkSourceType>;
+  sourceType: RelatedWorkSourceType;
   /** The status of the related work */
-  status?: Maybe<RelatedWorkStatus>;
+  status: RelatedWorkStatus;
   /** The version of the work that the plan was matched to */
-  workVersion?: Maybe<WorkVersion>;
+  workVersion: WorkVersion;
 };
 
 export type RelatedWorkSearchResults = PaginatedQueryResults & {
@@ -3518,6 +3518,12 @@ export type TemplateVisibility =
   | 'ORGANIZATION'
   /** Visible to all users */
   | 'PUBLIC';
+
+export type TypeCount = {
+  __typename?: 'TypeCount';
+  count: Scalars['Int']['output'];
+  typeId: Scalars['String']['output'];
+};
 
 export type UpdateMetadataStandardInput = {
   /** A description of the metadata standard */
@@ -4197,15 +4203,15 @@ export type VersionedTemplateSearchResult = {
 export type Work = {
   __typename?: 'Work';
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['String']['output']>;
+  created: Scalars['String']['output'];
   /** The user who created the Object. Null if the work was automatically found */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The Digital Object Identifier (DOI) of the work */
-  doi?: Maybe<Scalars['String']['output']>;
+  doi: Scalars['String']['output'];
   /** The unique identifier for the Object */
-  id?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['Int']['output'];
   /** The timestamp when the Object was last modified */
-  modified?: Maybe<Scalars['String']['output']>;
+  modified: Scalars['String']['output'];
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
 };
@@ -4256,35 +4262,35 @@ export type WorkVersion = {
   /** The awards that funded the work */
   awards: Array<Award>;
   /** The timestamp when the Object was created */
-  created?: Maybe<Scalars['String']['output']>;
+  created: Scalars['String']['output'];
   /** The user who created the Object. Null if the work was automatically found */
   createdById?: Maybe<Scalars['Int']['output']>;
   /** The funders of the work */
   funders: Array<Funder>;
   /** A hash of the content of this version of a work */
-  hash?: Maybe<Scalars['MD5']['output']>;
+  hash: Scalars['MD5']['output'];
   /** The unique identifier for the Object */
-  id?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['Int']['output'];
   /** The unique institutions of the authors of the work */
   institutions: Array<Institution>;
   /** The timestamp when the Object was last modified */
-  modified?: Maybe<Scalars['String']['output']>;
+  modified: Scalars['String']['output'];
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The date that the work was published YYYY-MM-DD */
+  publicationDate?: Maybe<Scalars['String']['output']>;
   /** The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc */
   publicationVenue?: Maybe<Scalars['String']['output']>;
-  /** The date that the work was published YYYY-MM-DD */
-  publishedDate?: Maybe<Scalars['String']['output']>;
   /** The name of the source where the work was found */
-  sourceName?: Maybe<Scalars['String']['output']>;
+  sourceName: Scalars['String']['output'];
   /** The URL for the source of the work */
   sourceUrl?: Maybe<Scalars['String']['output']>;
   /** The title of the work */
   title?: Maybe<Scalars['String']['output']>;
   /** The work */
-  work?: Maybe<Work>;
+  work: Work;
   /** The type of the work */
-  workType?: Maybe<WorkType>;
+  workType: WorkType;
 };
 
 
@@ -4509,6 +4515,7 @@ export type ResolversTypes = {
   TemplateSearchResults: ResolverTypeWrapper<TemplateSearchResults>;
   TemplateVersionType: TemplateVersionType;
   TemplateVisibility: TemplateVisibility;
+  TypeCount: ResolverTypeWrapper<TypeCount>;
   URL: ResolverTypeWrapper<Scalars['URL']['output']>;
   UpdateMetadataStandardInput: UpdateMetadataStandardInput;
   UpdateProjectFundingInput: UpdateProjectFundingInput;
@@ -4677,6 +4684,7 @@ export type ResolversParentTypes = {
   TemplateErrors: TemplateErrors;
   TemplateSearchResult: TemplateSearchResult;
   TemplateSearchResults: TemplateSearchResults;
+  TypeCount: TypeCount;
   URL: Scalars['URL']['output'];
   UpdateMetadataStandardInput: UpdateMetadataStandardInput;
   UpdateProjectFundingInput: UpdateProjectFundingInput;
@@ -5768,21 +5776,21 @@ export type RelatedWorkSearchResultResolvers<ContextType = MyContext, ParentType
   awardMatches?: Resolver<Maybe<Array<ResolversTypes['ItemMatch']>>, ParentType, ContextType>;
   confidence?: Resolver<Maybe<ResolversTypes['RelatedWorkConfidence']>, ParentType, ContextType>;
   contentMatch?: Resolver<Maybe<ResolversTypes['ContentMatch']>, ParentType, ContextType>;
-  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  created?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   doiMatch?: Resolver<Maybe<ResolversTypes['DoiMatch']>, ParentType, ContextType>;
   funderMatches?: Resolver<Maybe<Array<ResolversTypes['ItemMatch']>>, ParentType, ContextType>;
-  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   institutionMatches?: Resolver<Maybe<Array<ResolversTypes['ItemMatch']>>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modified?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  planId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  planId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   score?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  scoreMax?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  scoreNorm?: Resolver<Maybe<ResolversTypes['Float']>, ParentType, ContextType>;
-  sourceType?: Resolver<Maybe<ResolversTypes['RelatedWorkSourceType']>, ParentType, ContextType>;
-  status?: Resolver<Maybe<ResolversTypes['RelatedWorkStatus']>, ParentType, ContextType>;
-  workVersion?: Resolver<Maybe<ResolversTypes['WorkVersion']>, ParentType, ContextType>;
+  scoreMax?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  scoreNorm?: Resolver<ResolversTypes['Float'], ParentType, ContextType>;
+  sourceType?: Resolver<ResolversTypes['RelatedWorkSourceType'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['RelatedWorkStatus'], ParentType, ContextType>;
+  workVersion?: Resolver<ResolversTypes['WorkVersion'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6034,6 +6042,12 @@ export type TemplateSearchResultsResolvers<ContextType = MyContext, ParentType e
   limit?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   nextCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type TypeCountResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['TypeCount'] = ResolversParentTypes['TypeCount']> = {
+  count?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  typeId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6323,11 +6337,11 @@ export type VersionedTemplateSearchResultResolvers<ContextType = MyContext, Pare
 };
 
 export type WorkResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Work'] = ResolversParentTypes['Work']> = {
-  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  created?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  doi?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  doi?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  modified?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -6335,21 +6349,21 @@ export type WorkResolvers<ContextType = MyContext, ParentType extends ResolversP
 export type WorkVersionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['WorkVersion'] = ResolversParentTypes['WorkVersion']> = {
   authors?: Resolver<Array<ResolversTypes['Author']>, ParentType, ContextType>;
   awards?: Resolver<Array<ResolversTypes['Award']>, ParentType, ContextType>;
-  created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  created?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   funders?: Resolver<Array<ResolversTypes['Funder']>, ParentType, ContextType>;
-  hash?: Resolver<Maybe<ResolversTypes['MD5']>, ParentType, ContextType>;
-  id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  hash?: Resolver<ResolversTypes['MD5'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   institutions?: Resolver<Array<ResolversTypes['Institution']>, ParentType, ContextType>;
-  modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modified?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  publicationDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   publicationVenue?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  publishedDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  sourceName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sourceName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   sourceUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  work?: Resolver<Maybe<ResolversTypes['Work']>, ParentType, ContextType>;
-  workType?: Resolver<Maybe<ResolversTypes['WorkType']>, ParentType, ContextType>;
+  work?: Resolver<ResolversTypes['Work'], ParentType, ContextType>;
+  workType?: Resolver<ResolversTypes['WorkType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6455,6 +6469,7 @@ export type Resolvers<ContextType = MyContext> = {
   TemplateErrors?: TemplateErrorsResolvers<ContextType>;
   TemplateSearchResult?: TemplateSearchResultResolvers<ContextType>;
   TemplateSearchResults?: TemplateSearchResultsResolvers<ContextType>;
+  TypeCount?: TypeCountResolvers<ContextType>;
   URL?: GraphQLScalarType;
   User?: UserResolvers<ContextType>;
   UserEmail?: UserEmailResolvers<ContextType>;

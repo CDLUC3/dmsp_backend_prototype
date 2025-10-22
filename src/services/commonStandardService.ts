@@ -193,7 +193,7 @@ export async function planToDMPCommonStandard(
 
   // Add the related works if there are any
   if (works && works.items && Array.isArray(works.items) && works.items.length > 0) {
-    commonStandard.dmproadmap_related_identifiers = works.items.map((work: RelatedWorkSearchResult) => {
+    commonStandard.dmproadmap_related_identifiers = works.items.map((work) => {
       const doi = `https://doi.org/${work.workVersion.work.doi}`;
       return {
         identifier: doi,
@@ -201,7 +201,7 @@ export async function planToDMPCommonStandard(
         descriptor: DMPRelatedIdentifierDescriptor.CITES,
         work_type: work.workVersion.workType.toLowerCase(),
         title: work.workVersion.title,
-        published_date: work.workVersion.publishedDate,
+        publication_date: work.workVersion.publicationDate,
         authors: work.workVersion.authors.map(author => ({
           orcid: author.orcid,
           first_initial: author.firstInitial,
