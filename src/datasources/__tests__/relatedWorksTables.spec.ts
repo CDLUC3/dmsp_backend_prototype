@@ -25,7 +25,7 @@ interface WorkVersion {
   doi: string;
   hash: Buffer;
   workType: string;
-  publishedDate: string | null;
+  publicationDate: string | null;
   title: string | null;
   abstractText: string | null;
   authors: Author[];
@@ -66,12 +66,12 @@ export async function insertWorkVersions(connection: Connection, data: WorkVersi
     return;
   }
   const sql =
-    "INSERT INTO stagingWorkVersions (doi, hash, workType, publishedDate, title, abstractText, authors, institutions, funders, awards, publicationVenue, sourceName, sourceUrl) VALUES ?";
+    "INSERT INTO stagingWorkVersions (doi, hash, workType, publicationDate, title, abstractText, authors, institutions, funders, awards, publicationVenue, sourceName, sourceUrl) VALUES ?";
   const values = data.map((item) => [
     item.doi,
     item.hash,
     item.workType,
-    item.publishedDate,
+    item.publicationDate,
     item.title,
     item.abstractText,
     JSON.stringify(item.authors),
@@ -193,7 +193,7 @@ describe("Related Works Tables", () => {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         workType: "DATASET",
-        publishedDate: "2025-01-01",
+        publicationDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
         abstractText: "An abstract",
         authors: [
@@ -223,7 +223,7 @@ describe("Related Works Tables", () => {
         doi: testWorkDOIs[1],
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
         workType: "ARTICLE",
-        publishedDate: "2025-02-01",
+        publicationDate: "2025-02-01",
         title: "Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
         abstractText: "An abstract",
         authors: [
@@ -483,7 +483,7 @@ describe("Related Works Tables", () => {
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         workType: "DATASET",
-        publishedDate: expect.any(Date),
+        publicationDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
         abstractText: "An abstract",
         authors: [
@@ -514,7 +514,7 @@ describe("Related Works Tables", () => {
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
         workType: "ARTICLE",
-        publishedDate: expect.any(Date),
+        publicationDate: expect.any(Date),
         title: "Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
         abstractText: "An abstract",
         authors: [
@@ -581,7 +581,7 @@ describe("Related Works Tables", () => {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         workType: "DATASET",
-        publishedDate: "2025-01-01",
+        publicationDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
         abstractText: "An abstract",
         authors: [
@@ -611,7 +611,7 @@ describe("Related Works Tables", () => {
         doi: testWorkDOIs[1],
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"), // Hash changed
         workType: "DATASET", // Type changed
-        publishedDate: "2025-02-02", // Date changed
+        publicationDate: "2025-02-02", // Date changed
         title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study", // Title changed
         abstractText: "An abstract abstract", // Abstract changed
         authors: [
@@ -879,7 +879,7 @@ describe("Related Works Tables", () => {
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         workType: "DATASET",
-        publishedDate: expect.any(Date),
+        publicationDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
         abstractText: "An abstract",
         authors: [
@@ -910,7 +910,7 @@ describe("Related Works Tables", () => {
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"),
         workType: "DATASET",
-        publishedDate: expect.any(Date),
+        publicationDate: expect.any(Date),
         title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
         abstractText: "An abstract abstract",
         authors: [
@@ -1121,7 +1121,7 @@ describe("Related Works Tables", () => {
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         workType: "DATASET",
-        publishedDate: expect.any(Date),
+        publicationDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
         abstractText: "An abstract",
         authors: [
@@ -1152,7 +1152,7 @@ describe("Related Works Tables", () => {
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"),
         workType: "DATASET",
-        publishedDate: expect.any(Date),
+        publicationDate: expect.any(Date),
         title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
         abstractText: "An abstract abstract",
         authors: [
@@ -1228,7 +1228,7 @@ describe("Related Works Tables", () => {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         workType: "DATASET",
-        publishedDate: "2025-01-01",
+        publicationDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
         abstractText: "An abstract",
         authors: [
@@ -1378,7 +1378,7 @@ describe("Related Works Tables", () => {
         workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
         workType: "DATASET",
-        publishedDate: expect.any(Date),
+        publicationDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
         abstractText: "An abstract",
         authors: [

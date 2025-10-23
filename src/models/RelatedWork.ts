@@ -21,7 +21,6 @@ import {
 import { prepareObjectForLogs } from '../logger';
 import { Plan } from './Plan';
 
-
 export class Work extends MySqlModel {
   public id: number;
   public doi: string;
@@ -110,7 +109,7 @@ export class Work extends MySqlModel {
   }
 }
 
-export const parseDOI = (doi: string | undefined | null): string =>  {
+export const parseDOI = (doi: string | undefined | null): string => {
   if (isNullOrUndefined(doi)) return null;
 
   const trimmed = doi.trim();
@@ -127,14 +126,14 @@ export const parseDOI = (doi: string | undefined | null): string =>  {
       return trimmed.toLowerCase();
     }
   }
-}
+};
 
 export class WorkVersion extends MySqlModel {
   public id: number;
   public workId: number;
   public hash: Buffer;
   public workType: WorkType;
-  public publishedDate: string;
+  public publicationDate: string;
   public title: string;
   public abstractText: string;
   public authors: Author[];
@@ -152,7 +151,7 @@ export class WorkVersion extends MySqlModel {
     this.workId = options.workId;
     this.hash = options.hash;
     this.workType = options.workType;
-    this.publishedDate = options.publishedDate;
+    this.publicationDate = options.publicationDate;
     this.title = options.title;
     this.abstractText = options.abstractText;
     this.authors = options.authors;
@@ -169,7 +168,8 @@ export class WorkVersion extends MySqlModel {
 
     if (isNullOrUndefined(this.workId)) this.addError('workId', "Work ID can't be blank");
     if (isNullOrUndefined(this.hash)) this.addError('hash', "Hash can't be blank");
-    if (isNullOrUndefined(this.workType) || valueIsEmpty(this.workType)) this.addError('workType', "Work type can't be blank");
+    if (isNullOrUndefined(this.workType) || valueIsEmpty(this.workType))
+      this.addError('workType', "Work type can't be blank");
     if (!this.authors) this.addError('authors', "Authors can't be blank");
     if (!this.institutions) this.addError('institutions', "Institutions can't be blank");
     if (!this.funders) this.addError('funders', "Funders can't be blank");
@@ -220,7 +220,12 @@ export class WorkVersion extends MySqlModel {
     if (this.id) {
       const deleted = await WorkVersion.findById('WorkVersion.delete', context, this.id);
 
-      const successfullyDeleted = await WorkVersion.delete(context, WorkVersion.tableName, this.id, 'WorkVersion.delete');
+      const successfullyDeleted = await WorkVersion.delete(
+        context,
+        WorkVersion.tableName,
+        this.id,
+        'WorkVersion.delete',
+      );
       if (successfullyDeleted) {
         return deleted;
       } else {
@@ -384,6 +389,12 @@ export class RelatedWork extends MySqlModel {
   }
 }
 
+export interface RelatedWorkSearchResults<T> extends PaginatedQueryResults<T> {
+  statusOnlyCount?: number;
+  workTypeCounts: { count: number; typeId: string }[];
+  confidenceCounts: { count: number; typeId: string }[];
+}
+
 export class RelatedWorkSearchResult extends MySqlModel {
   public id: number;
   public planId: number;
@@ -399,7 +410,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
     };
     hash: Buffer;
     workType: WorkType;
-    publishedDate: string;
+    publicationDate: string;
     title: string;
     abstractText: string;
     authors: Author[];
@@ -425,6 +436,10 @@ export class RelatedWorkSearchResult extends MySqlModel {
   public institutionMatches: ItemMatch[];
   public funderMatches: ItemMatch[];
   public awardMatches: ItemMatch[];
+  public created: string;
+  public createdById: number;
+  public modified: string;
+  public modifiedById: number;
 
   public static sqlStatement =
     `SELECT ` + // requires 'SELECT ' for cursor pagination to work
@@ -442,7 +457,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
        ),
        'hash', wv.hash,
        'workType', wv.workType,
-       'publishedDate', wv.publishedDate,
+       'publicationDate', wv.publicationDate,
        'title', wv.title,
        'authors', wv.authors,
        'institutions', wv.institutions,
@@ -507,7 +522,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
     planId?: number,
     filterOptions: RelatedWorksFilterOptions = {},
     options: PaginationOptions = RelatedWorkSearchResult.getDefaultPaginationOptions(),
-  ): Promise<PaginatedQueryResults<RelatedWorkSearchResult>> {
+  ): Promise<RelatedWorkSearchResults<RelatedWorkSearchResult>> {
     const whereFilters = [];
     const values = [];
 
@@ -516,8 +531,16 @@ export class RelatedWorkSearchResult extends MySqlModel {
     sortMapping.set('scoreNorm', '(rw.score / rw.scoreMax)');
     sortMapping.set('created', 'rw.created');
     sortMapping.set('modified', 'rw.modified');
-    sortMapping.set('publishedDate', 'wv.publishedDate');
+    sortMapping.set('publicationDate', 'wv.publicationDate');
     options.availableSortFields = Array.from(sortMapping.keys());
+
+    // Change offset to zero based indexing
+    if (options.type === PaginationType.OFFSET && !isNullOrUndefined((options as PaginationOptionsForOffsets).offset)) {
+      options = {
+        ...options,
+        offset: (options as PaginationOptionsForOffsets).offset - 1,
+      };
+    }
 
     if (!isNullOrUndefined(options.sortField) && !sortMapping.has(options.sortField)) {
       throw Error(`Sort field ${options.sortField} not found.`);
@@ -532,7 +555,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
       } else if (filterOptions.status == 'REJECTED') {
         options.sortField = 'modified';
       } else {
-        options.sortField = 'publishedDate';
+        options.sortField = 'publicationDate';
       }
     }
     options.sortField = sortMapping.get(options.sortField);
@@ -586,7 +609,84 @@ export class RelatedWorkSearchResult extends MySqlModel {
 
     context.logger.debug(prepareObjectForLogs({ options, response }), reference);
 
-    return response;
+    // Run aggregations
+    const aggSql = [
+      `WITH data AS (
+       SELECT
+         wv.workType,
+         CASE
+           WHEN rw.score / rw.scoreMax >= 0.7 THEN 'HIGH'
+           WHEN rw.score / rw.scoreMax >= 0.4 THEN 'MEDIUM'
+           ELSE 'LOW'
+         END AS confidence
+       FROM relatedWorks rw
+       LEFT JOIN plans p ON rw.planId = p.id
+       LEFT JOIN workVersions wv ON rw.workVersionId = wv.id
+       LEFT JOIN works w ON wv.workId = w.id`,
+    ];
+    const aggValues = [];
+    aggSql.push('WHERE p.projectId = ?');
+    aggValues.push(projectId);
+    if (!isNullOrUndefined(planId)) {
+      aggSql.push('AND rw.planId = ?');
+      aggValues.push(planId);
+    }
+    if (!isNullOrUndefined(filterOptions.status)) {
+      aggSql.push('AND rw.status = ?');
+      aggValues.push(filterOptions.status);
+    }
+    aggSql.push(')');
+
+    aggSql.push(`
+    SELECT JSON_OBJECT(
+    'statusOnlyCount', (SELECT COUNT(*) FROM data),
+    'workTypeCounts',
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT('typeId', workType, 'count', count)
+      )
+      FROM (
+        SELECT workType, COUNT(*) AS count
+        FROM data
+    `);
+
+    if (!isNullOrUndefined(filterOptions.confidence)) {
+      aggSql.push('WHERE confidence = ?');
+      aggValues.push(filterOptions.confidence);
+    }
+    aggSql.push(`GROUP BY workType) AS wtc),
+    'confidenceCounts',
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT('typeId', confidence, 'count', count)
+      )
+      FROM (
+      SELECT confidence, COUNT(*) as count
+      FROM data
+    `);
+    if (!isNullOrUndefined(filterOptions.workType)) {
+      aggSql.push('WHERE workType = ?');
+      aggValues.push(filterOptions.workType);
+    }
+    aggSql.push(`GROUP BY confidence) AS cc)) AS result;`);
+
+    const aggResults = await RelatedWorkSearchResult.query(context, aggSql.join('\n'), aggValues, reference);
+
+    if (Array.isArray(aggResults) && aggResults.length > 0) {
+      return {
+        ...response,
+        statusOnlyCount: aggResults[0]?.result?.statusOnlyCount ?? 0,
+        workTypeCounts: aggResults[0]?.result?.workTypeCounts ?? [],
+        confidenceCounts: aggResults[0]?.result?.confidenceCounts ?? [],
+      };
+    }
+
+    return {
+      ...response,
+      statusOnlyCount: 0,
+      workTypeCounts: [],
+      confidenceCounts: [],
+    };
   }
 
   // Find a RelatedWorkSearchResult by its identifier

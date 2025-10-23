@@ -40,6 +40,7 @@
 - Updated `OrcidAPI` to handle `404` errors so that we return null rather than throwing an error [#251]
 - Updated `addProjectMemberInput` schema to include `affiliationName` since we are using a TypeAhead field and sometimes we only get the `affiliationName` [#251]
 - Updated `addProjectMember` resolver to use either `affiliationId` or `affiliationName` to process affiliation info [#251]
+- Updated related works resolvers to return aggregated counts for the UI, and modifications to some fields in database for UI.
 - Updated the `findCollaborator` resolver to allow for searching by ORCID or by a search term. 
 - Updated cursor pagination logic to accept sort information
 - Update `user.register` model function to auto-accept all open template and project collaboration invites

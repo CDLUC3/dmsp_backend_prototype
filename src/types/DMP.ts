@@ -338,7 +338,7 @@ export interface DMPCommonStandardRelatedIdentifier {
   descriptor: DMPRelatedIdentifierDescriptor;
   work_type: string;
   title: string;
-  published_date: string;
+  publication_date: string;
   authors: {
     orcid: string,
     first_initial: string;
