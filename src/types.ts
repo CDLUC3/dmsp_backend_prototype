@@ -64,6 +64,8 @@ export type AddProjectFundingInput = {
 export type AddProjectMemberInput = {
   /** The Member's affiliation URI */
   affiliationId?: InputMaybe<Scalars['String']['input']>;
+  /** The Member's affiliation name */
+  affiliationName?: InputMaybe<Scalars['String']['input']>;
   /** The Member's email address */
   email?: InputMaybe<Scalars['String']['input']>;
   /** The Member's first/given name */
