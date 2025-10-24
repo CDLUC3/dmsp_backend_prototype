@@ -1,11 +1,11 @@
 # The email domains associated with an affiliation to assist with SSO
 CREATE TABLE IF NOT EXISTS `affiliationEmailDomains` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `affiliationId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `affiliationId` VARCHAR(255) NOT NULL,
   `emailDomain` VARCHAR(255) NOT NULL,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_emailDomain UNIQUE (`emailDomain`),
   INDEX affiliations_email_domains_idx (`emailDomain`, `affiliationId`)
@@ -13,18 +13,18 @@ CREATE TABLE IF NOT EXISTS `affiliationEmailDomains` (
 
 # The URLs defined by the affiliation admins that are displayed on the sites sub header
 CREATE TABLE IF NOT EXISTS `affiliationLinks` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `affiliationId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `affiliationId` VARCHAR(255) NOT NULL,
   `url` VARCHAR(255) NOT NULL,
   `text` VARCHAR(255) NOT NULL,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `affiliations` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `uri` VARCHAR(255) NOT NULL,
   `provenance` VARCHAR(255) NOT NULL DEFAULT 'DMPTOOL',
   `name` VARCHAR(255) NOT NULL,
@@ -47,9 +47,9 @@ CREATE TABLE IF NOT EXISTS `affiliations` (
   `managed` BOOLEAN NOT NULL DEFAULT 0,
   `active` BOOLEAN NOT NULL DEFAULT 1,
   `apiTarget` VARCHAR(255) NULL,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_affiliation_uri UNIQUE (`uri`),
   CONSTRAINT unique_affiliation_displayName UNIQUE (`displayName`),
@@ -61,152 +61,152 @@ CREATE TABLE IF NOT EXISTS `affiliations` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `answerComments` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `answerId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `answerId` INT UNSIGNED NOT NULL,
   `commentText` TEXT NOT NULL,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX answer_comments_modified_idx (`answerId`, `modified`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `answers` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `planId` INT NOT NULL,
-  `versionedSectionId` INT NOT NULL,
-  `versionedQuestionId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `planId` INT UNSIGNED NOT NULL,
+  `versionedSectionId` INT UNSIGNED NOT NULL,
+  `versionedQuestionId` INT UNSIGNED NOT NULL,
   `answerText` TEXT,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `contributorRoles` (
-  `id` int AUTO_INCREMENT PRIMARY KEY,
+  `id` int UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `label` varchar(255) NOT NULL,
   `uri` varchar(255) NOT NULL,
   `description` text,
   `displayOrder` int NOT NULL,
   `isDefault` BOOLEAN NOT NULL DEFAULT FALSE,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_contributor_role_uri UNIQUE (`uri`),
   CONSTRAINT unique_contributor_role_order UNIQUE (`displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `feedbackComments` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `feedbackId` INT NOT NULL,
-  `answerId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `feedbackId` INT UNSIGNED NOT NULL,
+  `answerId` INT UNSIGNED NOT NULL,
   `commentText` TEXT NOT NULL,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX feedback_comments_modified_idx (`answerId`, `modified`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `feedback` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `planId` INT NOT NULL,
-  `requestedById` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `planId` INT UNSIGNED NOT NULL,
+  `requestedById` INT UNSIGNED NOT NULL,
   `requested` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `completedById` INT,
+  `completedById` INT UNSIGNED,
   `completed` TIMESTAMP,
   `summaryText` TEXT,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `licenses` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
   `description` TEXT,
   `recommended` TINYINT(1) NOT NULL DEFAULT 0,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_license_name UNIQUE (`name`),
   CONSTRAINT unique_license_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `metadataStandardResearchDomains` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `metadataStandardId` INT NOT NULL,
-  `researchDomainId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `metadataStandardId` INT UNSIGNED NOT NULL,
+  `researchDomainId` INT UNSIGNED NOT NULL,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL
+  `modifiedById` int UNSIGNED NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `metadataStandards` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
   `description` TEXT,
   `keywords` JSON,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_mstandard_name UNIQUE (`name`),
   CONSTRAINT unique_mstandard_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `planContributorRoles` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `planContributorId` INT NOT NULL,
-  `contributorRoleId` INT NOT NULL,
-  `createdById` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `planContributorId` INT UNSIGNED NOT NULL,
+  `contributorRoleId` INT UNSIGNED NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `planContributors` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `planId` INT NOT NULL,
-  `projectContributorId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `planId` INT UNSIGNED NOT NULL,
+  `projectContributorId` INT UNSIGNED NOT NULL,
   `isPrimaryContact` TINYINT(1) NOT NULL DEFAULT 0,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `planFunders` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `planId` INT NOT NULL,
-  `projectFunderId` INT NOT NULL,
-  `createdById` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `planId` INT UNSIGNED NOT NULL,
+  `projectFunderId` INT UNSIGNED NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `plans` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectId` INT NOT NULL,
-  `versionedTemplateId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectId` INT UNSIGNED NOT NULL,
+  `versionedTemplateId` INT UNSIGNED NOT NULL,
   `visibility` VARCHAR(16) NOT NULL,
   `status` VARCHAR(16) NOT NULL,
   `dmpId` VARCHAR(255),
-  `registeredById` INT,
+  `registeredById` INT UNSIGNED,
   `registered` TIMESTAMP,
   `languageId` CHAR(5) NOT NULL DEFAULT 'en-US',
   `featured` TINYINT(1) NOT NULL DEFAULT 0,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX plans_dmpid_idx (`dmpId`),
   INDEX plans_modified_idx (`id`, `modified`),
@@ -215,121 +215,121 @@ CREATE TABLE IF NOT EXISTS `plans` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projectCollaborators` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectId` INT UNSIGNED NOT NULL,
   `email` VARCHAR(255) NOT NULL,
-  `invitedById` INT NOT NULL,
-  `userId` INT,
+  `invitedById` INT UNSIGNED NOT NULL,
+  `userId` INT UNSIGNED,
   `accessLevel` VARCHAR(8) NOT NULL DEFAULT 'COMMENT',
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_template_collaborator UNIQUE (`projectId`, `email`),
   INDEX projectCollaborators_email_idx (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projectContributorRoles` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectContributorId` INT NOT NULL,
-  `contributorRoleId` INT NOT NULL,
-  `createdById` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectContributorId` INT UNSIGNED NOT NULL,
+  `contributorRoleId` INT UNSIGNED NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projectContributors` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectId` INT UNSIGNED NOT NULL,
   `affiliationId` VARCHAR(255),
   `givenName` VARCHAR(255),
   `surName` VARCHAR(255),
   `orcid` VARCHAR(255),
   `email` VARCHAR(255),
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projectFunders` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectId` INT UNSIGNED NOT NULL,
   `affiliationId` VARCHAR(255) NOT NULL,
   `status` VARCHAR(16) NOT NULL,
   `funderProjectNumber` VARCHAR(255),
   `grantId` VARCHAR(255),
   `funderOpportunityNumber` VARCHAR(255),
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projectOutputMetadataStandards` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectOutputId` INT NOT NULL,
-  `metadataStandardId` INT NOT NULL,
-  `createdById` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectOutputId` INT UNSIGNED NOT NULL,
+  `metadataStandardId` INT UNSIGNED NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projectOutputRepositories` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectOutputId` INT NOT NULL,
-  `repositoryId` INT NOT NULL,
-  `createdById` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectOutputId` INT UNSIGNED NOT NULL,
+  `repositoryId` INT UNSIGNED NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projectOutputTypes` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
   `description` TEXT NOT NULL,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_license_name UNIQUE (`name`),
   CONSTRAINT unique_license_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projectOutputs` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectId` INT NOT NULL,
-  `outputTypeId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectId` INT UNSIGNED NOT NULL,
+  `outputTypeId` INT UNSIGNED NOT NULL,
   `title` VARCHAR(255) NOT NULL,
   `description` TEXT,
   `mayContainSensitiveInformation` TINYINT(1),
   `mayContainPII` TINYINT(1),
   `initialAccessLevel` VARCHAR(16),
-  `initialLicenseId` INT,
+  `initialLicenseId` INT UNSIGNED,
   `anticipatedReleaseDate` VARCHAR(16),
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX projectOutputs_type_idx (`projectId`, `outputTypeId`),
   INDEX projectOutputs_release_date_idx (`anticipatedReleaseDate`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `projects` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `title` VARCHAR(255) NOT NULL,
   `abstractText` TEXT,
   `researchDomainId` VARCHAR(255),
   `startDate` VARCHAR(16),
   `endDate` VARCHAR(16),
   `isTestProject` TINYINT(1) NOT NULL DEFAULT 0,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX projects_title_idx (`id`, `title`),
   INDEX projects_modified_idx (`id`, `modified`),
@@ -338,60 +338,60 @@ CREATE TABLE IF NOT EXISTS `projects` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `questionConditions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `questionId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `questionId` INT UNSIGNED NOT NULL,
   `action` VARCHAR(255) NOT NULL DEFAULT 'SHOW_QUESTION',
   `conditionType` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
   `conditionMatch` VARCHAR(255),
   `target` VARCHAR(255) NOT NULL,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `questionOptions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `questionId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `questionId` INT UNSIGNED NOT NULL,
   `text` VARCHAR(255) NOT NULL,
   `orderNumber` INT NOT NULL,
   `isDefault` TINYINT(1) NOT NULL DEFAULT 0,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int
+  `modifiedById` INT UNSIGNED NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `questionTypes` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(255) NOT NULL,
   `usageDescription` text,
   `isDefault` TINYINT(1) NOT NULL DEFAULT 0,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_name UNIQUE (`name`),
   INDEX questionTypes_name_idx (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `questions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `templateId` INT NOT NULL,
-  `sectionId` INT NOT NULL,
-  `sourceQuestionId` INT,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `templateId` INT UNSIGNED NOT NULL,
+  `sectionId` INT UNSIGNED NOT NULL,
+  `sourceQuestionId` INT UNSIGNED,
   `displayOrder` INT NOT NULL,
   `isDirty` TINYINT(1) NOT NULL DEFAULT 1,
-  `questionTypeId` INT NOT NULL,
+  `questionTypeId` INT UNSIGNED NOT NULL,
   `questionText` TEXT NOT NULL,
   `requirementText` TEXT,
   `guidanceText` TEXT,
   `sampleText` TEXT,
   `useSampleTextAsDefault` TINYINT(1) NOT NULL DEFAULT 0,
   `required` TINYINT(1) NOT NULL DEFAULT 0,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX questions_section_idx (`sectionId`, `displayOrder`),
   INDEX questions_isDirty_idx (`templateId`, `isDirty`),
@@ -399,20 +399,20 @@ CREATE TABLE IF NOT EXISTS `questions` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `relatedWorks` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `projectId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `projectId` INT UNSIGNED NOT NULL,
   `identifier` VARCHAR(255) NOT NULL,
   `relationDescriptor` VARCHAR(255) NOT NULL,
   `workType` VARCHAR(255) NOT NULL,
   `citation` TEXT,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int
+  `modifiedById` INT UNSIGNED NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `repositories` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
   `description` TEXT,
@@ -420,53 +420,53 @@ CREATE TABLE IF NOT EXISTS `repositories` (
   `keywords` JSON,
   `repositoryTypes` JSON NULL,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_license_name UNIQUE (`name`),
   CONSTRAINT unique_license_uri UNIQUE (`uri`),
   CONSTRAINT unique_license_website UNIQUE (`website`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `repositoryResearchDomains` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `repositoryId` INT NOT NULL,
-  `researchDomainId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `repositoryId` INT UNSIGNED NOT NULL,
+  `researchDomainId` INT UNSIGNED NOT NULL,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL
+  `modifiedById` int UNSIGNED NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `researchDomains` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `uri` VARCHAR(255) NOT NULL,
   `description` TEXT NOT NULL,
-  `parentResearchDomainId` INT,
+  `parentResearchDomainId` INT UNSIGNED,
   `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_research_domain_name UNIQUE (`name`),
   CONSTRAINT unique_research_domain_uri UNIQUE (`uri`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `sectionTags` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `sectionId` INT NOT NULL,
-  `tagId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `sectionId` INT UNSIGNED NOT NULL,
+  `tagId` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   INDEX sectionTags_idx(`sectionId`, `tagId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `sections` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `templateId` INT NOT NULL,
-  `sourceSectionId` INT,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `templateId` INT UNSIGNED NOT NULL,
+  `sourceSectionId` INT UNSIGNED,
   `name` VARCHAR(255) NOT NULL,
   `introduction` TEXT,
   `requirements` TEXT,
@@ -474,9 +474,9 @@ CREATE TABLE IF NOT EXISTS `sections` (
   `displayOrder` INT NOT NULL,
   `bestPractice` TINYINT(1) NOT NULL DEFAULT 0,
   `isDirty` TINYINT(1) NOT NULL DEFAULT 1,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX sections_name_idx (`name`),
   INDEX sections_isDirty_idx (`templateId`, `isDirty`),
@@ -484,33 +484,33 @@ CREATE TABLE IF NOT EXISTS `sections` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `tags` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `name` VARCHAR(255) NOT NULL,
   `description` TEXT,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX tags_name_idx (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `templateCollaborators` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `templateId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `templateId` INT UNSIGNED NOT NULL,
   `email` VARCHAR(255) NOT NULL,
-  `invitedById` INT NOT NULL,
-  `userId` INT,
+  `invitedById` INT UNSIGNED NOT NULL,
+  `userId` INT UNSIGNED,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   CONSTRAINT unique_template_collaborator UNIQUE (`templateId`, `email`),
   INDEX templateCollaborators_email_idx (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `templates` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `sourceTemplateId` INT,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `sourceTemplateId` INT UNSIGNED,
   `name` TEXT NOT NULL,
   `description` TEXT,
   `ownerId` VARCHAR(255) NOT NULL,
@@ -520,34 +520,34 @@ CREATE TABLE IF NOT EXISTS `templates` (
   `isDirty` TINYINT(1) NOT NULL DEFAULT 1,
   `bestPractice` TINYINT(1) NOT NULL DEFAULT 0,
   `languageId` CHAR(5) NOT NULL DEFAULT 'en-US',
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX templates_bestPractice_idx (`bestPractice`),
   INDEX templates_owner_idx (`ownerId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `versionedQuestionConditions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `versionedQuestionId` INT NOT NULL,
-  `questionConditionId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `versionedQuestionId` INT UNSIGNED NOT NULL,
+  `questionConditionId` INT UNSIGNED NOT NULL,
   `action` VARCHAR(255) NOT NULL DEFAULT 'SHOW_QUESTION',
   `conditionType` VARCHAR(255) NOT NULL DEFAULT 'EQUAL',
   `conditionMatch` VARCHAR(255),
   `target` VARCHAR(255) NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL
+  `modifiedById` int UNSIGNED NOT NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `versionedQuestions` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `versionedTemplateId` INT NOT NULL,
-  `versionedSectionId` INT NOT NULL,
-  `questionId` INT NOT NULL,
-  `questionTypeId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `versionedTemplateId` INT UNSIGNED NOT NULL,
+  `versionedSectionId` INT UNSIGNED NOT NULL,
+  `questionId` INT UNSIGNED NOT NULL,
+  `questionTypeId` INT UNSIGNED NOT NULL,
   `questionText` TEXT NOT NULL,
   `requirementText` TEXT,
   `guidanceText` TEXT,
@@ -555,17 +555,17 @@ CREATE TABLE IF NOT EXISTS `versionedQuestions` (
   `required` TINYINT(1) NOT NULL DEFAULT 0,
   `displayOrder` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   INDEX versionedQuestions_template_idx (`versionedTemplateId`, `displayOrder`),
   INDEX versionedQuestions_section_idx (`versionedSectionId`, `displayOrder`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `versionedSections` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `versionedTemplateId` INT NOT NULL,
-  `sectionId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `versionedTemplateId` INT UNSIGNED NOT NULL,
+  `sectionId` INT UNSIGNED NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `introduction` TEXT,
   `requirements` TEXT,
@@ -573,20 +573,20 @@ CREATE TABLE IF NOT EXISTS `versionedSections` (
   `displayOrder` INT NOT NULL,
   `bestPractice` TINYINT(1) NOT NULL DEFAULT 0,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   INDEX versionedSections_template_idx (`versionedTemplateId`, `displayOrder`),
   INDEX versionedSections_name_ids (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `versionedTemplates` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `templateId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `templateId` INT UNSIGNED NOT NULL,
   `active` TINYINT(1) NOT NULL DEFAULT 0,
   `version` VARCHAR(16) NOT NULL,
   `versionType` VARCHAR(16) NOT NULL DEFAULT 'Draft',
-  `versionedById` INT NOT NULL,
+  `versionedById` INT UNSIGNED NOT NULL,
   `comment` TEXT,
   `name` TEXT NOT NULL,
   `description` TEXT,
@@ -595,30 +595,30 @@ CREATE TABLE IF NOT EXISTS `versionedTemplates` (
   `bestPractice` TINYINT(1) NOT NULL DEFAULT 0,
   `languageId` CHAR(5) NOT NULL DEFAULT 'en-US',
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   INDEX versionedTemplates_active_idx(`active`),
   INDEX versionedTemplates_owner_idx (`ownerId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 # User email addresses
 CREATE TABLE IF NOT EXISTS `userEmails` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `userId` INT NOT NULL,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `userId` INT UNSIGNED NOT NULL,
   `email` VARCHAR(255) NOT NULL,
   `isPrimary` TINYINT(1) NOT NULL DEFAULT 0,
   `isConfirmed` TINYINT(1) NOT NULL DEFAULT 0,
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_userEmails_userId_email UNIQUE (`userId`, `email`),
   INDEX userEmails_email_idx (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `users` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` VARCHAR(16) NOT NULL DEFAULT 'RESEARCHER',
@@ -643,9 +643,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `notify_on_plan_visibility_change` TINYINT(1) NOT NULL DEFAULT 1,
 
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int,
+  `createdById` INT UNSIGNED,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int,
+  `modifiedById` INT UNSIGNED,
   CONSTRAINT unique_email UNIQUE (`email`),
   INDEX users_surName_idx (`surName`),
   INDEX users_affiliation_idx (`affiliationId`),
@@ -657,12 +657,12 @@ CREATE TABLE IF NOT EXISTS `users` (
 ALTER TABLE affiliationEmailDomains
   ADD FOREIGN KEY (createdById) REFERENCES users(id),
   ADD FOREIGN KEY (modifiedById) REFERENCES users(id),
-  ADD FOREIGN KEY (affiliationId) REFERENCES affiliations(id) ON DELETE CASCADE;
+  ADD FOREIGN KEY (affiliationId) REFERENCES affiliations(uri) ON DELETE CASCADE;
 
 ALTER TABLE affiliationLinks
   ADD FOREIGN KEY (createdById) REFERENCES users(id),
   ADD FOREIGN KEY (modifiedById) REFERENCES users(id),
-  ADD FOREIGN KEY (affiliationId) REFERENCES affiliations(id) ON DELETE CASCADE;
+  ADD FOREIGN KEY (affiliationId) REFERENCES affiliations(uri) ON DELETE CASCADE;
 
 ALTER TABLE affiliations
   ADD FOREIGN KEY (createdById) REFERENCES users(id),
