@@ -36,6 +36,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Upgrade `nodemailer` from `6.10.1` to `7.0.10` to address security vulnerability
 - Updated `ORCID_REGEX` in `helper.ts` so that urls can be submitted without a the `www.` Also, added `stripORCIDIdentifierBaseURL` to just strip out all protocols and domains to extract the OrcidID [#251]
 - Updated `OrcidAPI` to handle `404` errors so that we return null rather than throwing an error [#251]
 - Updated `addProjectMemberInput` schema to include `affiliationName` since we are using a TypeAhead field and sometimes we only get the `affiliationName` [#251]
