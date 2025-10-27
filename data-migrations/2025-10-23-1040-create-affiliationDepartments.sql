@@ -4,9 +4,9 @@ CREATE TABLE IF NOT EXISTS `affiliationDepartments` (
   `affiliationId` VARCHAR(255) NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `abbreviation` VARCHAR(255),
-  `createdById` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_affiliationDepts UNIQUE (`affiliationId`, `name`),
   CONSTRAINT fk_affiliationDepts_affiliationId FOREIGN KEY (affiliationId) REFERENCES affiliations (uri)
@@ -15,11 +15,11 @@ CREATE TABLE IF NOT EXISTS `affiliationDepartments` (
 -- Table to associate users with affiliation departments
 CREATE TABLE IF NOT EXISTS `userDepartments` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `affiliationDepartmentId` INT NOT NULL,
-  `userId` INT NOT NULL,
-  `createdById` INT NOT NULL,
+  `affiliationDepartmentId` INT UNSIGNED NOT NULL,
+  `userId` INT UNSIGNED NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_userDepts UNIQUE (`affiliationDepartmentId`, `userId`),
   CONSTRAINT fk_userDepts_aDeptId FOREIGN KEY (affiliationDepartmentId) REFERENCES affiliationDepartments (id)

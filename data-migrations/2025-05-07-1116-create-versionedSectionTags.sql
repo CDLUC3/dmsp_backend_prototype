@@ -4,9 +4,9 @@ CREATE TABLE IF NOT EXISTS `versionedSectionTags` (
   `versionedSectionId` INT UNSIGNED NOT NULL,
   `tagId` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
+  `createdById` int UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL,
+  `modifiedById` int UNSIGNED NOT NULL,
   INDEX versionedSectionTags_idx(`versionedSectionId`, `tagId`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 

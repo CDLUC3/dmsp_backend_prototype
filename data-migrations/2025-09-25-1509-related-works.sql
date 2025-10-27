@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `works`
   `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `doi`         VARCHAR(255) NOT NULL,
   `created`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` INT          NULL,
+  `createdById` INT UNSIGNED NULL,
 
   CONSTRAINT unique_doi UNIQUE (`doi`),
   CONSTRAINT fk_works_users_createdById FOREIGN KEY (createdById) REFERENCES users (id)
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS `workVersions`
   `sourceName`       VARCHAR(255) NOT NULL,
   `sourceUrl`        VARCHAR(255) NOT NULL,
   `created`          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById`      INT          NULL,
+  `createdById`      INT UNSIGNED NULL,
 
   CONSTRAINT fk_workVersions_works_workId FOREIGN KEY (workId) REFERENCES works (id),
   CONSTRAINT unique_hash UNIQUE (`workId`, `hash`),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `workVersions`
 CREATE TABLE IF NOT EXISTS `relatedWorks`
 (
   `id`                 INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `planId`             INT          NOT NULL,
+  `planId`             INT UNSIGNED NOT NULL,
   `workVersionId`      INT UNSIGNED NOT NULL,
   `score`              FLOAT        NOT NULL,
   `status`             VARCHAR(256)          DEFAULT 'pending',
@@ -53,9 +53,9 @@ CREATE TABLE IF NOT EXISTS `relatedWorks`
   `funderMatches`      JSON         NOT NULL,
   `awardMatches`       JSON         NOT NULL,
   `created`            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById`        INT,
+  `createdById`        INT UNSIGNED,
   `modified`           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `modifiedById`       INT,
+  `modifiedById`       INT UNSIGNED,
 
   CONSTRAINT unique_planId_workVersionId UNIQUE (`planId`, `workVersionId`),
   CONSTRAINT fk_relatedWorks_workVersions_workVersionId FOREIGN KEY (workVersionId) REFERENCES workVersions (id),
@@ -163,7 +163,7 @@ BEGIN
   CREATE TEMPORARY TABLE resolvedStagingLinks
   (
     `id`            INT UNSIGNED NOT NULL PRIMARY KEY,
-    `planId`        INT          NOT NULL,
+    `planId`        INT UNSIGNED NOT NULL,
     `workVersionId` INT UNSIGNED NOT NULL,
     `workDoi`       VARCHAR(255) NOT NULL,
     UNIQUE KEY (`planId`, `workVersionId`)

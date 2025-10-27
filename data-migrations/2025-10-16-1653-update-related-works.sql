@@ -101,7 +101,7 @@ DROP TEMPORARY TABLE IF EXISTS resolvedStagingLinks;
   CREATE TEMPORARY TABLE resolvedStagingLinks
   (
     `id`            INT UNSIGNED NOT NULL PRIMARY KEY,
-    `planId`        INT          NOT NULL,
+    `planId`        INT UNSIGNED NOT NULL,
     `workVersionId` INT UNSIGNED NOT NULL,
     `workDoi`       VARCHAR(255) NOT NULL,
     UNIQUE KEY (`planId`, `workVersionId`)

@@ -1,12 +1,12 @@
 -- Add modified and modifiedById to works table
 ALTER TABLE `works`
   ADD COLUMN `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  ADD COLUMN `modifiedById` INT NULL;
+  ADD COLUMN `modifiedById` INT UNSIGNED NULL;
 
 -- Add modified and modifiedById to workVersions table
 ALTER TABLE `workVersions`
   ADD COLUMN `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  ADD COLUMN `modifiedById` INT NULL,
+  ADD COLUMN `modifiedById` INT UNSIGNED NULL,
   MODIFY COLUMN `sourceUrl` VARCHAR(255) NULL,
   RENAME COLUMN abstract TO abstractText,
   RENAME COLUMN type TO workType;
@@ -119,7 +119,7 @@ DROP TEMPORARY TABLE IF EXISTS resolvedStagingLinks;
   CREATE TEMPORARY TABLE resolvedStagingLinks
   (
     `id`            INT UNSIGNED NOT NULL PRIMARY KEY,
-    `planId`        INT          NOT NULL,
+    `planId`        INT UNSIGNED NOT NULL,
     `workVersionId` INT UNSIGNED NOT NULL,
     `workDoi`       VARCHAR(255) NOT NULL,
     UNIQUE KEY (`planId`, `workVersionId`)

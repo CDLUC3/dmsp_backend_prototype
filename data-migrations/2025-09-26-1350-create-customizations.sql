@@ -5,11 +5,12 @@
 CREATE TABLE IF NOT EXISTS `templateCustomizations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `affiliationId` VARCHAR(255) NOT NULL,
-  `templateId` INT NOT NULL,     # Pointer to the template being customized
+  `templateId` INT UNSIGNED NOT NULL,     # Pointer to the template being customized
   `status` VARCHAR(8) NOT NULL DEFAULT 'DRAFT', # DRAFT, PUBLISHED, ARCHIVED
   `migrationStatus` VARCHAR(8) NOT NULL DEFAULT 'OK',    # OK, STALE, ORPHANED
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_templateCusts UNIQUE (`affiliationId`, `templateId`),
   CONSTRAINT fk_templateCust_affiliationId FOREIGN KEY (affiliationId) REFERENCES affiliations (uri),
@@ -20,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `templateCustomizations` (
 CREATE TABLE IF NOT EXISTS `customSections` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `templateCustomizationId` INT UNSIGNED NOT NULL,
-  `pinnedSectionId` INT NOT NULL,     # Pointer to the section being customized
+  `pinnedSectionId` INT UNSIGNED NOT NULL,     # Pointer to the section being customized
   `migrationStatus` VARCHAR(8) NOT NULL DEFAULT 'OK',    # OK, STALE, ORPHANED
 
   `name` VARCHAR(255) NOT NULL,
@@ -28,8 +29,9 @@ CREATE TABLE IF NOT EXISTS `customSections` (
   `requirements` TEXT,
   `guidance` TEXT,
   `displayOrder` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_customSecs_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_customSecs_currentId FOREIGN KEY (pinnedSectionId) REFERENCES sections (id)
@@ -47,7 +49,7 @@ CREATE TABLE IF NOT EXISTS `customQuestions` (
 
   # Questions can be attached to a question that is part of the published Template
   # If so, this column is applicable:
-  `pinnedQuestionId` INT NULL,    # Pointer to the question being customized
+  `pinnedQuestionId` INT UNSIGNED NULL,    # Pointer to the question being customized
 
   `questionTypeId` INT NOT NULL,
   `questionText` TEXT NOT NULL,
@@ -55,8 +57,9 @@ CREATE TABLE IF NOT EXISTS `customQuestions` (
   `guidanceText` TEXT,
   `sampleText` TEXT,
   `required` TINYINT(1) NOT NULL DEFAULT 0,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_customQs_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_customQs_sectionId FOREIGN KEY (customSectionId) REFERENCES customSections (id),
@@ -67,13 +70,14 @@ CREATE TABLE IF NOT EXISTS `customQuestions` (
 CREATE TABLE IF NOT EXISTS `sectionCustomizations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `templateCustomizationId` INT UNSIGNED NOT NULL,
-  `sectionId` INT NOT NULL,    # Pointer to the section being customized
+  `sectionId` INT UNSIGNED NOT NULL,    # Pointer to the section being customized
   `migrationStatus` VARCHAR(8) NOT NULL DEFAULT 'OK',    # OK, STALE, ORPHANED
 
   `requirements` TEXT NULL,
   `guidance` TEXT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_sectionCusts UNIQUE (`templateCustomizationId`, `sectionId`),
   CONSTRAINT fk_sectionCust_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
@@ -84,14 +88,15 @@ CREATE TABLE IF NOT EXISTS `sectionCustomizations` (
 CREATE TABLE IF NOT EXISTS `questionCustomizations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `templateCustomizationId` INT UNSIGNED NOT NULL,
-  `questionId` INT NOT NULL,
+  `questionId` INT UNSIGNED NOT NULL,
   `migrationStatus` VARCHAR(8) NOT NULL DEFAULT 'OK',    # OK, STALE, ORPHANED
 
   `requirementText` TEXT,
   `guidanceText` TEXT,
   `sampleText` TEXT,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_questionCusts UNIQUE (`templateCustomizationId`, `questionId`),
   CONSTRAINT fk_qCust_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
@@ -107,13 +112,13 @@ CREATE TABLE IF NOT EXISTS `versionedTemplateCustomizations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `affiliationId` VARCHAR(255) NOT NULL,
   `templateCustomizationId` INT UNSIGNED NOT NULL,
-  `currentVersionedTemplateId` INT NOT NULL,  # Pointer to the template being customized
-  `priorVersionedTemplateId` INT NULL,        # Pointer to the prior version of the template being customized
+  `currentVersionedTemplateId` INT UNSIGNED NOT NULL,  # Pointer to the template being customized
+  `priorVersionedTemplateId` INT UNSIGNED NULL,        # Pointer to the prior version of the template being customized
   `status` VARCHAR(8) NOT NULL DEFAULT 'DRAFT', # DRAFT, PUBLISHED, ARCHIVED
   `active` TINYINT(1) NOT NULL DEFAULT 1,
-
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_vTemplateCusts UNIQUE (`affiliationId`, `templateCustomizationId`),
   CONSTRAINT fk_vTemplateCust_affiliationId FOREIGN KEY (affiliationId) REFERENCES affiliations (uri),
@@ -127,16 +132,17 @@ CREATE TABLE IF NOT EXISTS `versionedCustomSections` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `templateCustomizationId` INT UNSIGNED NOT NULL,
   `customSectionId` INT UNSIGNED NOT NULL,
-  `currentPinnedVersionedSectionId` INT NOT NULL,  # Pointer to the section this customSection follows
-  `priorPinnedVersionedSectionId` INT NULL,        # Pointer to the prior version of the section this customSection followed
+  `currentPinnedVersionedSectionId` INT UNSIGNED NOT NULL,  # Pointer to the section this customSection follows
+  `priorPinnedVersionedSectionId` INT UNSIGNED NULL,        # Pointer to the prior version of the section this customSection followed
 
   `name` VARCHAR(255) NOT NULL,
   `introduction` TEXT,
   `requirements` TEXT,
   `guidance` TEXT,
   `displayOrder` INT NOT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_vCustomSecs_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_vCustomSecs_sectionId FOREIGN KEY (customSectionId) REFERENCES customSections (id),
@@ -156,17 +162,18 @@ CREATE TABLE IF NOT EXISTS `versionedCustomQuestions` (
 
   # Questions can be attached to a question that is part of the published Template
   # If so, these columns are applicable:
-  `currentPinnedVersionedQuestionId` INT NULL,
-  `priorPinnedVersionedQuestionId` INT NULL,
+  `currentPinnedVersionedQuestionId` INT UNSIGNED NULL,
+  `priorPinnedVersionedQuestionId` INT UNSIGNED NULL,
 
-  `questionTypeId` INT NOT NULL,
+  `questionTypeId` INT UNSIGNED NOT NULL,
   `questionText` TEXT NOT NULL,
   `requirementText` TEXT,
   `guidanceText` TEXT,
   `sampleText` TEXT,
   `required` TINYINT(1) NOT NULL DEFAULT 0,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_vCustomQs_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_vCustomQs_questionId FOREIGN KEY (customQuestionId) REFERENCES customQuestions (id),
@@ -180,13 +187,14 @@ CREATE TABLE IF NOT EXISTS `versionedSectionCustomizations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `templateCustomizationId` INT UNSIGNED NOT NULL,
   `sectionCustomizationId` INT UNSIGNED NOT NULL,
-  `currentVersionedSectionId` INT NOT NULL,  # Pointer to the section being customized
-  `priorVersionedSectionId` INT NULL,        # Pointer to the prior version of the section being customized
+  `currentVersionedSectionId` INT UNSIGNED NOT NULL,  # Pointer to the section being customized
+  `priorVersionedSectionId` INT UNSIGNED NULL,        # Pointer to the prior version of the section being customized
 
   `requirements` TEXT NULL,
   `guidance` TEXT NULL,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_vSectionCusts UNIQUE (`templateCustomizationId`, `sectionCustomizationId`),
   CONSTRAINT fk_vSectionCust_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
@@ -200,14 +208,15 @@ CREATE TABLE IF NOT EXISTS `versionedQuestionCustomizations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `templateCustomizationId` INT UNSIGNED NOT NULL,
   `questionCustomizationId` INT UNSIGNED NOT NULL,
-  `currentVersionedQuestionId` INT NOT NULL,    # Pointer to the question being customized
-  `priorVersionedQuestionId` INT NULL,          # Pointer to the prior version of the question being customized
+  `currentVersionedQuestionId` INT UNSIGNED NOT NULL,    # Pointer to the question being customized
+  `priorVersionedQuestionId` INT UNSIGNED NULL,          # Pointer to the prior version of the question being customized
 
   `requirementText` TEXT,
   `guidanceText` TEXT,
   `sampleText` TEXT,
+  `createdById` INT UNSIGNED NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` INT NOT NULL,
+  `modifiedById` INT UNSIGNED NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_vQuestionCusts UNIQUE (`templateCustomizationId`, `questionCustomizationId`),
   CONSTRAINT fk_vQCust_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
