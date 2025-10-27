@@ -1,12 +1,21 @@
 import gql from "graphql-tag";
 
 export const typeDefs = gql`
+  enum PlanFeedbackStatusEnum {
+    NONE
+    REQUESTED
+    COMPLETED
+  }
+
   extend type Query {
     "Get all rounds of admin feedback for the plan"
     planFeedback(planId: Int!): [PlanFeedback]
 
     "Get all of the comments associated with the round of admin feedback"
     planFeedbackComments(planId: Int!, planFeedbackId: Int!): [PlanFeedbackComment]
+
+    "Get the feedback status for a plan (NONE, REQUESTED, COMPLETED)"
+    planFeedbackStatus(planId: Int!): PlanFeedbackStatusEnum
   }
 
   extend type Mutation {

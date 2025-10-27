@@ -116,4 +116,23 @@ export class PlanFeedback extends MySqlModel {
     const results = await PlanFeedback.query(context, sql, [planId.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results.map((ans) => new PlanFeedback(ans)) : [];
   }
+
+  // Get the feedback status for a plan
+  static async statusForPlan(
+    reference: string,
+    context: MyContext,
+    planId: number
+  ): Promise<'NONE' | 'REQUESTED' | 'COMPLETED'> {
+    // Aggregate: total rows and how many are open (completed IS NULL)
+    const sql = `SELECT COUNT(*) as total, SUM(CASE WHEN completed IS NULL THEN 1 ELSE 0 END) as open FROM ${PlanFeedback.tableName} WHERE planId = ?`;
+    const results = await PlanFeedback.query(context, sql, [planId?.toString()], reference);
+    const row = Array.isArray(results) && results.length > 0 ? results[0] : { total: 0, open: 0 };
+
+    const total = Number(row.total) || 0;
+    const open = Number(row.open) || 0;
+
+    if (total === 0) return 'NONE';
+    if (open > 0) return 'REQUESTED';
+    return 'COMPLETED';
+  }
 };

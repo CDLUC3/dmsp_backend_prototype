@@ -1863,6 +1863,11 @@ export type PlanFeedbackErrors = {
   summaryText?: Maybe<Scalars['String']['output']>;
 };
 
+export type PlanFeedbackStatusEnum =
+  | 'COMPLETED'
+  | 'NONE'
+  | 'REQUESTED';
+
 /** Funding associated with a plan */
 export type PlanFunding = {
   __typename?: 'PlanFunding';
@@ -2480,6 +2485,8 @@ export type Query = {
   planFeedback?: Maybe<Array<Maybe<PlanFeedback>>>;
   /** Get all of the comments associated with the round of admin feedback */
   planFeedbackComments?: Maybe<Array<Maybe<PlanFeedbackComment>>>;
+  /** Get the feedback status for a plan (NONE, REQUESTED, COMPLETED) */
+  planFeedbackStatus?: Maybe<PlanFeedbackStatusEnum>;
   /** Get all of the Funding information for the specific Plan */
   planFundings?: Maybe<Array<Maybe<PlanFunding>>>;
   /** Get all of the Users that are Members for the specific Plan */
@@ -2672,6 +2679,11 @@ export type QueryPlanFeedbackArgs = {
 
 export type QueryPlanFeedbackCommentsArgs = {
   planFeedbackId: Scalars['Int']['input'];
+  planId: Scalars['Int']['input'];
+};
+
+
+export type QueryPlanFeedbackStatusArgs = {
   planId: Scalars['Int']['input'];
 };
 
@@ -3052,6 +3064,8 @@ export type RelatedWorkSearchResults = PaginatedQueryResults & {
   __typename?: 'RelatedWorkSearchResults';
   /** The sortFields that are available for this query (for standard offset pagination only!) */
   availableSortFields?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  /** Count of confidence values returned in the query */
+  confidenceCounts?: Maybe<Array<TypeCount>>;
   /** The current offset of the results (for standard offset pagination) */
   currentOffset?: Maybe<Scalars['Int']['output']>;
   /** Whether or not there is a next page */
@@ -3064,8 +3078,12 @@ export type RelatedWorkSearchResults = PaginatedQueryResults & {
   limit?: Maybe<Scalars['Int']['output']>;
   /** The cursor to use for the next page of results (for infinite scroll/load more) */
   nextCursor?: Maybe<Scalars['String']['output']>;
+  /** The count of the number of related works after the status filter is applied but doesn't include any other filters */
+  statusOnlyCount?: Maybe<Scalars['Int']['output']>;
   /** The total number of possible items */
   totalCount?: Maybe<Scalars['Int']['output']>;
+  /** Counts of work types returned in the query */
+  workTypeCounts?: Maybe<Array<TypeCount>>;
 };
 
 /** The origin of the related work entry */
@@ -4445,6 +4463,7 @@ export type ResolversTypes = {
   PlanFeedbackComment: ResolverTypeWrapper<PlanFeedbackComment>;
   PlanFeedbackCommentErrors: ResolverTypeWrapper<PlanFeedbackCommentErrors>;
   PlanFeedbackErrors: ResolverTypeWrapper<PlanFeedbackErrors>;
+  PlanFeedbackStatusEnum: PlanFeedbackStatusEnum;
   PlanFunding: ResolverTypeWrapper<PlanFunding>;
   PlanFundingErrors: ResolverTypeWrapper<PlanFundingErrors>;
   PlanMember: ResolverTypeWrapper<PlanMember>;
@@ -5666,6 +5685,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   plan?: Resolver<Maybe<ResolversTypes['Plan']>, ParentType, ContextType, RequireFields<QueryPlanArgs, 'planId'>>;
   planFeedback?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedback']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackArgs, 'planId'>>;
   planFeedbackComments?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFeedbackComment']>>>, ParentType, ContextType, RequireFields<QueryPlanFeedbackCommentsArgs, 'planFeedbackId' | 'planId'>>;
+  planFeedbackStatus?: Resolver<Maybe<ResolversTypes['PlanFeedbackStatusEnum']>, ParentType, ContextType, RequireFields<QueryPlanFeedbackStatusArgs, 'planId'>>;
   planFundings?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanFunding']>>>, ParentType, ContextType, RequireFields<QueryPlanFundingsArgs, 'planId'>>;
   planMembers?: Resolver<Maybe<Array<Maybe<ResolversTypes['PlanMember']>>>, ParentType, ContextType, RequireFields<QueryPlanMembersArgs, 'planId'>>;
   planOutputs?: Resolver<Maybe<Array<Maybe<ResolversTypes['ProjectOutput']>>>, ParentType, ContextType, RequireFields<QueryPlanOutputsArgs, 'planId'>>;
@@ -5798,13 +5818,16 @@ export type RelatedWorkSearchResultResolvers<ContextType = MyContext, ParentType
 
 export type RelatedWorkSearchResultsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['RelatedWorkSearchResults'] = ResolversParentTypes['RelatedWorkSearchResults']> = {
   availableSortFields?: Resolver<Maybe<Array<Maybe<ResolversTypes['String']>>>, ParentType, ContextType>;
+  confidenceCounts?: Resolver<Maybe<Array<ResolversTypes['TypeCount']>>, ParentType, ContextType>;
   currentOffset?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   hasNextPage?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   hasPreviousPage?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   items?: Resolver<Maybe<Array<Maybe<ResolversTypes['RelatedWorkSearchResult']>>>, ParentType, ContextType>;
   limit?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   nextCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  statusOnlyCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  workTypeCounts?: Resolver<Maybe<Array<ResolversTypes['TypeCount']>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
