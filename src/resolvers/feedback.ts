@@ -21,7 +21,7 @@ import { ProjectCollaborator } from "../models/Collaborator";
 import { PlanFeedbackComment } from "../models/PlanFeedbackComment";
 import { VersionedTemplate } from "../models/VersionedTemplate";
 import { ResolversParentTypes } from "../types";
-import { Resolvers } from "../types";
+import { Resolvers, PlanFeedbackStatusEnum } from "../types";
 import { getCurrentDate } from "../utils/helpers";
 
 type PlanFeedbackParent = ResolversParentTypes['PlanFeedback'] & {
@@ -99,6 +99,44 @@ export const resolvers: Resolvers = {
         throw InternalServerError();
       }
     },
+
+    // Get the current feedback status for a plan
+    planFeedbackStatus: async (_, { planId }, context: MyContext): Promise<PlanFeedbackStatusEnum> => {
+      const reference = 'planFeedbackStatus resolver';
+      try {
+        // if the user is an admin
+        if (isAdmin(context.token)) {
+          // Check to see if planId exists in our records
+          const plan = await Plan.findById(reference, context, planId);
+          if (!planId) {
+            throw NotFoundError(`Plan with ID ${planId} not found`);
+          }
+
+          // Get versionedTemplate associated with the plan
+          const versionedTemplate = await VersionedTemplate.findById(reference, context, plan.versionedTemplateId);
+
+          // If the user is a superAdmin or an admin for the same affiliation
+          if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.affiliationId === versionedTemplate.ownerId)) {
+
+            // Check that user has permissions to access feedback
+            const projectId = plan.projectId;
+            const project = await Project.findById(reference, context, projectId);
+            if (!project) {
+              throw NotFoundError(`Project with ID ${projectId} not found`);
+            }
+            if (await hasPermissionOnProject(context, project)) {
+              return await PlanFeedback.statusForPlan(reference, context, planId);
+            }
+          }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    }
   },
 
   Mutation: {
