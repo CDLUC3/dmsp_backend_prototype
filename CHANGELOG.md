@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added planFeedbackStatus resolver and tests (status of NONE, REQUESTED, COMPLETE)
 - Added related works resolvers and tests.
 - Added data migration to ensure collaborator tables allow for NULL in `userId` field
 - Added tables to support template customizations
