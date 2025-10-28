@@ -1,5 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
+import { PlanFeedbackStatusEnum } from "../types";
 
 export class PlanFeedback extends MySqlModel {
   public planId: number;
@@ -122,9 +123,9 @@ export class PlanFeedback extends MySqlModel {
     reference: string,
     context: MyContext,
     planId: number
-  ): Promise<'NONE' | 'REQUESTED' | 'COMPLETED'> {
+  ): Promise<PlanFeedbackStatusEnum> {
     // Aggregate: total rows and how many are open (completed IS NULL)
-    const sql = `SELECT COUNT(*) as total, SUM(CASE WHEN completed IS NULL THEN 1 ELSE 0 END) as open FROM ${PlanFeedback.tableName} WHERE planId = ?`;
+    const sql = `SELECT COUNT(*) as total, SUM(completed IS NULL) as open FROM ${PlanFeedback.tableName} WHERE planId = ?`;
     const results = await PlanFeedback.query(context, sql, [planId?.toString()], reference);
     const row = Array.isArray(results) && results.length > 0 ? results[0] : { total: 0, open: 0 };
 

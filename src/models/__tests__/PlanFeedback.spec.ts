@@ -329,7 +329,7 @@ describe('statusForPlan', () => {
     localQuery.mockResolvedValueOnce([]);
     const planId = casual.integer(1, 9999);
     const result = await PlanFeedback.statusForPlan('testing', context, planId);
-    const expectedSql = 'SELECT COUNT(*) as total, SUM(CASE WHEN completed IS NULL THEN 1 ELSE 0 END) as open FROM feedback WHERE planId = ?';
+    const expectedSql = 'SELECT COUNT(*) as total, SUM(completed IS NULL) as open FROM feedback WHERE planId = ?';
 
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planId.toString()], 'testing');
