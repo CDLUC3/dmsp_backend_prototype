@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS `affiliations` (
   `provenance` VARCHAR(255) NOT NULL DEFAULT 'DMPTOOL',
   `name` VARCHAR(255) NOT NULL,
   `displayName` VARCHAR(255) NOT NULL,
-  `searchName` VARCHAR(255),
+  `searchName` VARCHAR(512),
   `funder` BOOLEAN NOT NULL DEFAULT 0,
   `fundrefId` VARCHAR(255),
   `homepage` VARCHAR(255),
