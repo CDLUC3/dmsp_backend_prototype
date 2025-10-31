@@ -325,29 +325,40 @@ describe('statusForPlan', () => {
     jest.clearAllMocks();
   });
 
-  it('returns NONE when there are no feedback rows', async () => {
+  it('returns NONE when there are no open feedback rows', async () => {
     localQuery.mockResolvedValueOnce([]);
     const planId = casual.integer(1, 9999);
     const result = await PlanFeedback.statusForPlan('testing', context, planId);
-    const expectedSql = 'SELECT COUNT(*) as total, SUM(completed IS NULL) as open FROM feedback WHERE planId = ?';
+    const expectedSql = `
+      SELECT
+        IFNULL(SUM(CASE WHEN x.comment_count = 0 THEN 1 ELSE 0 END), 0) AS requestedCount,
+        IFNULL(SUM(CASE WHEN x.comment_count > 0 THEN 1 ELSE 0 END), 0) AS receivedCount
+      FROM (
+        SELECT f.id, COUNT(fc.id) AS comment_count
+        FROM feedback f
+        LEFT JOIN feedbackComments fc ON fc.feedbackid = f.id
+        WHERE f.planId = ? AND f.requested IS NOT NULL AND f.completed IS NULL
+        GROUP BY f.id
+      ) x
+    `;
 
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planId.toString()], 'testing');
     expect(result).toEqual('NONE');
   });
 
-  it('returns REQUESTED when there is at least one open feedback (completed IS NULL)', async () => {
+  it('returns REQUESTED when there is at least one open feedback with no comments', async () => {
     // simulate SQL returning counts as strings (like DB drivers often do)
-    localQuery.mockResolvedValueOnce([{ total: '2', open: '1' }]);
+    localQuery.mockResolvedValueOnce([{ requestedCount: '1', receivedCount: '0' }]);
     const planId = casual.integer(1, 9999);
     const result = await PlanFeedback.statusForPlan('testing', context, planId);
     expect(result).toEqual('REQUESTED');
   });
 
-  it('returns COMPLETED when all feedback rows are completed', async () => {
-    localQuery.mockResolvedValueOnce([{ total: '3', open: '0' }]);
+  it('returns RECEIVED when there is at least one open feedback with comments', async () => {
+    localQuery.mockResolvedValueOnce([{ requestedCount: '0', receivedCount: '2' }]);
     const planId = casual.integer(1, 9999);
     const result = await PlanFeedback.statusForPlan('testing', context, planId);
-    expect(result).toEqual('COMPLETED');
+    expect(result).toEqual('RECEIVED');
   });
 });

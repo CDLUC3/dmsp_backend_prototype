@@ -124,16 +124,33 @@ export class PlanFeedback extends MySqlModel {
     context: MyContext,
     planId: number
   ): Promise<PlanFeedbackStatusEnum> {
-    // Aggregate: total rows and how many are open (completed IS NULL)
-    const sql = `SELECT COUNT(*) as total, SUM(completed IS NULL) as open FROM ${PlanFeedback.tableName} WHERE planId = ?`;
+    // Determine open feedback rows (requested IS NOT NULL AND completed IS NULL).
+    // For each open feedback row, check if it has any child rows in feedbackComments (via feedbackid).
+    // Aggregate into:
+    //   requestedCount = number of open feedback rows with 0 comments
+    //   receivedCount  = number of open feedback rows with >=1 comment
+    const sql = `
+      SELECT
+        IFNULL(SUM(CASE WHEN x.comment_count = 0 THEN 1 ELSE 0 END), 0) AS requestedCount,
+        IFNULL(SUM(CASE WHEN x.comment_count > 0 THEN 1 ELSE 0 END), 0) AS receivedCount
+      FROM (
+        SELECT f.id, COUNT(fc.id) AS comment_count
+        FROM ${PlanFeedback.tableName} f
+        LEFT JOIN feedbackComments fc ON fc.feedbackid = f.id
+        WHERE f.planId = ? AND f.requested IS NOT NULL AND f.completed IS NULL
+        GROUP BY f.id
+      ) x
+    `;
     const results = await PlanFeedback.query(context, sql, [planId?.toString()], reference);
-    const row = Array.isArray(results) && results.length > 0 ? results[0] : { total: 0, open: 0 };
+    const row = Array.isArray(results) && results.length > 0 ? results[0] : { requestedCount: 0, receivedCount: 0 };
 
-    const total = Number(row.total) || 0;
-    const open = Number(row.open) || 0;
+    const requestedCount = Number(row.requestedCount) || 0;
+    const receivedCount = Number(row.receivedCount) || 0;
 
-    if (total === 0) return 'NONE';
-    if (open > 0) return 'REQUESTED';
-    return 'COMPLETED';
+    // If any open feedback has no comments => overall REQUESTED (takes precedence).
+    if (requestedCount > 0) return 'REQUESTED';
+    if (receivedCount > 0) return 'RECEIVED';
+    // No open feedback rows => NONE
+    return 'NONE';
   }
 };

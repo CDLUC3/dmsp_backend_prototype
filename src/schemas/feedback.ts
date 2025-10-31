@@ -4,7 +4,7 @@ export const typeDefs = gql`
   enum PlanFeedbackStatusEnum {
     NONE
     REQUESTED
-    COMPLETED
+    RECEIVED
   }
 
   extend type Query {
@@ -14,7 +14,7 @@ export const typeDefs = gql`
     "Get all of the comments associated with the round of admin feedback"
     planFeedbackComments(planId: Int!, planFeedbackId: Int!): [PlanFeedbackComment]
 
-    "Get the feedback status for a plan (NONE, REQUESTED, COMPLETED)"
+    "Get the feedback status for a plan (NONE, REQUESTED, RECEIVED)"
     planFeedbackStatus(planId: Int!): PlanFeedbackStatusEnum
   }
 

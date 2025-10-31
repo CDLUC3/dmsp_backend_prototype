@@ -1864,8 +1864,8 @@ export type PlanFeedbackErrors = {
 };
 
 export type PlanFeedbackStatusEnum =
-  | 'COMPLETED'
   | 'NONE'
+  | 'RECEIVED'
   | 'REQUESTED';
 
 /** Funding associated with a plan */
@@ -2485,7 +2485,7 @@ export type Query = {
   planFeedback?: Maybe<Array<Maybe<PlanFeedback>>>;
   /** Get all of the comments associated with the round of admin feedback */
   planFeedbackComments?: Maybe<Array<Maybe<PlanFeedbackComment>>>;
-  /** Get the feedback status for a plan (NONE, REQUESTED, COMPLETED) */
+  /** Get the feedback status for a plan (NONE, REQUESTED, RECEIVED) */
   planFeedbackStatus?: Maybe<PlanFeedbackStatusEnum>;
   /** Get all of the Funding information for the specific Plan */
   planFundings?: Maybe<Array<Maybe<PlanFunding>>>;
