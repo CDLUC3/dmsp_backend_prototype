@@ -1,5 +1,5 @@
 import { Resolvers, UserSearchResults } from "../types";
-import { MyContext } from '../context';
+import { MyContext} from '../context';
 import { User } from '../models/User';
 import { UserEmail } from "../models/UserEmail";
 import { Affiliation } from '../models/Affiliation';

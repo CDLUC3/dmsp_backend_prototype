@@ -206,28 +206,23 @@ export class Repository extends MySqlModel {
       values.push(researchDomainId.toString());
     }
 
-    // Determine the type of pagination being used
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'r.name';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
+
+    // Specify the fields available for sorting
+    options.availableSortFields = ['r.name', 'r.created'];
+    // Specify the field we want to use for the count
+    options.countField = 'r.id';
+
+    // Determine the type of pagination we are using and then set any additional options we need
     let opts;
     if (options.type === PaginationType.OFFSET) {
-      opts = {
-        ...options,
-        // Specify the fields available for sorting
-        availableSortFields: ['r.name', 'r.created'],
-      } as PaginationOptionsForOffsets;
+      opts = options as PaginationOptionsForOffsets;
     } else {
-      opts = {
-        ...options,
-        // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(r.name, r.id), \' \', \'_\'))',
-      } as PaginationOptionsForCursors;
+      opts = options as PaginationOptionsForCursors;
+      opts.cursorField = 'r.id';
     }
-
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'r.name';
-    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
-
-    // Specify the field we want to use for the count
-    opts.countField = 'r.id';
 
     const sqlStatement = 'SELECT r.* FROM repositories r ' +
                           'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';

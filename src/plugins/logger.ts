@@ -7,6 +7,7 @@ import {
   GraphQLRequestContext,
   GraphQLResponse
 } from "@apollo/server";
+import { prepareObjectForLogs } from "../logger";
 
 // Extract the inmportant information from the incoming request so that it is logged
 function setupLogger(loggerInstance: Logger, context = null, errors = null) {
@@ -20,7 +21,7 @@ function setupLogger(loggerInstance: Logger, context = null, errors = null) {
     httpUserAgent: hdrs?.get('user-agent'),
     // TODO: We will eventually want to update this to include the nextJS session id
     operationName: context?.request?.operationName,
-    variables: context?.request?.variables,
+    variables: prepareObjectForLogs(context?.request?.variables),
     query: context?.request?.query,
     status: context?.response?.http?.status,
     err: errs

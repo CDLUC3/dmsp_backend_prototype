@@ -214,28 +214,23 @@ export class ResearchDomain extends MySqlModel {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
-    // Determine the type of pagination being used
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'rd.name';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
+
+    // Sepcify the feilds available for sorting
+    options.availableSortFields = ['rd.name', 'rd.created'];
+    // Specify the field we want to use for the count
+    options.countField = 'rd.id';
+
+    // Determine the type of pagination we are using and then set any additional options we need
     let opts;
     if (options.type === PaginationType.OFFSET) {
-      opts = {
-        ...options,
-        // Specify the fields available for sorting
-        availableSortFields: ['rd.name', 'rd.created'],
-      } as PaginationOptionsForOffsets;
+      opts = options as PaginationOptionsForOffsets;
     } else {
-      opts = {
-        ...options,
-        // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(rd.name, rd.id), \' \', \'_\'))',
-      } as PaginationOptionsForCursors;
+      opts = options as PaginationOptionsForCursors;
+      opts.cursorField = 'rd.id';
     }
-
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'rd.name';
-    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
-
-    // Specify the field we want to use for the count
-    opts.countField = 'rd.id';
 
     const sqlStatement = 'SELECT rd.* FROM researchDomains rd';
 

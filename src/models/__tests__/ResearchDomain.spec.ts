@@ -117,13 +117,15 @@ describe('findBy Queries', () => {
     const sql = 'SELECT rd.* FROM researchDomains rd';
     const whereFilters = ['(LOWER(rd.name) LIKE ? OR LOWER(rd.description) LIKE ?)'];
     const vals = [`%${name.toLowerCase().trim()}%`, `%${name.toLowerCase().trim()}%`];
+    const sortFields = ["rd.name", "rd.created"];
     const opts = {
       cursor: null,
       limit: generalConfig.defaultSearchLimit,
       sortField: 'rd.name',
       sortDir: 'ASC',
       countField: 'rd.id',
-      cursorField: 'LOWER(REPLACE(CONCAT(rd.name, rd.id), \' \', \'_\'))',
+      cursorField: 'rd.id',
+      availableSortFields: sortFields,
     };
     expect(localPaginationQuery).toHaveBeenCalledTimes(1);
     expect(localPaginationQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, '', vals, opts, 'testing')

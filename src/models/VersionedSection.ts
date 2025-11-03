@@ -2,7 +2,14 @@ import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { VersionedTemplate } from "../types";
 import { Tag } from "./Tag";
-import { PaginatedQueryResults, PaginationOptions, PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
+import {
+  PaginatedQueryResults,
+  PaginationOptions,
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType,
+  SectionQueryOptions
+} from "../types/general";
 import { prepareObjectForLogs } from "../logger";
 import { isNullOrUndefined } from "../utils/helpers";
 import { TemplateVersionType } from "./VersionedTemplate";
@@ -33,16 +40,33 @@ export class VersionedSectionSearchResult {
     this.versionedQuestionCount = options.versionedQuestionCount ?? 0;
   }
 
-  // Find all of the high level details about the published templates matching the search term
+  // Find all of the high level details about the published sections matching the search term
   static async search(
     reference: string,
     context: MyContext,
     term: string,
-    options: PaginationOptions = VersionedSection.getDefaultPaginationOptions(),
+    options: SectionQueryOptions = VersionedSection.getDefaultPaginationOptions(),
   ): Promise<PaginatedQueryResults<VersionedSectionSearchResult>> {
     // Only include active published templates that are owned by the user's affiliation or marked as best practice
-    const whereFilters = ['vt.active = 1 AND vt.versionType = ? AND (vt.ownerId = ? OR vt.bestPractice = 1)'];
-    const values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
+    const whereFilters: string[] = ['vt.active = 1', 'vt.versionType = ?'];
+    let values: string[];
+
+    if (options.bestPractice === true) {
+      // Only bestPractice templates
+      whereFilters.push('vt.bestPractice = 1');
+      values = [TemplateVersionType.PUBLISHED.toString()];
+    } else if (options.bestPractice === false) {
+      // Only non-bestPractice templates
+      whereFilters.push('vt.bestPractice = 0', 'vt.ownerId = ?');
+      values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
+    } else {
+      // Owned by user or bestPractice templates
+      whereFilters.push('(vt.ownerId = ? OR vt.bestPractice = 1)');
+      values = [TemplateVersionType.PUBLISHED.toString(), context?.token?.affiliationId];
+    }
+
+    // filter nulls/undefined and convert all to strings
+    values = values.filter(v => v != null).map(v => v.toString());
 
     // Handle the incoming search term
     const searchTerm = (term ?? '').toLowerCase().trim();
@@ -51,29 +75,23 @@ export class VersionedSectionSearchResult {
       values.push(`%${searchTerm}%`);
     }
 
-    // Determine the type of pagination being used
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'vs.modified';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'DESC';
+
+    // Specify the fields available for sorting
+    options.availableSortFields = ['vs.name', 'vs.created', 'vs.bestPractice', 'vt.name', 'vs.modified', 'versionedQuestionCount'];
+    // Specify the field we want to use for the count
+    options.countField = 'vs.id';
+
+    // Determine the type of pagination we are using and then set any additional options we need
     let opts;
     if (options.type === PaginationType.OFFSET) {
-      opts = {
-        ...options,
-        // Specify the fields available for sorting
-        availableSortFields: ['vs.name', 'vs.created', 'vs.bestPractice', 'vt.name', 'vs.modified',
-                              'versionedQuestionCount'],
-      } as PaginationOptionsForOffsets;
+      opts = options as PaginationOptionsForOffsets;
     } else {
-      opts = {
-        ...options,
-        // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(vs.modified, vs.id), \' \', \'_\'))',
-      } as PaginationOptionsForCursors;
+      opts = options as PaginationOptionsForCursors;
+      opts.cursorField = 'vs.id';
     }
-
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'vs.modified';
-    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'DESC';
-
-    // Specify the field we want to use for the count
-    opts.countField = 'vs.id';
 
     const sql = 'SELECT vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice, ' +
                       'vt.id as versionedTemplateId, vt.name as versionedTemplateName, ' +
@@ -191,28 +209,23 @@ export class VersionedSection extends MySqlModel {
       values.push(`%${searchTerm}%`);
     }
 
-    // Determine the type of pagination being used
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'vs.name';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
+
+    // Specify the fields available for sorting
+    options.availableSortFields = ['vs.name', 'vs.created'];
+    // Specify the field we want to use for the count
+    options.countField = 'vs.id';
+
+    // Determine the type of pagination we are using and then set any additional options we need
     let opts;
     if (options.type === PaginationType.OFFSET) {
-      opts = {
-        ...options,
-        // Specify the fields available for sorting
-        availableSortFields: ['vs.name', 'vs.created'],
-      } as PaginationOptionsForOffsets;
+      opts = options as PaginationOptionsForOffsets;
     } else {
-      opts = {
-        ...options,
-        // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(vs.name, vs.id), \' \', \'_\'))',
-      } as PaginationOptionsForCursors;
+      opts = options as PaginationOptionsForCursors;
+      opts.cursorField = 'vs.id';
     }
-
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'vs.name';
-    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
-
-    // Specify the field we want to use for the count
-    opts.countField = 'vs.id';
 
     const sqlStatement = 'SELECT vs.* FROM versionedSections vs';
 

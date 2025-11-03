@@ -317,6 +317,8 @@ When calling one of the queries that supports pagination, you pass in a set of `
   - `sortField` the field you want to sort the results on
   - `sortDir` the direction of the sort, either `ASC` (default) or `DESC`
 
+Note that when changing the `sortField`, the cursor/offset should be reset to ensure that the results are correct.
+
 For example this query sends cursor information to get the first 20 affiliations matching the criteria:
 ```
 query Affiliations($name: String!, funderOnly: Boolean, $paginationOptions: PaginationOptions){
@@ -336,8 +338,12 @@ variables: {
   }
 }
 ```
-
-The `hasNextPage` flag in the response indicates whether there are more items available, and the `nextCursor` contains the cursor that should be sent to fetch the next 20 records.
+The response has:
+- `hasNextPage` a flag indicating whether there is a subsequent page of results
+- `hasPreviousPage` a flag indicating whether there is a prior page of results
+- `nextCursor` the cursor that should be sent to fetch the next set of records
+- `totalCount` the total number of possible results
+- `availableSortFields` a list of fields that can be used to sort the results
 
 This query sends offset information to get the first 20 affiliations matching the criteria:
 ```

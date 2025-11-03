@@ -140,13 +140,15 @@ describe('ProjectSearchResult', () => {
       ];
       const groupBy = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +
                         'p.createdById, p.created, p.modifiedById, p.modified, researchDomains.description';
+      const sortFields = ["p.title", "p.created", "p.modified", "p.startDate", "p.endDate", "p.isTestProject"];
       const opts = {
         cursor: null,
         limit: generalConfig.defaultSearchLimit,
         sortField: 'p.modified',
         sortDir: 'DESC',
         countField: 'p.id',
-        cursorField: 'LOWER(REPLACE(CONCAT(p.modified, p.id), \' \', \'_\'))',
+        cursorField: 'p.id',
+        availableSortFields: sortFields,
       };
       expect(localQuery).toHaveBeenCalledTimes(1);
       expect(localQuery).toHaveBeenLastCalledWith(context, sql, whereFilters, groupBy, vals, opts, 'Test')

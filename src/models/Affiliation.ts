@@ -348,28 +348,23 @@ export class AffiliationSearch {
       whereFilters.push('a.funder = 1');
     }
 
-    // Determine the type of pagination being used
+    // Set the default sort field and order if none was provided
+    if (isNullOrUndefined(options.sortField)) options.sortField = 'a.displayName';
+    if (isNullOrUndefined(options.sortDir)) options.sortDir = 'ASC';
+
+    // Specify the fields available for sorting
+    options.availableSortFields = ['a.displayName', 'a.created'];
+    // Specify the field we want to use for the count
+    options.countField = 'a.id';
+
+    // Determine the type of pagination we are using and then set any additional options we need
     let opts;
     if (options.type === PaginationType.OFFSET) {
-      opts = {
-        ...options,
-        // Specify the fields available for sorting
-        availableSortFields: ['a.displayName', 'a.created'],
-      } as PaginationOptionsForOffsets;
+      opts = options as PaginationOptionsForOffsets;
     } else {
-      opts = {
-        ...options,
-        // Specify the field we want to use for the cursor (should typically match the sort field)
-        cursorField: 'LOWER(REPLACE(CONCAT(a.name, a.id), \' \', \'_\'))',
-      } as PaginationOptionsForCursors;
+      opts = options as PaginationOptionsForCursors;
+      opts.cursorField = 'a.id';
     }
-
-    // Set the default sort field and order if none was provided
-    if (isNullOrUndefined(opts.sortField)) opts.sortField = 'a.displayName';
-    if (isNullOrUndefined(opts.sortDir)) opts.sortDir = 'ASC';
-
-    // Specify the field we want to use for the count
-    opts.countField = 'a.id';
 
     const sqlStatement = 'SELECT a.* FROM affiliations a';
 
