@@ -19,6 +19,7 @@
 - Added ability for `VersionedSections` `search` function to return only `bestPractice` sections, only sections without `bestPractice` or all sections[#436]
 - Added resolver to handle resending of invite for project collaborators [#433]
 - Added bash to AWS Dockerfile for session manager
+- Added `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` files
 - Added a data migration script to update `visibility` to `latestPublishVisibility` in `templates` table. [#405]
 - Added code to update `latestPublishVisibility` whenever a `template` is published [#405]
 - Added model/resolver for `PlanProgress` and nested `progress` in `Plan` resolver [#720]
