@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `templateCustomizations` (
   CONSTRAINT unique_templateCusts UNIQUE (`affiliationId`, `templateId`),
   CONSTRAINT fk_templateCust_affiliationId FOREIGN KEY (affiliationId) REFERENCES affiliations (uri),
   CONSTRAINT fk_templateCust_templateId FOREIGN KEY (templateId) REFERENCES templates (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 # Table to store custom sections that are added to a published template
 CREATE TABLE IF NOT EXISTS `customSections` (
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS `customSections` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_customSecs_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_customSecs_currentId FOREIGN KEY (pinnedSectionId) REFERENCES sections (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 # Table to store custom questions that are added to a published template
 CREATE TABLE IF NOT EXISTS `customQuestions` (
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS `customQuestions` (
   CONSTRAINT fk_customQs_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_customQs_sectionId FOREIGN KEY (customSectionId) REFERENCES customSections (id),
   CONSTRAINT fk_customQs_currentId FOREIGN KEY (pinnedQuestionId) REFERENCES questions (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 # Table to store custom guidance and requirements for a section in a published template
 CREATE TABLE IF NOT EXISTS `sectionCustomizations` (
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS `sectionCustomizations` (
   CONSTRAINT unique_sectionCusts UNIQUE (`templateCustomizationId`, `sectionId`),
   CONSTRAINT fk_sectionCust_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_sectionCust_sectionId FOREIGN KEY (sectionId) REFERENCES sections (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 # Table to store custom guidance, requirements and sample text for a section in a published template
 CREATE TABLE IF NOT EXISTS `questionCustomizations` (
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `questionCustomizations` (
   CONSTRAINT unique_questionCusts UNIQUE (`templateCustomizationId`, `questionId`),
   CONSTRAINT fk_qCust_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_qCust_questionId FOREIGN KEY (questionId) REFERENCES questions (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 
 # Published version tables
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS `versionedTemplateCustomizations` (
   CONSTRAINT fk_vTemplateCust_templateId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
   CONSTRAINT fk_vTemplateCust_currentId FOREIGN KEY (currentVersionedTemplateId) REFERENCES versionedTemplates (id),
   CONSTRAINT fk_vTemplateCust_priorId FOREIGN KEY (priorVersionedTemplateId) REFERENCES versionedTemplates (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 # Table to store custom sections that are added to a published template
 CREATE TABLE IF NOT EXISTS `versionedCustomSections` (
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS `versionedCustomSections` (
   CONSTRAINT fk_vCustomSecs_sectionId FOREIGN KEY (customSectionId) REFERENCES customSections (id),
   CONSTRAINT fk_vCustomSecs_currentId FOREIGN KEY (currentPinnedVersionedSectionId) REFERENCES versionedSections (id),
   CONSTRAINT fk_vCustomSecs_priorId FOREIGN KEY (priorPinnedVersionedSectionId) REFERENCES versionedSections (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 # Table to store custom questions that are added to a published template
 CREATE TABLE IF NOT EXISTS `versionedCustomQuestions` (
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS `versionedCustomQuestions` (
   CONSTRAINT fk_vCustomQs_sectionId FOREIGN KEY (customSectionId) REFERENCES customSections (id),
   CONSTRAINT fk_vCustomQs_currentId FOREIGN KEY (currentPinnedVersionedQuestionId) REFERENCES versionedQuestions (id),
   CONSTRAINT fk_vCustomQs_priorId FOREIGN KEY (priorPinnedVersionedQuestionId) REFERENCES versionedQuestions (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 # Table to store custom guidance and requirements for a section in a published template
 CREATE TABLE IF NOT EXISTS `versionedSectionCustomizations` (
@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS `versionedSectionCustomizations` (
   CONSTRAINT fk_vSectionCust_sectionId FOREIGN KEY (sectionCustomizationId) REFERENCES sectionCustomizations (id),
   CONSTRAINT fk_vSectionCust_currentId FOREIGN KEY (currentVersionedSectionId) REFERENCES versionedSections (id),
   CONSTRAINT fk_vSectionCust_priorId FOREIGN KEY (priorVersionedSectionId) REFERENCES versionedSections (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 # Table to store custom guidance, requirements and sample text for a section in a published template
 CREATE TABLE IF NOT EXISTS `versionedQuestionCustomizations` (
@@ -223,4 +223,4 @@ CREATE TABLE IF NOT EXISTS `versionedQuestionCustomizations` (
   CONSTRAINT fk_vQCust_questionId FOREIGN KEY (questionCustomizationId) REFERENCES questionCustomizations (id),
   CONSTRAINT fk_vQCust_currentId FOREIGN KEY (currentVersionedQuestionId) REFERENCES versionedQuestions (id),
   CONSTRAINT fk_vQCust_priorId FOREIGN KEY (priorVersionedQuestionId) REFERENCES versionedQuestions (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;

@@ -46,7 +46,7 @@ BEGIN
     `sourceUrl`        VARCHAR(255) NOT NULL
   ) ENGINE = InnoDB
     DEFAULT CHARSET = utf8mb4
-    COLLATE = utf8mb4_unicode_ci;
+    COLLATE = utf8mb4_0900_ai_ci;
 
   DROP TEMPORARY TABLE IF EXISTS stagingRelatedWorks;
   CREATE TEMPORARY TABLE stagingRelatedWorks
@@ -69,7 +69,7 @@ BEGIN
     CONSTRAINT unique_hash UNIQUE (`dmpDoi`, `workDoi`)
   ) ENGINE = InnoDB
     DEFAULT CHARSET = utf8mb4
-    COLLATE = utf8mb4_unicode_ci;
+    COLLATE = utf8mb4_0900_ai_ci;
 END$$
 
 DELIMITER ;
@@ -126,7 +126,7 @@ DROP TEMPORARY TABLE IF EXISTS resolvedStagingLinks;
   )
     ENGINE = InnoDB
     DEFAULT CHARSET = utf8mb4
-    COLLATE = utf8mb4_unicode_ci;
+    COLLATE = utf8mb4_0900_ai_ci;
 
 INSERT INTO resolvedStagingLinks (id, planId, workVersionId, workDoi)
 SELECT s.id  AS id,

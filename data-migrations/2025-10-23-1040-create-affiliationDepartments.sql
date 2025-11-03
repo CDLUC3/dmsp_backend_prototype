@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS `affiliationDepartments` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_affiliationDepts UNIQUE (`affiliationId`, `name`),
   CONSTRAINT fk_affiliationDepts_affiliationId FOREIGN KEY (affiliationId) REFERENCES affiliations (uri)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 -- Table to associate users with affiliation departments
 CREATE TABLE IF NOT EXISTS `userDepartments` (
@@ -23,4 +23,4 @@ CREATE TABLE IF NOT EXISTS `userDepartments` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_userDepts UNIQUE (`affiliationDepartmentId`, `userId`),
   CONSTRAINT fk_userDepts_aDeptId FOREIGN KEY (affiliationDepartmentId) REFERENCES affiliationDepartments (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_0900_ai_ci;

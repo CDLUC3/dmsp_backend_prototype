@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS `works`
 ) ENGINE = InnoDB
   AUTO_INCREMENT = 1
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci;
+  COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `workVersions`
 (
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `workVersions`
 ) ENGINE = InnoDB
   AUTO_INCREMENT = 1
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci;
+  COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `relatedWorks`
 (
@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS `relatedWorks`
 ) ENGINE = InnoDB
   AUTO_INCREMENT = 1
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci;
+  COLLATE = utf8mb4_0900_ai_ci;
 
 
 -- Procedure to create staging tables for related works
@@ -92,7 +92,7 @@ BEGIN
     `sourceUrl`        VARCHAR(255) NOT NULL
   ) ENGINE = InnoDB
     DEFAULT CHARSET = utf8mb4
-    COLLATE = utf8mb4_unicode_ci;
+    COLLATE = utf8mb4_0900_ai_ci;
 
   DROP TEMPORARY TABLE IF EXISTS stagingRelatedWorks;
   CREATE TEMPORARY TABLE stagingRelatedWorks
@@ -113,7 +113,7 @@ BEGIN
     CONSTRAINT unique_hash UNIQUE (`dmpDoi`, `workDoi`)
   ) ENGINE = InnoDB
     DEFAULT CHARSET = utf8mb4
-    COLLATE = utf8mb4_unicode_ci;
+    COLLATE = utf8mb4_0900_ai_ci;
 END$$
 
 DELIMITER ;
@@ -170,7 +170,7 @@ BEGIN
   )
     ENGINE = InnoDB
     DEFAULT CHARSET = utf8mb4
-    COLLATE = utf8mb4_unicode_ci;
+    COLLATE = utf8mb4_0900_ai_ci;
 
   INSERT INTO resolvedStagingLinks (id, planId, workVersionId, workDoi)
   SELECT s.id  AS id,
