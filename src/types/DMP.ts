@@ -333,11 +333,21 @@ export interface DMPCommonStandardProject {
 
 // Represents a related work in the DMP Common Standard format
 export interface DMPCommonStandardRelatedIdentifier {
-  work_type: DMPRelatedIdentifierWorkType;
-  descriptor: DMPRelatedIdentifierDescriptor;
   identifier: string;
   type: DMPIdentifierType;
-  citation?: string;
+  descriptor: DMPRelatedIdentifierDescriptor;
+  work_type: string;
+  title: string;
+  publication_date: string;
+  authors: {
+    orcid: string,
+    first_initial: string;
+    given_name: string;
+    middle_initials: string;
+    middle_names: string;
+    full: string
+  }[];
+  publication_venue: string;
 }
 
 // Representation of a research facility in the DMP Common Standard format

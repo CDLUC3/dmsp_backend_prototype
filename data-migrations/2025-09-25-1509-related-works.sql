@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `workVersions`
   `authors`          JSON         NOT NULL,
   `institutions`     JSON         NOT NULL,
   `funders`          JSON         NOT NULL,
-  `awards`         JSON         NOT NULL,
+  `awards`           JSON         NOT NULL,
   `publicationVenue` VARCHAR(255) NULL,
   `sourceName`       VARCHAR(255) NOT NULL,
   `sourceUrl`        VARCHAR(255) NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS `relatedWorks`
   `authorMatches`      JSON         NOT NULL,
   `institutionMatches` JSON         NOT NULL,
   `funderMatches`      JSON         NOT NULL,
-  `awardMatches`     JSON         NOT NULL,
+  `awardMatches`       JSON         NOT NULL,
   `created`            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById`        INT,
   `modified`           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -86,7 +86,7 @@ BEGIN
     `authors`          JSON         NOT NULL,
     `institutions`     JSON         NOT NULL,
     `funders`          JSON         NOT NULL,
-    `awards`         JSON         NOT NULL,
+    `awards`           JSON         NOT NULL,
     `publicationVenue` VARCHAR(255) NULL,
     `sourceName`       VARCHAR(255) NOT NULL,
     `sourceUrl`        VARCHAR(255) NOT NULL
@@ -107,7 +107,7 @@ BEGIN
     `authorMatches`      JSON         NOT NULL,
     `institutionMatches` JSON         NOT NULL,
     `funderMatches`      JSON         NOT NULL,
-    `awardMatches`     JSON         NOT NULL,
+    `awardMatches`       JSON         NOT NULL,
 
     INDEX (`dmpDoi`, `workDoi`),
     CONSTRAINT unique_hash UNIQUE (`dmpDoi`, `workDoi`)
@@ -220,7 +220,7 @@ BEGIN
       r.authorMatches      = s.authorMatches,
       r.institutionMatches = s.institutionMatches,
       r.funderMatches      = s.funderMatches,
-      r.awardMatches     = s.awardMatches
+      r.awardMatches       = s.awardMatches
 
   WHERE r.status = 'pending'
     AND (

@@ -8,11 +8,12 @@ import {
   DMPYesNoUnknown,
   DMPPrivacy,
   DMPStatus,
-  DMPIdentifierType
+  DMPIdentifierType,
+  DMPRelatedIdentifierDescriptor,
 } from '../../types/DMP';
 import { MyContext } from '../../context';
 import { buildMockContextWithToken } from '../../__mocks__/context';
-import { RelatedWork } from '../../models/RelatedWork';
+import { RelatedWorkSearchResult } from '../../models/RelatedWork';
 import { MemberRole } from '../../models/MemberRole';
 import { User } from '../../models/User';
 import { Project } from '../../models/Project';
@@ -23,6 +24,7 @@ import { Answer } from '../../models/Answer';
 import { ResearchDomain } from '../../models/ResearchDomain';
 import { logger } from '../../logger';
 import casual from 'casual';
+import { getMockPaginatedSearchResults, getMockRelatedWorkSearchResult } from "../../models/__mocks__/RelatedWork";
 
 let context: MyContext;
 let plan: Plan;
@@ -119,23 +121,9 @@ const mockNarrativeResult = [
   }
 ];
 
-const mockRelatedWorkResult = [
-  new RelatedWork({
-    id: 1,
-    projectId: 1,
-    workType: 'DATASET',
-    relationDescriptor: 'IS_CITED_BY',
-    identifier: 'https://doi.org/10.99999/abcd',
-    citation: 'Citation 1',
-  }),
-  new RelatedWork({
-    id: 2,
-    projectId: 1,
-    workType: 'JOURNAL_ARTICLE',
-    relationDescriptor: 'REFERENCES',
-    identifier: 'https://doi.org/10.99999/zyxw',
-    citation: 'Citation 2',
-  })
+const mockRelatedWorkSearchResult = [
+  new RelatedWorkSearchResult({...getMockRelatedWorkSearchResult(), id: 1}),
+  new RelatedWorkSearchResult({...getMockRelatedWorkSearchResult(), id: 2})
 ];
 
 // Mock the call to fetch the default role
@@ -266,7 +254,7 @@ describe('commonStandardService', () => {
     // Return the Narrative information
     jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
-    jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
+    jest.spyOn(RelatedWorkSearchResult, 'search').mockResolvedValueOnce(getMockPaginatedSearchResults({items: []}));
 
     const result = await planToDMPCommonStandard(context, 'reference', plan);
 
@@ -300,7 +288,7 @@ describe('commonStandardService', () => {
     // Return the Narrative information
     jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
-    jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
+    jest.spyOn(RelatedWorkSearchResult, 'search').mockResolvedValueOnce(getMockPaginatedSearchResults({items: []}));
 
     const result = await planToDMPCommonStandard(context, 'reference', plan);
 
@@ -341,7 +329,7 @@ describe('commonStandardService', () => {
     // Return the Narrative information
     jest.spyOn(Answer, 'query').mockResolvedValueOnce([]);
     // Return the Related Identifiers information
-    jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce([]);
+    jest.spyOn(RelatedWorkSearchResult, 'search').mockResolvedValueOnce(getMockPaginatedSearchResults({items: []}));
 
     const result = await planToDMPCommonStandard(context, 'reference', plan);
 
@@ -413,7 +401,7 @@ describe('commonStandardService', () => {
     // Return the Narrative information
     jest.spyOn(Answer, 'query').mockResolvedValueOnce(mockNarrativeResult);
     // Return the Related Identifiers information
-    jest.spyOn(RelatedWork, 'findByProjectId').mockResolvedValueOnce(mockRelatedWorkResult);
+    jest.spyOn(RelatedWorkSearchResult, 'search').mockResolvedValueOnce(getMockPaginatedSearchResults({items: mockRelatedWorkSearchResult}));
 
     const result = await planToDMPCommonStandard(context, 'reference', plan);
 
@@ -556,22 +544,28 @@ describe('commonStandardService', () => {
           },
         ],
       },
-      dmproadmap_related_identifiers: [
-        {
-          citation: 'Citation 1',
-          descriptor: 'is_cited_by',
-          identifier: 'https://doi.org/10.99999/abcd',
-          type: 'doi',
-          work_type: 'dataset',
-        },
-        {
-          citation: "Citation 2",
-          descriptor: 'references',
-          identifier: 'https://doi.org/10.99999/zyxw',
-          type: 'doi',
-          work_type: 'journal_article',
-        },
-      ],
+      dmproadmap_related_identifiers: mockRelatedWorkSearchResult.map(
+        work => {
+          const doi = `https://doi.org/${work.workVersion.work.doi}`;
+          return {
+            identifier: doi,
+            type: DMPIdentifierType.DOI,
+            descriptor: DMPRelatedIdentifierDescriptor.CITES,
+            work_type: work.workVersion.workType.toLowerCase(),
+            title: work.workVersion.title,
+            publication_date: work.workVersion.publicationDate,
+            authors: work.workVersion.authors.map(author => ({
+              orcid: author.orcid,
+              first_initial: author.firstInitial,
+              given_name: author.givenName,
+              middle_initials: author.middleInitials,
+              middle_names: author.middleNames,
+              surname: author.surname,
+              full: author.full,
+            })),
+            publication_venue: work.workVersion.publicationVenue,
+        }}
+      )
     });
   });
 });

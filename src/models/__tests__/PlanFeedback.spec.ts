@@ -307,3 +307,47 @@ describe('delete', () => {
     expect(result).toBeInstanceOf(PlanFeedback);
   });
 });
+
+describe('statusForPlan', () => {
+  const originalQuery = PlanFeedback.query;
+  let localQuery;
+  let context;
+
+  beforeEach(async () => {
+    localQuery = jest.fn();
+    (PlanFeedback.query as jest.Mock) = localQuery;
+
+    context = await buildMockContextWithToken(logger);
+  });
+
+  afterEach(() => {
+    PlanFeedback.query = originalQuery;
+    jest.clearAllMocks();
+  });
+
+  it('returns NONE when there are no feedback rows', async () => {
+    localQuery.mockResolvedValueOnce([]);
+    const planId = casual.integer(1, 9999);
+    const result = await PlanFeedback.statusForPlan('testing', context, planId);
+    const expectedSql = 'SELECT COUNT(*) as total, SUM(completed IS NULL) as open FROM feedback WHERE planId = ?';
+
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [planId.toString()], 'testing');
+    expect(result).toEqual('NONE');
+  });
+
+  it('returns REQUESTED when there is at least one open feedback (completed IS NULL)', async () => {
+    // simulate SQL returning counts as strings (like DB drivers often do)
+    localQuery.mockResolvedValueOnce([{ total: '2', open: '1' }]);
+    const planId = casual.integer(1, 9999);
+    const result = await PlanFeedback.statusForPlan('testing', context, planId);
+    expect(result).toEqual('REQUESTED');
+  });
+
+  it('returns COMPLETED when all feedback rows are completed', async () => {
+    localQuery.mockResolvedValueOnce([{ total: '3', open: '0' }]);
+    const planId = casual.integer(1, 9999);
+    const result = await PlanFeedback.statusForPlan('testing', context, planId);
+    expect(result).toEqual('COMPLETED');
+  });
+});
