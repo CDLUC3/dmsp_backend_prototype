@@ -5,18 +5,17 @@
 # The main guidance tables, including guidance groups, guidance items, and their tags.
 
 CREATE TABLE `guidanceGroups` (
-                                `id` int NOT NULL,
-                                `affiliationId` int NOT NULL AUTO_INCREMENT,
+                                `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                                `affiliationId` VARCHAR(255) NOT NULL,
                                 `name` text,
                                 `isDirty` tinyint(1) NOT NULL DEFAULT '1',
                                 `bestPractice` tinyint(1) NOT NULL DEFAULT '0',
                                 `latestPublishedVersion` text,
                                 `latestPublishedDate` timestamp DEFAULT NULL,
                                 `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                `createdById` int NOT NULL,
+                                `createdById` INT NOT NULL,
                                 `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                                `modifiedById` int NOT NULL,
-                                PRIMARY KEY (`id`),
+                                `modifiedById` INT NOT NULL,
                                 KEY `idx_guidanceGroups_affiliationId` (`affiliationId`),
                                 KEY `idx_guidanceGroups_createdById` (`createdById`),
                                 KEY `idx_guidanceGroups_modifiedById` (`modifiedById`),
@@ -30,14 +29,13 @@ CREATE TABLE `guidanceGroups` (
 
 
 CREATE TABLE `guidance` (
-                          `id` int NOT NULL AUTO_INCREMENT,
-                          `guidanceGroupId` int NOT NULL,
+                          `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                          `guidanceGroupId` int UNSIGNED NOT NULL,
                           `guidanceText` text,
                           `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                           `createdById` int NOT NULL,
                           `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                           `modifiedById` int NOT NULL,
-                          PRIMARY KEY (`id`),
                           KEY `idx_guidance_guidanceGroupId` (`guidanceGroupId`),
                           KEY `idx_guidance_createdById` (`createdById`),
                           KEY `idx_guidance_modifiedById` (`modifiedById`),
@@ -51,14 +49,13 @@ CREATE TABLE `guidance` (
 
 
 CREATE TABLE `guidanceTags` (
-                              `id` int NOT NULL AUTO_INCREMENT,
-                              `guidanceId` int NOT NULL,
-                              `tagId` int NOT NULL,
+                              `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                              `guidanceId` int UNSIGNED NOT NULL,
+                              `tagId` int UNSIGNED NOT NULL,
                               `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                               `createdById` int NOT NULL,
                               `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                               `modifiedById` int NOT NULL,
-                              PRIMARY KEY (`id`),
                               KEY `idx_guidanceTags_guidanceId` (`guidanceId`),
                               KEY `idx_guidanceTags_tagId` (`tagId`),
                               KEY `idx_guidanceTags_createdById` (`createdById`),
@@ -75,8 +72,8 @@ CREATE TABLE `guidanceTags` (
 
 # Versioned guidance tables
 CREATE TABLE `versionedGuidanceGroups` (
-                                         `id` int NOT NULL AUTO_INCREMENT,
-                                         `guidanceGroupId` int NOT NULL,
+                                         `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                                         `guidanceGroupId` int UNSIGNED NOT NULL,
                                          `version` int DEFAULT NULL,
                                          `bestPractice` tinyint(1) NOT NULL DEFAULT '0',
                                          `active` tinyint(1) NOT NULL DEFAULT '0',
@@ -85,7 +82,6 @@ CREATE TABLE `versionedGuidanceGroups` (
                                          `createdById` int NOT NULL,
                                          `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                          `modifiedById` int NOT NULL,
-                                         PRIMARY KEY (`id`),
                                          KEY `idx_vgg_guidanceGroupId` (`guidanceGroupId`),
                                          KEY `idx_vgg_createdById` (`createdById`),
                                          KEY `idx_vgg_modifiedById` (`modifiedById`),
@@ -99,14 +95,13 @@ CREATE TABLE `versionedGuidanceGroups` (
 
 
 CREATE TABLE `versionedGuidance` (
-                                   `id` int NOT NULL AUTO_INCREMENT,
+                                   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                                    `versionedGuidanceGroupId` int NOT NULL,
-                                   `tagId` int NOT NULL,
+                                   `tagId` int UNSIGNED NOT NULL,
                                    `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                    `createdById` int NOT NULL,
                                    `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                    `modifiedById` int NOT NULL,
-                                   PRIMARY KEY (`id`),
                                    KEY `idx_vg_versionedGuidanceGroupId` (`versionedGuidanceGroupId`),
                                    KEY `idx_vg_tagId` (`tagId`),
                                    KEY `idx_vg_createdById` (`createdById`),
@@ -123,14 +118,13 @@ CREATE TABLE `versionedGuidance` (
 
 
 CREATE TABLE `versionedGuidanceTags` (
-                                       `id` int NOT NULL AUTO_INCREMENT,
+                                       `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                                        `versionedGuidanceId` int NOT NULL,
-                                       `tagId` int NOT NULL,
+                                       `tagId` int UNSIGNED NOT NULL,
                                        `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                        `createdById` int NOT NULL,
                                        `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                        `modifiedById` int NOT NULL,
-                                       PRIMARY KEY (`id`),
                                        KEY `idx_vgt_versionedGuidanceId` (`versionedGuidanceId`),
                                        KEY `idx_vgt_tagId` (`tagId`),
                                        KEY `idx_vgt_createdById` (`createdById`),
