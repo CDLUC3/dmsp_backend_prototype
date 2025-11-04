@@ -59,7 +59,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
-- Changing feedback status to reflect Juliets understanding of how logic works.
+- Changing feedback status: non-closed items without comments are `REQUESTED` while non-closed with comments are `RECEIVED` status [#254]
 - Fixed breaking build by removing `NODE_ENV=production` before `npm ci` which was skipping devDependencies, but needed for the build process.
 - `addSection` mutation resolver was not saving `tags`. Added code to add tags for new section [#445]
 - Fixed issue where updating an answer, funding or members was not triggering the creation of a new PlanVersion
