@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `versionedSectionTags` (
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` int UNSIGNED NOT NULL,
   INDEX versionedSectionTags_idx(`versionedSectionId`, `tagId`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ALTER TABLE versionedSectionTags
   ADD FOREIGN KEY (createdById) REFERENCES users(id),
