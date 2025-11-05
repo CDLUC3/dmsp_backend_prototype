@@ -2,5 +2,5 @@
 -- This will resolve the "Field 'questionTypeId' doesn't have a default value" error
 
 ALTER TABLE `versionedQuestions`
-MODIFY COLUMN `questionTypeId` INT UNSIGNED NULL;
+MODIFY COLUMN `questionTypeId` INT NULL;
 

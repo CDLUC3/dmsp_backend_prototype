@@ -10,7 +10,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT INTO `affiliations` (`uri`, `provenance`, `name`, `displayName`, `searchName`, `funder`, `fundrefId`, `homepage`, `acronyms`, `aliases`, `types`, `logoURI`, `logoName`, `contactName`, `contactEmail`, `ssoEntityId`, `feedbackEnabled`, `feedbackMessage`, `feedbackEmails`, `managed`, `createdById`, `created`, `modifiedById`, `modified`)
   (SELECT 'https://ror.org/03yrm5c26', 'ROR', 'California Digital Library', 'California Digital Library (cdlib.org)', 'California Digital Library | cdlib.org | CDL ', 0, NULL, 'http://www.cdlib.org/', '["CDL"]', '[]', '["Archive"]', NULL, NULL, 'UC3 Helpdesk', 'uc3@cdlib.org', NULL, false, '<p>Dear %{user_name},</p><p>"%{plan_name}" has been sent to your %{application_name} account administrator for feedback.</p><p>Please email %{organisation_email} with any questions about this process.</p>', '["uc3@cdlib.org"]', true, `users`.`id`, CURDATE(), `users`.`id`, CURDATE() FROM users WHERE email = 'super@example.com');
 INSERT INTO `affiliationEmailDomains` (`emailDomain`, `affiliationId`, `createdById`, `created`, `modifiedById`, `modified`)
-  (SELECT 'cdlib.org', `affiliations`.`uri`, `affiliations`.`createdById`, CURDATE(), `affiliations`.`modifiedById`, CURDATE() FROM `affiliations` WHERE `affiliations`.`uri` = 'https://ror.org/03yrm5c26');
+  (SELECT 'cdlib.org', `affiliations`.`id`, `affiliations`.`createdById`, CURDATE(), `affiliations`.`modifiedById`, CURDATE() FROM `affiliations` WHERE `affiliations`.`uri` = 'https://ror.org/03yrm5c26');
 
 # Update the super admin user with the affiliation
 UPDATE `users` SET `affiliationId` = 'https://ror.org/03yrm5c26' WHERE `email` = 'super@example.com';

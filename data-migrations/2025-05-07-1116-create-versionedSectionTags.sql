@@ -1,14 +1,14 @@
 
 CREATE TABLE IF NOT EXISTS `versionedSectionTags` (
-  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `versionedSectionId` INT UNSIGNED NOT NULL,
-  `tagId` INT UNSIGNED NOT NULL,
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `versionedSectionId` INT NOT NULL,
+  `tagId` INT NOT NULL,
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int UNSIGNED NOT NULL,
+  `createdById` int NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int UNSIGNED NOT NULL,
+  `modifiedById` int NOT NULL,
   INDEX versionedSectionTags_idx(`versionedSectionId`, `tagId`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;
 
 ALTER TABLE versionedSectionTags
   ADD FOREIGN KEY (createdById) REFERENCES users(id),

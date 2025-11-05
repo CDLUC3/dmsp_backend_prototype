@@ -1,2 +1,2 @@
 ALTER TABLE `templateCollaborators`
-MODIFY `userId` INT UNSIGNED NULL;
+MODIFY `userId` INT NULL;

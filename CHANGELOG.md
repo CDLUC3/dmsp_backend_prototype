@@ -1,5 +1,15 @@
 # DMP Tool Apollo Server Change Log
 
+### Updated
+- Bumped the node version in the Dockerfiles to 22.x
+- Updated all data migration files to use `INT UNSIGNED` for all id fields
+- Updated all data migration files to use the new utf8mb4_0900_ai_ci collation
+- Updated `affiliationEmailDomains` to use the `affiliations.uri` as the FKey
+- 
+
+============================================================================
+prior to 2025-10-05 
+
 ### Added
 - Added migration for the `guidance`-related tables [#483]
 - Added planFeedbackStatus resolver and tests (status of NONE, REQUESTED, COMPLETE)
