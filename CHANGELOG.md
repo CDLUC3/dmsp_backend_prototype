@@ -1,11 +1,21 @@
 # DMP Tool Apollo Server Change Log
 
+### Added
+- Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids 
+- Added `AffiliationDepartments` model
+- Added `TemplateLinks` and `VersionedTemplateLinks` models
+- Added `slug` to the `Tag` schema
+
 ### Updated
 - Bumped the node version in the Dockerfiles to 22.x
-- Updated all data migration files to use `INT UNSIGNED` for all id fields
-- Updated all data migration files to use the new utf8mb4_0900_ai_ci collation
+- Renamed local DB in `docker-compose.yaml` from `dmsp` to `dmptool`
 - Updated `affiliationEmailDomains` to use the `affiliations.uri` as the FKey
-- 
+- Updated `data-migrations.process.sh` script to use `utf8mb4_0900_ai_ci` collation when creating the database
+- Replace `findByURL` with `findByAffiliationAndURL` in `AffiliationLinks` model
+- Updated `Projects` model so that the search includes both `DRAFT` and `COMPLETE` plans by default. Migrated data wasn't showing up because it was `COMPLETE`
+- Fixed some typos in `AffiliationLinks` model and updated to use `affiliationId` as a URI
+- Updated `Tag` model to include new `slug` field
+- Updated `User` model to include the new `oldPasswordHash` field
 
 ============================================================================
 prior to 2025-10-05 
