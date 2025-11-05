@@ -1,5 +1,5 @@
 import { MyContext } from "../context";
-import { isNullOrUndefined, validateURL } from "../utils/helpers";
+import { isNullOrUndefined } from "../utils/helpers";
 import { MySqlModel } from "./MySqlModel";
 import {prepareObjectForLogs} from "../logger";
 
