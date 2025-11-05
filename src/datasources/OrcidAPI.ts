@@ -90,9 +90,10 @@ export class OrcidAPI extends RESTDataSource {
     reference = 'OrcidAPI.getPerson'
   ): Promise<OrcidPerson | null> {
     try {
-      const path = `${OrcidConfig.apiPath}${orcid}`;
+    // Remove leading slash from path if present
+    const path = `${OrcidConfig.apiPath}${orcid}`.replace(/^\//, '');
 
-      context.logger.debug(`${reference} calling OrcidAPI: ${this.baseURL}/${path}`);
+      context.logger.debug(`${reference} calling OrcidAPI: ${this.baseURL}${path}`);
       const response = await this.get(path);
       const jsonResponse = JSON.parse(response);
 
@@ -121,6 +122,12 @@ export class OrcidAPI extends RESTDataSource {
       );
       return null;
     } catch(err) {
+      // Handle 404 responses gracefully - person not found in ORCID
+      if (err?.extensions?.response?.status === 404) {
+        context.logger.debug(`ORCID ${orcid} not found in ORCID API (404)`);
+        return null;
+      }
+      
       context.logger.error(prepareObjectForLogs({ orcid, err }), 'Error calling OrcidAPI getPerson');
       throw(err);
     }
@@ -133,9 +140,10 @@ export class OrcidAPI extends RESTDataSource {
     reference = 'OrcidAPI.getPerson'
   ): Promise<OrcidEmployment | null> {
     try {
-      const path = `${OrcidConfig.apiPath}${orcid}/employments`;
+      // Remove leading slash from path if present
+      const path = `${OrcidConfig.apiPath}${orcid}/employments`.replace(/^\//, '');
 
-      context.logger.debug(`${reference} calling OrcidAPI: ${this.baseURL}/${path}`);
+      context.logger.debug(`${reference} calling OrcidAPI: ${this.baseURL}${path}`);
       const response = await this.get(path);
       const jsonResponse = JSON.parse(response);
 

@@ -4,7 +4,7 @@
 import { formatISO9075 } from "date-fns";
 import { generalConfig } from "../config/generalConfig";
 
-export const ORCID_REGEX = /^(https?:\/\/)?(www|pub\.)?(sandbox\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
+export const ORCID_REGEX = /^(https?:\/\/)?(www\.|pub\.)?(sandbox\.)?(orcid\.org\/)?([0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X])$/;
 
 // Ensure that the ORCID is in the correct format (https://orcid.org/0000-0000-0000-0000)
 export function formatORCID(orcidIn: string): string {
@@ -50,6 +50,7 @@ export function capitalizeFirstLetter(str: string): string {
   return '';
 }
 
+
 // Remove know Protocol and Domain portions of identifiers from the string
 // Handles removal of http:// and https:// protocols by removing them from string and base URLs
 export function stripIdentifierBaseURL(str: string): string {
@@ -72,6 +73,17 @@ export function stripIdentifierBaseURL(str: string): string {
   return str
     .replace(/^\//, '') // Strip leading /
     .trim();
+}
+
+// Remove know Protocol and Domain portions of identifiers from the ORCID string
+// Handles removal of http:// and https:// protocols by removing them from string and base URLs
+export function stripORCIDIdentifierBaseURL(str: string): string {
+  if (!str) return '';
+
+  const ORCID_ID_REGEX = /\b\d{4}-\d{4}-\d{4}-\d{4}\b/;
+  //Strip out just the ORCID ID if a full URL was provided
+  const match = str.match(ORCID_ID_REGEX);
+  return match ? match[0] : str;
 }
 
 // Verify that a string is a valid identifier
@@ -106,7 +118,7 @@ export function removeNullAndUndefinedFromJSON(json: string): string {
         return isNullOrUndefined(value) ? undefined : value;
       }
     });
-    return  JSON.stringify(parsedJSON);
+    return JSON.stringify(parsedJSON);
   } catch (e) {
     throw new Error(`Invalid JSON format: ${e.message}`);
   }
@@ -169,7 +181,7 @@ export function randomHex(size: number): string {
 }
 
 // Normalises a date and time value
-export function normaliseDateTime (date: string | null): string {
+export function normaliseDateTime(date: string | null): string {
   try {
     return isNullOrUndefined(date) ? null : formatISO9075(new Date(date));
   } catch (e) {
@@ -179,7 +191,7 @@ export function normaliseDateTime (date: string | null): string {
 }
 
 // Normalises dates
-export function normaliseDate (date: string | null): string {
+export function normaliseDate(date: string | null): string {
   // If its null or undefined return null
   if (date === null || date === undefined) {
     return null;
@@ -232,7 +244,7 @@ export function reorderDisplayOrder<T extends { id?: number, displayOrder?: numb
 
   // First remove the item we are moving and then sort the remaining sections by display order
   const ordered = clonedList.filter((obj) => obj.id !== objectBeingMovedId)
-                            .sort((a, b) => a.displayOrder - b.displayOrder);
+    .sort((a, b) => a.displayOrder - b.displayOrder);
 
   // Splice the object being moved into the correct position
   const index = Math.max(0, Math.min(newDisplayOrder - 1, ordered.length));
