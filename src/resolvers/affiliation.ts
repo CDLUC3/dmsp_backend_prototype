@@ -62,7 +62,7 @@ export const resolvers: Resolvers = {
     popularFunders: async (_, __, context: MyContext): Promise<PopularFunder[]> => {
       const reference = 'popularFunders resolver';
       try {
-        return await PopularFunder.top20(context);
+        return await PopularFunder.top5(context);
       } catch (err) {
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();

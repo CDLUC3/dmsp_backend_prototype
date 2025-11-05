@@ -531,7 +531,7 @@ describe('PopularFunder', () => {
   });
 });
 
-describe('top20', () => {
+describe('top5', () => {
   it('should call query with correct params and return the popular funders', async () => {
     const context = await buildMockContextWithToken(logger);
     const localQuery = jest.fn();
@@ -546,12 +546,12 @@ describe('top20', () => {
     });
 
     localQuery.mockResolvedValueOnce([popularFunder]);
-    const result = await PopularFunder.top20(context);
+    const result = await PopularFunder.top5(context);
     const expectedSql = 'SELECT a.id, a.uri, a.displayName, a.apiTarget, COUNT(p.id) AS nbrPlans ' +
                         'FROM affiliations a LEFT JOIN projectFundings pf ON pf.affiliationId = a.uri ' +
                         'LEFT JOIN projects p ON p.id = pf.projectId WHERE a.active = 1 AND a.funder = 1 ' +
                         'AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? GROUP BY a.id, a.uri, ' +
-                        'a.displayName ORDER BY nbrPlans DESC LIMIT 20';
+                        'a.displayName ORDER BY nbrPlans DESC LIMIT 5';
     // Get the date range for the past year
     const today = new Date();
     const lastYear = new Date();
@@ -564,7 +564,7 @@ describe('top20', () => {
       context,
       expectedSql,
       [`${startDate} 00:00:00`, `${endDate} 23:59:59`],
-      'PopularFunder.top20'
+      'PopularFunder.top5'
     );
     expect(result).toEqual([popularFunder]);
   });
@@ -575,7 +575,7 @@ describe('top20', () => {
     (Affiliation.query as jest.Mock) = localQuery;
 
     localQuery.mockResolvedValueOnce([]);
-    const result = await PopularFunder.top20(context);
+    const result = await PopularFunder.top5(context);
     expect(result).toEqual([]);
   });
 
@@ -585,6 +585,6 @@ describe('top20', () => {
     (Affiliation.query as jest.Mock) = localQuery;
 
     localQuery.mockRejectedValueOnce(new Error('Query failed'));
-    await expect(PopularFunder.top20(context)).rejects.toThrow('Query failed');
+    await expect(PopularFunder.top5(context)).rejects.toThrow('Query failed');
   });
 });
