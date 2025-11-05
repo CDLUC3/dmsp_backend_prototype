@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS `versionedTemplateCustomizations` (
 # Table to store custom sections that are added to a published template
 CREATE TABLE IF NOT EXISTS `versionedCustomSections` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `templateCustomizationId` INT UNSIGNED NOT NULL,
+  `versionedTemplateCustomizationId` INT UNSIGNED NOT NULL,
   `customSectionId` INT UNSIGNED NOT NULL,
   `currentPinnedVersionedSectionId` INT UNSIGNED NOT NULL,  # Pointer to the section this customSection follows
   `priorPinnedVersionedSectionId` INT UNSIGNED NULL,        # Pointer to the prior version of the section this customSection followed
@@ -153,11 +153,11 @@ CREATE TABLE IF NOT EXISTS `versionedCustomSections` (
 # Table to store custom questions that are added to a published template
 CREATE TABLE IF NOT EXISTS `versionedCustomQuestions` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `templateCustomizationId` INT UNSIGNED NOT NULL,
+  `versionedTemplateCustomizationId` INT UNSIGNED NOT NULL,
   `customQuestionId` INT UNSIGNED NOT NULL,
 
   # Questions can be attached to a customSection. If so, these columns are applicable:
-  `customSectionId` INT UNSIGNED NULL,
+  `versionedCustomSectionId` INT UNSIGNED NULL,
   `displayOrder` INT NULL,
 
   # Questions can be attached to a question that is part of the published Template
