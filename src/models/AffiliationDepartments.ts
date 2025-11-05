@@ -81,7 +81,7 @@ export class AffiliationDepartment extends MySqlModel {
     let sql = 'INSERT INTO userDepartments (userId, affiliationDepartmentId, ';
     sql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const currentUserId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), userId?.toString(), currentUserId, currentUserId];
+    const vals = [userId?.toString(), this.id?.toString(), currentUserId, currentUserId];
     const results = await AffiliationDepartment.query(context, sql, vals, reference);
 
     if (!results) {
