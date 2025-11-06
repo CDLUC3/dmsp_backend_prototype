@@ -1,7 +1,6 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
 import { Tag } from "./Tag";
-import { GuidanceGroup } from "./GuidanceGroup";
 
 export class Guidance extends MySqlModel {
   public guidanceGroupId: number;

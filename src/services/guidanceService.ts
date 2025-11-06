@@ -4,7 +4,6 @@ import { Guidance } from "../models/Guidance";
 import { VersionedGuidanceGroup } from "../models/VersionedGuidanceGroup";
 import { VersionedGuidance } from "../models/VersionedGuidance";
 import { Tag } from "../models/Tag";
-import { NotFoundError } from "../utils/graphQLErrors";
 import { prepareObjectForLogs } from "../logger";
 
 // Check if the user has permission to access the GuidanceGroup

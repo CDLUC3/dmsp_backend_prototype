@@ -1,6 +1,5 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { GuidanceGroup } from "./GuidanceGroup";
 import { VersionedGuidance } from "./VersionedGuidance";
 
 export class VersionedGuidanceGroup extends MySqlModel {

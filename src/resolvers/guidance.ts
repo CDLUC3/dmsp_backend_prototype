@@ -5,7 +5,7 @@ import { GuidanceGroup } from "../models/GuidanceGroup";
 import { Tag } from "../models/Tag";
 import { hasPermissionOnGuidanceGroup, markGuidanceGroupAsDirty } from "../services/guidanceService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
-import { isAdmin, isAuthorized } from "../services/authService";
+import { isAdmin } from "../services/authService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { normaliseDateTime } from "../utils/helpers";
