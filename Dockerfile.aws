@@ -2,7 +2,7 @@
 
 # Stage 1: Dependencies
 # preferred node version chosen here (22.1.0-alpine3.19 as of 05/04/2024)
-FROM public.ecr.aws/docker/library/node:22.1.0-alpine3.19 as builder
+FROM public.ecr.aws/docker/library/node:22.1.0-alpine3.19 as deps
 WORKDIR /app
 
 # Set production environment
