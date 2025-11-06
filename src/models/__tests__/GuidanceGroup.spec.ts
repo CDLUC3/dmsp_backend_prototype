@@ -3,7 +3,6 @@ import { GuidanceGroup } from "../GuidanceGroup";
 import { buildMockContextWithToken } from "../../__mocks__/context";
 import { logger } from "../../logger";
 
-let context;
 jest.mock('../../context.ts');
 
 describe('GuidanceGroup', () => {

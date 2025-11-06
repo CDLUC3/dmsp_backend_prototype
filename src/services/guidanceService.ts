@@ -148,13 +148,16 @@ const generateGuidanceVersion = async (
   const tags = await Tag.findByGuidanceId(reference, context, guidance.id);
   
   // For each tag, create a VersionedGuidance entry
-  // If there are no tags, create one entry without a specific tag (using tagId 0 or handling it differently)
+  // Each tag gets its own VersionedGuidance record pointing to the same guidanceText
   const tagsToVersion = tags && tags.length > 0 ? tags : [];
   
   if (tagsToVersion.length === 0) {
-    // If no tags, we still need to create a versioned guidance but we need a tagId
-    // This is a design decision - for now, skip guidance without tags
-    context.logger.warn(prepareObjectForLogs({ guidanceId: guidance.id }), 'Skipping guidance without tags');
+    // If no tags associated, log a warning but continue
+    // This allows for guidance that applies broadly without specific tags
+    context.logger.warn(
+      prepareObjectForLogs({ guidanceId: guidance.id }), 
+      'Publishing guidance without tags - this guidance will not be accessible through tag-based queries'
+    );
     return true;
   }
 
