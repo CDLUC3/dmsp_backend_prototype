@@ -1,15 +1,18 @@
 import { MySqlModel } from "./MySqlModel";
 import { MyContext } from "../context";
 import { prepareObjectForLogs } from "../logger";
+import {isNullOrUndefined} from "../utils/helpers";
 
 const tableName = 'tags';
 export class Tag extends MySqlModel {
+  public slug: string;
   public name: string;
   public description?: string;
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
+    this.slug = options.slug;
     this.name = options.name;
     this.description = options.description;
   }
@@ -18,17 +21,28 @@ export class Tag extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
+    if (!this.slug) this.addError('slug', 'Slug can\'t be blank');
     if (!this.name) this.addError('name', 'Name can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
   }
 
+  // Generate a slug from the name
+  slugifyName(): void {
+    if (!isNullOrUndefined(this.name)) {
+      this.slug = this.name.trim().toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+  }
+
   // Save the current record
   async create(context: MyContext): Promise<Tag> {
-    const current = await Tag.findByName(
+    this.slugifyName();
+    const current = await Tag.findBySlug(
       'Section.create',
       context,
-      this.name,
+      this.slug,
     );
 
     // Then make sure it doesn't already exist
@@ -46,6 +60,7 @@ export class Tag extends MySqlModel {
 
   async update(context: MyContext): Promise<Tag> {
     const id = this.id;
+    this.slugifyName();
     if (await this.isValid()) {
       await Tag.update(context, tableName, this, 'Tag.update');
       const updatedTag = await Tag.findById('Tag.update', context, id);
@@ -124,10 +139,10 @@ export class Tag extends MySqlModel {
   }
 
   // Find tag by tag name
-  static async findByName(reference: string, context: MyContext, name: string): Promise<Tag[]> {
-    const sql = 'SELECT * FROM tags WHERE LOWER(name) = ?';
-    const searchTerm = (name ?? '');
-    const vals = [searchTerm?.toLowerCase()?.trim()];
+  static async findBySlug(reference: string, context: MyContext, slug: string): Promise<Tag[]> {
+    const sql = 'SELECT * FROM tags WHERE slug = ?';
+    const searchTerm = (slug ?? '');
+    const vals = [searchTerm];
     const results = await Tag.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results.map((entry) => new Tag(entry)) : null;
   }

@@ -31,6 +31,8 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: TagErrors
 
+    "The slug"
+    slug: String!
     "The tag name"
     name: String!
     "The tag description"
