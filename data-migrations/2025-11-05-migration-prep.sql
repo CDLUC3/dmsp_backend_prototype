@@ -1,8 +1,8 @@
 START TRANSACTION;
 
--- DROP ALL EXISTING TABLES because we need to rebuild them
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- DROP ALL EXISTING TABLES because we need to rebuild them
 DROP TABLE IF EXISTS affiliationEmailDomains;
 DROP TABLE IF EXISTS affiliationDepartments;
 DROP TABLE IF EXISTS affiliationLinks;
@@ -28,7 +28,8 @@ DROP TABLE IF EXISTS projectCollaborators;
 DROP TABLE IF EXISTS projectFundings;
 DROP TABLE IF EXISTS projectMemberRoles;
 DROP TABLE IF EXISTS projectMembers;
-DROP TABLE IF EXISTS projectOutputMetadatStandards;
+DROP TABLE IF EXISTS projectOutputTypes;
+DROP TABLE IF EXISTS projectOutputMetadataStandards;
 DROP TABLE IF EXISTS projectOutputRepositories;
 DROP TABLE IF EXISTS projectOutputs;
 DROP TABLE IF EXISTS projects;

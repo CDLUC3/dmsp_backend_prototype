@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS `versionedCustomSections` (
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_vCustomSecs_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
+  CONSTRAINT fk_vCustomSecs_templateCustId FOREIGN KEY (versionedTemplateCustomizationId) REFERENCES versionedTemplateCustomizations (id),
   CONSTRAINT fk_vCustomSecs_sectionId FOREIGN KEY (customSectionId) REFERENCES customSections (id),
   CONSTRAINT fk_vCustomSecs_currentId FOREIGN KEY (currentPinnedVersionedSectionId) REFERENCES versionedSections (id),
   CONSTRAINT fk_vCustomSecs_priorId FOREIGN KEY (priorPinnedVersionedSectionId) REFERENCES versionedSections (id)
@@ -153,11 +153,11 @@ CREATE TABLE IF NOT EXISTS `versionedCustomSections` (
 # Table to store custom questions that are added to a published template
 CREATE TABLE IF NOT EXISTS `versionedCustomQuestions` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `templateCustomizationId` INT UNSIGNED NOT NULL,
+  `versionedTemplateCustomizationId` INT UNSIGNED NOT NULL,
   `customQuestionId` INT UNSIGNED NOT NULL,
 
   # Questions can be attached to a customSection. If so, these columns are applicable:
-  `customSectionId` INT UNSIGNED NULL,
+  `versionedCustomSectionId` INT UNSIGNED NULL,
   `displayOrder` INT NULL,
 
   # Questions can be attached to a question that is part of the published Template
@@ -175,9 +175,9 @@ CREATE TABLE IF NOT EXISTS `versionedCustomQuestions` (
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_vCustomQs_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
+  CONSTRAINT fk_vCustomQs_templateCustId FOREIGN KEY (versionedTemplateCustomizationId) REFERENCES versionedTemplateCustomizations (id),
   CONSTRAINT fk_vCustomQs_questionId FOREIGN KEY (customQuestionId) REFERENCES customQuestions (id),
-  CONSTRAINT fk_vCustomQs_sectionId FOREIGN KEY (customSectionId) REFERENCES customSections (id),
+  CONSTRAINT fk_vCustomQs_sectionId FOREIGN KEY (versionedCustomSectionId) REFERENCES versionedCustomSections (id),
   CONSTRAINT fk_vCustomQs_currentId FOREIGN KEY (currentPinnedVersionedQuestionId) REFERENCES versionedQuestions (id),
   CONSTRAINT fk_vCustomQs_priorId FOREIGN KEY (priorPinnedVersionedQuestionId) REFERENCES versionedQuestions (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE = utf8mb4_unicode_ci;
@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS `versionedCustomQuestions` (
 # Table to store custom guidance and requirements for a section in a published template
 CREATE TABLE IF NOT EXISTS `versionedSectionCustomizations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `templateCustomizationId` INT UNSIGNED NOT NULL,
+  `versionedTemplateCustomizationId` INT UNSIGNED NOT NULL,
   `sectionCustomizationId` INT UNSIGNED NOT NULL,
   `currentVersionedSectionId` INT NOT NULL,  # Pointer to the section being customized
   `priorVersionedSectionId` INT NULL,        # Pointer to the prior version of the section being customized
@@ -196,8 +196,8 @@ CREATE TABLE IF NOT EXISTS `versionedSectionCustomizations` (
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT unique_vSectionCusts UNIQUE (`templateCustomizationId`, `sectionCustomizationId`),
-  CONSTRAINT fk_vSectionCust_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
+  CONSTRAINT unique_vSectionCusts UNIQUE (`versionedTemplateCustomizationId`, `sectionCustomizationId`),
+  CONSTRAINT fk_vSectionCust_templateCustId FOREIGN KEY (versionedTemplateCustomizationId) REFERENCES versionedTemplateCustomizations (id),
   CONSTRAINT fk_vSectionCust_sectionId FOREIGN KEY (sectionCustomizationId) REFERENCES sectionCustomizations (id),
   CONSTRAINT fk_vSectionCust_currentId FOREIGN KEY (currentVersionedSectionId) REFERENCES versionedSections (id),
   CONSTRAINT fk_vSectionCust_priorId FOREIGN KEY (priorVersionedSectionId) REFERENCES versionedSections (id)
@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS `versionedSectionCustomizations` (
 # Table to store custom guidance, requirements and sample text for a section in a published template
 CREATE TABLE IF NOT EXISTS `versionedQuestionCustomizations` (
   `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `templateCustomizationId` INT UNSIGNED NOT NULL,
+  `versionedTemplateCustomizationId` INT UNSIGNED NOT NULL,
   `questionCustomizationId` INT UNSIGNED NOT NULL,
   `currentVersionedQuestionId` INT NOT NULL,    # Pointer to the question being customized
   `priorVersionedQuestionId` INT NULL,          # Pointer to the prior version of the question being customized
@@ -218,8 +218,8 @@ CREATE TABLE IF NOT EXISTS `versionedQuestionCustomizations` (
   `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `modifiedById` INT NOT NULL,
   `modified` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT unique_vQuestionCusts UNIQUE (`templateCustomizationId`, `questionCustomizationId`),
-  CONSTRAINT fk_vQCust_templateCustId FOREIGN KEY (templateCustomizationId) REFERENCES templateCustomizations (id),
+  CONSTRAINT unique_vQuestionCusts UNIQUE (`versionedTemplateCustomizationId`, `questionCustomizationId`),
+  CONSTRAINT fk_vQCust_templateCustId FOREIGN KEY (versionedTemplateCustomizationId) REFERENCES versionedTemplateCustomizations (id),
   CONSTRAINT fk_vQCust_questionId FOREIGN KEY (questionCustomizationId) REFERENCES questionCustomizations (id),
   CONSTRAINT fk_vQCust_currentId FOREIGN KEY (currentVersionedQuestionId) REFERENCES versionedQuestions (id),
   CONSTRAINT fk_vQCust_priorId FOREIGN KEY (priorVersionedQuestionId) REFERENCES versionedQuestions (id)
