@@ -99,6 +99,72 @@ export class Tag extends MySqlModel {
     return true;
   }
 
+  // Add this Tag to a Guidance
+  async addToGuidance(context: MyContext, guidanceId: number): Promise<boolean> {
+    const reference = 'Tag.addToGuidance';
+    const sql = 'INSERT INTO guidanceTags (tagId, guidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), guidanceId?.toString(), userId, userId];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, guidanceId };
+      const msg = 'Unable to add the tag to the guidance';
+      context.logger.error(prepareObjectForLogs(payload), msg);
+      return false;
+    }
+    return true;
+  }
+
+  // Remove this Tag from a Guidance
+  async removeFromGuidance(context: MyContext, guidanceId: number): Promise<boolean> {
+    const reference = 'Tag.removeFromGuidance';
+    const sql = 'DELETE FROM guidanceTags WHERE tagId = ? AND guidanceId = ?';
+    const vals = [this.id?.toString(), guidanceId?.toString()];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, guidanceId };
+      const msg = 'Unable to remove the tag from the guidance';
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
+  // Add this Tag to a VersionedGuidance
+  async addToVersionedGuidance(context: MyContext, versionedGuidanceId: number): Promise<boolean> {
+    const reference = 'Tag.addToVersionedGuidance';
+    const sql = 'INSERT INTO versionedGuidanceTags (tagId, versionedGuidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), versionedGuidanceId?.toString(), userId, userId];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, versionedGuidanceId };
+      const msg = 'Unable to add the tag to the versioned guidance';
+      context.logger.error(prepareObjectForLogs(payload), msg);
+      return false;
+    }
+    return true;
+  }
+
+  // Remove this Tag from a VersionedGuidance
+  async removeFromVersionedGuidance(context: MyContext, versionedGuidanceId: number): Promise<boolean> {
+    const reference = 'Tag.removeFromVersionedGuidance';
+    const sql = 'DELETE FROM versionedGuidanceTags WHERE tagId = ? AND versionedGuidanceId = ?';
+    const vals = [this.id?.toString(), versionedGuidanceId?.toString()];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, versionedGuidanceId };
+      const msg = 'Unable to remove the tag from the versioned guidance';
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
   static async findAll(reference: string, context: MyContext): Promise<Tag[]> {
     const sql = 'SELECT * FROM tags';
     const results = await Tag.query(context, sql, [], reference);
@@ -114,6 +180,18 @@ export class Tag extends MySqlModel {
   static async findByVersionedSectionId(reference: string, context: MyContext, versionedSectionId: number): Promise<Tag[]> {
     const sql = `SELECT tags.* FROM versionedSectionTags vst JOIN tags ON vst.tagId = tags.id WHERE vst.versionedSectionId = ?;`;
     const result = await Tag.query(context, sql, [versionedSectionId?.toString()], reference);
+    return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
+  }
+
+  static async findByGuidanceId(reference: string, context: MyContext, guidanceId: number): Promise<Tag[]> {
+    const sql = `SELECT tags.* FROM guidanceTags gt JOIN tags ON gt.tagId = tags.id WHERE gt.guidanceId = ?;`;
+    const result = await Tag.query(context, sql, [guidanceId?.toString()], reference);
+    return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
+  }
+
+  static async findByVersionedGuidanceId(reference: string, context: MyContext, versionedGuidanceId: number): Promise<Tag[]> {
+    const sql = `SELECT tags.* FROM versionedGuidanceTags vgt JOIN tags ON vgt.tagId = tags.id WHERE vgt.versionedGuidanceId = ?;`;
+    const result = await Tag.query(context, sql, [versionedGuidanceId?.toString()], reference);
     return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
   }
 

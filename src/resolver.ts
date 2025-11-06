@@ -13,6 +13,8 @@ import { resolvers as feedback } from './resolvers/feedback';
 import { resolvers as memberResolvers } from './resolvers/member';
 import { resolvers as memberRoleResolvers } from './resolvers/memberRole';
 import { resolvers as fundingResolvers } from './resolvers/funding';
+import { resolvers as guidanceResolvers } from './resolvers/guidance';
+import { resolvers as guidanceGroupResolvers } from './resolvers/guidanceGroup';
 import { resolvers as languageResolvers } from './resolvers/language';
 import { resolvers as licenseResolvers } from './resolvers/license';
 import { resolvers as metadataStandardResolvers } from './resolvers/metadataStandard';
@@ -29,6 +31,7 @@ import { resolvers as sectionResolvers } from './resolvers/section';
 import { resolvers as superAdminResolvers } from './resolvers/superAdmin';
 import { resolvers as tagResolvers } from './resolvers/tag';
 import { resolvers as userResolvers } from './resolvers/user';
+import { resolvers as versionedGuidanceResolvers } from './resolvers/versionedGuidance';
 import { resolvers as versionedQuestionResolvers } from './resolvers/versionedQuestion';
 import { resolvers as versionedQuestionConditionResolvers } from './resolvers/versionedQuestionCondition';
 import { resolvers as versionedSectionResolvers } from './resolvers/versionedSection';
@@ -51,6 +54,8 @@ export const resolvers: IResolvers = mergeResolvers([
   memberResolvers,
   memberRoleResolvers,
   fundingResolvers,
+  guidanceResolvers,
+  guidanceGroupResolvers,
   languageResolvers,
   licenseResolvers,
   metadataStandardResolvers,
@@ -67,6 +72,7 @@ export const resolvers: IResolvers = mergeResolvers([
   superAdminResolvers,
   tagResolvers,
   userResolvers,
+  versionedGuidanceResolvers,
   versionedQuestionResolvers,
   versionedQuestionConditionResolvers,
   versionedSectionResolvers,
