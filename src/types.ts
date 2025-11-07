@@ -35,8 +35,15 @@ export type AccessLevel =
 
 /** Input for adding a new GuidanceGroup */
 export type AddGuidanceGroupInput = {
+  /** The affiliation (organization ror) that owns this GuidanceGroup */
+  affiliationId: Scalars['String']['input'];
   /** Whether this is a best practice GuidanceGroup */
   bestPractice?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Whether this GuidanceGroup has been modified since last publish */
+  isDirty?: InputMaybe<Scalars['Boolean']['input']>;
+  latestPublishedDate?: InputMaybe<Scalars['String']['input']>;
+  /** Optional fields reflecting latest publish state (if provided) */
+  latestPublishedVersion?: InputMaybe<Scalars['String']['input']>;
   /** The name of the GuidanceGroup */
   name: Scalars['String']['input'];
 };

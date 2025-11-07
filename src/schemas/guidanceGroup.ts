@@ -65,10 +65,17 @@ export const typeDefs = gql`
 
   "Input for adding a new GuidanceGroup"
   input AddGuidanceGroupInput {
+    "The affiliation (organization ror) that owns this GuidanceGroup"
+    affiliationId: String!
     "The name of the GuidanceGroup"
     name: String!
     "Whether this is a best practice GuidanceGroup"
     bestPractice: Boolean
+    "Whether this GuidanceGroup has been modified since last publish"
+    isDirty: Boolean
+    "Optional fields reflecting latest publish state (if provided)"
+    latestPublishedVersion: String
+    latestPublishedDate: String
   }
 
   "Input for updating a GuidanceGroup"
