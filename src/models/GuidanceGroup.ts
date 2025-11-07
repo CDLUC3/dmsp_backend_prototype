@@ -46,7 +46,7 @@ export class GuidanceGroup extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
-      
+
       // Save the record and then fetch it
       const newId = await GuidanceGroup.insert(context, this.tableName, this, 'GuidanceGroup.create', ['guidance']);
       const response = await GuidanceGroup.findById('GuidanceGroup.create', context, newId);
@@ -89,10 +89,10 @@ export class GuidanceGroup extends MySqlModel {
     return null;
   }
 
-  // Find all GuidanceGroups for the specified affiliationId
-  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<GuidanceGroup[]> {
+  // Find all GuidanceGroups for the specified affiliation URI (affiliationId column stores the affiliation URI)
+  static async findByAffiliationId(reference: string, context: MyContext, affiliationUri: string): Promise<GuidanceGroup[]> {
     const sql = 'SELECT * FROM guidanceGroups WHERE affiliationId = ? ORDER BY name ASC';
-    const results = await GuidanceGroup.query(context, sql, [affiliationId], reference);
+    const results = await GuidanceGroup.query(context, sql, [affiliationUri], reference);
     return Array.isArray(results) ? results.map((entry) => new GuidanceGroup(entry)) : [];
   }
 

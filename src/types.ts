@@ -263,6 +263,7 @@ export type Affiliation = {
   funder: Scalars['Boolean']['output'];
   /** The Crossref Funder id */
   fundrefId?: Maybe<Scalars['String']['output']>;
+  guidanceGroups?: Maybe<Array<GuidanceGroup>>;
   /** The official homepage for the affiliation */
   homepage?: Maybe<Scalars['String']['output']>;
   /** The unique identifer for the affiliation (assigned by the Database) */
@@ -5075,6 +5076,7 @@ export type AffiliationResolvers<ContextType = MyContext, ParentType extends Res
   feedbackMessage?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   funder?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   fundrefId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  guidanceGroups?: Resolver<Maybe<Array<ResolversTypes['GuidanceGroup']>>, ParentType, ContextType>;
   homepage?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   logoName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;

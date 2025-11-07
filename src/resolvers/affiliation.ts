@@ -13,6 +13,7 @@ import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
+import { GuidanceGroup } from "../models/GuidanceGroup";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -156,6 +157,18 @@ export const resolvers: Resolvers = {
   },
 
   Affiliation: {
+    guidanceGroups: async (parent: Affiliation, _, context: MyContext): Promise<GuidanceGroup[]> => {
+      const reference = 'Affiliation.guidanceGroups resolver';
+      try {
+        // The affiliation foreign key stored on GuidanceGroup is the affiliation's URI.
+        const affiliationUri = parent?.uri;
+        if (!affiliationUri) return [];
+        return await GuidanceGroup.findByAffiliationId(reference, context, affiliationUri);
+      } catch (err) {
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
     created: (parent: Affiliation) => {
       return normaliseDateTime(parent.created);
     },
