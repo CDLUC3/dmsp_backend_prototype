@@ -2,8 +2,8 @@ import gql from "graphql-tag";
 
 export const typeDefs = gql`
   extend type Query {
-    "Get all GuidanceGroups for the user's organization"
-    guidanceGroups: [GuidanceGroup!]!
+    "Get all GuidanceGroups for the user's organization (or for a specified affiliationId if provided and permitted)"
+    guidanceGroups(affiliationId: String): [GuidanceGroup!]!
     "Get a specific GuidanceGroup by ID"
     guidanceGroup(guidanceGroupId: Int!): GuidanceGroup
   }

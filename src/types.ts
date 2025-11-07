@@ -2614,7 +2614,7 @@ export type Query = {
   guidanceByGroup: Array<Guidance>;
   /** Get a specific GuidanceGroup by ID */
   guidanceGroup?: Maybe<GuidanceGroup>;
-  /** Get all GuidanceGroups for the user's organization */
+  /** Get all GuidanceGroups for the user's organization (or for a specified affiliationId if provided and permitted) */
   guidanceGroups: Array<GuidanceGroup>;
   /** Get all of the supported Languages */
   languages?: Maybe<Array<Maybe<Language>>>;
@@ -2801,6 +2801,11 @@ export type QueryGuidanceByGroupArgs = {
 
 export type QueryGuidanceGroupArgs = {
   guidanceGroupId: Scalars['Int']['input'];
+};
+
+
+export type QueryGuidanceGroupsArgs = {
+  affiliationId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -6050,7 +6055,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   guidance?: Resolver<Maybe<ResolversTypes['Guidance']>, ParentType, ContextType, RequireFields<QueryGuidanceArgs, 'guidanceId'>>;
   guidanceByGroup?: Resolver<Array<ResolversTypes['Guidance']>, ParentType, ContextType, RequireFields<QueryGuidanceByGroupArgs, 'guidanceGroupId'>>;
   guidanceGroup?: Resolver<Maybe<ResolversTypes['GuidanceGroup']>, ParentType, ContextType, RequireFields<QueryGuidanceGroupArgs, 'guidanceGroupId'>>;
-  guidanceGroups?: Resolver<Array<ResolversTypes['GuidanceGroup']>, ParentType, ContextType>;
+  guidanceGroups?: Resolver<Array<ResolversTypes['GuidanceGroup']>, ParentType, ContextType, Partial<QueryGuidanceGroupsArgs>>;
   languages?: Resolver<Maybe<Array<Maybe<ResolversTypes['Language']>>>, ParentType, ContextType>;
   license?: Resolver<Maybe<ResolversTypes['License']>, ParentType, ContextType, RequireFields<QueryLicenseArgs, 'uri'>>;
   licenses?: Resolver<Maybe<ResolversTypes['LicenseSearchResults']>, ParentType, ContextType, Partial<QueryLicensesArgs>>;

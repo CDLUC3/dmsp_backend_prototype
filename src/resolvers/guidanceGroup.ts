@@ -4,7 +4,7 @@ import { GuidanceGroup } from "../models/GuidanceGroup";
 import { Guidance } from "../models/Guidance";
 import { hasPermissionOnGuidanceGroup, publishGuidanceGroup, unpublishGuidanceGroup } from "../services/guidanceService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
-import { isAdmin } from "../services/authService";
+import { isAdmin, isSuperAdmin } from "../services/authService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { normaliseDateTime } from "../utils/helpers";
@@ -12,15 +12,23 @@ import { normaliseDateTime } from "../utils/helpers";
 export const resolvers: Resolvers = {
   Query: {
     // Return all GuidanceGroups for the user's organization
-    guidanceGroups: async (_, __, context: MyContext): Promise<GuidanceGroup[]> => {
+    guidanceGroups: async (_, { affiliationId }, context: MyContext): Promise<GuidanceGroup[]> => {
       const reference = 'guidanceGroups resolver';
       try {
-        if (isAdmin(context?.token)) {
-          const affiliationId = context.token.affiliationId;
-          return await GuidanceGroup.findByAffiliationId(reference, context, affiliationId);
+        if (!isAdmin(context?.token)) {
+          throw context?.token ? ForbiddenError() : AuthenticationError();
         }
 
-        throw context?.token ? ForbiddenError() : AuthenticationError();
+        // If an affiliationId is provided, allow only super-admins or the admin of that affiliation
+        if (affiliationId) {
+          if (isSuperAdmin(context.token) || context.token.affiliationId === affiliationId) {
+            return await GuidanceGroup.findByAffiliationId(reference, context, affiliationId);
+          }
+          throw ForbiddenError();
+        }
+
+        // No affiliationId provided: return groups for the caller's affiliation
+        return await GuidanceGroup.findByAffiliationId(reference, context, context.token.affiliationId);
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -58,9 +66,9 @@ export const resolvers: Resolvers = {
       try {
         if (isAdmin(context?.token)) {
           const affiliationId = context.token.affiliationId;
-          const guidanceGroup = new GuidanceGroup({ 
+          const guidanceGroup = new GuidanceGroup({
             affiliationId,
-            name, 
+            name,
             bestPractice: bestPractice ?? false,
             createdById: context.token.id,
             modifiedById: context.token.id,
@@ -68,7 +76,7 @@ export const resolvers: Resolvers = {
 
           // Create the new guidance group
           const newGuidanceGroup = await guidanceGroup.create(context);
-          
+
           // If the guidance group was not created, return the errors
           if (!newGuidanceGroup?.id) {
             if (!guidanceGroup.errors['general']) {
@@ -107,7 +115,7 @@ export const resolvers: Resolvers = {
           // Update the fields
           if (name !== undefined) guidanceGroup.name = name;
           if (bestPractice !== undefined) guidanceGroup.bestPractice = bestPractice;
-          
+
           guidanceGroup.modifiedById = context.token.id;
 
           // Save the updates

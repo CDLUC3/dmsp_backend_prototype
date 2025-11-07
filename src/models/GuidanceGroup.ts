@@ -89,10 +89,10 @@ export class GuidanceGroup extends MySqlModel {
     return null;
   }
 
-  // Find all GuidanceGroups for the specified affiliation URI (affiliationId column stores the affiliation URI)
-  static async findByAffiliationId(reference: string, context: MyContext, affiliationUri: string): Promise<GuidanceGroup[]> {
+  // Find all GuidanceGroups for the specified affiliationId
+  static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<GuidanceGroup[]> {
     const sql = 'SELECT * FROM guidanceGroups WHERE affiliationId = ? ORDER BY name ASC';
-    const results = await GuidanceGroup.query(context, sql, [affiliationUri], reference);
+    const results = await GuidanceGroup.query(context, sql, [affiliationId], reference);
     return Array.isArray(results) ? results.map((entry) => new GuidanceGroup(entry)) : [];
   }
 
