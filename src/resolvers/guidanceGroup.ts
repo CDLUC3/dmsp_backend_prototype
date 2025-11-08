@@ -59,36 +59,44 @@ export const resolvers: Resolvers = {
     // Add a new GuidanceGroup
     addGuidanceGroup: async (
       _,
-      { input: { name, bestPractice } },
+      { input: { affiliationId: tempAffiliationId, name, bestPractice } },
       context: MyContext
     ): Promise<GuidanceGroup> => {
       const reference = 'addGuidanceGroup resolver';
       try {
-        if (isAdmin(context?.token)) {
-          const affiliationId = context.token.affiliationId;
-          const guidanceGroup = new GuidanceGroup({
-            affiliationId,
-            name,
-            bestPractice: bestPractice ?? false,
-            createdById: context.token.id,
-            modifiedById: context.token.id,
-          });
+        const requester = context.token;
 
-          // Create the new guidance group
-          const newGuidanceGroup = await guidanceGroup.create(context);
+        // Choose affiliationId:
+        // - if requester is super-admin and provided affiliationId in input, use it
+        // - otherwise use the requester's affiliationId (regular admins)
+        const affiliationId = isSuperAdmin(requester) && tempAffiliationId
+          ? tempAffiliationId
+          : requester.affiliationId;
 
-          // If the guidance group was not created, return the errors
-          if (!newGuidanceGroup?.id) {
-            if (!guidanceGroup.errors['general']) {
-              guidanceGroup.addError('general', 'Unable to create the guidance group');
-            }
-            return guidanceGroup;
-          }
-
-          return newGuidanceGroup;
+        if (!affiliationId) {
+          throw new Error("affiliationId is required (either provide it as a super-admin or ensure the requesting user has an affiliation).");
         }
 
-        throw context?.token ? ForbiddenError() : AuthenticationError();
+        const guidanceGroup = new GuidanceGroup({
+          affiliationId,
+          name,
+          bestPractice: bestPractice ?? false,
+          createdById: requester.id,
+          modifiedById: requester.id,
+        });
+
+        // Create the new guidance group
+        const newGuidanceGroup = await guidanceGroup.create(context);
+
+        // If the guidance group was not created, return the errors
+        if (!newGuidanceGroup?.id) {
+          if (!guidanceGroup.errors['general']) {
+            guidanceGroup.addError('general', 'Unable to create the guidance group');
+          }
+          return guidanceGroup;
+        }
+
+        return newGuidanceGroup;
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 

@@ -35,15 +35,10 @@ export type AccessLevel =
 
 /** Input for adding a new GuidanceGroup */
 export type AddGuidanceGroupInput = {
-  /** The affiliation (organization ror) that owns this GuidanceGroup */
-  affiliationId: Scalars['String']['input'];
+  /** The affiliation (organization ror) that owns this GuidanceGroup. Optional: super-admins may set this; regular admins should omit it (their own affiliation will be used). */
+  affiliationId?: InputMaybe<Scalars['String']['input']>;
   /** Whether this is a best practice GuidanceGroup */
   bestPractice?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Whether this GuidanceGroup has been modified since last publish */
-  isDirty?: InputMaybe<Scalars['Boolean']['input']>;
-  latestPublishedDate?: InputMaybe<Scalars['String']['input']>;
-  /** Optional fields reflecting latest publish state (if provided) */
-  latestPublishedVersion?: InputMaybe<Scalars['String']['input']>;
   /** The name of the GuidanceGroup */
   name: Scalars['String']['input'];
 };
@@ -3750,7 +3745,7 @@ export type TypeCount = {
 export type UpdateGuidanceGroupInput = {
   /** Whether this is a best practice GuidanceGroup */
   bestPractice?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The unique identifier for the GuidanceGroup */
+  /** The unique identifier for the GuidanceGroup to update */
   guidanceGroupId: Scalars['Int']['input'];
   /** The name of the GuidanceGroup */
   name?: InputMaybe<Scalars['String']['input']>;
