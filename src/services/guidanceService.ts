@@ -5,6 +5,8 @@ import { VersionedGuidanceGroup } from "../models/VersionedGuidanceGroup";
 import { VersionedGuidance } from "../models/VersionedGuidance";
 import { Tag } from "../models/Tag";
 import { prepareObjectForLogs } from "../logger";
+import { getCurrentDate } from "../utils/helpers";
+import { isSuperAdmin } from "./authService";
 
 // Check if the user has permission to access the GuidanceGroup
 export const hasPermissionOnGuidanceGroup = async (
@@ -17,8 +19,8 @@ export const hasPermissionOnGuidanceGroup = async (
     return false;
   }
 
-  // User must be from the same organization as the guidance group
-  return context?.token?.affiliationId === guidanceGroup.affiliationId;
+  // User must be from the same organization as the guidance group OR be a super admin
+  return context?.token?.affiliationId === guidanceGroup.affiliationId || isSuperAdmin(context?.token);
 };
 
 // Creates a new Version/Snapshot of the specified GuidanceGroup
@@ -82,18 +84,18 @@ export const publishGuidanceGroup = async (
         // Reset the dirty flag on the guidance group and update the published info
         guidanceGroup.isDirty = false;
         guidanceGroup.latestPublishedVersion = nextVersion.toString();
-        guidanceGroup.latestPublishedDate = new Date().toISOString();
+        guidanceGroup.latestPublishedDate = getCurrentDate();
         const updated = await guidanceGroup.update(context, true);
 
         if (updated && !updated.hasErrors()) return true;
 
         const msg = `Unable to set the isDirty flag for guidance group: ${guidanceGroup.id}`;
-        context.logger.error(prepareObjectForLogs(updated.errors), msg);
+        context.logger.error(prepareObjectForLogs(updated), msg);
         throw new Error(msg);
       }
     } else {
       const msg = `Unable to create a new version for guidance group: ${guidanceGroup.id}`;
-      context.logger.error(prepareObjectForLogs(created.errors), msg);
+      context.logger.error(prepareObjectForLogs(created), msg);
       throw new Error(msg);
     }
   } catch (err) {
@@ -152,40 +154,38 @@ const generateGuidanceVersion = async (
   const tagsToVersion = tags && tags.length > 0 ? tags : [];
   
   if (tagsToVersion.length === 0) {
-    // If no tags associated, log a warning but continue
-    // This allows for guidance that applies broadly without specific tags
-    context.logger.warn(
+    // Guidance must have tags
+    context.logger.error(
       prepareObjectForLogs({ guidanceId: guidance.id }), 
-      'Publishing guidance without tags - this guidance will not be accessible through tag-based queries'
+      'Cannot publish guidance without tags - guidance must be associated with at least one tag'
     );
-    return true;
+    return false;
   }
 
   try {
-    for (const tag of tagsToVersion) {
-      const versionedGuidance = new VersionedGuidance({
-        versionedGuidanceGroupId: versionedGuidanceGroupId,
-        guidanceId: guidance.id,
-        guidanceText: guidance.guidanceText,
-        tagId: tag.id,
-        createdById: guidance.createdById,
-        created: guidance.created,
-        modifiedById: guidance.modifiedById,
-        modified: guidance.modified,
-      });
+    // Create a single VersionedGuidance entry (not one per tag)
+    const versionedGuidance = new VersionedGuidance({
+      versionedGuidanceGroupId: versionedGuidanceGroupId,
+      guidanceId: guidance.id,
+      guidanceText: guidance.guidanceText,
+      tagId: tagsToVersion[0].id, // Use first tag as the tagId field
+      createdById: guidance.createdById,
+      created: guidance.created,
+      modifiedById: guidance.modifiedById,
+      modified: guidance.modified,
+    });
 
-      const created = await versionedGuidance.create(context);
+    const created = await versionedGuidance.create(context);
 
-      if (!created || created.hasErrors()) {
-        const msg = `Unable to create versioned guidance for guidance: ${guidance.id}, tag: ${tag.id}`;
-        context.logger.error(prepareObjectForLogs(created?.errors), msg);
-        return false;
-      }
+    if (!created || created.hasErrors()) {
+      const msg = `Unable to create versioned guidance for guidance: ${guidance.id}`;
+      context.logger.error(prepareObjectForLogs(created), msg);
+      return false;
+    }
 
-      // Add all tags to the versioned guidance tags table
-      for (const tagToAdd of tagsToVersion) {
-        await tagToAdd.addToVersionedGuidance(context, created.id);
-      }
+    // Add all tags to the versioned guidance tags table
+    for (const tagToAdd of tagsToVersion) {
+      await tagToAdd.addToVersionedGuidance(context, created.id);
     }
 
     return true;

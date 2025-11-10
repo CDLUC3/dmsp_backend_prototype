@@ -192,12 +192,12 @@ describe('VersionedGuidance.findByVersionedGuidanceGroupId', () => {
   });
 });
 
-describe('VersionedGuidance.findBestPracticeByTagId', () => {
+describe('VersionedGuidance.findBestPracticeByTagIds', () => {
   const originalQuery = VersionedGuidance.query;
 
   let localQuery;
   let versionedGuidance;
-  const tagId = casual.integer(1, 50);
+  const tagIds = [casual.integer(1, 50), casual.integer(51, 100)];
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -212,7 +212,7 @@ describe('VersionedGuidance.findBestPracticeByTagId', () => {
       versionedGuidanceGroupId: casual.integer(1, 100),
       guidanceId: casual.integer(1, 100),
       guidanceText: casual.sentence,
-      tagId: tagId,
+      tagId: tagIds[0],
     })
   });
 
@@ -221,37 +221,39 @@ describe('VersionedGuidance.findBestPracticeByTagId', () => {
     VersionedGuidance.query = originalQuery;
   });
 
-  it('should call query with correct params and return best practice guidance for tag', async () => {
+  it('should call query with correct params and return best practice guidance for tags', async () => {
     localQuery.mockResolvedValueOnce([versionedGuidance]);
-    const result = await VersionedGuidance.findBestPracticeByTagId('VersionedGuidance query', context, tagId);
+    const result = await VersionedGuidance.findBestPracticeByTagIds('VersionedGuidance query', context, tagIds);
+    const placeholders = tagIds.map(() => '?').join(', ');
     const expectedSql = `
-      SELECT vg.* 
+      SELECT DISTINCT vg.* 
       FROM versionedGuidance vg
       INNER JOIN versionedGuidanceGroups vgg ON vg.versionedGuidanceGroupId = vgg.id
-      WHERE vg.tagId = ? AND vgg.bestPractice = 1 AND vgg.active = 1
+      INNER JOIN versionedGuidanceTags vgt ON vg.id = vgt.versionedGuidanceId
+      WHERE vgt.tagId IN (${placeholders}) AND vgg.bestPractice = 1 AND vgg.active = 1
       ORDER BY vg.id ASC
     `;
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, [tagId.toString()], 'VersionedGuidance query');
+    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, tagIds.map(id => id.toString()), 'VersionedGuidance query');
     expect(result.length).toBe(1);
     expect(result[0].id).toEqual(versionedGuidance.id);
   });
 
   it('should return an empty array if no records are found', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const result = await VersionedGuidance.findBestPracticeByTagId('VersionedGuidance query', context, tagId);
+    const result = await VersionedGuidance.findBestPracticeByTagIds('VersionedGuidance query', context, tagIds);
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(result.length).toBe(0);
   });
 });
 
-describe('VersionedGuidance.findByAffiliationAndTagId', () => {
+describe('VersionedGuidance.findByAffiliationAndTagIds', () => {
   const originalQuery = VersionedGuidance.query;
 
   let localQuery;
   let versionedGuidance;
   const affiliationId = 'https://ror.org/123456';
-  const tagId = casual.integer(1, 50);
+  const tagIds = [casual.integer(1, 50), casual.integer(51, 100)];
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -266,7 +268,7 @@ describe('VersionedGuidance.findByAffiliationAndTagId', () => {
       versionedGuidanceGroupId: casual.integer(1, 100),
       guidanceId: casual.integer(1, 100),
       guidanceText: casual.sentence,
-      tagId: tagId,
+      tagId: tagIds[0],
     })
   });
 
@@ -275,26 +277,28 @@ describe('VersionedGuidance.findByAffiliationAndTagId', () => {
     VersionedGuidance.query = originalQuery;
   });
 
-  it('should call query with correct params and return guidance for affiliation and tag', async () => {
+  it('should call query with correct params and return guidance for affiliation and tags', async () => {
     localQuery.mockResolvedValueOnce([versionedGuidance]);
-    const result = await VersionedGuidance.findByAffiliationAndTagId('VersionedGuidance query', context, affiliationId, tagId);
+    const result = await VersionedGuidance.findByAffiliationAndTagIds('VersionedGuidance query', context, affiliationId, tagIds);
+    const placeholders = tagIds.map(() => '?').join(', ');
     const expectedSql = `
-      SELECT vg.* 
+      SELECT DISTINCT vg.* 
       FROM versionedGuidance vg
       INNER JOIN versionedGuidanceGroups vgg ON vg.versionedGuidanceGroupId = vgg.id
       INNER JOIN guidanceGroups gg ON vgg.guidanceGroupId = gg.id
-      WHERE gg.affiliationId = ? AND vg.tagId = ? AND vgg.active = 1
+      INNER JOIN versionedGuidanceTags vgt ON vg.id = vgt.versionedGuidanceId
+      WHERE gg.affiliationId = ? AND vgt.tagId IN (${placeholders}) AND vgg.active = 1
       ORDER BY vg.id ASC
     `;
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, [affiliationId, tagId.toString()], 'VersionedGuidance query');
+    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, [affiliationId, ...tagIds.map(id => id.toString())], 'VersionedGuidance query');
     expect(result.length).toBe(1);
     expect(result[0].id).toEqual(versionedGuidance.id);
   });
 
   it('should return an empty array if no records are found', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const result = await VersionedGuidance.findByAffiliationAndTagId('VersionedGuidance query', context, affiliationId, tagId);
+    const result = await VersionedGuidance.findByAffiliationAndTagIds('VersionedGuidance query', context, affiliationId, tagIds);
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(result.length).toBe(0);
   });

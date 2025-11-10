@@ -2,10 +2,10 @@ import gql from "graphql-tag";
 
 export const typeDefs = gql`
   extend type Query {
-    "Get the best practice VersionedGuidance for a given Tag ID"
-    bestPracticeGuidance(tagId: Int!): [VersionedGuidance!]!
-    "Get all VersionedGuidance for a given affiliation and Tag ID"
-    versionedGuidance(affiliationId: String!, tagId: Int!): [VersionedGuidance!]!
+    "Get the best practice VersionedGuidance for given Tag IDs"
+    bestPracticeGuidance(tagIds: [Int!]!): [VersionedGuidance!]!
+    "Get all VersionedGuidance for a given affiliation and Tag IDs"
+    versionedGuidance(affiliationId: String!, tagIds: [Int!]!): [VersionedGuidance!]!
   }
 
   "A snapshot of a GuidanceGroup when it was published"
@@ -61,15 +61,13 @@ export const typeDefs = gql`
     guidanceId: Int
     "The guidance text content"
     guidanceText: String
-    "The primary Tag this Guidance is associated with"
+    "The Tag ID (one of the associated tags)"
     tagId: Int!
 
     "The VersionedGuidanceGroup this belongs to"
     versionedGuidanceGroup: VersionedGuidanceGroup
     "The Guidance this is a snapshot of"
     guidance: Guidance
-    "The primary Tag this Guidance is associated with"
-    tag: Tag
     "All Tags associated with this VersionedGuidance"
     tags: [Tag!]
   }

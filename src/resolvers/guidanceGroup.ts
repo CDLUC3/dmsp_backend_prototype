@@ -74,7 +74,7 @@ export const resolvers: Resolvers = {
           : requester.affiliationId;
 
         if (!affiliationId) {
-          throw new Error("affiliationId is required (either provide it as a super-admin or ensure the requesting user has an affiliation).");
+          throw new Error("affiliationId is required");
         }
 
         const guidanceGroup = new GuidanceGroup({

@@ -13,12 +13,12 @@ import { normaliseDateTime } from "../utils/helpers";
 
 export const resolvers: Resolvers = {
   Query: {
-    // Get best practice VersionedGuidance for a given Tag ID
-    bestPracticeGuidance: async (_, { tagId }, context: MyContext): Promise<VersionedGuidance[]> => {
+    // Get best practice VersionedGuidance for given Tag IDs
+    bestPracticeGuidance: async (_, { tagIds }, context: MyContext): Promise<VersionedGuidance[]> => {
       const reference = 'bestPracticeGuidance resolver';
       try {
         if (isAuthorized(context?.token)) {
-          return await VersionedGuidance.findBestPracticeByTagId(reference, context, tagId);
+          return await VersionedGuidance.findBestPracticeByTagIds(reference, context, tagIds);
         }
 
         throw AuthenticationError();
@@ -30,12 +30,12 @@ export const resolvers: Resolvers = {
       }
     },
 
-    // Get all VersionedGuidance for a given affiliation and Tag ID
-    versionedGuidance: async (_, { affiliationId, tagId }, context: MyContext): Promise<VersionedGuidance[]> => {
+    // Get all VersionedGuidance for a given affiliation and Tag IDs
+    versionedGuidance: async (_, { affiliationId, tagIds }, context: MyContext): Promise<VersionedGuidance[]> => {
       const reference = 'versionedGuidance resolver';
       try {
         if (isAuthorized(context?.token)) {
-          return await VersionedGuidance.findByAffiliationAndTagId(reference, context, affiliationId, tagId);
+          return await VersionedGuidance.findByAffiliationAndTagIds(reference, context, affiliationId, tagIds);
         }
 
         throw AuthenticationError();
@@ -84,10 +84,6 @@ export const resolvers: Resolvers = {
         return await Guidance.findById('Chained VersionedGuidance.guidance', context, parent.guidanceId);
       }
       return null;
-    },
-    // Chained resolver to fetch the primary Tag
-    tag: async (parent: VersionedGuidance, _, context: MyContext): Promise<Tag> => {
-      return await Tag.findById('Chained VersionedGuidance.tag', context, parent.tagId);
     },
     // Chained resolver to fetch all Tags for this VersionedGuidance
     tags: async (parent: VersionedGuidance, _, context: MyContext): Promise<Tag[]> => {

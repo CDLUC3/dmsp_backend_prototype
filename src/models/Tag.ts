@@ -102,8 +102,15 @@ export class Tag extends MySqlModel {
   // Add this Tag to a Guidance
   async addToGuidance(context: MyContext, guidanceId: number): Promise<boolean> {
     const reference = 'Tag.addToGuidance';
-    const sql = 'INSERT INTO guidanceTags (tagId, guidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token?.id?.toString();
+    
+    // Do not execute if userId is null or undefined
+    if (!userId) {
+      context.logger.error(prepareObjectForLogs({ tagId: this.id, guidanceId }), 'Unable to add tag to guidance: userId is null or undefined');
+      return false;
+    }
+    
+    const sql = 'INSERT INTO guidanceTags (tagId, guidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const vals = [this.id?.toString(), guidanceId?.toString(), userId, userId];
     const results = await Tag.query(context, sql, vals, reference);
 

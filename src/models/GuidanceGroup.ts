@@ -11,7 +11,7 @@ export class GuidanceGroup extends MySqlModel {
   public latestPublishedDate?: string;
   public guidance?: Guidance[];
 
-  private tableName = 'guidanceGroups';
+  private static tableName = 'guidanceGroups';
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
@@ -43,12 +43,20 @@ export class GuidanceGroup extends MySqlModel {
 
   // Create a new GuidanceGroup
   async create(context: MyContext): Promise<GuidanceGroup> {
+    // Check for existing guidance group with same affiliationId + name
+    const existing = await GuidanceGroup.findByName('GuidanceGroup.create', context, this.name, this.affiliationId);
+    
+    if (existing) {
+      this.addError('general', 'A guidance group with this name already exists for this organization');
+      return new GuidanceGroup(this);
+    }
+
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
 
       // Save the record and then fetch it
-      const newId = await GuidanceGroup.insert(context, this.tableName, this, 'GuidanceGroup.create', ['guidance']);
+      const newId = await GuidanceGroup.insert(context, GuidanceGroup.tableName, this, 'GuidanceGroup.create', ['guidance']);
       const response = await GuidanceGroup.findById('GuidanceGroup.create', context, newId);
       return response;
     }
@@ -64,7 +72,7 @@ export class GuidanceGroup extends MySqlModel {
       if (id) {
         this.prepForSave();
 
-        await GuidanceGroup.update(context, this.tableName, this, 'GuidanceGroup.update', ['guidance'], noTouch);
+        await GuidanceGroup.update(context, GuidanceGroup.tableName, this, 'GuidanceGroup.update', ['guidance'], noTouch);
         return await GuidanceGroup.findById('GuidanceGroup.update', context, id);
       }
       // This guidance group has never been saved before so we cannot update it!
@@ -79,7 +87,7 @@ export class GuidanceGroup extends MySqlModel {
       // First get the guidance group to be deleted so we can return this info to the user
       const deletedGuidanceGroup = await GuidanceGroup.findById('GuidanceGroup.delete', context, this.id);
 
-      const successfullyDeleted = await GuidanceGroup.delete(context, this.tableName, this.id, 'GuidanceGroup.delete');
+      const successfullyDeleted = await GuidanceGroup.delete(context, GuidanceGroup.tableName, this.id, 'GuidanceGroup.delete');
       if (successfullyDeleted) {
         return deletedGuidanceGroup;
       } else {
@@ -91,14 +99,14 @@ export class GuidanceGroup extends MySqlModel {
 
   // Find all GuidanceGroups for the specified affiliationId
   static async findByAffiliationId(reference: string, context: MyContext, affiliationId: string): Promise<GuidanceGroup[]> {
-    const sql = 'SELECT * FROM guidanceGroups WHERE affiliationId = ? ORDER BY name ASC';
+    const sql = `SELECT * FROM ${GuidanceGroup.tableName} WHERE affiliationId = ? ORDER BY name ASC`;
     const results = await GuidanceGroup.query(context, sql, [affiliationId], reference);
     return Array.isArray(results) ? results.map((entry) => new GuidanceGroup(entry)) : [];
   }
 
   // Find a specific GuidanceGroup by id
   static async findById(reference: string, context: MyContext, guidanceGroupId: number): Promise<GuidanceGroup> {
-    const sql = 'SELECT * FROM guidanceGroups WHERE id = ?';
+    const sql = `SELECT * FROM ${GuidanceGroup.tableName} WHERE id = ?`;
     const result = await GuidanceGroup.query(context, sql, [guidanceGroupId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new GuidanceGroup(result[0]) : null;
   }
@@ -110,7 +118,7 @@ export class GuidanceGroup extends MySqlModel {
     name: string,
     affiliationId: string
   ): Promise<GuidanceGroup> {
-    const sql = 'SELECT * FROM guidanceGroups WHERE LOWER(name) = ? AND affiliationId = ?';
+    const sql = `SELECT * FROM ${GuidanceGroup.tableName} WHERE LOWER(name) = ? AND affiliationId = ?`;
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim(), affiliationId];
     const results = await GuidanceGroup.query(context, sql, vals, reference);
