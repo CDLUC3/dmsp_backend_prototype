@@ -2602,7 +2602,7 @@ export type Query = {
   answerByVersionedQuestionId?: Maybe<Answer>;
   /** Get all answers for the given project and plan and section */
   answers?: Maybe<Array<Maybe<Answer>>>;
-  /** Get the best practice VersionedGuidance for a given Tag ID */
+  /** Get the best practice VersionedGuidance for given Tag IDs */
   bestPracticeGuidance: Array<VersionedGuidance>;
   /** Get all of the best practice VersionedSection */
   bestPracticeSections?: Maybe<Array<Maybe<VersionedSection>>>;
@@ -2733,7 +2733,7 @@ export type Query = {
   user?: Maybe<User>;
   /** Returns all of the users associated with the current admin's affiliation (Super admins get everything) */
   users?: Maybe<UserSearchResults>;
-  /** Get all VersionedGuidance for a given affiliation and Tag ID */
+  /** Get all VersionedGuidance for a given affiliation and Tag IDs */
   versionedGuidance: Array<VersionedGuidance>;
 };
 
@@ -2776,7 +2776,7 @@ export type QueryAnswersArgs = {
 
 
 export type QueryBestPracticeGuidanceArgs = {
-  tagId: Scalars['Int']['input'];
+  tagIds: Array<Scalars['Int']['input']>;
 };
 
 
@@ -3080,7 +3080,7 @@ export type QueryUsersArgs = {
 
 export type QueryVersionedGuidanceArgs = {
   affiliationId: Scalars['String']['input'];
-  tagId: Scalars['Int']['input'];
+  tagIds: Array<Scalars['Int']['input']>;
 };
 
 /** Question always belongs to a Section, which always belongs to a Template */
@@ -4109,9 +4109,7 @@ export type VersionedGuidance = {
   modified?: Maybe<Scalars['String']['output']>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** The primary Tag this Guidance is associated with */
-  tag?: Maybe<Tag>;
-  /** The primary Tag this Guidance is associated with */
+  /** The Tag ID (one of the associated tags) */
   tagId: Scalars['Int']['output'];
   /** All Tags associated with this VersionedGuidance */
   tags?: Maybe<Array<Tag>>;
@@ -6050,7 +6048,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
   answerByVersionedQuestionId?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerByVersionedQuestionIdArgs, 'planId' | 'projectId' | 'versionedQuestionId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;
-  bestPracticeGuidance?: Resolver<Array<ResolversTypes['VersionedGuidance']>, ParentType, ContextType, RequireFields<QueryBestPracticeGuidanceArgs, 'tagId'>>;
+  bestPracticeGuidance?: Resolver<Array<ResolversTypes['VersionedGuidance']>, ParentType, ContextType, RequireFields<QueryBestPracticeGuidanceArgs, 'tagIds'>>;
   bestPracticeSections?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedSection']>>>, ParentType, ContextType>;
   childResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType, RequireFields<QueryChildResearchDomainsArgs, 'parentResearchDomainId'>>;
   findCollaborator?: Resolver<Maybe<ResolversTypes['CollaboratorSearchResults']>, ParentType, ContextType, RequireFields<QueryFindCollaboratorArgs, 'term'>>;
@@ -6116,7 +6114,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   topLevelResearchDomains?: Resolver<Maybe<Array<Maybe<ResolversTypes['ResearchDomain']>>>, ParentType, ContextType>;
   user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'userId'>>;
   users?: Resolver<Maybe<ResolversTypes['UserSearchResults']>, ParentType, ContextType, Partial<QueryUsersArgs>>;
-  versionedGuidance?: Resolver<Array<ResolversTypes['VersionedGuidance']>, ParentType, ContextType, RequireFields<QueryVersionedGuidanceArgs, 'affiliationId' | 'tagId'>>;
+  versionedGuidance?: Resolver<Array<ResolversTypes['VersionedGuidance']>, ParentType, ContextType, RequireFields<QueryVersionedGuidanceArgs, 'affiliationId' | 'tagIds'>>;
 };
 
 export type QuestionResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['Question'] = ResolversParentTypes['Question']> = {
@@ -6559,7 +6557,6 @@ export type VersionedGuidanceResolvers<ContextType = MyContext, ParentType exten
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType>;
   tagId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   tags?: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   versionedGuidanceGroup?: Resolver<Maybe<ResolversTypes['VersionedGuidanceGroup']>, ParentType, ContextType>;
