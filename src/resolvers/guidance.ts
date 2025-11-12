@@ -5,7 +5,7 @@ import { GuidanceGroup } from "../models/GuidanceGroup";
 import { Tag } from "../models/Tag";
 import { hasPermissionOnGuidanceGroup, markGuidanceGroupAsDirty } from "../services/guidanceService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
-import { isAdmin } from "../services/authService";
+import {isAdmin, isSuperAdmin} from "../services/authService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { normaliseDateTime } from "../utils/helpers";
@@ -16,7 +16,7 @@ export const resolvers: Resolvers = {
     guidanceByGroup: async (_, { guidanceGroupId }, context: MyContext): Promise<Guidance[]> => {
       const reference = 'guidanceByGroup resolver';
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
+        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
           return await Guidance.findByGuidanceGroupId(reference, context, guidanceGroupId);
         }
 
@@ -32,20 +32,14 @@ export const resolvers: Resolvers = {
     // Return a specific Guidance item
     guidance: async (_, { guidanceId }, context: MyContext): Promise<Guidance> => {
       const reference = 'guidance resolver';
+      const guidance = await Guidance.findById(reference, context, guidanceId);
+      const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if (isAdmin(context.token)) {
-          const guidance = await Guidance.findById(reference, context, guidanceId);
-          
+        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
-
-          // Check if user has permission on the parent GuidanceGroup
-          if (await hasPermissionOnGuidanceGroup(context, guidance.guidanceGroupId)) {
-            return guidance;
-          }
-
-          throw ForbiddenError();
+          return guidance;
         }
 
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -67,8 +61,8 @@ export const resolvers: Resolvers = {
     ): Promise<Guidance> => {
       const reference = 'addGuidance resolver';
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
-          const guidance = new Guidance({ 
+        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
+          const guidance = new Guidance({
             guidanceGroupId,
             guidanceText,
             createdById: context.token.id,
@@ -77,7 +71,7 @@ export const resolvers: Resolvers = {
 
           // Create the new guidance
           const newGuidance = await guidance.create(context);
-          
+
           // If the guidance was not created, return the errors
           if (!newGuidance?.id) {
             if (!guidance.errors['general']) {
@@ -95,7 +89,7 @@ export const resolvers: Resolvers = {
               } else if (tagInput.name) {
                 const existingTags = await Tag.findByName(reference, context, tagInput.name);
                 tag = existingTags && existingTags.length > 0 ? existingTags[0] : null;
-                
+
                 if (!tag) {
                   // Create new tag
                   tag = new Tag({
@@ -136,72 +130,68 @@ export const resolvers: Resolvers = {
       context: MyContext
     ): Promise<Guidance> => {
       const reference = 'updateGuidance resolver';
+      const guidance = await Guidance.findById(reference, context, guidanceId);
+      const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if (isAdmin(context?.token)) {
-          const guidance = await Guidance.findById(reference, context, guidanceId);
-
+        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
 
-          if (await hasPermissionOnGuidanceGroup(context, guidance.guidanceGroupId)) {
-            // Update the fields
-            if (guidanceText !== undefined) guidance.guidanceText = guidanceText;
-            
-            guidance.modifiedById = context.token.id;
+          // Update the fields
+          if (guidanceText !== undefined) guidance.guidanceText = guidanceText;
 
-            // Save the updates
-            const updated = await guidance.update(context);
+          guidance.modifiedById = context.token.id;
 
-            if (!updated?.id) {
-              if (!guidance.errors['general']) {
-                guidance.addError('general', 'Unable to update the guidance');
-              }
-              return guidance;
+          // Save the updates
+          const updated = await guidance.update(context);
+
+          if (!updated?.id) {
+            if (!guidance.errors['general']) {
+              guidance.addError('general', 'Unable to update the guidance');
             }
-
-            // Update tags if provided
-            if (tags !== undefined) {
-              // Remove existing tags
-              const existingTags = await Tag.findByGuidanceId(reference, context, guidanceId);
-              for (const existingTag of existingTags) {
-                await existingTag.removeFromGuidance(context, guidanceId);
-              }
-
-              // Add new tags
-              for (const tagInput of tags) {
-                let tag: Tag;
-                if (tagInput.id) {
-                  tag = await Tag.findById(reference, context, tagInput.id);
-                } else if (tagInput.name) {
-                  const existingTags = await Tag.findByName(reference, context, tagInput.name);
-                  tag = existingTags && existingTags.length > 0 ? existingTags[0] : null;
-                  
-                  if (!tag) {
-                    // Create new tag
-                    tag = new Tag({
-                      name: tagInput.name,
-                      description: tagInput.description,
-                      createdById: context.token.id,
-                      modifiedById: context.token.id,
-                    });
-                    tag = await tag.create(context);
-                  }
-                }
-
-                if (tag?.id) {
-                  await tag.addToGuidance(context, guidanceId);
-                }
-              }
-            }
-
-            // Mark the guidance group as dirty
-            await markGuidanceGroupAsDirty(context, guidance.guidanceGroupId);
-
-            return await Guidance.findById(reference, context, guidanceId);
+            return guidance;
           }
 
-          throw ForbiddenError();
+          // Update tags if provided
+          if (tags !== undefined) {
+            // Remove existing tags
+            const existingTags = await Tag.findByGuidanceId(reference, context, guidanceId);
+            for (const existingTag of existingTags) {
+              await existingTag.removeFromGuidance(context, guidanceId);
+            }
+
+            // Add new tags
+            for (const tagInput of tags) {
+              let tag: Tag;
+              if (tagInput.id) {
+                tag = await Tag.findById(reference, context, tagInput.id);
+              } else if (tagInput.name) {
+                const existingTags = await Tag.findByName(reference, context, tagInput.name);
+                tag = existingTags && existingTags.length > 0 ? existingTags[0] : null;
+
+                if (!tag) {
+                  // Create new tag
+                  tag = new Tag({
+                    name: tagInput.name,
+                    description: tagInput.description,
+                    createdById: context.token.id,
+                    modifiedById: context.token.id,
+                  });
+                  tag = await tag.create(context);
+                }
+              }
+
+              if (tag?.id) {
+                await tag.addToGuidance(context, guidanceId);
+              }
+            }
+          }
+
+          // Mark the guidance group as dirty
+          await markGuidanceGroupAsDirty(context, guidance.guidanceGroupId);
+
+          return await Guidance.findById(reference, context, guidanceId);
         }
 
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -220,30 +210,26 @@ export const resolvers: Resolvers = {
       context: MyContext
     ): Promise<Guidance> => {
       const reference = 'removeGuidance resolver';
+      const guidance = await Guidance.findById(reference, context, guidanceId);
+      const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if (isAdmin(context?.token)) {
-          const guidance = await Guidance.findById(reference, context, guidanceId);
-
+        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
 
-          if (await hasPermissionOnGuidanceGroup(context, guidance.guidanceGroupId)) {
-            const guidanceGroupId = guidance.guidanceGroupId;
-            const deleted = await guidance.delete(context);
+          const guidanceGroupId = guidance.guidanceGroupId;
+          const deleted = await guidance.delete(context);
 
-            if (!deleted) {
-              guidance.addError('general', 'Unable to delete the guidance');
-              return guidance;
-            }
-
-            // Mark the guidance group as dirty
-            await markGuidanceGroupAsDirty(context, guidanceGroupId);
-
-            return deleted;
+          if (!deleted) {
+            guidance.addError('general', 'Unable to delete the guidance');
+            return guidance;
           }
 
-          throw ForbiddenError();
+          // Mark the guidance group as dirty
+          await markGuidanceGroupAsDirty(context, guidanceGroupId);
+
+          return deleted;
         }
 
         throw context?.token ? ForbiddenError() : AuthenticationError();
