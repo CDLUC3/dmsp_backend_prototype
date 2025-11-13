@@ -41,7 +41,7 @@ export const resolvers: Resolvers = {
     guidanceGroup: async (_, { guidanceGroupId }, context: MyContext): Promise<GuidanceGroup> => {
       const reference = 'guidanceGroup resolver';
       try {
-        if (isAdmin(context.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
+        if ((isAdmin(context.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)) {
           return await GuidanceGroup.findById(reference, context, guidanceGroupId);
         }
 
@@ -113,7 +113,7 @@ export const resolvers: Resolvers = {
     ): Promise<GuidanceGroup> => {
       const reference = 'updateGuidanceGroup resolver';
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
+        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)) {
           const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
 
           if (!guidanceGroup) {
