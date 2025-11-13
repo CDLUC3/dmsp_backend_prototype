@@ -18,7 +18,7 @@ export class GuidanceGroup extends MySqlModel {
 
     this.affiliationId = options.affiliationId;
     this.name = options.name;
-    this.isDirty = options.isDirty ?? true;
+    this.isDirty = options.isDirty ?? false;
     this.bestPractice = options.bestPractice ?? false;
     this.latestPublishedVersion = options.latestPublishedVersion;
     this.latestPublishedDate = options.latestPublishedDate;

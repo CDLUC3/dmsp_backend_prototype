@@ -22,7 +22,7 @@ describe('GuidanceGroup', () => {
     expect(guidanceGroup.affiliationId).toEqual(guidanceGroupData.affiliationId);
     expect(guidanceGroup.name).toEqual(guidanceGroupData.name);
     expect(guidanceGroup.bestPractice).toEqual(guidanceGroupData.bestPractice);
-    expect(guidanceGroup.isDirty).toBe(true);
+    expect(guidanceGroup.isDirty).toBe(false);
     expect(guidanceGroup.created).toBeTruthy();
     expect(guidanceGroup.modified).toBeTruthy();
     expect(guidanceGroup.errors).toEqual({});

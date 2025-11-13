@@ -2,7 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { GuidanceGroup } from "../models/GuidanceGroup";
 import { Guidance } from "../models/Guidance";
-import { hasPermissionOnGuidanceGroup, publishGuidanceGroup, unpublishGuidanceGroup } from "../services/guidanceService";
+import { hasPermissionOnGuidanceGroup, publishGuidanceGroup, unpublishGuidanceGroup, markGuidanceGroupAsDirty } from "../services/guidanceService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
 import { isAdmin, isSuperAdmin } from "../services/authService";
 import { prepareObjectForLogs } from "../logger";
@@ -135,6 +135,9 @@ export const resolvers: Resolvers = {
             }
             return guidanceGroup;
           }
+
+          // Mark the guidance group as dirty if it has an active version
+          await markGuidanceGroupAsDirty(context, guidanceGroupId);
 
           return updated;
         }
