@@ -41,7 +41,7 @@ export const resolvers: Resolvers = {
     guidanceGroup: async (_, { guidanceGroupId }, context: MyContext): Promise<GuidanceGroup> => {
       const reference = 'guidanceGroup resolver';
       try {
-        if ((isAdmin(context.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)) {
+        if (isAdmin(context.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           return await GuidanceGroup.findById(reference, context, guidanceGroupId);
         }
 
@@ -113,7 +113,7 @@ export const resolvers: Resolvers = {
     ): Promise<GuidanceGroup> => {
       const reference = 'updateGuidanceGroup resolver';
       try {
-        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)) {
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
 
           if (!guidanceGroup) {
@@ -159,7 +159,7 @@ export const resolvers: Resolvers = {
     ): Promise<GuidanceGroup> => {
       const reference = 'removeGuidanceGroup resolver';
       try {
-        if (((isAdmin(context?.token)) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)) {
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
 
           if (!guidanceGroup) {
@@ -193,7 +193,7 @@ export const resolvers: Resolvers = {
     ): Promise<GuidanceGroup> => {
       const reference = 'publishGuidanceGroup resolver';
       try {
-        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)) {
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
 
           if (!guidanceGroup) {
@@ -228,7 +228,7 @@ export const resolvers: Resolvers = {
     ): Promise<GuidanceGroup> => {
       const reference = 'unpublishGuidanceGroup resolver';
       try {
-        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)) {
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
 
           if (!guidanceGroup) {
