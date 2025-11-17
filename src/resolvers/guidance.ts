@@ -218,6 +218,12 @@ export const resolvers: Resolvers = {
             throw NotFoundError('Guidance not found');
           }
 
+          // Remove tag associations for this guidance before deleting it
+          const existingTags = await Tag.findByGuidanceId(reference, context, guidanceId);
+          for (const existingTag of existingTags) {
+            await existingTag.removeFromGuidance(context, guidanceId);
+          }
+
           const guidanceGroupId = guidance.guidanceGroupId;
           const deleted = await guidance.delete(context);
 
