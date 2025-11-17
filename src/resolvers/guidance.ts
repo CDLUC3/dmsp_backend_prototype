@@ -16,14 +16,26 @@ export const resolvers: Resolvers = {
     guidanceByGroup: async (_, { guidanceGroupId }, context: MyContext): Promise<Guidance[]> => {
       const reference = 'guidanceByGroup resolver';
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
+        const requester = context?.token;
+        if (!requester) {
+          throw AuthenticationError();
+        }
+
+        // Admins with permission: full access
+        if (isAdmin(requester) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
           return await Guidance.findByGuidanceGroupId(reference, context, guidanceGroupId);
         }
 
-        throw context?.token ? ForbiddenError() : AuthenticationError();
+        // For other users: check if guidanceGroup is published
+        const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
+        const isPublished = guidanceGroup && (guidanceGroup as any).latestPublishedDate || (guidanceGroup as any).published;
+        if (isPublished) {
+          return await Guidance.findByGuidanceGroupId(reference, context, guidanceGroupId);
+        }
+
+        throw ForbiddenError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
-
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -35,17 +47,32 @@ export const resolvers: Resolvers = {
       const guidance = await Guidance.findById(reference, context, guidanceId);
       const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
+        const requester = context?.token;
+        if (!requester) {
+          throw AuthenticationError();
+        }
+
+        // Admins with permission: full access
+        if (isAdmin(requester) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
           return guidance;
         }
 
-        throw context?.token ? ForbiddenError() : AuthenticationError();
+        // For other users: check if guidanceGroup is published
+        const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
+        const isPublished = guidanceGroup && (guidanceGroup as any).latestPublishedDate || (guidanceGroup as any).published;
+        if (isPublished) {
+          if (!guidance) {
+            throw NotFoundError('Guidance not found');
+          }
+          return guidance;
+        }
+
+        throw ForbiddenError();
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
-
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }

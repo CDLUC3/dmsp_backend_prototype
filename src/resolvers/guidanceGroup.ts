@@ -15,20 +15,31 @@ export const resolvers: Resolvers = {
     guidanceGroups: async (_, { affiliationId }, context: MyContext): Promise<GuidanceGroup[]> => {
       const reference = 'guidanceGroups resolver';
       try {
-        if (!isAdmin(context?.token)) {
-          throw context?.token ? ForbiddenError() : AuthenticationError();
+        // Require authentication
+        const requester = context?.token;
+        if (!requester) {
+          throw AuthenticationError();
         }
 
-        // If an affiliationId is provided, allow only super-admins or the admin of that affiliation
-        if (affiliationId) {
-          if (isSuperAdmin(context.token) || context.token.affiliationId === affiliationId) {
-            return await GuidanceGroup.findByAffiliationId(reference, context, affiliationId);
-          }
-          throw ForbiddenError();
+        // Fetch all guidance groups for the affiliation
+        const groups = await GuidanceGroup.findByAffiliationId(reference, context, affiliationId);
+
+        // Determine once whether the requester can see ALL groups for this affiliation:
+        // - Super-admin can see everything
+        // - Admin for the target affiliation can see everything for that affiliation
+        const canSeeAll = isSuperAdmin(requester) || (isAdmin(requester) && requester.affiliationId === affiliationId);
+
+        if (canSeeAll) {
+          return groups;
         }
 
-        // No affiliationId provided: return groups for the caller's affiliation
-        return await GuidanceGroup.findByAffiliationId(reference, context, context.token.affiliationId);
+        // Non-admin users or non-admins for group's affiliation: filter to published only
+        const publishedOnly = groups.filter(g => {
+          const isPublished = Boolean((g as any).latestPublishedDate || (g as any).published);
+          return isPublished;
+        }) as GuidanceGroup[];
+
+        return publishedOnly;
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -41,11 +52,30 @@ export const resolvers: Resolvers = {
     guidanceGroup: async (_, { guidanceGroupId }, context: MyContext): Promise<GuidanceGroup> => {
       const reference = 'guidanceGroup resolver';
       try {
-        if (isAdmin(context.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
-          return await GuidanceGroup.findById(reference, context, guidanceGroupId);
+        // Require authentication
+        const requester = context?.token;
+        if (!requester) {
+          throw AuthenticationError();
         }
 
-        throw context?.token ? ForbiddenError() : AuthenticationError();
+        const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
+
+        if (!guidanceGroup) {
+          throw NotFoundError('GuidanceGroup not found');
+        }
+
+        const isPublished = Boolean((guidanceGroup as any).latestPublishedDate || (guidanceGroup as any).published);
+
+        if (!isPublished) {
+          // Unpublished: only admin-types with permission can view
+          if (isAdmin(requester) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
+            return guidanceGroup;
+          }
+          throw ForbiddenError();
+        }
+
+        // Published: any authenticated user can view
+        return guidanceGroup;
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
