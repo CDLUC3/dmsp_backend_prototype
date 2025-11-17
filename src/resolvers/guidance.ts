@@ -5,7 +5,7 @@ import { GuidanceGroup } from "../models/GuidanceGroup";
 import { Tag } from "../models/Tag";
 import { hasPermissionOnGuidanceGroup, markGuidanceGroupAsDirty } from "../services/guidanceService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
-import {isAdmin, isSuperAdmin} from "../services/authService";
+import { isAdmin } from "../services/authService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { normaliseDateTime } from "../utils/helpers";
@@ -16,7 +16,7 @@ export const resolvers: Resolvers = {
     guidanceByGroup: async (_, { guidanceGroupId }, context: MyContext): Promise<Guidance[]> => {
       const reference = 'guidanceByGroup resolver';
       try {
-        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
           return await Guidance.findByGuidanceGroupId(reference, context, guidanceGroupId);
         }
 
@@ -35,7 +35,7 @@ export const resolvers: Resolvers = {
       const guidance = await Guidance.findById(reference, context, guidanceId);
       const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
@@ -61,7 +61,7 @@ export const resolvers: Resolvers = {
     ): Promise<Guidance> => {
       const reference = 'addGuidance resolver';
       try {
-        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
           const guidance = new Guidance({
             guidanceGroupId,
             guidanceText,
@@ -133,7 +133,7 @@ export const resolvers: Resolvers = {
       const guidance = await Guidance.findById(reference, context, guidanceId);
       const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
@@ -213,7 +213,7 @@ export const resolvers: Resolvers = {
       const guidance = await Guidance.findById(reference, context, guidanceId);
       const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if ((isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) || isSuperAdmin(context?.token)){
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
