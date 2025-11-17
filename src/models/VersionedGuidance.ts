@@ -7,7 +7,6 @@ export class VersionedGuidance extends MySqlModel {
   public guidanceId?: number;
   public guidanceText?: string;
   public tagId: number;
-  public tags?: Tag[];
 
   private static tableName = 'versionedGuidance';
 
@@ -18,7 +17,6 @@ export class VersionedGuidance extends MySqlModel {
     this.guidanceId = options.guidanceId;
     this.guidanceText = options.guidanceText;
     this.tagId = options.tagId;
-    this.tags = options.tags;
   }
 
   // Validation to be used prior to saving the record
@@ -43,7 +41,7 @@ export class VersionedGuidance extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
-      
+
       // Save the record and then fetch it
       const newId = await VersionedGuidance.insert(context, VersionedGuidance.tableName, this, 'VersionedGuidance.create', ['tags']);
       return await VersionedGuidance.findById('VersionedGuidance.create', context, newId);
@@ -78,10 +76,10 @@ export class VersionedGuidance extends MySqlModel {
     if (!tagIds || tagIds.length === 0) {
       return [];
     }
-    
+
     const placeholders = tagIds.map(() => '?').join(', ');
     const sql = `
-      SELECT DISTINCT vg.* 
+      SELECT DISTINCT vg.*
       FROM ${VersionedGuidance.tableName} vg
       INNER JOIN versionedGuidanceGroups vgg ON vg.versionedGuidanceGroupId = vgg.id
       INNER JOIN versionedGuidanceTags vgt ON vg.id = vgt.versionedGuidanceId
@@ -97,10 +95,10 @@ export class VersionedGuidance extends MySqlModel {
     if (!tagIds || tagIds.length === 0) {
       return [];
     }
-    
+
     const placeholders = tagIds.map(() => '?').join(', ');
     const sql = `
-      SELECT DISTINCT vg.* 
+      SELECT DISTINCT vg.*
       FROM ${VersionedGuidance.tableName} vg
       INNER JOIN versionedGuidanceGroups vgg ON vg.versionedGuidanceGroupId = vgg.id
       INNER JOIN guidanceGroups gg ON vgg.guidanceGroupId = gg.id

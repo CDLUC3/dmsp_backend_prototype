@@ -5,7 +5,6 @@ import { Tag } from "./Tag";
 export class Guidance extends MySqlModel {
   public guidanceGroupId: number;
   public guidanceText?: string;
-  public tags?: Tag[];
 
   private static tableName = 'guidance';
 
@@ -14,7 +13,6 @@ export class Guidance extends MySqlModel {
 
     this.guidanceGroupId = options.guidanceGroupId;
     this.guidanceText = options.guidanceText;
-    this.tags = options.tags;
   }
 
   // Check that the Guidance data contains the required fields
@@ -37,7 +35,7 @@ export class Guidance extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
-      
+
       // Save the record and then fetch it
       const newId = await Guidance.insert(context, Guidance.tableName, this, 'Guidance.create', ['tags']);
       const response = await Guidance.findById('Guidance.create', context, newId);
