@@ -160,10 +160,31 @@ export const resolvers: Resolvers = {
     guidanceGroups: async (parent: Affiliation, _, context: MyContext): Promise<GuidanceGroup[]> => {
       const reference = 'Affiliation.guidanceGroups resolver';
       try {
-        // The affiliation foreign key stored on GuidanceGroup is the affiliation's URI.
-        const affiliationUri = parent?.uri;
-        if (!affiliationUri) return [];
-        return await GuidanceGroup.findByAffiliationId(reference, context, affiliationUri);
+        // Require authentication
+        const requester = context?.token;
+        if (!requester) {
+          throw AuthenticationError();
+        }
+
+        // Fetch all guidance groups for the affiliation
+        const groups = await GuidanceGroup.findByAffiliationId(reference, context, parent.uri);
+
+        // Determine once whether the requester can see ALL groups for this affiliation:
+        // - Super-admin can see everything
+        // - Admin for the target affiliation can see everything for that affiliation
+        const canSeeAll = isSuperAdmin(requester) || (isAdmin(requester) && requester.affiliationId === parent.uri);
+
+        if (canSeeAll) {
+          return groups;
+        }
+
+        // Non-admin users or non-admins for group's affiliation: filter to published only
+        const publishedOnly = groups.filter(g => {
+          const isPublished = Boolean((g as any).latestPublishedDate || (g as any).published);
+          return isPublished;
+        }) as GuidanceGroup[];
+
+        return publishedOnly;
       } catch (err) {
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
