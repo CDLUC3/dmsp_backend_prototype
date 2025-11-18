@@ -13,6 +13,7 @@ import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from "../types/general";
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
+import { GuidanceGroup } from "../models/GuidanceGroup";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -156,6 +157,47 @@ export const resolvers: Resolvers = {
   },
 
   Affiliation: {
+    guidanceGroups: async (parent: Affiliation, _, context: MyContext): Promise<GuidanceGroup[]> => {
+      const reference = 'Affiliation.guidanceGroups resolver';
+      try {
+        // Require authentication
+        const requester = context?.token;
+        if (!requester) {
+          throw AuthenticationError();
+        }
+
+        // Fetch all guidance groups for the affiliation
+        const groups = await GuidanceGroup.findByAffiliationId(reference, context, parent.uri);
+
+        // Determine once whether the requester can see ALL groups for this affiliation:
+        // - Super-admin can see everything
+        // - Admin for the target affiliation can see everything for that affiliation
+        const canSeeAll = isSuperAdmin(requester) || (isAdmin(requester) && requester.affiliationId === parent.uri);
+
+        if (canSeeAll) {
+          return groups;
+        }
+
+        // Non-admin users or non-admins for group's affiliation: filter to published only
+        // src/resolvers/affiliation.ts (replace the filter body)
+        const publishedOnly = groups.filter(g => {
+          const record = g as unknown as Record<string, unknown>;
+          const latestPublishedDate = typeof record['latestPublishedDate'] === 'string'
+            ? (record['latestPublishedDate'] as string)
+            : undefined;
+          const publishedFlag = typeof record['published'] === 'boolean'
+            ? (record['published'] as boolean)
+            : undefined;
+          return Boolean(latestPublishedDate || publishedFlag);
+        }) as GuidanceGroup[];
+
+
+        return publishedOnly;
+      } catch (err) {
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
     created: (parent: Affiliation) => {
       return normaliseDateTime(parent.created);
     },
