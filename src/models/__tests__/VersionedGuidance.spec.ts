@@ -226,7 +226,7 @@ describe('VersionedGuidance.findBestPracticeByTagIds', () => {
     const result = await VersionedGuidance.findBestPracticeByTagIds('VersionedGuidance query', context, tagIds);
     const placeholders = tagIds.map(() => '?').join(', ');
     const expectedSql = `
-      SELECT DISTINCT vg.* 
+      SELECT DISTINCT vg.*
       FROM versionedGuidance vg
       INNER JOIN versionedGuidanceGroups vgg ON vg.versionedGuidanceGroupId = vgg.id
       INNER JOIN versionedGuidanceTags vgt ON vg.id = vgt.versionedGuidanceId
@@ -234,7 +234,12 @@ describe('VersionedGuidance.findBestPracticeByTagIds', () => {
       ORDER BY vg.id ASC
     `;
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, tagIds.map(id => id.toString()), 'VersionedGuidance query');
+    // Normalize whitespace and compare SQL to avoid fragile failures due to indentation
+    const calledArgs = localQuery.mock.calls[0];
+    const calledSql = calledArgs[1];
+    expect(calledSql.replace(/\s+/g, ' ').trim()).toEqual(expectedSql.replace(/\s+/g, ' ').trim());
+    expect(calledArgs[2]).toEqual(tagIds.map(id => id.toString()));
+    expect(calledArgs[3]).toEqual('VersionedGuidance query');
     expect(result.length).toBe(1);
     expect(result[0].id).toEqual(versionedGuidance.id);
   });
@@ -282,7 +287,7 @@ describe('VersionedGuidance.findByAffiliationAndTagIds', () => {
     const result = await VersionedGuidance.findByAffiliationAndTagIds('VersionedGuidance query', context, affiliationId, tagIds);
     const placeholders = tagIds.map(() => '?').join(', ');
     const expectedSql = `
-      SELECT DISTINCT vg.* 
+      SELECT DISTINCT vg.*
       FROM versionedGuidance vg
       INNER JOIN versionedGuidanceGroups vgg ON vg.versionedGuidanceGroupId = vgg.id
       INNER JOIN guidanceGroups gg ON vgg.guidanceGroupId = gg.id
@@ -291,7 +296,12 @@ describe('VersionedGuidance.findByAffiliationAndTagIds', () => {
       ORDER BY vg.id ASC
     `;
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, [affiliationId, ...tagIds.map(id => id.toString())], 'VersionedGuidance query');
+    // Normalize whitespace and compare SQL to avoid fragile failures due to indentation
+    const calledArgs = localQuery.mock.calls[0];
+    const calledSql = calledArgs[1];
+    expect(calledSql.replace(/\s+/g, ' ').trim()).toEqual(expectedSql.replace(/\s+/g, ' ').trim());
+    expect(calledArgs[2]).toEqual([affiliationId, ...tagIds.map(id => id.toString())]);
+    expect(calledArgs[3]).toEqual('VersionedGuidance query');
     expect(result.length).toBe(1);
     expect(result[0].id).toEqual(versionedGuidance.id);
   });

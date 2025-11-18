@@ -9,6 +9,13 @@ import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { normaliseDateTime } from "../utils/helpers";
 
+// Add a small helper to avoid `any` casts when checking published state
+export const hasPublishedFlag = (obj: unknown): boolean => {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const o = obj as { latestPublishedDate?: unknown; published?: unknown };
+  return Boolean(o.latestPublishedDate || o.published);
+};
+
 export const resolvers: Resolvers = {
   Query: {
     // Return all GuidanceGroups for the user's organization
@@ -35,7 +42,7 @@ export const resolvers: Resolvers = {
 
         // Non-admin users or non-admins for group's affiliation: filter to published only
         const publishedOnly = groups.filter(g => {
-          const isPublished = Boolean((g as any).latestPublishedDate || (g as any).published);
+          const isPublished = hasPublishedFlag(g);
           return isPublished;
         }) as GuidanceGroup[];
 
@@ -64,7 +71,7 @@ export const resolvers: Resolvers = {
           throw NotFoundError('GuidanceGroup not found');
         }
 
-        const isPublished = Boolean((guidanceGroup as any).latestPublishedDate || (guidanceGroup as any).published);
+        const isPublished = hasPublishedFlag(guidanceGroup);
 
         if (!isPublished) {
           // Unpublished: only admin-types with permission can view

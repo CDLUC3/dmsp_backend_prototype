@@ -9,6 +9,7 @@ import { isAdmin } from "../services/authService";
 import { prepareObjectForLogs } from "../logger";
 import { GraphQLError } from "graphql";
 import { normaliseDateTime } from "../utils/helpers";
+import { hasPublishedFlag } from "./guidanceGroup";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -28,7 +29,7 @@ export const resolvers: Resolvers = {
 
         // For other users: check if guidanceGroup is published
         const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
-        const isPublished = guidanceGroup && (guidanceGroup as any).latestPublishedDate || (guidanceGroup as any).published;
+        const isPublished = Boolean(guidanceGroup?.latestPublishedDate || hasPublishedFlag(guidanceGroup));
         if (isPublished) {
           return await Guidance.findByGuidanceGroupId(reference, context, guidanceGroupId);
         }
@@ -62,7 +63,7 @@ export const resolvers: Resolvers = {
 
         // For other users: check if guidanceGroup is published
         const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
-        const isPublished = guidanceGroup && (guidanceGroup as any).latestPublishedDate || (guidanceGroup as any).published;
+        const isPublished = Boolean(guidanceGroup?.latestPublishedDate || hasPublishedFlag(guidanceGroup));
         if (isPublished) {
           if (!guidance) {
             throw NotFoundError('Guidance not found');

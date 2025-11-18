@@ -179,10 +179,18 @@ export const resolvers: Resolvers = {
         }
 
         // Non-admin users or non-admins for group's affiliation: filter to published only
+        // src/resolvers/affiliation.ts (replace the filter body)
         const publishedOnly = groups.filter(g => {
-          const isPublished = Boolean((g as any).latestPublishedDate || (g as any).published);
-          return isPublished;
+          const record = g as unknown as Record<string, unknown>;
+          const latestPublishedDate = typeof record['latestPublishedDate'] === 'string'
+            ? (record['latestPublishedDate'] as string)
+            : undefined;
+          const publishedFlag = typeof record['published'] === 'boolean'
+            ? (record['published'] as boolean)
+            : undefined;
+          return Boolean(latestPublishedDate || publishedFlag);
         }) as GuidanceGroup[];
+
 
         return publishedOnly;
       } catch (err) {
