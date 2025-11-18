@@ -96,7 +96,7 @@ export const resolvers: Resolvers = {
     // Add a new GuidanceGroup
     addGuidanceGroup: async (
       _,
-      { input: { affiliationId: tempAffiliationId, name, bestPractice } },
+      { input: { affiliationId: tempAffiliationId, name, bestPractice, optionalSubset } },
       context: MyContext
     ): Promise<GuidanceGroup> => {
       const reference = 'addGuidanceGroup resolver';
@@ -118,6 +118,7 @@ export const resolvers: Resolvers = {
           affiliationId,
           name,
           bestPractice: bestPractice ?? false,
+          optionalSubset: optionalSubset ?? false,
           createdById: requester.id,
           modifiedById: requester.id,
         });
@@ -145,7 +146,7 @@ export const resolvers: Resolvers = {
     // Update an existing GuidanceGroup
     updateGuidanceGroup: async (
       _,
-      { input: { guidanceGroupId, name, bestPractice } },
+      { input: { guidanceGroupId, name, bestPractice, optionalSubset } },
       context: MyContext
     ): Promise<GuidanceGroup> => {
       const reference = 'updateGuidanceGroup resolver';
@@ -160,6 +161,7 @@ export const resolvers: Resolvers = {
           // Update the fields
           if (name !== undefined) guidanceGroup.name = name;
           if (bestPractice !== undefined) guidanceGroup.bestPractice = bestPractice;
+          if (optionalSubset !== undefined) guidanceGroup.optionalSubset = optionalSubset;
 
           guidanceGroup.modifiedById = context.token.id;
 

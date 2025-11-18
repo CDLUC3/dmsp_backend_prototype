@@ -11,6 +11,7 @@ describe('GuidanceGroup', () => {
     affiliationId: 'https://ror.org/123456',
     name: 'Test Guidance Group',
     bestPractice: false,
+    optionalSubset: false,
   }
 
   beforeEach(() => {
@@ -22,6 +23,7 @@ describe('GuidanceGroup', () => {
     expect(guidanceGroup.affiliationId).toEqual(guidanceGroupData.affiliationId);
     expect(guidanceGroup.name).toEqual(guidanceGroupData.name);
     expect(guidanceGroup.bestPractice).toEqual(guidanceGroupData.bestPractice);
+    expect(guidanceGroup.optionalSubset).toEqual(guidanceGroupData.optionalSubset);
     expect(guidanceGroup.isDirty).toBe(false);
     expect(guidanceGroup.created).toBeTruthy();
     expect(guidanceGroup.modified).toBeTruthy();
@@ -44,6 +46,25 @@ describe('GuidanceGroup', () => {
     expect(await guidanceGroup.isValid()).toBe(false);
     expect(Object.keys(guidanceGroup.errors).length).toBe(1);
     expect(guidanceGroup.errors['affiliationId']).toBeTruthy();
+  });
+
+  it('should default optionalSubset to false when not provided', () => {
+    const newGuidanceGroup = new GuidanceGroup({
+      affiliationId: 'https://ror.org/123456',
+      name: 'Test Group',
+      bestPractice: true,
+    });
+    expect(newGuidanceGroup.optionalSubset).toBe(false);
+  });
+
+  it('should set optionalSubset to true when provided', () => {
+    const newGuidanceGroup = new GuidanceGroup({
+      affiliationId: 'https://ror.org/123456',
+      name: 'Test Group',
+      bestPractice: true,
+      optionalSubset: true,
+    });
+    expect(newGuidanceGroup.optionalSubset).toBe(true);
   });
 });
 
