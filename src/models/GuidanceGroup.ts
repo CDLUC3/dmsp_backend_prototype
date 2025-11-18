@@ -7,6 +7,7 @@ export class GuidanceGroup extends MySqlModel {
   public name: string;
   public isDirty: boolean;
   public bestPractice: boolean;
+  public optionalSubset: boolean;
   public latestPublishedVersion?: string;
   public latestPublishedDate?: string;
   public guidance?: Guidance[];
@@ -20,6 +21,7 @@ export class GuidanceGroup extends MySqlModel {
     this.name = options.name;
     this.isDirty = options.isDirty ?? false;
     this.bestPractice = options.bestPractice ?? false;
+    this.optionalSubset = options.optionalSubset ?? false;
     this.latestPublishedVersion = options.latestPublishedVersion;
     this.latestPublishedDate = options.latestPublishedDate;
     this.guidance = options.guidance;

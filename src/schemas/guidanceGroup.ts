@@ -44,6 +44,8 @@ export const typeDefs = gql`
     isDirty: Boolean!
     "Whether this is a best practice GuidanceGroup"
     bestPractice: Boolean!
+    "Whether this is an optional subset for departmental use"
+    optionalSubset: Boolean!
     "The version identifier of the latest published version"
     latestPublishedVersion: String
     "The date when this was last published"
@@ -71,6 +73,8 @@ export const typeDefs = gql`
     name: String!
     "Whether this is a best practice GuidanceGroup"
     bestPractice: Boolean
+    "Whether this is an optional subset for departmental use"
+    optionalSubset: Boolean
   }
 
   "Input for updating a GuidanceGroup"
@@ -81,5 +85,7 @@ export const typeDefs = gql`
     name: String
     "Whether this is a best practice GuidanceGroup"
     bestPractice: Boolean
+    "Whether this is an optional subset for departmental use"
+    optionalSubset: Boolean
   }
 `;

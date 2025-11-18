@@ -47,6 +47,7 @@ export const publishGuidanceGroup = async (
     guidanceGroupId: guidanceGroup.id,
     version: nextVersion,
     bestPractice: guidanceGroup.bestPractice,
+    optionalSubset: guidanceGroup.optionalSubset,
     active: true,
     name: guidanceGroup.name,
     createdById: context.token?.id,

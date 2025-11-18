@@ -6,6 +6,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
   public guidanceGroupId: number;
   public version?: number;
   public bestPractice: boolean;
+  public optionalSubset: boolean;
   public active: boolean;
   public name: string;
   public versionedGuidance?: VersionedGuidance[];
@@ -18,6 +19,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
     this.guidanceGroupId = options.guidanceGroupId;
     this.version = options.version;
     this.bestPractice = options.bestPractice ?? false;
+    this.optionalSubset = options.optionalSubset ?? false;
     this.active = options.active ?? false;
     this.name = options.name;
     this.versionedGuidance = options.versionedGuidance;

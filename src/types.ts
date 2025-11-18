@@ -41,6 +41,8 @@ export type AddGuidanceGroupInput = {
   bestPractice?: InputMaybe<Scalars['Boolean']['input']>;
   /** The name of the GuidanceGroup */
   name: Scalars['String']['input'];
+  /** Whether this is an optional subset for departmental use */
+  optionalSubset?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 /** Input for adding a new Guidance item */
@@ -803,6 +805,8 @@ export type GuidanceGroup = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name of the GuidanceGroup */
   name: Scalars['String']['output'];
+  /** Whether this is an optional subset for departmental use */
+  optionalSubset: Scalars['Boolean']['output'];
 };
 
 /** A collection of errors related to the GuidanceGroup */
@@ -3749,6 +3753,8 @@ export type UpdateGuidanceGroupInput = {
   guidanceGroupId: Scalars['Int']['input'];
   /** The name of the GuidanceGroup */
   name?: InputMaybe<Scalars['String']['input']>;
+  /** Whether this is an optional subset for departmental use */
+  optionalSubset?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 /** Input for updating a Guidance item */
@@ -4155,6 +4161,8 @@ export type VersionedGuidanceGroup = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name of the VersionedGuidanceGroup */
   name: Scalars['String']['output'];
+  /** Whether this is an optional subset for departmental use */
+  optionalSubset: Scalars['Boolean']['output'];
   /** The version number of this snapshot */
   version?: Maybe<Scalars['Int']['output']>;
   /** The VersionedGuidance items in this group */
@@ -5350,6 +5358,7 @@ export type GuidanceGroupResolvers<ContextType = MyContext, ParentType extends R
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  optionalSubset?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6585,6 +6594,7 @@ export type VersionedGuidanceGroupResolvers<ContextType = MyContext, ParentType 
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  optionalSubset?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   version?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   versionedGuidance?: Resolver<Maybe<Array<ResolversTypes['VersionedGuidance']>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

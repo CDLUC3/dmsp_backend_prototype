@@ -29,6 +29,8 @@ export const typeDefs = gql`
     version: Int
     "Whether this is a best practice VersionedGuidanceGroup"
     bestPractice: Boolean!
+    "Whether this is an optional subset for departmental use"
+    optionalSubset: Boolean!
     "Whether this is the currently active version"
     active: Boolean!
     "The name of the VersionedGuidanceGroup"
