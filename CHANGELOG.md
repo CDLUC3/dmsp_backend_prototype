@@ -38,6 +38,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated the `js-yaml` dependency
 - Updated `popularFunders` resolver to return only 5 popular funders [#500]
 - Upgrade `nodemailer` from `6.10.1` to `7.0.10` to address security vulnerability
 - Updated `ORCID_REGEX` in `helper.ts` so that urls can be submitted without a the `www.` Also, added `stripORCIDIdentifierBaseURL` to just strip out all protocols and domains to extract the OrcidID [#251]
