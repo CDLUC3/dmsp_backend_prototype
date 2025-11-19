@@ -63,6 +63,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed migration error for versionedGuidance where can't be too strict since NULLs set for deleted parent Guidance. Related to [#12]
 - Fixed breaking build by removing `NODE_ENV=production` before `npm ci` which was skipping devDependencies, but needed for the build process.
 - `addSection` mutation resolver was not saving `tags`. Added code to add tags for new section [#445]
 - Fixed issue where updating an answer, funding or members was not triggering the creation of a new PlanVersion

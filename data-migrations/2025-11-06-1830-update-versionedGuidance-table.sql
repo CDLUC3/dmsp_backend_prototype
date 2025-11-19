@@ -3,7 +3,7 @@
 
 # Add guidanceText and guidanceId fields to versionedGuidance table
 ALTER TABLE `versionedGuidance`
-  ADD COLUMN `guidanceId` int UNSIGNED NOT NULL AFTER `versionedGuidanceGroupId`,
+  ADD COLUMN `guidanceId` int UNSIGNED DEFAULT NULL AFTER `versionedGuidanceGroupId`,
   ADD COLUMN `guidanceText` text NOT NULL AFTER `guidanceId`,
   ADD KEY `idx_vg_guidanceId` (`guidanceId`),
   ADD CONSTRAINT `fk_vg_guidanceId`
