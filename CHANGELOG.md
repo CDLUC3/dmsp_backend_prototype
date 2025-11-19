@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added models, resolvers, mutators for Guidance, GuidanceGroup, VersionedGuidance and versionedGuidanceGroup [#12]
 - Added migration for the `guidance`-related tables [#483]
 - Added planFeedbackStatus resolver and tests (status of NONE, REQUESTED, COMPLETE)
 - Added related works resolvers and tests.

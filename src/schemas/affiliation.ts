@@ -157,6 +157,8 @@ export const typeDefs = gql`
     uneditableProperties: [String!]!
     "The API URL that can be used to search for project/award information"
     apiTarget: String
+
+    guidanceGroups: [GuidanceGroup!]
   }
 
   "A collection of errors related to the Affiliation"
