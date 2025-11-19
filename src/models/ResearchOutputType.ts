@@ -126,7 +126,7 @@ export class ResearchOutputType extends MySqlModel {
 
   // Fetch a member role by it's value
   static async findByValue(reference: string, context: MyContext, value: string): Promise<ResearchOutputType> {
-    const sql = `SELECT * FROM ${ResearchOutputType.tableName} WHERE uri = ?`;
+    const sql = `SELECT * FROM ${ResearchOutputType.tableName} WHERE value = ?`;
     const results = await ResearchOutputType.query(context, sql, [value], reference);
     return Array.isArray(results) && results.length > 0 ? new ResearchOutputType(results[0]) : null;
   }

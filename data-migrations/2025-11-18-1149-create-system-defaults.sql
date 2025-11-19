@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS `researchOutputTypes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Set the recommended license types
+UPDATE `licenses` SET `recommended` = 0;
 UPDATE `licenses` SET `recommended` = 1 WHERE `name` IN ('CC0-1.0', 'CC-BY-4.0', 'MIT');
 
 -- Add the research output types we support
