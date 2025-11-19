@@ -103,7 +103,7 @@ async function tryGetConnection(context: MyContext) {
           port: 3306,
           user: "root",
           password: "d0ckerSecr3t",
-          database: "dmptool",
+          database: "dmsp",
           multipleStatements: true,
         });
       } else {
