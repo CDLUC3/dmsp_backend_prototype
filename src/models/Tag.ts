@@ -99,6 +99,23 @@ export class Tag extends MySqlModel {
     return true;
   }
 
+    // Add this Tag to a VersionedSectionTags
+  async addToVersionedSectionTags(context: MyContext, versionedSectionId: number): Promise<boolean> {
+    const reference = 'Tag.addToVersionedSectionTags';
+    const sql = 'INSERT INTO versionedSectionTags (tagId, versionedSectionId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), versionedSectionId?.toString(), userId, userId];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, versionedSectionId };
+      const msg = 'Unable to add the tag to the versioned section';
+      context.logger.error(prepareObjectForLogs(payload), msg);
+      return false;
+    }
+    return true;
+  }
+
   // Add this Tag to a Guidance
   async addToGuidance(context: MyContext, guidanceId: number): Promise<boolean> {
     const reference = 'Tag.addToGuidance';

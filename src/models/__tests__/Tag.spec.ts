@@ -232,6 +232,47 @@ describe('removeFromSection', () => {
   });
 });
 
+describe('addToVersionedSectionTags', () => {
+  let context;
+  let mockTag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    context = await buildMockContextWithToken(logger);
+
+    mockTag = new Tag({
+      id: casual.integer(1, 99),
+      name: casual.word,
+      description: casual.sentences(3)
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the Tag to the specified Section', async () => {
+    const versionedSectionId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(mockTag);
+    const result = await mockTag.addToVersionedSectionTags(context, versionedSectionId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'INSERT INTO versionedSectionTags (tagId, versionedSectionId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockTag.id.toString(), versionedSectionId.toString(), userId, userId]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'Tag.addToVersionedSectionTags')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the Tag cannot be associated with the Section', async () => {
+    const sectionId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(null);
+    const result = await mockTag.addToSection(context, sectionId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
 describe('findAll', () => {
   const originalQuery = Tag.query;
 

@@ -193,24 +193,36 @@ describe('PlanSectionProgress.findByPlanId', () => {
     localQuery.mockResolvedValueOnce([progress]);
     const planId = casual.integer(1, 99);
     const sql = `SELECT
-        vs.id AS versionedSectionId,
-        vs.displayOrder,
-        vs.name AS title,
-        COUNT(DISTINCT vq.id) AS totalQuestions,
-        COUNT(DISTINCT CASE
-            WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
-            THEN vq.id
-            END) AS answeredQuestions
-        FROM plans p
-            JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
-            JOIN versionedSections  vs ON vt.id = vs.versionedTemplateId
-            LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
-            LEFT JOIN answers a
+    vs.id AS versionedSectionId,
+    vs.displayOrder,
+    vs.name AS title,
+    COUNT(DISTINCT vq.id) AS totalQuestions,
+    COUNT(DISTINCT CASE
+        WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
+        THEN vq.id
+        END) AS answeredQuestions,
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', t2.id,
+          'name', t2.name,
+          'description', t2.description
+        )
+      )
+      FROM versionedSectionTags vst2
+      JOIN tags t2 ON vst2.tagId = t2.id
+      WHERE vst2.versionedSectionId = vs.id
+    ) AS tags
+    FROM plans p
+        JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
+        JOIN versionedSections vs ON vt.id = vs.versionedTemplateId
+        LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
+        LEFT JOIN answers a
             ON a.planId = p.id
             AND a.versionedQuestionId = vq.id
-        WHERE p.id = ?
-        GROUP BY vs.id, vs.displayOrder, vs.name
-        ORDER BY vs.displayOrder;
+    WHERE p.id = 7
+    GROUP BY vs.id, vs.displayOrder, vs.name
+    ORDER BY vs.displayOrder;
 `
     const result = await PlanSectionProgress.findByPlanId('testing', context, planId);
     expect(localQuery).toHaveBeenCalledTimes(1);

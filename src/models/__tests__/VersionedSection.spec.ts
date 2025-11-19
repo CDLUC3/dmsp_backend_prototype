@@ -4,6 +4,7 @@ import { buildMockContextWithToken } from "../../__mocks__/context";
 import { generalConfig } from "../../config/generalConfig";
 import { TemplateVersionType } from "../VersionedTemplate";
 import { logger } from "../../logger";
+import { Tag } from "../Tag";
 
 jest.mock('../../context.ts');
 
@@ -150,12 +151,12 @@ describe('VersionedSection', () => {
   });
 });
 
-describe('findBySectionId', () => {
+describe('findVersionedSectionTagsBySectionId', () => {
   const originalQuery = VersionedSection.query;
 
   let localQuery;
   let context;
-  let versionedSection;
+  let tag;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -165,12 +166,9 @@ describe('findBySectionId', () => {
 
     context = await buildMockContextWithToken(logger);
 
-    versionedSection = new VersionedSection({
+    tag = new Tag({
       name: casual.sentence,
-      introduction: casual.sentence,
-      requirements: casual.sentence,
-      guidance: casual.sentence,
-      displayOrder: casual.integer(1, 20),
+      description: casual.sentence,
     })
   });
 
@@ -179,20 +177,20 @@ describe('findBySectionId', () => {
     VersionedSection.query = originalQuery;
   });
 
-  it('should call query with correct params and return the section', async () => {
-    localQuery.mockResolvedValueOnce([versionedSection]);
+  it('should call query with correct params and return the section tags', async () => {
+    localQuery.mockResolvedValueOnce([tag]);
 
-    const sectionId = 1;
-    const result = await VersionedSection.findBySectionId('VersionedSection query', context, sectionId);
-    const expectedSql = 'SELECT * FROM versionedSections WHERE sectionId = ?';
+    const versionedSectionId = 1;
+    const result = await VersionedSection.findVersionedSectionTagsBySectionId('VersionedSection query', context, versionedSectionId);
+    const expectedSql = 'SELECT * FROM versionedSectionsTags WHERE versionedSectionId = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [sectionId.toString()], 'VersionedSection query')
-    expect(result).toEqual([versionedSection]);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [versionedSectionId.toString()], 'VersionedSection query')
+    expect(result).toEqual([tag]);
   });
-  it('should return empty array if it finds no VersionedSection', async () => {
+  it('should return empty array if it finds no tags', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const sectionId = 1;
-    const result = await VersionedSection.findBySectionId('VersionedSection query', context, sectionId);
+    const versionedSectionId = 1;
+    const result = await VersionedSection.findVersionedSectionTagsBySectionId('VersionedSection query', context, versionedSectionId);
     expect(result).toEqual([]);
   });
 });

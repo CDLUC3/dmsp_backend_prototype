@@ -11,6 +11,7 @@ import {
 import { MySqlModel } from "./MySqlModel";
 import { addVersion, removeVersions, updateVersion } from "./PlanVersion";
 import { Project } from "./Project";
+import { Tag } from "./Tag";
 
 export const DEFAULT_TEMPORARY_DMP_ID_PREFIX = 'temp-dmpId-';
 
@@ -103,6 +104,7 @@ export class PlanSectionProgress {
   public displayOrder: number;
   public totalQuestions: number;
   public answeredQuestions: number;
+  public tags?: Tag[];
 
   constructor(options) {
     this.versionedSectionId = options.versionedSectionId;
@@ -110,29 +112,42 @@ export class PlanSectionProgress {
     this.displayOrder = options.displayOrder;
     this.totalQuestions = options.totalQuestions;
     this.answeredQuestions = options.answeredQuestions;
+    this.tags = options.tags ?? [];
   }
 
   // Return the progress information for sections of the plan
   static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanSectionProgress[]> {
     const sql = `SELECT
-        vs.id AS versionedSectionId,
-        vs.displayOrder,
-        vs.name AS title,
-        COUNT(DISTINCT vq.id) AS totalQuestions,
-        COUNT(DISTINCT CASE
-            WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
-            THEN vq.id
-            END) AS answeredQuestions
-        FROM plans p
-            JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
-            JOIN versionedSections  vs ON vt.id = vs.versionedTemplateId
-            LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
-            LEFT JOIN answers a
+    vs.id AS versionedSectionId,
+    vs.displayOrder,
+    vs.name AS title,
+    COUNT(DISTINCT vq.id) AS totalQuestions,
+    COUNT(DISTINCT CASE
+        WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
+        THEN vq.id
+        END) AS answeredQuestions,
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', t2.id,
+          'name', t2.name,
+          'description', t2.description
+        )
+      )
+      FROM versionedSectionTags vst2
+      JOIN tags t2 ON vst2.tagId = t2.id
+      WHERE vst2.versionedSectionId = vs.id
+    ) AS tags
+    FROM plans p
+        JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
+        JOIN versionedSections vs ON vt.id = vs.versionedTemplateId
+        LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
+        LEFT JOIN answers a
             ON a.planId = p.id
             AND a.versionedQuestionId = vq.id
-        WHERE p.id = ?
-        GROUP BY vs.id, vs.displayOrder, vs.name
-        ORDER BY vs.displayOrder;
+    WHERE p.id = 7
+    GROUP BY vs.id, vs.displayOrder, vs.name
+    ORDER BY vs.displayOrder;
 `
     // if requirements make detecting answered questions more complex (e.g. based on question type)
     // and based on what constitutes really answered for each, then we may need to call special functions
