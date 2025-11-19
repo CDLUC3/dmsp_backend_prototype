@@ -37,7 +37,7 @@ create_database() {
   # Create the database if it does not exist
   CREATE_DATABASE="CREATE DATABASE IF NOT EXISTS ${1}
     CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;"
+    COLLATE utf8mb4_0900_ai_ci;"
 
   echo "Creating database, ${1}, if it does not already exist ..."
   if [ "${1}" == "${MYSQL_DATABASE}" ]; then

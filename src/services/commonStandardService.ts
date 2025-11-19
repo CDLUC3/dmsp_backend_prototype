@@ -13,24 +13,28 @@ import {
   DMPIdentifierType,
   DMPPrivacy,
   DMPRelatedIdentifierDescriptor,
-  DMPRelatedIdentifierWorkType,
   DMPStatus,
   DMPYesNoUnknown,
 } from "../types/DMP";
-import { ROR_REGEX } from "../models/Affiliation";
-import { MemberRole } from "../models/MemberRole";
-import { PlanFunding, ProjectFundingStatus } from "../models/Funding";
-import { defaultLanguageId } from "../models/Language";
-import { Plan, PlanVisibility } from "../models/Plan"
-import { Project } from "../models/Project";
-import { RelatedWork } from "../models/RelatedWork";
-import { User } from "../models/User";
-import { VersionedTemplate } from "../models/VersionedTemplate";
-import { isNullOrUndefined, valueIsEmpty, formatORCID, ORCID_REGEX } from "../utils/helpers";
-import { ResearchDomain } from "../models/ResearchDomain";
-import { Answer } from "../models/Answer";
-import { PlanMember } from "../models/Member";
-import { ExternalMember } from "../types";
+import {ROR_REGEX} from "../models/Affiliation";
+import {MemberRole} from "../models/MemberRole";
+import {PlanFunding, ProjectFundingStatus} from "../models/Funding";
+import {defaultLanguageId} from "../models/Language";
+import {Plan, PlanVisibility} from "../models/Plan"
+import {Project} from "../models/Project";
+import {RelatedWorkSearchResult} from "../models/RelatedWork";
+import {User} from "../models/User";
+import {VersionedTemplate} from "../models/VersionedTemplate";
+import {
+  formatORCID,
+  isNullOrUndefined,
+  ORCID_REGEX,
+  valueIsEmpty
+} from "../utils/helpers";
+import {ResearchDomain} from "../models/ResearchDomain";
+import {Answer} from "../models/Answer";
+import {PlanMember} from "../models/Member";
+import {ExternalMember} from "../types";
 
 // eslint-disable-next-line no-useless-escape
 export const DOI_REGEX = /^(https?:\/\/)?(doi\.org\/)?(doi:)?(10\.\d{4,9}\/[-._;()/:\w]+)$/;
@@ -88,7 +92,7 @@ export async function planToDMPCommonStandard(
   // Get all of the fundings and narrative info
   const fundings = plan.id ? await loadFundingInfo(context, reference, plan.id) : [];
   const narrative = plan.id ? await loadNarrativeTemplateInfo(context, reference, plan.id) : [];
-  const works = await RelatedWork.findByProjectId(reference, context, plan.projectId);
+  const works = await RelatedWorkSearchResult.search(reference, context, plan.projectId, undefined, {status: "ACCEPTED"});
   const defaultRole = await MemberRole.defaultRole(context, reference);
 
   // Build the DMP with all the required properties (and any that we have defaults for)
@@ -188,18 +192,27 @@ export async function planToDMPCommonStandard(
   }
 
   // Add the related works if there are any
-  if (Array.isArray(works) && works.length > 0) {
-    commonStandard.dmproadmap_related_identifiers = works.map((work) => {
-      const identifier = {
-        descriptor: DMPRelatedIdentifierDescriptor[work.relationDescriptor],
-        identifier: work.identifier,
-        type: determineIdentifierType(work.identifier),
-        work_type: DMPRelatedIdentifierWorkType[work.workType],
+  if (works && works.items && Array.isArray(works.items) && works.items.length > 0) {
+    commonStandard.dmproadmap_related_identifiers = works.items.map((work) => {
+      const doi = `https://doi.org/${work.workVersion.work.doi}`;
+      return {
+        identifier: doi,
+        type: DMPIdentifierType.DOI,
+        descriptor: DMPRelatedIdentifierDescriptor.CITES,
+        work_type: work.workVersion.workType.toLowerCase(),
+        title: work.workVersion.title,
+        publication_date: work.workVersion.publicationDate,
+        authors: work.workVersion.authors.map(author => ({
+          orcid: author.orcid,
+          first_initial: author.firstInitial,
+          given_name: author.givenName,
+          middle_initials: author.middleInitials,
+          middle_names: author.middleNames,
+          surname: author.surname,
+          full: author.full,
+        })),
+        publication_venue: work.workVersion.publicationVenue,
       } as DMPCommonStandardRelatedIdentifier;
-
-      if(!valueIsEmpty(work.citation)) identifier.citation = work.citation;
-
-      return identifier;
     });
   }
 

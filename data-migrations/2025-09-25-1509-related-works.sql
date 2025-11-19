@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `works`
   `id`          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   `doi`         VARCHAR(255) NOT NULL,
   `created`     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` INT          NULL,
+  `createdById` INT NULL,
 
   CONSTRAINT unique_doi UNIQUE (`doi`),
   CONSTRAINT fk_works_users_createdById FOREIGN KEY (createdById) REFERENCES users (id)
@@ -24,12 +24,12 @@ CREATE TABLE IF NOT EXISTS `workVersions`
   `authors`          JSON         NOT NULL,
   `institutions`     JSON         NOT NULL,
   `funders`          JSON         NOT NULL,
-  `awards`         JSON         NOT NULL,
+  `awards`           JSON         NOT NULL,
   `publicationVenue` VARCHAR(255) NULL,
   `sourceName`       VARCHAR(255) NOT NULL,
   `sourceUrl`        VARCHAR(255) NOT NULL,
   `created`          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById`      INT          NULL,
+  `createdById`      INT NULL,
 
   CONSTRAINT fk_workVersions_works_workId FOREIGN KEY (workId) REFERENCES works (id),
   CONSTRAINT unique_hash UNIQUE (`workId`, `hash`),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `workVersions`
 CREATE TABLE IF NOT EXISTS `relatedWorks`
 (
   `id`                 INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  `planId`             INT          NOT NULL,
+  `planId`             INT NOT NULL,
   `workVersionId`      INT UNSIGNED NOT NULL,
   `score`              FLOAT        NOT NULL,
   `status`             VARCHAR(256)          DEFAULT 'pending',
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS `relatedWorks`
   `authorMatches`      JSON         NOT NULL,
   `institutionMatches` JSON         NOT NULL,
   `funderMatches`      JSON         NOT NULL,
-  `awardMatches`     JSON         NOT NULL,
+  `awardMatches`       JSON         NOT NULL,
   `created`            TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `createdById`        INT,
   `modified`           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -86,7 +86,7 @@ BEGIN
     `authors`          JSON         NOT NULL,
     `institutions`     JSON         NOT NULL,
     `funders`          JSON         NOT NULL,
-    `awards`         JSON         NOT NULL,
+    `awards`           JSON         NOT NULL,
     `publicationVenue` VARCHAR(255) NULL,
     `sourceName`       VARCHAR(255) NOT NULL,
     `sourceUrl`        VARCHAR(255) NOT NULL
@@ -107,7 +107,7 @@ BEGIN
     `authorMatches`      JSON         NOT NULL,
     `institutionMatches` JSON         NOT NULL,
     `funderMatches`      JSON         NOT NULL,
-    `awardMatches`     JSON         NOT NULL,
+    `awardMatches`       JSON         NOT NULL,
 
     INDEX (`dmpDoi`, `workDoi`),
     CONSTRAINT unique_hash UNIQUE (`dmpDoi`, `workDoi`)
@@ -163,7 +163,7 @@ BEGIN
   CREATE TEMPORARY TABLE resolvedStagingLinks
   (
     `id`            INT UNSIGNED NOT NULL PRIMARY KEY,
-    `planId`        INT          NOT NULL,
+    `planId`        INT NOT NULL,
     `workVersionId` INT UNSIGNED NOT NULL,
     `workDoi`       VARCHAR(255) NOT NULL,
     UNIQUE KEY (`planId`, `workVersionId`)
@@ -220,7 +220,7 @@ BEGIN
       r.authorMatches      = s.authorMatches,
       r.institutionMatches = s.institutionMatches,
       r.funderMatches      = s.funderMatches,
-      r.awardMatches     = s.awardMatches
+      r.awardMatches       = s.awardMatches
 
   WHERE r.status = 'pending'
     AND (
