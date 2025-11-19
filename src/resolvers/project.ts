@@ -41,7 +41,7 @@ import {
 
 export const resolvers: Resolvers = {
   Query: {
-    // return all of the projects that the current user owns or is a collaborator on
+    // return all projects that the current user owns or is a collaborator on
     myProjects: async (
       _,
       { term, paginationOptions, filterOptions },
@@ -53,6 +53,38 @@ export const resolvers: Resolvers = {
           const pagOpts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
                       ? paginationOptions as PaginationOptionsForOffsets
                       : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+
+          return await ProjectSearchResult.search(
+            reference,
+            context,
+            term,
+            context.token?.id,
+            context.token?.affiliationId,
+            filterOptions,
+            pagOpts
+          );
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Return all projects based on the user's role (Admin only!)
+    allProjects: async (
+      _,
+      { term, paginationOptions, filterOptions },
+      context: MyContext
+    ): Promise<ProjectSearchResults> => {
+      const reference = 'allProjects resolver';
+      try {
+        if (isAdmin(context.token)) {
+          const pagOpts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+            ? paginationOptions as PaginationOptionsForOffsets
+            : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
           const userId = isAdmin(context.token) ? null : context.token?.id;
           const affiliationId = isSuperAdmin(context.token) ? null : context.token?.affiliationId;

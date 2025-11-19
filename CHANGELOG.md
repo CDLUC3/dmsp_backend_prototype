@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added a `allProjects` resolver to return all projects relevant to the Admin
 - Added models, resolvers, mutators for Guidance, GuidanceGroup, VersionedGuidance and versionedGuidanceGroup [#12]
 - Added migration for the `guidance`-related tables [#483]
 - Added planFeedbackStatus resolver and tests (status of NONE, REQUESTED, COMPLETE)
@@ -39,6 +40,7 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
 - Updated the `js-yaml` dependency
 - Updated `popularFunders` resolver to return only 5 popular funders [#500]
 - Upgrade `nodemailer` from `6.10.1` to `7.0.10` to address security vulnerability
