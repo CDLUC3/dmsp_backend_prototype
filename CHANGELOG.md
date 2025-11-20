@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- 
 - Added models, resolvers, mutators for Guidance, GuidanceGroup, VersionedGuidance and versionedGuidanceGroup [#12]
 - Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids 
 - Added `AffiliationDepartments` model
