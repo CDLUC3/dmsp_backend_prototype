@@ -360,7 +360,7 @@ describe('generateSectionVersion', () => {
     expect(updated.isDirty).toEqual(false);
   });
 
-  it.only('versions the Section and adds an error when a tag is not found', async () => {
+  it('versions the Section and adds an error when a tag is not found', async () => {
     const section = new Section(sectionStore[0]);
     const missingTagId = 999;
     section.tags = [
