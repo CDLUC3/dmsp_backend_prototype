@@ -298,8 +298,7 @@ export const resolvers: Resolvers = {
     },
     versionedSections: async (parent: Plan, _, context: MyContext): Promise<PlanSectionProgress[]> => {
       if (parent?.id) {
-        const plan = await PlanSectionProgress.findByPlanId('plan versionedSections resolver', context, parent.id);
-        return plan;
+        return await PlanSectionProgress.findByPlanId('plan versionedSections resolver', context, parent.id);
       }
       return [];
     },

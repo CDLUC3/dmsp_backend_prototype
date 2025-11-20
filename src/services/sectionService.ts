@@ -43,7 +43,7 @@ export const generateSectionVersion = async (
   try {
     const created = await versionedSection.create(context);
 
-    // Add tags associated with section so we can add it to versionedSectionTags table
+    // Get tags associated with section so we can add it to versionedSectionTags table
     const addTagErrors = [];
     if (Array.isArray(section.tags) && section.tags.length > 0) {
       for (const item of section.tags) {

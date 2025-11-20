@@ -220,7 +220,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
         LEFT JOIN answers a
             ON a.planId = p.id
             AND a.versionedQuestionId = vq.id
-    WHERE p.id = 7
+    WHERE p.id = ?
     GROUP BY vs.id, vs.displayOrder, vs.name
     ORDER BY vs.displayOrder;
 `

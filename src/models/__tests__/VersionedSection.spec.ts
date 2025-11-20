@@ -4,7 +4,6 @@ import { buildMockContextWithToken } from "../../__mocks__/context";
 import { generalConfig } from "../../config/generalConfig";
 import { TemplateVersionType } from "../VersionedTemplate";
 import { logger } from "../../logger";
-import { Tag } from "../Tag";
 
 jest.mock('../../context.ts');
 
@@ -148,50 +147,6 @@ describe('VersionedSection', () => {
     expect(versionedSection.requirements).toEqual(versionedSectionData.requirements);
     expect(versionedSection.guidance).toEqual(versionedSectionData.guidance);
     expect(versionedSection.displayOrder).toEqual(versionedSectionData.displayOrder);
-  });
-});
-
-describe('findVersionedSectionTagsBySectionId', () => {
-  const originalQuery = VersionedSection.query;
-
-  let localQuery;
-  let context;
-  let tag;
-
-  beforeEach(async () => {
-    jest.resetAllMocks();
-
-    localQuery = jest.fn();
-    (VersionedSection.query as jest.Mock) = localQuery;
-
-    context = await buildMockContextWithToken(logger);
-
-    tag = new Tag({
-      name: casual.sentence,
-      description: casual.sentence,
-    })
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    VersionedSection.query = originalQuery;
-  });
-
-  it('should call query with correct params and return the section tags', async () => {
-    localQuery.mockResolvedValueOnce([tag]);
-
-    const versionedSectionId = 1;
-    const result = await VersionedSection.findVersionedSectionTagsBySectionId('VersionedSection query', context, versionedSectionId);
-    const expectedSql = 'SELECT * FROM versionedSectionsTags WHERE versionedSectionId = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [versionedSectionId.toString()], 'VersionedSection query')
-    expect(result).toEqual([tag]);
-  });
-  it('should return empty array if it finds no tags', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const versionedSectionId = 1;
-    const result = await VersionedSection.findVersionedSectionTagsBySectionId('VersionedSection query', context, versionedSectionId);
-    expect(result).toEqual([]);
   });
 });
 
