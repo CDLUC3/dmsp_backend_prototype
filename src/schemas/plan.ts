@@ -70,6 +70,8 @@ export const typeDefs = gql`
     totalQuestions: Int!
     "The number of questions the user has answered"
     answeredQuestions: Int!
+    "Tags associated with the section"
+    tags: [Tag!]
   }
 
   type PlanProgress {

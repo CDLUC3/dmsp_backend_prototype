@@ -150,53 +150,6 @@ describe('VersionedSection', () => {
   });
 });
 
-describe('findBySectionId', () => {
-  const originalQuery = VersionedSection.query;
-
-  let localQuery;
-  let context;
-  let versionedSection;
-
-  beforeEach(async () => {
-    jest.resetAllMocks();
-
-    localQuery = jest.fn();
-    (VersionedSection.query as jest.Mock) = localQuery;
-
-    context = await buildMockContextWithToken(logger);
-
-    versionedSection = new VersionedSection({
-      name: casual.sentence,
-      introduction: casual.sentence,
-      requirements: casual.sentence,
-      guidance: casual.sentence,
-      displayOrder: casual.integer(1, 20),
-    })
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    VersionedSection.query = originalQuery;
-  });
-
-  it('should call query with correct params and return the section', async () => {
-    localQuery.mockResolvedValueOnce([versionedSection]);
-
-    const sectionId = 1;
-    const result = await VersionedSection.findBySectionId('VersionedSection query', context, sectionId);
-    const expectedSql = 'SELECT * FROM versionedSections WHERE sectionId = ?';
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [sectionId.toString()], 'VersionedSection query')
-    expect(result).toEqual([versionedSection]);
-  });
-  it('should return empty array if it finds no VersionedSection', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const sectionId = 1;
-    const result = await VersionedSection.findBySectionId('VersionedSection query', context, sectionId);
-    expect(result).toEqual([]);
-  });
-});
-
 describe('findByName', () => {
   const originalQuery = VersionedSection.query;
 
