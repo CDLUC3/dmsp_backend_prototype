@@ -118,45 +118,50 @@ export class PlanSectionProgress {
   // Return the progress information for sections of the plan
   static async findByPlanId(reference: string, context: MyContext, planId: number): Promise<PlanSectionProgress[]> {
     const sql = `SELECT
-    vs.id AS versionedSectionId,
-    vs.displayOrder,
-    vs.name AS title,
-    COUNT(DISTINCT vq.id) AS totalQuestions,
-    COUNT(DISTINCT CASE
-        WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
-        THEN vq.id
+      vs.id AS versionedSectionId,
+      vs.displayOrder,
+      vs.name AS title,
+      COUNT(DISTINCT vq.id) AS totalQuestions,
+      COUNT(DISTINCT CASE
+          WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
+          THEN vq.id
         END) AS answeredQuestions,
-    COALESCE(
-      JSON_ARRAYAGG(
-        DISTINCT JSON_OBJECT(
-        'id', t.id,
-        'name', t.name,
-        'description', t.description
-        )
-      ),
-      JSON_ARRAY()
-      ) AS tags
+      COALESCE(tagAgg.tags, JSON_ARRAY()) AS tags
     FROM plans p
-        JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
-        JOIN versionedSections vs ON vt.id = vs.versionedTemplateId
-        LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
-        LEFT JOIN answers a
-            ON a.planId = p.id
-            AND a.versionedQuestionId = vq.id
-        LEFT JOIN versionedSectionTags vst ON vs.id = vst.versionedSectionId
-        LEFT JOIN tags t ON vst.tagId = t.id
+      JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
+      JOIN versionedSections vs ON vt.id = vs.versionedTemplateId
+      LEFT JOIN (
+        SELECT
+          vst.versionedSectionId,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', t.id,
+              'name', t.name,
+              'description', t.description
+            )
+          ) AS tags
+        FROM versionedSectionTags vst
+          JOIN tags t ON t.id = vst.tagId
+        GROUP BY vst.versionedSectionId
+      ) tagAgg ON tagAgg.versionedSectionId = vs.id
+      LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
+      LEFT JOIN answers a
+        ON a.planId = p.id
+        AND a.versionedQuestionId = vq.id
     WHERE p.id = ?
-    GROUP BY vs.id, vs.displayOrder, vs.name
+    GROUP BY vs.id, vs.displayOrder, vs.name, tagAgg.tags
     ORDER BY vs.displayOrder;
 `
-    // if requirements make detecting answered questions more complex (e.g. based on question type)
-    // and based on what constitutes really answered for each, then we may need to call special functions
-    // against each question to get the real count. It'll also use more resources to check them all.
-    // But we may be able to do something like the following to check for non-empty in JSON
-    // "JSON_EXTRACT(a.json, '$.answer') IS NOT NULL AND JSON_UNQUOTE(JSON_EXTRACT(a.json, '$.answer')) <> ''"
 
     const results = await Plan.query(context, sql, [planId?.toString()], reference);
-    return Array.isArray(results) ? results.map((entry) => new PlanSectionProgress(entry)) : [];
+    return Array.isArray(results)
+      ? results.map((entry) => {
+          if (entry.tags && typeof entry.tags === 'string') {
+            try { entry.tags = JSON.parse(entry.tags); } catch { entry.tags = []; }
+          }
+          return new PlanSectionProgress(entry);
+        })
+      : [];
   }
 }
 

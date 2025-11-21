@@ -193,35 +193,38 @@ describe('PlanSectionProgress.findByPlanId', () => {
     localQuery.mockResolvedValueOnce([progress]);
     const planId = casual.integer(1, 99);
     const sql = `SELECT
-    vs.id AS versionedSectionId,
-    vs.displayOrder,
-    vs.name AS title,
-    COUNT(DISTINCT vq.id) AS totalQuestions,
-    COUNT(DISTINCT CASE
-        WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
-        THEN vq.id
+      vs.id AS versionedSectionId,
+      vs.displayOrder,
+      vs.name AS title,
+      COUNT(DISTINCT vq.id) AS totalQuestions,
+      COUNT(DISTINCT CASE
+          WHEN a.id IS NOT NULL AND NULLIF(TRIM(a.json), '') IS NOT NULL
+          THEN vq.id
         END) AS answeredQuestions,
-    COALESCE(
-      JSON_ARRAYAGG(
-        DISTINCT JSON_OBJECT(
-        'id', t.id,
-        'name', t.name,
-        'description', t.description
-        )
-      ),
-      JSON_ARRAY()
-      ) AS tags
+      COALESCE(tagAgg.tags, JSON_ARRAY()) AS tags
     FROM plans p
-        JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
-        JOIN versionedSections vs ON vt.id = vs.versionedTemplateId
-        LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
-        LEFT JOIN answers a
-            ON a.planId = p.id
-            AND a.versionedQuestionId = vq.id
-        LEFT JOIN versionedSectionTags vst ON vs.id = vst.versionedSectionId
-        LEFT JOIN tags t ON vst.tagId = t.id
+      JOIN versionedTemplates vt ON p.versionedTemplateId = vt.id
+      JOIN versionedSections vs ON vt.id = vs.versionedTemplateId
+      LEFT JOIN (
+        SELECT
+          vst.versionedSectionId,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', t.id,
+              'name', t.name,
+              'description', t.description
+            )
+          ) AS tags
+        FROM versionedSectionTags vst
+          JOIN tags t ON t.id = vst.tagId
+        GROUP BY vst.versionedSectionId
+      ) tagAgg ON tagAgg.versionedSectionId = vs.id
+      LEFT JOIN versionedQuestions vq ON vs.id = vq.versionedSectionId
+      LEFT JOIN answers a
+        ON a.planId = p.id
+        AND a.versionedQuestionId = vq.id
     WHERE p.id = ?
-    GROUP BY vs.id, vs.displayOrder, vs.name
+    GROUP BY vs.id, vs.displayOrder, vs.name, tagAgg.tags
     ORDER BY vs.displayOrder;
 `
     const result = await PlanSectionProgress.findByPlanId('testing', context, planId);
