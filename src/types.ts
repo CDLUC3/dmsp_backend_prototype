@@ -3551,6 +3551,8 @@ export type Tag = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The tag name */
   name: Scalars['String']['output'];
+  /** The slug */
+  slug: Scalars['String']['output'];
 };
 
 /** A collection of errors related to the Tag */
@@ -3569,7 +3571,9 @@ export type TagInput = {
   /** The unique identifier for the Tag */
   id?: InputMaybe<Scalars['Int']['input']>;
   /** The name of the Tag */
-  name: Scalars['String']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** The slug of the Tag */
+  slug?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** A Template used to create DMPs */
@@ -6364,6 +6368,7 @@ export type TagResolvers<ContextType = MyContext, ParentType extends ResolversPa
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 

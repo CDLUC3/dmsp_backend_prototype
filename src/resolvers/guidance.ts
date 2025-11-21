@@ -115,7 +115,7 @@ export const resolvers: Resolvers = {
               if (tagInput.id) {
                 tag = await Tag.findById(reference, context, tagInput.id);
               } else if (tagInput.name) {
-                const existingTags = await Tag.findByName(reference, context, tagInput.name);
+                const existingTags = await Tag.findBySlug(reference, context, tagInput.slug);
                 tag = existingTags && existingTags.length > 0 ? existingTags[0] : null;
 
                 if (!tag) {
@@ -195,7 +195,7 @@ export const resolvers: Resolvers = {
               if (tagInput.id) {
                 tag = await Tag.findById(reference, context, tagInput.id);
               } else if (tagInput.name) {
-                const existingTags = await Tag.findByName(reference, context, tagInput.name);
+                const existingTags = await Tag.findBySlug(reference, context, tagInput.slug);
                 tag = existingTags && existingTags.length > 0 ? existingTags[0] : null;
 
                 if (!tag) {

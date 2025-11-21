@@ -5,7 +5,7 @@ echo "Ensuring build compiles ..."
 npm run build
 
 echo "Running Tests ..."
-npm test
+npm run test-no-db
 
 echo "Running Trivy scans..."
 

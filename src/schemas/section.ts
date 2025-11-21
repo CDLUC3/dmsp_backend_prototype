@@ -119,14 +119,4 @@ export const typeDefs = gql`
     "The Tags associated with this section. A section might not have any tags"
     tags: [TagInput!]
   }
-
-  "Input for Tag operations"
-  input TagInput {
-    "The unique identifier for the Tag"
-    id: Int
-    "The name of the Tag"
-    name: String!
-    "The description of the Tag"
-    description: String
-  }
 `;
