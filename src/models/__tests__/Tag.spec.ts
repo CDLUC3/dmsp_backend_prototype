@@ -26,7 +26,7 @@ describe('Tag', () => {
 
 describe('create', () => {
   const originalInsert = Tag.insert;
-  const originalfindByName = Tag.findByName;
+  const originalfindBySlug = Tag.findBySlug;
   const originalfindById = Tag.findById
   let insertQuery;
   let tag;
@@ -47,13 +47,13 @@ describe('create', () => {
 
   afterEach(() => {
     Tag.insert = originalInsert;
-    Tag.findByName = originalfindByName;
+    Tag.findBySlug = originalfindBySlug;
     Tag.findById = originalfindById;
   });
 
   it('returns the Tag with an error if the tag already exists', async () => {
     const mockFindBy = jest.fn();
-    (Tag.findByName as jest.Mock) = mockFindBy;
+    (Tag.findBySlug as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(tag);
 
     const result = await tag.create(context);
@@ -73,7 +73,7 @@ describe('create', () => {
       }
       // Add other required properties of MyContext here
     };
-    (Tag.findByName as jest.Mock) = mockFindBy;
+    (Tag.findBySlug as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(null);
     mockFindBy.mockResolvedValue(tag);
 
@@ -101,6 +101,7 @@ describe('update', () => {
 
     tag = new Tag({
       name: casual.sentence,
+      slug: casual.word.toLowerCase(),
       description: casual.sentence,
     })
   });
@@ -383,7 +384,7 @@ describe('findById', () => {
   });
 });
 
-describe('findByName', () => {
+describe('findBySlug', () => {
 
   let localQuery;
   let context;
@@ -410,11 +411,11 @@ describe('findByName', () => {
 
   it('should call query with correct params and return the tag', async () => {
     localQuery.mockResolvedValueOnce([tag]);
-    const name = 'tagName';
-    const result = await Tag.findByName('Tag query', context, name);
-    const expectedSql = 'SELECT * FROM tags WHERE LOWER(name) = ?';
+    const slug = 'tagname';
+    const result = await Tag.findBySlug('Tag query', context, slug);
+    const expectedSql = 'SELECT * FROM tags WHERE slug = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [name.toLowerCase()], 'Tag query')
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [slug], 'Tag query')
     expect(result).toEqual([tag]);
 
   });

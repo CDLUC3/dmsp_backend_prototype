@@ -74,10 +74,6 @@ export class ProjectSearchResult {
       values.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
-    if (isNullOrUndefined(filterOptions?.status)) {
-      filterOptions.status = PlanStatus.DRAFT;
-    }
-
     // Handle the Plan.status filter
     switch (filterOptions.status) {
       case PlanStatus.COMPLETE:
@@ -86,9 +82,12 @@ export class ProjectSearchResult {
       case PlanStatus.ARCHIVED:
         whereFilters.push('((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'ARCHIVED\') >= 1)')
         break;
+      case PlanStatus.DRAFT:
+        whereFilters.push('((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'DRAFT\') >= 1)')
+        break;
       default:
-        // Include all plans marked as draft and projects that have no plans
-        whereFilters.push('((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'DRAFT\') >= 1 || (SELECT COUNT(*) FROM plans WHERE projectId = p.id) = 0)');
+        // Include all plans marked as draft or complete and projects that have no plans
+        whereFilters.push('((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status IN (\'DRAFT\', \'COMPLETE\')) >= 1 || (SELECT COUNT(*) FROM plans WHERE projectId = p.id) = 0)')
         break;
     }
 
