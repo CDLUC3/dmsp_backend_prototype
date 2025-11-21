@@ -1,14 +1,18 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
-- 
+- Added a new `test-no-db` script to `package.json` to run all tests but the ones that need a running docker env
+- Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids
+- Added a data migration SQL file to create the stored procedures needed by the related works matching process
+- Added seed SQL files for use in local dev environments
 - Added models, resolvers, mutators for Guidance, GuidanceGroup, VersionedGuidance and versionedGuidanceGroup [#12]
-- Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids 
 - Added `AffiliationDepartments` model
 - Added `TemplateLinks` and `VersionedTemplateLinks` models
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Updated husky precommit hook to run `npm run test-no-db`
+- Updated the `data-migrations/process.sh` script so that you can pass a `local` argument which will run all migrations in the `local-only` subdirectory
 - Bumped the node version in the Dockerfiles to 22.x
 - Renamed local DB in `docker-compose.yaml` from `dmsp` to `dmptool`
 - Updated `affiliationEmailDomains` to use the `affiliations.uri` as the FKey
