@@ -2600,6 +2600,8 @@ export type Query = {
   affiliationTypes?: Maybe<Array<Scalars['String']['output']>>;
   /** Perform a search for Affiliations matching the specified name */
   affiliations?: Maybe<AffiliationSearchResults>;
+  /** Get all projects for the Admin based on their role */
+  allProjects?: Maybe<ProjectSearchResults>;
   /** Get the specific answer */
   answer?: Maybe<Answer>;
   /** Get an answer by versionedQuestionId */
@@ -2756,6 +2758,13 @@ export type QueryAffiliationsArgs = {
   funderOnly?: InputMaybe<Scalars['Boolean']['input']>;
   name: Scalars['String']['input'];
   paginationOptions?: InputMaybe<PaginationOptions>;
+};
+
+
+export type QueryAllProjectsArgs = {
+  filterOptions?: InputMaybe<ProjectFilterOptions>;
+  paginationOptions?: InputMaybe<PaginationOptions>;
+  term?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -6058,6 +6067,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliationByURI?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByUriArgs, 'uri'>>;
   affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
+  allProjects?: Resolver<Maybe<ResolversTypes['ProjectSearchResults']>, ParentType, ContextType, Partial<QueryAllProjectsArgs>>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
   answerByVersionedQuestionId?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerByVersionedQuestionIdArgs, 'planId' | 'projectId' | 'versionedQuestionId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;

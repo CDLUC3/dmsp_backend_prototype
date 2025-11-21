@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added a `allProjects` resolver to return all projects relevant to the Admin
 - Added a new `test-no-db` script to `package.json` to run all tests but the ones that need a running docker env
 - Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids
 - Added a data migration SQL file to create the stored procedures needed by the related works matching process
@@ -11,6 +12,7 @@
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
 - Updated husky precommit hook to run `npm run test-no-db`
 - Updated the `data-migrations/process.sh` script so that you can pass a `local` argument which will run all migrations in the `local-only` subdirectory
 - Bumped the node version in the Dockerfiles to 22.x
@@ -24,7 +26,7 @@
 - Updated `User` model to include the new `oldPasswordHash` field
 
 ============================================================================
-prior to 2025-10-05 
+prior to 2025-10-21
 
 ### Added
 - Added migration for the `guidance`-related tables [#483]
