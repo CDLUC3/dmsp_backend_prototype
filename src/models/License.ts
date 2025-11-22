@@ -50,6 +50,7 @@ export class License extends MySqlModel {
       this.uri = `${DEFAULT_DMPTOOL_LICENSE_URL}${randomHex(6)}`;
     }
 
+    this.prepForSave();
     // First make sure the record is valid
     if (await this.isValid()) {
       let current = await License.findByURI(reference, context, this.uri);
@@ -75,6 +76,7 @@ export class License extends MySqlModel {
   async update(context: MyContext, noTouch = false): Promise<License> {
     const id = this.id;
 
+    this.prepForSave();
     if (await this.isValid()) {
       if (id) {
         await License.update(context, this.tableName, this, 'License.update', [], noTouch);

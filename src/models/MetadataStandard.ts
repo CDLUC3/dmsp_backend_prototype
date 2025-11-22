@@ -70,6 +70,7 @@ export class MetadataStandard extends MySqlModel {
       this.uri = `${DEFAULT_DMPTOOL_METADATA_STANDARD_URL}${randomHex(6)}`;
     }
 
+    this.prepForSave();
     // First make sure the record is valid
     if (await this.isValid()) {
       let current = await MetadataStandard.findByURI(reference, context, this.uri);
@@ -95,6 +96,7 @@ export class MetadataStandard extends MySqlModel {
   async update(context: MyContext, noTouch = false): Promise<MetadataStandard> {
     const id = this.id;
 
+    this.prepForSave();
     if (await this.isValid()) {
       if (id) {
         await MetadataStandard.update(

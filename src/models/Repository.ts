@@ -87,6 +87,7 @@ export class Repository extends MySqlModel {
       this.uri = `${DEFAULT_DMPTOOL_REPOSITORY_URL}${randomHex(6)}`;
     }
 
+    this.prepForSave();
     // First make sure the record is valid
     if (await this.isValid()) {
       let current = await Repository.findByURI(reference, context, this.uri);
@@ -112,6 +113,7 @@ export class Repository extends MySqlModel {
   async update(context: MyContext, noTouch = false): Promise<Repository> {
     const id = this.id;
 
+    this.prepForSave();
     if (await this.isValid()) {
       if (id) {
         await Repository.update(context, this.tableName, this, 'Repository.update', ['researchDomains'], noTouch);

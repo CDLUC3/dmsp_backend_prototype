@@ -22,6 +22,7 @@ import { typeDefs as questionConditionTypeDefs } from './schemas/questionConditi
 import { typeDefs as relatedWorkTypeDefs } from './schemas/relatedWork';
 import { typeDefs as repositoryTypeDefs } from './schemas/repository';
 import { typeDefs as researchDomainTypeDefs } from './schemas/researchDomain';
+import { typeDefs as researchOutputTypeDefs } from './schemas/researchOutputType';
 import { typeDefs as sectionTypeDefs } from './schemas/section';
 import { typeDefs as superAdminTypeDefs } from './schemas/superAdmin';
 import { typeDefs as tagTypeDefs } from './schemas/tag';
@@ -57,6 +58,7 @@ export const typeDefs = mergeTypeDefs([
   relatedWorkTypeDefs,
   repositoryTypeDefs,
   researchDomainTypeDefs,
+  researchOutputTypeDefs,
   sectionTypeDefs,
   superAdminTypeDefs,
   tagTypeDefs,
