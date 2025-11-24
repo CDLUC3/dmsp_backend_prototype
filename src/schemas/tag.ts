@@ -47,4 +47,16 @@ export const typeDefs = gql`
     name: String
     description: String
   }
+
+  "Input for Tag operations"
+  input TagInput {
+    "The unique identifier for the Tag"
+    id: Int
+    "The name of the Tag"
+    name: String
+    "The slug of the Tag"
+    slug: String
+    "The description of the Tag"
+    description: String
+  }
 `;

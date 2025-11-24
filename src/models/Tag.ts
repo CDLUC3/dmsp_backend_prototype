@@ -1,7 +1,6 @@
 import { MySqlModel } from "./MySqlModel";
 import { MyContext } from "../context";
 import { prepareObjectForLogs } from "../logger";
-import {isNullOrUndefined} from "../utils/helpers";
 
 const tableName = 'tags';
 export class Tag extends MySqlModel {
@@ -28,17 +27,15 @@ export class Tag extends MySqlModel {
   }
 
   // Generate a slug from the name
-  slugifyName(): void {
-    if (!isNullOrUndefined(this.name)) {
-      this.slug = this.name.trim().toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-    }
+  static slugifyName(name: string): string {
+    return name?.trim()?.toLowerCase()
+        ?.replace(/[^a-z0-9]+/g, '-')
+        ?.replace(/^-+|-+$/g, '');
   }
 
   // Save the current record
   async create(context: MyContext): Promise<Tag> {
-    this.slugifyName();
+    this.slug = Tag.slugifyName(this.name);
     const current = await Tag.findBySlug(
       'Section.create',
       context,
@@ -60,7 +57,6 @@ export class Tag extends MySqlModel {
 
   async update(context: MyContext): Promise<Tag> {
     const id = this.id;
-    this.slugifyName();
     if (await this.isValid()) {
       await Tag.update(context, tableName, this, 'Tag.update');
       const updatedTag = await Tag.findById('Tag.update', context, id);
@@ -114,6 +110,96 @@ export class Tag extends MySqlModel {
     return true;
   }
 
+    // Add this Tag to a VersionedSectionTags
+  async addToVersionedSectionTags(context: MyContext, versionedSectionId: number): Promise<boolean> {
+    const reference = 'Tag.addToVersionedSectionTags';
+    const sql = 'INSERT INTO versionedSectionTags (tagId, versionedSectionId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), versionedSectionId?.toString(), userId, userId];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, versionedSectionId };
+      const msg = 'Unable to add the tag to the versioned section';
+      context.logger.error(prepareObjectForLogs(payload), msg);
+      return false;
+    }
+    return true;
+  }
+
+  // Add this Tag to a Guidance
+  async addToGuidance(context: MyContext, guidanceId: number): Promise<boolean> {
+    const reference = 'Tag.addToGuidance';
+    const userId = context.token?.id?.toString();
+
+    // Do not execute if userId is null or undefined
+    if (!userId) {
+      context.logger.error(prepareObjectForLogs({ tagId: this.id, guidanceId }), 'Unable to add tag to guidance: userId is null or undefined');
+      return false;
+    }
+
+    const sql = 'INSERT INTO guidanceTags (tagId, guidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const vals = [this.id?.toString(), guidanceId?.toString(), userId, userId];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, guidanceId };
+      const msg = 'Unable to add the tag to the guidance';
+      context.logger.error(prepareObjectForLogs(payload), msg);
+      return false;
+    }
+    return true;
+  }
+
+  // Remove this Tag from a Guidance
+  async removeFromGuidance(context: MyContext, guidanceId: number): Promise<boolean> {
+    const reference = 'Tag.removeFromGuidance';
+    const sql = 'DELETE FROM guidanceTags WHERE tagId = ? AND guidanceId = ?';
+    const vals = [this.id?.toString(), guidanceId?.toString()];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, guidanceId };
+      const msg = 'Unable to remove the tag from the guidance';
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
+  // Add this Tag to a VersionedGuidance
+  async addToVersionedGuidance(context: MyContext, versionedGuidanceId: number): Promise<boolean> {
+    const reference = 'Tag.addToVersionedGuidance';
+    const sql = 'INSERT INTO versionedGuidanceTags (tagId, versionedGuidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), versionedGuidanceId?.toString(), userId, userId];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, versionedGuidanceId };
+      const msg = 'Unable to add the tag to the versioned guidance';
+      context.logger.error(prepareObjectForLogs(payload), msg);
+      return false;
+    }
+    return true;
+  }
+
+  // Remove this Tag from a VersionedGuidance
+  async removeFromVersionedGuidance(context: MyContext, versionedGuidanceId: number): Promise<boolean> {
+    const reference = 'Tag.removeFromVersionedGuidance';
+    const sql = 'DELETE FROM versionedGuidanceTags WHERE tagId = ? AND versionedGuidanceId = ?';
+    const vals = [this.id?.toString(), versionedGuidanceId?.toString()];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, versionedGuidanceId };
+      const msg = 'Unable to remove the tag from the versioned guidance';
+      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
+      return false;
+    }
+    return true;
+  }
+
   static async findAll(reference: string, context: MyContext): Promise<Tag[]> {
     const sql = 'SELECT * FROM tags';
     const results = await Tag.query(context, sql, [], reference);
@@ -132,13 +218,25 @@ export class Tag extends MySqlModel {
     return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
   }
 
+  static async findByGuidanceId(reference: string, context: MyContext, guidanceId: number): Promise<Tag[]> {
+    const sql = `SELECT tags.* FROM guidanceTags gt JOIN tags ON gt.tagId = tags.id WHERE gt.guidanceId = ?;`;
+    const result = await Tag.query(context, sql, [guidanceId?.toString()], reference);
+    return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
+  }
+
+  static async findByVersionedGuidanceId(reference: string, context: MyContext, versionedGuidanceId: number): Promise<Tag[]> {
+    const sql = `SELECT tags.* FROM versionedGuidanceTags vgt JOIN tags ON vgt.tagId = tags.id WHERE vgt.versionedGuidanceId = ?;`;
+    const result = await Tag.query(context, sql, [versionedGuidanceId?.toString()], reference);
+    return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
+  }
+
   static async findById(reference: string, context: MyContext, tagId: number): Promise<Tag> {
     const sql = 'SELECT * FROM tags where id = ?';
     const result = await Tag.query(context, sql, [tagId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new Tag(result[0]) : null;
   }
 
-  // Find tag by tag name
+  // Find tag by slug
   static async findBySlug(reference: string, context: MyContext, slug: string): Promise<Tag[]> {
     const sql = 'SELECT * FROM tags WHERE slug = ?';
     const searchTerm = (slug ?? '');

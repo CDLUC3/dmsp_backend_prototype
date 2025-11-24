@@ -51,7 +51,6 @@ describe("Work", () => {
     ];
 
     for (const [text, actual] of examples) {
-      console.log(text);
       expect(parseDOI(text)).toEqual(actual);
     }
   });

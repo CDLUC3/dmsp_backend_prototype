@@ -167,12 +167,15 @@ describe('generateSectionVersion', () => {
   let mockUpdate;
   let mockFindSectionById;
   let mockFindVersionedSectionbyId;
+  let mockTagFindById;
+  let mockAddToVersionedSectionTags;
+  let mockQuestionFindBySectionId;
 
   beforeEach(() => {
     jest.resetAllMocks();
 
     // Mock the Questions
-    const mockQuestionFindBySectionId = jest.fn().mockResolvedValue([]);
+    mockQuestionFindBySectionId = jest.fn().mockResolvedValue([]);
     (Question.findBySectionId as jest.Mock) = mockQuestionFindBySectionId;
 
     const tstamp = getCurrentDate();
@@ -188,8 +191,8 @@ describe('generateSectionVersion', () => {
         guidance: casual.sentences(5),
         displayOrder: casual.integer(1, 9),
         tags: [
-          new Tag({ name: casual.words(3) }),
-          new Tag({ name: casual.words(1) }),
+          new Tag({ id: 1, name: casual.words(3) }),
+          new Tag({ id: 2, name: casual.words(1) }),
         ],
         isDirty: true,
         createdById: casual.integer(1, 999),
@@ -263,6 +266,17 @@ describe('generateSectionVersion', () => {
       }
       return obj;
     });
+
+    // Mock Tag.findById
+    mockTagFindById = jest.fn().mockImplementation((_, __, id) => {
+      const tag = sectionStore[0].tags.find((t) => t.id === id);
+      return tag ? new Tag({ ...tag }) : null;
+    });
+    (Tag.findById as jest.Mock) = mockTagFindById;
+
+    // Mock Tag.prototype.addToVersionedSectionTags
+    mockAddToVersionedSectionTags = jest.fn().mockReturnValue(true);
+    (Tag.prototype.addToVersionedSectionTags as jest.Mock) = mockAddToVersionedSectionTags;
   });
 
   afterEach(() => {
@@ -344,6 +358,71 @@ describe('generateSectionVersion', () => {
     expect(updated.modifiedById).toEqual(section.modifiedById);
     expect(updated.modified).toEqual(section.modified);
     expect(updated.isDirty).toEqual(false);
+  });
+
+  it('versions the Section and adds an error when a tag is not found', async () => {
+    const section = new Section(sectionStore[0]);
+    const missingTagId = 999;
+    section.tags = [
+      new Tag({ id: 1, name: casual.words(3) }),
+      new Tag({ id: missingTagId, name: casual.words(2) }),
+    ];
+
+    mockTagFindById.mockImplementation((_, __, id) => {
+      return id === missingTagId ? null : new Tag({ id, name: casual.words(3) });
+    });
+
+    (VersionedSection.insert as jest.Mock) = mockInsert;
+    (VersionedSection.findById as jest.Mock) = mockFindVersionedSectionbyId;
+    (Section.update as jest.Mock) = mockUpdate;
+    (Section.findById as jest.Mock) = mockFindSectionById;
+    // Ensure Question.findBySectionId is mocked
+    (Question.findBySectionId as jest.Mock) = mockQuestionFindBySectionId;
+
+    const versionedTemplateId = casual.integer(1, 999);
+    expect(await generateSectionVersion(context, section, versionedTemplateId)).toEqual(true);
+
+    const newVersion = versionedSectionStore[0];
+    expect(newVersion.errors.tags).toContain(`Tag ${missingTagId} not found`);
+    expect(mockAddToVersionedSectionTags).toHaveBeenCalledTimes(1); // Only called for the found tag
+  });
+
+  it('versions the Section and adds an error when tag association fails', async () => {
+    const section = new Section(sectionStore[0]);
+    const failingTagName = 'Failing Tag';
+    section.tags = [
+      new Tag({ id: 1, name: failingTagName }),
+    ];
+
+    mockTagFindById.mockResolvedValue(new Tag({ id: 1, name: failingTagName }));
+    mockAddToVersionedSectionTags.mockReturnValue(false);
+
+    (VersionedSection.insert as jest.Mock) = mockInsert;
+    (VersionedSection.findById as jest.Mock) = mockFindVersionedSectionbyId;
+    (Section.update as jest.Mock) = mockUpdate;
+    (Section.findById as jest.Mock) = mockFindSectionById;
+
+    const versionedTemplateId = casual.integer(1, 999);
+    expect(await generateSectionVersion(context, section, versionedTemplateId)).toEqual(true);
+
+    const newVersion = versionedSectionStore[0];
+    expect(newVersion.errors.tags).toContain(failingTagName);
+    expect(mockAddToVersionedSectionTags).toHaveBeenCalled();
+  });
+
+  it('versions the Section without errors when there are no tags', async () => {
+    const section = new Section({ ...sectionStore[0], tags: [] });
+
+    (VersionedSection.insert as jest.Mock) = mockInsert;
+    (VersionedSection.findById as jest.Mock) = mockFindVersionedSectionbyId;
+    (Section.update as jest.Mock) = mockUpdate;
+    (Section.findById as jest.Mock) = mockFindSectionById;
+
+    const versionedTemplateId = casual.integer(1, 999);
+    expect(await generateSectionVersion(context, section, versionedTemplateId)).toEqual(true);
+
+    expect(mockTagFindById).not.toHaveBeenCalled();
+    expect(mockAddToVersionedSectionTags).not.toHaveBeenCalled();
   });
 });
 
