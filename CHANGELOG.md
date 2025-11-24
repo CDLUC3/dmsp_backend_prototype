@@ -12,6 +12,7 @@
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Updated the README to reflect recent changes
 - Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
 - Updated husky precommit hook to run `npm run test-no-db`
 - Updated the `data-migrations/process.sh` script so that you can pass a `local` argument which will run all migrations in the `local-only` subdirectory
