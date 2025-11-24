@@ -211,7 +211,7 @@ If you plan on deploying to the AWS cloud, you can refer to the [corresponding A
 
 ### Managing the databases
 
-The system has a DynamoDB Table and a MySQL database. Please note that the Docker container must be running any queries or commands to manipulate the database!
+The system has a DynamoDB Table and a MySQL database. Please note that the Docker container must be running to execute any queries or commands to manipulate the database!
 
 You can run AWS CLI commands to interact with the DynamoDB table or MySQL commands to interact with that database by using `docker-compose exec`.
 
@@ -429,6 +429,14 @@ Run the following to check that your container is up:
 To run bash commands within the container (e.g. to run DB migrations):
 `docker compose exec apollo bash path/to/script`
 
+To run the linter: `npm run lint`
+To ensure the Typescript compiles `npm run compile`
+To build the auto-generated `src/types.ts` file from the GraphQL schemas: `npm run generate` 
+To run the full set of tests (docker env must be running): `npm run test`
+To run the tests (without a running DB): `npm run test-no-db`
+To run the Trivy security scans: `npm run trivy-all`
+
+
 ### Data Models
 
 This system uses several data sources: A MySQL database, a DynamoDB table and a Redis cache to store information.
@@ -596,7 +604,13 @@ You should try to add unit tests any time you add or modify a file! To do so, fi
 
 Resolver tests make use of mocks to simulate interaction with datasources. These mocks can be found in `src/models/__mocks__`. By using these mocks we are able to perform end-to-end integration testing.
 
-To run the unit tests `npm run test`
+The RelatedWorks data source includes tests that must connect to the local MySQL database to verify that the stored procedures are working properly. This means that tests can be run in 2 modes.
+
+To run the unit tests, including the ones that interact with the DB, you must have the docker container running and then run `npm run test`
+
+To run the unit tests without the ones that interact with the DB you can run `np run test-no-db`.
+
+The codebase used Husky to execute pre-commit hooks that will run the Linter, unit Tests, Trivy security scans and will also compile the code. Note that it runs `npm run test-no-db`, so the docker environment does not need to be running when you commit changes to git.
 
 ### Connect to ECS instance
 
