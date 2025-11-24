@@ -19,6 +19,9 @@ if [ ! -f .env ]; then
       MYSQL_TEST_ARGS="-h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER} -p${MYSQL_PASSWORD}"
     fi
   fi
+
+  # We are in the AWS environment so do not run migrations scripts in the locals-only dir
+  RUN_LOCALS=0
 else
   echo "Load the DB info from Dotenv file"
   . .env
@@ -31,13 +34,18 @@ else
     MYSQL_ARGS="-h ${MYSQL_HOST} -P ${MYSQL_PORT} -u ${MYSQL_USER} -p${MYSQL_PASSWORD}"
     MYSQL_TEST_ARGS="-h ${MYSQL_TEST_HOST} -P ${MYSQL_TEST_PORT} -u ${MYSQL_TEST_USER} -p${MYSQL_TEST_PASSWORD}"
   fi
+
+  # We are running locally so run migrations scripts in the locals-only dir
+  if [ "${1}" == "local" ]; then
+    RUN_LOCALS=1
+  fi
 fi
 
 create_database() {
   # Create the database if it does not exist
   CREATE_DATABASE="CREATE DATABASE IF NOT EXISTS ${1}
     CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;"
+    COLLATE utf8mb4_0900_ai_ci;"
 
   echo "Creating database, ${1}, if it does not already exist ..."
   if [ "${1}" == "${MYSQL_DATABASE}" ]; then
@@ -106,8 +114,15 @@ echo "Making sure the DB exists"
 create_database $MYSQL_DATABASE
 init_migrations_table $MYSQL_DATABASE
 
+# If RUN_LOCALS is true then also process any files in locals-only dir
+if [ "${RUN_LOCALS:-0}" -eq 1 ]; then
+  MIGRATION_PATH=(./data-migrations/*.sql ./data-migrations/local-only/*.sql)
+else
+  MIGRATION_PATH=(./data-migrations/*.sql)
+fi
+
 # Run this script to process any new SQL migrations on your local DB.
-for i in ./data-migrations/*.sql; do
+for i in "${MIGRATION_PATH[@]}"; do
   [ -f "$i" ] || break
 
   process_migration $MYSQL_DATABASE $i

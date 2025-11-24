@@ -14,9 +14,12 @@ import { typeDefs as outputTypeDefs } from './schemas/outputType';
 import { typeDefs as planTypeDefs } from './schemas/plan';
 import { typeDefs as projectTypeDefs } from './schemas/project';
 import { typeDefs as fundingTypeDefs } from './schemas/funding';
+import { typeDefs as guidanceTypeDefs } from './schemas/guidance';
+import { typeDefs as guidanceGroupTypeDefs } from './schemas/guidanceGroup';
 import { typeDefs as projectOutputTypeDefs } from './schemas/output';
 import { typeDefs as questionTypeDefs } from './schemas/question';
 import { typeDefs as questionConditionTypeDefs } from './schemas/questionCondition';
+import { typeDefs as relatedWorkTypeDefs } from './schemas/relatedWork';
 import { typeDefs as repositoryTypeDefs } from './schemas/repository';
 import { typeDefs as researchDomainTypeDefs } from './schemas/researchDomain';
 import { typeDefs as sectionTypeDefs } from './schemas/section';
@@ -25,6 +28,7 @@ import { typeDefs as tagTypeDefs } from './schemas/tag';
 import { typeDefs as templateTypeDefs } from './schemas/template';
 import { typeDefs as userTypeDefs } from './schemas/user';
 import { typeDefs as versionedQuestionTypeDefs } from './schemas/versionedQuestion';
+import { typeDefs as versionedGuidanceTypeDefs } from './schemas/versionedGuidance';
 import { typeDefs as versionedQuestionConditionTypeDefs } from './schemas/versionedQuestionCondition';
 import { typeDefs as versionedSectionTypeDefs } from './schemas/versionedSection';
 import { typeDefs as versionedTemplateTypeDefs } from './schemas/versionedTemplate';
@@ -39,6 +43,8 @@ export const typeDefs = mergeTypeDefs([
   memberTypeDefs,
   feedbackTypeDefs,
   fundingTypeDefs,
+  guidanceTypeDefs,
+  guidanceGroupTypeDefs,
   languageTypeDefs,
   licenseTypeDefs,
   metadataStandardTypeDefs,
@@ -48,6 +54,7 @@ export const typeDefs = mergeTypeDefs([
   projectOutputTypeDefs,
   questionTypeDefs,
   questionConditionTypeDefs,
+  relatedWorkTypeDefs,
   repositoryTypeDefs,
   researchDomainTypeDefs,
   sectionTypeDefs,
@@ -55,6 +62,7 @@ export const typeDefs = mergeTypeDefs([
   tagTypeDefs,
   templateTypeDefs,
   userTypeDefs,
+  versionedGuidanceTypeDefs,
   versionedQuestionTypeDefs,
   versionedQuestionConditionTypeDefs,
   versionedSectionTypeDefs,

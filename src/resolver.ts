@@ -4,6 +4,7 @@ import { IResolvers } from '@graphql-tools/utils';
 import { dmspIdScalar } from './resolvers/scalars/dmspId';
 import { orcidScalar } from './resolvers/scalars/orcid';
 import { rorScalar } from './resolvers/scalars/ror';
+import { md5Scalar } from "./resolvers/scalars/md5";
 
 import { resolvers as affiliationResolvers } from './resolvers/affiliation';
 import { resolvers as answerResolvers } from './resolvers/answer';
@@ -12,6 +13,8 @@ import { resolvers as feedback } from './resolvers/feedback';
 import { resolvers as memberResolvers } from './resolvers/member';
 import { resolvers as memberRoleResolvers } from './resolvers/memberRole';
 import { resolvers as fundingResolvers } from './resolvers/funding';
+import { resolvers as guidanceResolvers } from './resolvers/guidance';
+import { resolvers as guidanceGroupResolvers } from './resolvers/guidanceGroup';
 import { resolvers as languageResolvers } from './resolvers/language';
 import { resolvers as licenseResolvers } from './resolvers/license';
 import { resolvers as metadataStandardResolvers } from './resolvers/metadataStandard';
@@ -21,12 +24,14 @@ import { resolvers as projectResolvers } from './resolvers/project';
 import { resolvers as questionResolvers } from './resolvers/question';
 import { resolvers as questionConditionResolvers } from './resolvers/questionCondition';
 import { resolvers as templateResolvers } from './resolvers/template';
+import { resolvers as relatedWorkResolvers } from './resolvers/relatedWork';
 import { resolvers as repositoryResolvers } from './resolvers/repository';
 import { resolvers as researchDomainResolvers } from './resolvers/researchDomain';
 import { resolvers as sectionResolvers } from './resolvers/section';
 import { resolvers as superAdminResolvers } from './resolvers/superAdmin';
 import { resolvers as tagResolvers } from './resolvers/tag';
 import { resolvers as userResolvers } from './resolvers/user';
+import { resolvers as versionedGuidanceResolvers } from './resolvers/versionedGuidance';
 import { resolvers as versionedQuestionResolvers } from './resolvers/versionedQuestion';
 import { resolvers as versionedQuestionConditionResolvers } from './resolvers/versionedQuestionCondition';
 import { resolvers as versionedSectionResolvers } from './resolvers/versionedSection';
@@ -35,7 +40,8 @@ import { resolvers as versionedTemplateResolvers } from './resolvers/versionedTe
 const scalarResolvers = {
   DmspId: dmspIdScalar,
   Orcid: orcidScalar,
-  Ror: rorScalar
+  Ror: rorScalar,
+  MD5: md5Scalar
 }
 
 export const resolvers: IResolvers = mergeResolvers([
@@ -48,6 +54,8 @@ export const resolvers: IResolvers = mergeResolvers([
   memberResolvers,
   memberRoleResolvers,
   fundingResolvers,
+  guidanceResolvers,
+  guidanceGroupResolvers,
   languageResolvers,
   licenseResolvers,
   metadataStandardResolvers,
@@ -56,6 +64,7 @@ export const resolvers: IResolvers = mergeResolvers([
   projectResolvers,
   questionResolvers,
   questionConditionResolvers,
+  relatedWorkResolvers,
   repositoryResolvers,
   researchDomainResolvers,
   templateResolvers,
@@ -63,6 +72,7 @@ export const resolvers: IResolvers = mergeResolvers([
   superAdminResolvers,
   tagResolvers,
   userResolvers,
+  versionedGuidanceResolvers,
   versionedQuestionResolvers,
   versionedQuestionConditionResolvers,
   versionedSectionResolvers,

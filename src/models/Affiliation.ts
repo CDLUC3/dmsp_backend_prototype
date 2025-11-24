@@ -399,7 +399,7 @@ export class PopularFunder {
     this.nbrPlans = options.nbrPlans;
   }
 
-  static async top20(context: MyContext): Promise<PopularFunder[]> {
+  static async top5(context: MyContext): Promise<PopularFunder[]> {
     // Get the date range for the past year
     const today = new Date();
     const lastYear = new Date();
@@ -407,19 +407,19 @@ export class PopularFunder {
     const startDate = lastYear.toISOString().split('T')[0];
     const endDate = today.toISOString().split('T')[0];
 
-    // Get the top 20 funders based on the number of plans created in the past year
+    // Get the top 5 funders based on the number of plans created in the past year
     const sql = 'SELECT a.id, a.uri, a.displayName, a.apiTarget, COUNT(p.id) AS nbrPlans ' +
                 'FROM affiliations a ' +
                 'LEFT JOIN projectFundings pf ON pf.affiliationId = a.uri ' +
                 'LEFT JOIN projects p ON p.id = pf.projectId ' +
                 'WHERE a.active = 1 AND a.funder = 1 AND p.isTestProject = 0 AND p.created BETWEEN ? AND ? ' +
                 'GROUP BY a.id, a.uri, a.displayName ' +
-                'ORDER BY nbrPlans DESC LIMIT 20';
+                'ORDER BY nbrPlans DESC LIMIT 5';
     const results = await Affiliation.query(
       context,
       sql,
       [`${startDate} 00:00:00`, `${endDate} 23:59:59`],
-      'PopularFunder.top20'
+      'PopularFunder.top5'
     );
     if (Array.isArray(results) && results.length > 0) {
       return results.map((entry) => { return new PopularFunder(entry) });

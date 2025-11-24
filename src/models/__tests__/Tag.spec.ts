@@ -26,7 +26,7 @@ describe('Tag', () => {
 
 describe('create', () => {
   const originalInsert = Tag.insert;
-  const originalfindByName = Tag.findByName;
+  const originalfindBySlug = Tag.findBySlug;
   const originalfindById = Tag.findById
   let insertQuery;
   let tag;
@@ -47,13 +47,13 @@ describe('create', () => {
 
   afterEach(() => {
     Tag.insert = originalInsert;
-    Tag.findByName = originalfindByName;
+    Tag.findBySlug = originalfindBySlug;
     Tag.findById = originalfindById;
   });
 
   it('returns the Tag with an error if the tag already exists', async () => {
     const mockFindBy = jest.fn();
-    (Tag.findByName as jest.Mock) = mockFindBy;
+    (Tag.findBySlug as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(tag);
 
     const result = await tag.create(context);
@@ -73,7 +73,7 @@ describe('create', () => {
       }
       // Add other required properties of MyContext here
     };
-    (Tag.findByName as jest.Mock) = mockFindBy;
+    (Tag.findBySlug as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(null);
     mockFindBy.mockResolvedValue(tag);
 
@@ -101,6 +101,7 @@ describe('update', () => {
 
     tag = new Tag({
       name: casual.sentence,
+      slug: casual.word.toLowerCase(),
       description: casual.sentence,
     })
   });
@@ -227,6 +228,47 @@ describe('removeFromSection', () => {
     const sectionId = casual.integer(1, 999);
     const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(null);
     const result = await mockTag.removeFromSection(context, sectionId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('addToVersionedSectionTags', () => {
+  let context;
+  let mockTag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    context = await buildMockContextWithToken(logger);
+
+    mockTag = new Tag({
+      id: casual.integer(1, 99),
+      name: casual.word,
+      description: casual.sentences(3)
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the Tag to the specified Section', async () => {
+    const versionedSectionId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(mockTag);
+    const result = await mockTag.addToVersionedSectionTags(context, versionedSectionId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'INSERT INTO versionedSectionTags (tagId, versionedSectionId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockTag.id.toString(), versionedSectionId.toString(), userId, userId]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'Tag.addToVersionedSectionTags')
+    expect(result).toBe(true);
+  });
+
+  it('returns null if the Tag cannot be associated with the Section', async () => {
+    const sectionId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(null);
+    const result = await mockTag.addToSection(context, sectionId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(result).toBe(false);
   });
@@ -383,7 +425,7 @@ describe('findById', () => {
   });
 });
 
-describe('findByName', () => {
+describe('findBySlug', () => {
 
   let localQuery;
   let context;
@@ -410,12 +452,251 @@ describe('findByName', () => {
 
   it('should call query with correct params and return the tag', async () => {
     localQuery.mockResolvedValueOnce([tag]);
-    const name = 'tagName';
-    const result = await Tag.findByName('Tag query', context, name);
-    const expectedSql = 'SELECT * FROM tags WHERE LOWER(name) = ?';
+    const slug = 'tagname';
+    const result = await Tag.findBySlug('Tag query', context, slug);
+    const expectedSql = 'SELECT * FROM tags WHERE slug = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [name.toLowerCase()], 'Tag query')
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [slug], 'Tag query')
     expect(result).toEqual([tag]);
 
+  });
+});
+
+// New tests for Guidance-related Tag methods
+describe('addToGuidance', () => {
+  let context;
+  let mockTag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    context = await buildMockContextWithToken(logger);
+
+    mockTag = new Tag({
+      id: casual.integer(1, 99),
+      name: casual.word,
+      description: casual.sentences(3)
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the Tag to the specified Guidance', async () => {
+    const guidanceId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(mockTag);
+    const result = await mockTag.addToGuidance(context, guidanceId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'INSERT INTO guidanceTags (tagId, guidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockTag.id.toString(), guidanceId.toString(), userId, userId]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'Tag.addToGuidance')
+    expect(result).toBe(true);
+  });
+
+  it('returns false if the Tag cannot be associated with the Guidance', async () => {
+    const guidanceId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(null);
+    const result = await mockTag.addToGuidance(context, guidanceId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('removeFromGuidance', () => {
+  let context;
+  let mockTag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    context = await buildMockContextWithToken(logger);
+
+    mockTag = new Tag({
+      id: casual.integer(1, 99),
+      name: casual.word,
+      description: casual.sentences(3)
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('removes the Tag association with the specified Guidance', async () => {
+    const guidanceId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(mockTag);
+    const result = await mockTag.removeFromGuidance(context, guidanceId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'DELETE FROM guidanceTags WHERE tagId = ? AND guidanceId = ?';
+    const vals = [mockTag.id.toString(), guidanceId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'Tag.removeFromGuidance')
+    expect(result).toBe(true);
+  });
+
+  it('returns false if the Tag cannot be removed from the Guidance', async () => {
+    const guidanceId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(null);
+    const result = await mockTag.removeFromGuidance(context, guidanceId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('addToVersionedGuidance', () => {
+  let context;
+  let mockTag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    context = await buildMockContextWithToken(logger);
+
+    mockTag = new Tag({
+      id: casual.integer(1, 99),
+      name: casual.word,
+      description: casual.sentences(3)
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('associates the Tag to the specified VersionedGuidance', async () => {
+    const versionedGuidanceId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(mockTag);
+    const result = await mockTag.addToVersionedGuidance(context, versionedGuidanceId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'INSERT INTO versionedGuidanceTags (tagId, versionedGuidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token.id.toString();
+    const vals = [mockTag.id.toString(), versionedGuidanceId.toString(), userId, userId]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'Tag.addToVersionedGuidance')
+    expect(result).toBe(true);
+  });
+
+  it('returns false if the Tag cannot be associated with the VersionedGuidance', async () => {
+    const versionedGuidanceId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(null);
+    const result = await mockTag.addToVersionedGuidance(context, versionedGuidanceId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('removeFromVersionedGuidance', () => {
+  let context;
+  let mockTag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    context = await buildMockContextWithToken(logger);
+
+    mockTag = new Tag({
+      id: casual.integer(1, 99),
+      name: casual.word,
+      description: casual.sentences(3)
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('removes the Tag association with the specified VersionedGuidance', async () => {
+    const versionedGuidanceId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(mockTag);
+    const result = await mockTag.removeFromVersionedGuidance(context, versionedGuidanceId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    const expectedSql = 'DELETE FROM versionedGuidanceTags WHERE tagId = ? AND versionedGuidanceId = ?';
+    const vals = [mockTag.id.toString(), versionedGuidanceId.toString()]
+    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'Tag.removeFromVersionedGuidance')
+    expect(result).toBe(true);
+  });
+
+  it('returns false if the Tag cannot be removed from the VersionedGuidance', async () => {
+    const versionedGuidanceId = casual.integer(1, 999);
+    const querySpy = jest.spyOn(Tag, 'query').mockResolvedValueOnce(null);
+    const result = await mockTag.removeFromVersionedGuidance(context, versionedGuidanceId);
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+  });
+});
+
+describe('findByGuidanceId', () => {
+  const originalQuery = Tag.query;
+
+  let localQuery;
+  let context;
+  let tag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (Tag.query as jest.Mock) = localQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    tag = new Tag({
+      id: casual.integer(1, 9),
+      name: casual.sentence,
+      description: casual.sentence,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Tag.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the tags', async () => {
+    localQuery.mockResolvedValueOnce([tag]);
+    const guidanceId = 1;
+    const result = await Tag.findByGuidanceId('Tag query', context, guidanceId);
+    const expectedSql = `SELECT tags.* FROM guidanceTags gt JOIN tags ON gt.tagId = tags.id WHERE gt.guidanceId = ?;`;
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [guidanceId.toString()], 'Tag query')
+    expect(result).toEqual([tag]);
+  });
+});
+
+describe('findByVersionedGuidanceId', () => {
+  const originalQuery = Tag.query;
+
+  let localQuery;
+  let context;
+  let tag;
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+
+    localQuery = jest.fn();
+    (Tag.query as jest.Mock) = localQuery;
+
+    context = await buildMockContextWithToken(logger);
+
+    tag = new Tag({
+      id: casual.integer(1, 9),
+      name: casual.sentence,
+      description: casual.sentence,
+    })
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    Tag.query = originalQuery;
+  });
+
+  it('should call query with correct params and return the tags', async () => {
+    localQuery.mockResolvedValueOnce([tag]);
+    const versionedGuidanceId = 1;
+    const result = await Tag.findByVersionedGuidanceId('Tag query', context, versionedGuidanceId);
+    const expectedSql = `SELECT tags.* FROM versionedGuidanceTags vgt JOIN tags ON vgt.tagId = tags.id WHERE vgt.versionedGuidanceId = ?;`;
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [versionedGuidanceId.toString()], 'Tag query')
+    expect(result).toEqual([tag]);
   });
 });

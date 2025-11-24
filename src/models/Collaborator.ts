@@ -2,7 +2,8 @@ import { MyContext } from '../context';
 import { sendProjectCollaborationEmail, sendTemplateCollaborationEmail } from '../services/emailService';
 import {
   formatORCID,
-  isNullOrUndefined, stripIdentifierBaseURL,
+  isNullOrUndefined,
+  stripORCIDIdentifierBaseURL,
   validateEmail,
   valueIsEmpty
 } from '../utils/helpers';
@@ -407,7 +408,7 @@ export class ProjectCollaborator extends Collaborator {
     // Get the fully formatted ORCID
     const fullOrcid = formatORCID(orcid);
     // Get the ORCID without the base URL
-    const orcidId = stripIdentifierBaseURL(orcid);
+    const orcidId = stripORCIDIdentifierBaseURL(orcid);
 
     if (!isNullOrUndefined(fullOrcid) && !isNullOrUndefined(orcid)) {
       // First try to find the user in the User table

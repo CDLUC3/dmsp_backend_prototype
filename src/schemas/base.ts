@@ -10,6 +10,7 @@ export const typeDefs = gql`
   scalar Orcid
   scalar Ror
   scalar DmspId
+  scalar MD5
 
   # Base Query and Mutation objects are defined here because names must be unique and each
   # individual GraphQL file has its own Queries and Mutations, so we have those extend these

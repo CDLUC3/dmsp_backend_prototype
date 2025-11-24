@@ -34,6 +34,7 @@ export enum LogInType {
 
 export class User extends MySqlModel {
   public password: string;
+  public oldPasswordHash?: string;
   public role: UserRole;
   public givenName?: string;
   public surName?: string;
@@ -63,6 +64,7 @@ export class User extends MySqlModel {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.password = options.password;
+    this.oldPasswordHash = options.oldPasswordHash;
     this.role = options.role;
     this.givenName = options.givenName;
     this.surName = options.surName;

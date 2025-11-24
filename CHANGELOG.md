@@ -1,6 +1,41 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added a `allProjects` resolver to return all projects relevant to the Admin
+- Added a new `test-no-db` script to `package.json` to run all tests but the ones that need a running docker env
+- Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids
+- Added a data migration SQL file to create the stored procedures needed by the related works matching process
+- Added seed SQL files for use in local dev environments
+- Added models, resolvers, mutators for Guidance, GuidanceGroup, VersionedGuidance and versionedGuidanceGroup [#12]
+- Added `AffiliationDepartments` model
+- Added `TemplateLinks` and `VersionedTemplateLinks` models
+- Added `slug` to the `Tag` schema
+
+### Updated
+- Updated dependencies: `@aws-sdk/client-dynamodb`, `@graphql-tools/merge`, `ts-jest` and `@eslint/js`
+- Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
+- Updated husky precommit hook to run `npm run test-no-db`
+- Updated the `data-migrations/process.sh` script so that you can pass a `local` argument which will run all migrations in the `local-only` subdirectory
+- Bumped the node version in the Dockerfiles to 22.x
+- Renamed local DB in `docker-compose.yaml` from `dmsp` to `dmptool`
+- Updated `affiliationEmailDomains` to use the `affiliations.uri` as the FKey
+- Updated `data-migrations.process.sh` script to use `utf8mb4_0900_ai_ci` collation when creating the database
+- Replace `findByURL` with `findByAffiliationAndURL` in `AffiliationLinks` model
+- Updated `Projects` model so that the search includes both `DRAFT` and `COMPLETE` plans by default. Migrated data wasn't showing up because it was `COMPLETE`
+- Fixed some typos in `AffiliationLinks` model and updated to use `affiliationId` as a URI
+- Updated `Tag` model to include new `slug` field
+- Updated `User` model to include the new `oldPasswordHash` field
+
+### Deleted
+- Removed the `@types/eslint__js` dependency because `@eslint/jest` includes its own types now
+
+============================================================================
+prior to 2025-10-21
+
+### Added
+- Added migration for the `guidance`-related tables [#483]
+- Added planFeedbackStatus resolver and tests (status of NONE, REQUESTED, COMPLETE)
+- Added related works resolvers and tests.
 - Added data migration to ensure collaborator tables allow for NULL in `userId` field
 - Added tables to support template customizations
 - Added stub models for each new template customization table with comments on what needs to be done
@@ -36,6 +71,14 @@
 - added `publishedQuestion` resolver to `src/resolvers/versionedQuestion.ts`
 
 ### Updated
+- Updated the `js-yaml` dependency
+- Updated `popularFunders` resolver to return only 5 popular funders [#500]
+- Upgrade `nodemailer` from `6.10.1` to `7.0.10` to address security vulnerability
+- Updated `ORCID_REGEX` in `helper.ts` so that urls can be submitted without a the `www.` Also, added `stripORCIDIdentifierBaseURL` to just strip out all protocols and domains to extract the OrcidID [#251]
+- Updated `OrcidAPI` to handle `404` errors so that we return null rather than throwing an error [#251]
+- Updated `addProjectMemberInput` schema to include `affiliationName` since we are using a TypeAhead field and sometimes we only get the `affiliationName` [#251]
+- Updated `addProjectMember` resolver to use either `affiliationId` or `affiliationName` to process affiliation info [#251]
+- Updated related works resolvers to return aggregated counts for the UI, and modifications to some fields in database for UI.
 - Updated the `findCollaborator` resolver to allow for searching by ORCID or by a search term. 
 - Updated cursor pagination logic to accept sort information
 - Update `user.register` model function to auto-accept all open template and project collaboration invites
@@ -52,6 +95,7 @@
 - changed `sections` resolver to `versionedSections` on the `src/resolvers/plan.ts` file and changed the reference for `PlanSearchResult.sections` to `versionedSections`
 
 ### Fixed
+- Fixed migration error for versionedGuidance where can't be too strict since NULLs set for deleted parent Guidance. Related to [#12]
 - Fixed breaking build by removing `NODE_ENV=production` before `npm ci` which was skipping devDependencies, but needed for the build process.
 - `addSection` mutation resolver was not saving `tags`. Added code to add tags for new section [#445]
 - Fixed issue where updating an answer, funding or members was not triggering the creation of a new PlanVersion

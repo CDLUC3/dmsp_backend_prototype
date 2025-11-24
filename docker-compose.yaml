@@ -18,7 +18,7 @@ services:
       - 3307
     environment:
       - MYSQL_ROOT_PASSWORD=d0ckerSecr3t
-      - MYSQL_DATABASE=dmsp
+      - MYSQL_DATABASE=dmptool
     networks:
       - dmptool-network
     volumes:
@@ -75,7 +75,7 @@ services:
       - "MYSQL_CONNECTION_LIMIT=5"
       - "MYSQL_HOST=apollo-mysql"
       - "MYSQL_PORT=3306"
-      - "MYSQL_DATABASE=dmsp"
+      - "MYSQL_DATABASE=dmptool"
       - "MYSQL_USER=root"
       - "MYSQL_PASSWORD=d0ckerSecr3t"
 

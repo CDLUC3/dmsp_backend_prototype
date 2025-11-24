@@ -4,36 +4,15 @@ import { getParameter } from "../parameterStore";
 import { MyContext } from "../../context";
 import { buildContext } from "../../__mocks__/context";
 import { logger } from "../../logger";
-
-interface DoiMatch {
-  found: boolean;
-  score: number;
-  sources: DoiMatchSource[];
-}
-
-interface DoiMatchSource {
-  parentAwardId?: string;
-  awardId: string;
-  awardUrl: string;
-}
-
-interface ContentMatch {
-  score: number;
-  titleHighlight: string | null;
-  abstractHighlights: string[];
-}
-
-interface ItemMatch {
-  index: number;
-  score: number;
-  fields?: string[];
-}
+import { Author, Award, ContentMatch, DoiMatch, Funder, Institution, ItemMatch } from "../../types";
 
 interface RelatedWork {
   dmpDoi: string;
   workDoi: string;
   hash: Buffer;
+  sourceType: string;
   score: number;
+  scoreMax: number;
   doiMatch: DoiMatch;
   contentMatch: ContentMatch;
   authorMatches: ItemMatch[];
@@ -45,10 +24,10 @@ interface RelatedWork {
 interface WorkVersion {
   doi: string;
   hash: Buffer;
-  type: string;
-  publishedDate: string | null;
+  workType: string;
+  publicationDate: string | null;
   title: string | null;
-  abstract: string | null;
+  abstractText: string | null;
   authors: Author[];
   institutions: Institution[];
   funders: Funder[];
@@ -58,44 +37,19 @@ interface WorkVersion {
   sourceUrl: string;
 }
 
-interface Award {
-  awardId: string;
-}
-
-interface Author {
-  orcid: string | null;
-  firstInitial: string | null;
-  givenName: string | null;
-  middleInitial: string | null;
-  middleName: string | null;
-  surname: string | null;
-  full: string | null;
-}
-
-interface Institution {
-  name: string | null;
-  ror: string | null;
-}
-
-interface Funder {
-  name: string | null;
-  ror: string | null;
-}
-
-export async function insertRelatedWorks(
-  connection: Connection,
-  data: RelatedWork[],
-) {
+export async function insertRelatedWorks(connection: Connection, data: RelatedWork[]) {
   if (data.length === 0) {
     return;
   }
   const sql =
-    "INSERT INTO stagingRelatedWorks (dmpDoi, workDoi, hash, score, doiMatch, contentMatch, authorMatches, institutionMatches, funderMatches, awardMatches) VALUES ?";
+    "INSERT INTO stagingRelatedWorks (dmpDoi, workDoi, hash, sourceType, score, scoreMax, doiMatch, contentMatch, authorMatches, institutionMatches, funderMatches, awardMatches) VALUES ?";
   const values = data.map((item) => [
     item.dmpDoi,
     item.workDoi,
     item.hash,
+    item.sourceType,
     item.score,
+    item.scoreMax,
     JSON.stringify(item.doiMatch),
     JSON.stringify(item.contentMatch),
     JSON.stringify(item.authorMatches),
@@ -107,22 +61,19 @@ export async function insertRelatedWorks(
   await connection.query(sql, [values]);
 }
 
-export async function insertWorkVersions(
-  connection: Connection,
-  data: WorkVersion[],
-) {
+export async function insertWorkVersions(connection: Connection, data: WorkVersion[]) {
   if (data.length === 0) {
     return;
   }
   const sql =
-    "INSERT INTO stagingWorkVersions (doi, hash, type, publishedDate, title, abstract, authors, institutions, funders, awards, publicationVenue, sourceName, sourceUrl) VALUES ?";
+    "INSERT INTO stagingWorkVersions (doi, hash, workType, publicationDate, title, abstractText, authors, institutions, funders, awards, publicationVenue, sourceName, sourceUrl) VALUES ?";
   const values = data.map((item) => [
     item.doi,
     item.hash,
-    item.type,
-    item.publishedDate,
+    item.workType,
+    item.publicationDate,
     item.title,
-    item.abstract,
+    item.abstractText,
     JSON.stringify(item.authors),
     JSON.stringify(item.institutions),
     JSON.stringify(item.funders),
@@ -141,7 +92,7 @@ let context: MyContext;
 // Function to attempt to connect to the database in certain situations
 async function tryGetConnection(context: MyContext) {
   try {
-    let connection: Connection
+    let connection: Connection;
 
     // If we are running locally (test) or in the AWS development env (dev)
     if (["dev", "test"].includes(generalConfig.env)) {
@@ -152,17 +103,17 @@ async function tryGetConnection(context: MyContext) {
           port: 3306,
           user: "root",
           password: "d0ckerSecr3t",
-          database: "dmsp",
+          database: "dmptool",
           multipleStatements: true,
         });
       } else {
         // Running in the AWS development environment so use the RDS instance
         connection = await mysql.createConnection({
-          host: await getParameter(context,"/uc3/dmp/tool/dev/RdsHost"),
-          port: Number(await getParameter(context,"/uc3/dmp/tool/dev/RdsPort")),
-          user: await getParameter(context,"/uc3/dmp/tool/dev/RdsUsername"),
-          password: await getParameter(context,"/uc3/dmp/tool/dev/RdsPassword"),
-          database: await getParameter(context,"/uc3/dmp/tool/dev/RdsName"),
+          host: await getParameter(context, "/uc3/dmp/tool/dev/RdsHost"),
+          port: Number(await getParameter(context, "/uc3/dmp/tool/dev/RdsPort")),
+          user: await getParameter(context, "/uc3/dmp/tool/dev/RdsUsername"),
+          password: await getParameter(context, "/uc3/dmp/tool/dev/RdsPassword"),
+          database: await getParameter(context, "/uc3/dmp/tool/dev/RdsName"),
           multipleStatements: true,
         });
       }
@@ -180,15 +131,13 @@ async function tryGetConnection(context: MyContext) {
   }
 }
 
-const testWorkDOIs = [
-  "10.1234/fake-doi-001",
-  "10.5678/sample.abc.2025"
-];
+const testWorkDOIs = ["10.1234/fake-doi-001", "10.5678/sample.abc.2025"];
 
 function clearTestRecords() {
   if (connection) {
     const placeholders = testWorkDOIs.map(() => "?").join(", ");
-    connection.query(`
+    connection.query(
+      `
       DELETE FROM relatedWorks
         WHERE workVersionId IN (
           SELECT workVersions.id
@@ -196,17 +145,25 @@ function clearTestRecords() {
               INNER JOIN works ON workVersions.workId = works.id
           WHERE works.doi IN (${placeholders})
       );
-    `, testWorkDOIs);
+    `,
+      testWorkDOIs,
+    );
 
-    connection.query(`
+    connection.query(
+      `
       DELETE FROM workVersions
         WHERE workId IN (SELECT id FROM works WHERE doi IN (${placeholders}))
-    `, testWorkDOIs);
+    `,
+      testWorkDOIs,
+    );
 
-    connection.query(`
+    connection.query(
+      `
       DELETE FROM works
         WHERE doi IN (${placeholders})
-    `, testWorkDOIs);
+    `,
+      testWorkDOIs,
+    );
   }
 }
 
@@ -235,17 +192,17 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "dataset",
-        publishedDate: "2025-01-01",
+        workType: "DATASET",
+        publicationDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -265,18 +222,17 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[1],
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
-        type: "article",
-        publishedDate: "2025-02-01",
-        title:
-          "Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
-        abstract: "An abstract",
+        workType: "ARTICLE",
+        publicationDate: "2025-02-01",
+        title: "Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -284,8 +240,8 @@ describe("Related Works Tables", () => {
             orcid: null,
             firstInitial: "D",
             givenName: "David",
-            middleInitial: null,
-            middleName: null,
+            middleInitials: null,
+            middleNames: null,
             surname: "Choi",
             full: null,
           },
@@ -308,7 +264,9 @@ describe("Related Works Tables", () => {
         dmpDoi: "10.11111/2A3B4C",
         workDoi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
+        sourceType: "SYSTEM_MATCHED",
         score: 1.0,
+        scoreMax: 1.0,
         doiMatch: {
           found: true,
           score: 1.0,
@@ -321,8 +279,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
+          titleHighlight: "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -357,7 +314,9 @@ describe("Related Works Tables", () => {
         dmpDoi: "10.11111/2A3B4C",
         workDoi: testWorkDOIs[1],
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
+        sourceType: "SYSTEM_MATCHED",
         score: 0.8,
+        scoreMax: 1.0,
         doiMatch: {
           found: true,
           score: 1.0,
@@ -370,8 +329,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
+          titleHighlight: "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -409,17 +367,17 @@ describe("Related Works Tables", () => {
     await connection.query("CALL batch_update_related_works");
 
     // Check relatedWorks table
-    const [relatedWorksRows] = await connection.execute(
-      "SELECT * FROM relatedWorks",
-    );
+    const [relatedWorksRows] = await connection.execute("SELECT * FROM relatedWorks");
     expect(relatedWorksRows).toHaveLength(2);
     expect(relatedWorksRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         planId: 1,
-        workVersionId: expect.any(Number),   // 👈 auto-increment id
+        workVersionId: expect.any(Number), // 👈 auto-increment id
+        sourceType: "SYSTEM_MATCHED",
         score: 1,
-        status: "pending",
+        scoreMax: 1.0,
+        status: "PENDING",
         doiMatch: {
           found: true,
           score: 1.0,
@@ -432,8 +390,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
+          titleHighlight: "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -465,11 +422,13 @@ describe("Related Works Tables", () => {
         ],
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         planId: 1,
-        workVersionId: expect.any(Number),   // 👈 auto-increment id
+        workVersionId: expect.any(Number), // 👈 auto-increment id
+        sourceType: "SYSTEM_MATCHED",
         score: expect.closeTo(0.8, 5),
-        status: "pending",
+        scoreMax: 1.0,
+        status: "PENDING",
         doiMatch: {
           found: true,
           score: 1.0,
@@ -482,8 +441,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
+          titleHighlight: "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -517,26 +475,24 @@ describe("Related Works Tables", () => {
     ]);
 
     // Check workVersions table
-    const [workVersionsRows] = await connection.execute(
-      "SELECT * FROM workVersions",
-    );
+    const [workVersionsRows] = await connection.execute("SELECT * FROM workVersions");
     expect(workVersionsRows).toHaveLength(2);
     expect(workVersionsRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
-        workId: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
+        workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "dataset",
-        publishedDate: expect.any(Date),
+        workType: "DATASET",
+        publicationDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -554,21 +510,20 @@ describe("Related Works Tables", () => {
         sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
-        workId: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
+        workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c81e728d9d4c2f636f067f89cc14862c", "hex"),
-        type: "article",
-        publishedDate: expect.any(Date),
-        title:
-          "Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
-        abstract: "An abstract",
+        workType: "ARTICLE",
+        publicationDate: expect.any(Date),
+        title: "Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -576,8 +531,8 @@ describe("Related Works Tables", () => {
             orcid: null,
             firstInitial: "D",
             givenName: "David",
-            middleInitial: null,
-            middleName: null,
+            middleInitials: null,
+            middleNames: null,
             surname: "Choi",
             full: null,
           },
@@ -601,12 +556,12 @@ describe("Related Works Tables", () => {
     expect(worksRows).toHaveLength(2);
     expect(worksRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         doi: testWorkDOIs[0],
         created: expect.any(Date),
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         doi: testWorkDOIs[1],
         created: expect.any(Date),
       },
@@ -625,17 +580,17 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "dataset",
-        publishedDate: "2025-01-01",
+        workType: "DATASET",
+        publicationDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -655,19 +610,18 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[1],
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"), // Hash changed
-        type: "dataset", // Type changed
-        publishedDate: "2025-02-02", // Date changed
-        title:
-          "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study", // Title changed
-        abstract: "An abstract abstract", // Abstract changed
+        workType: "DATASET", // Type changed
+        publicationDate: "2025-02-02", // Date changed
+        title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study", // Title changed
+        abstractText: "An abstract abstract", // Abstract changed
         authors: [
           // Authors changed
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -675,8 +629,8 @@ describe("Related Works Tables", () => {
             orcid: null,
             firstInitial: "D",
             givenName: "Daniel",
-            middleInitial: null,
-            middleName: null,
+            middleInitials: null,
+            middleNames: null,
             surname: "Choi",
             full: null,
           },
@@ -688,14 +642,11 @@ describe("Related Works Tables", () => {
             ror: "01an7q238",
           },
         ],
-        funders: [
-          { name: "National Science Foundation, USA", ror: "021nxhr62" },
-        ], // Funders changed
+        funders: [{ name: "National Science Foundation, USA", ror: "021nxhr62" }], // Funders changed
         awards: [{ awardId: "ABC" }, { awardId: "123" }], // Award IDs changed
         publicationVenue: "Nature Publications", // Publication venue changed
         sourceName: "DataCite", // Source Changed
-        sourceUrl:
-          `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`, // Source URL changed
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`, // Source URL changed
       },
     ];
     const relatedWorksData = [
@@ -703,7 +654,9 @@ describe("Related Works Tables", () => {
         dmpDoi: "10.11111/2A3B4C",
         workDoi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
+        sourceType: "SYSTEM_MATCHED",
         score: 1.0,
+        scoreMax: 1.0,
         doiMatch: {
           found: true,
           score: 1.0,
@@ -716,8 +669,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
+          titleHighlight: "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -752,7 +704,9 @@ describe("Related Works Tables", () => {
         dmpDoi: "10.11111/2A3B4C",
         workDoi: testWorkDOIs[1],
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"), // Hash changed
+        sourceType: "SYSTEM_MATCHED",
         score: 0.9, // Score changed
+        scoreMax: 1.0,
         doiMatch: {
           // doiMatch changed
           found: true,
@@ -767,8 +721,7 @@ describe("Related Works Tables", () => {
         contentMatch: {
           // contentMatch changed
           score: 20.0,
-          titleHighlight:
-            "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
+          titleHighlight: "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -810,17 +763,17 @@ describe("Related Works Tables", () => {
     await connection.query("CALL batch_update_related_works");
 
     // Check relatedWorks table
-    const [relatedWorksRows] = await connection.execute(
-      "SELECT * FROM relatedWorks",
-    );
+    const [relatedWorksRows] = await connection.execute("SELECT * FROM relatedWorks");
     expect(relatedWorksRows).toHaveLength(2);
     expect(relatedWorksRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         planId: 1,
-        workVersionId: expect.any(Number),   // 👈 auto-increment id
+        workVersionId: expect.any(Number), // 👈 auto-increment id
+        sourceType: "SYSTEM_MATCHED",
         score: 1,
-        status: "pending",
+        scoreMax: 1.0,
+        status: "PENDING",
         doiMatch: {
           found: true,
           score: 1.0,
@@ -833,8 +786,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
+          titleHighlight: "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -866,11 +818,13 @@ describe("Related Works Tables", () => {
         ],
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         planId: 1,
-        workVersionId: expect.any(Number),   // 👈 auto-increment id
+        workVersionId: expect.any(Number), // 👈 auto-increment id
+        sourceType: "SYSTEM_MATCHED",
         score: expect.closeTo(0.9, 5),
-        status: "pending",
+        scoreMax: 1.0,
+        status: "PENDING",
         doiMatch: {
           found: true,
           score: 2.0,
@@ -883,8 +837,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 20.0,
-          titleHighlight:
-            "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
+          titleHighlight: "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -918,26 +871,24 @@ describe("Related Works Tables", () => {
     ]);
 
     // Check workVersions table
-    const [workVersionsRows] = await connection.execute(
-      "SELECT * FROM workVersions",
-    );
+    const [workVersionsRows] = await connection.execute("SELECT * FROM workVersions");
     expect(workVersionsRows).toHaveLength(2);
     expect(workVersionsRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
-        workId: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
+        workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "dataset",
-        publishedDate: expect.any(Date),
+        workType: "DATASET",
+        publicationDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -955,21 +906,20 @@ describe("Related Works Tables", () => {
         sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
-        workId: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
+        workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"),
-        type: "dataset",
-        publishedDate: expect.any(Date),
-        title:
-          "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
-        abstract: "An abstract abstract",
+        workType: "DATASET",
+        publicationDate: expect.any(Date),
+        title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
+        abstractText: "An abstract abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -977,8 +927,8 @@ describe("Related Works Tables", () => {
             orcid: null,
             firstInitial: "D",
             givenName: "Daniel",
-            middleInitial: null,
-            middleName: null,
+            middleInitials: null,
+            middleNames: null,
             surname: "Choi",
             full: null,
           },
@@ -989,14 +939,11 @@ describe("Related Works Tables", () => {
             ror: "01an7q238",
           },
         ],
-        funders: [
-          { name: "National Science Foundation, USA", ror: "021nxhr62" },
-        ],
+        funders: [{ name: "National Science Foundation, USA", ror: "021nxhr62" }],
         awards: [{ awardId: "ABC" }, { awardId: "123" }],
         publicationVenue: "Nature Publications",
         sourceName: "DataCite",
-        sourceUrl:
-          `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`,
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`,
       },
     ]);
 
@@ -1005,12 +952,12 @@ describe("Related Works Tables", () => {
     expect(worksRows).toHaveLength(2);
     expect(worksRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         doi: testWorkDOIs[0],
         created: expect.any(Date),
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         doi: testWorkDOIs[1],
         created: expect.any(Date),
       },
@@ -1029,7 +976,7 @@ describe("Related Works Tables", () => {
     // Accept work
     await connection.query(`
       UPDATE relatedWorks
-      SET status = 'accepted'
+      SET status = 'ACCEPTED'
       WHERE workVersionId = (
         SELECT workVersions.id
         FROM workVersions
@@ -1041,7 +988,7 @@ describe("Related Works Tables", () => {
     // Reject work
     await connection.query(`
       UPDATE relatedWorks
-      SET status = 'rejected'
+      SET status = 'REJECTED'
       WHERE workVersionId = (
         SELECT workVersions.id
         FROM workVersions
@@ -1058,17 +1005,17 @@ describe("Related Works Tables", () => {
     await connection.query("CALL batch_update_related_works");
 
     // Check relatedWorks table
-    const [relatedWorksRows] = await connection.execute(
-      "SELECT * FROM relatedWorks",
-    );
+    const [relatedWorksRows] = await connection.execute("SELECT * FROM relatedWorks");
     expect(relatedWorksRows).toHaveLength(2);
     expect(relatedWorksRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         planId: 1,
-        workVersionId: expect.any(Number),   // 👈 auto-increment id
+        workVersionId: expect.any(Number), // 👈 auto-increment id
+        sourceType: "SYSTEM_MATCHED",
         score: 1,
-        status: "accepted",
+        scoreMax: 1.0,
+        status: "ACCEPTED",
         doiMatch: {
           found: true,
           score: 1.0,
@@ -1081,8 +1028,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
+          titleHighlight: "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -1114,11 +1060,13 @@ describe("Related Works Tables", () => {
         ],
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         planId: 1,
-        workVersionId: expect.any(Number),   // 👈 auto-increment id
+        workVersionId: expect.any(Number), // 👈 auto-increment id
+        sourceType: "SYSTEM_MATCHED",
         score: expect.closeTo(0.9, 5),
-        status: "rejected",
+        scoreMax: 1.0,
+        status: "REJECTED",
         doiMatch: {
           found: true,
           score: 2.0,
@@ -1131,8 +1079,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 20.0,
-          titleHighlight:
-            "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
+          titleHighlight: "Climate Resilience of <mark>Eel-Reef</mark> Mutualisms: A Longitudinal Study",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -1166,26 +1113,24 @@ describe("Related Works Tables", () => {
     ]);
 
     // Check workVersions table
-    const [workVersionsRows] = await connection.execute(
-      "SELECT * FROM workVersions",
-    );
+    const [workVersionsRows] = await connection.execute("SELECT * FROM workVersions");
     expect(workVersionsRows).toHaveLength(2);
     expect(workVersionsRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
-        workId: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
+        workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "dataset",
-        publishedDate: expect.any(Date),
+        workType: "DATASET",
+        publicationDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -1203,21 +1148,20 @@ describe("Related Works Tables", () => {
         sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[0]}`,
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
-        workId: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
+        workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("eccbc87e4b5ce2fe28308fd9f2a7baf3", "hex"),
-        type: "dataset",
-        publishedDate: expect.any(Date),
-        title:
-          "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
-        abstract: "An abstract abstract",
+        workType: "DATASET",
+        publicationDate: expect.any(Date),
+        title: "Title: Climate Resilience of Eel-Reef Mutualisms: A Longitudinal Study",
+        abstractText: "An abstract abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -1225,8 +1169,8 @@ describe("Related Works Tables", () => {
             orcid: null,
             firstInitial: "D",
             givenName: "Daniel",
-            middleInitial: null,
-            middleName: null,
+            middleInitials: null,
+            middleNames: null,
             surname: "Choi",
             full: null,
           },
@@ -1237,14 +1181,11 @@ describe("Related Works Tables", () => {
             ror: "01an7q238",
           },
         ],
-        funders: [
-          { name: "National Science Foundation, USA", ror: "021nxhr62" },
-        ],
+        funders: [{ name: "National Science Foundation, USA", ror: "021nxhr62" }],
         awards: [{ awardId: "ABC" }, { awardId: "123" }],
         publicationVenue: "Nature Publications",
         sourceName: "DataCite",
-        sourceUrl:
-          `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`,
+        sourceUrl: `https://commons.datacite.org/doi.org/${testWorkDOIs[1]}`,
       },
     ]);
 
@@ -1253,12 +1194,12 @@ describe("Related Works Tables", () => {
     expect(worksRows).toHaveLength(2);
     expect(worksRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         doi: testWorkDOIs[0],
         created: expect.any(Date),
       },
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         doi: testWorkDOIs[1],
         created: expect.any(Date),
       },
@@ -1278,7 +1219,7 @@ describe("Related Works Tables", () => {
     // Set work to pending
     await connection.query(
       `UPDATE relatedWorks
-       SET status = 'pending'`,
+       SET status = 'PENDING'`,
     );
 
     // Only keep one work
@@ -1286,17 +1227,17 @@ describe("Related Works Tables", () => {
       {
         doi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "dataset",
-        publishedDate: "2025-01-01",
+        workType: "DATASET",
+        publicationDate: "2025-01-01",
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -1319,7 +1260,9 @@ describe("Related Works Tables", () => {
         dmpDoi: "10.11111/2A3B4C",
         workDoi: testWorkDOIs[0],
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
+        sourceType: "SYSTEM_MATCHED",
         score: 1.0,
+        scoreMax: 1.0,
         doiMatch: {
           found: true,
           score: 1.0,
@@ -1332,8 +1275,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
+          titleHighlight: "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -1371,17 +1313,17 @@ describe("Related Works Tables", () => {
     await connection.query("CALL batch_update_related_works");
 
     // Check relatedWorks table
-    const [relatedWorksRows] = await connection.execute(
-      "SELECT * FROM relatedWorks",
-    );
+    const [relatedWorksRows] = await connection.execute("SELECT * FROM relatedWorks");
     expect(relatedWorksRows).toHaveLength(1);
     expect(relatedWorksRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         planId: 1,
-        workVersionId: expect.any(Number),   // 👈 auto-increment id
+        workVersionId: expect.any(Number), // 👈 auto-increment id
+        sourceType: "SYSTEM_MATCHED",
         score: 1,
-        status: "pending",
+        scoreMax: 1.0,
+        status: "PENDING",
         doiMatch: {
           found: true,
           score: 1.0,
@@ -1394,8 +1336,7 @@ describe("Related Works Tables", () => {
         },
         contentMatch: {
           score: 18.0,
-          titleHighlight:
-            "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
+          titleHighlight: "Juvenile <mark>Eel</mark> Recruitment and Reef Nursery Conditions (JERRNC)",
           abstractHighlights: ["An <mark>abstract</mark>"],
         },
         authorMatches: [
@@ -1429,26 +1370,24 @@ describe("Related Works Tables", () => {
     ]);
 
     // Check workVersions table
-    const [workVersionsRows] = await connection.execute(
-      "SELECT * FROM workVersions",
-    );
+    const [workVersionsRows] = await connection.execute("SELECT * FROM workVersions");
     expect(workVersionsRows).toHaveLength(1);
     expect(workVersionsRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
-        workId: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
+        workId: expect.any(Number), // 👈 auto-increment id
         hash: Buffer.from("c4ca4238a0b923820dcc509a6f75849b", "hex"),
-        type: "dataset",
-        publishedDate: expect.any(Date),
+        workType: "DATASET",
+        publicationDate: expect.any(Date),
         title: "Juvenile Eel Recruitment and Reef Nursery Conditions (JERRNC)",
-        abstract: "An abstract",
+        abstractText: "An abstract",
         authors: [
           {
             orcid: "0000-0003-1234-5678",
             firstInitial: "A",
             givenName: "Alyssa",
-            middleInitial: "M",
-            middleName: "Marie",
+            middleInitials: "M",
+            middleNames: "Marie",
             surname: "Langston",
             full: null,
           },
@@ -1472,7 +1411,7 @@ describe("Related Works Tables", () => {
     expect(worksRows).toHaveLength(1);
     expect(worksRows).toMatchObject([
       {
-        id: expect.any(Number),   // 👈 auto-increment id
+        id: expect.any(Number), // 👈 auto-increment id
         doi: testWorkDOIs[0],
         created: expect.any(Date),
       },

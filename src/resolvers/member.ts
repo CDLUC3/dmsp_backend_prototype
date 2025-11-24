@@ -1,4 +1,3 @@
-
 import { prepareObjectForLogs } from '../logger';
 import { Resolvers } from "../types";
 import { Affiliation } from '../models/Affiliation';
@@ -15,6 +14,8 @@ import { Plan } from '../models/Plan';
 import { updateVersion } from '../models/PlanVersion';
 import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers";
 import { ProjectCollaboratorAccessLevel } from "../models/Collaborator";
+import { processOtherAffiliationName } from '../services/affiliationService';
+
 
 export const resolvers: Resolvers = {
   Query: {
@@ -98,6 +99,35 @@ export const resolvers: Resolvers = {
           const project = await Project.findById(reference, context, input.projectId);
           if (isNullOrUndefined(project)) {
             throw NotFoundError();
+          }
+
+          // If an affiliationId was provided, check if it exists and create it if it doesn't
+          if (input.affiliationId && input.affiliationId.length > 0) {
+            const existingAffiliation = await Affiliation.findByURI(reference, context, input.affiliationId);
+            if (!existingAffiliation && input.affiliationName) {
+              // Create the affiliation with the provided URI and name
+              const newAffiliation = new Affiliation({
+                uri: input.affiliationId,
+                name: input.affiliationName
+              });
+              
+              const createdAffiliation = await newAffiliation.create(context);
+
+              if (!createdAffiliation || createdAffiliation.hasErrors()) {
+                const errorMember = new ProjectMember(input);
+                errorMember.addError('affiliation', 'Unable to create required affiliation');
+                return errorMember;
+              }
+
+              // Update the input to use the URI from the created affiliation
+              input.affiliationId = createdAffiliation.uri;
+            }
+          } else if (input.affiliationName) {
+            // If only an affiliationName was provided, then process it to generate a URI
+            const affiliation = await processOtherAffiliationName(context, input.affiliationName, context.token.id);
+            if (affiliation) {
+              input.affiliationId = String(affiliation.uri);
+            }
           }
 
           if (await hasPermissionOnProject(context, project)) {
