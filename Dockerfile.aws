@@ -2,7 +2,7 @@
 
 # Stage 1: Dependencies
 # preferred node version chosen here (22.1.0-alpine3.19 as of 05/04/2024)
-FROM public.ecr.aws/docker/library/node:22.1.0-alpine3.19 as deps
+FROM public.ecr.aws/docker/library/node:23.3.0-alpine3.19 as deps
 WORKDIR /app
 
 # Set production environment
@@ -17,7 +17,7 @@ RUN npm ci
 
 
 #Stage 2: Builder
-FROM public.ecr.aws/docker/library/node:22.1.0-alpine3.19 as builder
+FROM public.ecr.aws/docker/library/node:23.3.0-alpine3.19 as builder
 WORKDIR /app
 
 # Set production environment
@@ -39,7 +39,7 @@ RUN rm -rf dist/__tests__ \
 RUN ls -la dist/
 
 # Stage 3: Runner
-FROM public.ecr.aws/docker/library/node:22.1.0-alpine3.19 as runner
+FROM public.ecr.aws/docker/library/node:23.3.0-alpine3.19 as runner
 WORKDIR /app
 
 RUN apk add --no-cache bash
