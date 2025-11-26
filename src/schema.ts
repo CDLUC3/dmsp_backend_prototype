@@ -10,13 +10,11 @@ import { typeDefs as feedbackTypeDefs } from './schemas/feedback';
 import { typeDefs as languageTypeDefs } from './schemas/language';
 import { typeDefs as licenseTypeDefs } from './schemas/license'
 import { typeDefs as metadataStandardTypeDefs } from './schemas/metadataStandard';
-import { typeDefs as outputTypeDefs } from './schemas/outputType';
 import { typeDefs as planTypeDefs } from './schemas/plan';
 import { typeDefs as projectTypeDefs } from './schemas/project';
 import { typeDefs as fundingTypeDefs } from './schemas/funding';
 import { typeDefs as guidanceTypeDefs } from './schemas/guidance';
 import { typeDefs as guidanceGroupTypeDefs } from './schemas/guidanceGroup';
-import { typeDefs as projectOutputTypeDefs } from './schemas/output';
 import { typeDefs as questionTypeDefs } from './schemas/question';
 import { typeDefs as questionConditionTypeDefs } from './schemas/questionCondition';
 import { typeDefs as relatedWorkTypeDefs } from './schemas/relatedWork';
@@ -48,10 +46,8 @@ export const typeDefs = mergeTypeDefs([
   languageTypeDefs,
   licenseTypeDefs,
   metadataStandardTypeDefs,
-  outputTypeDefs,
   planTypeDefs,
   projectTypeDefs,
-  projectOutputTypeDefs,
   questionTypeDefs,
   questionConditionTypeDefs,
   relatedWorkTypeDefs,

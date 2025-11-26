@@ -109,6 +109,7 @@ export const ensureDefaultProjectContact = async (
         });
 
         const created = await member.create(context, project.id);
+
         // Actually add the record for the member role. We will want to revisit someday
         // and possibly just add this right into the ProjectMember model
         if (await dfltRole.addToProjectMember(context, created.id)) {

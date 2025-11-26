@@ -169,26 +169,6 @@ describe('findBy Queries', () => {
     expect(result).toEqual([]);
   });
 
-  it('findByProjectOutputId should call query with correct params and return the objects', async () => {
-    localQuery.mockResolvedValueOnce([standard]);
-    const id = casual.integer(1, 99);
-    const result = await MetadataStandard.findByProjectOutputId('testing', context, id);
-    const sql = 'SELECT ms.* FROM metadataStandards ms';
-    const joinClause = 'INNER JOIN projectOutputMetadataStandards poms ON ms.id = poms.metadataStandardId';
-    const whereClause = 'WHERE poms.projectOutputId = ?';
-    const vals = [id.toString()];
-    expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenLastCalledWith(context, `${sql} ${joinClause} ${whereClause}`, vals, 'testing')
-    expect(result).toEqual([standard]);
-  });
-
-  it('findByProjectOutputId should return an empty array if there are no records', async () => {
-    localQuery.mockResolvedValueOnce([]);
-    const id = casual.integer(1, 99);
-    const result = await MetadataStandard.findByProjectOutputId('testing', context, id);
-    expect(result).toEqual([]);
-  });
-
   it('search should work when a Research Domain and a search term are specified', async () => {
     localPaginationQuery.mockResolvedValueOnce([standard]);
     const term = casual.words(3);
@@ -463,87 +443,5 @@ describe('delete', () => {
     const result = await standard.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(MetadataStandard);
-  });
-});
-
-describe('addToProjectOutput', () => {
-  let context;
-  let mockStandard;
-
-  beforeEach(async () => {
-    jest.resetAllMocks();
-
-    context = await buildMockContextWithToken(logger);
-
-    mockStandard = new MetadataStandard({
-      id: casual.integer(1, 99),
-      name: casual.words(3),
-      url: casual.url
-    });
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('associates the Repository to the specified ProjectOutput', async () => {
-    const outputId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(MetadataStandard, 'query').mockResolvedValueOnce(mockStandard);
-    const result = await mockStandard.addToProjectOutput(context, outputId);
-    expect(querySpy).toHaveBeenCalledTimes(1);
-    let expectedSql = 'INSERT INTO projectOutputMetadataStandards (metadataStandardId, projectOutputId, ';
-    expectedSql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
-    const userId = context.token.id.toString();
-    const vals = [mockStandard.id.toString(), outputId.toString(), userId, userId]
-    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'MetadataStandard.addToProjectOutput')
-    expect(result).toBe(true);
-  });
-
-  it('returns null if the domain cannot be associated with the ProjectOutput', async () => {
-    const outputId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(MetadataStandard, 'query').mockResolvedValueOnce(null);
-    const result = await mockStandard.addToProjectOutput(context, outputId);
-    expect(querySpy).toHaveBeenCalledTimes(1);
-    expect(result).toBe(false);
-  });
-});
-
-describe('removeFromProjectOutput', () => {
-  let context;
-  let mockStandard;
-
-  beforeEach(async () => {
-    jest.resetAllMocks();
-
-    context = await buildMockContextWithToken(logger);
-
-    mockStandard = new MetadataStandard({
-      id: casual.integer(1, 99),
-      name: casual.word,
-      url: casual.url
-    });
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('removes the Repository association with the specified ProjectOutput', async () => {
-    const outputId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(MetadataStandard, 'query').mockResolvedValueOnce(mockStandard);
-    const result = await mockStandard.removeFromProjectOutput(context, outputId);
-    expect(querySpy).toHaveBeenCalledTimes(1);
-    const expectedSql = 'DELETE FROM projectOutputMetadataStandards WHERE repositoryId = ? AND projectOutputId = ?';
-    const vals = [mockStandard.id.toString(), outputId.toString()]
-    expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'MetadataStandard.removeFromProjectOutput')
-    expect(result).toBe(true);
-  });
-
-  it('returns null if the domain cannot be removed from the ProjectOutput', async () => {
-    const repositoryId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(MetadataStandard, 'query').mockResolvedValueOnce(null);
-    const result = await mockStandard.removeFromProjectOutput(context, repositoryId);
-    expect(querySpy).toHaveBeenCalledTimes(1);
-    expect(result).toBe(false);
   });
 });

@@ -127,8 +127,6 @@ export const projectTypeDefs = gql`
     members: [ProjectMember!]
     "The funders who are supporting the research project"
     fundings: [ProjectFunding!]
-    "The outputs that will be/were created as a reult of the research project"
-    outputs: [ProjectOutput!]
     "The plans that are associated with the research project"
     plans: [PlanSearchResult!]
   }
@@ -145,7 +143,6 @@ export const projectTypeDefs = gql`
     researchDomainId: String
     memberIds: String
     fundingIds: String
-    outputIds: String
   }
 
   type ProjectSearchResultCollaborator {

@@ -22,7 +22,6 @@ import {
 } from '../services/projectService';
 import { Affiliation } from '../models/Affiliation';
 import { ResearchDomain } from '../models/ResearchDomain';
-import { ProjectOutput } from '../models/Output';
 import { MemberRole } from '../models/MemberRole';
 import { GraphQLError } from 'graphql';
 import { Plan, PlanSearchResult } from '../models/Plan';
@@ -185,17 +184,19 @@ export const resolvers: Resolvers = {
           const newProject = new Project({title, isTestProject});
           const created = await newProject.create(context);
 
-          if (!isNullOrUndefined(created) && !created.hasErrors()) {
-            // Set the current user as an owner on the project
-            const ownerWasSet = await setCurrentUserAsProjectOwner(context, created.id);
-            // Set the current user as the default primary contact
-            const contactWasSet = await ensureDefaultProjectContact(context, created);
+          if (!isNullOrUndefined(created)) {
+            if (!created.hasErrors()) {
+              // Set the current user as an owner on the project
+              const ownerWasSet = await setCurrentUserAsProjectOwner(context, created.id);
+              // Set the current user as the default primary contact
+              const contactWasSet = await ensureDefaultProjectContact(context, created);
 
-            if (!ownerWasSet) {
-              created.addError('general', 'Unable to set the default owner of the project');
-            }
-            if (!contactWasSet) {
-              created.addError('general', 'Unable to set the default primary contact');
+              if (!ownerWasSet) {
+                created.addError('general', 'Unable to set the default owner of the project');
+              }
+              if (!contactWasSet) {
+                created.addError('general', 'Unable to set the default primary contact');
+              }
             }
             return created;
           }
@@ -395,13 +396,6 @@ export const resolvers: Resolvers = {
     fundings: async (parent: Project, _, context: MyContext): Promise<ProjectFunding[]> => {
       return await ProjectFunding.findByProjectId(
         'Chained Project.fundings',
-        context,
-        parent.id
-      );
-    },
-    outputs: async (parent: Project, _, context: MyContext): Promise<ProjectOutput[]> => {
-      return await ProjectOutput.findByProjectId(
-        'Chained Project.outputs',
         context,
         parent.id
       );

@@ -156,8 +156,6 @@ export const typeDefs = gql`
     members: [PlanMember!]
     "The funding for the plan"
     fundings: [PlanFunding!]
-    "Anticipated research outputs"
-    outputs: [PlanOutput!]
 
     "Prior versions of the plan"
     versions: [PlanVersion!]

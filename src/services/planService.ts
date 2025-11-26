@@ -85,7 +85,14 @@ export const ensureDefaultPlanContact = async (
       });
 
       const created = await member.create(context);
-      return !isNullOrUndefined(created) && !created.hasErrors();
+      if (!isNullOrUndefined(created) && !created.hasErrors()) {
+        // Add the roles to the default plan member
+        for (const role of dfltMemberRoles) {
+          await role.addToPlanMember(context, created.id);
+        }
+        return true;
+      }
+      return false;
     } else {
       // PrimaryContact was already set
       return true;
