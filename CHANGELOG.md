@@ -13,6 +13,7 @@
 
 ### Updated
 - Updated the README to reflect recent changes
+- Updated dependencies: `@aws-sdk/client-dynamodb`, `@graphql-tools/merge`, `ts-jest` and `@eslint/js`
 - Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
 - Updated husky precommit hook to run `npm run test-no-db`
 - Updated the `data-migrations/process.sh` script so that you can pass a `local` argument which will run all migrations in the `local-only` subdirectory
@@ -25,6 +26,9 @@
 - Fixed some typos in `AffiliationLinks` model and updated to use `affiliationId` as a URI
 - Updated `Tag` model to include new `slug` field
 - Updated `User` model to include the new `oldPasswordHash` field
+
+### Deleted
+- Removed the `@types/eslint__js` dependency because `@eslint/jest` includes its own types now
 
 ============================================================================
 prior to 2025-10-21

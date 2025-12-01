@@ -1,5 +1,6 @@
 import { incrementVersionNumber } from "../utils/helpers";
 import { Template, TemplateVisibility } from "../models/Template";
+import { Tag } from "../models/Tag";
 import { VersionedTemplate, TemplateVersionType } from "../models/VersionedTemplate";
 import { MyContext } from "../context";
 import { isSuperAdmin } from "./authService";
@@ -107,6 +108,10 @@ export const generateTemplateVersion = async (
         const sectionInstance = new Section({
           ...section
         });
+
+        // Get current tags for the section so we can add it to versionedSectionTags table
+        const currentTags = await Tag.findBySectionId('generateTemplateVersion', context, sectionInstance.id);
+        sectionInstance.tags = currentTags;
 
         const passed = await generateSectionVersion(context, sectionInstance, created.id);
         if (!passed) {

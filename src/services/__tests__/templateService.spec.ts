@@ -10,6 +10,7 @@ import { Section } from '../../models/Section';
 import { getRandomEnumValue } from '../../__tests__/helpers';
 import { getCurrentDate } from '../../utils/helpers';
 import { logger } from '../../logger';
+import { Tag } from '../../models/Tag';
 
 // Pulling context in here so that the mysql gets mocked
 jest.mock('../../context.ts');
@@ -174,11 +175,16 @@ describe('template versioning', () => {
   let mockUpdate;
   let mockFindTemplateById;
   let mockFindVersionedTemplatebyId;
+  let mockTagFindBySectionId;
 
   beforeEach(() => {
     // Mock the Sections
     const mockSectionFindByTemplateId = jest.fn().mockResolvedValue([]);
     (Section.findByTemplateId as jest.Mock) = mockSectionFindByTemplateId;
+
+    // Mock the Tags for each section
+    mockTagFindBySectionId = jest.fn().mockResolvedValue([]);
+    (Tag.findBySectionId as jest.Mock) = mockTagFindBySectionId;
 
     const tstamp = getCurrentDate();
 
