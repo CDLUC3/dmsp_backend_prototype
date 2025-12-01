@@ -1,6 +1,7 @@
 import { MyContext } from "../context";
 import { Section } from "../models/Section";
 import { Template } from "../models/Template";
+import { Tag } from "../models/Tag";
 import { hasPermissionOnTemplate } from "./templateService";
 import { VersionedSection } from "../models/VersionedSection";
 import { NotFoundError } from "../utils/graphQLErrors";
@@ -42,8 +43,34 @@ export const generateSectionVersion = async (
   try {
     const created = await versionedSection.create(context);
 
+    // Get tags associated with section so we can add it to versionedSectionTags table
+    const addTagErrors = [];
+    if (Array.isArray(section.tags) && section.tags.length > 0) {
+      for (const item of section.tags) {
+        const tag = await Tag.findById('generateSectionVersion', context, item.id);
+
+        if (!tag) {
+          addTagErrors.push(`Tag ${item.id} not found`);
+          continue; // <-- Add this line to skip calling addToVersionedSectionTags on null
+        }
+
+        const wasAdded = tag.addToVersionedSectionTags(context, created.id);
+        if (!wasAdded) {
+          addTagErrors.push(tag.name);
+        }
+
+      }
+    }
+
+    if (addTagErrors.length > 0) {
+      created.addError('tags', `Saved but we were unable to assign tags: ${addTagErrors.join(', ')}`);
+    }
+
     // If the creation was successful
-    if (created && !created.hasErrors()) {
+    // Allow proceeding if the only error is the 'tags' assignment warning
+    const errorKeys = created?.errors ? Object.keys(created.errors) : [];
+    const onlyTagErrors = errorKeys.length === 1 && errorKeys[0] === 'tags';
+    if (created && (!created.hasErrors() || onlyTagErrors)) {
       // Create a version for all the associated questions
       const questions = await Question.findBySectionId('generateSectionVersion', context, section.id);
       let allQuestionsWereVersioned = true;
@@ -158,5 +185,5 @@ export const updateDisplayOrders = async (
       }
     }
   }
-  return  reorderedSections;
+  return reorderedSections;
 }

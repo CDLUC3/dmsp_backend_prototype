@@ -31,6 +31,8 @@ export const typeDefs = gql`
     "Errors associated with the Object"
     errors: TagErrors
 
+    "The slug"
+    slug: String!
     "The tag name"
     name: String!
     "The tag description"
@@ -43,6 +45,18 @@ export const typeDefs = gql`
     general: String
 
     name: String
+    description: String
+  }
+
+  "Input for Tag operations"
+  input TagInput {
+    "The unique identifier for the Tag"
+    id: Int
+    "The name of the Tag"
+    name: String
+    "The slug of the Tag"
+    slug: String
+    "The description of the Tag"
     description: String
   }
 `;

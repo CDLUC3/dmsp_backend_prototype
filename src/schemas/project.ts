@@ -12,6 +12,13 @@ export const projectTypeDefs = gql`
       filterOptions: ProjectFilterOptions
     ): ProjectSearchResults
 
+    "Get all projects for the Admin based on their role"
+    allProjects(
+      term: String,
+      paginationOptions: PaginationOptions,
+      filterOptions: ProjectFilterOptions
+    ): ProjectSearchResults
+
     "Get a specific project"
     project(projectId: Int!): Project
 

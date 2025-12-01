@@ -135,7 +135,7 @@ describe('ProjectSearchResult', () => {
                     projectSearchResult.createdById.toString(), projectSearchResult.createdById.toString()];
       const whereFilters = [
         '(LOWER(p.title) LIKE ? OR LOWER(p.abstractText) LIKE ?)',
-        '((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status = \'DRAFT\') >= 1 || (SELECT COUNT(*) FROM plans WHERE projectId = p.id) = 0)',
+        '((SELECT COUNT(*) FROM plans WHERE projectId = p.id AND status IN (\'DRAFT\', \'COMPLETE\')) >= 1 || (SELECT COUNT(*) FROM plans WHERE projectId = p.id) = 0)',
         '(p.createdById = ? OR p.id IN (SELECT projectId FROM projectCollaborators WHERE userId = ?))'
       ];
       const groupBy = 'GROUP BY p.id, p.title, p.abstractText, p.startDate, p.endDate, p.isTestProject, ' +

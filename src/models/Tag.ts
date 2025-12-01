@@ -4,12 +4,14 @@ import { prepareObjectForLogs } from "../logger";
 
 const tableName = 'tags';
 export class Tag extends MySqlModel {
+  public slug: string;
   public name: string;
   public description?: string;
 
   constructor(options) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
+    this.slug = options.slug;
     this.name = options.name;
     this.description = options.description;
   }
@@ -18,17 +20,26 @@ export class Tag extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
+    if (!this.slug) this.addError('slug', 'Slug can\'t be blank');
     if (!this.name) this.addError('name', 'Name can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
   }
 
+  // Generate a slug from the name
+  static slugifyName(name: string): string {
+    return name?.trim()?.toLowerCase()
+        ?.replace(/[^a-z0-9]+/g, '-')
+        ?.replace(/^-+|-+$/g, '');
+  }
+
   // Save the current record
   async create(context: MyContext): Promise<Tag> {
-    const current = await Tag.findByName(
+    this.slug = Tag.slugifyName(this.name);
+    const current = await Tag.findBySlug(
       'Section.create',
       context,
-      this.name,
+      this.slug,
     );
 
     // Then make sure it doesn't already exist
@@ -99,17 +110,34 @@ export class Tag extends MySqlModel {
     return true;
   }
 
+    // Add this Tag to a VersionedSectionTags
+  async addToVersionedSectionTags(context: MyContext, versionedSectionId: number): Promise<boolean> {
+    const reference = 'Tag.addToVersionedSectionTags';
+    const sql = 'INSERT INTO versionedSectionTags (tagId, versionedSectionId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
+    const userId = context.token?.id?.toString();
+    const vals = [this.id?.toString(), versionedSectionId?.toString(), userId, userId];
+    const results = await Tag.query(context, sql, vals, reference);
+
+    if (!results) {
+      const payload = { tagId: this.id, versionedSectionId };
+      const msg = 'Unable to add the tag to the versioned section';
+      context.logger.error(prepareObjectForLogs(payload), msg);
+      return false;
+    }
+    return true;
+  }
+
   // Add this Tag to a Guidance
   async addToGuidance(context: MyContext, guidanceId: number): Promise<boolean> {
     const reference = 'Tag.addToGuidance';
     const userId = context.token?.id?.toString();
-    
+
     // Do not execute if userId is null or undefined
     if (!userId) {
       context.logger.error(prepareObjectForLogs({ tagId: this.id, guidanceId }), 'Unable to add tag to guidance: userId is null or undefined');
       return false;
     }
-    
+
     const sql = 'INSERT INTO guidanceTags (tagId, guidanceId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const vals = [this.id?.toString(), guidanceId?.toString(), userId, userId];
     const results = await Tag.query(context, sql, vals, reference);
@@ -208,11 +236,11 @@ export class Tag extends MySqlModel {
     return Array.isArray(result) && result.length > 0 ? new Tag(result[0]) : null;
   }
 
-  // Find tag by tag name
-  static async findByName(reference: string, context: MyContext, name: string): Promise<Tag[]> {
-    const sql = 'SELECT * FROM tags WHERE LOWER(name) = ?';
-    const searchTerm = (name ?? '');
-    const vals = [searchTerm?.toLowerCase()?.trim()];
+  // Find tag by slug
+  static async findBySlug(reference: string, context: MyContext, slug: string): Promise<Tag[]> {
+    const sql = 'SELECT * FROM tags WHERE slug = ?';
+    const searchTerm = (slug ?? '');
+    const vals = [searchTerm];
     const results = await Tag.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? results.map((entry) => new Tag(entry)) : null;
   }

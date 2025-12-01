@@ -43,6 +43,7 @@ let versionedTemplateStore;
 let versionedSectionStore;
 let versionedQuestionStore;
 let versionedQuestionConditionStore;
+let tagStore; // <-- add tag store
 
 // Update an entry in one of the stores
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,6 +116,16 @@ describe('Integration test: Template Versioning', () => {
     mockFindVersionedQuestionConditionById = jest.fn().mockImplementation(async (_, __, id) => {
       return versionedQuestionConditionStore.find((entry) => { return entry.id === id });
     });
+
+    // Tag mocks (needed after templateService started querying tags)
+    const mockFindTagById = jest.fn().mockImplementation(async (_, __, id) => {
+      return tagStore.find(t => t.id === id);
+    });
+    const mockFindTagsBySectionId = jest.fn().mockImplementation(async (_, __, sectionId) => {
+      const section = sectionStore.find(s => s.id === sectionId);
+      return section ? section.tags : [];
+    });
+    const mockAddToVersionedSectionTags = jest.fn().mockImplementation(async () => true);
 
     // Add the entry to the appropriate store
     mockInsert = jest.fn().mockImplementation(async (context, table, obj) => {
@@ -244,8 +255,8 @@ describe('Integration test: Template Versioning', () => {
         guidance: casual.sentences(5),
         displayOrder: casual.integer(1, 9),
         tags: [
-          new Tag({ name: casual.words(3) }),
-          new Tag({ name: casual.words(1) }),
+          new Tag({ id: casual.integer(1, 9999), name: casual.words(3) }),
+          new Tag({ id: casual.integer(1, 9999), name: casual.words(1) }),
         ],
         isDirty: true,
         createdById: casual.integer(1, 999),
@@ -263,8 +274,8 @@ describe('Integration test: Template Versioning', () => {
         guidance: casual.sentences(5),
         displayOrder: casual.integer(1, 9),
         tags: [
-          new Tag({ name: casual.words(3) }),
-          new Tag({ name: casual.words(1) }),
+          new Tag({ id: casual.integer(1, 9999), name: casual.words(3) }),
+          new Tag({ id: casual.integer(1, 9999), name: casual.words(1) }),
         ],
         isDirty: true,
         createdById: casual.integer(1, 999),
@@ -274,6 +285,9 @@ describe('Integration test: Template Versioning', () => {
       }),
     ];
     versionedSectionStore = [];
+
+    // Build tagStore from section tags
+    tagStore = [...sectionStore[0].tags, ...sectionStore[1].tags];
 
     // Add 1 question to section 1 and 2 questions to section 2
     questionStore = [
@@ -386,6 +400,11 @@ describe('Integration test: Template Versioning', () => {
     (VersionedQuestionCondition.findById as jest.Mock) = mockFindVersionedQuestionConditionById;
     (QuestionCondition.update as jest.Mock) = mockUpdate;
     (QuestionCondition.findById as jest.Mock) = mockFindQuestionConditionById;
+
+    // Tag dataStore mocks
+    (Tag.findById as jest.Mock) = mockFindTagById;
+    (Tag.findBySectionId as jest.Mock) = mockFindTagsBySectionId;
+    (Tag.prototype.addToVersionedSectionTags as unknown as jest.Mock) = mockAddToVersionedSectionTags;
   });
 
   afterEach(() => {
@@ -394,12 +413,13 @@ describe('Integration test: Template Versioning', () => {
 
   it('can version a Template for the first time', async () => {
     const tmplt = templateStore[0];
+    const versionType = TemplateVersionType.DRAFT; // deterministic
     const firstVersion = await generateTemplateVersion(
       context,
       tmplt,
       [],
       context.token.id,
-      getRandomEnumValue(TemplateVersionType),
+      versionType,
     );
 
     expect(firstVersion.version).toEqual('v1');
@@ -414,12 +434,13 @@ describe('Integration test: Template Versioning', () => {
 
   it('can version a Template multiple times', async () => {
     const tmplt = templateStore[0];
+    const versionType = TemplateVersionType.DRAFT;
     const firstVersion = await generateTemplateVersion(
       context,
       tmplt,
       [],
       context.token.id,
-      getRandomEnumValue(TemplateVersionType),
+      versionType,
     );
     expect(firstVersion.version).toEqual('v1');
 
@@ -431,7 +452,7 @@ describe('Integration test: Template Versioning', () => {
       tmplt,
       versionedTemplateStore,
       context.token.id,
-      getRandomEnumValue(TemplateVersionType),
+      versionType,
     );
     expect(secondVersion.version).toEqual('v2');
     expect(versionedTemplateStore.length).toBe(2);

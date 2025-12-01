@@ -2193,6 +2193,8 @@ export type PlanSectionProgress = {
   answeredQuestions: Scalars['Int']['output'];
   /** The display order of the section */
   displayOrder: Scalars['Int']['output'];
+  /** Tags associated with the section */
+  tags?: Maybe<Array<Tag>>;
   /** The title of the section */
   title: Scalars['String']['output'];
   /** The number of questions in the section */
@@ -2624,6 +2626,8 @@ export type Query = {
   affiliationTypes?: Maybe<Array<Scalars['String']['output']>>;
   /** Perform a search for Affiliations matching the specified name */
   affiliations?: Maybe<AffiliationSearchResults>;
+  /** Get all projects for the Admin based on their role */
+  allProjects?: Maybe<ProjectSearchResults>;
   /** Get the specific answer */
   answer?: Maybe<Answer>;
   /** Get an answer by versionedQuestionId */
@@ -2786,6 +2790,13 @@ export type QueryAffiliationsArgs = {
   funderOnly?: InputMaybe<Scalars['Boolean']['input']>;
   name: Scalars['String']['input'];
   paginationOptions?: InputMaybe<PaginationOptions>;
+};
+
+
+export type QueryAllProjectsArgs = {
+  filterOptions?: InputMaybe<ProjectFilterOptions>;
+  paginationOptions?: InputMaybe<PaginationOptions>;
+  term?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -3622,6 +3633,8 @@ export type Tag = {
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The tag name */
   name: Scalars['String']['output'];
+  /** The slug */
+  slug: Scalars['String']['output'];
 };
 
 /** A collection of errors related to the Tag */
@@ -3640,7 +3653,9 @@ export type TagInput = {
   /** The unique identifier for the Tag */
   id?: InputMaybe<Scalars['Int']['input']>;
   /** The name of the Tag */
-  name: Scalars['String']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  /** The slug of the Tag */
+  slug?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** A Template used to create DMPs */
@@ -5891,6 +5906,7 @@ export type PlanSearchResultResolvers<ContextType = MyContext, ParentType extend
 export type PlanSectionProgressResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['PlanSectionProgress'] = ResolversParentTypes['PlanSectionProgress']> = {
   answeredQuestions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   displayOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  tags?: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   totalQuestions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   versionedSectionId?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -6132,6 +6148,7 @@ export type QueryResolvers<ContextType = MyContext, ParentType extends Resolvers
   affiliationByURI?: Resolver<Maybe<ResolversTypes['Affiliation']>, ParentType, ContextType, RequireFields<QueryAffiliationByUriArgs, 'uri'>>;
   affiliationTypes?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   affiliations?: Resolver<Maybe<ResolversTypes['AffiliationSearchResults']>, ParentType, ContextType, RequireFields<QueryAffiliationsArgs, 'name'>>;
+  allProjects?: Resolver<Maybe<ResolversTypes['ProjectSearchResults']>, ParentType, ContextType, Partial<QueryAllProjectsArgs>>;
   answer?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerArgs, 'answerId' | 'projectId'>>;
   answerByVersionedQuestionId?: Resolver<Maybe<ResolversTypes['Answer']>, ParentType, ContextType, RequireFields<QueryAnswerByVersionedQuestionIdArgs, 'planId' | 'projectId' | 'versionedQuestionId'>>;
   answers?: Resolver<Maybe<Array<Maybe<ResolversTypes['Answer']>>>, ParentType, ContextType, RequireFields<QueryAnswersArgs, 'planId' | 'projectId' | 'versionedSectionId'>>;
@@ -6465,6 +6482,7 @@ export type TagResolvers<ContextType = MyContext, ParentType extends ResolversPa
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  slug?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
