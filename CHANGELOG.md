@@ -12,6 +12,7 @@
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Updated the README to reflect recent changes
 - Updated dependencies: `@aws-sdk/client-dynamodb`, `@graphql-tools/merge`, `ts-jest` and `@eslint/js`
 - Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
 - Updated husky precommit hook to run `npm run test-no-db`
