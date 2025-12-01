@@ -1,26 +1,10 @@
--- Table to store system level default values
-CREATE TABLE IF NOT EXISTS `researchOutputTypes` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `name` VARCHAR(255) NOT NULL,
-  `value` VARCHAR(255) NOT NULL UNIQUE,
-  `description` TEXT,
-  `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `createdById` int NOT NULL,
-  `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `modifiedById` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- Set the recommended license types
-UPDATE `licenses` SET `recommended` = 0;
-UPDATE `licenses` SET `recommended` = 1 WHERE `name` IN ('CC0-1.0', 'CC-BY-4.0', 'MIT');
-
 -- Add the research output types we support
 INSERT INTO `researchOutputTypes` (`value`, `name`, `description`, `createdById`, `modifiedById`)
 SELECT 'audiovisual', 'Audiovisual', 'A series of visual representations imparting an impression of motion when shown in succession. May or may not include sound. (e.g. films, video, etc.)', id, id FROM `users` WHERE `role` = 'SUPERADMIN' ORDER BY id DESC LIMIT 1;
 INSERT INTO `researchOutputTypes` (`value`, `name`, `description`, `createdById`, `modifiedById`)
 SELECT 'collection', 'Collection', 'An aggregation of resources, which may encompass collections of one resourceType as well as those of mixed types. A collection is described as a group; its parts may also be separately described. (e.g. A collection of samples, or various files making up a report)', id, id FROM `users` WHERE `role` = 'SUPERADMIN' ORDER BY id DESC LIMIT 1;
 INSERT INTO `researchOutputTypes` (`value`, `name`, `description`, `createdById`, `modifiedById`)
-SELECT 'data-paper', 'Date paper', 'A factual and objective publication with a focused intent to identify and describe specific data, sets of data, or data collections to facilitate discoverability. (i.e. A data paper describes data provenance and methodologies used in the gathering, processing, organizing, and representing the data)', id, id FROM `users` WHERE `role` = 'SUPERADMIN' ORDER BY id DESC LIMIT 1;
+SELECT 'data-paper', 'Data paper', 'A factual and objective publication with a focused intent to identify and describe specific data, sets of data, or data collections to facilitate discoverability. (i.e. A data paper describes data provenance and methodologies used in the gathering, processing, organizing, and representing the data)', id, id FROM `users` WHERE `role` = 'SUPERADMIN' ORDER BY id DESC LIMIT 1;
 INSERT INTO `researchOutputTypes` (`value`, `name`, `description`, `createdById`, `modifiedById`)
 SELECT 'dataset', 'Dataset', 'Data encoded in a defined structure.', id, id FROM `users` WHERE `role` = 'SUPERADMIN' ORDER BY id DESC LIMIT 1;
 INSERT INTO `researchOutputTypes` (`value`, `name`, `description`, `createdById`, `modifiedById`)
