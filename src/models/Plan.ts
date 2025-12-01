@@ -338,8 +338,10 @@ export class Plan extends MySqlModel {
           if (newPlan) {
             // Generate the version history of the DMP
             await addVersion(context, newPlan, reference);
+            return new Plan(newPlan);
+          } else {
+            this.addError('general', 'Unable to create your plan.');
           }
-          return new Plan(newPlan);
         }
       }
     }
