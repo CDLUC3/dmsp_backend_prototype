@@ -12,6 +12,7 @@
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Updated ORCID datasource so that the API and Auth URLs are independent: Removed `ORCID_BASE_URL` and replaced with `ORCID_API_BASE_URL`, `ORCID_AUTH_BASE_URL`
 - Updated the README to reflect recent changes
 - Updated dependencies: `@aws-sdk/client-dynamodb`, `@graphql-tools/merge`, `ts-jest` and `@eslint/js`
 - Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
