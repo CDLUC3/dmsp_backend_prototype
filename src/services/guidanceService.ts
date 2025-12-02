@@ -3,7 +3,6 @@ import { GuidanceGroup } from "../models/GuidanceGroup";
 import { Guidance } from "../models/Guidance";
 import { VersionedGuidanceGroup } from "../models/VersionedGuidanceGroup";
 import { VersionedGuidance } from "../models/VersionedGuidance";
-import { Tag } from "../models/Tag";
 import { prepareObjectForLogs } from "../logger";
 import { getCurrentDate } from "../utils/helpers";
 import { isSuperAdmin } from "./authService";
@@ -50,6 +49,7 @@ export const publishGuidanceGroup = async (
     optionalSubset: guidanceGroup.optionalSubset,
     active: true,
     name: guidanceGroup.name,
+    description: guidanceGroup.description,
     createdById: context.token?.id,
     modifiedById: context.token?.id,
   });
@@ -75,10 +75,7 @@ export const publishGuidanceGroup = async (
           ...guidance
         });
 
-        // Get current tags for the guidance so we can add them to versionedGuidanceTags table
-        const currentTags = await Tag.findByGuidanceId(reference, context, guidanceInstance.id);
-
-        const passed = await generateGuidanceVersion(context, guidanceInstance, created.id, currentTags);
+        const passed = await generateGuidanceVersion(context, guidanceInstance, created.id);
         if (!passed) {
           allGuidanceWereVersioned = false;
         }
@@ -144,23 +141,10 @@ const generateGuidanceVersion = async (
   context: MyContext,
   guidance: Guidance,
   versionedGuidanceGroupId: number,
-  tags: Tag[],
 ): Promise<boolean> => {
 
   if (!guidance.id) {
     throw new Error('Cannot publish unsaved Guidance');
-  }
-
-  // Use the tags passed in as a parameter
-  const tagsToVersion = tags && tags.length > 0 ? tags : [];
-
-  if (tagsToVersion.length === 0) {
-    // Guidance must have tags
-    context.logger.error(
-      prepareObjectForLogs({ guidanceId: guidance.id }),
-      'Cannot publish guidance without tags - guidance must be associated with at least one tag'
-    );
-    return false;
   }
 
   try {
@@ -169,7 +153,7 @@ const generateGuidanceVersion = async (
       versionedGuidanceGroupId: versionedGuidanceGroupId,
       guidanceId: guidance.id,
       guidanceText: guidance.guidanceText,
-      tagId: tagsToVersion[0].id, // Required by model validation, using first tag
+      tagId: guidance.tagId,
       createdById: guidance.createdById,
       created: guidance.created,
       modifiedById: guidance.modifiedById,
@@ -182,11 +166,6 @@ const generateGuidanceVersion = async (
       const msg = `Unable to create versioned guidance for guidance: ${guidance.id}`;
       context.logger.error(prepareObjectForLogs(created), msg);
       return false;
-    }
-
-    // Add all tags to the versioned guidance tags table
-    for (const tagToAdd of tagsToVersion) {
-      await tagToAdd.addToVersionedGuidance(context, created.id);
     }
 
     return true;

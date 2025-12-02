@@ -98,7 +98,12 @@ export const resolvers: Resolvers = {
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
-        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        // Log the error object and stack trace for better debugging
+        context.logger.error({
+          error: prepareObjectForLogs(err),
+          stack: err?.stack,
+        }, `Failure in ${reference}`);
+
         throw InternalServerError();
       }
     },
