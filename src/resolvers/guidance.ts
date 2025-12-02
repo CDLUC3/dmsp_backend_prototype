@@ -217,7 +217,6 @@ export const resolvers: Resolvers = {
             }
           }
 
-          console.log("***WILL MARK GUIDANCE GROUP AS DIRTY:", guidance.guidanceGroupId);
           // Mark the guidance group as dirty
           await markGuidanceGroupAsDirty(context, guidance.guidanceGroupId);
 

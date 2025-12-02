@@ -12,6 +12,12 @@
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Added `description` column to `guidanceGroups` and `versionedGuidanceGroups` db tables [#528]
+  - Added `description` to `GuidanceGroup` model
+  - Fixed issue in `VersionedGuidance` model's `create` method to ignore `tagId` [#528]
+  - Added `user` chained resolver to `guidance` resolver [#528]
+  - Added `description` to `guidanceGroup` resolver, and added both `user` and `versionedGuidanceGroup` chained resolvers [#528]
+  - Updated `guidanceService` to get current tags for the guidance to add them to versionedGuidanceTags table [#528]
 - Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
 - Updated husky precommit hook to run `npm run test-no-db`
 - Updated the `data-migrations/process.sh` script so that you can pass a `local` argument which will run all migrations in the `local-only` subdirectory
