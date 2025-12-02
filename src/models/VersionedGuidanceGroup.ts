@@ -46,7 +46,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
-      
+
       // Save the record and then fetch it
       const newId = await VersionedGuidanceGroup.insert(context, VersionedGuidanceGroup.tableName, this, 'VersionedGuidanceGroup.create', ['versionedGuidance']);
       return await VersionedGuidanceGroup.findById('VersionedGuidanceGroup.create', context, newId);
@@ -62,7 +62,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
     if (await this.isValid()) {
       if (id) {
         this.prepForSave();
-        
+
         await VersionedGuidanceGroup.update(context, VersionedGuidanceGroup.tableName, this, 'VersionedGuidanceGroup.update', ['versionedGuidance'], noTouch);
         return await VersionedGuidanceGroup.findById('VersionedGuidanceGroup.update', context, id);
       }
@@ -80,6 +80,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
 
   // Find the VersionedGuidanceGroups by guidanceGroupId
   static async findByGuidanceGroupId(reference: string, context: MyContext, guidanceGroupId: number): Promise<VersionedGuidanceGroup[]> {
+    console.log('****findByGuidanceGroupId called with guidanceGroupId:', guidanceGroupId);
     const sql = `SELECT * FROM ${VersionedGuidanceGroup.tableName} WHERE guidanceGroupId = ? ORDER BY version DESC`;
     const results = await VersionedGuidanceGroup.query(context, sql, [guidanceGroupId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? results.map((entry) => new VersionedGuidanceGroup(entry)) : [];

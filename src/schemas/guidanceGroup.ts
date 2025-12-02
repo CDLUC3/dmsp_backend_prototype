@@ -40,6 +40,8 @@ export const typeDefs = gql`
     affiliationId: String!
     "The name of the GuidanceGroup"
     name: String!
+    "The description of the GuidanceGroup"
+    description: String
     "Whether this GuidanceGroup has been modified since last publish"
     isDirty: Boolean!
     "Whether this is a best practice GuidanceGroup"
@@ -53,6 +55,12 @@ export const typeDefs = gql`
 
     "The Guidance items in this group"
     guidance: [Guidance!]
+
+    "User who modified the guidance group last"
+    user: User
+
+    "VersionedGuidanceGroups associated with this GuidanceGroup"
+    versionedGuidanceGroup: [VersionedGuidanceGroup]
   }
 
   "A collection of errors related to the GuidanceGroup"
@@ -63,6 +71,7 @@ export const typeDefs = gql`
     affiliationId: String
     name: String
     bestPractice: String
+    description: String
   }
 
   "Input for adding a new GuidanceGroup"
@@ -71,6 +80,8 @@ export const typeDefs = gql`
     affiliationId: String
     "The name of the GuidanceGroup"
     name: String!
+    "The description of the GuidanceGroup"
+    description: String
     "Whether this is a best practice GuidanceGroup"
     bestPractice: Boolean
     "Whether this is an optional subset for departmental use"
@@ -83,6 +94,8 @@ export const typeDefs = gql`
     guidanceGroupId: Int!
     "The name of the GuidanceGroup"
     name: String
+    "The description of the GuidanceGroup"
+    description: String
     "Whether this is a best practice GuidanceGroup"
     bestPractice: Boolean
     "Whether this is an optional subset for departmental use"

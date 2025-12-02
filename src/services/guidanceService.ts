@@ -14,7 +14,7 @@ export const hasPermissionOnGuidanceGroup = async (
   guidanceGroupId: number
 ): Promise<boolean> => {
   const guidanceGroup = await GuidanceGroup.findById('hasPermissionOnGuidanceGroup', context, guidanceGroupId);
-  
+
   if (!guidanceGroup) {
     return false;
   }
@@ -61,7 +61,7 @@ export const publishGuidanceGroup = async (
     if (created && !created.hasErrors()) {
       // Deactivate all previous versions
       await VersionedGuidanceGroup.deactivateAll(reference, context, guidanceGroup.id);
-      
+
       // Set this version as active (in case deactivateAll affected it)
       created.active = true;
       await created.update(context, true);
@@ -74,7 +74,11 @@ export const publishGuidanceGroup = async (
         const guidanceInstance = new Guidance({
           ...guidance
         });
-        const passed = await generateGuidanceVersion(context, guidanceInstance, created.id);
+
+        // Get current tags for the guidance so we can add them to versionedGuidanceTags table
+        const currentTags = await Tag.findByGuidanceId(reference, context, guidanceInstance.id);
+
+        const passed = await generateGuidanceVersion(context, guidanceInstance, created.id, currentTags);
         if (!passed) {
           allGuidanceWereVersioned = false;
         }
@@ -140,24 +144,20 @@ const generateGuidanceVersion = async (
   context: MyContext,
   guidance: Guidance,
   versionedGuidanceGroupId: number,
+  tags: Tag[],
 ): Promise<boolean> => {
-  const reference = 'generateGuidanceVersion';
 
   if (!guidance.id) {
     throw new Error('Cannot publish unsaved Guidance');
   }
 
-  // Get the tags for this guidance
-  const tags = await Tag.findByGuidanceId(reference, context, guidance.id);
-  
-  // For each tag, create a VersionedGuidance entry
-  // Each tag gets its own VersionedGuidance record pointing to the same guidanceText
+  // Use the tags passed in as a parameter
   const tagsToVersion = tags && tags.length > 0 ? tags : [];
-  
+
   if (tagsToVersion.length === 0) {
     // Guidance must have tags
     context.logger.error(
-      prepareObjectForLogs({ guidanceId: guidance.id }), 
+      prepareObjectForLogs({ guidanceId: guidance.id }),
       'Cannot publish guidance without tags - guidance must be associated with at least one tag'
     );
     return false;
@@ -169,7 +169,7 @@ const generateGuidanceVersion = async (
       versionedGuidanceGroupId: versionedGuidanceGroupId,
       guidanceId: guidance.id,
       guidanceText: guidance.guidanceText,
-      tagId: tagsToVersion[0].id, // Use first tag as the tagId field
+      tagId: tagsToVersion[0].id, // Required by model validation, using first tag
       createdById: guidance.createdById,
       created: guidance.created,
       modifiedById: guidance.modifiedById,
@@ -202,14 +202,14 @@ export const markGuidanceGroupAsDirty = async (
   guidanceGroupId: number,
 ): Promise<void> => {
   const reference = 'markGuidanceGroupAsDirty';
-  
+
   try {
     const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
-    
+
     if (guidanceGroup) {
       // Only mark as dirty if there's an active version
       const activeVersion = await VersionedGuidanceGroup.findActiveByGuidanceGroupId(reference, context, guidanceGroupId);
-      
+
       if (activeVersion) {
         guidanceGroup.isDirty = true;
         await guidanceGroup.update(context, true);
