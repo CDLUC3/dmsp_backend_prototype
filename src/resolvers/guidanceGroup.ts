@@ -321,9 +321,7 @@ export const resolvers: Resolvers = {
     },
     // Get the VersionedGuidanceGroups for this GuidanceGroup
     versionedGuidanceGroup: async (parent: GuidanceGroup, _, context: MyContext): Promise<VersionedGuidanceGroup[] | null> => {
-      console.log("***PARENT ID IN RESOLVER:", parent.id);
-      const temp = await VersionedGuidanceGroup.findByGuidanceGroupId('Chained GuidanceGroupversionedGuidanceGroup', context, parent.id);
-      return temp;
+      return await VersionedGuidanceGroup.findByGuidanceGroupId('Chained GuidanceGroupversionedGuidanceGroup', context, parent.id);
     },
   }
 };
