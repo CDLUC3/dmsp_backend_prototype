@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { buildContext } from "../context";
 import { AffiliationEmailDomain } from "../models/AffiliationEmailDomain";
 import { isNullOrUndefined } from "../utils/helpers";
-import {logger, prepareObjectForLogs} from "../logger";
+import { prepareObjectForLogs } from "../logger";
 import { Affiliation } from "../models/Affiliation";
 
 // This is an endpoint that can be called to send a user to login to their
