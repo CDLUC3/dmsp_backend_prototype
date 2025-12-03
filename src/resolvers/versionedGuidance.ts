@@ -4,7 +4,6 @@ import { VersionedGuidance } from "../models/VersionedGuidance";
 import { VersionedGuidanceGroup } from "../models/VersionedGuidanceGroup";
 import { Guidance } from "../models/Guidance";
 import { GuidanceGroup } from "../models/GuidanceGroup";
-import { Tag } from "../models/Tag";
 import { AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
 import { isAuthorized } from "../services/authService";
 import { prepareObjectForLogs } from "../logger";
@@ -84,10 +83,6 @@ export const resolvers: Resolvers = {
         return await Guidance.findById('Chained VersionedGuidance.guidance', context, parent.guidanceId);
       }
       return null;
-    },
-    // Chained resolver to fetch all Tags for this VersionedGuidance
-    tags: async (parent: VersionedGuidance, _, context: MyContext): Promise<Tag[]> => {
-      return await Tag.findByVersionedGuidanceId('Chained VersionedGuidance.tags', context, parent.id);
     },
     created: (parent: VersionedGuidance) => {
       return normaliseDateTime(parent.created);

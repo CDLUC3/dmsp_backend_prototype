@@ -20,6 +20,12 @@ prior to 2025-12-05
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Added `description` column to `guidanceGroups` and `versionedGuidanceGroups` db tables [#528]
+  - Added `description` to `GuidanceGroup` model
+  - Fixed issue in `VersionedGuidance` model's `create` method to ignore `tagId` [#528]
+  - Added `user` chained resolver to `guidance` resolver [#528]
+  - Added `description` to `guidanceGroup` resolver, and added both `user` and `versionedGuidanceGroup` chained resolvers [#528]
+  - Updated `guidanceService` to get current tags for the guidance to add them to versionedGuidanceTags table [#528]
 - Fixed an issue with the the `addProject` resolver not returning errors
 - Updated `planService` to save roles for the default plan member
 - Updated the README to reflect recent changes

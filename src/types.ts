@@ -30,6 +30,8 @@ export type AddGuidanceGroupInput = {
   affiliationId?: InputMaybe<Scalars['String']['input']>;
   /** Whether this is a best practice GuidanceGroup */
   bestPractice?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The description of the GuidanceGroup */
+  description?: InputMaybe<Scalars['String']['input']>;
   /** The name of the GuidanceGroup */
   name: Scalars['String']['input'];
   /** Whether this is an optional subset for departmental use */
@@ -43,7 +45,7 @@ export type AddGuidanceInput = {
   /** The guidance text content */
   guidanceText?: InputMaybe<Scalars['String']['input']>;
   /** The Tags associated with this Guidance */
-  tags?: InputMaybe<Array<TagInput>>;
+  tagId?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type AddMetadataStandardInput = {
@@ -707,7 +709,7 @@ export type FunderPopularityResult = {
   uri: Scalars['String']['output'];
 };
 
-/** A Guidance item contains guidance text and associated tags */
+/** A Guidance item contains guidance text and associated tag id */
 export type Guidance = {
   __typename?: 'Guidance';
   /** The timestamp when the Object was created */
@@ -726,10 +728,14 @@ export type Guidance = {
   id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp when the Object was last modified */
   modified?: Maybe<Scalars['String']['output']>;
+  /** User who modified the guidance last */
+  modifiedBy?: Maybe<User>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
-  /** The Tags associated with this Guidance */
-  tags?: Maybe<Array<Tag>>;
+  /** The Tag associated with the guidance */
+  tag?: Maybe<Tag>;
+  /** The tag id associated with this Guidance */
+  tagId?: Maybe<Scalars['Int']['output']>;
 };
 
 /** A collection of errors related to Guidance */
@@ -739,7 +745,7 @@ export type GuidanceErrors = {
   general?: Maybe<Scalars['String']['output']>;
   guidanceGroupId?: Maybe<Scalars['String']['output']>;
   guidanceText?: Maybe<Scalars['String']['output']>;
-  tags?: Maybe<Scalars['String']['output']>;
+  tagId?: Maybe<Scalars['String']['output']>;
 };
 
 /** A GuidanceGroup contains a collection of Guidance items for an organization */
@@ -753,6 +759,8 @@ export type GuidanceGroup = {
   created?: Maybe<Scalars['String']['output']>;
   /** The user who created the Object */
   createdById?: Maybe<Scalars['Int']['output']>;
+  /** The description of the GuidanceGroup */
+  description?: Maybe<Scalars['String']['output']>;
   /** Errors associated with the Object */
   errors?: Maybe<GuidanceGroupErrors>;
   /** The Guidance items in this group */
@@ -767,12 +775,16 @@ export type GuidanceGroup = {
   latestPublishedVersion?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was last modified */
   modified?: Maybe<Scalars['String']['output']>;
+  /** User who modified the guidance group last */
+  modifiedBy?: Maybe<User>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name of the GuidanceGroup */
   name: Scalars['String']['output'];
   /** Whether this is an optional subset for departmental use */
   optionalSubset: Scalars['Boolean']['output'];
+  /** VersionedGuidanceGroups associated with this GuidanceGroup */
+  versionedGuidanceGroup?: Maybe<Array<Maybe<VersionedGuidanceGroup>>>;
 };
 
 /** A collection of errors related to the GuidanceGroup */
@@ -780,6 +792,7 @@ export type GuidanceGroupErrors = {
   __typename?: 'GuidanceGroupErrors';
   affiliationId?: Maybe<Scalars['String']['output']>;
   bestPractice?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   /** General error messages such as the object already exists */
   general?: Maybe<Scalars['String']['output']>;
   name?: Maybe<Scalars['String']['output']>;
@@ -3625,6 +3638,8 @@ export type TypeCount = {
 export type UpdateGuidanceGroupInput = {
   /** Whether this is a best practice GuidanceGroup */
   bestPractice?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The description of the GuidanceGroup */
+  description?: InputMaybe<Scalars['String']['input']>;
   /** The unique identifier for the GuidanceGroup to update */
   guidanceGroupId: Scalars['Int']['input'];
   /** The name of the GuidanceGroup */
@@ -3640,7 +3655,7 @@ export type UpdateGuidanceInput = {
   /** The guidance text content */
   guidanceText?: InputMaybe<Scalars['String']['input']>;
   /** The Tags associated with this Guidance */
-  tags?: InputMaybe<Array<TagInput>>;
+  tagId?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type UpdateMetadataStandardInput = {
@@ -5169,8 +5184,10 @@ export type GuidanceResolvers<ContextType = MyContext, ParentType extends Resolv
   guidanceText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  tags?: Resolver<Maybe<Array<ResolversTypes['Tag']>>, ParentType, ContextType>;
+  tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType>;
+  tagId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5178,7 +5195,7 @@ export type GuidanceErrorsResolvers<ContextType = MyContext, ParentType extends 
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   guidanceGroupId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   guidanceText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  tags?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  tagId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5187,6 +5204,7 @@ export type GuidanceGroupResolvers<ContextType = MyContext, ParentType extends R
   bestPractice?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   created?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   createdById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   errors?: Resolver<Maybe<ResolversTypes['GuidanceGroupErrors']>, ParentType, ContextType>;
   guidance?: Resolver<Maybe<Array<ResolversTypes['Guidance']>>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
@@ -5194,15 +5212,18 @@ export type GuidanceGroupResolvers<ContextType = MyContext, ParentType extends R
   latestPublishedDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   latestPublishedVersion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   optionalSubset?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  versionedGuidanceGroup?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedGuidanceGroup']>>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type GuidanceGroupErrorsResolvers<ContextType = MyContext, ParentType extends ResolversParentTypes['GuidanceGroupErrors'] = ResolversParentTypes['GuidanceGroupErrors']> = {
   affiliationId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   bestPractice?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   general?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

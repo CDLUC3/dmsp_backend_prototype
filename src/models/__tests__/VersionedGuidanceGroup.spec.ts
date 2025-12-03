@@ -20,6 +20,7 @@ describe('VersionedGuidanceGroup', () => {
     bestPractice: false,
     active: true,
     name: 'Test Versioned Guidance Group',
+    description: 'This is a test versioned guidance group',
   }
 
   beforeEach(() => {
@@ -33,6 +34,7 @@ describe('VersionedGuidanceGroup', () => {
     expect(versionedGuidanceGroup.bestPractice).toEqual(versionedGuidanceGroupData.bestPractice);
     expect(versionedGuidanceGroup.active).toEqual(versionedGuidanceGroupData.active);
     expect(versionedGuidanceGroup.name).toEqual(versionedGuidanceGroupData.name);
+    expect(versionedGuidanceGroup.description).toEqual(versionedGuidanceGroupData.description);
     expect(versionedGuidanceGroup.created).toBeTruthy();
     expect(versionedGuidanceGroup.modified).toBeTruthy();
     expect(versionedGuidanceGroup.errors).toEqual({});

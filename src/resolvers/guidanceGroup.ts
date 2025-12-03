@@ -2,6 +2,8 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { GuidanceGroup } from "../models/GuidanceGroup";
 import { Guidance } from "../models/Guidance";
+import { VersionedGuidanceGroup } from "../models/VersionedGuidanceGroup";
+import { User } from "../models/User";
 import { hasPermissionOnGuidanceGroup, publishGuidanceGroup, unpublishGuidanceGroup, markGuidanceGroupAsDirty } from "../services/guidanceService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
 import { isAdmin, isSuperAdmin } from "../services/authService";
@@ -96,7 +98,7 @@ export const resolvers: Resolvers = {
     // Add a new GuidanceGroup
     addGuidanceGroup: async (
       _,
-      { input: { affiliationId: tempAffiliationId, name, bestPractice, optionalSubset } },
+      { input: { affiliationId: tempAffiliationId, name, description, bestPractice, optionalSubset } },
       context: MyContext
     ): Promise<GuidanceGroup> => {
       const reference = 'addGuidanceGroup resolver';
@@ -117,6 +119,7 @@ export const resolvers: Resolvers = {
         const guidanceGroup = new GuidanceGroup({
           affiliationId,
           name,
+          description,
           bestPractice: bestPractice ?? false,
           optionalSubset: optionalSubset ?? false,
           createdById: requester.id,
@@ -146,7 +149,7 @@ export const resolvers: Resolvers = {
     // Update an existing GuidanceGroup
     updateGuidanceGroup: async (
       _,
-      { input: { guidanceGroupId, name, bestPractice, optionalSubset } },
+      { input: { guidanceGroupId, name, description, bestPractice, optionalSubset } },
       context: MyContext
     ): Promise<GuidanceGroup> => {
       const reference = 'updateGuidanceGroup resolver';
@@ -160,6 +163,7 @@ export const resolvers: Resolvers = {
 
           // Update the fields
           if (name !== undefined) guidanceGroup.name = name;
+          if (description !== undefined) guidanceGroup.description = description;
           if (bestPractice !== undefined) guidanceGroup.bestPractice = bestPractice;
           if (optionalSubset !== undefined) guidanceGroup.optionalSubset = optionalSubset;
 
@@ -307,6 +311,17 @@ export const resolvers: Resolvers = {
     },
     latestPublishedDate: (parent: GuidanceGroup) => {
       return normaliseDateTime(parent.latestPublishedDate);
+    },
+    // Resolver to get the user who last modified this guidance
+    modifiedBy: async (parent: GuidanceGroup, _, context: MyContext): Promise<User | null> => {
+      if (parent?.modifiedById) {
+        return await User.findById('GuidanceGroup user resolver', context, parent.modifiedById);
+      }
+      return null;
+    },
+    // Get the VersionedGuidanceGroups for this GuidanceGroup
+    versionedGuidanceGroup: async (parent: GuidanceGroup, _, context: MyContext): Promise<VersionedGuidanceGroup[] | null> => {
+      return await VersionedGuidanceGroup.findByGuidanceGroupId('Chained GuidanceGroupversionedGuidanceGroup', context, parent.id);
     },
   }
 };
