@@ -1,5 +1,12 @@
 # DMP Tool Apollo Server Change Log
 
+### Added 
+- Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
+- Added a `findByEmailDomain` endpoint to the `Affiliation` model
+
+============================================================================
+prior to 2025-12-05
+
 ### Added
 - Added local data migrations to set default member role and set the createdById for seed users 
 - Added a `allProjects` resolver to return all projects relevant to the Admin

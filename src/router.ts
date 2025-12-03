@@ -3,6 +3,8 @@ import { authMiddleware } from './middleware/auth';
 import { signinController } from './controllers/signinController';
 import { signupController } from './controllers/signupController';
 import { signoutController } from './controllers/signoutController';
+import { ssoPassthruController } from "./controllers/ssoPassthruController";
+import { ssoCallbackController } from "./controllers/ssoCallbackController";
 import { csrfMiddleware } from './middleware/csrf';
 import { refreshTokenController } from './controllers/refreshTokenController';
 import { Logger } from "pino";
@@ -67,6 +69,23 @@ export function setupRouter(
     csrfMiddleware,
     authMiddleware,
     async (req: Request, res: Response): Promise<void> => await signoutController(req, res)
+  );
+
+  // SSO Passthrough to Shibboleth SP
+  router.get('/sso',
+    // TODO: Determine what middleware hooks we want
+
+    // csrfMiddleware,
+    // authMiddleware,
+    async (req: Request, res: Response): Promise<void> => await ssoPassthruController(req, res)
+  );
+
+  // SSO Callback from Shibboleth SP
+  router.get('/sso/callback',
+    // TODO: Determine what middleware hooks we want
+
+    // authMiddleware
+    async (req: Request, res: Response): Promise<void> => await ssoCallbackController(req, res)
   );
 
   return router;

@@ -374,6 +374,7 @@ describe('findByName', () => {
       createdById: casual.integer(1, 999),
       name: casual.sentence,
       ownerId: casual.url,
+      ssoEntityId: casual.url
     })
 
     localQuery = jest.fn();
@@ -399,6 +400,23 @@ describe('findByName', () => {
     localQuery.mockResolvedValueOnce([]);
 
     const result = await Affiliation.findByName('Test', context, affiliation.name);
+    expect(result).toEqual(null);
+  });
+
+  it('should return the Affiliation when findByEntityId gets a result', async () => {
+    localQuery.mockResolvedValueOnce([affiliation]);
+
+    const result = await Affiliation.findByEntityId('Test', context, affiliation.ssoEntityId);
+    const expectedSql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(ssoEntityId)) = ?';
+    expect(localQuery).toHaveBeenCalledTimes(1);
+    expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [affiliation.ssoEntityId.toLowerCase()], 'Test')
+    expect(result).toEqual(affiliation);
+  });
+
+  it('should return null when findByEntityId has no results', async () => {
+    localQuery.mockResolvedValueOnce([]);
+
+    const result = await Affiliation.findByEntityId('Test', context, affiliation.ssoEntityId);
     expect(result).toEqual(null);
   });
 });
