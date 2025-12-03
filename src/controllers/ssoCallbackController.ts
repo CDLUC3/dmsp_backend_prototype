@@ -22,8 +22,7 @@ export const ssoCallbackController = async (req: Request, res: Response) => {
 
     context.logger.error(
       prepareObjectForLogs({
-        sessionId: req.query?.sessionId,
-        status: req.statusCode,
+        query: req.query,
         body: req.body,
         headers: req.headers
       }),
