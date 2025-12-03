@@ -35,6 +35,9 @@
 - Removed references to `outputs` from schemas and reslvers
 - Removed the `@types/eslint__js` dependency because `@eslint/jest` includes its own types now
 
+### Fixed
+- Removed the setting of `dmspr` token in the `refreshTokenController` because it was overriding the expiration of that refreshToken to be the same as the default `authToken`
+
 ============================================================================
 prior to 2025-10-21
 
