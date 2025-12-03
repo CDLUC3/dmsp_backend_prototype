@@ -286,6 +286,13 @@ export class Affiliation extends MySqlModel {
     const results = await Affiliation.query(context, sql, [name?.toLowerCase()?.trim()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
+
+  // Return the specified Affiliation based on it's SSO entity id
+  static async findByEntityId(reference: string, context: MyContext, entityId: string): Promise<Affiliation> {
+    const sql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(ssoEntityId)) = ?';
+    const results = await Affiliation.query(context, sql, [entityId?.toLowerCase()?.trim()], reference);
+    return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
+  }
 }
 
 // A pared down version of the full Affiliation object. This type is returned by

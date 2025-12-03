@@ -1,5 +1,12 @@
 # DMP Tool Apollo Server Change Log
 
+### Added 
+- Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
+- Added a `findByEmailDomain` endpoint to the `Affiliation` model
+
+============================================================================
+prior to 2025-12-05
+
 ### Added
 - Added a `allProjects` resolver to return all projects relevant to the Admin
 - Added a new `test-no-db` script to `package.json` to run all tests but the ones that need a running docker env
