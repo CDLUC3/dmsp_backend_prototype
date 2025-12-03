@@ -37,7 +37,7 @@ export const ssoPassthruController = async (req: Request, res: Response) => {
 
     context.logger.debug(
       prepareObjectForLogs({
-        domain: affilDomain.domain,
+        domain: affilDomain.emailDomain,
         domainAffiliationId: affilDomain.affiliationId,
         affiliationURI: affiliation?.uri,
         affiliationId: affiliation?.id,
