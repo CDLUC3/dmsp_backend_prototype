@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { buildContext } from "../context";
 import { AffiliationEmailDomain } from "../models/AffiliationEmailDomain";
 import { isNullOrUndefined } from "../utils/helpers";
-import { prepareObjectForLogs } from "../logger";
+import {logger, prepareObjectForLogs} from "../logger";
 import { Affiliation } from "../models/Affiliation";
 
 // This is an endpoint that can be called to send a user to login to their
@@ -34,6 +34,16 @@ export const ssoPassthruController = async (req: Request, res: Response) => {
 
     const affilDomain = await AffiliationEmailDomain.findByDomain(ref, context, domain);
     const affiliation = await Affiliation.findByEntityId(ref, context, entityId);
+
+    context.logger.debug(
+      prepareObjectForLogs({
+        domain: affilDomain.domain,
+        domainAffiliationId: affilDomain.affiliationId,
+        affiliationURI: affiliation?.uri,
+        affiliationId: affiliation?.id,
+      }),
+      'Affiliation information'
+    );
 
     // If the email domain has no matching affiliation or the entityId specified does not match
     // Return a Forbidden code
