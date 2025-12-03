@@ -136,40 +136,6 @@ export class MetadataStandard extends MySqlModel {
     return null;
   }
 
-  // Add this MetadataStandard to a ProjectOutput
-  async addToProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
-    const reference = 'MetadataStandard.addToProjectOutput';
-    let sql = 'INSERT INTO projectOutputMetadataStandards (metadataStandardId, projectOutputId, ';
-    sql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
-    const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), projectOutputId?.toString(), userId, userId];
-    const results = await MetadataStandard.query(context, sql, vals, reference);
-
-    if (!results) {
-      const payload = { researchDomainId: this.id, projectOutputId };
-      const msg = 'Unable to add the standard to the project output';
-      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
-      return false;
-    }
-    return true;
-  }
-
-  // Remove this MetadataStandard from a ProjectOutput
-  async removeFromProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
-    const reference = 'MetadataStandard.removeFromProjectOutput';
-    const sql = 'DELETE FROM projectOutputMetadataStandards WHERE repositoryId = ? AND projectOutputId = ?';
-    const vals = [this.id?.toString(), projectOutputId?.toString()];
-    const results = await MetadataStandard.query(context, sql, vals, reference);
-
-    if (!results) {
-      const payload = { researchDomainId: this.id, projectOutputId };
-      const msg = 'Unable to remove the standard from the project output';
-      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
-      return false;
-    }
-    return true;
-  }
-
   // Search for Metadata standards
   static async search(
     reference: string,
@@ -265,24 +231,6 @@ export class MetadataStandard extends MySqlModel {
     const joinClause = 'INNER JOIN metadataStandardResearchDomains msrd ON ms.id = msrd.metadataStandardId';
     const whereClause = 'WHERE msrd.researchDomainId = ?';
     const vals = [researchDomainId?.toString()];
-
-    const results = await MetadataStandard.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    if (Array.isArray(results) && results.length !== 0){
-      return results.map((res) => MetadataStandard.processResult(res))
-    }
-    return [];
-  }
-
-  // Fetch all of the MetadataStandards associated with a ProjectOutput
-  static async findByProjectOutputId(
-    reference: string,
-    context: MyContext,
-    projectOutputId: number
-  ): Promise<MetadataStandard[]> {
-    const sql = 'SELECT ms.* FROM metadataStandards ms';
-    const joinClause = 'INNER JOIN projectOutputMetadataStandards poms ON ms.id = poms.metadataStandardId';
-    const whereClause = 'WHERE poms.projectOutputId = ?';
-    const vals = [projectOutputId?.toString()];
 
     const results = await MetadataStandard.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
     if (Array.isArray(results) && results.length !== 0){
