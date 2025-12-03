@@ -18,7 +18,6 @@ import { resolvers as guidanceGroupResolvers } from './resolvers/guidanceGroup';
 import { resolvers as languageResolvers } from './resolvers/language';
 import { resolvers as licenseResolvers } from './resolvers/license';
 import { resolvers as metadataStandardResolvers } from './resolvers/metadataStandard';
-import { resolvers as outputResolvers } from './resolvers/output';
 import { resolvers as planResolvers } from './resolvers/plan';
 import { resolvers as projectResolvers } from './resolvers/project';
 import { resolvers as questionResolvers } from './resolvers/question';
@@ -60,7 +59,6 @@ export const resolvers: IResolvers = mergeResolvers([
   languageResolvers,
   licenseResolvers,
   metadataStandardResolvers,
-  outputResolvers,
   planResolvers,
   projectResolvers,
   questionResolvers,

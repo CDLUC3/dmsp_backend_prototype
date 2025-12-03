@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added local data migrations to set default member role and set the createdById for seed users 
 - Added a `allProjects` resolver to return all projects relevant to the Admin
 - Added a new `test-no-db` script to `package.json` to run all tests but the ones that need a running docker env
 - Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids
@@ -12,6 +13,8 @@
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Fixed an issue with the the `addProject` resolver not returning errors
+- Updated `planService` to save roles for the default plan member
 - Updated the README to reflect recent changes
 - Updated dependencies: `@aws-sdk/client-dynamodb`, `@graphql-tools/merge`, `ts-jest` and `@eslint/js`
 - Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
@@ -28,6 +31,8 @@
 - Updated `User` model to include the new `oldPasswordHash` field
 
 ### Deleted
+- Removed old `Output` and `OutputType` models and references to them in `Repository`, `MetadataStandard`, `Project` and `Plan` models
+- Removed references to `outputs` from schemas and reslvers
 - Removed the `@types/eslint__js` dependency because `@eslint/jest` includes its own types now
 
 ============================================================================

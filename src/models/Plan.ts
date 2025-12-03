@@ -335,11 +335,13 @@ export class Plan extends MySqlModel {
         // Create the original version snapshot of the DMP
         if (newId) {
           const newPlan = await Plan.findById(reference, context, newId);
-          if (newPlan && !newPlan.hasErrors()) {
+          if (newPlan) {
             // Generate the version history of the DMP
             await addVersion(context, newPlan, reference);
+            return new Plan(newPlan);
+          } else {
+            this.addError('general', 'Unable to create your plan.');
           }
-          return new Plan(newPlan);
         }
       }
     }
