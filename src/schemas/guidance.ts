@@ -42,8 +42,11 @@ export const typeDefs = gql`
     "The GuidanceGroup this Guidance belongs to"
     guidanceGroup: GuidanceGroup
 
+    "The Tag associated with the guidance"
+    tag: Tag
+
     "User who modified the guidance last"
-    user: User
+    modifiedBy: User
   }
 
   "A collection of errors related to Guidance"

@@ -57,7 +57,7 @@ export const typeDefs = gql`
     guidance: [Guidance!]
 
     "User who modified the guidance group last"
-    user: User
+    modifiedBy: User
 
     "VersionedGuidanceGroups associated with this GuidanceGroup"
     versionedGuidanceGroup: [VersionedGuidanceGroup]

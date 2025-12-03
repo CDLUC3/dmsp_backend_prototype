@@ -762,12 +762,14 @@ export type Guidance = {
   id?: Maybe<Scalars['Int']['output']>;
   /** The timestamp when the Object was last modified */
   modified?: Maybe<Scalars['String']['output']>;
+  /** User who modified the guidance last */
+  modifiedBy?: Maybe<User>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
+  /** The Tag associated with the guidance */
+  tag?: Maybe<Tag>;
   /** The tag id associated with this Guidance */
   tagId?: Maybe<Scalars['Int']['output']>;
-  /** User who modified the guidance last */
-  user?: Maybe<User>;
 };
 
 /** A collection of errors related to Guidance */
@@ -807,14 +809,14 @@ export type GuidanceGroup = {
   latestPublishedVersion?: Maybe<Scalars['String']['output']>;
   /** The timestamp when the Object was last modified */
   modified?: Maybe<Scalars['String']['output']>;
+  /** User who modified the guidance group last */
+  modifiedBy?: Maybe<User>;
   /** The user who last modified the Object */
   modifiedById?: Maybe<Scalars['Int']['output']>;
   /** The name of the GuidanceGroup */
   name: Scalars['String']['output'];
   /** Whether this is an optional subset for departmental use */
   optionalSubset: Scalars['Boolean']['output'];
-  /** User who modified the guidance group last */
-  user?: Maybe<User>;
   /** VersionedGuidanceGroups associated with this GuidanceGroup */
   versionedGuidanceGroup?: Maybe<Array<Maybe<VersionedGuidanceGroup>>>;
 };
@@ -5434,9 +5436,10 @@ export type GuidanceResolvers<ContextType = MyContext, ParentType extends Resolv
   guidanceText?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  tag?: Resolver<Maybe<ResolversTypes['Tag']>, ParentType, ContextType>;
   tagId?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5461,10 +5464,10 @@ export type GuidanceGroupResolvers<ContextType = MyContext, ParentType extends R
   latestPublishedDate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   latestPublishedVersion?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   modified?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  modifiedBy?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   modifiedById?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   optionalSubset?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  user?: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
   versionedGuidanceGroup?: Resolver<Maybe<Array<Maybe<ResolversTypes['VersionedGuidanceGroup']>>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };

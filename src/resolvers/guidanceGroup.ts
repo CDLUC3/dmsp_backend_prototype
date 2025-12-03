@@ -313,7 +313,7 @@ export const resolvers: Resolvers = {
       return normaliseDateTime(parent.latestPublishedDate);
     },
     // Resolver to get the user who last modified this guidance
-    user: async (parent: GuidanceGroup, _, context: MyContext): Promise<User | null> => {
+    modifiedBy: async (parent: GuidanceGroup, _, context: MyContext): Promise<User | null> => {
       if (parent?.modifiedById) {
         return await User.findById('GuidanceGroup user resolver', context, parent.modifiedById);
       }

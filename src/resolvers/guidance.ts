@@ -3,6 +3,7 @@ import { MyContext } from "../context";
 import { Guidance } from "../models/Guidance";
 import { GuidanceGroup } from "../models/GuidanceGroup";
 import { User } from "../models/User";
+import { Tag } from "../models/Tag";
 import { hasPermissionOnGuidanceGroup, markGuidanceGroupAsDirty } from "../services/guidanceService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
 import { isAdmin } from "../services/authService";
@@ -213,6 +214,10 @@ export const resolvers: Resolvers = {
     guidanceGroup: async (parent: Guidance, _, context: MyContext): Promise<GuidanceGroup> => {
       return await GuidanceGroup.findById('Chained Guidance.guidanceGroup', context, parent.guidanceGroupId);
     },
+    // Chained resolver to fetch the Tag info for guidance's tagId
+    tag: async (parent: Guidance, _, context: MyContext): Promise<Tag> => {
+      return await Tag.findById('Chained Guidance.tags', context, parent.tagId);
+    },
     created: (parent: Guidance) => {
       return normaliseDateTime(parent.created);
     },
@@ -220,7 +225,7 @@ export const resolvers: Resolvers = {
       return normaliseDateTime(parent.modified);
     },
     // Resolver to get the user who last modified this guidance
-    user: async (parent: Guidance, _, context: MyContext): Promise<User | null> => {
+    modifiedBy: async (parent: Guidance, _, context: MyContext): Promise<User | null> => {
       if (parent?.modifiedById) {
         return await User.findById('Guidance user resolver', context, parent.modifiedById);
       }
