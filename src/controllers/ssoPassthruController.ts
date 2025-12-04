@@ -55,7 +55,7 @@ export const ssoPassthruController = async (req: Request, res: Response) => {
         'SSO Passthrough 403 error'
       );
       res.status(403).json({ success: false, message: 'SSO is not available at this time.' });
-    }*/ 
+    }*/
 
     // TODO: Add a function to the tokenService that generates a new SSO JWT
     //       It should be initialized with the incoming email, entityId, and affiliation.uri.
