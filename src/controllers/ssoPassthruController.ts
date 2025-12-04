@@ -4,6 +4,7 @@ import { AffiliationEmailDomain } from "../models/AffiliationEmailDomain";
 import { isNullOrUndefined } from "../utils/helpers";
 import { prepareObjectForLogs } from "../logger";
 import { Affiliation } from "../models/Affiliation";
+import { generalConfig } from "../config/generalConfig";
 
 // This is an endpoint that can be called to send a user to login to their
 // institutional SSO via our Shibboleth SP
@@ -67,12 +68,12 @@ export const ssoPassthruController = async (req: Request, res: Response) => {
     // TODO: Try the paths first, we may need to use the full URL though
 
     // This is the location of our Shibboleth SP's login endpoint
-    // const shibURL = `https://${generalConfig.domain}/Shibboleth.sso/Login`;
-    const shibURL = '/Shibboleth.sso/Login';
+    const shibURL = `https://${generalConfig.domain}/Shibboleth.sso/Login`;
+    // const shibURL = '/Shibboleth.sso/Login';
 
     // This is the location we want our Shibboleth SP to return to when its done
-    // const targetURL = `https://${generalConfig.domain}/sso/callback/${sessionId}`;
-    const targetURL = `/sso/callback/${sessionId}`;
+    const targetURL = `https://${generalConfig.domain}/sso/callback/${sessionId}`;
+    // const targetURL = `/sso/callback/${sessionId}`;
 
     // Redirect the user to our Shibboleth SP
     res.status(301)
