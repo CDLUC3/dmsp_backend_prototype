@@ -3,7 +3,6 @@ import { GuidanceGroup } from "../models/GuidanceGroup";
 import { Guidance } from "../models/Guidance";
 import { VersionedGuidanceGroup } from "../models/VersionedGuidanceGroup";
 import { VersionedGuidance } from "../models/VersionedGuidance";
-import { Tag } from "../models/Tag";
 import { prepareObjectForLogs } from "../logger";
 import { getCurrentDate } from "../utils/helpers";
 import { isSuperAdmin } from "./authService";
@@ -14,7 +13,7 @@ export const hasPermissionOnGuidanceGroup = async (
   guidanceGroupId: number
 ): Promise<boolean> => {
   const guidanceGroup = await GuidanceGroup.findById('hasPermissionOnGuidanceGroup', context, guidanceGroupId);
-  
+
   if (!guidanceGroup) {
     return false;
   }
@@ -50,6 +49,7 @@ export const publishGuidanceGroup = async (
     optionalSubset: guidanceGroup.optionalSubset,
     active: true,
     name: guidanceGroup.name,
+    description: guidanceGroup.description,
     createdById: context.token?.id,
     modifiedById: context.token?.id,
   });
@@ -61,7 +61,7 @@ export const publishGuidanceGroup = async (
     if (created && !created.hasErrors()) {
       // Deactivate all previous versions
       await VersionedGuidanceGroup.deactivateAll(reference, context, guidanceGroup.id);
-      
+
       // Set this version as active (in case deactivateAll affected it)
       created.active = true;
       await created.update(context, true);
@@ -141,26 +141,9 @@ const generateGuidanceVersion = async (
   guidance: Guidance,
   versionedGuidanceGroupId: number,
 ): Promise<boolean> => {
-  const reference = 'generateGuidanceVersion';
 
   if (!guidance.id) {
     throw new Error('Cannot publish unsaved Guidance');
-  }
-
-  // Get the tags for this guidance
-  const tags = await Tag.findByGuidanceId(reference, context, guidance.id);
-  
-  // For each tag, create a VersionedGuidance entry
-  // Each tag gets its own VersionedGuidance record pointing to the same guidanceText
-  const tagsToVersion = tags && tags.length > 0 ? tags : [];
-  
-  if (tagsToVersion.length === 0) {
-    // Guidance must have tags
-    context.logger.error(
-      prepareObjectForLogs({ guidanceId: guidance.id }), 
-      'Cannot publish guidance without tags - guidance must be associated with at least one tag'
-    );
-    return false;
   }
 
   try {
@@ -169,7 +152,7 @@ const generateGuidanceVersion = async (
       versionedGuidanceGroupId: versionedGuidanceGroupId,
       guidanceId: guidance.id,
       guidanceText: guidance.guidanceText,
-      tagId: tagsToVersion[0].id, // Use first tag as the tagId field
+      tagId: guidance.tagId,
       createdById: guidance.createdById,
       created: guidance.created,
       modifiedById: guidance.modifiedById,
@@ -182,11 +165,6 @@ const generateGuidanceVersion = async (
       const msg = `Unable to create versioned guidance for guidance: ${guidance.id}`;
       context.logger.error(prepareObjectForLogs(created), msg);
       return false;
-    }
-
-    // Add all tags to the versioned guidance tags table
-    for (const tagToAdd of tagsToVersion) {
-      await tagToAdd.addToVersionedGuidance(context, created.id);
     }
 
     return true;
@@ -202,14 +180,14 @@ export const markGuidanceGroupAsDirty = async (
   guidanceGroupId: number,
 ): Promise<void> => {
   const reference = 'markGuidanceGroupAsDirty';
-  
+
   try {
     const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
-    
+
     if (guidanceGroup) {
       // Only mark as dirty if there's an active version
       const activeVersion = await VersionedGuidanceGroup.findActiveByGuidanceGroupId(reference, context, guidanceGroupId);
-      
+
       if (activeVersion) {
         guidanceGroup.isDirty = true;
         await guidanceGroup.update(context, true);

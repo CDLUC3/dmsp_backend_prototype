@@ -2,6 +2,7 @@ import { Resolvers } from "../types";
 import { MyContext } from "../context";
 import { Guidance } from "../models/Guidance";
 import { GuidanceGroup } from "../models/GuidanceGroup";
+import { User } from "../models/User";
 import { Tag } from "../models/Tag";
 import { hasPermissionOnGuidanceGroup, markGuidanceGroupAsDirty } from "../services/guidanceService";
 import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError } from "../utils/graphQLErrors";
@@ -23,7 +24,7 @@ export const resolvers: Resolvers = {
         }
 
         // Admins with permission: full access
-        if (isAdmin(requester) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
+        if (isAdmin(requester) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           return await Guidance.findByGuidanceGroupId(reference, context, guidanceGroupId);
         }
 
@@ -54,7 +55,7 @@ export const resolvers: Resolvers = {
         }
 
         // Admins with permission: full access
-        if (isAdmin(requester) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
+        if (isAdmin(requester) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
@@ -84,15 +85,16 @@ export const resolvers: Resolvers = {
     // Add a new Guidance item
     addGuidance: async (
       _,
-      { input: { guidanceGroupId, guidanceText, tags } },
+      { input: { guidanceGroupId, guidanceText, tagId } },
       context: MyContext
     ): Promise<Guidance> => {
       const reference = 'addGuidance resolver';
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           const guidance = new Guidance({
             guidanceGroupId,
             guidanceText,
+            tagId,
             createdById: context.token.id,
             modifiedById: context.token.id,
           });
@@ -106,34 +108,6 @@ export const resolvers: Resolvers = {
               guidance.addError('general', 'Unable to create the guidance');
             }
             return guidance;
-          }
-
-          // Add tags if provided
-          if (tags && tags.length > 0) {
-            for (const tagInput of tags) {
-              let tag: Tag;
-              if (tagInput.id) {
-                tag = await Tag.findById(reference, context, tagInput.id);
-              } else if (tagInput.name) {
-                const existingTags = await Tag.findBySlug(reference, context, tagInput.slug);
-                tag = existingTags && existingTags.length > 0 ? existingTags[0] : null;
-
-                if (!tag) {
-                  // Create new tag
-                  tag = new Tag({
-                    name: tagInput.name,
-                    description: tagInput.description,
-                    createdById: context.token.id,
-                    modifiedById: context.token.id,
-                  });
-                  tag = await tag.create(context);
-                }
-              }
-
-              if (tag?.id) {
-                await tag.addToGuidance(context, newGuidance.id);
-              }
-            }
           }
 
           // Mark the guidance group as dirty
@@ -154,21 +128,21 @@ export const resolvers: Resolvers = {
     // Update an existing Guidance item
     updateGuidance: async (
       _,
-      { input: { guidanceId, guidanceText, tags } },
+      { input: { guidanceId, guidanceText, tagId } },
       context: MyContext
     ): Promise<Guidance> => {
       const reference = 'updateGuidance resolver';
       const guidance = await Guidance.findById(reference, context, guidanceId);
       const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
 
           // Update the fields
           if (guidanceText !== undefined) guidance.guidanceText = guidanceText;
-
+          guidance.tagId = tagId; // the schema requires tagId to be provided so it will never be undefined
           guidance.modifiedById = context.token.id;
 
           // Save the updates
@@ -179,41 +153,6 @@ export const resolvers: Resolvers = {
               guidance.addError('general', 'Unable to update the guidance');
             }
             return guidance;
-          }
-
-          // Update tags if provided
-          if (tags !== undefined) {
-            // Remove existing tags
-            const existingTags = await Tag.findByGuidanceId(reference, context, guidanceId);
-            for (const existingTag of existingTags) {
-              await existingTag.removeFromGuidance(context, guidanceId);
-            }
-
-            // Add new tags
-            for (const tagInput of tags) {
-              let tag: Tag;
-              if (tagInput.id) {
-                tag = await Tag.findById(reference, context, tagInput.id);
-              } else if (tagInput.name) {
-                const existingTags = await Tag.findBySlug(reference, context, tagInput.slug);
-                tag = existingTags && existingTags.length > 0 ? existingTags[0] : null;
-
-                if (!tag) {
-                  // Create new tag
-                  tag = new Tag({
-                    name: tagInput.name,
-                    description: tagInput.description,
-                    createdById: context.token.id,
-                    modifiedById: context.token.id,
-                  });
-                  tag = await tag.create(context);
-                }
-              }
-
-              if (tag?.id) {
-                await tag.addToGuidance(context, guidanceId);
-              }
-            }
           }
 
           // Mark the guidance group as dirty
@@ -241,15 +180,9 @@ export const resolvers: Resolvers = {
       const guidance = await Guidance.findById(reference, context, guidanceId);
       const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)){
+        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           if (!guidance) {
             throw NotFoundError('Guidance not found');
-          }
-
-          // Remove tag associations for this guidance before deleting it
-          const existingTags = await Tag.findByGuidanceId(reference, context, guidanceId);
-          for (const existingTag of existingTags) {
-            await existingTag.removeFromGuidance(context, guidanceId);
           }
 
           const guidanceGroupId = guidance.guidanceGroupId;
@@ -281,9 +214,9 @@ export const resolvers: Resolvers = {
     guidanceGroup: async (parent: Guidance, _, context: MyContext): Promise<GuidanceGroup> => {
       return await GuidanceGroup.findById('Chained Guidance.guidanceGroup', context, parent.guidanceGroupId);
     },
-    // Chained resolver to fetch the Tags for this Guidance
-    tags: async (parent: Guidance, _, context: MyContext): Promise<Tag[]> => {
-      return await Tag.findByGuidanceId('Chained Guidance.tags', context, parent.id);
+    // Chained resolver to fetch the Tag info for guidance's tagId
+    tag: async (parent: Guidance, _, context: MyContext): Promise<Tag> => {
+      return await Tag.findById('Chained Guidance.tags', context, parent.tagId);
     },
     created: (parent: Guidance) => {
       return normaliseDateTime(parent.created);
@@ -291,5 +224,12 @@ export const resolvers: Resolvers = {
     modified: (parent: Guidance) => {
       return normaliseDateTime(parent.modified);
     },
-  }
+    // Resolver to get the user who last modified this guidance
+    modifiedBy: async (parent: Guidance, _, context: MyContext): Promise<User | null> => {
+      if (parent?.modifiedById) {
+        return await User.findById('Guidance user resolver', context, parent.modifiedById);
+      }
+      return null;
+    },
+  },
 };

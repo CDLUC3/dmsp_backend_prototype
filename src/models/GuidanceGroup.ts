@@ -5,6 +5,7 @@ import { Guidance } from "./Guidance";
 export class GuidanceGroup extends MySqlModel {
   public affiliationId: string;
   public name: string;
+  public description?: string;
   public isDirty: boolean;
   public bestPractice: boolean;
   public optionalSubset: boolean;
@@ -19,6 +20,7 @@ export class GuidanceGroup extends MySqlModel {
 
     this.affiliationId = options.affiliationId;
     this.name = options.name;
+    this.description = options.description;
     this.isDirty = options.isDirty ?? false;
     this.bestPractice = options.bestPractice ?? false;
     this.optionalSubset = options.optionalSubset ?? false;
@@ -47,7 +49,7 @@ export class GuidanceGroup extends MySqlModel {
   async create(context: MyContext): Promise<GuidanceGroup> {
     // Check for existing guidance group with same affiliationId + name
     const existing = await GuidanceGroup.findByName('GuidanceGroup.create', context, this.name, this.affiliationId);
-    
+
     if (existing) {
       this.addError('general', 'A guidance group with this name already exists for this organization');
       return new GuidanceGroup(this);

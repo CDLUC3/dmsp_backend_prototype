@@ -87,6 +87,7 @@ export class Repository extends MySqlModel {
       this.uri = `${DEFAULT_DMPTOOL_REPOSITORY_URL}${randomHex(6)}`;
     }
 
+    this.prepForSave();
     // First make sure the record is valid
     if (await this.isValid()) {
       let current = await Repository.findByURI(reference, context, this.uri);
@@ -112,6 +113,7 @@ export class Repository extends MySqlModel {
   async update(context: MyContext, noTouch = false): Promise<Repository> {
     const id = this.id;
 
+    this.prepForSave();
     if (await this.isValid()) {
       if (id) {
         await Repository.update(context, this.tableName, this, 'Repository.update', ['researchDomains'], noTouch);
@@ -141,40 +143,6 @@ export class Repository extends MySqlModel {
       }
     }
     return null;
-  }
-
-  // Add this Repository to a ProjectOutput
-  async addToProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
-    const reference = 'Repository.addToProjectOutput';
-    let sql = 'INSERT INTO projectOutputRepositories (repositoryId, projectOutputId, createdById,';
-    sql += 'modifiedById) VALUES (?, ?, ?, ?)';
-    const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), projectOutputId?.toString(), userId, userId];
-    const results = await Repository.query(context, sql, vals, reference);
-
-    if (!results) {
-      const payload = { researchDomainId: this.id, projectOutputId };
-      const msg = 'Unable to add the repository to the project output';
-      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
-      return false;
-    }
-    return true;
-  }
-
-  // Remove this Repository from a ProjectOutput
-  async removeFromProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
-    const reference = 'Repository.removeFromProjectOutput';
-    const sql = 'DELETE FROM projectOutputRepositories WHERE repositoryId = ? AND projectOutputId = ?';
-    const vals = [this.id?.toString(), projectOutputId?.toString()];
-    const results = await Repository.query(context, sql, vals, reference);
-
-    if (!results) {
-      const payload = { researchDomainId: this.id, projectOutputId };
-      const msg = 'Unable to remove the repository from the project output';
-      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
-      return false;
-    }
-    return true;
   }
 
   // Search for Repositories
@@ -280,25 +248,6 @@ export class Repository extends MySqlModel {
     const joinClause = 'INNER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
     const whereClause = 'WHERE rrd.researchDomainId = ?';
     const vals = [researchDomainId?.toString()];
-    const results = await Repository.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    // No need to reinitialize all of the results to objects here because they're just search results
-    if (Array.isArray(results) && results.length !== 0){
-      return results.map((res) => Repository.processResult(res))
-    }
-    return [];
-  }
-
-  // Fetch all of the Repositories associated with a ProjectOutput
-  static async findByProjectOutputId(
-    reference: string,
-    context: MyContext,
-    projectOutputId: number
-  ): Promise<Repository[]> {
-    const sql = 'SELECT r.* FROM repositories r';
-    const joinClause = 'INNER JOIN projectOutputRepositories por ON r.id = por.repositoryId';
-    const whereClause = 'WHERE por.projectOutputId = ?';
-    const vals = [projectOutputId?.toString()];
-
     const results = await Repository.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
     // No need to reinitialize all of the results to objects here because they're just search results
     if (Array.isArray(results) && results.length !== 0){

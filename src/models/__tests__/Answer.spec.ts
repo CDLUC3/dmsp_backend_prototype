@@ -2,6 +2,9 @@ import casual from "casual";
 import { buildMockContextWithToken } from "../../__mocks__/context";
 import { Answer } from "../Answer";
 import { logger } from "../../logger";
+import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
+import { Question } from "../Question";
+import { removeNullAndUndefinedFromJSON } from "../../utils/helpers";
 
 jest.mock('../../context.ts');
 
@@ -24,7 +27,7 @@ describe('Answer', () => {
     planId: casual.integer(1, 9999),
     versionedQuestionId: casual.integer(1, 9999),
     versionedSectionId: casual.integer(1, 9999),
-    json: "{\"answer\":\"California\"}"
+    json: "{\"type\":\"textArea\",\"answer\":\"California\"}"
   }
   beforeEach(() => {
     answer = new Answer(answerData);
@@ -81,7 +84,7 @@ describe('findBy Queries', () => {
       planId: casual.integer(1, 9999),
       versionedQuestionId: casual.integer(1, 9999),
       versionedSectionId: casual.integer(1, 9999),
-      json: casual.sentences(3),
+      json: `{"type":"textArea","answer":"${casual.sentences(3)}"}`,
     });
   });
 
@@ -192,7 +195,7 @@ describe('update', () => {
       planId: casual.integer(1, 9999),
       versionedQuestionId: casual.integer(1, 9999),
       versionedSectionId: casual.integer(1, 9999),
-      json: "{\"answer\":\"California\"}"
+      json: "{\"type\":\"textArea\",\"answer\":\"California\"}"
     })
   });
 
@@ -249,7 +252,7 @@ describe('create', () => {
       planId: casual.integer(1, 9999),
       versionedQuestionId: casual.integer(1, 9999),
       versionedSectionId: casual.integer(1, 9999),
-      json: "{\"answer\":\"California\"}"
+      json: "{\"type\":\"textArea\",\"answer\":\"California\"}"
     });
   });
 
@@ -311,7 +314,7 @@ describe('delete', () => {
       planId: casual.integer(1, 9999),
       versionedQuestionId: casual.integer(1, 9999),
       versionedSectionId: casual.integer(1, 9999),
-      json: "{\"answer\":\"California\"}"
+      json: "{\"type\":\"textArea\",\"answer\":\"California\"}"
     });
   })
 
@@ -340,5 +343,116 @@ describe('delete', () => {
     const result = await answer.delete(context);
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Answer);
+  });
+});
+
+describe('ResearchOutputTable Answer', () => {
+  let answer;
+
+  const json = {
+    type: 'researchOutputTable',
+    meta: { schemaVersion: CURRENT_SCHEMA_VERSION },
+    columnHeadings: ['Title', 'Output Type', 'Initial Access Level', 'Anticipated Release',
+                     'Byte Size', 'Data Flags', 'Repository Selector', 'License Selector'],
+    columns: [
+      {
+        type: 'text',
+        answer: 'My Research Output',
+        meta: { schemaVersion: CURRENT_SCHEMA_VERSION }
+      },
+      {
+        type: 'selectBox',
+        answer: 'dataset',
+        meta: { schemaVersion: CURRENT_SCHEMA_VERSION }
+      },
+      {
+        type: 'selectBox',
+        answer: "open",
+        meta: { schemaVersion: CURRENT_SCHEMA_VERSION }
+      },
+      {
+        type: 'date',
+        answer: "2027-01-01",
+        meta: { schemaVersion: CURRENT_SCHEMA_VERSION }
+      },
+      {
+        type: 'numberWithContext',
+        answer: { value: 100, context: "kb" },
+        meta: { schemaVersion: CURRENT_SCHEMA_VERSION }
+      },
+      {
+        type: 'checkBoxes',
+        answer: ["sensitive", "personal"],
+        meta: { schemaVersion: CURRENT_SCHEMA_VERSION }
+      },
+      {
+        type: 'repositorySearch',
+        answer: [
+          { label: 'Repository 1', value: 'https://repository1.example.com' },
+          { label: 'Repository 5', value: 'https://repository5.example.com' },
+        ],
+        meta: { schemaVersion: CURRENT_SCHEMA_VERSION }
+      },
+      {
+        type: 'licenseSearch',
+        answer: { label: 'CC0 1.0', value: 'http://license.example.com/zero/1.0/' },
+        meta: { schemaVersion: CURRENT_SCHEMA_VERSION }
+      }
+    ]
+  };
+  const answerData = {
+    planId: casual.integer(1, 9),
+    versionedSectionId: casual.integer(1, 9),
+    versionedQuestionId: casual.integer(1, 9),
+    json: JSON.stringify(json)
+  }
+  beforeEach(() => {
+    answer = new Answer(answerData);
+  });
+
+  it('should initialize options as expected', () => {
+    expect(answer.json).toEqual(answerData.json);
+  });
+
+  it('should call removeNullAndUndefinedFromJSON and set json as a string', () => {
+    const parsedJSON = removeNullAndUndefinedFromJSON(answerData.json);
+    expect(parsedJSON).toEqual(answerData.json);
+    expect(answer.json).toEqual(parsedJSON);
+    expect(typeof answer.json).toBe('string');
+  });
+
+  it('should add an error if removeNullAndUndefinedFromJSON fails', () => {
+    const invalidJSON = '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"invalidVersion"';
+    const q = new Question({ ...answerData, json: invalidJSON });
+    expect(q.errors['json']).toBeTruthy();
+    expect(q.errors['json'].includes('Invalid JSON format')).toBe(true);
+  });
+
+  it('should not be valid if the JSON is missing', async () => {
+    answer.json = null;
+    expect(await answer.isValid()).toBe(false);
+    expect(answer.errors['json']).toBeTruthy();
+    expect(answer.errors['json']).toEqual('Answer JSON can\'t be blank');
+    answer.json = answerData.json; // Reset to valid JSON
+  });
+
+  it('should not be valid if the JSON is for an unknown question type', async () => {
+    answer.json = `{"type":"unknownType","meta":{"schemaVersion":"${CURRENT_SCHEMA_VERSION}"}}`;
+    expect(await answer.isValid()).toBe(false);
+    expect(answer.errors['json']).toBeTruthy();
+    expect(answer.errors['json'].includes('Unknown answer type')).toBe(true);
+    answer.json = answerData.json; // Reset to valid JSON
+  });
+
+  it('should not be valid if Zod parse fails', async () => {
+    answer.json = `{"type":"textArea","answer":["foo","bar"]}`;
+    expect(await answer.isValid()).toBe(false);
+    expect(answer.errors['json']).toBeTruthy();
+    expect(answer.errors['json'].includes('answer')).toBe(true);
+    answer.json = answerData.json; // Reset to valid JSON
+  });
+
+  it('should return true when calling isValid', async () => {
+    expect(await answer.isValid()).toBe(true);
   });
 });

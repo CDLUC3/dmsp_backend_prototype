@@ -1,6 +1,4 @@
 # DMSP Backend Prototype
-
-# dmsp_frontend_prototype app
 ![Apollo server](https://img.shields.io/badge/@apollo/server-v4.10-blue)
 ![Node.js](https://img.shields.io/badge/Node.js-v21.6-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
@@ -39,22 +37,24 @@
 
 ## Introduction
 
-This system is an [Apollo Server](https://www.apollographql.com/docs/apollo-server/) that support [GraphQL](https://graphql.org) interactions.
+This system is an [Apollo Server](https://www.apollographql.com/docs/apollo-server/) that supports [GraphQL](https://graphql.org) interactions.
 
-The primary purpose of this system is to be the backend for the [corresponding DMP Tool's nextJS based user interface](https://github.com/CDLUC3/dmsp_frontend_prototype?tab=readme-ov-file#running-the-app).
+The primary purpose of this system is to be the backend for the [corresponding nextJS based user interface](https://github.com/CDLUC3/dmsp_frontend_prototype?tab=readme-ov-file#running-the-app).
 
-It has been decoupled from that system though in order to facilitate its use beyond the DMP Tool. For example if a University wants to develop an in-house integration, they can use the authentication endpoints to authenticate their users and interact with both templates and data management plans directly.
+It has been decoupled from that system to facilitate its use beyond the DMP Tool user interface. For example if a University wants to develop an in-house integration, they can use the authentication endpoints to authenticate their users and interact with templates, guidance and data management plans directly.
 
-GraphQL makes these types of integrations easier than a standard REST API.
+GraphQL makes these types of integrations easier than a standard REST API. GraphQL allows the calling system to specify exactly what fields it wants when it queries the system and what they want to create or update.
+
+It also works with the [DMP Tool narrative generator](https://github.com/CDLUC3/dmptool-narrative-generator) which converts DMPs into various formats for download (e.g. PDF, DOCX, CSV, JSON, etc.) 
 
 ## Features
 
 Our Apollo server consists of:
 - Authentication: Endpoints that can be used to verify a user's identity and provision tokens that can then be used to access data.
-- Data Sources: Code used to communicate with local databases, external APIs, caches and file systems
 - GraphQL Schemas: The definition of our Graph including types, queries and mutations
 - Resolvers: The code that processes incoming queries and uses the available data sources to generate the response
-- Mocks: Stub or placeholder data that can be returned when a resolver has not yet been developed
+- Models: The code that interacts with the data sources to perform CRUD operations
+- Data Sources: Code used to communicate with local databases, external APIs, caches and file systems
 
 ### Security
 
@@ -174,19 +174,22 @@ flowchart LR;
 ## Getting Started
 
 ### Prerequisites
-- Node.js v21.6.0 or higher
-- npm v10.2.0 or higher
-- Docker Desktop -- Docker Desktop gives you Docker Engine, Docker CLI client, and Docker Compose
+- Node.js v22.15 or higher
+- npm v11.3.0 or higher
+- docker v28.0 or higher 
 
 ### Installation
 - Clone this repository to your local machine
 - Create your dotenv file the `cp ./.env.example ./.env`
-- Update the new `.env` file if necessary (make sure it has no references to MYSQL unless you want to override the docker-compose db setings)
+- Update the new `.env` file if necessary (make sure it has no references to MYSQL unless you want to override the docker-compose db settings)
 - Run `docker-compose build` to build the container
 - Once the build has completed start the container with: `docker-compose up`
-- In a separate tab run `docker-compose exec apollo bash ./data-migrations/database-init.sh` to create the database and build the `dataMigrations` table which will be used to track which data migrations have been run.
-- Then run `docker-compose exec apollo bash ./data-migrations/process.sh` to build out the remaining database tables and seed them with sample data
-- Visit `http://localhost:4000/graphql` to load the Apollo server explorer and verify that the system is running.
+- In a separate tab run `docker-compose exec apollo bash ./data-migrations/dynamo-init.sh` to create the DynamoDB table.
+- Then run `docker-compose exec apollo bash ./data-migrations/process.sh local` to build the MySQL database and seed them with sample data
+- Once the application has finished loading, visit `http://localhost:4000/graphql` to load the Apollo server explorer and verify that the system is running.
+
+The Docker container includes a local MySQL database, Redis cache, DynamoDB table and the nodeJS Apollo server application.
+
 
 ### Running the app
 
@@ -195,6 +198,8 @@ Once the application is installed and the database has been initialized you can 
 This will startup a docker container that consists of a local Redis cache, a MariaDB database, and the Apollo server node.js application.
 
 Once the container is up and running you can visit `http://localhost:4000/graphql` to load the Apollo server explorer and verify that the system is running. For an overview of how the explorer works, please refer to the offical [docs for the GraphOS Studio Explorer](https://www.apollographql.com/docs/graphos/explorer/)
+
+You will need to authenticate in a separate browser window to use most of the GraphQL queries and mutations available in the Apollo explorer window. The easiest way to do this is to clone the [corresponding nextJS based user interface](https://github.com/CDLUC3/dmsp_frontend_prototype?tab=readme-ov-file#running-the-app) and run the DMP Tool UI application in a separate browser window and login to the system. Once you login and establish an access token cookie, you can run queries and mutations in the Apollo explorer window.
 
 ### Building for production
 
@@ -206,7 +211,7 @@ If you plan on deploying to the AWS cloud, you can refer to the [corresponding A
 
 ### Managing the databases
 
-The system has a DynamoDB Table and a MySQL database. Please note that the Docker container must be running to execute any of these commands!
+The system has a DynamoDB Table and a MySQL database. Please note that the Docker container must be running to execute any queries or commands to manipulate the database!
 
 You can run AWS CLI commands to interact with the DynamoDB table or MySQL commands to interact with that database by using `docker-compose exec`.
 
@@ -219,17 +224,25 @@ You can run AWS CLI commands to interact with the DynamoDB table or MySQL comman
 **Running Database Migrations**
 This system manages the database schema via SQL files located in the `./data-migrations` folder.
 
-- While the Docker container is up and running, just run `docker-compose exec apollo bash ./data-migrations/process.sh` in a seperate terminal window. This script will create both the database and the `dataMigrations` table if they do not yet exist.
+You should only place SQL scripts that manipulate the database schema in this directory. For example `CREATE TABLE`, `ALTER TABLE`, etc. 
 
-When you run `process.sh` the script checks each SQL file located in the `./data-migrations/` folder sequentially by the date/time prefix (e.g. `2025-04-18-1235-run-me.sql` is checked after `2025-04-17-1200-run-me.sql`).
+Any scripts that manipulate data directly, for example `UPDATE table SET field = 'value'` should be placed in the `./data-migrations/local-only`. These files will be run only in the local development environment.`
 
-It queries the `dataMigrations` table to see if the file has already been run. If it has not, it executes the SQL within the file and then records the file name in the `dataMigrations` table so that it does not get run again.
+The database contains a `dataMigrations` table which records the name of every migration file that has been run. When you run `docker-compose exec apollo bash ./data-migrations/process.sh`, it will examine every SQL file in the `./data-migrations` folder (and `local-only` if you include the `local` argument when running the script) and check to see if it has been run already by querying the `dataMigrations` table. If the file is not present it will be run and its name added to the table after the script finishes. 
+
+To run process files in the `./data-migrations/local-only` you should add the `local` argument `bash ./data-migrations/process.sh local`
+
+The system also has several Stored Procedures it uses to run related works matching processes. To see the stored procedures you can run 
+```sql
+SHOW PROCEDURE STATUS WHERE Db = 'dmptool';
+
+SHOW CREATE PROCEDURE batch_update_related_works;
+SHOW CREATE PROCEDURE create_related_works_staging_tables;
+```
 
 #### Dropping all of the MySQL tables in the local database
 
-In the event that you want to delete all of the tables and data from your database and rebuild a clean database you can run: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh`
-
-You may find that you receive an error that the `dataMigrations` table already exists when running the `process.sh` script. If so, restart the container and try again.
+In the event that you want to delete all tables and data from your database and rebuild a clean database you can run: `docker-compose exec apollo bash ./data-migrations/nuke-db.sh`
 
 #### Connecting to an AWS RDS instance
 
@@ -244,7 +257,7 @@ The development, stage and production environments use AWS RDS to host the MySQL
 
 You can interact with the Apollo server from your external system by submitting requests to any of the server's GraphQL queries or mutations.
 
-Please review the latest [GraphQL Schema files](https://github.com/CDLUC3/dmsp_backend_prototype/tree/main/src/schemas) for a list of the the up-to-date data types, queries and mutations available.
+Please review the latest [GraphQL Schema files](https://github.com/CDLUC3/dmsp_backend_prototype/tree/main/src/schemas) for a list of the up-to-date data types, queries and mutations available.
 
 Here is an example call to fetch the list of collaborators for a DMP template:
 ```ts
@@ -407,14 +420,22 @@ You can also run `npm run generate` on this repository to generate the `src/type
 ## Development
 
 The local development environment is encapsulated within a docker container. To build and run the development Docker containers:
-- `docker-compose build`
-- `docker-compose up`
+- `docker compose build`
+- `docker compose up`
 To stop the docker container, run:
-`docker-compose down`
+`docker compose down`
 Run the following to check that your container is up:
 `docker container ls -a`
 To run bash commands within the container (e.g. to run DB migrations):
-`docker-compose exec apollo bash path/to/script`
+`docker compose exec apollo bash path/to/script`
+
+To run the linter: `npm run lint`
+To ensure the Typescript compiles `npm run compile`
+To build the auto-generated `src/types.ts` file from the GraphQL schemas: `npm run generate` 
+To run the full set of tests (docker env must be running): `npm run test`
+To run the tests (without a running DB): `npm run test-no-db`
+To run the Trivy security scans: `npm run trivy-all`
+
 
 ### Data Models
 
@@ -583,7 +604,13 @@ You should try to add unit tests any time you add or modify a file! To do so, fi
 
 Resolver tests make use of mocks to simulate interaction with datasources. These mocks can be found in `src/models/__mocks__`. By using these mocks we are able to perform end-to-end integration testing.
 
-To run the unit tests `npm run test`
+The RelatedWorks data source includes tests that must connect to the local MySQL database to verify that the stored procedures are working properly. This means that tests can be run in 2 modes.
+
+To run the unit tests, including the ones that interact with the DB, you must have the docker container running and then run `npm run test`
+
+To run the unit tests without the ones that interact with the DB you can run `np run test-no-db`.
+
+The codebase used Husky to execute pre-commit hooks that will run the Linter, unit Tests, Trivy security scans and will also compile the code. Note that it runs `npm run test-no-db`, so the docker environment does not need to be running when you commit changes to git.
 
 ### Connect to ECS instance
 
