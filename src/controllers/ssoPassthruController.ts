@@ -49,8 +49,11 @@ export const ssoPassthruController = async (req: Request, res: Response) => {
     // Return a Forbidden code
     if (isNullOrUndefined(affilDomain)
       || isNullOrUndefined(affiliation)
-      || affiliation.uri !== affilDomain.affiliationId ) {
-      context.logger.error(prepareObjectForLogs({ email, entityId }), 'SSO Passthrough 403 error');
+      || affiliation?.uri !== affilDomain?.affiliationId ) {
+      context.logger.error(
+        prepareObjectForLogs({ email, entityId, uri: affiliation?.uri, id: affilDomain?.affiliationId }),
+        'SSO Passthrough 403 error'
+      );
       res.status(403).json({ success: false, message: 'SSO is not available at this time.' });
     }
 
