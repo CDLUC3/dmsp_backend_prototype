@@ -37,8 +37,8 @@ export const ssoPassthruController = async (req: Request, res: Response) => {
 
     context.logger.debug(
       prepareObjectForLogs({
-        domain: affilDomain.emailDomain,
-        domainAffiliationId: affilDomain.affiliationId,
+        domain: affilDomain?.emailDomain,
+        domainAffiliationId: affilDomain?.affiliationId,
         affiliationURI: affiliation?.uri,
         affiliationId: affiliation?.id,
       }),
@@ -78,6 +78,6 @@ export const ssoPassthruController = async (req: Request, res: Response) => {
 
   } catch (err) {
     context.logger.error(prepareObjectForLogs({ email, entityId, err }), 'SSO Passthrough 500 error');
-    res.status(500).json({ success: false, message: 'Internal server error.' });
+    res.status(500).json({ success: false, message: `Internal server error. ${err?.message}` });
   }
 }
