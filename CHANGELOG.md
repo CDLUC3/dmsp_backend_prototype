@@ -4,6 +4,8 @@
 - Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
 - Added a `findByEmailDomain` endpoint to the `Affiliation` model
 
+### Fixed
+- Fixed a small data-migration issue related to using the wrong createdById
 ============================================================================
 prior to 2025-12-05
 
