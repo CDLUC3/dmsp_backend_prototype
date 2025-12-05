@@ -4,6 +4,9 @@
 - Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
 - Added a `findByEmailDomain` endpoint to the `Affiliation` model
 
+### Fixed
+- Fixed a small data-migration issue related to using the wrong createdById
+- Updated `auth0/node-jws Improperly Verifies HMAC Signature` due to vulnerability
 ============================================================================
 prior to 2025-12-05
 
