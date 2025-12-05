@@ -39,7 +39,7 @@
     "@apollo/utils.keyvadapter": "3.1.0",
     "@aws-sdk/client-dynamodb": "3.922.0",
     "@aws-sdk/client-ssm": "3.896.0",
-    "@aws-sdk/util-dynamodb": "3.891.0",
+    "@aws-sdk/util-dynamodb": "3.943.0",
     "@dmptool/types": "1.2.5",
     "@elastic/ecs-pino-format": "1.5.0",
     "@graphql-tools/merge": "9.1.2",
