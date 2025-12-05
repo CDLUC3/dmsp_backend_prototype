@@ -127,7 +127,7 @@ export class OrcidAPI extends RESTDataSource {
         context.logger.debug(`ORCID ${orcid} not found in ORCID API (404)`);
         return null;
       }
-      
+
       context.logger.error(prepareObjectForLogs({ orcid, err }), 'Error calling OrcidAPI getPerson');
       throw(err);
     }

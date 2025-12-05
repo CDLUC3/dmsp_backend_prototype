@@ -10,6 +10,7 @@ describe('GuidanceGroup', () => {
   const guidanceGroupData = {
     affiliationId: 'https://ror.org/123456',
     name: 'Test Guidance Group',
+    description: 'This is a test guidance group',
     bestPractice: false,
     optionalSubset: false,
   }
@@ -22,6 +23,7 @@ describe('GuidanceGroup', () => {
     expect(guidanceGroup.id).toBeFalsy();
     expect(guidanceGroup.affiliationId).toEqual(guidanceGroupData.affiliationId);
     expect(guidanceGroup.name).toEqual(guidanceGroupData.name);
+    expect(guidanceGroup.description).toEqual(guidanceGroupData.description);
     expect(guidanceGroup.bestPractice).toEqual(guidanceGroupData.bestPractice);
     expect(guidanceGroup.optionalSubset).toEqual(guidanceGroupData.optionalSubset);
     expect(guidanceGroup.isDirty).toBe(false);
