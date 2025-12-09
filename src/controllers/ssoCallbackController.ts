@@ -35,7 +35,7 @@ export const ssoCallbackController = async (req: Request, res: Response) => {
     //       If not, add the SSO JWT to the cookies as `dmps`
     //               then redirect the user to the signup page
 
-    res.status(301).location(`/`).send();
+    res.status(302).location(`/`).send();
 
   } catch (err) {
     context.logger.error(prepareObjectForLogs({ email, entityId }), 'SSO Passthrough 500 error');

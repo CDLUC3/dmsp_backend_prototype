@@ -76,7 +76,7 @@ export const ssoPassthruController = async (req: Request, res: Response) => {
     // const targetURL = `/sso/callback/${sessionId}`;
 
     // Redirect the user to our Shibboleth SP
-    res.status(301)
+    res.status(302)
        .location(`${shibURL}?target=${encodeURIComponent(targetURL)}&entityId=${entityId}`)
        .send();
 
