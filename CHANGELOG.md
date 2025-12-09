@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added 
+- Added `slug` to tags array returned in `PlanSectionOverview`
 - Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
 - Added a `findByEmailDomain` endpoint to the `Affiliation` model
 
