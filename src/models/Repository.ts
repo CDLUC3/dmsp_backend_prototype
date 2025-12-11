@@ -220,7 +220,7 @@ export class Repository extends MySqlModel {
     }
 
     const sqlStatement = 'SELECT r.* FROM repositories r ' +
-      'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
+                          'LEFT OUTER JOIN repositoryResearchDomains rrd ON r.id = rrd.repositoryId';
 
     const response: PaginatedQueryResults<Repository> = await Repository.queryWithPagination(
       context,
