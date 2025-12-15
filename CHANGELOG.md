@@ -5,6 +5,13 @@
 - Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
 - Added a `findByEmailDomain` endpoint to the `Affiliation` model
 
+### Updated
+- Fixed data-migration script: `2025-12-01-1512-add-recommended-licenses.sql` [#552]
+- Updated `RepositoryType` enum to cover all the ones in our db [#552]
+- Update Repository model to get all unique repositoryTypes from db and return that info [#552]
+- Updated repository resolver to return `subject areas` [#552]
+- Fixed auth0/node-jws vulnerability [#552]
+
 ### Fixed
 - Fixed a small data-migration issue related to using the wrong createdById
 - Updated `auth0/node-jws Improperly Verifies HMAC Signature` due to vulnerability
