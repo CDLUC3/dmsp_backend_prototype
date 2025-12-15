@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added 
+- Added `slug` to tags array returned in `PlanSectionOverview`
 - Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
 - Added a `findByEmailDomain` endpoint to the `Affiliation` model
 
@@ -10,6 +11,10 @@
 - Update Repository model to get all unique repositoryTypes from db and return that info [#552]
 - Updated repository resolver to return `subject areas` [#552]
 - Fixed auth0/node-jws vulnerability [#552]
+
+### Fixed
+- Fixed a small data-migration issue related to using the wrong createdById
+- Updated `auth0/node-jws Improperly Verifies HMAC Signature` due to vulnerability
 ============================================================================
 prior to 2025-12-05
 
