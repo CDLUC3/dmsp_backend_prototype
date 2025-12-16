@@ -1,6 +1,9 @@
 # DMP Tool Apollo Server Change Log
 
-### Added 
+### Updated
+- Related works stored procedures so that they can insert existing related works and ground truth data.
+
+### Added
 - Added `slug` to tags array returned in `PlanSectionOverview`
 - Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
 - Added a `findByEmailDomain` endpoint to the `Affiliation` model
@@ -13,6 +16,7 @@
 - Fixed auth0/node-jws vulnerability [#552]
 
 ### Fixed
+- Fixed relatedWorksTables.spec.ts tests.
 - Fixed a small data-migration issue related to using the wrong createdById
 - Updated `auth0/node-jws Improperly Verifies HMAC Signature` due to vulnerability
 ============================================================================
