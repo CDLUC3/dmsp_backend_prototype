@@ -1,6 +1,7 @@
 # DMP Tool Apollo Server Change Log
 
 ### Updated
+- Updated tests and isValid functions on `Question`, `VersionedQuestion` and `Answer` to work with new version of `@dmptool/types` v2.0
 - Related works stored procedures so that they can insert existing related works and ground truth data.
 
 ### Added
