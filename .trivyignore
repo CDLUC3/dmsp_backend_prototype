@@ -1,0 +1,5 @@
+
+# Vulnerability in qs which is only used by supertest to run tests
+# There is an open PR to patch supertest. Keep an eye on it: https://github.com/forwardemail/supertest/pull/873
+CVE-2025-15284
+
