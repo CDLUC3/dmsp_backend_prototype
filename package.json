@@ -33,6 +33,9 @@
     "node": ">=21.6.2",
     "npm": ">=10.2.4"
   },
+  "overrides": {
+    "qs": "6.14.1"
+  },
   "dependencies": {
     "@apollo/datasource-rest": "6.4.1",
     "@apollo/server": "4.12.2",
