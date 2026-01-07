@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { Cache } from '../cache';
 import Keyv from 'keyv';
 import KeyvRedis from '@keyv/redis';

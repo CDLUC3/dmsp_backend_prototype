@@ -23,6 +23,11 @@ services:
       - dmptool-network
     volumes:
       - ./docker/mysql:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+      start_period: 5s
 
   dynamodb:
     image: "amazon/dynamodb-local:latest"
@@ -52,9 +57,12 @@ services:
   apollo:
     container_name: apollo-server
     depends_on:
-      - mysql
-      - dynamodb
-      - redis
+      mysql:
+        condition: service_healthy
+      dynamodb:
+        condition: service_started
+      redis:
+        condition: service_started
     build:
       context: .
       dockerfile: Dockerfile
@@ -87,3 +95,5 @@ services:
       - "CACHE_CONNECT_TIMEOUT=10000"
     volumes:
       - ".:/app"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

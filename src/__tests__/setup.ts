@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals';
+
 jest.mock('../logger', () => {
   const original = jest.requireActual('../logger') as typeof import('../logger');
 
