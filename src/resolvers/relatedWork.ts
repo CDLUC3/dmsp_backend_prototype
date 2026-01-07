@@ -1,5 +1,5 @@
 import { prepareObjectForLogs } from '../logger';
-import { Resolvers } from '../types';
+import { OpenSearchWork, Resolvers } from '../types';
 import { MyContext } from '../context';
 import { isAuthorized } from '../services/authService';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
@@ -9,7 +9,12 @@ import { Project } from '../models/Project';
 import { hasPermissionOnProject } from '../services/projectService';
 import { Plan } from '../models/Plan';
 import { isNullOrUndefined, normaliseDateTime } from '../utils/helpers';
-import { PaginationOptionsForCursors, PaginationOptionsForOffsets, PaginationType } from '../types/general';
+import {
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType
+} from '../types/general';
+import { findWorkByIdentifier } from "../services/openSearchService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -74,6 +79,30 @@ export const resolvers: Resolvers = {
               );
             }
           }
+        }
+        throw context?.token ? ForbiddenError() : AuthenticationError();
+      } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
+        context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
+        throw InternalServerError();
+      }
+    },
+
+    // Get all the related works for a plan
+    async findWorkByIdentifier(
+      _,
+      { doi },
+      context: MyContext,
+    ): Promise<OpenSearchWork[]> {
+      const reference = 'findWorkByIdentifier resolver';
+
+      try {
+        if (isAuthorized(context.token)) {
+          return await findWorkByIdentifier(
+            context,
+            doi,
+          );
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

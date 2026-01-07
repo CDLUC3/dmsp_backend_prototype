@@ -15,6 +15,11 @@ export const typeDefs = gql`
       paginationOptions: PaginationOptions
       filterOptions: RelatedWorksFilterOptions
     ): RelatedWorkSearchResults
+
+    "Find a work with an identifier"
+    findWorkByIdentifier(
+      doi: String
+    ): [OpenSearchWork]
   }
 
   extend type Mutation {
@@ -122,6 +127,21 @@ export const typeDefs = gql`
     sourceName: String!
     "The URL for the source of the work"
     sourceUrl: String
+    "The timestamp when the Object was created"
+    created: String!
+    "The user who created the Object. Null if the work was automatically found"
+    createdById: Int
+    "The timestamp when the Object was last modified"
+    modified: String!
+    "The user who last modified the Object"
+    modifiedById: Int
+  }
+
+  type Work {
+    "The unique identifier for the Object"
+    id: Int!
+    "The Digital Object Identifier (DOI) of the work"
+    doi: String!
     "The timestamp when the Object was created"
     created: String!
     "The user who created the Object. Null if the work was automatically found"
@@ -375,5 +395,40 @@ export const typeDefs = gql`
     name: String
     "The ROR ID of the funder"
     ror: String
+  }
+
+  "Work metadata returned by the OpenSearch works-index"
+  type OpenSearchWork {
+    "The DOI of the work"
+    doi: String!
+    "The title of the work"
+    title: String
+    "The abstract of the work"
+    abstractText: String
+    "The type of the work"
+    workType: WorkType!
+    "The date that the work was published YYYY-MM-DD"
+    publicationDate: String
+    "The date that the work was updated YYYY-MM-DD"
+    updatedDate: String
+    "The venue where the work was published, e.g. IEEE Transactions on Software Engineering, Zenodo etc"
+    publicationVenue: String
+    "The unique institutions of the authors of the work"
+    institutions: [Institution!]!
+    "The authors of the work"
+    authors: [Author!]!
+    "The funders of the work"
+    funders: [Funder!]!
+    "The awards that funded the work"
+    awards: [Award!]!
+    "The source of the work"
+    source: OpenSearchWorkSource!
+  }
+
+  type OpenSearchWorkSource {
+    "The name of the source where the work was found"
+    name: String!
+    "The URL for the source of the work"
+    url: String
   }
 `;
