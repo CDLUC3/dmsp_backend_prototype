@@ -102,8 +102,8 @@ describe('archiveTemplate mutation', () => {
     // Mock the update to return the unpublished template
     const updatedTemplate = new Template({
       ...template,
-      latestPublishVersion: '',
-      latestPublishDate: '',
+      latestPublishVersion: null,
+      latestPublishDate: null,
       isDirty: true,
     });
     jest.spyOn(Template.prototype, 'update').mockResolvedValue(updatedTemplate);

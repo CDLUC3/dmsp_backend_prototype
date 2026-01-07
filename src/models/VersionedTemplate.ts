@@ -302,7 +302,11 @@ export class VersionedTemplate extends MySqlModel {
                 'JOIN versionedTemplates AS vt ON p.versionedTemplateId = vt.id ' +
                 'WHERE vt.templateId = ? LIMIT 1';
     const results = await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
-    return Array.isArray(results) && results.length > 0;
+    // Explicitly handle null or non-array results
+    if (!results || !Array.isArray(results)) {
+      return false;
+    }
+    return results.length > 0;
   }
 
   // Deactivate all versionedTemplates for the given template

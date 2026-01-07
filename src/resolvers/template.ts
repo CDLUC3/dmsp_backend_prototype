@@ -195,10 +195,11 @@ export const resolvers: Resolvers = {
       try {
         if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
-          // Need to create an instance of template in order to access the "update" or "delete" method below
-          const templateInstance = new Template({ ...template });
 
-          if (templateInstance) {
+          if (template) {
+            // Need to create an instance of template in order to access the "update" or "delete" method below
+            const templateInstance = new Template({ ...template });
+
             if (await hasPermissionOnTemplate(context, template)) {
               // Check if there are any plans associated with any versionedTemplate for this template
               const hasPlans = await VersionedTemplate.hasAssociatedPlans(reference, context, templateId);
