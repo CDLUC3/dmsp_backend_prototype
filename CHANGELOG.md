@@ -1,8 +1,15 @@
 # DMP Tool Apollo Server Change Log
 
 ### Added
+- Added `hasAssociatedPlans` method to VersionedTemplate model to check if any plans are associated with a template
+- Added `deactivateByTemplateId` method to VersionedTemplate model to deactivate all versionedTemplates for a given template
+- Added unit tests for `hasAssociatedPlans` and `deactivateByTemplateId` methods in VersionedTemplate model
+- Added unit tests for `archiveTemplate` resolver in template resolver
 - Added a `allProjects` resolver to return all projects relevant to the Admin
 - Added a new `test-no-db` script to `package.json` to run all tests but the ones that need a running docker env
+
+### Updated
+- Updated `archiveTemplate` resolver to check for associated plans before deleting: if plans exist, unpublishes the template by clearing `latestPublishVersion` and `latestPublishDate`, setting `isDirty` to true, and deactivating all related versionedTemplates; if no plans exist, deletes the template as before
 - Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids
 - Added a data migration SQL file to create the stored procedures needed by the related works matching process
 - Added seed SQL files for use in local dev environments
