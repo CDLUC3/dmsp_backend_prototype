@@ -4,6 +4,7 @@ import { Client, ClientOptions } from '@opensearch-project/opensearch';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { generalConfig } from '../config/generalConfig';
+import { prepareObjectForLogs } from '../logger';
 
 export interface OpenSearchConfig {
   host: string;
@@ -40,7 +41,7 @@ interface OpenSearchWorkRecord {
   source: { name: string; url?: string };
 }
 
-function convertWorkToCamelCase (work: OpenSearchWorkRecord): OpenSearchWork {
+function convertWorkToCamelCase(work: OpenSearchWorkRecord): OpenSearchWork {
   return {
     doi: work.doi,
     title: work.title,
@@ -49,26 +50,30 @@ function convertWorkToCamelCase (work: OpenSearchWorkRecord): OpenSearchWork {
     publicationDate: work.publication_date,
     updatedDate: work.updated_date,
     publicationVenue: work.publication_venue,
-    institutions: work.institutions?.map((inst) => ({
-      name: inst.name,
-      ror: inst.ror,
-    })) || [],
-    authors: work.authors?.map((auth) => ({
-      orcid: auth.orcid,
-      firstInitial: auth.first_initial,
-      givenName: auth.given_name,
-      middleInitials: auth.middle_initials,
-      middleNames: auth.middle_names,
-      surname: auth.surname,
-      full: auth.full,
-    })) || [],
-    funders: work.funders?.map((funder) => ({
-      name: funder.name,
-      ror: funder.ror,
-    })) || [],
-    awards: work.awards?.map((award) => ({
-      awardId: award.award_id,
-    })) || [],
+    institutions:
+      work.institutions?.map((inst) => ({
+        name: inst.name,
+        ror: inst.ror,
+      })) || [],
+    authors:
+      work.authors?.map((auth) => ({
+        orcid: auth.orcid,
+        firstInitial: auth.first_initial,
+        givenName: auth.given_name,
+        middleInitials: auth.middle_initials,
+        middleNames: auth.middle_names,
+        surname: auth.surname,
+        full: auth.full,
+      })) || [],
+    funders:
+      work.funders?.map((funder) => ({
+        name: funder.name,
+        ror: funder.ror,
+      })) || [],
+    awards:
+      work.awards?.map((award) => ({
+        awardId: award.award_id,
+      })) || [],
     source: {
       name: work.source.name,
       url: work.source.url,
@@ -109,8 +114,11 @@ function createOpenSearchClient(config: OpenSearchConfig): Client {
 
 export const findWorkByIdentifier = async (context: MyContext, doi: string): Promise<OpenSearchWork[]> => {
   const client = createOpenSearchClient(generalConfig.opensearch as OpenSearchConfig);
+
+  // Fetch data from OpenSearch
+  let response;
   try {
-    const res = await client.search({
+    response = await client.search({
       index: 'works-index',
       body: {
         query: {
@@ -120,7 +128,13 @@ export const findWorkByIdentifier = async (context: MyContext, doi: string): Pro
         },
       },
     });
+  } catch (err) {
+    context.logger.error(`Error fetching works with DOI ${doi} from OpenSearch domain: ${err.message}`);
+    throw err;
+  }
 
+  // Convert response from snake case to camel case
+  try {
     // Could be cleaner to use the 'camelcase-keys' package, however, it is only
     // provided as an esm module
     //
@@ -129,10 +143,11 @@ export const findWorkByIdentifier = async (context: MyContext, doi: string): Pro
     //  deep: true,
     // }) as OpenSearchWork;
 
-    return res.body.hits.hits.map((hit) => {
+    return response.body.hits.hits.map((hit) => {
       return convertWorkToCamelCase(hit._source as OpenSearchWorkRecord);
     });
   } catch (err) {
-    console.error(err);
+    context.logger.error(prepareObjectForLogs({ err }), `Error converting OpenSearch response: ${err.message}`);
+    throw err;
   }
 };
