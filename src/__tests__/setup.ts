@@ -67,7 +67,8 @@ jest.mock('../config/orcidConfig', () => ({
   OrcidConfig: {
     clientId: "DUMMY_CLIENT_ID",
     clientSecret: "DUMMY_CLIENT_SECRET",
-    baseUrl: "http://sandbox.orcid.org",
+    baseApiUrl: "http://pub.sandbox.orcid.org/",
+    baseAuthUrl: "http://sandbox.orcid.org/",
     authPath: "/oauth/token",
     apiPath: "/v3.0/",
     readOnlyScope: "/read-public",

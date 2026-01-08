@@ -39,7 +39,7 @@ export const generateVersionSnapshot = async (
   const modified = latestVersion.modified;
 
   if (isNullOrUndefined(dmpId) || isNullOrUndefined(modified)) {
-    context.logger.error(prepareObjectForLogs(latestVersion), `${reference} - invalid DMP JSON`);
+    context.logger.error(prepareObjectForLogs({ dmpId: latestVersion?.dmp_id?.identifier }), `${reference} - invalid DMP JSON`);
     return "Invalid DMP Id or Modified Timestamp";
   }
 
@@ -70,11 +70,11 @@ export const addVersion = async (
   const currentVersion = await latestVersion(context, plan, reference);
   if (currentVersion) {
     // There is already a latest version, so we are creating a snapshot before making changes
-    context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - creating a version snapshot`);
+    context.logger.debug(prepareObjectForLogs({ plan }), `${reference} - creating a version snapshot`);
     await generateVersionSnapshot(context, currentVersion, reference);
   } else {
     // This is the first version of the plan
-    context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - creating an initial version`);
+    context.logger.debug(prepareObjectForLogs({ plan }), `${reference} - creating an initial version`);
     const newPlanVersion = await createDMP(context, plan.dmpId, commonStandard);
     if (!newPlanVersion) {
       context.logger.error(prepareObjectForLogs({ plan }), `${reference} - Unable to create an initial version snapshot`);
@@ -111,7 +111,7 @@ export const updateVersion = async (
     }
 
     // Now update the latest version
-    context.logger.debug(prepareObjectForLogs(commonStandard), `${reference} - updating Plan Version`);
+    context.logger.debug(prepareObjectForLogs({ plan }), `${reference} - updating Plan Version`);
     const updatedVersion = await updateDMP(context, commonStandard);
     if (!updatedVersion) {
       const msg = 'Unable to update the version snapshot';

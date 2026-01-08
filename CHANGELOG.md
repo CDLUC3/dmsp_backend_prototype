@@ -21,13 +21,14 @@ prior to 2025-12-05
 
 ### Updated
 - Added `description` column to `guidanceGroups` and `versionedGuidanceGroups` db tables [#528]
-  - Added `description` to `GuidanceGroup` model
-  - Fixed issue in `VersionedGuidance` model's `create` method to ignore `tagId` [#528]
-  - Added `user` chained resolver to `guidance` resolver [#528]
-  - Added `description` to `guidanceGroup` resolver, and added both `user` and `versionedGuidanceGroup` chained resolvers [#528]
-  - Updated `guidanceService` to get current tags for the guidance to add them to versionedGuidanceTags table [#528]
+- Added `description` to `GuidanceGroup` model
+- Fixed issue in `VersionedGuidance` model's `create` method to ignore `tagId` [#528]
+- Added `user` chained resolver to `guidance` resolver [#528]
+- Added `description` to `guidanceGroup` resolver, and added both `user` and `versionedGuidanceGroup` chained resolvers [#528]
+- Updated `guidanceService` to get current tags for the guidance to add them to versionedGuidanceTags table [#528]
 - Fixed an issue with the the `addProject` resolver not returning errors
 - Updated `planService` to save roles for the default plan member
+- Updated ORCID datasource so that the API and Auth URLs are independent: Removed `ORCID_BASE_URL` and replaced with `ORCID_API_BASE_URL`, `ORCID_AUTH_BASE_URL`
 - Updated the README to reflect recent changes
 - Updated dependencies: `@aws-sdk/client-dynamodb`, `@graphql-tools/merge`, `ts-jest` and `@eslint/js`
 - Updated the `myProjects` resolver to only return the projects the user owns or collaborates on
