@@ -18,7 +18,6 @@ import { resolvers as guidanceGroupResolvers } from './resolvers/guidanceGroup';
 import { resolvers as languageResolvers } from './resolvers/language';
 import { resolvers as licenseResolvers } from './resolvers/license';
 import { resolvers as metadataStandardResolvers } from './resolvers/metadataStandard';
-import { resolvers as outputResolvers } from './resolvers/output';
 import { resolvers as planResolvers } from './resolvers/plan';
 import { resolvers as projectResolvers } from './resolvers/project';
 import { resolvers as questionResolvers } from './resolvers/question';
@@ -27,6 +26,7 @@ import { resolvers as templateResolvers } from './resolvers/template';
 import { resolvers as relatedWorkResolvers } from './resolvers/relatedWork';
 import { resolvers as repositoryResolvers } from './resolvers/repository';
 import { resolvers as researchDomainResolvers } from './resolvers/researchDomain';
+import { resolvers as researchOutputResolvers } from './resolvers/researchOutputTypes';
 import { resolvers as sectionResolvers } from './resolvers/section';
 import { resolvers as superAdminResolvers } from './resolvers/superAdmin';
 import { resolvers as tagResolvers } from './resolvers/tag';
@@ -59,7 +59,6 @@ export const resolvers: IResolvers = mergeResolvers([
   languageResolvers,
   licenseResolvers,
   metadataStandardResolvers,
-  outputResolvers,
   planResolvers,
   projectResolvers,
   questionResolvers,
@@ -67,6 +66,7 @@ export const resolvers: IResolvers = mergeResolvers([
   relatedWorkResolvers,
   repositoryResolvers,
   researchDomainResolvers,
+  researchOutputResolvers,
   templateResolvers,
   sectionResolvers,
   superAdminResolvers,

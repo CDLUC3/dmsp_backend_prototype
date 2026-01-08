@@ -1,6 +1,14 @@
 # DMP Tool Apollo Server Change Log
 
+### Added 
+- Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
+- Added a `findByEmailDomain` endpoint to the `Affiliation` model
+
+============================================================================
+prior to 2025-12-05
+
 ### Added
+- Added local data migrations to set default member role and set the createdById for seed users 
 - Added a `allProjects` resolver to return all projects relevant to the Admin
 - Added a new `test-no-db` script to `package.json` to run all tests but the ones that need a running docker env
 - Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids
@@ -12,6 +20,14 @@
 - Added `slug` to the `Tag` schema
 
 ### Updated
+- Added `description` column to `guidanceGroups` and `versionedGuidanceGroups` db tables [#528]
+- Added `description` to `GuidanceGroup` model
+- Fixed issue in `VersionedGuidance` model's `create` method to ignore `tagId` [#528]
+- Added `user` chained resolver to `guidance` resolver [#528]
+- Added `description` to `guidanceGroup` resolver, and added both `user` and `versionedGuidanceGroup` chained resolvers [#528]
+- Updated `guidanceService` to get current tags for the guidance to add them to versionedGuidanceTags table [#528]
+- Fixed an issue with the the `addProject` resolver not returning errors
+- Updated `planService` to save roles for the default plan member
 - Updated ORCID datasource so that the API and Auth URLs are independent: Removed `ORCID_BASE_URL` and replaced with `ORCID_API_BASE_URL`, `ORCID_AUTH_BASE_URL`
 - Updated the README to reflect recent changes
 - Updated dependencies: `@aws-sdk/client-dynamodb`, `@graphql-tools/merge`, `ts-jest` and `@eslint/js`
@@ -29,7 +45,12 @@
 - Updated `User` model to include the new `oldPasswordHash` field
 
 ### Deleted
+- Removed old `Output` and `OutputType` models and references to them in `Repository`, `MetadataStandard`, `Project` and `Plan` models
+- Removed references to `outputs` from schemas and reslvers
 - Removed the `@types/eslint__js` dependency because `@eslint/jest` includes its own types now
+
+### Fixed
+- Removed the setting of `dmspr` token in the `refreshTokenController` because it was overriding the expiration of that refreshToken to be the same as the default `authToken`
 
 ============================================================================
 prior to 2025-10-21

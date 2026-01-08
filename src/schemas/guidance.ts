@@ -17,7 +17,7 @@ export const typeDefs = gql`
     removeGuidance(guidanceId: Int!): Guidance!
   }
 
-  "A Guidance item contains guidance text and associated tags"
+  "A Guidance item contains guidance text and associated tag id"
   type Guidance {
     "The unique identifier for the Object"
     id: Int
@@ -36,11 +36,17 @@ export const typeDefs = gql`
     guidanceGroupId: Int!
     "The guidance text content"
     guidanceText: String
-    "The Tags associated with this Guidance"
-    tags: [Tag!]
+    "The tag id associated with this Guidance"
+    tagId: Int
 
     "The GuidanceGroup this Guidance belongs to"
     guidanceGroup: GuidanceGroup
+
+    "The Tag associated with the guidance"
+    tag: Tag
+
+    "User who modified the guidance last"
+    modifiedBy: User
   }
 
   "A collection of errors related to Guidance"
@@ -50,7 +56,7 @@ export const typeDefs = gql`
 
     guidanceGroupId: String
     guidanceText: String
-    tags: String
+    tagId: String
   }
 
   "Input for adding a new Guidance item"
@@ -60,7 +66,7 @@ export const typeDefs = gql`
     "The guidance text content"
     guidanceText: String
     "The Tags associated with this Guidance"
-    tags: [TagInput!]
+    tagId: Int
   }
 
   "Input for updating a Guidance item"
@@ -70,6 +76,6 @@ export const typeDefs = gql`
     "The guidance text content"
     guidanceText: String
     "The Tags associated with this Guidance"
-    tags: [TagInput!]
+    tagId: Int
   }
 `;

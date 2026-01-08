@@ -9,6 +9,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
   public optionalSubset: boolean;
   public active: boolean;
   public name: string;
+  public description?: string;
   public versionedGuidance?: VersionedGuidance[];
 
   private static tableName = 'versionedGuidanceGroups';
@@ -22,6 +23,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
     this.optionalSubset = options.optionalSubset ?? false;
     this.active = options.active ?? false;
     this.name = options.name;
+    this.description = options.description;
     this.versionedGuidance = options.versionedGuidance;
   }
 
@@ -46,7 +48,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
-      
+
       // Save the record and then fetch it
       const newId = await VersionedGuidanceGroup.insert(context, VersionedGuidanceGroup.tableName, this, 'VersionedGuidanceGroup.create', ['versionedGuidance']);
       return await VersionedGuidanceGroup.findById('VersionedGuidanceGroup.create', context, newId);
@@ -62,7 +64,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
     if (await this.isValid()) {
       if (id) {
         this.prepForSave();
-        
+
         await VersionedGuidanceGroup.update(context, VersionedGuidanceGroup.tableName, this, 'VersionedGuidanceGroup.update', ['versionedGuidance'], noTouch);
         return await VersionedGuidanceGroup.findById('VersionedGuidanceGroup.update', context, id);
       }

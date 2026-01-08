@@ -4,6 +4,7 @@ import { MySqlModel } from "./MySqlModel";
 export class Guidance extends MySqlModel {
   public guidanceGroupId: number;
   public guidanceText?: string;
+  public tagId: number;
 
   private static tableName = 'guidance';
 
@@ -12,6 +13,7 @@ export class Guidance extends MySqlModel {
 
     this.guidanceGroupId = options.guidanceGroupId;
     this.guidanceText = options.guidanceText;
+    this.tagId = options.tagId;
   }
 
   // Check that the Guidance data contains the required fields
@@ -36,7 +38,7 @@ export class Guidance extends MySqlModel {
       this.prepForSave();
 
       // Save the record and then fetch it
-      const newId = await Guidance.insert(context, Guidance.tableName, this, 'Guidance.create', ['tags']);
+      const newId = await Guidance.insert(context, Guidance.tableName, this, 'Guidance.create');
       const response = await Guidance.findById('Guidance.create', context, newId);
       return response;
     }
@@ -52,7 +54,7 @@ export class Guidance extends MySqlModel {
       if (id) {
         this.prepForSave();
 
-        await Guidance.update(context, Guidance.tableName, this, 'Guidance.update', ['tags'], noTouch);
+        await Guidance.update(context, Guidance.tableName, this, 'Guidance.update', [], noTouch);
         return await Guidance.findById('Guidance.update', context, id);
       }
       // This guidance has never been saved before so we cannot update it!

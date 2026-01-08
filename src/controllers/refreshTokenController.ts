@@ -22,7 +22,6 @@ export const refreshTokenController = async (req: Request, res: Response) => {
       if (newAccessToken) {
         // Set the new access token
         setTokenCookie(res, 'dmspt', newAccessToken);
-        setTokenCookie(res, 'dmspr', refreshToken);
 
         // Send the new access token to the client
         res.status(200).json({ success: true, message: 'ok' });
