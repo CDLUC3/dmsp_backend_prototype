@@ -63,7 +63,7 @@
     "http-cache-semantics": "4.2.0",
     "ioredis": "5.7.0",
     "is-ci": "4.1.0",
-    "jsonwebtoken": "9.0.2",
+    "jsonwebtoken": "9.0.3",
     "keyv": "5.5.2",
     "mysql2": "3.15.0",
     "nodemailer": "7.0.11",
