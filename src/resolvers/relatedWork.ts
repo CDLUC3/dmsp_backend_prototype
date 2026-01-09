@@ -1,20 +1,31 @@
-import { prepareObjectForLogs } from '../logger';
-import { OpenSearchWork, Resolvers } from '../types';
-import { MyContext } from '../context';
-import { isAuthorized } from '../services/authService';
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors';
-import { RelatedWorkSearchResults, RelatedWorkSearchResult, RelatedWork, Work, WorkVersion } from '../models/RelatedWork';
-import { GraphQLError } from 'graphql';
-import { Project } from '../models/Project';
-import { hasPermissionOnProject } from '../services/projectService';
-import { Plan } from '../models/Plan';
-import { isNullOrUndefined, normaliseDateTime } from '../utils/helpers';
+import {prepareObjectForLogs} from '../logger';
+import {Resolvers} from '../types';
+import {MyContext} from '../context';
+import {isAuthorized} from '../services/authService';
+import {
+  AuthenticationError,
+  ForbiddenError,
+  InternalServerError,
+  NotFoundError
+} from '../utils/graphQLErrors';
+import {
+  RelatedWork,
+  RelatedWorkSearchResult,
+  RelatedWorkSearchResults,
+  Work,
+  WorkVersion
+} from '../models/RelatedWork';
+import {GraphQLError} from 'graphql';
+import {Project} from '../models/Project';
+import {hasPermissionOnProject} from '../services/projectService';
+import {Plan} from '../models/Plan';
+import {isNullOrUndefined, normaliseDateTime} from '../utils/helpers';
 import {
   PaginationOptionsForCursors,
   PaginationOptionsForOffsets,
   PaginationType
 } from '../types/general';
-import { findWorkByIdentifier } from "../services/openSearchService";
+import {openSearchFindWorkByIdentifier} from "../services/openSearchService";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -37,6 +48,7 @@ export const resolvers: Resolvers = {
               reference,
               context,
               projectId,
+              undefined,
               undefined,
               filterOptions,
               pagOpts,
@@ -74,6 +86,7 @@ export const resolvers: Resolvers = {
                 context,
                 plan.projectId,
                 planId,
+                undefined,
                 filterOptions,
                 pagOpts,
               );
@@ -92,17 +105,75 @@ export const resolvers: Resolvers = {
     // Get all the related works for a plan
     async findWorkByIdentifier(
       _,
-      { doi },
+      { planId, doi, paginationOptions },
       context: MyContext,
-    ): Promise<OpenSearchWork[]> {
+    ): Promise<RelatedWorkSearchResults<RelatedWorkSearchResult>> {
       const reference = 'findWorkByIdentifier resolver';
 
       try {
         if (isAuthorized(context.token)) {
-          return await findWorkByIdentifier(
-            context,
-            doi,
-          );
+          const plan = await Plan.findById(reference, context, planId);
+          if (plan) {
+            const pagOpts =
+              !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+                ? (paginationOptions as PaginationOptionsForOffsets)
+                : ({ ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors);
+            const project = await Project.findById(reference, context, plan.projectId);
+            if (project && (await hasPermissionOnProject(context, project))) {
+              // Check to see if we can find this work in our database first
+              const existingWorks = await RelatedWorkSearchResult.search(reference, context, plan.projectId, planId, doi, {}, pagOpts);
+              if (existingWorks.items.length > 0) {
+                return existingWorks;
+              }
+
+              // Otherwise lookup the work in OpenSearch
+              const openSearchWorks =  await openSearchFindWorkByIdentifier(
+                context,
+                doi,
+              );
+
+              // Convert OpenSearch results to related works
+              return {
+                items: openSearchWorks.map((os)=> {
+                  return {
+                    id: null,
+                    planId: planId,
+                    workVersion: {
+                      id: null,
+                      work: {
+                        id: null,
+                        doi: os.doi,
+                      },
+                      hash: os.hash,
+                      workType: os.workType,
+                      publicationDate: os.publicationDate,
+                      title: os.title,
+                      abstractText: os.abstractText,
+                      authors: os.authors,
+                      institutions: os.institutions,
+                      funders: os.funders,
+                      awards: os.awards,
+                      publicationVenue: os.publicationVenue,
+                      sourceName: os.source.name,
+                      sourceUrl: os.source.url,
+                    },
+                    sourceType: "USER_ADDED",
+                    status: "PENDING",
+                    modified: null,
+                  } as RelatedWorkSearchResult
+                }),
+                limit: 20,
+                totalCount: openSearchWorks.length,
+                currentOffset: 0,
+                hasNextPage: false,
+                hasPreviousPage: false,
+                availableSortFields: [],
+                statusOnlyCount: 0,
+                workTypeCounts: [],
+                confidenceCounts: [],
+              };
+            }
+          }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {

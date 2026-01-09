@@ -22,6 +22,7 @@ interface OpenSearchWorkRecord {
   doi: string;
   title?: string;
   abstract_text?: string;
+  hash: string;
   work_type: string;
   publication_date?: string;
   updated_date?: string;
@@ -46,6 +47,7 @@ function convertWorkToCamelCase(work: OpenSearchWorkRecord): OpenSearchWork {
     doi: work.doi,
     title: work.title,
     abstractText: work.abstract_text,
+    hash: work.hash,
     workType: work.work_type as WorkType,
     publicationDate: work.publication_date,
     updatedDate: work.updated_date,
@@ -112,10 +114,14 @@ function createOpenSearchClient(config: OpenSearchConfig): Client {
   return new Client(clientOptions);
 }
 
-export const findWorkByIdentifier = async (context: MyContext, doi: string): Promise<OpenSearchWork[]> => {
-  const client = createOpenSearchClient(generalConfig.opensearch as OpenSearchConfig);
+export const openSearchFindWorkByIdentifier = async (context: MyContext, doi: string | null | undefined): Promise<OpenSearchWork[]> => {
+  // If doi is empty, whitespace, null or undefined return no results
+  if (!doi?.trim()) {
+    return [];
+  }
 
   // Fetch data from OpenSearch
+  const client = createOpenSearchClient(generalConfig.opensearch as OpenSearchConfig);
   let response;
   try {
     response = await client.search({

@@ -520,6 +520,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
     context: MyContext,
     projectId: number,
     planId?: number,
+    doi?: string,
     filterOptions: RelatedWorksFilterOptions = {},
     options: PaginationOptions = RelatedWorkSearchResult.getDefaultPaginationOptions(),
   ): Promise<RelatedWorkSearchResults<RelatedWorkSearchResult>> {
@@ -572,6 +573,10 @@ export class RelatedWorkSearchResult extends MySqlModel {
     if (!isNullOrUndefined(planId)) {
       whereFilters.push('rw.planId = ?');
       values.push(planId);
+    }
+    if (!isNullOrUndefined(doi)) {
+      whereFilters.push('w.doi = ?');
+      values.push(doi);
     }
     if (!isNullOrUndefined(filterOptions.confidence)) {
       whereFilters.push(
