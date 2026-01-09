@@ -9,7 +9,7 @@ import { OrcidConfig } from "../config/orcidConfig";
 export class Authorizer extends RESTDataSource {
   static #instance: Authorizer;
 
-  override baseURL = OrcidConfig.baseUrl;
+  override baseURL = OrcidConfig.baseAuthUrl;
 
   public oauth2Token: string;
   public scope: string;
@@ -59,7 +59,7 @@ export class Authorizer extends RESTDataSource {
 
 // DataSource that interacts with the ORCID API.
 export class OrcidAPI extends RESTDataSource {
-  override baseURL = OrcidConfig.baseUrl;
+  override baseURL = OrcidConfig.baseApiUrl;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private cache: KeyvAdapter;
