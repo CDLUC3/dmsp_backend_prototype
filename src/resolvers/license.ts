@@ -56,6 +56,12 @@ export const resolvers: Resolvers = {
       try {
         if (isAdmin(context.token)) {
           const newLicense = new License({ name, uri, description, recommended});
+
+          // Only a SuperAdmin can define a default recommended license
+          if (!isSuperAdmin(context.token)) {
+            newLicense.recommended = false;
+          }
+
           const created = await newLicense.create(context);
 
           if (created?.id) {
@@ -89,6 +95,12 @@ export const resolvers: Resolvers = {
           }
 
           const toUpdate = new License({ id: license.id, uri: license.uri, name, description, recommended });
+
+          // Only a SuperAdmin can define a default recommended license, so leave as-is
+          if (!isSuperAdmin(context.token)) {
+            toUpdate.recommended = license.recommended;
+          }
+
           return await toUpdate.update(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();

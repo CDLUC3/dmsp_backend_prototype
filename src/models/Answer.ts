@@ -1,6 +1,10 @@
 import { MyContext } from "../context";
 import { MySqlModel } from "./MySqlModel";
-import { removeNullAndUndefinedFromJSON } from "../utils/helpers";
+import {
+  isNullOrUndefined,
+  removeNullAndUndefinedFromJSON
+} from "../utils/helpers";
+import { AnswerSchemaMap } from "@dmptool/types";
 
 export class Answer extends MySqlModel {
   public planId: number;
@@ -32,6 +36,30 @@ export class Answer extends MySqlModel {
     if (!this.planId) this.addError('planId', 'Plan can\'t be blank');
     if (!this.versionedSectionId) this.addError('versionedSectionId', 'Section can\'t be blank');
     if (!this.versionedQuestionId) this.addError('versionedQuestionId', 'Question can\'t be blank');
+
+    // If json is not null or undefined and the type is in the schema map
+    if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
+      const parsedJSON = JSON.parse(this.json);
+      if (Object.keys(AnswerSchemaMap).includes(parsedJSON['type'])) {
+        // Validate the json against the Zod schema and if valid, set the questionType
+        try {
+          const result = AnswerSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+          if (result && !result.success) {
+            // If there are validation errors, add them to the errors object
+            this.addError('json', result.error.issues?.map(e => `${e.path.join('.')} - ${e.message}`)?.join('; '));
+          }
+        } catch (e) {
+          this.addError('json', e.message);
+        }
+      } else {
+        // If the type is not in the schema map, add an error
+        this.addError('json', `Unknown answer type "${parsedJSON['type']}"`);
+      }
+    } else {
+      if (this.errors['json'] === undefined) {
+        this.addError('json', 'Answer JSON can\'t be blank');
+      }
+    }
 
     return Object.keys(this.errors).length === 0;
   }

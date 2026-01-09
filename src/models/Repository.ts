@@ -8,8 +8,12 @@ import { ResearchDomain } from "./ResearchDomain";
 export const DEFAULT_DMPTOOL_REPOSITORY_URL = 'https://dmptool.org/repositories/';;
 
 export enum RepositoryType {
+  OTHER = 'OTHER',                // A repository that doesn't fit into any of the other categories
+  GOVERNMENTAL = 'GOVERNMENTAL',  // A repository owned and managed by a government entity (e.g. NCBI, NASA)
+  PROJECT_RELATED = 'PROJECT_RELATED', // A repository created to support a specific project or initiative (e.g. Human Genome Project)
   GENERALIST = 'GENERALIST',        // A general purpose repository to store any output type (e.g. Dryad, Zenodo)
   DISCIPLINARY = 'DISCIPLINARY',    // A repository that stores discipline specific output (e.g. genomes, DNA)
+  MULTI_DISCIPLINARY = 'MULTI_DISCIPLINARY', // A repository that accepts any type of dataset, from any discipline. Often used when no disciplinary repository exists.
   INSTITUTIONAL = 'INSTITUTIONAL',  // A repository owned and managed by a specific institution (e.g. UC, Stanford)
 }
 
@@ -75,6 +79,22 @@ export class Repository extends MySqlModel {
     if (repository?.keywords && typeof repository.keywords === 'string') {
       repository.keywords = JSON.parse(repository.keywords);
     }
+
+    // Parse and transform repositoryTypes from database format to enum formats replacing lowercase to uppercase and hyphens to underscores
+    if (repository?.repositoryTypes) {
+      let parsed;
+      if (typeof repository.repositoryTypes === 'string') {
+        parsed = JSON.parse(repository.repositoryTypes);
+      } else if (Array.isArray(repository.repositoryTypes)) {
+        parsed = repository.repositoryTypes;
+      }
+
+      if (Array.isArray(parsed)) {
+        repository.repositoryTypes = parsed.map((type: string) =>
+          type.toUpperCase().replace(/-/g, '_') as RepositoryType
+        );
+      }
+    }
     return repository;
   }
 
@@ -87,6 +107,7 @@ export class Repository extends MySqlModel {
       this.uri = `${DEFAULT_DMPTOOL_REPOSITORY_URL}${randomHex(6)}`;
     }
 
+    this.prepForSave();
     // First make sure the record is valid
     if (await this.isValid()) {
       let current = await Repository.findByURI(reference, context, this.uri);
@@ -112,6 +133,7 @@ export class Repository extends MySqlModel {
   async update(context: MyContext, noTouch = false): Promise<Repository> {
     const id = this.id;
 
+    this.prepForSave();
     if (await this.isValid()) {
       if (id) {
         await Repository.update(context, this.tableName, this, 'Repository.update', ['researchDomains'], noTouch);
@@ -143,46 +165,13 @@ export class Repository extends MySqlModel {
     return null;
   }
 
-  // Add this Repository to a ProjectOutput
-  async addToProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
-    const reference = 'Repository.addToProjectOutput';
-    let sql = 'INSERT INTO projectOutputRepositories (repositoryId, projectOutputId, createdById,';
-    sql += 'modifiedById) VALUES (?, ?, ?, ?)';
-    const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), projectOutputId?.toString(), userId, userId];
-    const results = await Repository.query(context, sql, vals, reference);
-
-    if (!results) {
-      const payload = { researchDomainId: this.id, projectOutputId };
-      const msg = 'Unable to add the repository to the project output';
-      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
-      return false;
-    }
-    return true;
-  }
-
-  // Remove this Repository from a ProjectOutput
-  async removeFromProjectOutput(context: MyContext, projectOutputId: number): Promise<boolean> {
-    const reference = 'Repository.removeFromProjectOutput';
-    const sql = 'DELETE FROM projectOutputRepositories WHERE repositoryId = ? AND projectOutputId = ?';
-    const vals = [this.id?.toString(), projectOutputId?.toString()];
-    const results = await Repository.query(context, sql, vals, reference);
-
-    if (!results) {
-      const payload = { researchDomainId: this.id, projectOutputId };
-      const msg = 'Unable to remove the repository from the project output';
-      context.logger.error(prepareObjectForLogs(payload), `${reference} - ${msg}`);
-      return false;
-    }
-    return true;
-  }
-
   // Search for Repositories
   static async search(
     reference: string,
     context: MyContext,
     term: string,
     researchDomainId: number,
+    keyword: string,
     repositoryType: RepositoryType,
     options: PaginationOptions = Repository.getDefaultPaginationOptions()
   ): Promise<PaginatedQueryResults<Repository>> {
@@ -198,12 +187,18 @@ export class Repository extends MySqlModel {
     // Handle the incoming repository type
     if (repositoryType) {
       whereFilters.push('JSON_CONTAINS(r.repositoryTypes, ?, \'$\')');
-      values.push(repositoryType);
+      values.push(JSON.stringify(repositoryType.toLowerCase().replace(/_/g, '-')));
     }
     // Handle the incoming research domain
     if (researchDomainId) {
       whereFilters.push('rrd.researchDomainId = ?');
       values.push(researchDomainId.toString());
+    }
+    // Handle the incoming keyword
+    if (keyword) {
+      const searchKeyword = keyword.toLowerCase().trim();
+      whereFilters.push('JSON_CONTAINS(r.keywords, ?, \'$\')'); //use JSON_CONTAINS to search within the JSON array
+      values.push(JSON.stringify(searchKeyword));
     }
 
     // Set the default sort field and order if none was provided
@@ -237,6 +232,11 @@ export class Repository extends MySqlModel {
       reference,
     )
 
+    // Process each repository result to transform repositoryTypes from database format
+    if (response?.items && Array.isArray(response.items)) {
+      response.items = response.items.map((item) => Repository.processResult(new Repository(item)));
+    }
+
     context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
@@ -245,7 +245,7 @@ export class Repository extends MySqlModel {
   static async findById(reference: string, context: MyContext, repositoryId: number): Promise<Repository> {
     const sql = `SELECT * FROM repositories WHERE id = ?`;
     const results = await Repository.query(context, sql, [repositoryId?.toString()], reference);
-    if (Array.isArray(results) && results.length !== 0){
+    if (Array.isArray(results) && results.length !== 0) {
       return Repository.processResult(new Repository(results[0]));
     }
     return null;
@@ -254,7 +254,7 @@ export class Repository extends MySqlModel {
   static async findByURI(reference: string, context: MyContext, uri: string): Promise<Repository> {
     const sql = `SELECT * FROM repositories WHERE uri = ?`;
     const results = await Repository.query(context, sql, [uri], reference);
-    if (Array.isArray(results) && results.length !== 0){
+    if (Array.isArray(results) && results.length !== 0) {
       return Repository.processResult(new Repository(results[0]));
     }
     return null;
@@ -264,7 +264,7 @@ export class Repository extends MySqlModel {
     const sql = `SELECT * FROM repositories WHERE LOWER(name) = ?`;
     const searchTerm = (name ?? '');
     const results = await Repository.query(context, sql, [searchTerm?.toLowerCase()?.trim()], reference);
-    if (Array.isArray(results) && results.length !== 0){
+    if (Array.isArray(results) && results.length !== 0) {
       return Repository.processResult(new Repository(results[0]));
     }
     return null;
@@ -282,27 +282,31 @@ export class Repository extends MySqlModel {
     const vals = [researchDomainId?.toString()];
     const results = await Repository.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
     // No need to reinitialize all of the results to objects here because they're just search results
-    if (Array.isArray(results) && results.length !== 0){
+    if (Array.isArray(results) && results.length !== 0) {
       return results.map((res) => Repository.processResult(res))
     }
     return [];
   }
 
-  // Fetch all of the Repositories associated with a ProjectOutput
-  static async findByProjectOutputId(
+  // Fetch all distinct keywords across all repositories
+  static async findAllDistinctKeywords(
     reference: string,
-    context: MyContext,
-    projectOutputId: number
-  ): Promise<Repository[]> {
-    const sql = 'SELECT r.* FROM repositories r';
-    const joinClause = 'INNER JOIN projectOutputRepositories por ON r.id = por.repositoryId';
-    const whereClause = 'WHERE por.projectOutputId = ?';
-    const vals = [projectOutputId?.toString()];
-
-    const results = await Repository.query(context, `${sql} ${joinClause} ${whereClause}`, vals, reference);
-    // No need to reinitialize all of the results to objects here because they're just search results
-    if (Array.isArray(results) && results.length !== 0){
-      return results.map((res) => Repository.processResult(res))
+    context: MyContext
+  ): Promise<string[]> {
+    const sql = `
+      SELECT DISTINCT jt.keyword
+      FROM repositories
+      CROSS JOIN JSON_TABLE(
+        repositories.keywords,
+        '$[*]' COLUMNS (
+          keyword VARCHAR(255) PATH '$'
+        )
+      ) AS jt
+      ORDER BY jt.keyword
+    `;
+    const results = await Repository.query(context, sql, [], reference);
+    if (Array.isArray(results) && results.length !== 0) {
+      return results.map((row) => row.keyword);
     }
     return [];
   }

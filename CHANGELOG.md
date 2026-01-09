@@ -1,10 +1,37 @@
 # DMP Tool Apollo Server Change Log
 
+### Updated
+- Updated tests and isValid functions on `Question`, `VersionedQuestion` and `Answer` to work with new version of `@dmptool/types` v2.0
+- Related works stored procedures so that they can insert existing related works and ground truth data.
+
 ### Added
 - Added `hasAssociatedPlans` method to VersionedTemplate model to check if any plans are associated with a template
 - Added `deactivateByTemplateId` method to VersionedTemplate model to deactivate all versionedTemplates for a given template
 - Added unit tests for `hasAssociatedPlans` and `deactivateByTemplateId` methods in VersionedTemplate model
 - Added unit tests for `archiveTemplate` resolver in template resolver
+- Added `overrides` section to `package.json` for `qs` since `supertest` is still using old version
+- Added `slug` to tags array returned in `PlanSectionOverview`
+- Added new `ssoPassthruController` and `ssoCallbackController` stub controllers
+- Added a `findByEmailDomain` endpoint to the `Affiliation` model
+
+### Updated
+- Fixed issue with package-lock which was using local `../dmptool/types` instead of `@dmptool/types`
+- Upgrade `express` due to vulnerability in `qs`
+- Fixed data-migration script: `2025-12-01-1512-add-recommended-licenses.sql` [#552]
+- Updated `RepositoryType` enum to cover all the ones in our db [#552]
+- Update Repository model to get all unique repositoryTypes from db and return that info [#552]
+- Updated repository resolver to return `subject areas` [#552]
+- Fixed auth0/node-jws vulnerability [#552]
+
+### Fixed
+- Fixed relatedWorksTables.spec.ts tests.
+- Fixed a small data-migration issue related to using the wrong createdById
+- Updated `auth0/node-jws Improperly Verifies HMAC Signature` due to vulnerability
+============================================================================
+prior to 2025-12-05
+
+### Added
+- Added local data migrations to set default member role and set the createdById for seed users 
 - Added a `allProjects` resolver to return all projects relevant to the Admin
 - Added a new `test-no-db` script to `package.json` to run all tests but the ones that need a running docker env
 - Added a data migration SQL file to drop all existing tables and recreate with `utf8mb4_0900_ai_ci` collation and use of `INT UNSIGNED` for ids
@@ -17,6 +44,14 @@
 
 ### Updated
 - Updated `archiveTemplate` resolver to check for associated plans before deleting: if plans exist, unpublishes the template by clearing `latestPublishVersion` and `latestPublishDate`, setting `isDirty` to true, and deactivating all related versionedTemplates; if no plans exist, deletes the template as before
+- Added `description` column to `guidanceGroups` and `versionedGuidanceGroups` db tables [#528]
+- Added `description` to `GuidanceGroup` model
+- Fixed issue in `VersionedGuidance` model's `create` method to ignore `tagId` [#528]
+- Added `user` chained resolver to `guidance` resolver [#528]
+- Added `description` to `guidanceGroup` resolver, and added both `user` and `versionedGuidanceGroup` chained resolvers [#528]
+- Updated `guidanceService` to get current tags for the guidance to add them to versionedGuidanceTags table [#528]
+- Fixed an issue with the the `addProject` resolver not returning errors
+- Updated `planService` to save roles for the default plan member
 - Updated ORCID datasource so that the API and Auth URLs are independent: Removed `ORCID_BASE_URL` and replaced with `ORCID_API_BASE_URL`, `ORCID_AUTH_BASE_URL`
 - Updated the README to reflect recent changes
 - Updated dependencies: `@aws-sdk/client-dynamodb`, `@graphql-tools/merge`, `ts-jest` and `@eslint/js`
@@ -34,7 +69,12 @@
 - Updated `User` model to include the new `oldPasswordHash` field
 
 ### Deleted
+- Removed old `Output` and `OutputType` models and references to them in `Repository`, `MetadataStandard`, `Project` and `Plan` models
+- Removed references to `outputs` from schemas and reslvers
 - Removed the `@types/eslint__js` dependency because `@eslint/jest` includes its own types now
+
+### Fixed
+- Removed the setting of `dmspr` token in the `refreshTokenController` because it was overriding the expiration of that refreshToken to be the same as the default `authToken`
 
 ============================================================================
 prior to 2025-10-21
