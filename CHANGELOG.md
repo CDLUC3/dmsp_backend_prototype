@@ -324,6 +324,7 @@
 - Removed `ioredis` package
 
 ### Fixed
+- Fixed incorrect `versionPlanAfter` value in `generalConfig.ts`. This was changed while testing versioning for landing page [#365]
 - Fixed an issue in `MySqlModel` where the `query` function was returning a tuple with fields along with the response [#508]
 - Added missing `fast-xml-parser` back so that `re3data-os-populate.ts` can run
 - Fixed `removeProjectFunding`. There were several issues, one of which was not being able to delete a `projectFundings` record without removing it's foreign key dependency in `planFundings` first [#303]
