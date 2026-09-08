@@ -346,6 +346,7 @@
 - Fixed issue with templates not cloning with sections and questions by updating the `addTemplate` mutation to clone from non-versioned template, section and question [#1006]
 
 ### Chore
+- Updated `uuid` to `v14.0.2`, `typescript` to `v6.0.3`, `@aws-sdk/client-dynamodb` to `v3.1127.0`, `@aws-sdk/client-ssm` to `v3.1127.0`, `@aws-sdk/credential-providers` to `3.1127.0`, `@aws-sdk/util-dynamodb` to `v3.996.9`, `eslint` to `v10.10.0`, `globals` to `v17.12.0`, and `nock` to `v14.0.17`
 - Fixed vulnerability issue with `js-yaml` [#293]
 - Added override for `brace-expansion` to `v5.0.8` [#314]
 - Addressed security vulnerability in `nodemailer` and `undici` packages, and added debugging to troubleshoot request feedback failure [#285]
