@@ -8,6 +8,18 @@ import type { // Tell Node.js to compeltely ignore this. line at runtime
 
 export { QuestionConditionActionType, QuestionConditionMatchType, QuestionConditionCondition };
 
+interface QuestionConditionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  conditionType?: QuestionConditionCondition;
+  conditionMatch?: string;
+  groupId: number;
+}
+
 export class QuestionCondition extends MySqlModel {
   public conditionType: QuestionConditionCondition;
   public conditionMatch?: string;
@@ -15,7 +27,7 @@ export class QuestionCondition extends MySqlModel {
 
   private tableName = 'questionConditions';
 
-  constructor(options) {
+  constructor(options: QuestionConditionOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.conditionType = options.conditionType ?? "EQUAL";
@@ -39,7 +51,7 @@ export class QuestionCondition extends MySqlModel {
     if (await this.isValid()) {
       // Save the record and then fetch it
       const newId = await QuestionCondition.insert(context, this.tableName, this, 'QuestionCondition.create');
-      const created = await QuestionCondition.findById('QuestionCondition.create', context, newId);
+      const created = newId ? await QuestionCondition.findById('QuestionCondition.create', context, newId) : null;
       if (created) {
         return new QuestionCondition(created);
       }
@@ -68,14 +80,14 @@ export class QuestionCondition extends MySqlModel {
   }
 
   //Delete QuestionCondition based on the QuestionCondition object's id and return
-  async delete(context: MyContext): Promise<QuestionCondition> {
+  async delete(context: MyContext): Promise<QuestionCondition | null> {
     if (this.id) {
       /*First get the QuestionCondition to be deleted so we can return this info to the user
       since calling 'delete' doesn't return anything*/
       const deleted = await QuestionCondition.findById('QuestionCondition.delete', context, this.id);
 
       const successfullyDeleted = await QuestionCondition.delete(context, this.tableName, this.id, 'QuestionCondition.delete');
-      if (successfullyDeleted) {
+      if (successfullyDeleted && deleted) {
         return new QuestionCondition(deleted);
       } else {
         return null
@@ -85,7 +97,7 @@ export class QuestionCondition extends MySqlModel {
   }
 
   // Fetch a QuestionConditions by it's id
-  static async findById(reference: string, context: MyContext, questionConditionId: number): Promise<QuestionCondition> {
+  static async findById(reference: string, context: MyContext, questionConditionId: number): Promise<QuestionCondition | null> {
     const sql = 'SELECT * FROM questionConditions WHERE id = ?';
     const results = await QuestionCondition.query(context, sql, [questionConditionId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new QuestionCondition(results[0]) : null;

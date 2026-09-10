@@ -1,7 +1,11 @@
+import { ApolloServer, BaseContext } from '@apollo/server';
+import { Response } from 'express';
+import { Logger } from 'pino';
+
 // Healthcheck endpoint for our load balancer.
 // Be sure to call this BEFORE defining CORS settings since our AWS load
 // balancer does not allow us to define headers!
-export function healthcheck(apolloServer, response, logger) {
+export function healthcheck(apolloServer: ApolloServer<BaseContext>, response: Response, logger: Logger) {
   apolloServer.executeOperation({ query: '{ __typename }' })
     .then((data) => {
       if (data.body.kind === 'single') {
@@ -14,8 +18,9 @@ export function healthcheck(apolloServer, response, logger) {
         }
       }
     })
-    .catch((error) => {
-      logger.error(`ERROR: Healthcheck - ${error.message}`);
+    .catch((error: unknown) => {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.error(`ERROR: Healthcheck - ${msg}`);
       response.status(400).send(JSON.stringify(error));
     });
 }

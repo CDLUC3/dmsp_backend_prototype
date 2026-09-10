@@ -25,7 +25,7 @@ export const getValidatedCustomization = async (
   templateCustomizationId: number
 ): Promise<TemplateCustomization> => {
   // Fetch the TemplateCustomization
-  const customization: TemplateCustomization = await TemplateCustomization.findById(
+  const customization: TemplateCustomization | undefined = await TemplateCustomization.findById(
     reference,
     context,
     templateCustomizationId
@@ -35,7 +35,7 @@ export const getValidatedCustomization = async (
   if (!customization) throw NotFoundError();
 
   // Check if the current user has permission to access the Customization
-  if (!(await hasPermissionOnTemplateCustomization(context, customization))) {
+  if (!(hasPermissionOnTemplateCustomization(context, customization))) {
     throw ForbiddenError();
   }
   return customization;
@@ -61,6 +61,7 @@ export const hasPermissionOnTemplateCustomization = (
   if (context.token?.affiliationId === templateCustomization?.affiliationId) {
     return true;
   }
+  return false;
 }
 
 /**
@@ -109,7 +110,7 @@ export const checkForFunderTemplateDrift = async (
   context: MyContext,
   templateCustomization: TemplateCustomization
 ): Promise<TemplateCustomization> => {
-  const currentVersion: VersionedTemplate = await VersionedTemplate.findActiveByTemplateId(
+  const currentVersion: VersionedTemplate | undefined = await VersionedTemplate.findActiveByTemplateId(
     reference,
     context,
     templateCustomization.templateId
@@ -123,7 +124,7 @@ export const checkForFunderTemplateDrift = async (
       'Funder template is no longer available.'
     );
 
-  } else if (templateCustomization.currentVersionedTemplateId !== currentVersion.id) {
+  } else if (templateCustomization.currentVersionedTemplateId !== currentVersion.id && currentVersion.id) {
     // The funder template has changed since the customization was last published
     templateCustomization.currentVersionedTemplateId = currentVersion.id;
     templateCustomization.migrationStatus = TemplateCustomizationMigrationStatus.STALE;

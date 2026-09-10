@@ -3,7 +3,7 @@ import { GraphQLScalarType, Kind } from "graphql";
 // Regex to validate a 32-character hex string
 const MD5_REGEX = /^[a-fA-F0-9]{32}$/;
 
-const parseMd5 = (md5String) => {
+const parseMd5 = (md5String: unknown) => {
   if (typeof md5String === "string" && MD5_REGEX.test(md5String)) {
     return Buffer.from(md5String, "hex");
   }

@@ -1,4 +1,9 @@
-import { Resolvers, CustomizableObjectOwnership } from "../types.js";
+import {
+  Resolvers,
+  CustomizableObjectOwnership,
+  Affiliation as AffiliationGQL,
+  VersionedCustomQuestion as VersionedCustomQuestionGQL,
+} from "../types.js";
 import { MyContext } from "../context.js";
 import { VersionedQuestion } from "../models/VersionedQuestion.js";
 import { VersionedCustomQuestion } from "../models/VersionedCustomQuestion.js";
@@ -8,7 +13,7 @@ import { VersionedQuestionCondition } from "../models/VersionedQuestionCondition
 import { prepareObjectForLogs } from "../logger.js";
 import { isAuthorized } from "../services/authService.js";
 import { GraphQLError } from "graphql";
-import { normaliseDateTime } from "../utils/helpers.js";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers.js";
 import { VersionedTemplate } from "../models/VersionedTemplate.js";
 import { VersionedTemplateCustomization } from "../models/VersionedTemplateCustomization.js";
 import { VersionedQuestionCustomization } from "../models/VersionedQuestionCustomization.js";
@@ -27,6 +32,7 @@ interface PublishedQuestionResult {
   // Type-specific IDs — one will always be present depending on questionType
   versionedQuestionId?: number;  // present when questionType === 'BASE'
   customQuestionId?: number;     // present when questionType === 'CUSTOM'
+  json?: string;                 // present when questionType === 'CUSTOM'
 }
 
 
@@ -38,10 +44,15 @@ export const resolvers: Resolvers = {
       const reference = 'publishedQuestionsWithAnsweredFlag resolver';
       try {
         if (isAuthorized(context.token)) {
-          const [baseQuestions, customQuestions] = await Promise.all([
+          const [baseQuestionsRaw, customQuestionsRaw] = await Promise.all([
             VersionedQuestion.findByVersionedSectionId(reference, context, versionedSectionId),
             VersionedCustomQuestion.findByVersionedSectionIdAndType(reference, context, versionedSectionId, 'BASE')
           ]);
+
+          // Persisted records always have an id; filter defensively so downstream code can
+          // treat `id` as required without further null checks.
+          const baseQuestions = baseQuestionsRaw.filter((q): q is typeof q & { id: number } => !isNullOrUndefined(q.id));
+          const customQuestions = customQuestionsRaw.filter((q): q is typeof q & { id: number } => !isNullOrUndefined(q.id));
 
           const baseIds = baseQuestions.map(q => q.id);
           const customIds = customQuestions.map(q => q.id);
@@ -75,7 +86,7 @@ export const resolvers: Resolvers = {
           for (const q of sortedCustom) {
             const result: PublishedQuestionResult = {
               id: q.id,
-              questionText: q.questionText,
+              questionText: q.questionText ?? '',
               requirementText: q.requirementText,
               guidanceText: q.guidanceText,
               sampleText: q.sampleText,
@@ -119,9 +130,13 @@ export const resolvers: Resolvers = {
       const reference = 'publishedCustomQuestionsWithAnsweredFlag resolver';
       try {
         if (isAuthorized(context.token)) {
-          const questions = await VersionedCustomQuestion.findByVersionedCustomSectionId(
+          const questionsRaw = await VersionedCustomQuestion.findByVersionedCustomSectionId(
             reference, context, versionedCustomSectionId
           );
+
+          // Persisted records always have an id; filter defensively so downstream code can
+          // treat `id` as required without further null checks.
+          const questions = questionsRaw.filter((q): q is typeof q & { id: number } => !isNullOrUndefined(q.id));
 
           const questionIds = questions.map(q => q.id);
           const answers = await Answer.findFilledAnswersByCustomQuestionIds(
@@ -132,7 +147,7 @@ export const resolvers: Resolvers = {
 
           return questions.map(q => ({
             id: q.id,
-            questionText: q.questionText,
+            questionText: q.questionText ?? '',
             requirementText: q.requirementText,
             guidanceText: q.guidanceText,
             sampleText: q.sampleText,
@@ -184,11 +199,14 @@ export const resolvers: Resolvers = {
       }
     },
 
-    publishedCustomQuestion: async (_, { versionedCustomQuestionId }, context: MyContext): Promise<VersionedCustomQuestion> => {
+    publishedCustomQuestion: async (_, { versionedCustomQuestionId }, context: MyContext) => {
       const reference = 'publishedCustomQuestion resolver';
       try {
         if (isAuthorized(context?.token)) {
-          return await VersionedCustomQuestion.findById(reference, context, versionedCustomQuestionId);
+          const versionedCustomQuestion = await VersionedCustomQuestion.findById(
+            reference, context, versionedCustomQuestionId
+          );
+          return versionedCustomQuestion as unknown as VersionedCustomQuestionGQL;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -201,7 +219,7 @@ export const resolvers: Resolvers = {
   },
 
   VersionedCustomQuestion: {
-    ownerAffiliation: async (parent: VersionedCustomQuestion, _, context: MyContext): Promise<Affiliation | null> => {
+    ownerAffiliation: async (parent, _, context: MyContext) => {
       const reference = 'VersionedCustomQuestion.ownerAffiliation resolver';
       const vtc = await VersionedTemplateCustomization.findById(
         reference, context, parent.versionedTemplateCustomizationId
@@ -211,26 +229,28 @@ export const resolvers: Resolvers = {
         reference, context, vtc.currentVersionedTemplateId
       );
       if (!versionedTemplate?.ownerId) return null;
-      return await Affiliation.findByURI(reference, context, versionedTemplate.ownerId);
+      const affiliation = await Affiliation.findByURI(reference, context, versionedTemplate.ownerId);
+      return affiliation as unknown as AffiliationGQL;
     },
-    created: (parent: VersionedCustomQuestion) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedCustomQuestion) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     },
   },
 
   VersionedQuestion: {
     // Chained resolver to return the VersionedQuestionConditions associated with this VersionedQuestion
-    versionedQuestionConditions: async (parent: VersionedQuestion, _, context: MyContext): Promise<VersionedQuestionCondition[]> => {
+    versionedQuestionConditions: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.id)) return [];
       return await VersionedQuestionCondition.findByVersionedQuestionConditionGroupId(
         'Chained VersionedQuestion.versionedQuestionConditions',
         context,
         parent.id
       );
     },
-    ownerAffiliation: async (parent: VersionedQuestion, _, context: MyContext): Promise<Affiliation | null> => {
+    ownerAffiliation: async (parent, _, context: MyContext) => {
       const reference = 'VersionedQuestion.ownerAffiliation resolver';
       const versionedTemplate = await VersionedTemplate.findById(
         reference,
@@ -238,24 +258,29 @@ export const resolvers: Resolvers = {
         parent.versionedTemplateId
       );
       if (!versionedTemplate?.ownerId) return null;
-      return await Affiliation.findByURI(
+      const affiliation = await Affiliation.findByURI(
         reference,
         context,
         versionedTemplate.ownerId
       );
+      return affiliation as unknown as AffiliationGQL;
     },
-    customizationOwnerAffiliation: async (parent: VersionedQuestion & { customizationAffiliationId?: string }, _, context: MyContext): Promise<Affiliation | null> => {
-      if (!parent.customizationAffiliationId) return null;
-      return await Affiliation.findByURI(
+    // `customizationAffiliationId` is not part of the GraphQL VersionedQuestion type — it's a
+    // synthetic field stitched onto the parent by the `publishedQuestion` query resolver above.
+    customizationOwnerAffiliation: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as VersionedQuestion & { customizationAffiliationId?: string };
+      if (!model.customizationAffiliationId) return null;
+      const affiliation = await Affiliation.findByURI(
         'VersionedQuestion.customizationOwnerAffiliation resolver',
         context,
-        parent.customizationAffiliationId
+        model.customizationAffiliationId
       );
+      return affiliation as unknown as AffiliationGQL;
     },
-    created: (parent: VersionedQuestion) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedQuestion) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

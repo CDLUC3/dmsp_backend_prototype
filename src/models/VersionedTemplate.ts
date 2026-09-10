@@ -22,6 +22,25 @@ export enum TemplateVersionType {
   PUBLISHED = 'PUBLISHED',
 }
 
+interface VersionedTemplateSearchResultOptions {
+  id: number;
+  templateId: number;
+  name: string;
+  description?: string;
+  version: string;
+  visibility: TemplateVisibility;
+  bestPractice: boolean;
+  isDefault: boolean;
+  ownerId: number;
+  ownerURI: string;
+  ownerName?: string;
+  ownerDisplayName: string;
+  modifiedById: number;
+  modifiedByName: string;
+  modified: string;
+  versionedTemplateCustomizationId?: number;
+}
+
 // Search result for VersionedTemplates
 export class VersionedTemplateSearchResult {
   public id: number;
@@ -34,14 +53,14 @@ export class VersionedTemplateSearchResult {
   public isDefault: boolean;
   public ownerId: number;
   public ownerURI: string;
-  public ownerSearchName: string;
+  public ownerSearchName?: string;
   public ownerDisplayName: string;
   public modifiedById: number;
   public modifiedByName: string;
   public modified: string;
   public versionedTemplateCustomizationId?: number;
 
-  constructor(options) {
+  constructor(options: VersionedTemplateSearchResultOptions) {
     this.id = options.id;
     this.templateId = options.templateId;
     this.name = options.name;
@@ -164,6 +183,25 @@ export class VersionedTemplateSearchResult {
  * High-level details about a template that can be customized by a user. including
  * information about the current customization if applicable
  */
+interface CustomizableTemplateSearchResultOptions {
+  versionedTemplateId: number;
+  affiliationId: string;
+  affiliationName: string;
+  name: string;
+  version: string;
+  description?: string;
+  bestPractice: boolean;
+  lastModified: string;
+
+  templateCustomizationId?: number;
+  isDirty?: boolean;
+  status?: TemplateCustomizationStatus;
+  migrationStatus?: TemplateCustomizationMigrationStatus;
+  lastCustomizedById?: number;
+  lastCustomizedByName?: string;
+  lastCustomized?: string;
+}
+
 export class CustomizableTemplateSearchResult {
   public versionedTemplateId: number;
   public versionedTemplateAffiliationId: string;
@@ -174,15 +212,15 @@ export class CustomizableTemplateSearchResult {
   public versionedTemplateBestPractice: boolean;
   public versionedTemplateLastModified: string;
 
-  public customizationId: number;
-  public customizationIsDirty: boolean;
-  public customizationStatus: TemplateCustomizationStatus;
-  public customizationMigrationStatus: TemplateCustomizationMigrationStatus;
-  public customizationLastCustomizedById: number;
-  public customizationLastCustomizedByName: string;
-  public customizationLastCustomized: string;
+  public customizationId?: number;
+  public customizationIsDirty?: boolean;
+  public customizationStatus?: TemplateCustomizationStatus;
+  public customizationMigrationStatus?: TemplateCustomizationMigrationStatus;
+  public customizationLastCustomizedById?: number;
+  public customizationLastCustomizedByName?: string;
+  public customizationLastCustomized?: string;
 
-  constructor(options) {
+  constructor(options: CustomizableTemplateSearchResultOptions) {
     this.versionedTemplateId = options.versionedTemplateId;
     this.versionedTemplateAffiliationId = options.affiliationId;
     this.versionedTemplateAffiliationName = options.affiliationName;
@@ -305,7 +343,12 @@ export class CustomizableTemplateSearchResult {
       reference,
       false
     )
-    let items = response.items.map(row => new CustomizableTemplateSearchResult(row));
+    // `queryWithPagination`'s generic type param reflects the *final* item shape we want, but
+    // at this point `response.items` are still the raw SQL rows (matching
+    // CustomizableTemplateSearchResultOptions' column names), not yet-constructed instances.
+    let items = response.items.map(row =>
+      new CustomizableTemplateSearchResult(row as unknown as CustomizableTemplateSearchResultOptions)
+    );
 
     // Get our own total count because the one in MySQLModel doesn't work for
     // queries where the last FROM clause is a subquery
@@ -351,14 +394,17 @@ export class CustomizableTemplateSearchResult {
         items = items.concat(
           orphanResponse.map(row => new CustomizableTemplateSearchResult(row))
         );
-        response.totalCount += orphanResponse.length;
+        response.totalCount = (response.totalCount ?? 0) + orphanResponse.length;
       }
     }
 
     // Sort the response items by the requested sort field and sort direction
+    // `sortField` is a caller-supplied field name (e.g. from availableSortFields) that isn't
+    // statically known to be a property of CustomizableTemplateSearchResult, so we index dynamically.
+    const sortField = options.sortField ?? 'tc_sub.lastCustomized';
     items.sort((a, b) => {
-      const aVal = a[options.sortField];
-      const bVal = b[options.sortField];
+      const aVal = (a as unknown as Record<string, string | number>)[sortField];
+      const bVal = (b as unknown as Record<string, string | number>)[sortField];
       const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
       return options.sortDir === 'DESC' ? -comparison : comparison;
     });
@@ -368,6 +414,31 @@ export class CustomizableTemplateSearchResult {
     context.logger.debug(prepareObjectForLogs({ options, response }), reference);
     return response;
   }
+}
+
+interface VersionedTemplateOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  templateId: number;
+  version: string;
+  versionedById: number;
+
+  name: string;
+  description?: string;
+  ownerId: string;
+
+  versionType?: TemplateVersionType;
+  comment?: string;
+  active?: boolean;
+
+  visibility?: TemplateVisibility;
+  bestPractice?: boolean;
+  isDefault?: boolean;
+  languageId?: string;
 }
 
 // A Snapshot/Version of a Template
@@ -391,7 +462,7 @@ export class VersionedTemplate extends MySqlModel {
 
   private tableName = 'versionedTemplates';
 
-  constructor(options) {
+  constructor(options: VersionedTemplateOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
@@ -426,12 +497,14 @@ export class VersionedTemplate extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<VersionedTemplate> {
+  async create(context: MyContext): Promise<VersionedTemplate | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
       const newId = await VersionedTemplate.insert(context, this.tableName, this, 'VersionedTemplate.create');
-      return await VersionedTemplate.findVersionedTemplateById('VersionedTemplate.create', context, newId);
+      if (newId) {
+        return await VersionedTemplate.findVersionedTemplateById('VersionedTemplate.create', context, newId);
+      }
     }
     // Otherwise return as-is with all the errors
     return new VersionedTemplate(this);
@@ -452,7 +525,7 @@ export class VersionedTemplate extends MySqlModel {
   }
 
   // Fetch the Versioned template by its id
-  static async findById(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedTemplate> {
+  static async findById(reference: string, context: MyContext, versionedTemplateId: number): Promise<VersionedTemplate | null> {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : null;
@@ -470,7 +543,7 @@ export class VersionedTemplate extends MySqlModel {
     reference: string,
     context: MyContext,
     versionedTemplateId: number
-  ): Promise<VersionedTemplate> {
+  ): Promise<VersionedTemplate | null> {
     const sql = 'SELECT * FROM versionedTemplates WHERE id = ?';
     const results = await VersionedTemplate.query(context, sql, [versionedTemplateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : null;
@@ -492,7 +565,7 @@ export class VersionedTemplate extends MySqlModel {
    * @param templateId The template ID to search for
    * @returns The latest active version of the template, or undefined if none were found
    */
-  static async findActiveByTemplateId(reference: string, context: MyContext, templateId: number): Promise<VersionedTemplate> {
+  static async findActiveByTemplateId(reference: string, context: MyContext, templateId: number): Promise<VersionedTemplate | undefined> {
     const sql = 'SELECT * FROM versionedTemplates WHERE templateId = ? AND active = 1 ORDER BY modified DESC';
     const results = await VersionedTemplate.query(context, sql, [templateId.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : undefined;
@@ -561,7 +634,7 @@ export class VersionedTemplate extends MySqlModel {
   }
 
   // Fetch the latest version of the default best practice template
-  static async defaultTemplate(reference: string, context: MyContext): Promise<VersionedTemplate> {
+  static async defaultTemplate(reference: string, context: MyContext): Promise<VersionedTemplate | undefined> {
     const sql = `SELECT * FROM versionedTemplates WHERE active = 1 AND isDefault = 1 ORDER BY id LIMIT 1;`;
     const results = await VersionedTemplate.query(context, sql, [], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedTemplate(results[0]) : undefined;

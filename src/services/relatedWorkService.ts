@@ -2,14 +2,16 @@ import { createHash } from 'crypto';
 import {
   AcceptedWork, isDOI, parseDOI,
   RelatedWork,
+  RelatedWorkSourceType,
+  RelatedWorkStatus,
   RelationType,
   Work,
+  WorkType,
   WorkVersion
 } from "../models/RelatedWork.js";
 import { MyContext } from "../context.js";
 import { AddRelatedWorkManualInput } from "../types.js";
 import { Plan } from "../models/Plan.js";
-import { isNullOrUndefined } from "@dmptool/utils";
 import { NotFoundError } from "../utils/graphQLErrors.js";
 
 /**
@@ -48,24 +50,52 @@ export const addAcceptedWork = async (
   plan: Plan,
   input: AddRelatedWorkManualInput
 ): Promise<AcceptedWork> => {
-  const acceptedWork: AcceptedWork = new AcceptedWork(input);
-  const parsedDOI: string = isDOI(input.doi) ? parseDOI(input.doi) : input.doi;
+  if (!plan.id) {
+    throw NotFoundError('Plan must have an id to add a related work');
+  }
+
+  const acceptedWork: AcceptedWork = new AcceptedWork({
+    ...input,
+    planId: plan.id,
+    workId: 0,
+    workVersionId: 0,
+    relatedWorkId: 0,
+    workType: WorkType[input.workType as keyof typeof WorkType],
+    relationType: input.relationType
+      ? RelationType[input.relationType as keyof typeof RelationType]
+      : undefined,
+    publicationDate: input.publicationDate ?? undefined,
+    title: input.title ?? undefined,
+    abstractText: input.abstractText ?? undefined,
+    publicationVenue: input.publicationVenue ?? undefined,
+  });
+  const parsedDOI: string = isDOI(input.doi) ? (parseDOI(input.doi) ?? input.doi) : input.doi;
 
   // Fetch or create work
-  let work: Work = await Work.findByDoi(reference, context, parsedDOI);
+  let work: Work | null = await Work.findByDoi(reference, context, parsedDOI);
   if (!work) {
     work = new Work({ doi: input.doi });
     work = await work.create(context);
   }
-  if (!work || work.hasErrors()) {
+  if (!work || !work.id || work.hasErrors()) {
     acceptedWork.addError('general', 'Unable to create or find work');
+    return acceptedWork;
   }
 
   // Fetch or create work version
   const osHash: string = input.hash
     ? input.hash.toString()
-    : getWorkVersionHash(new WorkVersion({ ...input, workId: work.id }));
-  let workVersion: WorkVersion = await WorkVersion.findByDoiAndHash(
+    : getWorkVersionHash(new WorkVersion({
+      ...input,
+      workId: work.id,
+      hash: Buffer.alloc(0),
+      workType: WorkType[input.workType as keyof typeof WorkType],
+      publicationDate: input.publicationDate ?? '',
+      title: input.title ?? '',
+      abstractText: input.abstractText ?? '',
+      publicationVenue: input.publicationVenue ?? '',
+    }));
+  let workVersion: WorkVersion | null = await WorkVersion.findByDoiAndHash(
     reference,
     context,
     parsedDOI,
@@ -75,27 +105,42 @@ export const addAcceptedWork = async (
     workVersion = new WorkVersion({
       ...input,
       workId: work.id,
-      hash: Buffer.from(osHash, 'hex')
+      hash: Buffer.from(osHash, 'hex'),
+      workType: WorkType[input.workType as keyof typeof WorkType],
+      publicationDate: input.publicationDate ?? '',
+      title: input.title ?? '',
+      abstractText: input.abstractText ?? '',
+      publicationVenue: input.publicationVenue ?? '',
     });
     workVersion = await workVersion.create(context, work.doi);
   }
-  if (isNullOrUndefined(workVersion) || workVersion.hasErrors()) {
+  if (!workVersion || !workVersion.id || workVersion.hasErrors()) {
     acceptedWork.addError('general', 'Unable to create or find a version of the work');
+    return acceptedWork;
   }
 
   // Create related work
   if (!acceptedWork.hasErrors()) {
-    let relatedWork = new RelatedWork({
+    let relatedWork: RelatedWork | null = new RelatedWork({
       planId: plan.id,
       workVersionId: workVersion.id,
-      status: 'ACCEPTED',
+      status: RelatedWorkStatus.ACCEPTED,
       score: 1.0,
       scoreMax: 1.0,
-      sourceType: 'USER_ADDED',
+      sourceType: RelatedWorkSourceType.USER_ADDED,
+      doiMatch: { found: true, score: 1.0, sources: [] },
+      contentMatch: { abstractHighlights: [], score: 1.0 },
+      authorMatches: [],
+      institutionMatches: [],
+      funderMatches: [],
+      awardMatches: [],
     });
     relatedWork = await relatedWork.create(context);
     if (relatedWork && !relatedWork.hasErrors()) {
-      return await AcceptedWork.findByPlanIdAndDoi(reference, context, plan.id, parsedDOI);
+      const found = await AcceptedWork.findByPlanIdAndDoi(reference, context, plan.id, parsedDOI);
+      if (found) return found;
+      acceptedWork.addError('general', 'Unable to find related work after creation');
+      return acceptedWork;
     }
     acceptedWork.addError('general', 'Unable to create related work');
   }
@@ -118,29 +163,34 @@ export const UpdateAcceptedWork = async (
   plan: Plan,
   input: AddRelatedWorkManualInput
 ): Promise<AcceptedWork> => {
-  const acceptedWork: AcceptedWork = await AcceptedWork.findByPlanIdAndDoi(
+  if (!plan.id) {
+    throw NotFoundError('Plan must have an id to updated accepted work');
+  }
+
+  const acceptedWork: AcceptedWork | null = await AcceptedWork.findByPlanIdAndDoi(
     reference,
     context,
     plan.id,
     input.doi
   );
-  if (!acceptedWork && acceptedWork.workVersionId) {
+
+  if (!acceptedWork || !acceptedWork.workVersionId) {
     throw NotFoundError('Unable to find related work');
   }
 
   if (acceptedWork.workType !== input.workType) {
-    const workVersion: WorkVersion = await WorkVersion.findById(
+    const workVersion: WorkVersion | null = await WorkVersion.findById(
       reference,
       context,
       acceptedWork.workVersionId
     );
-    if (workVersion) {
+    if (workVersion && workVersion.id) {
       const newWorkVersion = new WorkVersion({
         ...workVersion,
-        workType: input.workType,
+        workType: WorkType[input.workType as keyof typeof WorkType],
       });
       // Instead of updating, we create a new version of the work with the correct type
-      const created: WorkVersion = await newWorkVersion.create(context, acceptedWork.doi);
+      const created: WorkVersion | null = await newWorkVersion.create(context, acceptedWork.doi);
       if (!created || created.hasErrors()) {
         acceptedWork.addError('workType', 'Unable to update work type for work');
       }
@@ -148,7 +198,7 @@ export const UpdateAcceptedWork = async (
       acceptedWork.workVersionId = workVersion.id;
 
       // Now get the RelatedWork and if the relationship type changed, update it
-      const relatedWork: RelatedWork = await RelatedWork.findByPlanAndWorkVersionId(
+      const relatedWork: RelatedWork | null = await RelatedWork.findByPlanAndWorkVersionId(
         reference,
         context,
         plan.id,
@@ -156,7 +206,7 @@ export const UpdateAcceptedWork = async (
       );
       if (relatedWork && relatedWork.relationType !== input.relationType) {
         relatedWork.relationType = RelationType[input.relationType as keyof typeof RelationType];
-        const updated: RelatedWork = await relatedWork.update(context);
+        const updated: RelatedWork | null = await relatedWork.update(context);
         if (!updated || updated.hasErrors()) {
           acceptedWork.addError('workType', 'Unable to update relation type for work');
         }
@@ -187,17 +237,21 @@ export const removeAcceptedWork = async (
   plan: Plan,
   doi: string
 ): Promise<AcceptedWork> => {
-  const acceptedWork: AcceptedWork = await AcceptedWork.findByPlanIdAndDoi(
+  if (!plan.id) {
+    throw NotFoundError('Plan must have an id to remove related work');
+  }
+
+  const acceptedWork: AcceptedWork | null = await AcceptedWork.findByPlanIdAndDoi(
     reference,
     context,
     plan.id,
     doi
   );
-  if (!acceptedWork && acceptedWork.workVersionId) {
+  if (!acceptedWork || !acceptedWork.workVersionId) {
     throw NotFoundError('Unable to find related work');
   }
 
-  const relatedWork: RelatedWork = await RelatedWork.findById(
+  const relatedWork: RelatedWork | null = await RelatedWork.findById(
     reference,
     context,
     acceptedWork.relatedWorkId
@@ -206,7 +260,7 @@ export const removeAcceptedWork = async (
     throw NotFoundError('Unable to find relevant version of related work');
   }
 
-  const deleted: RelatedWork = await relatedWork.delete(context);
+  const deleted: RelatedWork | null = await relatedWork.delete(context);
   if (!deleted || deleted.hasErrors()) {
     acceptedWork.addError('general', 'Unable to delete related work');
   }

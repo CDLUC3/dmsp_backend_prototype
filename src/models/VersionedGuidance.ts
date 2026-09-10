@@ -1,6 +1,19 @@
 import { MyContext } from "../context.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface VersionedGuidanceOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  versionedGuidanceGroupId: number;
+  guidanceId?: number;
+  guidanceText?: string;
+  tagId?: number;
+}
+
 export class VersionedGuidance extends MySqlModel {
   public versionedGuidanceGroupId: number;
   public guidanceId?: number;
@@ -9,7 +22,7 @@ export class VersionedGuidance extends MySqlModel {
 
   private static tableName = 'versionedGuidance';
 
-  constructor(options) {
+  constructor(options: VersionedGuidanceOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.versionedGuidanceGroupId = options.versionedGuidanceGroupId;
@@ -35,21 +48,24 @@ export class VersionedGuidance extends MySqlModel {
   }
 
   // Insert the new record
-  async create(context: MyContext): Promise<VersionedGuidance> {
+  async create(context: MyContext): Promise<VersionedGuidance | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
 
       // Save the record and then fetch it
       const newId = await VersionedGuidance.insert(context, VersionedGuidance.tableName, this, 'VersionedGuidance.create');
-      return await VersionedGuidance.findById('VersionedGuidance.create', context, newId);
+      if (newId) {
+        return await VersionedGuidance.findById('VersionedGuidance.create', context, newId);
+      }
+      this.addError('general', 'VersionedGuidance was not created successfully');
     }
     // Otherwise return as-is with all the errors
     return new VersionedGuidance(this);
   }
 
   // Find the VersionedGuidance by id
-  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedGuidance> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedGuidance | null> {
     const sql = `SELECT * FROM ${VersionedGuidance.tableName} WHERE id = ?`;
     const results = await VersionedGuidance.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedGuidance(results[0]) : null;

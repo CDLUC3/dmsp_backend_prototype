@@ -13,7 +13,6 @@ import {
   deleteDMP,
   DMPExists,
   DynamoConnectionParams,
-  EnvironmentEnum,
   planToDMPCommonStandard,
   tombstoneDMP,
   updateDMP,
@@ -22,8 +21,8 @@ import {
   DMPVersionType,
 } from "@dmptool/utils";
 import { getDynamoConnectionParams } from "../config/awsConfig.js";
-import { generalConfig } from "../config/generalConfig.js";
-import { DMPToolDMPType } from "@dmptool/types";
+import { generalConfig, envAsEnumValue } from "../config/generalConfig.js";
+import { DMPToolDMPType, DMPToolExtensionType } from "@dmptool/types";
 import { getRDSConnectionParams } from "../config/mysqlConfig.js";
 import {
   buildDataCiteXML,
@@ -35,6 +34,61 @@ import { removeIndexItem, updateIndexItem } from "./indexDMPService.js";
 import { PlanVersionSnapshot } from "../types.js";
 import { ProjectFundingStatus } from "../models/Funding.js";
 
+// The `dmp` property on DMPToolDMPType is a poisoned intersection (RDAInner & DMPToolExtensionType,
+// where RDAInner resolves to `any`), which loses type information for nested arrays like
+// narrative.template.section. DMPToolExtensionType alone is properly typed, so we pull the
+// concrete shapes from there instead of hand-writing interfaces that could drift from the library.
+type NarrativeSection = NonNullable<NonNullable<DMPToolExtensionType['narrative']>['template']>['section'][number];
+type NarrativeQuestion = NonNullable<NarrativeSection['question']>[number];
+
+interface ContributorIdentifier {
+  type?: string;
+  identifier?: string;
+}
+
+interface ContributorAffiliation {
+  name?: string;
+  affiliation_id?: ContributorIdentifier;
+}
+
+interface DmpContributor {
+  name?: string;
+  contact_mbox?: string;
+  mbox?: string;
+  contributor_id?: ContributorIdentifier[];
+  affiliation?: ContributorAffiliation[];
+  role?: string[];
+}
+
+interface DmpFunderIdentifier {
+  identifier?: string;
+  type?: string;
+}
+
+interface DmpProjectFunding {
+  name?: string;
+  funder_id?: DmpFunderIdentifier;
+  funding_status?: string;
+  grant_id?: DmpFunderIdentifier;
+}
+
+interface DmpFundingOpportunity {
+  funder_id?: DmpFunderIdentifier;
+  opportunity_identifier?: DmpFunderIdentifier;
+}
+
+interface DmpFundingProject {
+  funder_id?: DmpFunderIdentifier;
+  project_identifier?: DmpFunderIdentifier;
+}
+
+interface DmpVersion {
+  version?: string;
+  access_url?: string;
+}
+interface DmpRelatedIdentifier {
+  identifier?: string;
+}
 
 /**
  * Function to help update Plan member roles. It compares the current roles for
@@ -116,9 +170,13 @@ export const ensureDefaultPlanContact = async (
 ): Promise<boolean> => {
   const reference = 'planService.ensurePlanHasPrimaryContact';
 
+  if (isNullOrUndefined(plan) || isNullOrUndefined(project) || isNullOrUndefined(plan.id) || isNullOrUndefined(project.id)) {
+    return false;
+  }
+
   if (!isNullOrUndefined(plan) && !isNullOrUndefined(project)) {
     const dfltMember = await ProjectMember.findPrimaryContact(reference, context, project.id);
-    if (isNullOrUndefined(dfltMember)) {
+    if (isNullOrUndefined(dfltMember) || isNullOrUndefined(dfltMember.id)) {
       return false;
     }
     const dfltMemberRoles = await MemberRole.findByProjectMemberId(
@@ -134,11 +192,13 @@ export const ensureDefaultPlanContact = async (
         planId: plan.id,
         projectMemberId: dfltMember.id,
         isPrimaryContact: true,
-        memberRoleIds: dfltMemberRoles.map(role => role.id),
+        memberRoleIds: dfltMemberRoles
+          .map(role => role.id)
+          .filter((id: number | undefined): id is number => id !== undefined),
       });
 
       const created = await member.create(context);
-      if (!isNullOrUndefined(created) && !created.hasErrors()) {
+      if (!isNullOrUndefined(created) && !isNullOrUndefined(created.id) && !created.hasErrors()) {
         // Add the roles to the default plan member
         for (const role of dfltMemberRoles) {
           await role.addToPlanMember(context, created.id);
@@ -167,12 +227,16 @@ export const ensureDefaultPlanContact = async (
 export async function buildDataCiteXMLForPlan(context: MyContext, plan: Plan, project?: Project): Promise<string> {
   const reference = 'planService.buildDataCiteXMLForPlan';
 
+  if (isNullOrUndefined(plan.id)) {
+    throw new Error('Plan must have an id to build DataCite metadata');
+  }
+
   const resolvedProject = project ?? await Project.findById(reference, context, plan.projectId);
 
   // --- Members ---
   // Project members
-  const projectMembers = await ProjectMember.findByProjectId(reference, context, plan.projectId);
-
+  const projectMembers = (await ProjectMember.findByProjectId(reference, context, plan.projectId))
+    .filter((pm): pm is ProjectMember & { id: number } => pm.id != null); // filter out members without an id (shouldn't happen, but just in case)
   const members = await Promise.all(projectMembers.map(async (pm) => {
     const memberRoles = await MemberRole.findByProjectMemberId(reference, context, pm.id);
 
@@ -254,11 +318,22 @@ export const handleAsyncUpdates = async (
   plan: Plan,
   project?: Project,
 ): Promise<void> => {
+
+  if (isNullOrUndefined(plan.id)) {
+    context.logger.fatal({ reference, plan }, 'handleAsyncUpdates called with a Plan that has no id');
+    return;
+  }
+
   // Update the OpenSearch index
   updateIndexItem(reference, context, plan, project)
     .catch(err => {
       context.logger.fatal({ planId: plan.id, err }, 'Index item in OpenSearch failed!');
     });
+
+  if (isNullOrUndefined(plan.dmpId)) {
+    context.logger.fatal({ reference, planId: plan.id }, 'handleAsyncUpdates: Plan has no dmpId, skipping maDMP save');
+    return;
+  }
 
   // Update the maDMP record in Dynamo
   saveMaDMPVersion(reference, context, plan.id, plan.dmpId)
@@ -280,11 +355,22 @@ export const handleAsyncDeletes = async (
   context: MyContext,
   plan: Plan
 ): Promise<void> => {
+
+  if (isNullOrUndefined(plan.id)) {
+    context.logger.fatal({ reference, plan }, 'handleAsyncUpdates called with a Plan that has no id');
+    return;
+  }
+
   // Remove the OpenSearch index
   removeIndexItem(reference, context, plan)
     .catch(err => {
       context.logger.fatal({ planId: plan.id, err }, 'Remove OpenSearch index item failed!');
     });
+
+  if (isNullOrUndefined(plan.dmpId)) {
+    context.logger.fatal({ reference, planId: plan.id }, 'handleAsyncDeletes: Plan has no dmpId, skipping maDMP delete');
+    return;
+  }
 
   // Remove the maDMP records from Dynamo
   saveMaDMPVersion(reference, context, plan.id, plan.dmpId, true)
@@ -349,11 +435,11 @@ export async function saveMaDMPVersion(
 
   // Generate the current maDMP JSON record based on the current RDS data
   context.logger.debug({ planId }, 'Generating maDMP JSON for the Plan.')
-  const maDMP: DMPToolDMPType = await planToDMPCommonStandard(
+  const maDMP = await planToDMPCommonStandard(
     getRDSConnectionParams(context.logger),
     appName,
     generalConfig.domain,
-    EnvironmentEnum[generalConfig.env.toUpperCase()] as EnvironmentEnum,
+    envAsEnumValue(),
     planId,
     true
   );
@@ -504,7 +590,7 @@ export async function mapDMPToolDMPToSnapshot(
   result: DMPToolDMPType,
   version: string,
   context: MyContext,
-  planId: number,
+  planId?: number, //planId already resolves to empty array if there is no planId below, so we can safely pass it to the function and use it to fetch accepted works
   projectId?: number
 ): Promise<PlanVersionSnapshot> {
 
@@ -513,10 +599,10 @@ export async function mapDMPToolDMPToSnapshot(
   const dmpId = dmp.dmp_id?.identifier; // already a full https://doi.org/... URL
 
   // Flatten narrative answers into the same {id, json} shape as live `answers`
-  const answers = (dmp.narrative?.template?.section ?? []).flatMap((section) =>
+  const answers = (dmp.narrative?.template?.section ?? []).flatMap((section: NarrativeSection) =>
     (section.question ?? [])
-      .filter((q) => q.answer)
-      .map((q) => ({
+      .filter((q: NarrativeQuestion) => q.answer)
+      .map((q: NarrativeQuestion) => ({
         id: q.answer?.id,
         questionText: q.text,
         json: JSON.stringify(q.answer?.json),
@@ -529,7 +615,7 @@ export async function mapDMPToolDMPToSnapshot(
 
   // Get the organization from the plan owner (affiliation) — this is computed
   // synchronously so we can kick off the affiliation lookup in parallel below.
-  const ownerAffiliation = dmp.contributor?.find(c => c.name === dmp.contact?.name)?.affiliation?.[0];
+  const ownerAffiliation = dmp.contributor?.find((c: DmpContributor) => c.name === dmp.contact?.name)?.affiliation?.[0];
   const affiliationURI = ownerAffiliation?.affiliation_id?.identifier;
 
   // Run the independent async lookups concurrently instead of sequentially:
@@ -538,14 +624,14 @@ export async function mapDMPToolDMPToSnapshot(
   // - acceptedWorks: fetches related works for this plan
   const [members, affiliation, acceptedWorks] = await Promise.all([
     Promise.all(
-      (dmp.contributor ?? []).map(async (c) => {
+      (dmp.contributor ?? []).map(async (c: DmpContributor) => {
         let isPrimaryContact = false;
 
         // If we have a projectId, query the database for the actual isPrimaryContact value
         if (projectId && c.contributor_id) {
+          const email = c.contact_mbox || c.mbox;
           // Try to find by email first (most reliable)
-          if (c.contact_mbox || c.mbox) {
-            const email = c.contact_mbox || c.mbox;
+          if (email) {
             const dbMember = await ProjectMember.findByProjectAndEmail(
               'mapDMPToolDMPToSnapshot.isPrimaryContact',
               context,
@@ -556,7 +642,8 @@ export async function mapDMPToolDMPToSnapshot(
             if (dbMember) {
               isPrimaryContact = dbMember.isPrimaryContact;
             }
-          } else if (c.name) {
+          }
+          else if (c.name) {
             // Fallback to name if no email (extract given/sur name)
             const nameParts = c.name.split(' ');
             const givenName = nameParts[0];
@@ -601,13 +688,13 @@ export async function mapDMPToolDMPToSnapshot(
   const relatedWorks: PlanVersionSnapshot['relatedWorks'] = acceptedWorks.map((work) => ({
     id: work.id,
     workVersion: {
-      title: work.title,
-      publicationDate: work.publicationDate,
+      title: work.title ?? '',
+      publicationDate: work.publicationDate ?? '',
       workType: work.workType,
-      publicationVenue: work.publicationVenue,
-      sourceName: work.sourceName,
-      sourceUrl: work.sourceUrl,
-      authors: work.authors,
+      publicationVenue: work.publicationVenue ?? '',
+      sourceName: work.sourceName ?? '',
+      sourceUrl: work.sourceUrl ?? '',
+      authors: work.authors ?? [],
       work: {
         doi: work.doi,
       }
@@ -627,13 +714,13 @@ export async function mapDMPToolDMPToSnapshot(
   }
 
   const historicalVersions = (dmp.version ?? []).filter(
-    (v) => v.version !== latestModified
+    (v: DmpVersion) => v.version !== latestModified
   );
 
   return {
     isHistoricalVersion: true,
     versionTimestamp: version,
-    latestVersionTimestamp: latestModified,
+    latestVersionTimestamp: latestModified ?? dmp.modified,
 
     title: dmp.title,
     dmpId,
@@ -670,13 +757,13 @@ export async function mapDMPToolDMPToSnapshot(
       }
       : undefined,
     members: members,
-    fundings: (project?.funding ?? []).map((f) => {
+    fundings: (project?.funding ?? []).map((f: DmpProjectFunding) => {
       const funderIdentifier = f.funder_id?.identifier;
       const opportunity = dmp.funding_opportunity?.find(
-        (fo) => fo.funder_id?.identifier === funderIdentifier
+        (fo: DmpFundingOpportunity) => fo.funder_id?.identifier === funderIdentifier
       );
       const fundingProject = dmp.funding_project?.find(
-        (fp) => fp.funder_id?.identifier === funderIdentifier
+        (fp: DmpFundingProject) => fp.funder_id?.identifier === funderIdentifier
       );
 
       return {
@@ -691,12 +778,12 @@ export async function mapDMPToolDMPToSnapshot(
 
     answers,
 
-    versions: historicalVersions.map((v) => ({
+    versions: historicalVersions.map((v: DmpVersion) => ({
       timestamp: v.version,
       url: v.access_url,
     })),
     relatedWorks,
-    relatedWorkIdentifiers: (dmp.related_identifier ?? []).map((r) => r.identifier),
+    relatedWorkIdentifiers: (dmp.related_identifier ?? []).map((r: DmpRelatedIdentifier) => r.identifier),
   };
 }
 

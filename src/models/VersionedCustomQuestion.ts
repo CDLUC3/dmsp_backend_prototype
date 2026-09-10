@@ -21,16 +21,40 @@ import { PinnedQuestionTypeEnum } from "./CustomQuestion.js";
  *     - "STALE" The pinned section has moved position in the latest version.
  *     - "ORPHANED" The pinned section is no longer available in the latest version.
  */
+interface VersionedCustomQuestionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  versionedTemplateCustomizationId: number;
+  customQuestionId: number;
+  // Raw DB rows (and GraphQL inputs) carry these as the enums' string keys/values.
+  versionedSectionType?: keyof typeof PinnedSectionTypeEnum;
+  versionedSectionId: number;
+  pinnedVersionedQuestionType?: keyof typeof PinnedQuestionTypeEnum;
+  pinnedVersionedQuestionId?: number;
+  questionText?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  json?: any;
+  requirementText?: string;
+  guidanceText?: string;
+  sampleText?: string;
+  useSampleTextAsDefault?: boolean;
+  required?: boolean;
+}
+
 export class VersionedCustomQuestion extends MySqlModel {
   public versionedTemplateCustomizationId: number;
   public customQuestionId: number;
-  public versionedSectionType: PinnedSectionTypeEnum;
+  public versionedSectionType?: PinnedSectionTypeEnum;
   public versionedSectionId: number;
   public pinnedVersionedQuestionType?: PinnedQuestionTypeEnum;
   public pinnedVersionedQuestionId?: number;
 
-  public questionText: string;
-  public json: string;
+  public questionText?: string;
+  public json: string = '';
   public requirementText?: string;
   public guidanceText?: string;
   public sampleText?: string;
@@ -39,7 +63,7 @@ export class VersionedCustomQuestion extends MySqlModel {
 
   static tableName = 'versionedCustomQuestions';
 
-  constructor(options) {
+  constructor(options: VersionedCustomQuestionOptions) {
     super(options.id, options.created, options.createdById, options.modified,
       options.modifiedById, options.errors);
 
@@ -50,12 +74,11 @@ export class VersionedCustomQuestion extends MySqlModel {
     this.pinnedVersionedQuestionType = options.pinnedVersionedQuestionType ? PinnedQuestionTypeEnum[options.pinnedVersionedQuestionType] : undefined;
     this.pinnedVersionedQuestionId = options.pinnedVersionedQuestionId;
 
-    this.json = options.json;
     // Ensure JSON is stored as a string
     try {
       this.json = removeNullAndUndefinedFromJSON(options.json);
     } catch (e) {
-      this.addError('json', e.message);
+      this.addError('json', e instanceof Error ? e.message : String(e));
     }
     this.questionText = options.questionText;
     this.requirementText = options.requirementText;
@@ -92,16 +115,17 @@ export class VersionedCustomQuestion extends MySqlModel {
     // If JSON is not null and the type is in the schema map
     if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
       const parsedJSON = JSON.parse(this.json);
-      if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
+      const questionType = parsedJSON['type'] as keyof typeof QuestionSchemaMap;
+      if (Object.keys(QuestionSchemaMap).includes(questionType)) {
         // Validate the JSON against the Zod schema and if valid, set the questionType
         try {
-          const result = QuestionSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+          const result = QuestionSchemaMap[questionType]?.safeParse(parsedJSON);
           if (result && !result.success) {
             // If there are validation errors, add them to the errors object
             this.addError('json', result.error?.issues?.map(e => `${e.path.join('.')} - ${e.message}`)?.join('; '));
           }
         } catch (e) {
-          this.addError('json', e.message);
+          this.addError('json', e instanceof Error ? e.message : String(e));
         }
       } else {
         // If the type is not in the schema map, add an error
@@ -137,7 +161,7 @@ export class VersionedCustomQuestion extends MySqlModel {
     const ref = 'VersionedCustomQuestion.create';
     // Make sure the record is valid
     if (await this.isValid()) {
-      const current: VersionedCustomQuestion = await VersionedCustomQuestion.findByCustomizationSectionAndQuestion(
+      const current: VersionedCustomQuestion | null = await VersionedCustomQuestion.findByCustomizationSectionAndQuestion(
         ref,
         context,
         this.versionedTemplateCustomizationId,
@@ -155,13 +179,17 @@ export class VersionedCustomQuestion extends MySqlModel {
         this.prepForSave();
 
         // Save the record and then fetch it
-        const newId: number = await VersionedCustomQuestion.insert(
+        const newId: number | null = await VersionedCustomQuestion.insert(
           context,
           VersionedCustomQuestion.tableName,
           this,
           ref
         );
-        return await VersionedCustomQuestion.findById(ref, context, newId);
+        if (newId) {
+          const created = await VersionedCustomQuestion.findById(ref, context, newId);
+          if (created) return created;
+        }
+        this.addError('general', 'Unable to create custom question version');
       }
     }
     // Otherwise return as-is with all the errors
@@ -194,7 +222,8 @@ export class VersionedCustomQuestion extends MySqlModel {
           [],
           noTouch
         );
-        return await VersionedCustomQuestion.findById(ref, context, this.id);
+        const updated = await VersionedCustomQuestion.findById(ref, context, this.id);
+        if (updated) return updated;
       }
     }
     // Otherwise return as-is with all the errors
@@ -213,7 +242,7 @@ export class VersionedCustomQuestion extends MySqlModel {
       // Cannot delete it if it hasn't been saved yet!
       this.addError('general', 'Custom question has never been saved');
     } else {
-      const original: VersionedCustomQuestion = await VersionedCustomQuestion.findById(
+      const original: VersionedCustomQuestion | null = await VersionedCustomQuestion.findById(
         ref,
         context,
         this.id
@@ -224,7 +253,7 @@ export class VersionedCustomQuestion extends MySqlModel {
         this.id,
         ref
       );
-      if (result) {
+      if (result && original) {
         return original;
       }
     }
@@ -247,14 +276,14 @@ export class VersionedCustomQuestion extends MySqlModel {
     reference: string,
     context: MyContext,
     versionedCustomQuestionId: number
-  ): Promise<VersionedCustomQuestion> {
+  ): Promise<VersionedCustomQuestion | null> {
     const results = await VersionedCustomQuestion.query(
       context,
       `SELECT * FROM ${VersionedCustomQuestion.tableName} WHERE id = ?`,
       [versionedCustomQuestionId?.toString()],
       reference
     );
-    return Array.isArray(results) && results.length > 0 ? new VersionedCustomQuestion(results[0]) : undefined;
+    return Array.isArray(results) && results.length > 0 ? new VersionedCustomQuestion(results[0]) : null;
   }
 
   /**
@@ -298,11 +327,11 @@ export class VersionedCustomQuestion extends MySqlModel {
     context: MyContext,
     versionedTemplateCustomizatonId: number,
     customQuestionId: number,
-    versionedSectionType: PinnedSectionTypeEnum,
+    versionedSectionType: PinnedSectionTypeEnum | undefined,
     versionedSectionId: number,
     pinnedVersionedQuestionType?: PinnedQuestionTypeEnum,
     pinnedVersionedQuestionId?: number
-  ): Promise<VersionedCustomQuestion> {
+  ): Promise<VersionedCustomQuestion | null> {
     const results = await VersionedCustomQuestion.query(
       context,
       `SELECT * FROM ${VersionedCustomQuestion.tableName}
@@ -312,14 +341,14 @@ export class VersionedCustomQuestion extends MySqlModel {
       [
         versionedTemplateCustomizatonId.toString(),
         customQuestionId?.toString(),
-        versionedSectionType,
+        versionedSectionType ?? '',
         versionedSectionId?.toString(),
-        pinnedVersionedQuestionType ? pinnedVersionedQuestionType : null,
-        pinnedVersionedQuestionId ? pinnedVersionedQuestionId?.toString() : null
+        pinnedVersionedQuestionType ? pinnedVersionedQuestionType : '',
+        pinnedVersionedQuestionId ? pinnedVersionedQuestionId?.toString() : ''
       ],
       reference
     );
-    return Array.isArray(results) && results.length > 0 ? new VersionedCustomQuestion(results[0]) : undefined;
+    return Array.isArray(results) && results.length > 0 ? new VersionedCustomQuestion(results[0]) : null;
   }
 
   // Find all the custom question versions for a specific versioned custom section version

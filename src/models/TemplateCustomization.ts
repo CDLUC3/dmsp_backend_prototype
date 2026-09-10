@@ -157,7 +157,27 @@ export class TemplateCustomizationOverview {
   public sections: TemplateCustomizationSectionOverview[];
   public errors: Record<string, string> = {};
 
-  constructor(options) {
+  constructor(options: {
+    versionedTemplateId: number;
+    versionedTemplateAffiliationId: string;
+    versionedTemplateAffiliationName: string;
+    versionedTemplateName: string;
+    versionedTemplateDescription?: string;
+    versionedTemplateVersion: string;
+    versionedTemplateLastModified: string;
+
+    customizationId: number;
+    customizationIsDirty: boolean;
+    customizationLastPublishedDate?: string;
+    customizationStatus: TemplateCustomizationStatus;
+    customizationMigrationStatus: TemplateCustomizationMigrationStatus;
+    customizationLastCustomizedById?: number;
+    customizationLastCustomizedByName?: string;
+    customizationLastCustomized?: string;
+
+    sections?: TemplateCustomizationSectionOverview[];
+    errors?: Record<string, string>;
+  }) {
     this.versionedTemplateId = options.versionedTemplateId;
     this.versionedTemplateAffiliationId = options.versionedTemplateAffiliationId;
     this.versionedTemplateAffiliationName = options.versionedTemplateAffiliationName;
@@ -213,18 +233,18 @@ export class TemplateCustomizationOverview {
       versionedTemplateId: first.versionedTemplateId,
       versionedTemplateAffiliationId: first.versionedTemplateAffiliationId,
       versionedTemplateAffiliationName: first.versionedTemplateAffiliationName,
-      versionedTemplateName: first.versionedTemplateName,
+      versionedTemplateName: first.versionedTemplateName ?? '',
       versionedTemplateDescription: first.versionedTemplateDescription,
       versionedTemplateVersion: first.versionedTemplateVersion,
-      versionedTemplateLastModified: normaliseDateTime(first.versionedTemplateLastModified),
+      versionedTemplateLastModified: normaliseDateTime(first.versionedTemplateLastModified) ?? '',
       customizationId: first.customizationId,
       customizationIsDirty: first.customizationIsDirty,
-      customizationLastPublishedDate: normaliseDateTime(first.customizationLastPublishedDate),
+      customizationLastPublishedDate: normaliseDateTime(first.customizationLastPublishedDate) ?? undefined,
       customizationStatus: first.customizationStatus,
       customizationMigrationStatus: first.customizationMigrationStatus,
       customizationLastCustomizedById: first.customizationLastCustomizedById,
       customizationLastCustomizedByName: first.customizationLastCustomizedByName,
-      customizationLastCustomized: normaliseDateTime(first.customizationLastCustomized),
+      customizationLastCustomized: normaliseDateTime(first.customizationLastCustomized) ?? undefined,
       sections: [],
     });
 
@@ -232,7 +252,7 @@ export class TemplateCustomizationOverview {
     const sectionMap = new Map<number, TemplateCustomizationSectionOverview>();
 
     for (const row of templateRows) {
-      let section: TemplateCustomizationSectionOverview = sectionMap.get(row.versionedSectionId);
+      let section: TemplateCustomizationSectionOverview | undefined = sectionMap.get(row.versionedSectionId);
 
       if (!section) {
         section = {
@@ -305,7 +325,7 @@ export class TemplateCustomizationOverview {
         migrationStatus: row.customSectionMigrationStatus,
         name: row.customSectionName,
         displayOrder: 0, // Custom sections usually don't have a base display order
-        hasCustomGuidance: !valueIsEmpty(row.guidance),
+        hasCustomGuidance: !valueIsEmpty(row.guidance ?? ''),
         questions: []
       };
 
@@ -347,7 +367,7 @@ export class TemplateCustomizationOverview {
 
     for (const row of customRows) {
       // Find the section that the custom question belongs to
-      const section: TemplateCustomizationSectionOverview = sections.find((s: TemplateCustomizationSectionOverview) => {
+      const section: TemplateCustomizationSectionOverview | undefined = sections.find((s: TemplateCustomizationSectionOverview) => {
         return s.id === row.customQuestionSectionId;
       });
 
@@ -357,8 +377,8 @@ export class TemplateCustomizationOverview {
         migrationStatus: row.customQuestionMigrationStatus,
         questionText: row.customQuestionText,
         displayOrder: 0,
-        hasCustomGuidance: !valueIsEmpty(row.guidanceText),
-        hasCustomSampleAnswer: !valueIsEmpty(row.sampleText),
+        hasCustomGuidance: !valueIsEmpty(row.guidanceText ?? ''),
+        hasCustomSampleAnswer: !valueIsEmpty(row.sampleText ?? ''),
       };
 
       // If the section is not found, log an error and tack it onto the last section
@@ -575,9 +595,9 @@ export class TemplateCustomization extends MySqlModel {
   // The status of the customizations with regard to the base template
   public migrationStatus: TemplateCustomizationMigrationStatus;
   // Pointer to the current published version of this customization
-  public latestPublishedVersionId: number;
+  public latestPublishedVersionId?: number;
   // The date this customization was last published
-  public latestPublishedDate: string;
+  public latestPublishedDate?: string;
   // Whether the customization has been modified since it was last published
   public isDirty: boolean;
   // The name of the parent template, included for convenience when fetching a customization with its template name
@@ -585,7 +605,23 @@ export class TemplateCustomization extends MySqlModel {
 
   static tableName = 'templateCustomizations';
 
-  constructor(options) {
+  constructor(options: {
+    id?: number;
+    created?: string;
+    createdById?: number;
+    modified?: string;
+    modifiedById?: number;
+    errors?: Record<string, string>;
+    affiliationId: string;
+    templateId: number;
+    currentVersionedTemplateId: number;
+    status?: TemplateCustomizationStatus;
+    migrationStatus?: TemplateCustomizationMigrationStatus;
+    latestPublishedVersionId?: number;
+    latestPublishedDate?: string;
+    isDirty?: boolean;
+    templateName?: string;
+  }) {
     super(options.id, options.created, options.createdById, options.modified,
       options.modifiedById, options.errors);
 
@@ -654,7 +690,7 @@ export class TemplateCustomization extends MySqlModel {
           active: true,
         });
 
-        const created: VersionedTemplateCustomization = await newVersion.create(context);
+        const created: VersionedTemplateCustomization | undefined = await newVersion.create(context);
 
         if (!isNullOrUndefined(created) && !created.hasErrors() && created.id) {
           // Snapshot all child records into their published, versioned equivalents
@@ -672,7 +708,7 @@ export class TemplateCustomization extends MySqlModel {
             this.latestPublishedVersionId = created.id;
             this.latestPublishedDate = created.created;
             // noTouch=true so the update method will not set isDirty to true
-            const published: TemplateCustomization = await this.update(context, true);
+            const published: TemplateCustomization | undefined = await this.update(context, true);
 
             if (!published) {
               this.addError('general', 'Unable to publish');
@@ -702,10 +738,14 @@ export class TemplateCustomization extends MySqlModel {
       // Can't unpublish if it isn't published!
       this.addError('general', 'Customization is not published!');
 
+    } else if (!this.latestPublishedVersionId) {
+      // Guard against the (unexpected) case where status is PUBLISHED but there is no
+      // published version id to look up.
+      this.addError('general', 'Customization has no published version to unpublish');
     } else {
       // Make sure the record is valid
       if (await this.isValid()) {
-        const ver: VersionedTemplateCustomization = await VersionedTemplateCustomization.findById(
+        const ver: VersionedTemplateCustomization | undefined = await VersionedTemplateCustomization.findById(
           ref,
           context,
           this.latestPublishedVersionId
@@ -714,7 +754,7 @@ export class TemplateCustomization extends MySqlModel {
         if (ver) {
           // Deactivate the published version of the customization
           ver.active = false;
-          const updatedVer: VersionedTemplateCustomization = await ver.update(context, false);
+          const updatedVer: VersionedTemplateCustomization | undefined = await ver.update(context, false);
 
           if (isNullOrUndefined(updatedVer)) {
             this.addError('general', 'Unable to unpublish');
@@ -724,7 +764,7 @@ export class TemplateCustomization extends MySqlModel {
             this.isDirty = false;
             this.latestPublishedVersionId = undefined;
             this.latestPublishedDate = undefined;
-            const published: TemplateCustomization = await this.update(context);
+            const published: TemplateCustomization | undefined = await this.update(context);
 
             if (published) {
               return published;
@@ -744,11 +784,11 @@ export class TemplateCustomization extends MySqlModel {
    * @param context The Apollo context.
    * @returns The newly created Template customization.
    */
-  async create(context: MyContext): Promise<TemplateCustomization> {
+  async create(context: MyContext): Promise<TemplateCustomization | undefined> {
     const ref = 'TemplateCustomization.create';
     // Make sure the record is valid
     if (await this.isValid()) {
-      const current: TemplateCustomization = await TemplateCustomization.findByAffiliationAndTemplate(
+      const current: TemplateCustomization | undefined = await TemplateCustomization.findByAffiliationAndTemplate(
         ref,
         context,
         this.affiliationId,
@@ -760,14 +800,16 @@ export class TemplateCustomization extends MySqlModel {
         this.addError('general', 'Template has already been customized');
       } else {
         // Save the record and then fetch it
-        const newId: number = await TemplateCustomization.insert(
+        const newId = await TemplateCustomization.insert(
           context,
           TemplateCustomization.tableName,
           this,
           ref,
           ['templateName'] //skip templateName as it is not a real column in the database and is only used for convenience when fetching a customization with its template name
         );
-        return await TemplateCustomization.findById(ref, context, newId);
+        if (newId) {
+          return await TemplateCustomization.findById(ref, context, newId);
+        }
       }
     }
     // Otherwise return as-is with all the errors
@@ -781,7 +823,7 @@ export class TemplateCustomization extends MySqlModel {
    * @param noTouch Whether or not the modification timestamp should be updated
    * @returns The updated Template customization.
    */
-  async update(context: MyContext, noTouch = false): Promise<TemplateCustomization> {
+  async update(context: MyContext, noTouch = false): Promise<TemplateCustomization | undefined> {
     const ref = 'TemplateCustomization.update';
 
     if (!this.id) {
@@ -816,13 +858,13 @@ export class TemplateCustomization extends MySqlModel {
    * @param context The Apollo context
    * @returns The archived Template customization.
    */
-  async delete(context: MyContext): Promise<TemplateCustomization> {
+  async delete(context: MyContext): Promise<TemplateCustomization | undefined> {
     const ref = 'TemplateCustomization.delete';
     if (!this.id) {
       // Cannot delete it if it hasn't been saved yet!
       this.addError('general', 'Customization has never been saved');
     } else {
-      const original: TemplateCustomization = await TemplateCustomization.findById(
+      const original: TemplateCustomization | undefined = await TemplateCustomization.findById(
         ref,
         context,
         this.id
@@ -857,7 +899,7 @@ export class TemplateCustomization extends MySqlModel {
     context: MyContext,
     templateCustomizationId: number
   ): Promise<boolean> {
-    const customization: TemplateCustomization = await TemplateCustomization.findById(
+    const customization: TemplateCustomization | undefined = await TemplateCustomization.findById(
       reference,
       context,
       templateCustomizationId
@@ -868,7 +910,7 @@ export class TemplateCustomization extends MySqlModel {
     if (customization.isDirty) return true;
 
     customization.isDirty = true;
-    const updated: TemplateCustomization = await customization.update(context);
+    const updated: TemplateCustomization | undefined = await customization.update(context);
 
     // Return true if the update was successful
     return !isNullOrUndefined(updated) && !updated.hasErrors();
@@ -886,7 +928,7 @@ export class TemplateCustomization extends MySqlModel {
     reference: string,
     context: MyContext,
     templateCustomizationId: number
-  ): Promise<TemplateCustomization> {
+  ): Promise<TemplateCustomization | undefined> {
     const results = await TemplateCustomization.query(
       context,
       `SELECT * FROM ${TemplateCustomization.tableName} WHERE id = ?`,
@@ -910,7 +952,7 @@ export class TemplateCustomization extends MySqlModel {
     context: MyContext,
     affiliationId: string,
     templateId: number
-  ): Promise<TemplateCustomization> {
+  ): Promise<TemplateCustomization | undefined> {
     const results = await TemplateCustomization.query(
       context,
       `SELECT * FROM ${TemplateCustomization.tableName}

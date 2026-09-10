@@ -1,4 +1,4 @@
-import { Resolvers } from "../types.js";
+import { Resolvers, Tag as TagGql } from "../types.js";
 import { MyContext } from "../context.js";
 import { Section } from "../models/Section.js";
 import { Tag } from "../models/Tag.js";
@@ -11,11 +11,15 @@ import { normaliseDateTime } from "../utils/helpers.js";
 
 export const resolvers: Resolvers = {
   Query: {
+    // Cast needed on all Tag-returning resolvers below: the Tag model's `slug` field
+    // is optional but required in the generated Tag type, and there are no codegen
+    // mappers configured to reconcile this.
     // return all of the tags
-    tags: async (_, __, context: MyContext): Promise<Tag[]> => {
+    tags: async (_, __, context: MyContext) => {
       const reference = 'tags resolver';
       try {
-        return await Tag.findAll(reference, context);
+        const tags = await Tag.findAll(reference, context);
+        return tags as unknown as TagGql[];
       } catch (err) {
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
@@ -23,7 +27,7 @@ export const resolvers: Resolvers = {
     },
 
     // return all of the tags for the specified section
-    tagsBySectionId: async (_, { sectionId }, context: MyContext): Promise<Tag[]> => {
+    tagsBySectionId: async (_, { sectionId }, context: MyContext) => {
       const reference = 'tagsBySectionId resolver';
       try {
         // Find section with matching sectionId
@@ -33,7 +37,8 @@ export const resolvers: Resolvers = {
         }
 
         if (await hasPermissionOnSection(context, section.templateId)) {
-          return await Tag.findBySectionId('tagsBySectionId resolver', context, sectionId);
+          const tags = await Tag.findBySectionId('tagsBySectionId resolver', context, sectionId);
+          return tags as unknown as TagGql[];
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -45,17 +50,23 @@ export const resolvers: Resolvers = {
     },
   },
   Mutation: {
-    addTag: async (_, { name, description }, context: MyContext): Promise<Tag> => {
+    addTag: async (_, { name, description }, context: MyContext) => {
       const reference = 'addTag resolver';
       try {
         if (isSuperAdmin(context.token)) {
-          const tag = new Tag({ name, description });
+          const tag = new Tag({ name, description: description ?? undefined });
           const newTag = await tag.create(context);
 
           if (!newTag || newTag.hasErrors()) {
             tag.addError('general', 'Unable to create tag');
           }
-          return tag.hasErrors() ? tag : newTag;
+          if (tag.hasErrors()) {
+            return tag as unknown as TagGql;
+          }
+          if (!newTag) {
+            throw NotFoundError('Unable to create tag');
+          }
+          return newTag as unknown as TagGql;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -67,7 +78,7 @@ export const resolvers: Resolvers = {
     },
 
     // update and existing tag
-    updateTag: async (_, { tagId, name, description }, context: MyContext): Promise<Tag> => {
+    updateTag: async (_, { tagId, name, description }, context: MyContext) => {
       const reference = 'updateTag resolver';
       try {
         if (isSuperAdmin(context.token)) {
@@ -83,7 +94,13 @@ export const resolvers: Resolvers = {
             if (!updated || updated.hasErrors()) {
               tag.addError('general', 'Unable to update tag');
             }
-            return tag.hasErrors() ? tag : updated;
+            if (tag.hasErrors()) {
+              return tag as unknown as TagGql;
+            }
+            if (!updated) {
+              throw NotFoundError('Unable to update tag');
+            }
+            return updated as unknown as TagGql;
           }
 
           throw NotFoundError();
@@ -98,7 +115,7 @@ export const resolvers: Resolvers = {
     },
 
     // remove an existing tag
-    removeTag: async (_, { tagId }, context: MyContext): Promise<Tag> => {
+    removeTag: async (_, { tagId }, context: MyContext) => {
       const reference = 'removeTag resolver';
       try {
         if (isSuperAdmin(context.token)) {
@@ -109,7 +126,13 @@ export const resolvers: Resolvers = {
             if (!removedTag || removedTag.hasErrors()) {
               tag.addError('general', 'Unable to delete tag');
             }
-            return tag.hasErrors() ? tag : removedTag;
+            if (tag.hasErrors()) {
+              return tag as unknown as TagGql;
+            }
+            if (!removedTag) {
+              throw NotFoundError('Unable to delete tag');
+            }
+            return removedTag as unknown as TagGql;
           }
           throw NotFoundError();
         }
@@ -123,10 +146,12 @@ export const resolvers: Resolvers = {
     },
   },
   Tag: {
-    created: (parent: Tag) => {
+    // `parent` is contextually typed as the generated Tag (not the model class) here,
+    // which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: Tag) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },

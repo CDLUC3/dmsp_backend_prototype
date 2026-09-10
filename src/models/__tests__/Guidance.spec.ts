@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import casual from "casual";
 
 import { mockAppConfigs, mockAppLogger } from '../../__tests__/mockConfigs.js';
+import type { MyContext } from '../../context.js';
 
 // Register config + logger mocks FIRST — before anything that transitively imports them
 mockAppConfigs();
@@ -17,7 +18,7 @@ const { buildMockContextWithToken } = await import('../../__mocks__/context.js')
 const { logger } = await import('../../logger.js');
 
 describe('Guidance', () => {
-  let guidance;
+  let guidance: InstanceType<typeof Guidance>;
   const guidanceData = {
     guidanceGroupId: casual.integer(1, 100),
     guidanceText: 'This is guidance text',
@@ -41,7 +42,7 @@ describe('Guidance', () => {
   });
 
   it('should return false when calling isValid without a guidanceGroupId field', async () => {
-    guidance.guidanceGroupId = null;
+    guidance.guidanceGroupId = null as unknown as number;
     expect(await guidance.isValid()).toBe(false);
     expect(Object.keys(guidance.errors).length).toBe(1);
     expect(guidance.errors['guidanceGroupId']).toBeTruthy();
@@ -51,9 +52,9 @@ describe('Guidance', () => {
 describe('Guidance.findByGuidanceGroupId', () => {
   const originalQuery = Guidance.query;
 
-  let localQuery;
-  let context;
-  let guidance;
+  let localQuery: jest.Mock<() => Promise<unknown[]>>;
+  let context: MyContext;
+  let guidance: InstanceType<typeof Guidance>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -97,9 +98,9 @@ describe('Guidance.findByGuidanceGroupId', () => {
 describe('Guidance.findById', () => {
   const originalQuery = Guidance.query;
 
-  let localQuery;
-  let context;
-  let guidance;
+  let localQuery: jest.Mock<() => Promise<unknown[]>>;
+  let context: MyContext;
+  let guidance: InstanceType<typeof Guidance>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -124,10 +125,11 @@ describe('Guidance.findById', () => {
 
   it('should call query with correct params and return the guidance', async () => {
     localQuery.mockResolvedValueOnce([guidance]);
-    const result = await Guidance.findById('Guidance query', context, guidance.id);
+    const result = await Guidance.findById('Guidance query', context, guidance.id as number);
     const expectedSql = 'SELECT * FROM guidance WHERE id = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, [guidance.id.toString()], 'Guidance query');
+    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, [(guidance.id as number).toString()], 'Guidance query');
+    if (!result) throw new Error('test setup failed');
     expect(result.id).toEqual(guidance.id);
   });
 
@@ -140,7 +142,7 @@ describe('Guidance.findById', () => {
 });
 
 describe('PlanGuidance', () => {
-  let planGuidance;
+  let planGuidance: InstanceType<typeof PlanGuidance>;
   const planGuidanceData = {
     planId: casual.integer(1, 100),
     affiliationId: casual.uuid,
@@ -166,19 +168,19 @@ describe('PlanGuidance', () => {
   });
 
   it('should return false when calling isValid without a planId', async () => {
-    planGuidance.planId = null;
+    planGuidance.planId = null as unknown as number;
     expect(await planGuidance.isValid()).toBe(false);
     expect(planGuidance.errors['planId']).toBeTruthy();
   });
 
   it('should return false when calling isValid without an affiliationId', async () => {
-    planGuidance.affiliationId = null;
+    planGuidance.affiliationId = null as unknown as string;
     expect(await planGuidance.isValid()).toBe(false);
     expect(planGuidance.errors['affiliationId']).toBeTruthy();
   });
 
   it('should return false when calling isValid without a userId', async () => {
-    planGuidance.userId = null;
+    planGuidance.userId = null as unknown as number;
     expect(await planGuidance.isValid()).toBe(false);
     expect(planGuidance.errors['userId']).toBeTruthy();
   });
@@ -187,9 +189,9 @@ describe('PlanGuidance', () => {
 describe('PlanGuidance static methods', () => {
   const originalQuery = PlanGuidance.query;
 
-  let localQuery;
-  let context;
-  let planGuidance;
+  let localQuery: jest.Mock<() => Promise<unknown[]>>;
+  let context: MyContext;
+  let planGuidance: InstanceType<typeof PlanGuidance>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -215,10 +217,11 @@ describe('PlanGuidance static methods', () => {
 
   it('findById should call query with correct params and return the plan guidance', async () => {
     localQuery.mockResolvedValueOnce([planGuidance]);
-    const result = await PlanGuidance.findById('PlanGuidance query', context, planGuidance.id);
+    const result = await PlanGuidance.findById('PlanGuidance query', context, planGuidance.id as number);
     const expectedSql = 'SELECT * FROM planGuidance WHERE id = ?';
     expect(localQuery).toHaveBeenCalledTimes(1);
-    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, [planGuidance.id.toString()], 'PlanGuidance query');
+    expect(localQuery).toHaveBeenCalledWith(context, expectedSql, [(planGuidance.id as number).toString()], 'PlanGuidance query');
+    if (!result) throw new Error('test setup failed');
     expect(result.id).toEqual(planGuidance.id);
   });
 
@@ -233,6 +236,7 @@ describe('PlanGuidance static methods', () => {
     localQuery.mockResolvedValueOnce([planGuidance]);
     const result = await PlanGuidance.findByPlanAndAffiliation('PlanGuidance query', context, planGuidance.planId, planGuidance.affiliationId);
     expect(localQuery).toHaveBeenCalledTimes(1);
+    if (!result) throw new Error('test setup failed');
     expect(result.planId).toEqual(planGuidance.planId);
     expect(result.affiliationId).toEqual(planGuidance.affiliationId);
   });
@@ -247,6 +251,7 @@ describe('PlanGuidance static methods', () => {
     localQuery.mockResolvedValueOnce([planGuidance]);
     const result = await PlanGuidance.findByPlanUserAndAffiliation('PlanGuidance query', context, planGuidance.planId, planGuidance.userId, planGuidance.affiliationId);
     expect(result).not.toBeNull();
+    if (!result) throw new Error('test setup failed');
     expect(result.planId).toEqual(planGuidance.planId);
     expect(result.userId).toEqual(planGuidance.userId);
     expect(result.affiliationId).toEqual(planGuidance.affiliationId);

@@ -47,7 +47,7 @@ export const generateQuestionConditionGroupVersion = async (
   });
 
   const savedGroup = await versionedGroup.create(context);
-  if (!savedGroup || savedGroup.hasErrors()) {
+  if (!savedGroup || savedGroup.hasErrors() || !savedGroup.id) {
     const msg = `Unable to generate a new version for questionConditionGroup: ${group.id}`;
     context.logger.error(prepareObjectForLogs(savedGroup?.errors), msg);
     throw new Error(msg);
@@ -106,11 +106,16 @@ export const generateQuestionVersion = async (
   try {
     const saved = await versionedQuestion.create(context);
 
-    if (saved && !saved.hasErrors()) {
+    if (saved && !saved.hasErrors() && saved.id) {
       // Get tags associated with the question so we can add them to the versionedQuestionTags table
       const addTagErrors = [];
       if (Array.isArray(question.tags) && question.tags.length > 0) {
         for (const item of question.tags) {
+          if (!item.id) {
+            addTagErrors.push(`Tag reference has no id`);
+            continue;
+          }
+
           const tag = await Tag.findById('generateQuestionVersion', context, item.id);
           if (!tag) {
             addTagErrors.push(`Tag ${item.id} not found`);
@@ -154,13 +159,13 @@ export const generateQuestionVersion = async (
 
         // There were errors on the object so report them
         const msg = `Unable to set isDirty flag on question: ${question.id}`;
-        context.logger.error(prepareObjectForLogs(updated.errors), msg);
+        context.logger.error(prepareObjectForLogs(updated?.errors), msg);
         throw new Error(msg);
       }
     } else {
       // There were errors on the object so report them
       const msg = `Unable to create new version for question: ${question.id}`;
-      context.logger.error(prepareObjectForLogs(saved.errors), msg);
+      context.logger.error(prepareObjectForLogs(saved?.errors), msg);
       throw new Error(msg);
     }
   } catch (err) {
@@ -179,7 +184,7 @@ export const cloneQuestion = (
   question: Question | VersionedQuestion
 ): Question => {
   // If the incoming is a VersionedQuestion, then use the questionId (the question it was based off of)
-  const sourceId = Object.keys(question).includes('questionId') ? question['questionId'] : question.id;
+  const sourceId = 'questionId' in question ? question.questionId : question.id;
   const questionCopy = new Question({
     templateId,
     sectionId,
@@ -228,7 +233,7 @@ export const generateQuestionConditionVersion = async (
   }
 
   const msg = `Unable to generate a new version for questionCondition: ${questionCondition.id}`;
-  context.logger.error(prepareObjectForLogs(created.errors), msg);
+  context.logger.error(prepareObjectForLogs(created?.errors), msg);
   throw new Error(msg);
 }
 

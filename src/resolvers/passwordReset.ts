@@ -9,6 +9,7 @@ import { ForbiddenError, InternalServerError } from "../utils/graphQLErrors.js";
 import { GraphQLError } from "graphql";
 import { prepareObjectForLogs } from "../logger.js";
 import { UserEmail } from "../models/UserEmail.js";
+import { isNullOrUndefined } from "../utils/helpers.js";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -45,7 +46,7 @@ export const resolvers: Resolvers = {
 
         const user = await User.findById(reference, context, matchingEmail.userId);
 
-        if (user && user.active && !user.locked) {
+        if (user && user.active && !user.locked && !isNullOrUndefined(user.id)) {
           const created = await PasswordResetToken.createForUser(context, user.id);
           if (!created) {
             context.logger.error(prepareObjectForLogs({ userId: user.id }), `${reference} - failed to create reset token`);

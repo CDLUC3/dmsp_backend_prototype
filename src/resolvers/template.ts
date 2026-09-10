@@ -1,4 +1,4 @@
-import { Resolvers, TemplateSearchResults } from "../types.js";
+import { Affiliation as AffiliationGQL, Resolvers, Section as SectionGQL, TemplateSearchResults } from "../types.js";
 import { Template, TemplateSearchResult, TemplateVisibility } from "../models/Template.js";
 import { Affiliation } from "../models/Affiliation.js";
 import { TemplateCollaborator } from "../models/Collaborator.js";
@@ -45,7 +45,7 @@ export const resolvers: Resolvers = {
             reference,
             context,
             context.token.affiliationId,
-            term,
+            term ?? '',
             opts,
           );
         }
@@ -95,9 +95,9 @@ export const resolvers: Resolvers = {
       const reference = 'addTemplate resolver';
       try {
         if (isAdmin(context.token)) {
-          let template: Template;
+          let template: Template | undefined;
           let adminOwnsTemplate = false;
-          let sourceTemplateId: number;
+          let sourceTemplateId: number | undefined;
 
           // Validate that only one copy source is provided
           if (copyFromTemplateId && copyFromVersionedTemplateId) {
@@ -118,7 +118,7 @@ export const resolvers: Resolvers = {
                 template = cloneTemplate(context.token?.id, context.token.affiliationId, originalTemplate);
                 template.name = name;
                 template.sourceTemplateId = copyFromTemplateId;
-                template.sourceVersionedTemplateId = null;
+                template.sourceVersionedTemplateId = undefined;
               }
             } else {
               // Template not found
@@ -134,7 +134,7 @@ export const resolvers: Resolvers = {
               adminOwnsTemplate = false; // Always copy from versioned tables
               template = cloneTemplate(context.token?.id, context.token.affiliationId, versionedTemplate);
               template.name = name;
-              template.sourceTemplateId = null;
+              template.sourceTemplateId = undefined;
               template.sourceVersionedTemplateId = copyFromVersionedTemplateId;
             } else {
               // Versioned template not found
@@ -151,9 +151,13 @@ export const resolvers: Resolvers = {
 
           // Create new template
           const newTemplate = await template.create(context);
+          if (isNullOrUndefined(newTemplate)) {
+            template.addError('general', 'Unable to create Template');
+            return template;
+          }
 
           // Notify all org admins of the new template
-          if (newTemplate?.id) {
+          if (newTemplate.id) {
             await AdminNotification.addNotificationForAffiliation(
               reference,
               context,
@@ -167,26 +171,37 @@ export const resolvers: Resolvers = {
           const templateId = newTemplate.id;
 
           // Add generic error
-          if (!newTemplate || newTemplate.hasErrors()) {
+          if (newTemplate.hasErrors()) {
             template.addError('general', 'Unable to create Template');
           }
 
           if (templateId && (copyFromTemplateId || copyFromVersionedTemplateId) && !newTemplate.hasErrors()) {
-            if (adminOwnsTemplate) {
+            if (adminOwnsTemplate && !isNullOrUndefined(sourceTemplateId)) {
               // Copy from working tables (templates, sections, questions)
               const sections = await Section.findByTemplateId(reference, context, sourceTemplateId);
 
               for (const section of sections) {
                 const sectionId = section.id;
+                if (isNullOrUndefined(sectionId)) {
+                  continue;
+                }
                 const newSection = cloneSection(context.token?.id, templateId, section);
                 if (newSection && !newSection.hasErrors()) {
                   const createdSection = await newSection.create(context, templateId);
+                  if (isNullOrUndefined(createdSection) || isNullOrUndefined(createdSection.id)) {
+                    context.logger.error(`${reference} failed to clone section`);
+                    newTemplate.addError('sections', 'Created Template but unable to clone all sections');
+                    continue;
+                  }
                   const createdSectionId = createdSection.id;
 
                   // Fetch and copy all related questions from questions table
                   const questions = await Question.findBySectionId(reference, context, sectionId);
 
                   for (const q of questions) {
+                    if (isNullOrUndefined(q.id)) {
+                      continue;
+                    }
                     const question = cloneQuestion(context.token?.id, templateId, createdSectionId, q);
                     if (question) {
                       const newQuestion = await question.create(context);
@@ -212,15 +227,23 @@ export const resolvers: Resolvers = {
                   newTemplate.addError('sections', 'Created Template but unable to clone all sections');
                 }
               }
-            } else {
+            } else if (!adminOwnsTemplate && !isNullOrUndefined(copyFromVersionedTemplateId)) {
               // Copy from published/versioned tables (versionedTemplates, versionedSections, versionedQuestions)
               const versionedSections = await VersionedSection.findByTemplateId(reference, context, copyFromVersionedTemplateId);
 
               for (const versionedSection of versionedSections) {
                 const versionedSectionId = versionedSection.id;
+                if (isNullOrUndefined(versionedSectionId)) {
+                  continue;
+                }
                 const section = cloneSection(context.token?.id, templateId, versionedSection);
                 if (section && !section.hasErrors()) {
                   const newSection = await section.create(context, templateId);
+                  if (isNullOrUndefined(newSection) || isNullOrUndefined(newSection.id)) {
+                    context.logger.error(`${reference} failed to clone section`);
+                    newTemplate.addError('sections', 'Created Template but unable to clone all sections');
+                    continue;
+                  }
                   const sectionId = newSection.id;
 
                   // Fetch and copy all related versionedQuestions to questions table
@@ -272,7 +295,11 @@ export const resolvers: Resolvers = {
 
           if (await setDefaultTemplate(reference, context, template)) {
             // Refetch the updated template and return it
-            return await Template.findById(reference, context, templateId);
+            const refetched = await Template.findById(reference, context, templateId);
+            if (isNullOrUndefined(refetched)) {
+              throw NotFoundError('Template does not exist');
+            }
+            return refetched;
           } else {
             template.addError('general', 'Unable to mark the template as the default');
           }
@@ -294,12 +321,15 @@ export const resolvers: Resolvers = {
       try {
         if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
+          if (isNullOrUndefined(template)) {
+            throw NotFoundError();
+          }
 
           // Need to create an instance of template in order to access the "update" method below
           const templateInstance = new Template({ ...template });
 
           // Only allow the bestPractice flag to be changed if the user is a Super admin!
-          templateInstance.bestPractice = isSuperAdmin(context.token) && bestPractice !== undefined
+          templateInstance.bestPractice = isSuperAdmin(context.token) && !isNullOrUndefined(bestPractice)
             ? bestPractice
             : template.bestPractice;
 
@@ -308,11 +338,19 @@ export const resolvers: Resolvers = {
               // Update the fields and then save
               templateInstance.name = name;
               const updated = await templateInstance.update(context);
-              if (!updated || updated.hasErrors()) {
-                updated?.addError('general', 'Unable to update Template');
+              if (isNullOrUndefined(updated)) {
+                template.addError('general', 'Unable to update Template');
+                throw NotFoundError();
+              }
+              if (updated.hasErrors()) {
+                return updated;
               }
 
-              return updated.hasErrors() ? updated : Template.findById(reference, context, templateId);
+              const refetched = await Template.findById(reference, context, templateId);
+              if (isNullOrUndefined(refetched)) {
+                throw NotFoundError();
+              }
+              return refetched;
             }
           }
           throw NotFoundError();
@@ -352,17 +390,21 @@ export const resolvers: Resolvers = {
               // If the template has associated plans or customizations then we cannot delete it!
               if (hasPlans || nbrCustomizations > 0) {
                 // Template has associated plans, so unpublish it instead of deleting
-                templateInstance.latestPublishVersion = null;
-                templateInstance.latestPublishDate = null;
+                templateInstance.latestPublishVersion = undefined;
+                templateInstance.latestPublishDate = undefined;
                 templateInstance.isDirty = true;
 
                 const updated = await templateInstance.update(context);
-                if (!updated || updated.hasErrors()) {
-                  updated?.addError('general', 'Unable to unpublish Template');
+                if (isNullOrUndefined(updated)) {
+                  templateInstance.addError('general', 'Unable to unpublish Template');
+                  return templateInstance;
+                }
+                if (updated.hasErrors()) {
+                  updated.addError('general', 'Unable to unpublish Template');
                 }
 
                 // Set all related versionedTemplates to inactive
-                if (updated && !updated.hasErrors()) {
+                if (!updated.hasErrors()) {
                   await VersionedTemplate.deactivateByTemplateId(reference, context, templateId);
                 }
 
@@ -395,6 +437,9 @@ export const resolvers: Resolvers = {
       try {
         if (isAdmin(context.token)) {
           const template = await Template.findById(reference, context, templateId);
+          if (isNullOrUndefined(template)) {
+            throw NotFoundError();
+          }
           // Need to create an instance of template in order to access the "update" method below
           const templateInstance = new Template({ ...template });
 
@@ -409,19 +454,24 @@ export const resolvers: Resolvers = {
                   templateInstance,
                   versions,
                   context.token.id,
-                  comment,
+                  comment ?? undefined,
                   latestPublishVisibility as TemplateVisibility,
-                  TemplateVersionType[versionType]
+                  versionType ? TemplateVersionType[versionType] : undefined
                 );
               } catch (err) {
-                templateInstance.addError('general', err.message);
+                const message = err instanceof Error ? err.message : 'Unable to version the Template';
+                templateInstance.addError('general', message);
                 return templateInstance;
               }
 
               // If the versionedTemplate is not null then the versioning process succeeded
               if (versionedTemplate && !versionedTemplate.hasErrors()) {
                 // Reload the template and return it.
-                return await Template.findById(reference, context, templateId);
+                const refetched = await Template.findById(reference, context, templateId);
+                if (isNullOrUndefined(refetched)) {
+                  throw NotFoundError();
+                }
+                return refetched;
               }
 
               // Add generic error
@@ -441,11 +491,14 @@ export const resolvers: Resolvers = {
     },
   },
 
+  // NOTE: `parent` below is typed to the GraphQL-facing shape, but at runtime it is actually
+  // the model instance returned by the parent resolver, so it's cast back via `as unknown as X`.
   TemplateSearchResult: {
     // Resolver for ownerDisplayName based on owner.displayName
-    ownerDisplayName: async (parent: TemplateSearchResult, _, context: MyContext): Promise<string | null> => {
-      if (parent.ownerId) {
-        const owner = await Affiliation.findByURI('TemplateSearchResult.owner', context, parent.ownerId);
+    ownerDisplayName: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as TemplateSearchResult;
+      if (model.ownerId) {
+        const owner = await Affiliation.findByURI('TemplateSearchResult.owner', context, model.ownerId);
         return owner?.displayName || null;
       }
       return null;
@@ -454,44 +507,55 @@ export const resolvers: Resolvers = {
 
   Template: {
     // Chained resolver to fetch the Affiliation info for the user
-    owner: async (parent: Template, _, context: MyContext): Promise<Affiliation> => {
-      if (parent.ownerId) {
-        return await Affiliation.findByURI('Chained Template.owner', context, parent.ownerId);
+    owner: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Template;
+      if (model.ownerId) {
+        const affiliation = await Affiliation.findByURI('Chained Template.owner', context, model.ownerId);
+        return affiliation ? (affiliation as unknown as AffiliationGQL) : null;
       }
       return null;
     },
 
     // Chained resolver to fetch the TemplateCollaborators
-    collaborators: async (parent: Template, _, context: MyContext): Promise<TemplateCollaborator[]> => {
-      if (parent.id) {
-        return await TemplateCollaborator.findByTemplateId('Chained Template.collaborators', context, parent.id);
+    collaborators: async (parent, _, context: MyContext): Promise<TemplateCollaborator[]> => {
+      const model = parent as unknown as Template;
+      if (model.id) {
+        return await TemplateCollaborator.findByTemplateId('Chained Template.collaborators', context, model.id);
       }
       return [];
     },
 
     // Allow the GraphQL client to fetch the template when querying for a Section
-    sections: async (parent: Template, _, context: MyContext): Promise<Section[]> => {
-      if (parent.id) {
-        return await Section.findByTemplateId('Chained Template.sections', context, parent.id);
+    sections: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Template;
+      if (model.id) {
+        const sections = await Section.findByTemplateId('Chained Template.sections', context, model.id);
+        // The Section model's `tags` field (via models/Tag.js) isn't perfectly structurally
+        // identical to the generated GraphQL `Tag` type (e.g. `slug` is required there), so
+        // bridge it the same way the parent cast above does.
+        return sections as unknown as SectionGQL[];
       }
       return [];
     },
 
     // Chained resolver to fetch the admins associated with the template's owner
-    admins: async (parent: Template, _, context: MyContext): Promise<User[]> => {
-      if (parent.ownerId) {
-        const opts = { type: PaginationType.CURSOR, cursor: null, limit: generalConfig.maximumSearchLimit };
-        const results = await User.findByAffiliationId('Chained Template.admins', context, parent.ownerId, null, opts);
+    admins: async (parent, _, context: MyContext): Promise<User[]> => {
+      const model = parent as unknown as Template;
+      if (model.ownerId) {
+        const opts = { type: PaginationType.CURSOR, cursor: undefined, limit: generalConfig.maximumSearchLimit };
+        const results = await User.findByAffiliationId('Chained Template.admins', context, model.ownerId, '', opts);
         return Array.isArray(results.items) ? results.items.filter((user) => user.role === UserRole.ADMIN) : [];
       }
       return [];
     },
 
-    created: (parent: Template) => {
-      return normaliseDateTime(parent.created);
+    created: (parent) => {
+      const model = parent as unknown as Template;
+      return normaliseDateTime(model.created);
     },
-    modified: (parent: Template) => {
-      return normaliseDateTime(parent.modified);
+    modified: (parent) => {
+      const model = parent as unknown as Template;
+      return normaliseDateTime(model.modified);
     }
   },
 };

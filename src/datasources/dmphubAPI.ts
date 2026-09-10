@@ -31,15 +31,17 @@ interface RDACommonStandardObsoleteProject {
 
 // Singleton class that retrieves an Auth token from the API
 export class Authorizer extends RESTDataSource {
-  static #instance: Authorizer;
+  static #instance: Authorizer | undefined;
 
   override baseURL = DMPHubConfig.dmpHubAuthURL;
 
   public env: string;
-  public oauth2Token: string;
+  // Legitimately unset until the first successful `authenticate()` call (init() gates on
+  // the `initialized` flag rather than these, so they're allowed to start empty/undefined).
+  public oauth2Token?: string;
 
   private creds: string;
-  private expiry: Date;
+  private expiry?: Date;
   private initialized = false;
 
   constructor() {
@@ -86,7 +88,7 @@ export class Authorizer extends RESTDataSource {
 
   // Check if the current token has expired
   hasExpired() {
-    return new Date() >= this.expiry;
+    return !this.expiry || new Date() >= this.expiry;
   }
 
   // Attach all of the necessary HTTP headers and the body prior to calling the token endpoint
@@ -119,7 +121,7 @@ export class DMPHubAPI extends RESTDataSource {
   };
 
   // Remove the protocol from the DMSP ID and encode it but preserve the `/` characters
-  removeProtocol(id) {
+  removeProtocol(id: string) {
     return id.toString().replace(/^(https?:\/\/|https?%3A%2F%2F)/i, '').replace(/%2F/g, '/');
   }
 
@@ -183,7 +185,10 @@ export class DMPHubAPI extends RESTDataSource {
         prepareObjectForLogs({ code: response?.status, errs: response?.errors }),
         `${reference} Error retrieving Awards from DMPHub API`
       );
-      return null;
+      // Callers (e.g. searchExternalProjects resolver) map over the result directly without
+      // a null-check, so an empty array -- not null -- is what actually matches the declared
+      // `Promise<DMPHubAward[]>` return type and existing caller behavior.
+      return [];
     } catch (err) {
       context.logger.error(prepareObjectForLogs(err), `${reference} error calling DMPHub API getAwards`);
       throw (err);

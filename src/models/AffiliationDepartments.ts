@@ -3,15 +3,27 @@ import { isNullOrUndefined } from "../utils/helpers.js";
 import { MySqlModel } from "./MySqlModel.js";
 import { prepareObjectForLogs } from "../logger.js";
 
+interface AffiliationDepartmentOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  affiliationId: string;
+  name: string;
+  abbreviation?: string;
+}
+
 // A department for an affiliation
 export class AffiliationDepartment extends MySqlModel {
   public affiliationId!: string;
   public name!: string;
-  public abbreviation: string;
+  public abbreviation?: string;
 
   private static tableName = 'affiliationDepartments';
 
-  constructor(options) {
+  constructor(options: AffiliationDepartmentOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.affiliationId = options.affiliationId;
@@ -30,7 +42,7 @@ export class AffiliationDepartment extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<AffiliationDepartment> {
+  async create(context: MyContext): Promise<AffiliationDepartment | null> {
     const reference = 'AffiliationDepartment.create';
     // First make sure the record doesn't already exist
     const current = await AffiliationDepartment.findByAffiliationAndName(
@@ -60,7 +72,7 @@ export class AffiliationDepartment extends MySqlModel {
   }
 
   // Update the record
-  async update(context: MyContext): Promise<AffiliationDepartment> {
+  async update(context: MyContext): Promise<AffiliationDepartment | null> {
     const reference = 'AffiliationDepartment.update';
     if (!this.id) {
       this.addError('general', 'The school/department does not exist');
@@ -89,7 +101,7 @@ export class AffiliationDepartment extends MySqlModel {
   }
 
   // Archive this record
-  async delete(context: MyContext): Promise<AffiliationDepartment> {
+  async delete(context: MyContext): Promise<AffiliationDepartment | null> {
     if (this.id) {
       const result = await AffiliationDepartment.delete(
         context,
@@ -107,10 +119,14 @@ export class AffiliationDepartment extends MySqlModel {
   // Add this AffiliationDepartment to a User
   async addToUser(context: MyContext, userId: number): Promise<boolean> {
     const reference = 'AffiliationDepartment.addToUser';
+    if (!this.id) {
+      context.logger.error(`${reference} - AffiliationDepartment has never been saved`);
+      return false;
+    }
     let sql = 'INSERT INTO userDepartments (userId, affiliationDepartmentId, ';
     sql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const currentUserId = context.token?.id?.toString();
-    const vals = [userId?.toString(), this.id?.toString(), currentUserId, currentUserId];
+    const vals = [userId?.toString(), this.id.toString(), currentUserId, currentUserId];
     const results = await AffiliationDepartment.query(context, sql, vals, reference);
 
     if (!results) {
@@ -125,8 +141,12 @@ export class AffiliationDepartment extends MySqlModel {
   // Remove this AffiliationDepartment from a User
   async removeFromUser(context: MyContext, userId: number): Promise<boolean> {
     const reference = 'AffiliationDepartment.removeFromUser';
+    if (!this.id) {
+      context.logger.error(`${reference} - AffiliationDepartment has never been saved`);
+      return false;
+    }
     const sql = 'DELETE FROM userDepartments WHERE affiliationDepartmentId = ? AND userId = ?';
-    const vals = [this.id?.toString(), userId?.toString()];
+    const vals = [this.id.toString(), userId?.toString()];
     const results = await AffiliationDepartment.query(context, sql, vals, reference);
 
     if (!results) {
@@ -139,14 +159,14 @@ export class AffiliationDepartment extends MySqlModel {
   }
 
   // Return the specified AffiliationDepartment
-  static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationDepartment> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationDepartment | null> {
     const sql = `SELECT * FROM ${AffiliationDepartment.tableName} WHERE id = ?`;
     const results = await AffiliationDepartment.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new AffiliationDepartment(results[0]) : null;
   }
 
   // Return the specified AffiliationDepartment
-  static async findByAffiliationAndName(reference: string, context: MyContext, affiliationId: string, name: string): Promise<AffiliationDepartment> {
+  static async findByAffiliationAndName(reference: string, context: MyContext, affiliationId: string, name: string): Promise<AffiliationDepartment | null> {
     const sql = `SELECT * FROM ${AffiliationDepartment.tableName} WHERE affiliationId = ? AND LOWER(TRIM(name)) = ?`;
     const results = await AffiliationDepartment.query(context, sql, [affiliationId, name.trim().toLowerCase()], reference);
     return Array.isArray(results) && results.length > 0 ? new AffiliationDepartment(results[0]) : null;

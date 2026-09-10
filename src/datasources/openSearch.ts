@@ -168,11 +168,16 @@ const camelizeKeys = <T>(obj: T): DeepCamelCase<T> => {
   if (Array.isArray(obj)) {
     return obj.map((v) => camelizeKeys(v)) as DeepCamelCase<T>;
   } else if (obj !== null && obj !== undefined && typeof obj === "object" && obj.constructor === Object) {
-    return Object.keys(obj).reduce((result, key) => {
+    // `DeepCamelCase<T>` is a conditional/mapped type, so TS can't resolve it to an
+    // indexable shape inside this generic function body; we know at runtime (checked
+    // above) that this branch is always a plain object, so a Record cast is safe here.
+    const source = obj as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(source)) {
       const camelKey = key.toLowerCase().replace(/_([a-z0-9])/g, (_, m) => m.toUpperCase());
-      result[camelKey] = camelizeKeys((obj as DeepCamelCase<T>)[key]);
-      return result;
-    }, {} as DeepCamelCase<T>);
+      result[camelKey] = camelizeKeys(source[key]);
+    }
+    return result as DeepCamelCase<T>;
   }
   return obj as DeepCamelCase<T>;
 }
@@ -188,11 +193,15 @@ const snakeizeKeys = <T>(obj: T): DeepSnakeCase<T> => {
   if (Array.isArray(obj)) {
     return obj.map((v) => snakeizeKeys(v)) as DeepSnakeCase<T>;
   } else if (obj !== null && obj !== undefined && obj.constructor === Object) {
-    return Object.keys(obj).reduce((result, key) => {
+    // See the matching comment in camelizeKeys above: DeepSnakeCase<T> can't be indexed
+    // directly inside this generic function body, but this branch is always a plain object.
+    const source = obj as Record<string, unknown>;
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(source)) {
       const snakeKey = key.replace(/[A-Z]/g, (m) => `_${m.toLowerCase()}`);
-      result[snakeKey] = snakeizeKeys((obj as DeepSnakeCase<T>)[key]);
-      return result;
-    }, {} as DeepSnakeCase<T>);
+      result[snakeKey] = snakeizeKeys(source[key]);
+    }
+    return result as DeepSnakeCase<T>;
   }
   return obj as DeepSnakeCase<T>;
 }
@@ -211,6 +220,22 @@ export interface IndexSearchItemInterface {
 export interface IndexSearchResponseInterface<T> {
   total: number;
   items: T[];
+}
+
+// OpenSearch client errors attach the HTTP status code to either `error.meta.statusCode`
+// or `error.statusCode` directly (this isn't modeled on the client's own error types), and
+// the catch variable is otherwise `unknown`; this narrows it just enough to read that field
+// defensively.
+const getOpenSearchStatusCode = (error: unknown): number | undefined => {
+  if (error && typeof error === 'object') {
+    const err = error as { meta?: { statusCode?: number }, statusCode?: number };
+    return err.meta?.statusCode ?? err.statusCode;
+  }
+  return undefined;
+}
+
+const getErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -323,7 +348,7 @@ export class OpenSearch {
       return response ? response.body?._source as T : undefined;
     } catch (error) {
       // OpenSearch client attaches the HTTP status code to error.meta.statusCode or error.statusCode
-      const statusCode: number = error?.meta?.statusCode || error?.statusCode;
+      const statusCode = getOpenSearchStatusCode(error);
 
       if (statusCode === 404) {
         return undefined;
@@ -331,7 +356,7 @@ export class OpenSearch {
 
       // Re-throw or handle non-404 errors (500s, network failures, etc.)
       throw new OpenSearchError(
-        `GetItem: Failed to retrieve item "${id}" from ${indexName}. ${error.message}`
+        `GetItem: Failed to retrieve item "${id}" from ${indexName}. ${getErrorMessage(error)}`
       );
     }
   }
@@ -364,14 +389,14 @@ export class OpenSearch {
         }
       });
     } catch (error) {
-      const statusCode: number = error?.meta?.statusCode || error?.statusCode;
+      const statusCode = getOpenSearchStatusCode(error);
 
       if (statusCode === 404) {
         return;
       }
 
       throw new OpenSearchError(
-        `UpdateItem: Failed to update item "${id}" in ${indexName}. ${error.message}`
+        `UpdateItem: Failed to update item "${id}" in ${indexName}. ${getErrorMessage(error)}`
       );
     }
   }
@@ -396,7 +421,7 @@ export class OpenSearch {
 
       } catch (error) {
         // OpenSearch client attaches the HTTP status code to error.meta.statusCode or error.statusCode
-        const statusCode: number = error?.meta?.statusCode || error?.statusCode;
+        const statusCode = getOpenSearchStatusCode(error);
 
         if (statusCode === 404) {
           // Item not found, nothing to remove
@@ -405,7 +430,7 @@ export class OpenSearch {
 
         // Re-throw or handle non-404 errors (500s, network failures, etc.)
         throw new OpenSearchError(
-          `OpenSearch: Failed to remove item "${itemId}" from ${indexName}. ${error.message}`
+          `OpenSearch: Failed to remove item "${itemId}" from ${indexName}. ${getErrorMessage(error)}`
         );
       }
     }
@@ -443,8 +468,13 @@ export class OpenSearch {
         ? response.body.hits.total
         : (response.body.hits.total as { value: number }).value;
 
-      const items: IndexSearchItemInterface[] = response.body.hits.hits.map((hit: SearchHit): IndexSearchItemInterface => {
-        return { _id: hit._id, fields: camelizeKeys(hit.fields) };
+      // The OpenSearch client's generated `HitsMetadata["hits"]` type is an intersection of
+      // `Hit` with an array-of-{_source} type (a quirk of its type generator), so `.map()`'s
+      // inferred callback signature loses `_id`/`fields`. We know the real runtime shape
+      // matches our own `SearchHit` (that's what the client actually returns), hence the cast.
+      const hits = response.body.hits.hits as unknown as SearchHit[];
+      const items: IndexSearchItemInterface[] = hits.map((hit: SearchHit): IndexSearchItemInterface => {
+        return { _id: hit._id, fields: camelizeKeys(hit.fields ?? {}) };
       }) || [];
 
       return {
@@ -453,7 +483,7 @@ export class OpenSearch {
       };
     } catch (error) {
       // OpenSearch client attaches the HTTP status code to error.meta.statusCode or error.statusCode
-      const statusCode: number = error?.meta?.statusCode || error?.statusCode;
+      const statusCode = getOpenSearchStatusCode(error);
 
       if (statusCode === 404) {
         // Item not found, nothing to remove
@@ -462,7 +492,7 @@ export class OpenSearch {
 
       // Re-throw or handle non-404 errors (500s, network failures, etc.)
       throw new OpenSearchError(
-        `OpenSearch: Failed to search within ${indexName}. ${error.message}`
+        `OpenSearch: Failed to search within ${indexName}. ${getErrorMessage(error)}`
       );
     }
   }

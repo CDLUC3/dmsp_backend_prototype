@@ -24,17 +24,32 @@ export const FILLED_ANSWER_CHECK = `
   )
 `;
 
+interface AnswerOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  planId: number;
+  versionedSectionId?: number;
+  versionedQuestionId?: number;
+  versionedCustomSectionId?: number;
+  versionedCustomQuestionId?: number;
+  json: string;
+}
+
 export class Answer extends MySqlModel {
   public planId: number;
-  public versionedSectionId: number;
-  public versionedQuestionId: number;
+  public versionedSectionId?: number;
+  public versionedQuestionId?: number;
   public versionedCustomSectionId?: number;
   public versionedCustomQuestionId?: number;
   public json: string;
 
   private static tableName = 'answers';
 
-  constructor(options) {
+  constructor(options: AnswerOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.planId = options.planId;
@@ -47,7 +62,7 @@ export class Answer extends MySqlModel {
     try {
       this.json = removeNullAndUndefinedFromJSON(options.json);
     } catch (e) {
-      this.addError('json', e.message);
+      this.addError('json', e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -71,16 +86,17 @@ export class Answer extends MySqlModel {
     // If json is not null or undefined and the type is in the schema map
     if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
       const parsedJSON = JSON.parse(this.json);
-      if (Object.keys(AnswerSchemaMap).includes(parsedJSON['type'])) {
+      const answerType = parsedJSON['type'] as keyof typeof AnswerSchemaMap;
+      if (Object.keys(AnswerSchemaMap).includes(answerType)) {
         // Validate the json against the Zod schema and if valid, set the questionType
         try {
-          const result = AnswerSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+          const result = AnswerSchemaMap[answerType]?.safeParse(parsedJSON);
           if (result && !result.success) {
             // If there are validation errors, add them to the errors object
-            this.addError('json', result.error.issues?.map(e => `${e.path.join('.')} - ${e.message}`)?.join('; '));
+            this.addError('json', result.error.issues?.map((e) => `${e.path.join('.')} - ${e.message}`)?.join('; '));
           }
         } catch (e) {
-          this.addError('json', e.message);
+          this.addError('json', e instanceof Error ? e.message : String(e));
         }
       } else {
         // If the type is not in the schema map, add an error
@@ -145,7 +161,7 @@ export class Answer extends MySqlModel {
   }
 
   //Create a new Answer
-  async create(context: MyContext): Promise<Answer> {
+  async create(context: MyContext): Promise<Answer | null> {
     const reference = 'Answer.create';
 
     this.prepForSave();
@@ -153,9 +169,12 @@ export class Answer extends MySqlModel {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Check if an answer already exists for this planId and versionedQuestionId or versionedCustomQuestionId (depending on which one is being used)
-      const current = this.versionedQuestionId
-        ? await Answer.findByPlanIdAndVersionedQuestionId(reference, context, this.planId, this.versionedQuestionId)
-        : await Answer.findByPlanIdAndVersionedCustomQuestionId(reference, context, this.planId, this.versionedCustomQuestionId);
+      let current: Answer | null = null;
+      if (this.versionedQuestionId) {
+        current = await Answer.findByPlanIdAndVersionedQuestionId(reference, context, this.planId, this.versionedQuestionId);
+      } else if (this.versionedCustomQuestionId) {
+        current = await Answer.findByPlanIdAndVersionedCustomQuestionId(reference, context, this.planId, this.versionedCustomQuestionId);
+      }
 
 
       // Then make sure it doesn't already exist
@@ -177,7 +196,7 @@ export class Answer extends MySqlModel {
   }
 
   //Update an existing Answer
-  async update(context: MyContext, noTouch = false): Promise<Answer> {
+  async update(context: MyContext, noTouch = false): Promise<Answer | null> {
     this.prepForSave();
 
     if (await this.isValid()) {
@@ -192,7 +211,7 @@ export class Answer extends MySqlModel {
   }
 
   //Delete the Answer
-  async delete(context: MyContext): Promise<Answer> {
+  async delete(context: MyContext): Promise<Answer | null> {
     if (this.id) {
       const deleted = await Answer.findById('Answer.delete', context, this.id);
 
@@ -212,7 +231,7 @@ export class Answer extends MySqlModel {
   }
 
   // Fetch a Answer by its id
-  static async findById(reference: string, context: MyContext, licenseId: number): Promise<Answer> {
+  static async findById(reference: string, context: MyContext, licenseId: number): Promise<Answer | null> {
     const sql = `SELECT * FROM ${Answer.tableName} WHERE id = ?`;
     const results = await Answer.query(context, sql, [licenseId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Answer(results[0]) : null;
@@ -224,7 +243,7 @@ export class Answer extends MySqlModel {
     context: MyContext,
     planId: number,
     versionedQuestionId: number
-  ): Promise<Answer> {
+  ): Promise<Answer | null> {
     const sql = `SELECT * FROM answers WHERE planId = ? AND versionedQuestionId = ?`;
     const results = await Answer.query(context, sql, [planId.toString(), versionedQuestionId.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Answer(results[0]) : null;
@@ -235,7 +254,7 @@ export class Answer extends MySqlModel {
     context: MyContext,
     planId: number,
     versionedCustomQuestionId: number
-  ): Promise<Answer> {
+  ): Promise<Answer | null> {
     const sql = `SELECT * FROM answers WHERE planId = ? AND versionedCustomQuestionId = ?`;
     const results = await Answer.query(context, sql, [planId.toString(), versionedCustomQuestionId.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Answer(results[0]) : null;

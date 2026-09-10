@@ -1,7 +1,9 @@
 import {
   PublishedTemplateSearchResults,
   PublishedTemplateMetaDataResults,
-  Resolvers, CustomizableTemplateSearchResults
+  Resolvers, CustomizableTemplateSearchResults,
+  Affiliation as AffiliationGQL,
+  VersionedSection as VersionedSectionGQL,
 } from "../types.js";
 import {
   CustomizableTemplateSearchResult,
@@ -22,7 +24,7 @@ import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers.js";
 export const resolvers: Resolvers = {
   Query: {
     // Get a VersionedTemplate by its id
-    versionedTemplate: async (_, { id }, context: MyContext): Promise<VersionedTemplate> => {
+    versionedTemplate: async (_, { id }, context: MyContext) => {
       const reference = 'versionedTemplate resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -67,7 +69,7 @@ export const resolvers: Resolvers = {
             ? paginationOptions as PaginationOptionsForOffsets
             : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
-          return await VersionedTemplateSearchResult.search(reference, context, term, opts);
+          return await VersionedTemplateSearchResult.search(reference, context, term ?? '', opts);
         }
         // Unauthorized!
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -145,9 +147,9 @@ export const resolvers: Resolvers = {
           return await CustomizableTemplateSearchResult.search(
             reference,
             context,
-            term,
-            status,
-            migrationStatus,
+            term ?? undefined,
+            status ?? undefined,
+            migrationStatus ?? undefined,
             opts
           );
         }
@@ -167,9 +169,10 @@ export const resolvers: Resolvers = {
      * @param _ The Apollo parent object (not applicable here)
      * @param context
      */
-    defaultTemplate: async (_, __, context: MyContext): Promise<VersionedTemplate> => {
+    defaultTemplate: async (_, __, context: MyContext) => {
       try {
-        return await VersionedTemplate.defaultTemplate("defaultTemplate resolver", context);
+        const template = await VersionedTemplate.defaultTemplate("defaultTemplate resolver", context);
+        return template ?? null;
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -181,29 +184,39 @@ export const resolvers: Resolvers = {
 
   VersionedTemplate: {
     // Chained resolver to fetch the Affiliation info for the user
-    template: async (parent: VersionedTemplate, _, context: MyContext): Promise<Template> => {
-      return await Template.findById('Chained VersionedTemplate.template', context, parent.templateId);
+    // `parent` is typed to the GraphQL-facing shape (no raw FK fields), but at runtime it is
+    // actually the VersionedTemplate model instance returned by the parent resolver.
+    template: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as VersionedTemplate;
+      return await Template.findById('Chained VersionedTemplate.template', context, model.templateId);
     },
 
     // Chained resolver to return the Affiliation that owns the Template
-    owner: async (parent: VersionedTemplate, _, context: MyContext): Promise<Affiliation> => {
-      return await Affiliation.findByURI('Chained VersionedTemplate.owner', context, parent.ownerId);
+    owner: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as VersionedTemplate;
+      const affiliation = await Affiliation.findByURI('Chained VersionedTemplate.owner', context, model.ownerId);
+      return affiliation as unknown as AffiliationGQL;
     },
 
     // Chained resolver to return the User who created the version
-    versionedBy: async (parent: VersionedTemplate, _, context: MyContext): Promise<User> => {
-      return await User.findById('Chained VersionedTemplate.versionedBy', context, parent.versionedById);
+    versionedBy: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as VersionedTemplate;
+      return await User.findById('Chained VersionedTemplate.versionedBy', context, model.versionedById);
     },
 
     // Chained resolver to return the VersionedSections associated with this VersioneTemplate
-    versionedSections: async (parent: VersionedTemplate, _, context: MyContext): Promise<VersionedSection[]> => {
-      return await VersionedSection.findByTemplateId('Chained VersionedTemplate.versionedSection', context, parent.id);
+    versionedSections: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.id)) return [];
+      const sections = await VersionedSection.findByTemplateId(
+        'Chained VersionedTemplate.versionedSection', context, parent.id
+      );
+      return sections as unknown as VersionedSectionGQL[];
     },
 
-    created: (parent: VersionedTemplate) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedTemplate) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },

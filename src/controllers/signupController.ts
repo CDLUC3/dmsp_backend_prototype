@@ -5,6 +5,7 @@ import { generateAuthTokens, setTokenCookie } from '../services/tokenService.js'
 import { generalConfig } from '../config/generalConfig.js';
 import { buildContext } from '../context.js';
 import { processOtherAffiliationName } from '../services/affiliationService.js';
+import { isNullOrUndefined } from '../utils/helpers.js';
 
 export const signupController = async (req: Request, res: Response) => {
   const context = buildContext(
@@ -17,7 +18,7 @@ export const signupController = async (req: Request, res: Response) => {
 
   const props = req.body;
 
-  let user: User = new User({
+  let user: User | null = new User({
     password: props?.password,
     affiliationId: props?.affiliationId,
     givenName: props?.givenName,
@@ -33,7 +34,7 @@ export const signupController = async (req: Request, res: Response) => {
         res.status(400).json({ success: false, message: Object.values(user.errors).join(' | ') });
       } else {
         // If the affiliationId was not provided then create a new Affiliation using the otherAffiliationName
-        if (!props?.affiliationId && props?.otherAffiliationName) {
+        if (!props?.affiliationId && props?.otherAffiliationName && !isNullOrUndefined(user.id)) {
           const affiliation = await processOtherAffiliationName(context, props.otherAffiliationName, user.id);
 
           if (!affiliation) {
@@ -41,9 +42,11 @@ export const signupController = async (req: Request, res: Response) => {
           } else {
             // Need to reload here because the object returned by `register` does not have functions!
             const registeredUser = await User.findById('signupController', context, user.id);
-            // Update the user's affiliationId with the new id
-            registeredUser.affiliationId = affiliation.uri;
-            await registeredUser.update(context);
+            if (registeredUser) {
+              // Update the user's affiliationId with the new id
+              registeredUser.affiliationId = affiliation.uri;
+              await registeredUser.update(context);
+            }
           }
         }
 

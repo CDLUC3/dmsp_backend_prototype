@@ -2,13 +2,24 @@ import { MyContext } from "../context.js";
 import { valueIsEmpty } from "../utils/helpers.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface AnswerCommentOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  answerId: number;
+  commentText: string;
+}
+
 export class AnswerComment extends MySqlModel {
   public answerId: number;
   public commentText: string;
 
   private static tableName = 'answerComments';
 
-  constructor(options) {
+  constructor(options: AnswerCommentOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.answerId = options.answerId;
@@ -32,22 +43,23 @@ export class AnswerComment extends MySqlModel {
   }
 
   //Create a new AnswerComment
-  async create(context: MyContext): Promise<AnswerComment> {
+  async create(context: MyContext): Promise<AnswerComment | null> {
     const reference = 'AnswerComment.create';
 
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
       const newId = await AnswerComment.insert(context, AnswerComment.tableName, this, reference);
-      const response = await AnswerComment.findById(reference, context, newId);
-      return response;
+      if (newId) {
+        return await AnswerComment.findById(reference, context, newId);
+      }
     }
     // Otherwise return as-is with all the errors
     return new AnswerComment(this);
   }
 
   //Update an existing AnswerComment
-  async update(context: MyContext, noTouch = false): Promise<AnswerComment> {
+  async update(context: MyContext, noTouch = false): Promise<AnswerComment | null> {
     if (await this.isValid()) {
       if (this.id) {
         await AnswerComment.update(context, AnswerComment.tableName, this, 'AnswerComment.update', [], noTouch);
@@ -60,7 +72,7 @@ export class AnswerComment extends MySqlModel {
   }
 
   //Delete the AnswerComment
-  async delete(context: MyContext): Promise<AnswerComment> {
+  async delete(context: MyContext): Promise<AnswerComment | null> {
     if (this.id) {
       const deleted = await AnswerComment.findById('AnswerComment.delete', context, this.id);
 
@@ -80,7 +92,7 @@ export class AnswerComment extends MySqlModel {
   }
 
   // Fetch a AnswerComment by it's id
-  static async findById(reference: string, context: MyContext, licenseId: number): Promise<AnswerComment> {
+  static async findById(reference: string, context: MyContext, licenseId: number): Promise<AnswerComment | null> {
     const sql = `SELECT * FROM ${AnswerComment.tableName} WHERE id = ?`;
     const results = await AnswerComment.query(context, sql, [licenseId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new AnswerComment(results[0]) : null;

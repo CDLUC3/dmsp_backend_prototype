@@ -57,14 +57,14 @@ export const bumpUserTokenVersion = async (cache: KeyvAdapter, userId: number | 
 export const setTokenCookie = (res: Response, name: string, value: string, maxAge?: number): void => {
   res.cookie(name, value, {
     httpOnly: true,
-    secure: !['test', 'development'].includes(process.env.NODE_ENV), // Use secure except in test and development
+    secure: !['test', 'development'].includes(process.env.NODE_ENV ?? 'development'), // Use secure except in test and development
     maxAge: maxAge || generalConfig.jwtTTL,
     path: '/' // Ensure the cookie is accessible for the entire app
   });
 };
 
 // Generate a new CSRF token the session
-export const generateCSRFToken = async (cache: KeyvAdapter): Promise<string> => {
+export const generateCSRFToken = async (cache: KeyvAdapter): Promise<string | null> => {
   try {
     const csrfToken = v4().replace(/-/g, '').slice(0, generalConfig.csrfLength);
     const hashedToken = hashToken(csrfToken);
@@ -80,14 +80,18 @@ export const generateCSRFToken = async (cache: KeyvAdapter): Promise<string> => 
 
 // Generate an access token for the User
 const generateAccessToken = async (context: MyContext, jti: string, user: User, tokenVersion: number): Promise<string> => {
-  const email = await user.getEmail(context);
+  if (!user.id) {
+    throw AuthenticationError(DEFAULT_UNAUTHORIZED_MESSAGE);
+  }
+
+  const email = await user.getEmail(context) ?? '';
   try {
     const payload: JWTAccessToken = {
       id: user.id,
       email,
-      givenName: user.givenName,
-      surName: user.surName,
-      affiliationId: user.affiliationId,
+      givenName: user.givenName ?? '',
+      surName: user.surName ?? '',
+      affiliationId: user.affiliationId ?? '',
       role: user.role.toString() || UserRole.RESEARCHER,
       languageId: user.languageId || defaultLanguageId,
       jti,
@@ -100,7 +104,11 @@ const generateAccessToken = async (context: MyContext, jti: string, user: User, 
     if (context?.logger) {
       context.logger.error(prepareObjectForLogs(err), `generateAccessToken error`);
     }
-    throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
+    if (err instanceof Error) {
+      throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
+    } else {
+      throw AuthenticationError(DEFAULT_UNAUTHORIZED_MESSAGE);
+    }
   }
 }
 
@@ -123,12 +131,16 @@ const generateRefreshToken = async (context: MyContext, jti: string, userId: num
     if (context?.logger) {
       context.logger.error(prepareObjectForLogs(err), 'generateRefreshToken error');
     }
-    throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
+    if (err instanceof Error) {
+      throw AuthenticationError(`${DEFAULT_UNAUTHORIZED_MESSAGE} - ${err.message}`);
+    } else {
+      throw AuthenticationError(DEFAULT_UNAUTHORIZED_MESSAGE);
+    }
   }
 }
 
 // Generate an Access Token and a Refresh Token
-export const generateAuthTokens = async (context: MyContext, user: User): Promise<{ accessToken: string; refreshToken: string }> => {
+export const generateAuthTokens = async (context: MyContext, user: User): Promise<{ accessToken: string | null; refreshToken: string | null }> => {
   if (generalConfig.jwtSecret && generalConfig.jwtRefreshSecret && user && user.id && await user.getEmail(context)) {
     const tokenVersion = await getUserTokenVersion(context.cache, user.id);
 
@@ -164,11 +176,14 @@ export const verifyCSRFToken = async (cache: KeyvAdapter, csrfToken: string): Pr
 }
 
 // Verify the Incoming Access Token. The express-jwt middleware handles this in most circumstances
-export const verifyAccessToken = (context: MyContext, accessToken: string): JwtPayload => {
+export const verifyAccessToken = (context: MyContext, accessToken: string): JwtPayload | null => {
   try {
     const now = new Date().getTime();
     const token = jwt.verify(accessToken, generalConfig.jwtSecret) as JwtPayload;
 
+    if (!token.exp) {
+      return null;
+    }
     // If the token could be verified and it has not expired
     if (token && (token.exp >= now / 1000)) {
       return token;
@@ -180,7 +195,7 @@ export const verifyAccessToken = (context: MyContext, accessToken: string): JwtP
 }
 
 // Verify a Refresh Token
-const verifyRefreshToken = async (context: MyContext, refreshToken: string): Promise<JWTRefreshToken> => {
+const verifyRefreshToken = async (context: MyContext, refreshToken: string): Promise<JWTRefreshToken | null> => {
   try {
     const token = jwt.verify(refreshToken, generalConfig.jwtRefreshSecret) as JWTRefreshToken;
 
@@ -264,7 +279,12 @@ export const refreshAccessToken = async (
     if (logger) {
       context.logger.error(prepareObjectForLogs(err), 'refreshAccessToken error');
     }
-    throw AuthenticationError(err.message);
+    if (err instanceof Error) {
+      throw AuthenticationError(err.message);
+    } else {
+      throw AuthenticationError();
+    }
+
   }
 };
 
@@ -275,7 +295,11 @@ export const revokeRefreshToken = async (context: MyContext, jti: string): Promi
     return true;
   } catch (err) {
     context.logger.error(prepareObjectForLogs(err), 'revokeRefreshToken - unable to delete token from cache');
-    throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
+    if (err instanceof Error) {
+      throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
+    } else {
+      throw InternalServerError(DEFAULT_INTERNAL_SERVER_MESSAGE);
+    }
   }
 };
 
@@ -285,6 +309,10 @@ export const revokeAccessToken = async (context: MyContext, jti: string): Promis
     return true;
   } catch (err) {
     context.logger.error(prepareObjectForLogs(err), 'revokeAccessToken - unable to add token to black list');
-    throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
+    if (err instanceof Error) {
+      throw InternalServerError(`${DEFAULT_INTERNAL_SERVER_MESSAGE} - ${err.message}`);
+    } else {
+      throw InternalServerError(DEFAULT_INTERNAL_SERVER_MESSAGE);
+    }
   }
 }

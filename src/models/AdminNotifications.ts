@@ -15,6 +15,21 @@ export interface AdminNotificationMetadata {
   templateId?: number;
   templateCustomizationId?: number;
 }
+
+interface AdminNotificationOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  notificationType: AdminNotificationType;
+  metadata?: AdminNotificationMetadata;
+  affiliationId: string;
+  isRead?: boolean;
+  userId: number;
+}
+
 export class AdminNotificationResults extends MySqlModel {
   public notificationType: AdminNotificationType;
   public metadata: AdminNotificationMetadata;
@@ -22,7 +37,7 @@ export class AdminNotificationResults extends MySqlModel {
   public isRead: boolean;
   public userId: number;
 
-  constructor(options) {
+  constructor(options: AdminNotificationOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.notificationType = options.notificationType;
@@ -108,7 +123,7 @@ export class AdminNotification extends MySqlModel {
 
   private tableName = 'adminNotifications';
 
-  constructor(options) {
+  constructor(options: AdminNotificationOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.notificationType = options.notificationType;

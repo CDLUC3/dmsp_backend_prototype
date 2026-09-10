@@ -37,8 +37,8 @@ export function getMockDMPId(): string {
 }
 
 // Pass in an enum and receive a random selection from that enum
-export function getRandomEnumValue<T>(anEnum: T): T[keyof T] {
-  const enumValues = Object.keys(anEnum);
+export function getRandomEnumValue<T extends Record<string, string | number>>(anEnum: T): T[keyof T] {
+  const enumValues = Object.keys(anEnum) as Array<keyof T>;
   // Generate a random index (max is array length)
   const randomIndex = Math.floor(Math.random() * enumValues.length);
   const randomEnumKey = enumValues[randomIndex];
@@ -46,7 +46,7 @@ export function getRandomEnumValue<T>(anEnum: T): T[keyof T] {
 }
 
 // Assertion helpers
-export function assertDmspId(val) {
+export function assertDmspId(val: string) {
   try {
     return validateDmspId(val).length > 0;
   } catch {
@@ -54,11 +54,11 @@ export function assertDmspId(val) {
   }
 }
 
-export function assertEmailAddress(val) {
+export function assertEmailAddress(val: string) {
   return emailRegex.test(val);
 }
 
-export function assertOrcid(val) {
+export function assertOrcid(val: string) {
   try {
     return validateOrcid(val).length > 0;
   } catch {
@@ -66,7 +66,7 @@ export function assertOrcid(val) {
   }
 }
 
-export function assertRor(val) {
+export function assertRor(val: string) {
   try {
     return validateRor(val).length > 0;
   } catch {
@@ -74,10 +74,10 @@ export function assertRor(val) {
   }
 }
 
-export function assertTimestamp(val) {
+export function assertTimestamp(val: string) {
   return timestampRegex.test(val)
 }
 
-export function assertUrl(val) {
+export function assertUrl(val: string) {
   return urlRegex.test(val);
 }

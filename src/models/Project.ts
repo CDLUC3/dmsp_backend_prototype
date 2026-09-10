@@ -12,6 +12,28 @@ import { MySqlModel } from "./MySqlModel.js";
 import { PlanStatus } from "./Plan.js";
 import { ProjectFilterOptions } from "../types.js";
 
+interface ProjectSearchResultOptions {
+  id: number;
+  title: string;
+  abstractText?: string;
+  startDate?: string;
+  endDate?: string;
+  researchDomain?: string;
+  isTestProject: boolean;
+  created: string;
+  createdById: number;
+  createdByName: string;
+  modified: string;
+  modifiedById: number;
+  modifiedByName: string;
+  collaboratorsData: string;
+  collaborators: { name: string, accessLevel: string, orcid: string }[];
+  membersData: string;
+  members: { name: string, role: string, orcid: string }[];
+  fundingsData: string;
+  fundings: { name: string, grantId: string }[];
+}
+
 export class ProjectSearchResult {
   public id: number;
   public title: string;
@@ -33,7 +55,7 @@ export class ProjectSearchResult {
   public fundingsData: string;
   public fundings: { name: string, grantId: string }[];
 
-  constructor(options) {
+  constructor(options: ProjectSearchResultOptions) {
     this.id = options.id;
     this.title = options.title;
     this.abstractText = options.abstractText;
@@ -188,7 +210,7 @@ export class ProjectSearchResult {
       });
       // There can be multiple member entries (one per role) so we want to deduplicate them
       // and have a single entry with all the roles listed
-      item.members = item.members.reduce((acc, curr) => {
+      item.members = item.members.reduce((acc: { name: string, role: string, orcid: string }[], curr) => {
         const existing = acc.find((entry) => entry.name === curr.name);
         if (existing) {
           existing.role += `, ${curr.role}`;
@@ -211,6 +233,21 @@ export class ProjectSearchResult {
   }
 }
 
+interface ProjectOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  title: string;
+  abstractText?: string;
+  startDate?: string;
+  endDate?: string;
+  researchDomainId?: number;
+  isTestProject?: boolean;
+}
+
 export class Project extends MySqlModel {
   public title: string;
   public abstractText?: string;
@@ -221,7 +258,7 @@ export class Project extends MySqlModel {
 
   private tableName = 'projects';
 
-  constructor(options) {
+  constructor(options: ProjectOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.title = options.title;
@@ -264,7 +301,7 @@ export class Project extends MySqlModel {
   }
 
   //Create a new Project
-  async create(context: MyContext): Promise<Project> {
+  async create(context: MyContext): Promise<Project | null> {
     const reference = 'Project.create';
 
     // First make sure the record is valid
@@ -284,8 +321,9 @@ export class Project extends MySqlModel {
 
         // Save the record and then fetch it
         const newId = await Project.insert(context, this.tableName, this, reference);
-        const response = await Project.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await Project.findById(reference, context, newId);
+        }
       }
     }
     // Otherwise return as-is with all the errors
@@ -293,7 +331,7 @@ export class Project extends MySqlModel {
   }
 
   //Update an existing Project
-  async update(context: MyContext, noTouch = false): Promise<Project> {
+  async update(context: MyContext, noTouch = false): Promise<Project | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -310,7 +348,7 @@ export class Project extends MySqlModel {
   }
 
   //Delete the Project
-  async delete(context: MyContext): Promise<Project> {
+  async delete(context: MyContext): Promise<Project | null> {
     if (this.id) {
       const deleted = await Project.findById('Project.delete', context, this.id);
 
@@ -344,7 +382,7 @@ export class Project extends MySqlModel {
     return Array.isArray(results) ? results.map((item) => new Project(item)) : [];
   }
 
-  static async findByOwnerAndTitle(reference: string, context: MyContext, title: string, userId: number): Promise<Project> {
+  static async findByOwnerAndTitle(reference: string, context: MyContext, title: string, userId: number): Promise<Project | null> {
     const sql = 'SELECT * FROM projects WHERE createdById = ? AND LOWER(title) LIKE ?';
     const searchTerm = (title ?? '');
     const vals = [userId?.toString(), `%${searchTerm?.toLowerCase()?.trim()}%`]
@@ -353,7 +391,7 @@ export class Project extends MySqlModel {
   }
 
   // Fetch a Project by it's id
-  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<Project> {
+  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<Project | null> {
     const sql = 'SELECT * FROM projects WHERE id = ?';
     const results = await Project.query(context, sql, [projectFundingId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Project(results[0]) : null;

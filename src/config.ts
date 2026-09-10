@@ -5,6 +5,7 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { ApolloServerPluginLandingPageDisabled } from '@apollo/server/plugin/disabled';
 
+import { Server } from 'http';
 import { typeDefs } from './schema.js';
 import { resolvers } from './resolver.js';
 import { mocks } from './mocks.js';
@@ -17,7 +18,7 @@ dotenv.config();
 function baseConfig() {
   // TODO: Could never really get the GraphQL MockStore working the way we wanted
   //       so we aren't using this, but leaving here in case we come back to it someday
-  if (['true', '1'].includes(process.env?.USE_MOCK_DATA?.toString()?.toLowerCase())) {
+  if (['true', '1'].includes(process.env?.USE_MOCK_DATA?.toString()?.toLowerCase() ?? '')) {
     return {
       schema: addMocksToSchema({
         schema: makeExecutableSchema({ typeDefs, resolvers }),
@@ -31,7 +32,7 @@ function baseConfig() {
 }
 
 // Standard Apollo server configuration regardless of whether we are using mock data or not
-export function serverConfig(logger: Logger, httpServer) {
+export function serverConfig(logger: Logger, httpServer: Server) {
   return {
     ...baseConfig(),
     ...{

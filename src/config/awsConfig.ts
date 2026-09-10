@@ -5,21 +5,21 @@ import { Logger } from "pino";
 
 dotenv.config();
 
-if (!['development', 'test'].includes(process.env.NODE_ENV)) {
-  verifyCriticalEnvVariable('SES_ENDPOINT');
-  verifyCriticalEnvVariable('SES_ACCESS_ID');
-  verifyCriticalEnvVariable('SES_ACCESS_SECRET');
-  verifyCriticalEnvVariable('SES_BOUNCE_EMAIL_ADDRESS');
-  verifyCriticalEnvVariable('SES_BOUNCED_EMAIL_BUCKET');
-  verifyCriticalEnvVariable('DYNAMO_TABLE_NAME');
+if (!['development', 'test'].includes(process.env.NODE_ENV ?? '')) {
+  verifyCriticalEnvVariable(process.env.SES_ENDPOINT, 'SES_ENDPOINT');
+  verifyCriticalEnvVariable(process.env.SES_ACCESS_ID, 'SES_ACCESS_ID');
+  verifyCriticalEnvVariable(process.env.SES_ACCESS_SECRET, 'SES_ACCESS_SECRET');
+  verifyCriticalEnvVariable(process.env.SES_BOUNCE_EMAIL_ADDRESS, 'SES_BOUNCE_EMAIL_ADDRESS');
+  verifyCriticalEnvVariable(process.env.SES_BOUNCED_EMAIL_BUCKET, 'SES_BOUNCED_EMAIL_BUCKET');
+  verifyCriticalEnvVariable(process.env.DYNAMO_TABLE_NAME, 'DYNAMO_TABLE_NAME');
 
-  verifyCriticalEnvVariable('OPENSEARCH_HOST');
-  verifyCriticalEnvVariable('OPENSEARCH_PORT');
-  verifyCriticalEnvVariable('OPENSEARCH_USE_SSL');
-  verifyCriticalEnvVariable('OPENSEARCH_VERIFY_CERTS');
-  verifyCriticalEnvVariable('OPENSEARCH_AUTH_TYPE');
-  verifyCriticalEnvVariable('OPENSEARCH_REGION');
-  verifyCriticalEnvVariable('OPENSEARCH_SERVICE');
+  verifyCriticalEnvVariable(process.env.OPENSEARCH_HOST, 'OPENSEARCH_HOST');
+  verifyCriticalEnvVariable(process.env.OPENSEARCH_PORT, 'OPENSEARCH_PORT');
+  verifyCriticalEnvVariable(process.env.OPENSEARCH_USE_SSL, 'OPENSEARCH_USE_SSL');
+  verifyCriticalEnvVariable(process.env.OPENSEARCH_VERIFY_CERTS, 'OPENSEARCH_VERIFY_CERTS');
+  verifyCriticalEnvVariable(process.env.OPENSEARCH_AUTH_TYPE, 'OPENSEARCH_AUTH_TYPE');
+  verifyCriticalEnvVariable(process.env.OPENSEARCH_REGION, 'OPENSEARCH_REGION');
+  verifyCriticalEnvVariable(process.env.OPENSEARCH_SERVICE, 'OPENSEARCH_SERVICE');
 }
 
 export const awsConfig = {

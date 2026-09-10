@@ -3,16 +3,31 @@ import { Logger } from 'pino';
 import {
   ApolloServerPlugin,
   BaseContext,
+  GraphQLRequest,
   GraphQLRequestListener,
   GraphQLRequestContext,
   GraphQLResponse
 } from "@apollo/server";
+import { GraphQLError } from "graphql";
 import { prepareObjectForLogs } from "../logger.js";
 
+// The various Apollo request-lifecycle hooks below each hand setupLogger a differently
+// shaped object, but all we actually read off of it is the request/response shape, so a
+// minimal structural type (rather than one of the many specific GraphQLRequestContext*
+// generics) is what actually matches every call site.
+type LoggableRequestContext = {
+  request?: GraphQLRequest;
+  response?: { http?: { status?: number } };
+};
+
 // Extract the inmportant information from the incoming request so that it is logged
-function setupLogger(loggerInstance: Logger, context = null, errors = null) {
-  const hdrs = context?.request?.http?.headers || new Map();
-  const errs = errors instanceof Array ? errors : [errors];
+function setupLogger(
+  loggerInstance: Logger,
+  context: LoggableRequestContext = {},
+  errors: Error | readonly GraphQLError[] | null = null
+) {
+  const hdrs = context?.request?.http?.headers ?? new Map();
+  const errs = Array.isArray(errors) ? errors : [errors];
 
   return loggerInstance.child({
     httpMethod: context?.request?.http?.method,
@@ -50,7 +65,11 @@ export function loggerPlugin(logger: Logger): ApolloServerPlugin<BaseContext> {
       requestContext: GraphQLRequestContext<BaseContext>;
       error: Error;
     }): Promise<void> {
-      setupLogger(logger, requestContext?.request, error).error('Server error!');
+      // NOTE: previously this passed `requestContext?.request` (the inner GraphQLRequest,
+      // which has no `.request` of its own), so setupLogger's `context.request.*` lookups
+      // were always undefined and none of the request details ever made it into this log
+      // line. Passing `requestContext` itself is what actually has `.request`/`.response`.
+      setupLogger(logger, requestContext, error).error('Server error!');
     },
 
     // Fires whenever a GraphQL request is received from a client.

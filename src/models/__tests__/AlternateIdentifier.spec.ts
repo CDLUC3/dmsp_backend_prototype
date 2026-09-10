@@ -16,6 +16,8 @@ const { AlternateIdentifier } = await import('../AlternateIdentifier.js');
 const { buildMockContextWithToken } = await import('../../__mocks__/context.js');
 const { logger } = await import('../../logger.js');
 
+import type { MyContext } from '../../context.js';
+
 describe('AlternateIdentifier', () => {
   it('constructor should initialize as expected', () => {
     const planId = casual.integer(1, 9);
@@ -61,9 +63,9 @@ describe('AlternateIdentifier', () => {
 
 describe('queries', () => {
   const originalQuery = AlternateIdentifier.query;
-  let mockQuery;
-  let context;
-  let mockIdentifier;
+  let mockQuery: jest.Mock;
+  let context: MyContext;
+  let mockIdentifier: { id: number; planId: number; alternateIdentifier: string };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -113,10 +115,10 @@ describe('queries', () => {
 });
 
 describe('create', () => {
-  let context;
+  let context: MyContext;
   const originalInsert = AlternateIdentifier.insert;
-  let insertQuery;
-  let alternateIdentifier;
+  let insertQuery: jest.Mock;
+  let alternateIdentifier: InstanceType<typeof AlternateIdentifier>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -141,7 +143,7 @@ describe('create', () => {
     (alternateIdentifier.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    const mockFindBy = jest.fn<() => Promise<InstanceType<typeof AlternateIdentifier> | null>>();
+    const mockFindBy = jest.fn<() => Promise<InstanceType<typeof AlternateIdentifier> | null | undefined>>();
     (AlternateIdentifier.findByAlternateIdentifier as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(undefined);
 
@@ -151,7 +153,7 @@ describe('create', () => {
   });
 
   it('returns the AlternateIdentifier with errors if it is invalid', async () => {
-    alternateIdentifier.planId = undefined;
+    alternateIdentifier.planId = undefined as unknown as number;
     const response = await alternateIdentifier.create(context);
     expect(response.errors['planId']).toBe('Plan can\'t be blank');
   });
@@ -187,8 +189,8 @@ describe('create', () => {
 });
 
 describe('delete', () => {
-  let context;
-  let alternateIdentifier;
+  let context: MyContext;
+  let alternateIdentifier: InstanceType<typeof AlternateIdentifier>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -203,12 +205,12 @@ describe('delete', () => {
   });
 
   it('returns null if the AlternateIdentifier has no id', async () => {
-    alternateIdentifier.id = null;
+    alternateIdentifier.id = null as unknown as number;
     expect(await alternateIdentifier.delete(context)).toBe(null);
   });
 
   it('returns the AlternateIdentifier if it was able to delete the record', async () => {
-    const deleteQuery = jest.fn<() => Promise<boolean>>();
+    const deleteQuery = jest.fn<() => Promise<boolean | InstanceType<typeof AlternateIdentifier>>>();
     (AlternateIdentifier.delete as jest.Mock) = deleteQuery;
     deleteQuery.mockResolvedValueOnce(alternateIdentifier);
 

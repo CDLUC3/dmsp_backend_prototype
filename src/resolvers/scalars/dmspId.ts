@@ -4,9 +4,9 @@ import { generalConfig } from '../../config/generalConfig.js';
 const DMSP_BASE_URL: string = generalConfig.dmpIdBaseURL;
 const DMSP_REGEX = /^[0-9a-zA-Z]+$/;
 
-export function validateDmspId(val) {
+export function validateDmspId(val: string) {
   const id = val.split(DMSP_BASE_URL)[1];
-  if (val.startsWith(DMSP_BASE_URL) && id.match(DMSP_REGEX).length > 0) {
+  if (val.startsWith(DMSP_BASE_URL) && (id.match(DMSP_REGEX)?.length ?? 0) > 0) {
     return val;
   }
   throw new Error(`Invalid DMSP ID format. Expected: "${DMSP_BASE_URL}A1B2C3D4"`);
@@ -17,12 +17,12 @@ export const dmspIdScalar = new GraphQLScalarType({
   name: 'DmspId',
   description: 'A Data Management and Sharing Plan\'s (DMSP) ID',
 
-  serialize(dmspId) {
-    return validateDmspId(dmspId.toString());
+  serialize(dmspId: unknown) {
+    return validateDmspId(String(dmspId));
   },
 
-  parseValue(value) {
-    return validateDmspId(value.toString());
+  parseValue(value: unknown) {
+    return validateDmspId(String(value));
   },
 
   parseLiteral(ast) {

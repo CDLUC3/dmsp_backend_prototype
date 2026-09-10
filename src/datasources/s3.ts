@@ -108,7 +108,7 @@ export const deleteAffiliationLogoFile = async (
 
     const endpoint = awsConfig.s3.localstackPort ? LOCALSTACK_ENDPOINT : undefined;
 
-    const response: DeleteObjectCommandOutput = await removeObject(
+    const response: DeleteObjectCommandOutput | undefined = await removeObject(
       logger,
       bucket,
       logoName,
@@ -117,7 +117,7 @@ export const deleteAffiliationLogoFile = async (
     );
     logger.debug({ response }, 'Response from S3');
 
-    return response ? response.DeleteMarker : false;
+    return response ? (response.DeleteMarker ?? false) : false;
   } catch (error) {
     logger.fatal({ logoName, bucket, error: toErrorMessage(error) }, 'Unable to remove object from S3')
     return false;
@@ -151,13 +151,16 @@ export const getPresignedURLForAffiliationLogo = async (
     const sanitizedFileName = sanitizeFileName(fileName);
     const logoKey = `logos/${uri.host}/${path}/${sanitizedFileName}`;
 
-    const { url, fields }: { url: string, fields: string } = await getPresignedURLForImageUpload(
+    const presigned: { url: string, fields: string } | undefined = await getPresignedURLForImageUpload(
       logger,
       bucket,
       logoKey,
       contentType,
       awsConfig.region || 'us-west-2'
     );
+    if (!presigned) return undefined;
+
+    const { url, fields } = presigned;
     logger.debug({ affiliationURI, fileName, bucket, url, fields }, 'Generated presigned URL');
 
     return { url, fields };

@@ -38,10 +38,17 @@ export async function attachApolloServer(
   return expressMiddleware(apolloServer, {
     context: async ({ req }: { req: Request }) => {
       // Extract the token from the incoming request so we can pass it on to the resolvers
+      //
+      // Note: `req.auth`'s compile-time shape is polluted by an unrelated `declare global`
+      // augmentation in src/controllers/__tests__/integrationTokens.spec.ts (which widens
+      // Express.Request.auth to a test-only `{ userId, role }` shape). At runtime the
+      // authMiddleware (see src/middleware/auth.ts) always populates `auth` with the
+      // JWTAccessToken payload produced by generateAccessToken, so the double cast below
+      // reflects the real shape rather than papering over a null-check gap.
       return buildContext(
         logger,
         cache,
-        req.auth as JWTAccessToken,
+        req.auth as unknown as JWTAccessToken,
         sqlDataSource,
         dmphubAPIDataSource,
         ezidAPIDataSource,

@@ -2,22 +2,41 @@ import { MyContext } from "../context.js";
 import { MySqlModel } from "./MySqlModel.js";
 import { Tag } from "./Tag.js";
 
+interface SectionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  templateId: number;
+  sourceSectionId?: number;
+  name: string;
+  introduction?: string;
+  requirements?: string;
+  guidance?: string;
+  displayOrder: number;
+  bestPractice?: boolean;
+  tags?: Tag[];
+  isDirty?: boolean;
+}
+
 // A Template for creating a DMP
 export class Section extends MySqlModel {
   public templateId: number;
-  public sourceSectionId: number;
+  public sourceSectionId?: number;
   public name: string;
   public introduction?: string;
   public requirements?: string;
   public guidance?: string;
   public displayOrder: number;
   public bestPractice: boolean;
-  public tags: Tag[];
+  public tags?: Tag[];
   public isDirty: boolean;
 
   private tableName = 'sections';
 
-  constructor(options) {
+  constructor(options: SectionOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
@@ -52,22 +71,24 @@ export class Section extends MySqlModel {
   }
 
   //Create a new Section
-  async create(context: MyContext, templateId: number): Promise<Section> {
+  async create(context: MyContext, templateId: number): Promise<Section | null> {
 
     // First make sure the record is valid
     if (await this.isValid()) {
       this.templateId = templateId;
       // Save the record and then fetch it
       const newId = await Section.insert(context, this.tableName, this, 'Section.create', ['tags']);
-      const response = await Section.findById('Section.create', context, newId);
-      return response;
+      if (newId) {
+        return await Section.findById('Section.create', context, newId);
+      }
+      this.addError('general', 'Section was not created successfully');
     }
     // Otherwise return as-is with all the errors
     return new Section(this);
   }
 
   //Update an existing Section
-  async update(context: MyContext, noTouch = false): Promise<Section> {
+  async update(context: MyContext, noTouch = false): Promise<Section | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -84,7 +105,7 @@ export class Section extends MySqlModel {
   }
 
   //Delete Section based on the Section object's id and return
-  async delete(context: MyContext): Promise<Section> {
+  async delete(context: MyContext): Promise<Section | null> {
     if (this.id) {
       /*First get the section to be deleted so we can return this info to the user
       since calling 'delete' doesn't return anything*/
@@ -117,7 +138,7 @@ export class Section extends MySqlModel {
     context: MyContext,
     name: string,
     templateId: number
-  ): Promise<Section> {
+  ): Promise<Section | null> {
     const sql = 'SELECT * FROM sections WHERE LOWER(name) = ? AND templateId = ?';
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim(), templateId?.toString()];
@@ -132,7 +153,7 @@ export class Section extends MySqlModel {
     return Array.isArray(results) ? results.map((entry) => new Section(entry)) : [];
   }
 
-  static async findById(reference: string, context: MyContext, sectionId: number): Promise<Section> {
+  static async findById(reference: string, context: MyContext, sectionId: number): Promise<Section | null> {
     const sql = 'SELECT * FROM sections where id = ?';
     const result = await Section.query(context, sql, [sectionId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new Section(result[0]) : null;

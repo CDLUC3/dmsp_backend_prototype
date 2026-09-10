@@ -11,7 +11,13 @@ import {
 import { isAuthorized } from "../services/authService.js";
 import { sendProjectCollaboratorsCommentsAddedEmail } from '../services/emailService.js';
 import { canDeleteComment } from "../services/commentPermissions.js";
-import { Resolvers } from "../types.js";
+import {
+  Resolvers,
+  ResolversParentTypes,
+  VersionedSection as VersionedSectionGql,
+  VersionedCustomSection as VersionedCustomSectionGql,
+  VersionedCustomQuestion as VersionedCustomQuestionGql,
+} from "../types.js";
 import { VersionedCustomQuestion } from "../models/VersionedCustomQuestion.js";
 import { VersionedCustomSection } from "../models/VersionedCustomSection.js";
 import { Answer } from "../models/Answer.js";
@@ -26,6 +32,17 @@ import { hasPermissionOnProject } from "../services/projectService.js";
 import { Project } from "../models/Project.js";
 import { handleAsyncUpdates } from "../services/planService.js";
 
+// The generated Answer GraphQL type only exposes the nested objects (plan, versionedSection, etc.),
+// not the raw foreign keys the model uses to resolve them. Add those back in as optional fields so
+// the chained resolvers below can read them off of the model instance that is actually passed as `parent`.
+type AnswerParent = ResolversParentTypes['Answer'] & {
+  planId?: number;
+  versionedSectionId?: number;
+  versionedQuestionId?: number;
+  versionedCustomSectionId?: number;
+  versionedCustomQuestionId?: number;
+};
+
 export const resolvers: Resolvers = {
   Query: {
     // return all of the answers for the given plan
@@ -38,6 +55,9 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project)) {
             return await Answer.findByPlanIdAndVersionedSectionId(reference, context, planId, versionedSectionId);
           }
@@ -52,7 +72,7 @@ export const resolvers: Resolvers = {
     },
 
     // return the answer for the given versionedQuestionId
-    answerByVersionedQuestionId: async (_, { planId, versionedQuestionId, versionedCustomQuestionId }, context: MyContext): Promise<Answer> => {
+    answerByVersionedQuestionId: async (_, { planId, versionedQuestionId, versionedCustomQuestionId }, context: MyContext): Promise<Answer | null> => {
       const reference = 'answerByVersionedQuestionId resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -61,11 +81,17 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with ID ${planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             if (versionedCustomQuestionId) {
               return await Answer.findByPlanIdAndVersionedCustomQuestionId(
                 reference, context, planId, versionedCustomQuestionId
               );
+            }
+            if (!versionedQuestionId) {
+              throw NotFoundError('versionedQuestionId or versionedCustomQuestionId is required');
             }
             return await Answer.findByPlanIdAndVersionedQuestionId(
               reference, context, planId, versionedQuestionId
@@ -82,7 +108,7 @@ export const resolvers: Resolvers = {
     },
 
     // Find the answer by its answerId
-    answer: async (_, { answerId }, context: MyContext): Promise<Answer> => {
+    answer: async (_, { answerId }, context: MyContext): Promise<Answer | null> => {
       const reference = 'plan resolver';
       try {
         const answer = await Answer.findById(reference, context, answerId);
@@ -91,6 +117,9 @@ export const resolvers: Resolvers = {
         }
 
         const plan = await Plan.findById(reference, context, answer.planId);
+        if (!plan) {
+          throw NotFoundError(`Plan with ID ${answer.planId} not found`);
+        }
         const project = await Project.findById(reference, context, plan.projectId);
 
         if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
@@ -108,7 +137,7 @@ export const resolvers: Resolvers = {
 
   Mutation: {
     // Create a new answer
-    addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, versionedCustomSectionId, versionedCustomQuestionId, json }, context: MyContext): Promise<Answer> => {
+    addAnswer: async (_, { planId, versionedSectionId, versionedQuestionId, versionedCustomSectionId, versionedCustomQuestionId, json }, context: MyContext): Promise<Answer | null> => {
       const reference = 'addAnswer resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -118,8 +147,18 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project)) {
-            const answer = new Answer({ planId, versionedSectionId, versionedQuestionId, versionedCustomSectionId, versionedCustomQuestionId, json });
+            const answer = new Answer({
+              planId,
+              versionedSectionId: versionedSectionId ?? undefined,
+              versionedQuestionId: versionedQuestionId ?? undefined,
+              versionedCustomSectionId: versionedCustomSectionId ?? undefined,
+              versionedCustomQuestionId: versionedCustomQuestionId ?? undefined,
+              json: json ?? '',
+            });
             const newAnswer = await answer.create(context);
             if (newAnswer && !newAnswer.hasErrors()) {
               // Handle OpenSearch index update and maDMP JSON versioning in Dynamo
@@ -138,7 +177,7 @@ export const resolvers: Resolvers = {
     },
 
     // Delete an answer
-    updateAnswer: async (_, { answerId, json }, context: MyContext): Promise<Answer> => {
+    updateAnswer: async (_, { answerId, json }, context: MyContext): Promise<Answer | null> => {
       const reference = 'updateAnswer resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -151,8 +190,13 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project)) {
-            answer.json = json;
+            if (json != null) {
+              answer.json = json;
+            }
             const updatedAnswer = await answer.update(context);
 
             if (updatedAnswer && !updatedAnswer.hasErrors()) {
@@ -189,6 +233,9 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan ${answer.planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             // Send out email to project collaborators to let them know that comments were added
             // Get project collaborators emails, minus the user's own email
@@ -201,7 +248,11 @@ export const resolvers: Resolvers = {
 
             //Return answerComment response
             const answerComment = new AnswerComment({ answerId, commentText });
-            return await answerComment.create(context);
+            const newAnswerComment = await answerComment.create(context);
+            if (!newAnswerComment) {
+              throw NotFoundError('Unable to create answer comment');
+            }
+            return newAnswerComment;
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -230,6 +281,9 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
@@ -240,7 +294,11 @@ export const resolvers: Resolvers = {
             // Only user who added the comment can update it
             if (answerComment.createdById === context.token.id) {
               answerComment.commentText = commentText;
-              return await answerComment.update(context);
+              const updatedAnswerComment = await answerComment.update(context);
+              if (!updatedAnswerComment) {
+                throw NotFoundError('Unable to update answer comment');
+              }
+              return updatedAnswerComment;
             }
 
             throw ForbiddenError(`Inadequate permission to update answer comment ${answerComment.id}`)
@@ -272,6 +330,9 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project || !project.id) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             const answerComment = await AnswerComment.findById(reference, context, answerCommentId);
 
@@ -287,7 +348,11 @@ export const resolvers: Resolvers = {
               userId: context.token.id,
               primaryCollaborator
             })) {
-              return await answerComment.delete(context);
+              const deletedAnswerComment = await answerComment.delete(context);
+              if (!deletedAnswerComment) {
+                throw NotFoundError('Unable to delete answer comment');
+              }
+              return deletedAnswerComment;
             }
 
             throw ForbiddenError(`Inadequate permission to delete answer comment ${answerComment.id}`)
@@ -306,64 +371,67 @@ export const resolvers: Resolvers = {
 
   Answer: {
     // The plan the answer is associated with
-    plan: async (parent: Answer, _, context: MyContext): Promise<Plan> => {
+    plan: async (parent: AnswerParent, _, context: MyContext) => {
       if (parent?.planId) {
         return await Plan.findById('Answer plan resolver', context, parent.planId);
       }
       return null;
     },
     // The section the answer's question belongs to
-    versionedSection: async (parent: Answer, _, context: MyContext): Promise<VersionedSection> => {
+    versionedSection: async (parent: AnswerParent, _, context: MyContext) => {
       if (parent?.versionedSectionId) {
-        return await VersionedSection.findById('Answer versionedSection resolver', context, parent.versionedSectionId);
+        // Cast needed: the VersionedSection model doesn't structurally match the generated
+        // VersionedSection type (e.g. nested Tag.slug is optional on the model but required
+        // in the schema), and there are no codegen mappers configured to reconcile this.
+        return await VersionedSection.findById('Answer versionedSection resolver', context, parent.versionedSectionId) as unknown as VersionedSectionGql | null;
       }
       return null;
     },
     // The question the answer is associated with
-    versionedQuestion: async (parent: Answer, _, context: MyContext): Promise<VersionedQuestion> => {
+    versionedQuestion: async (parent: AnswerParent, _, context: MyContext) => {
       if (parent?.versionedQuestionId) {
         return await VersionedQuestion.findById('Answer versionedQuestion resolver', context, parent.versionedQuestionId);
       }
       return null;
     },
     // The section the answer's question belongs to
-    versionedCustomSection: async (parent: Answer, _, context: MyContext): Promise<VersionedCustomSection> => {
+    versionedCustomSection: async (parent: AnswerParent, _, context: MyContext) => {
       if (parent?.versionedCustomSectionId) {
-        return await VersionedCustomSection.findById('Answer versionedCustomSection resolver', context, parent.versionedCustomSectionId);
+        return await VersionedCustomSection.findById('Answer versionedCustomSection resolver', context, parent.versionedCustomSectionId) as unknown as VersionedCustomSectionGql | null;
       }
       return null;
     },
     // The question the answer is associated with
-    versionedCustomQuestion: async (parent: Answer, _, context: MyContext): Promise<VersionedCustomQuestion> => {
+    versionedCustomQuestion: async (parent: AnswerParent, _, context: MyContext) => {
       if (parent?.versionedCustomQuestionId) {
-        return await VersionedCustomQuestion.findById('Answer versionedCustomQuestion resolver', context, parent.versionedCustomQuestionId);
+        return await VersionedCustomQuestion.findById('Answer versionedCustomQuestion resolver', context, parent.versionedCustomQuestionId) as unknown as VersionedCustomQuestionGql | null;
       }
       return null;
     },
     // The comments associated with the answer
-    comments: async (parent: Answer, _, context: MyContext): Promise<AnswerComment[]> => {
+    comments: async (parent, _, context: MyContext) => {
       if (parent?.id) {
         return await AnswerComment.findByAnswerId('Answer comments resolver', context, parent.id);
       }
       return [];
     },
     //Feedback comments associated with answer
-    feedbackComments: async (parent: PlanFeedbackComment, _, context: MyContext): Promise<PlanFeedbackComment[]> => {
+    feedbackComments: async (parent, _, context: MyContext) => {
       if (parent?.id) {
         return await PlanFeedbackComment.findByAnswerId('Answer feedbackComemnts resolver', context, parent.id);
       }
       return [];
     },
-    created: (parent: Answer) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: Answer) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },
   AnswerComment: {
     // Resolver to get the user who created the comment
-    user: async (parent: AnswerComment, _, context: MyContext): Promise<User> => {
+    user: async (parent, _, context: MyContext) => {
       if (parent?.createdById) {
         return await User.findById('AnswerComment user resolver', context, parent.createdById);
       }

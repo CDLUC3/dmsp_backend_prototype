@@ -229,7 +229,7 @@ describe('License Resolvers', () => {
 
   describe('Mutation', () => {
     let querySpy: ReturnType<typeof jest.spyOn>;
-    let mockInput;
+    let mockInput: any;
 
     describe('addLicense', () => {
       const query = `

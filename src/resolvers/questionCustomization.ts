@@ -1,6 +1,7 @@
 import {
   AddCustomQuestionInput,
   AddQuestionCustomizationInput,
+  CustomQuestion as CustomQuestionGQL,
   MoveCustomQuestionInput,
   Resolvers,
   UpdateCustomQuestionInput, UpdateQuestionCustomizationInput
@@ -11,7 +12,7 @@ import {
   TemplateCustomizationMigrationStatus
 } from "../models/TemplateCustomization.js";
 import { authenticatedResolver } from "../services/authService.js";
-import { NotFoundError } from "../utils/graphQLErrors.js";
+import { InternalServerError, NotFoundError } from "../utils/graphQLErrors.js";
 import {
   getValidatedCustomization,
   markTemplateCustomizationAsDirty
@@ -48,7 +49,7 @@ export const resolvers: Resolvers = {
       ): Promise<QuestionCustomization> => {
         const ref = 'questionCustomization resolver';
 
-        const customization: QuestionCustomization = await QuestionCustomization.findById(
+        const customization = await QuestionCustomization.findById(
           ref,
           context,
           questionCustomizationId
@@ -107,10 +108,10 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { customQuestionId }: { customQuestionId: number },
         context: MyContext
-      ): Promise<CustomQuestion> => {
+      ): Promise<CustomQuestionGQL> => {
         const ref = 'customQuestion resolver'
         // Fetch the CustomQuestion
-        const customization: CustomQuestion = await CustomQuestion.findById(
+        const customization = await CustomQuestion.findById(
           ref,
           context,
           customQuestionId
@@ -126,7 +127,9 @@ export const resolvers: Resolvers = {
         );
         if (isNullOrUndefined(parent)) throw NotFoundError();
 
-        return customization;
+        // The model's `sectionType` is typed optional to support the temporary "unpinned"
+        // state used while reordering questions, but the schema requires it. Bridge the two.
+        return customization as unknown as CustomQuestionGQL;
       }),
   },
 
@@ -156,7 +159,7 @@ export const resolvers: Resolvers = {
         const { templateCustomizationId, versionedQuestionId } = input;
 
         // Fetch the versioned question
-        const question: VersionedQuestion = await VersionedQuestion.findById(
+        const question = await VersionedQuestion.findById(
           ref,
           context,
           versionedQuestionId
@@ -165,7 +168,7 @@ export const resolvers: Resolvers = {
 
 
         // Fetch the parent template customization and verify that the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           templateCustomizationId
@@ -178,10 +181,12 @@ export const resolvers: Resolvers = {
         });
 
         // Save the new section customization
-        const created: QuestionCustomization = await customization.create(context);
+        const created = await customization.create(context);
+        if (isNullOrUndefined(created)) throw InternalServerError();
 
         // If it was successfully created, update the parent's isDirty flag
-        if (created && !created.hasErrors() && !parent.isDirty) {
+        if (!created.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, created);
         }
         return created;
@@ -212,7 +217,7 @@ export const resolvers: Resolvers = {
         const ref = 'updateQuestionCustomization resolver';
 
         // Fetch the specified QuestionCustomization
-        const customization: QuestionCustomization = await QuestionCustomization.findById(
+        const customization = await QuestionCustomization.findById(
           ref,
           context,
           questionCustomizationId
@@ -227,12 +232,14 @@ export const resolvers: Resolvers = {
         );
 
         // Update the guidance
-        customization.guidanceText = guidanceText;
-        customization.sampleText = sampleText;
-        const updated: QuestionCustomization = await customization.update(context);
+        customization.guidanceText = guidanceText ?? undefined;
+        customization.sampleText = sampleText ?? undefined;
+        const updated = await customization.update(context);
+        if (isNullOrUndefined(updated)) throw InternalServerError();
 
         // If it was successfully updated, update the parent's isDirty flag
-        if (updated && !updated.hasErrors() && !parent.isDirty) {
+        if (!updated.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, updated);
         }
         return updated;
@@ -261,7 +268,7 @@ export const resolvers: Resolvers = {
         context: MyContext
       ): Promise<QuestionCustomization> => {
         const ref = 'removeQuestionCustomization resolver';
-        const customization: QuestionCustomization = await QuestionCustomization.findById(
+        const customization = await QuestionCustomization.findById(
           ref,
           context,
           questionCustomizationId
@@ -269,15 +276,17 @@ export const resolvers: Resolvers = {
         if (!customization) throw NotFoundError();
 
         // Fetch the parent template customization and verify the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           customization.templateCustomizationId
         );
 
-        const deleted: QuestionCustomization = await customization.delete(context);
+        const deleted = await customization.delete(context);
+        if (isNullOrUndefined(deleted)) throw InternalServerError();
         // If it was successfully deleted, update the parent's isDirty flag
-        if (deleted && !deleted.hasErrors() && !parent.isDirty) {
+        if (!deleted.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, deleted);
         }
         return deleted;
@@ -305,29 +314,42 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { input }: { input: AddCustomQuestionInput },
         context: MyContext
-      ): Promise<CustomQuestion> => {
+      ): Promise<CustomQuestionGQL> => {
         const ref = 'addCustomQuestion resolver';
 
         // Fetch the parent template customization and verify the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           input.templateCustomizationId
         );
 
         const customQuestion = new CustomQuestion({
-          ...input,
+          templateCustomizationId: input.templateCustomizationId,
+          sectionType: input.sectionType,
+          sectionId: input.sectionId,
+          pinnedQuestionType: input.pinnedQuestionType ?? undefined,
+          pinnedQuestionId: input.pinnedQuestionId ?? undefined,
+          questionText: input.questionText ?? undefined,
+          json: input.json ?? undefined,
+          requirementText: input.requirementText ?? undefined,
+          guidanceText: input.guidanceText ?? undefined,
+          sampleText: input.sampleText ?? undefined,
+          useSampleTextAsDefault: input.useSampleTextAsDefault ?? undefined,
+          required: input.required ?? undefined,
           migrationStatus: TemplateCustomizationMigrationStatus.OK
         });
 
         // Save the new custom section
-        const created: CustomQuestion = await customQuestion.create(context);
+        const created = await customQuestion.create(context);
+        if (isNullOrUndefined(created)) throw InternalServerError();
 
         // If it was successfully created, update the parent's isDirty flag
-        if (created && !created.hasErrors() && !parent.isDirty) {
+        if (!created.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, created);
         }
-        return created;
+        return created as unknown as CustomQuestionGQL;
       }),
 
     /**
@@ -351,12 +373,12 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { input }: { input: UpdateCustomQuestionInput },
         context: MyContext
-      ): Promise<CustomQuestion> => {
+      ): Promise<CustomQuestionGQL> => {
         const ref = 'updateCustomQuestion resolver';
         const { customQuestionId, questionText, json, requirementText, guidanceText,
           sampleText, useSampleTextAsDefault, required } = input;
 
-        const customization: CustomQuestion = await CustomQuestion.findById(
+        const customization = await CustomQuestion.findById(
           ref,
           context,
           customQuestionId
@@ -364,7 +386,7 @@ export const resolvers: Resolvers = {
         if (!customization) throw NotFoundError();
 
         // Fetch the parent template customization and verify that the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           customization.templateCustomizationId
@@ -373,18 +395,20 @@ export const resolvers: Resolvers = {
         // Update the section
         customization.questionText = questionText;
         customization.json = json;
-        customization.requirementText = requirementText;
-        customization.guidanceText = guidanceText;
-        customization.sampleText = sampleText;
-        customization.useSampleTextAsDefault = useSampleTextAsDefault;
-        customization.required = required;
-        const updated: CustomQuestion = await customization.update(context);
+        customization.requirementText = requirementText ?? undefined;
+        customization.guidanceText = guidanceText ?? undefined;
+        customization.sampleText = sampleText ?? undefined;
+        customization.useSampleTextAsDefault = useSampleTextAsDefault ?? undefined;
+        customization.required = required ?? false;
+        const updated = await customization.update(context);
+        if (isNullOrUndefined(updated)) throw InternalServerError();
 
         // If it was successfully updated, update the parent's isDirty flag
-        if (updated && !updated.hasErrors() && !parent.isDirty) {
+        if (!updated.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, updated);
         }
-        return updated;
+        return updated as unknown as CustomQuestionGQL;
       }),
 
     /**
@@ -407,9 +431,9 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { customQuestionId }: { customQuestionId: number },
         context: MyContext
-      ): Promise<CustomQuestion> => {
+      ): Promise<CustomQuestionGQL> => {
         const ref = 'removeCustomQuestion resolver';
-        const customization: CustomQuestion = await CustomQuestion.findById(
+        const customization = await CustomQuestion.findById(
           ref,
           context,
           customQuestionId
@@ -417,18 +441,20 @@ export const resolvers: Resolvers = {
         if (!customization) throw NotFoundError();
 
         // Fetch the parent template customization and verify that the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           customization.templateCustomizationId
         );
 
-        const deleted: CustomQuestion = await customization.delete(context);
+        const deleted = await customization.delete(context);
+        if (isNullOrUndefined(deleted)) throw InternalServerError();
         // If it was successfully deleted, update the parent's isDirty flag
-        if (deleted && !deleted.hasErrors() && !parent.isDirty) {
+        if (!deleted.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, deleted);
         }
-        return deleted;
+        return deleted as unknown as CustomQuestionGQL;
       }),
 
     /**
@@ -452,46 +478,52 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { input }: { input: MoveCustomQuestionInput },
         context: MyContext
-      ): Promise<CustomQuestion> => {
+      ): Promise<CustomQuestionGQL> => {
         const ref = 'moveCustomQuestion resolver';
         const { customQuestionId, sectionType, sectionId, pinnedQuestionType, pinnedQuestionId, direction } = input;
-        const customization: CustomQuestion = await CustomQuestion.findById(ref, context, customQuestionId);
+        const customization = await CustomQuestion.findById(ref, context, customQuestionId);
 
         if (!customization) throw NotFoundError();
+        // sectionType is typed optional on the model (to allow a transient "unpinned"
+        // state during a move), but a persisted CustomQuestion always has one set.
+        if (isNullOrUndefined(customization.sectionType)) throw NotFoundError();
+        const currentSectionType = customization.sectionType;
 
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref, context, customization.templateCustomizationId
         );
+        if (isNullOrUndefined(parent.id)) throw NotFoundError();
+        const parentId = parent.id;
 
-        const newPinType: PinnedQuestionTypeEnum = PinnedQuestionTypeEnum[pinnedQuestionType];
+        const newPinType = pinnedQuestionType ? PinnedQuestionTypeEnum[pinnedQuestionType] : undefined;
         const newSectionType = PinnedSectionTypeEnum[sectionType];
-        const newPinnedQuestionType = isNullOrUndefined(newPinType) ? null : newPinType;
-        const newPinnedQuestionId = isNullOrUndefined(pinnedQuestionId) ? null : pinnedQuestionId;
+        const newPinnedQuestionType = newPinType ?? undefined;
+        const newPinnedQuestionId = pinnedQuestionId ?? undefined;
 
         // Check if another question already occupies this exact position
         const occupant = await CustomQuestion.findByPosition(
           ref,
           context,
-          parent.id,
+          parentId,
           newSectionType,
           sectionId,
-          newPinnedQuestionType,
-          newPinnedQuestionId
+          newPinnedQuestionType ?? null,
+          newPinnedQuestionId ?? null
         );
 
         // Save customization's original position before any changes
-        const originalSectionType = customization.sectionType;
+        const originalSectionType = currentSectionType;
         const originalSectionId = customization.sectionId;
         const originalPinnedQuestionType = customization.pinnedQuestionType;
         const originalPinnedQuestionId = customization.pinnedQuestionId;
 
         if (occupant && occupant.id !== customQuestionId) {
           // Step 1: Temporarily free A's slot to a temporary position that won't conflict with any existing question
-          customization.pinnedQuestionType = null;
-          customization.pinnedQuestionId = null;
+          customization.pinnedQuestionType = undefined;
+          customization.pinnedQuestionId = undefined;
           const tempMoved = await customization.update(context);
-          if (tempMoved.hasErrors()) {
-            throw new Error(`Failed to temporarily move question: ${JSON.stringify(tempMoved.errors)}`);
+          if (!tempMoved || tempMoved.hasErrors()) {
+            throw new Error(`Failed to temporarily move question: ${JSON.stringify(tempMoved?.errors)}`);
           }
 
           // Step 2: Place occupant depending on direction (UP or DOWN). When A moves down to sit where B was, 
@@ -509,24 +541,24 @@ export const resolvers: Resolvers = {
           }
 
           const swapped = await occupant.update(context);
-          if (swapped.hasErrors()) {
-            throw new Error(`Failed to swap occupant: ${JSON.stringify(swapped.errors)}`);
+          if (!swapped || swapped.hasErrors()) {
+            throw new Error(`Failed to swap occupant: ${JSON.stringify(swapped?.errors)}`);
           }
         } else if (direction === 'UP') {
           // No occupant at target, but something may be chained after A
           const tailQuestion = await CustomQuestion.findByPosition(
-            ref, context, parent.id,
+            ref, context, parentId,
             originalSectionType, originalSectionId,
             PinnedQuestionTypeEnum.CUSTOM, customQuestionId
           );
 
           if (tailQuestion) {
             // Must temporarily free A's current slot FIRST before B can move into it
-            customization.pinnedQuestionType = null;
-            customization.pinnedQuestionId = null;
+            customization.pinnedQuestionType = undefined;
+            customization.pinnedQuestionId = undefined;
             const tempMoved = await customization.update(context);
-            if (tempMoved.hasErrors()) {
-              throw new Error(`Failed to temporarily move question: ${JSON.stringify(tempMoved.errors)}`);
+            if (!tempMoved || tempMoved.hasErrors()) {
+              throw new Error(`Failed to temporarily move question: ${JSON.stringify(tempMoved?.errors)}`);
             }
 
             // Now B can safely move to A's vacated slot
@@ -535,8 +567,8 @@ export const resolvers: Resolvers = {
             tailQuestion.pinnedQuestionType = originalPinnedQuestionType;
             tailQuestion.pinnedQuestionId = originalPinnedQuestionId;
             const reanch = await tailQuestion.update(context);
-            if (reanch.hasErrors()) {
-              throw new Error(`Failed to re-anchor tail question: ${JSON.stringify(reanch.errors)}`);
+            if (!reanch || reanch.hasErrors()) {
+              throw new Error(`Failed to re-anchor tail question: ${JSON.stringify(reanch?.errors)}`);
             }
           }
         }
@@ -547,12 +579,13 @@ export const resolvers: Resolvers = {
         customization.pinnedQuestionType = newPinnedQuestionType;
         customization.pinnedQuestionId = newPinnedQuestionId;
         const moved = await customization.update(context);
+        if (isNullOrUndefined(moved)) throw InternalServerError();
 
-        if (moved && !moved.hasErrors() && !parent.isDirty) {
-          await markTemplateCustomizationAsDirty(ref, context, parent.id, moved);
+        if (!moved.hasErrors() && !parent.isDirty) {
+          await markTemplateCustomizationAsDirty(ref, context, parentId, moved);
         }
 
-        return moved;
+        return moved as unknown as CustomQuestionGQL;
       }),
   },
 
@@ -565,29 +598,29 @@ export const resolvers: Resolvers = {
      * @returns The VersionedQuestion
      */
     versionedQuestion: async (
-      parent: QuestionCustomization,
+      parent,
       _: Record<PropertyKey, never>,
       context: MyContext
-    ): Promise<VersionedQuestion> => {
+    ) => {
       const ref = 'QuestionCustomization.versionedQuestion chained resolver';
       if (isNullOrUndefined(parent?.questionId)) return null;
 
       const customization = await TemplateCustomization.findById(ref, context, parent.templateCustomizationId);
-      return isNullOrUndefined(customization)
-        ? null
-        : await VersionedQuestion.findByVersionedTemplateIdAndQuestionId(
-          ref,
-          context,
-          customization.currentVersionedTemplateId,
-          parent.questionId
-        );
+      if (isNullOrUndefined(customization)) return null;
+      const versionedQuestion = await VersionedQuestion.findByVersionedTemplateIdAndQuestionId(
+        ref,
+        context,
+        customization.currentVersionedTemplateId,
+        parent.questionId
+      );
+      return versionedQuestion ?? null;
     },
     /**
      * Format the created date time
      * @param parent The QuestionCustomization
      * @returns the formatted date
      */
-    created: (parent: QuestionCustomization): string => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
     /**
@@ -595,7 +628,7 @@ export const resolvers: Resolvers = {
      * @param parent The QuestionCustomization
      * @returns the formatted date time
      */
-    modified: (parent: QuestionCustomization): string => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },
@@ -606,7 +639,7 @@ export const resolvers: Resolvers = {
      * @param parent The CustomQuestion
      * @returns the formatted date time
      */
-    created: (parent: CustomQuestion): string => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
     /**
@@ -614,7 +647,7 @@ export const resolvers: Resolvers = {
      * @param parent The CustomQuestion
      * @returns the formatted date time
      */
-    modified: (parent: CustomQuestion): string => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },

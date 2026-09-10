@@ -14,23 +14,26 @@ import { getCurrentDate } from "../../utils/helpers.js";
 import { ResearchDomain } from "../ResearchDomain.js";
 import { MyContext } from "../../context.js";
 
-export const getResearchDomainStore = () => {
-  return getMockTableStore('researchDomains');
+// The shape accepted by the real ResearchDomain constructor.
+type ResearchDomainEntry = ConstructorParameters<typeof ResearchDomain>[0];
+
+export const getResearchDomainStore = (): ResearchDomainEntry[] => {
+  return getMockTableStore<ResearchDomainEntry>('researchDomains');
 }
 
-export const getRandomResearchDomain = (): ResearchDomain => {
-  const store = getMockTableStore('researchDomains');
+export const getRandomResearchDomain = (): ResearchDomain | null => {
+  const store = getMockTableStore<ResearchDomainEntry>('researchDomains');
   if (!store || store.length === 0) {
     return null;
   }
-  return store[Math.floor(Math.random() * store.length)];
+  return store[Math.floor(Math.random() * store.length)] as ResearchDomain;
 }
 
 export const clearResearchDomainStore = () => {
   clearMockTableStore('researchDomains');
 }
 
-export const generateNewResearchDomain = (options) => {
+export const generateNewResearchDomain = (options: Partial<ResearchDomainEntry>): ResearchDomainEntry => {
   return {
     name: options.name ?? casual.sentence,
     uri: options.uri ?? casual.url,
@@ -40,32 +43,35 @@ export const generateNewResearchDomain = (options) => {
 
 // Initialize the table
 export const initResearchDomainStore = (count = 10): ResearchDomain[] => {
-  addMockTableStore('researchDomains', []);
+  addMockTableStore<ResearchDomainEntry>('researchDomains', []);
 
   for (let i = 0; i < count; i++) {
     addEntryToMockTable('researchDomains', generateNewResearchDomain({}));
   }
 
-  return getResearchDomainStore();
+  // Cast to ResearchDomain[] to match the real model's return shape. The entries are kept
+  // as plain data objects (not `new ResearchDomain(...)` instances) so that tests mutating
+  // the array returned here continue to mutate the same objects backing the mock table store.
+  return getResearchDomainStore() as ResearchDomain[];
 }
 
 // Mock the queries
-export const mockFindResearchDomainById = async (_, __, id: number): Promise<ResearchDomain> => {
-  const result = findEntryInMockTableById('researchDomains', id);
+export const mockFindResearchDomainById = async (_: string, __: MyContext, id: number): Promise<ResearchDomain | null> => {
+  const result = findEntryInMockTableById<ResearchDomainEntry>('researchDomains', id);
   return result ? new ResearchDomain(result) : null;
 };
 
-export const mockFindResearchDomainByURI = async (_, __, uri: string): Promise<ResearchDomain> => {
-  const result = findEntryInMockTableByFilter(
+export const mockFindResearchDomainByURI = async (_: string, __: MyContext, uri: string): Promise<ResearchDomain | null> => {
+  const result = findEntryInMockTableByFilter<ResearchDomainEntry>(
     'researchDomains',
     (entry) => { return entry.uri.toLowerCase().trim() === uri.toLowerCase().trim() }
   );
   return result ? new ResearchDomain(result) : null;
 };
 
-export const mockFindResearchDomainsByName = async (_, __, name: string): Promise<ResearchDomain[]> => {
+export const mockFindResearchDomainsByName = async (_: string, __: MyContext, name: string): Promise<ResearchDomain[]> => {
   // Filter the researchDomains based on the search term
-  const results = findEntriesInMockTableByFilter(
+  const results = findEntriesInMockTableByFilter<ResearchDomainEntry>(
     'researchDomains',
     (entry) => { return entry.name.toLowerCase().trim() === name.toLowerCase().trim() }
   );
@@ -73,7 +79,7 @@ export const mockFindResearchDomainsByName = async (_, __, name: string): Promis
 };
 
 // Mock the mutations
-export const mockInsertResearchDomain = async (context: MyContext, _, obj: ResearchDomain): Promise<number> => {
+export const mockInsertResearchDomain = async (context: MyContext, _: string, obj: ResearchDomain): Promise<number> => {
   const { insertId } = addEntryToMockTable('researchDomains', {
     ...obj,
     createdById: context.token.id,
@@ -84,7 +90,7 @@ export const mockInsertResearchDomain = async (context: MyContext, _, obj: Resea
   return insertId;
 };
 
-export const mockUpdateResearchDomain = async (context: MyContext, _, obj: ResearchDomain): Promise<ResearchDomain> => {
+export const mockUpdateResearchDomain = async (context: MyContext, _: string, obj: ResearchDomain): Promise<ResearchDomain | null> => {
   const result = updateEntryInMockTable('researchDomains', {
     ...obj,
     modifiedById: context.token.id,
@@ -93,7 +99,7 @@ export const mockUpdateResearchDomain = async (context: MyContext, _, obj: Resea
   return result ? new ResearchDomain(result) : null;
 };
 
-export const mockDeleteResearchDomain = async (_, __, id: number): Promise<boolean> => {
+export const mockDeleteResearchDomain = async (_: MyContext, __: string, id: number): Promise<boolean> => {
   const result = deleteEntryFromMockTable('researchDomains', id);
   return result ? true : false;
 };

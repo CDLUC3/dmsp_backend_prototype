@@ -236,7 +236,7 @@ describe("VersionedCustomSection", () => {
         guidance: "Updated guidance",
       });
 
-      const mockUpdate = jest.spyOn(MySqlModel, "update").mockResolvedValue(undefined);
+      const mockUpdate = jest.spyOn(MySqlModel, "update").mockResolvedValue(undefined as unknown as MySqlModel);
       jest.spyOn(MySqlModel, "query").mockResolvedValue([
         {
           id: 1,
@@ -273,7 +273,7 @@ describe("VersionedCustomSection", () => {
         name: "Test Section",
       });
 
-      const mockUpdate = jest.spyOn(MySqlModel, "update").mockResolvedValue(undefined);
+      const mockUpdate = jest.spyOn(MySqlModel, "update").mockResolvedValue(undefined as unknown as MySqlModel);
       jest.spyOn(MySqlModel, "query").mockResolvedValue([
         {
           id: 1,

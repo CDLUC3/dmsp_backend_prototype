@@ -1,5 +1,5 @@
 import { prepareObjectForLogs } from '../logger.js';
-import { Resolvers } from "../types.js";
+import { Affiliation as AffiliationGQL, Resolvers } from "../types.js";
 import { Affiliation } from '../models/Affiliation.js';
 import { MemberRole } from '../models/MemberRole.js';
 import { Project } from '../models/Project.js';
@@ -70,11 +70,14 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)) {
+          if (isNullOrUndefined(plan) || isNullOrUndefined(plan.id)) {
             throw NotFoundError();
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (isNullOrUndefined(project)) {
+            throw NotFoundError();
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanMember.findByPlanId(reference, context, plan.id);
           }
@@ -95,21 +98,38 @@ export const resolvers: Resolvers = {
       const reference = 'addProjectMember resolver';
       try {
         if (isAuthorized(context.token)) {
+          if (isNullOrUndefined(input.projectId)) {
+            throw NotFoundError();
+          }
           const project = await Project.findById(reference, context, input.projectId);
-          if (isNullOrUndefined(project)) {
+          if (isNullOrUndefined(project) || isNullOrUndefined(project.id)) {
             throw NotFoundError();
           }
 
           const { affiliationId, error } = await resolveAffiliation(reference, context, input, context.token.id);
           if (error) {
-            const errorMember = new ProjectMember(input);
+            const errorMember = new ProjectMember({
+              projectId: input.projectId,
+              affiliationId: input.affiliationId ?? undefined,
+              givenName: input.givenName ?? undefined,
+              surName: input.surName ?? undefined,
+              orcid: input.orcid ?? undefined,
+              email: input.email ?? undefined,
+            });
             errorMember.addError('affiliation', error);
             return errorMember;
           }
           input.affiliationId = affiliationId;
 
           if (await hasPermissionOnProject(context, project)) {
-            const newMember = new ProjectMember(input);
+            const newMember = new ProjectMember({
+              projectId: input.projectId,
+              affiliationId: input.affiliationId ?? undefined,
+              givenName: input.givenName ?? undefined,
+              surName: input.surName ?? undefined,
+              orcid: input.orcid ?? undefined,
+              email: input.email ?? undefined,
+            });
             const created = await newMember.create(context, project.id);
 
             if (isNullOrUndefined(created?.id)) {
@@ -142,7 +162,9 @@ export const resolvers: Resolvers = {
             } else {
               // Since no roles were provided, we will default to one
               const role = await MemberRole.defaultRole(context, reference);
-              await role.addToProjectMember(context, created.id);
+              if (role) {
+                await role.addToProjectMember(context, created.id);
+              }
             }
 
             return created;
@@ -163,7 +185,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const member = await ProjectMember.findById(reference, context, input.projectMemberId);
-          if (isNullOrUndefined(member)) {
+          if (isNullOrUndefined(member) || isNullOrUndefined(member.id)) {
             throw NotFoundError();
           }
 
@@ -176,23 +198,40 @@ export const resolvers: Resolvers = {
 
           const { affiliationId, error } = await resolveAffiliation(reference, context, input, context.token.id);
           if (error) {
-            const errorMember = new ProjectMember(input);
+            const errorMember = new ProjectMember({
+              projectId: member.projectId,
+              affiliationId: input.affiliationId ?? undefined,
+              givenName: input.givenName ?? undefined,
+              surName: input.surName ?? undefined,
+              orcid: input.orcid ?? undefined,
+              email: input.email ?? undefined,
+            });
             errorMember.addError('affiliationId', error);
             return errorMember;
           }
           input.affiliationId = affiliationId;
 
           if (await hasPermissionOnProject(context, project)) {
-            const toUpdate = new ProjectMember(input);
-            toUpdate.projectId = member?.projectId;
-            toUpdate.id = member?.id;
+            const toUpdate = new ProjectMember({
+              projectId: member.projectId,
+              affiliationId: input.affiliationId ?? undefined,
+              givenName: input.givenName ?? undefined,
+              surName: input.surName ?? undefined,
+              orcid: input.orcid ?? undefined,
+              email: input.email ?? undefined,
+            });
+            toUpdate.projectId = member.projectId;
+            toUpdate.id = member.id;
             const updated = await toUpdate.update(context);
 
-            if (updated && !updated.hasErrors()) {
+            if (updated && !updated.hasErrors() && !isNullOrUndefined(updated.id)) {
+              const updatedId = updated.id;
               const associationErrors = [];
               // Fetch all of the current Roles associated with this Contirbutor
               const roles = await MemberRole.findByProjectMemberId(reference, context, member.id);
-              const currentRoleids = roles ? roles.map((d) => d.id) : [];
+              const currentRoleids = roles
+                .map((d) => d.id)
+                .filter((id): id is number => !isNullOrUndefined(id));
 
               // Use the helper function to determine which Roles to keep
               const {
@@ -200,7 +239,7 @@ export const resolvers: Resolvers = {
                 idsToBeSaved
               } = MemberRole.reconcileAssociationIds(
                 currentRoleids,
-                input.memberRoleIds
+                input.memberRoleIds ?? undefined
               );
 
               const removeErrors = [];
@@ -208,7 +247,7 @@ export const resolvers: Resolvers = {
               for (const id of idsToBeRemoved) {
                 const role = await MemberRole.findById(reference, context, id as number);
                 if (role) {
-                  const wasRemoved = role.removeFromProjectMember(context, updated.id);
+                  const wasRemoved = role.removeFromProjectMember(context, updatedId);
                   if (!wasRemoved) {
                     removeErrors.push(role.label);
                   }
@@ -224,7 +263,7 @@ export const resolvers: Resolvers = {
               for (const id of idsToBeSaved) {
                 const role = await MemberRole.findById(reference, context, id as number);
                 if (role) {
-                  const wasAdded = role.addToProjectMember(context, updated.id);
+                  const wasAdded = role.addToProjectMember(context, updatedId);
                   if (!wasAdded) {
                     addErrors.push(role.label);
                   }
@@ -321,10 +360,15 @@ export const resolvers: Resolvers = {
           if (roles.length === 0) {
             // For now, planMember roles will match the projectMember roles
             const currentProjectRoles = await MemberRole.findByProjectMemberId(reference, context, projectMemberId);
-            roles = currentProjectRoles ? currentProjectRoles.map((d) => d.id) : [];
+            roles = currentProjectRoles
+              .map((d) => d.id)
+              .filter((id): id is number => !isNullOrUndefined(id));
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (isNullOrUndefined(project)) {
+            throw NotFoundError();
+          }
           if (await hasPermissionOnProject(context, project)) {
             const newPlanMember = new PlanMember({ planId, projectMemberId, memberRoleIds: roles });
             const created = await newPlanMember.create(context);
@@ -382,21 +426,26 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const member = await PlanMember.findById(reference, context, planMemberId);
-          if (isNullOrUndefined(member)) {
+          if (isNullOrUndefined(member) || isNullOrUndefined(member.id)) {
             throw NotFoundError();
           }
 
-          const plan = await Plan.findById(reference, context, member?.planId);
+          const plan = await Plan.findById(reference, context, member.planId);
           if (isNullOrUndefined(plan)) {
             throw NotFoundError();
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (isNullOrUndefined(project)) {
+            throw NotFoundError();
+          }
           const hasPermission = await hasPermissionOnProject(context, project);
 
           if (hasPermission) {
             // Fetch current roles
             const roles = await MemberRole.findByPlanMemberId(reference, context, planMemberId);
-            const currentRoleIds = roles ? roles.map((d) => d.id) : [];
+            const currentRoleIds = roles
+              .map((d) => d.id)
+              .filter((id): id is number => !isNullOrUndefined(id));
 
             // Update roles using the helper function
             const { updatedRoleIds, errors } = await updateMemberRoles(
@@ -404,7 +453,7 @@ export const resolvers: Resolvers = {
               context,
               member.id,
               currentRoleIds,
-              memberRoleIds
+              memberRoleIds ?? []
             );
 
             if (errors.length > 0) {
@@ -416,7 +465,7 @@ export const resolvers: Resolvers = {
               id: planMemberId,
               planId: planId,
               projectMemberId: member.projectMemberId,
-              isPrimaryContact,
+              isPrimaryContact: isPrimaryContact ?? undefined,
               memberRoleIds: updatedRoleIds ?? currentRoleIds,
             });
 
@@ -431,19 +480,22 @@ export const resolvers: Resolvers = {
 
                 // Set isPrimaryContact to false for all other members
                 for (const member of allMembers) {
-                  if (member.id !== planMemberId) {
-                    member.isPrimaryContact = false;
-                    // Fetch current roles
-                    const roles = await MemberRole.findByPlanMemberId(reference, context, member.id);
-                    const roleIds = roles ? roles.map((d) => d.id) : [];
-                    member.memberRoleIds = roleIds;
-                    await member.update(context);
+                  if (isNullOrUndefined(member.id) || member.id === planMemberId) {
+                    continue;
                   }
+                  member.isPrimaryContact = false;
+                  // Fetch current roles
+                  const roles = await MemberRole.findByPlanMemberId(reference, context, member.id);
+                  const roleIds = roles
+                    .map((d) => d.id)
+                    .filter((id): id is number => !isNullOrUndefined(id));
+                  member.memberRoleIds = roleIds;
+                  await member.update(context);
                 }
               }
 
               const plan = await Plan.findById(reference, context, planId);
-              if (member && !member.hasErrors()) {
+              if (member && !member.hasErrors() && !isNullOrUndefined(plan)) {
                 // Handle OpenSearch index update and maDMP JSON versioning in Dynamo
                 await handleAsyncUpdates(reference, context, plan, project);
               }
@@ -473,8 +525,14 @@ export const resolvers: Resolvers = {
 
           // Fetch the plan and run a permission check
           const plan = await Plan.findById(reference, context, member.planId);
+          if (isNullOrUndefined(plan)) {
+            throw NotFoundError();
+          }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (isNullOrUndefined(project)) {
+            throw NotFoundError();
+          }
           if (await hasPermissionOnProject(context, project)) {
             // Any related MemberRoles will be automatically deleted within the DB
             const removed = await member.delete(context);
@@ -499,68 +557,82 @@ export const resolvers: Resolvers = {
     },
   },
 
+  // NOTE: `parent` below is typed to the GraphQL-facing shape (no raw FK fields like
+  // projectId/affiliationId/planId), but at runtime it is actually the model instance
+  // returned by the parent resolver, so it's cast back via `as unknown as X`.
   ProjectMember: {
-    project: async (parent: ProjectMember, _, context: MyContext): Promise<Project> => {
-      if (parent?.projectId) {
-        return await Project.findById('Chained ProjectMember.project', context, parent.projectId);
+    project: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as ProjectMember;
+      if (model?.projectId) {
+        return await Project.findById('Chained ProjectMember.project', context, model.projectId);
       }
       return null;
     },
-    affiliation: async (parent: ProjectMember, _, context: MyContext): Promise<Affiliation> => {
-      if (parent?.affiliationId) {
-        return await Affiliation.findByURI('Chained ProjectMember.affiliation', context, parent.affiliationId);
+    affiliation: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as ProjectMember;
+      if (model?.affiliationId) {
+        const affiliation = await Affiliation.findByURI('Chained ProjectMember.affiliation', context, model.affiliationId);
+        return affiliation as unknown as AffiliationGQL;
       }
       return null;
     },
-    memberRoles: async (parent: ProjectMember, _, context: MyContext): Promise<MemberRole[]> => {
-      if (parent?.id) {
+    memberRoles: async (parent, _, context: MyContext): Promise<MemberRole[]> => {
+      const model = parent as unknown as ProjectMember;
+      if (model?.id) {
         return await MemberRole.findByProjectMemberId(
           'Chained ProjectMember.memberRoles',
           context,
-          parent.id
+          model.id
         );
       }
-      return null;
+      return [];
     },
-    created: (parent: ProjectMember) => {
-      return normaliseDateTime(parent.created);
+    created: (parent) => {
+      const model = parent as unknown as ProjectMember;
+      return normaliseDateTime(model.created);
     },
-    modified: (parent: ProjectMember) => {
-      return normaliseDateTime(parent.modified);
+    modified: (parent) => {
+      const model = parent as unknown as ProjectMember;
+      return normaliseDateTime(model.modified);
     }
   },
 
   PlanMember: {
-    plan: async (parent: PlanMember, _, context: MyContext): Promise<Plan> => {
-      if (parent?.planId) {
-        return await Plan.findById('Chained PlanMember.plan', context, parent.planId);
+    plan: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as PlanMember;
+      if (model?.planId) {
+        return await Plan.findById('Chained PlanMember.plan', context, model.planId);
       }
       return null;
     },
-    projectMember: async (parent: PlanMember, _, context: MyContext): Promise<ProjectMember> => {
-      if (parent?.projectMemberId) {
+    projectMember: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as PlanMember;
+      if (model?.projectMemberId) {
         return await ProjectMember.findById(
           'Chained PlanMember.projectMember',
-          context, parent.projectMemberId
+          context, model.projectMemberId
         );
       }
       return null;
     },
-    memberRoles: async (parent: ProjectMember, _, context: MyContext): Promise<MemberRole[]> => {
-      if (parent?.id) {
+    memberRoles: async (parent, _, context: MyContext): Promise<MemberRole[]> => {
+      const model = parent as unknown as PlanMember;
+      if (model?.id) {
         return await MemberRole.findByPlanMemberId(
           'Chained ProjectMember.memberRoles',
           context,
-          parent.id
+          model.id
         );
       }
-      return null;
+      return [];
     },
-    created: (parent: PlanMember) => {
-      return normaliseDateTime(parent.created);
+    created: (parent) => {
+      const model = parent as unknown as PlanMember;
+      return normaliseDateTime(model.created);
     },
-    modified: (parent: PlanMember) => {
-      return normaliseDateTime(parent.modified);
+    modified: (parent) => {
+      const model = parent as unknown as PlanMember;
+      return normaliseDateTime(model.modified);
     }
   },
 };

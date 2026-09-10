@@ -26,8 +26,9 @@ export const mockUser = (
   options: Partial<MockUserOptions>
 ): User => {
   // Use the options provided or default a value
+  // NOTE: `email` isn't a User constructor field anymore (email addresses now live on the
+  // separate UserEmail model) - dropped it here to match the current User/UserOptions shape.
   return new User({
-    email: options.email ?? casual.email,
     password: options.password ?? casual.password,
     role: options.role ?? getRandomEnumValue(UserRole),
     givenName: options.givenName ?? casual.first_name,
@@ -46,8 +47,10 @@ export const persistUser = async (
   try {
     const created = await user.register(context, email);
     if (!isNullOrUndefined(created)) {
-      // Keep track of the id so we can clean up afterward
-      addedUserIds.push(created.id);
+      // Keep track of the id so we can clean up afterward (a freshly registered User is
+      // always persisted with an id at this point, even though MySqlModel types it as
+      // optional to also support not-yet-saved instances)
+      addedUserIds.push(created.id as number);
       return created;
     }
     console.error(prepareObjectForLogs({ errors: user.errors }), "Unable to persist user");
@@ -67,7 +70,7 @@ export const cleanUpAddedUsers = async (
       // User doesn't have an actual delete function, so we go direct to the MySQL model
       await User.delete(context, 'users', id, reference);
     } catch (e) {
-      console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
+      console.error(`Error cleaning up affiliation id ${id}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 }

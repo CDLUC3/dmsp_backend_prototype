@@ -2,6 +2,24 @@ import { MyContext } from "../context.js";
 import { MySqlModel } from "./MySqlModel.js";
 import { Guidance } from "./Guidance.js";
 
+interface GuidanceGroupOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  affiliationId: string;
+  name: string;
+  description?: string;
+  isDirty?: boolean;
+  bestPractice?: boolean;
+  optionalSubset?: boolean;
+  latestPublishedVersion?: string;
+  latestPublishedDate?: string;
+  guidance?: Guidance[];
+}
+
 export class GuidanceGroup extends MySqlModel {
   public affiliationId: string;
   public name: string;
@@ -15,7 +33,7 @@ export class GuidanceGroup extends MySqlModel {
 
   private static tableName = 'guidanceGroups';
 
-  constructor(options) {
+  constructor(options: GuidanceGroupOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.affiliationId = options.affiliationId;
@@ -46,7 +64,7 @@ export class GuidanceGroup extends MySqlModel {
   }
 
   // Create a new GuidanceGroup
-  async create(context: MyContext): Promise<GuidanceGroup> {
+  async create(context: MyContext): Promise<GuidanceGroup | null> {
     // Check for existing guidance group with same affiliationId + name
     const existing = await GuidanceGroup.findByName('GuidanceGroup.create', context, this.name, this.affiliationId);
 
@@ -61,15 +79,16 @@ export class GuidanceGroup extends MySqlModel {
 
       // Save the record and then fetch it
       const newId = await GuidanceGroup.insert(context, GuidanceGroup.tableName, this, 'GuidanceGroup.create', ['guidance']);
-      const response = await GuidanceGroup.findById('GuidanceGroup.create', context, newId);
-      return response;
+      if (newId) {
+        return await GuidanceGroup.findById('GuidanceGroup.create', context, newId);
+      }
     }
     // Otherwise return as-is with all the errors
     return new GuidanceGroup(this);
   }
 
   // Update an existing GuidanceGroup
-  async update(context: MyContext, noTouch = false): Promise<GuidanceGroup> {
+  async update(context: MyContext, noTouch = false): Promise<GuidanceGroup | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -86,7 +105,7 @@ export class GuidanceGroup extends MySqlModel {
   }
 
   // Delete GuidanceGroup based on the GuidanceGroup object's id
-  async delete(context: MyContext): Promise<GuidanceGroup> {
+  async delete(context: MyContext): Promise<GuidanceGroup | null> {
     if (this.id) {
       // First get the guidance group to be deleted so we can return this info to the user
       const deletedGuidanceGroup = await GuidanceGroup.findById('GuidanceGroup.delete', context, this.id);
@@ -109,7 +128,7 @@ export class GuidanceGroup extends MySqlModel {
   }
 
   // Find a specific GuidanceGroup by id
-  static async findById(reference: string, context: MyContext, guidanceGroupId: number): Promise<GuidanceGroup> {
+  static async findById(reference: string, context: MyContext, guidanceGroupId: number): Promise<GuidanceGroup | null> {
     const sql = `SELECT * FROM ${GuidanceGroup.tableName} WHERE id = ?`;
     const result = await GuidanceGroup.query(context, sql, [guidanceGroupId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new GuidanceGroup(result[0]) : null;
@@ -121,7 +140,7 @@ export class GuidanceGroup extends MySqlModel {
     context: MyContext,
     name: string,
     affiliationId: string
-  ): Promise<GuidanceGroup> {
+  ): Promise<GuidanceGroup | null> {
     const sql = `SELECT * FROM ${GuidanceGroup.tableName} WHERE LOWER(name) = ? AND affiliationId = ?`;
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim(), affiliationId];

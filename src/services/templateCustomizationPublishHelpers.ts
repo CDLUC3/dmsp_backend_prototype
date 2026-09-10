@@ -7,9 +7,10 @@ import { VersionedCustomQuestion } from "../models/VersionedCustomQuestion.js";
 import { VersionedSectionCustomization } from "../models/VersionedSectionCustomization.js";
 import { VersionedQuestionCustomization } from "../models/VersionedQuestionCustomization.js";
 import { CustomSection, PinnedSectionTypeEnum } from "../models/CustomSection.js";
-import { CustomQuestion } from "../models/CustomQuestion.js";
+import { CustomQuestion, PinnedQuestionTypeEnum } from "../models/CustomQuestion.js";
 import { SectionCustomization } from "../models/SectionCustomization.js";
 import { QuestionCustomization } from "../models/QuestionCustomization.js";
+import { NotFoundError } from "../utils/graphQLErrors.js";
 
 /**
  * A minimal interface representing the shape of a TemplateCustomization that
@@ -39,17 +40,28 @@ export const snapshotCustomizationChildren = async (
   customization: PublishableCustomization,
   created: VersionedTemplateCustomization
 ): Promise<void> => {
+
+  if (!customization.id) {
+    throw NotFoundError('Published customization must have a customiation id to create a snapshot');
+  }
+  if (!created.id) {
+    throw NotFoundError('Versioned customization snapshot must have an id');
+  }
+
   // Snapshot custom sections and their questions into versioned equivalents
   const customSections = await CustomSection.findByCustomizationId(
     reference, context, customization.id);
 
   for (const section of customSections) {
+    if (!section.id) {
+      continue;
+    }
     const versionedSection = new VersionedCustomSection({
       versionedTemplateCustomizationId: created.id,
       customSectionId: section.id,
       pinnedVersionedSectionType: section.pinnedSectionType,
       pinnedVersionedSectionId: section.pinnedSectionId,
-      name: section.name,
+      name: section.name ?? '',
       introduction: section.introduction,
       requirements: section.requirements,
       guidance: section.guidance,
@@ -66,18 +78,21 @@ export const snapshotCustomizationChildren = async (
       reference, context, customization.id, PinnedSectionTypeEnum.CUSTOM, section.id);
 
     for (const question of customQuestions) {
+      if (!question.id) {
+        continue;
+      }
       const versionedQuestion = new VersionedCustomQuestion({
         versionedTemplateCustomizationId: created.id,
         customQuestionId: question.id,
         versionedSectionType: question.sectionType,
         versionedSectionId: question.sectionId,
-        pinnedVersionedQuestionType: question.pinnedQuestionType ?? null,
-        pinnedVersionedQuestionId: question.pinnedQuestionId ?? null,
+        pinnedVersionedQuestionType: question.pinnedQuestionType as keyof typeof PinnedQuestionTypeEnum | undefined,
+        pinnedVersionedQuestionId: question.pinnedQuestionId,
         questionText: question.questionText,
         json: question.json,
-        requirementText: question.requirementText ?? null,
-        guidanceText: question.guidanceText ?? null,
-        sampleText: question.sampleText ?? null,
+        requirementText: question.requirementText,
+        guidanceText: question.guidanceText,
+        sampleText: question.sampleText,
         useSampleTextAsDefault: question.useSampleTextAsDefault ?? false,
         required: question.required ?? false,
       });
@@ -97,18 +112,21 @@ export const snapshotCustomizationChildren = async (
     reference, context, customization.id, PinnedSectionTypeEnum.BASE);
 
   for (const question of baseCustomQuestions) {
+    if (!question.id) {
+      continue;
+    }
     const versionedQuestion = new VersionedCustomQuestion({
       versionedTemplateCustomizationId: created.id,
       customQuestionId: question.id,
       versionedSectionType: question.sectionType,
       versionedSectionId: question.sectionId,
-      pinnedVersionedQuestionType: question.pinnedQuestionType ?? null,
-      pinnedVersionedQuestionId: question.pinnedQuestionId ?? null,
+      pinnedVersionedQuestionType: question.pinnedQuestionType as keyof typeof PinnedQuestionTypeEnum | undefined,
+      pinnedVersionedQuestionId: question.pinnedQuestionId,
       questionText: question.questionText,
       json: question.json,
-      requirementText: question.requirementText ?? null,
-      guidanceText: question.guidanceText ?? null,
-      sampleText: question.sampleText ?? null,
+      requirementText: question.requirementText,
+      guidanceText: question.guidanceText,
+      sampleText: question.sampleText,
       useSampleTextAsDefault: question.useSampleTextAsDefault ?? false,
       required: question.required ?? false,
     });
@@ -127,6 +145,9 @@ export const snapshotCustomizationChildren = async (
     reference, context, customization.id);
 
   for (const sectionCust of sectionCustomizations) {
+    if (!sectionCust.id) {
+      continue;
+    }
     const versionedSectionRows = await VersionedSection.query(
       context,
       `SELECT id FROM versionedSections
@@ -166,6 +187,9 @@ export const snapshotCustomizationChildren = async (
     reference, context, customization.id);
 
   for (const questionCust of questionCustomizations) {
+    if (!questionCust.id) {
+      continue;
+    }
     const versionedQuestionRows = await VersionedQuestion.query(
       context,
       `SELECT id FROM versionedQuestions
@@ -186,8 +210,8 @@ export const snapshotCustomizationChildren = async (
       versionedTemplateCustomizationId: created.id,
       questionCustomizationId: questionCust.id,
       versionedQuestionId: versionedQuestionRows[0].id,
-      guidanceText: questionCust.guidanceText ?? null,
-      sampleText: questionCust.sampleText ?? null,
+      guidanceText: questionCust.guidanceText,
+      sampleText: questionCust.sampleText,
       createdById: context.token?.id,
       modifiedById: context.token?.id,
     });

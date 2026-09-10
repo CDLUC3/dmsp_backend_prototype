@@ -84,8 +84,8 @@ describe('ResearchOutputType', () => {
   describe('database operations', () => {
     it('should create a new record', async () => {
       const type = new ResearchOutputType(mockData);
-      jest.spyOn(ResearchOutputType, 'insert').mockResolvedValueOnce(type.id);
-      jest.spyOn(ResearchOutputType, 'findByValue').mockResolvedValueOnce(null);
+      jest.spyOn(ResearchOutputType, 'insert').mockResolvedValueOnce(type.id as number);
+      jest.spyOn(ResearchOutputType, 'findByValue').mockResolvedValueOnce(null as unknown as InstanceType<typeof ResearchOutputType>);
       jest.spyOn(ResearchOutputType, 'findById').mockResolvedValueOnce(type);
 
       const result = await type.create(context);

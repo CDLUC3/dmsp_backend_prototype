@@ -16,6 +16,20 @@ import { TemplateCustomizationMigrationStatus } from "./TemplateCustomization.js
  *     - "STALE" The question has changed in the latest version.
  *     - "ORPHANED" The question is no longer available in the latest version.
  */
+interface QuestionCustomizationOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  templateCustomizationId: number;
+  questionId: number;
+  migrationStatus?: TemplateCustomizationMigrationStatus;
+  guidanceText?: string;
+  sampleText?: string;
+}
+
 export class QuestionCustomization extends MySqlModel {
   public templateCustomizationId: number;
   public questionId: number;
@@ -25,7 +39,7 @@ export class QuestionCustomization extends MySqlModel {
 
   static tableName = 'questionCustomizations';
 
-  constructor(options) {
+  constructor(options: QuestionCustomizationOptions) {
     super(options.id, options.created, options.createdById, options.modified,
       options.modifiedById, options.errors);
 
@@ -70,11 +84,11 @@ export class QuestionCustomization extends MySqlModel {
    * @param context The Apollo context.
    * @returns The newly created question customization.
    */
-  async create(context: MyContext): Promise<QuestionCustomization> {
+  async create(context: MyContext): Promise<QuestionCustomization | undefined> {
     const ref = 'QuestionCustomization.create';
     // Make sure the record is valid
     if (await this.isValid()) {
-      const current: QuestionCustomization = await QuestionCustomization.findByCustomizationAndQuestion(
+      const current: QuestionCustomization | undefined = await QuestionCustomization.findByCustomizationAndQuestion(
         ref,
         context,
         this.templateCustomizationId,
@@ -88,13 +102,15 @@ export class QuestionCustomization extends MySqlModel {
         this.prepForSave();
 
         // Save the record and then fetch it
-        const newId: number = await QuestionCustomization.insert(
+        const newId = await QuestionCustomization.insert(
           context,
           QuestionCustomization.tableName,
           this,
           ref
         );
-        return await QuestionCustomization.findById(ref, context, newId);
+        if (newId) {
+          return await QuestionCustomization.findById(ref, context, newId);
+        }
       }
     }
     // Otherwise return as-is with all the errors
@@ -108,7 +124,7 @@ export class QuestionCustomization extends MySqlModel {
    * @param noTouch Whether or not the modification timestamp should be updated
    * @returns The updated Question customization.
    */
-  async update(context: MyContext, noTouch = false): Promise<QuestionCustomization> {
+  async update(context: MyContext, noTouch = false): Promise<QuestionCustomization | undefined> {
     const ref = 'QuestionCustomization.update';
 
     if (!this.id) {
@@ -140,13 +156,13 @@ export class QuestionCustomization extends MySqlModel {
    * @param context The Apollo context
    * @returns The archived Question customization.
    */
-  async delete(context: MyContext): Promise<QuestionCustomization> {
+  async delete(context: MyContext): Promise<QuestionCustomization | undefined> {
     const ref = 'QuestionCustomization.delete';
     if (!this.id) {
       // Cannot delete it if it hasn't been saved yet!
       this.addError('general', 'Question customization has never been saved');
     } else {
-      const original: QuestionCustomization = await QuestionCustomization.findById(
+      const original: QuestionCustomization | undefined = await QuestionCustomization.findById(
         ref,
         context,
         this.id
@@ -180,7 +196,7 @@ export class QuestionCustomization extends MySqlModel {
     reference: string,
     context: MyContext,
     questionCustomizationId: number
-  ): Promise<QuestionCustomization> {
+  ): Promise<QuestionCustomization | undefined> {
     const results = await QuestionCustomization.query(
       context,
       `SELECT * FROM ${QuestionCustomization.tableName} WHERE id = ?`,
@@ -204,7 +220,7 @@ export class QuestionCustomization extends MySqlModel {
     context: MyContext,
     templateCustomizatonId: number,
     questionId: number
-  ): Promise<QuestionCustomization> {
+  ): Promise<QuestionCustomization | undefined> {
     const results = await QuestionCustomization.query(
       context,
       `SELECT * FROM ${QuestionCustomization.tableName}
@@ -230,7 +246,7 @@ export class QuestionCustomization extends MySqlModel {
     context: MyContext,
     templateCustomizatonId: number,
     versionedQuestionId: number
-  ): Promise<QuestionCustomization> {
+  ): Promise<QuestionCustomization | undefined> {
     const results = await QuestionCustomization.query(
       context,
       `SELECT qc.* FROM ${QuestionCustomization.tableName} qc

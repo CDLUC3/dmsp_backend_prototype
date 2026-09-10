@@ -13,7 +13,7 @@ import {
   InternalServerError,
   NotFoundError
 } from '../utils/graphQLErrors.js';
-import { ProjectFunding } from '../models/Funding.js';
+import { ProjectFunding, ProjectFundingStatus } from '../models/Funding.js';
 import { ProjectMember } from '../models/Member.js';
 import { User, UserRole } from "../models/User.js";
 import {
@@ -58,10 +58,10 @@ export const resolvers: Resolvers = {
           return await ProjectSearchResult.search(
             reference,
             context,
-            term,
+            term ?? '',
             context.token?.id,
             context.token?.affiliationId,
-            filterOptions,
+            filterOptions ?? undefined,
             pagOpts
           );
         }
@@ -87,16 +87,18 @@ export const resolvers: Resolvers = {
             ? paginationOptions as PaginationOptionsForOffsets
             : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
-          const userId = isAdmin(context.token) ? null : context.token?.id;
+          // Falsy sentinel (0) rather than null: the search() signature requires a plain
+          // number, and the query only checks `if (userId)`, so 0 has the same "no filter" effect.
+          const userId = isAdmin(context.token) ? 0 : (context.token?.id ?? 0);
           const affiliationId = isSuperAdmin(context.token) ? null : context.token?.affiliationId;
 
           return await ProjectSearchResult.search(
             reference,
             context,
-            term,
+            term ?? '',
             userId,
             affiliationId,
-            filterOptions,
+            filterOptions ?? undefined,
             pagOpts
           );
         }
@@ -137,10 +139,10 @@ export const resolvers: Resolvers = {
           return await ProjectSearchResult.search(
             reference,
             context,
-            term,
+            term ?? '',
             userId,
             context.token?.affiliationId,
-            filterOptions,
+            filterOptions ?? undefined,
             pagOpts
           );
         } catch (err) {
@@ -183,13 +185,16 @@ export const resolvers: Resolvers = {
         if (isAuthorized(context.token)) {
           const dmphubAPI = context.dataSources.dmphubAPIDataSource;
           const affiliation = await Affiliation.findByURI(reference, context, affiliationId);
+          if (!affiliation?.apiTarget) {
+            throw NotFoundError(`Affiliation with URI ${affiliationId} not found`);
+          }
           const dmps = await dmphubAPI.getAwards(
             context,
             affiliation.apiTarget,
             awardId,
             awardName,
             awardYear,
-            piNames,
+            piNames?.filter((name): name is string => !!name) ?? null,
           );
 
           return dmps.map((dmpHubAward) => {
@@ -220,9 +225,9 @@ export const resolvers: Resolvers = {
               startDate: normaliseDate(dmpHubAward.project.start),
               awardYear: dmpHubAward.project.start ? dmpHubAward.project.start.slice(0, 4) : null,
               endDate: normaliseDate(dmpHubAward.project.end),
-              fundings: dmpHubAward.project.funding.map((fund) => ({
+              fundings: (dmpHubAward.project.funding ?? []).map((fund) => ({
                 funderProjectNumber: fund.dmproadmap_project_number,
-                grantId: fund.grant_id.identifier,
+                grantId: fund.grant_id?.identifier,
                 funderOpportunityNumber: fund.dmproadmap_opportunity_number,
               })),
               members: members,
@@ -245,11 +250,11 @@ export const resolvers: Resolvers = {
       const reference = 'addProject resolver';
       try {
         if (isAuthorized(context.token)) {
-          const newProject = new Project({ title, isTestProject });
+          const newProject = new Project({ title, isTestProject: isTestProject ?? undefined });
           const created = await newProject.create(context);
 
           if (!isNullOrUndefined(created)) {
-            if (!created.hasErrors()) {
+            if (!created.hasErrors() && !isNullOrUndefined(created.id)) {
               // Set the current user as an owner on the project
               const ownerWasSet = await setCurrentUserAsProjectOwner(context, created.id);
               // Set the current user as the default primary contact
@@ -279,8 +284,12 @@ export const resolvers: Resolvers = {
       const reference = 'updateProject resolver';
       try {
         if (isAuthorized(context.token)) {
+          if (isNullOrUndefined(input)) {
+            throw NotFoundError();
+          }
+
           const project = await Project.findById(reference, context, input.id);
-          if (isNullOrUndefined(project)) {
+          if (isNullOrUndefined(project) || isNullOrUndefined(project.id)) {
             throw NotFoundError();
           }
 
@@ -288,7 +297,15 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          const toUpdate = new Project(input);
+          const toUpdate = new Project({
+            id: input.id,
+            title: input.title,
+            abstractText: input.abstractText ?? undefined,
+            startDate: input.startDate ?? undefined,
+            endDate: input.endDate ?? undefined,
+            researchDomainId: input.researchDomainId ?? undefined,
+            isTestProject: input.isTestProject ?? undefined,
+          });
           const updated = await toUpdate.update(context);
           if (updated && !updated.hasErrors()) {
             // Update each plan's version snapshot if the project was updated
@@ -316,7 +333,7 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const project = await Project.findById(reference, context, projectId);
-          if (!project) {
+          if (!project || isNullOrUndefined(project.id)) {
             throw NotFoundError();
           }
 
@@ -353,6 +370,9 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           try {
+            if (isNullOrUndefined(input)) {
+              throw NotFoundError();
+            }
             const projectId = input.project.id;
             const existingProject = await Project.findById(reference, context, projectId);
             if (!existingProject) {
@@ -364,15 +384,30 @@ export const resolvers: Resolvers = {
             }
 
             // Update project
-            const toUpdateProject = new Project(input.project);
+            const toUpdateProject = new Project({
+              id: input.project.id,
+              title: input.project.title,
+              abstractText: input.project.abstractText ?? undefined,
+              startDate: input.project.startDate ?? undefined,
+              endDate: input.project.endDate ?? undefined,
+              researchDomainId: input.project.researchDomainId ?? undefined,
+              isTestProject: input.project.isTestProject ?? undefined,
+            });
             const updatedProject = await toUpdateProject.update(context);
 
             // Add project funding and project members
             if (updatedProject && !updatedProject.hasErrors()) {
               // Update project funding
               const addFundingErrors = [];
-              for (const fund of input.funding) {
-                const newFunding = new ProjectFunding(fund);
+              for (const fund of input.funding ?? []) {
+                const newFunding = new ProjectFunding({
+                  projectId,
+                  affiliationId: fund.affiliationId,
+                  status: (fund.status ?? undefined) as ProjectFundingStatus | undefined,
+                  funderProjectNumber: fund.funderProjectNumber ?? undefined,
+                  grantId: fund.grantId ?? undefined,
+                  funderOpportunityNumber: fund.funderOpportunityNumber ?? undefined,
+                });
 
                 // Check if a funding record already exists for this affiliation on the project. If so,
                 // update it instead of creating a new one to avoid duplicates.
@@ -408,12 +443,19 @@ export const resolvers: Resolvers = {
               // Update project members
               const addMemberErrors = [];
               const addMemberRoleErrors = [];
-              for (const contrib of input.members) {
+              for (const contrib of input.members ?? []) {
                 // Add project member
-                const newMember = new ProjectMember(contrib);
+                const newMember = new ProjectMember({
+                  projectId,
+                  affiliationId: contrib.affiliationId ?? undefined,
+                  givenName: contrib.givenName ?? undefined,
+                  surName: contrib.surName ?? undefined,
+                  orcid: contrib.orcid ?? undefined,
+                  email: contrib.email ?? undefined,
+                });
                 context.logger.debug(`${reference}: add project member`);
                 const memberAdded = await newMember.create(context, projectId);
-                if (!memberAdded) {
+                if (!memberAdded || isNullOrUndefined(memberAdded.id)) {
                   addMemberErrors.push(`Member(affiliationId=${newMember.affiliationId}, givenName=${newMember.givenName}, surName=${newMember.surName}, orcid=${newMember.orcid}, email=${newMember.email})`);
                 } else {
                   // Add member role
@@ -459,58 +501,74 @@ export const resolvers: Resolvers = {
     },
   },
 
+  // NOTE: `parent` below is typed to the GraphQL-facing shape (no raw FK fields like
+  // researchDomainId), but at runtime it is actually the model instance returned by the
+  // parent resolver, so it's cast back via `as unknown as X`.
   Project: {
-    researchDomain: async (parent: Project, _, context: MyContext): Promise<ResearchDomain | null> => {
-      if (parent.researchDomainId) {
+    researchDomain: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Project;
+      if (model.researchDomainId) {
         return await ResearchDomain.findById(
           'Chained Project.researchDomain',
           context,
-          parent.researchDomainId
+          model.researchDomainId
         );
       }
       return null;
     },
-    collaborators: async (parent: Project, _, context: MyContext): Promise<ProjectCollaborator[]> => {
+    collaborators: async (parent, _, context: MyContext): Promise<ProjectCollaborator[]> => {
+      const model = parent as unknown as Project;
+      if (!model?.id) return [];
       return await ProjectCollaborator.findByProjectId(
         'Chained Project.collaborators',
         context,
-        parent.id
+        model.id
       );
     },
-    members: async (parent: Project, _, context: MyContext): Promise<ProjectMember[]> => {
+    members: async (parent, _, context: MyContext): Promise<ProjectMember[]> => {
+      const model = parent as unknown as Project;
+      if (!model?.id) return [];
       return await ProjectMember.findByProjectId(
         'Chained Project.members',
         context,
-        parent.id
+        model.id
       );
     },
-    fundings: async (parent: Project, _, context: MyContext): Promise<ProjectFunding[]> => {
+    fundings: async (parent, _, context: MyContext): Promise<ProjectFunding[]> => {
+      const model = parent as unknown as Project;
+      if (!model?.id) return [];
       return await ProjectFunding.findByProjectId(
         'Chained Project.fundings',
         context,
-        parent.id
+        model.id
       );
     },
-    plans: async (parent: Project, _, context: MyContext): Promise<PlanSearchResult[]> => {
+    plans: async (parent, _, context: MyContext): Promise<PlanSearchResult[]> => {
+      const model = parent as unknown as Project;
+      if (!model?.id) return [];
       return await PlanSearchResult.findByProjectId(
         'Chained Project.plans',
         context,
-        parent.id
+        model.id
       );
     },
-    created: (parent: Project) => {
-      return normaliseDateTime(parent.created);
+    created: (parent) => {
+      const model = parent as unknown as Project;
+      return normaliseDateTime(model.created);
     },
-    modified: (parent: Project) => {
-      return normaliseDateTime(parent.modified);
+    modified: (parent) => {
+      const model = parent as unknown as Project;
+      return normaliseDateTime(model.modified);
     }
   },
   ProjectSearchResult: {
-    plans: async (parent: Project, _, context: MyContext): Promise<PlanSearchResult[]> => {
+    plans: async (parent, _, context: MyContext): Promise<PlanSearchResult[]> => {
+      const model = parent as unknown as ProjectSearchResult;
+      if (!model?.id) return [];
       return await PlanSearchResult.findByProjectId(
         'Chained Project.plans',
         context,
-        parent.id
+        model.id
       );
     },
   }

@@ -10,6 +10,26 @@ export enum TemplateVisibility {
   PUBLIC = 'PUBLIC', // Template is available to everyone creating a DMP
 }
 
+interface TemplateSearchResultOptions {
+  id: number;
+  name: string;
+  description?: string;
+  latestPublishVisibility?: TemplateVisibility;
+  bestPractice: boolean;
+  isDefault?: boolean;
+  latestPublishVersion?: string;
+  latestPublishDate?: string;
+  isDirty: boolean;
+  ownerId: string;
+  ownerDisplayName: string;
+  createdById: number;
+  createdByName: string;
+  created: string;
+  modifiedById: number;
+  modifiedByName: string;
+  modified: string;
+}
+
 // A paired down version of template information for search results
 export class TemplateSearchResult {
   public id: number;
@@ -30,7 +50,7 @@ export class TemplateSearchResult {
   public modifiedByName: string;
   public modified: string;
 
-  constructor(options) {
+  constructor(options: TemplateSearchResultOptions) {
     this.id = options.id;
     this.name = options.name;
     this.description = options.description;
@@ -110,6 +130,27 @@ export class TemplateSearchResult {
   }
 }
 
+interface TemplateOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  sourceTemplateId?: number;
+  sourceVersionedTemplateId?: number;
+  name: string;
+  description?: string;
+  ownerId?: string;
+  latestPublishVisibility?: TemplateVisibility;
+  latestPublishVersion?: string;
+  latestPublishDate?: string;
+  isDirty?: boolean;
+  bestPractice?: boolean;
+  isDefault?: boolean;
+  languageId?: string;
+}
+
 // A Template for creating a DMP
 export class Template extends MySqlModel {
   public sourceTemplateId?: number;
@@ -127,7 +168,7 @@ export class Template extends MySqlModel {
 
   private tableName = 'templates';
 
-  constructor(options) {
+  constructor(options: TemplateOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.name = options.name;
@@ -137,7 +178,7 @@ export class Template extends MySqlModel {
     this.sourceVersionedTemplateId = options.sourceVersionedTemplateId;
     this.latestPublishVisibility = options.latestPublishVisibility ?? TemplateVisibility.ORGANIZATION;
     this.latestPublishVersion = options.latestPublishVersion ?? '';
-    this.latestPublishDate = options.latestPublishDate ?? null;
+    this.latestPublishDate = options.latestPublishDate;
     this.isDirty = options.isDirty ?? true;
     this.bestPractice = options.bestPractice ?? false;
     this.isDefault = options.isDefault ?? false;
@@ -165,7 +206,7 @@ export class Template extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<Template> {
+  async create(context: MyContext): Promise<Template | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       const current = await Template.findByNameAndOwnerId(
@@ -181,7 +222,9 @@ export class Template extends MySqlModel {
         this.prepForSave();
         // Save the record and then fetch it
         const newId = await Template.insert(context, this.tableName, this, 'Template.create');
-        return await Template.findById('Template.create', context, newId);
+        if (newId) {
+          return await Template.findById('Template.create', context, newId);
+        }
       }
     }
     // Otherwise return as-is with all the errors
@@ -189,7 +232,7 @@ export class Template extends MySqlModel {
   }
 
   // Save the changes made to the template
-  async update(context: MyContext, noTouch = false): Promise<Template> {
+  async update(context: MyContext, noTouch = false): Promise<Template | null> {
     const id = this.id;
 
     // First make sure the record is valid
@@ -222,7 +265,7 @@ export class Template extends MySqlModel {
   }
 
   // Archive this record
-  async delete(context: MyContext): Promise<Template> {
+  async delete(context: MyContext): Promise<Template | null> {
     if (this.id) {
       const original = await Template.findById('Template.delete', context, this.id);
       // Associated TemplateCollaborators and VersionedTemplates will be deletd automatically by MySQL
@@ -235,7 +278,7 @@ export class Template extends MySqlModel {
   }
 
   // Return the specified Template
-  static async findById(reference: string, context: MyContext, templateId: number): Promise<Template> {
+  static async findById(reference: string, context: MyContext, templateId: number): Promise<Template | null> {
     const sql = 'SELECT * FROM templates WHERE id = ?';
     const results = await Template.query(context, sql, [templateId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Template(results[0]) : null;
@@ -246,7 +289,7 @@ export class Template extends MySqlModel {
     reference: string,
     context: MyContext,
     name: string
-  ): Promise<Template> {
+  ): Promise<Template | null> {
     const sql = 'SELECT * FROM templates WHERE LOWER(name) = ? AND ownerId = ?';
     const searchTerm = (name ?? '');
     const vals = [searchTerm?.toLowerCase()?.trim(), context.token?.affiliationId];

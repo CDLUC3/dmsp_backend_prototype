@@ -165,7 +165,14 @@ export const searchData = [
 
 export const mock = {
   // Return a random item from the data array
-  Affiliation: () => new Affiliation(data[Math.floor(Math.random() * data.length)]),
+  // Note: this fixture data predates some model field renames (e.g. `fundref` -> `fundrefId`,
+  // and AffiliationSearch's now-required `uri`/`apiTarget`), so it's bridged via `unknown` here
+  // rather than reshaped — this is example/unused fixture data, not exercised by any test.
+  Affiliation: () => new Affiliation(
+    data[Math.floor(Math.random() * data.length)] as unknown as ConstructorParameters<typeof Affiliation>[0]
+  ),
 
-  Affiliations: () => searchData.map((rec) => new AffiliationSearch(rec)),
+  Affiliations: () => searchData.map((rec) =>
+    new AffiliationSearch(rec as unknown as ConstructorParameters<typeof AffiliationSearch>[0])
+  ),
 }

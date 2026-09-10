@@ -8,7 +8,7 @@ import { NotFoundError } from "../utils/graphQLErrors.js";
 import { Question } from "../models/Question.js";
 import { generateQuestionVersion } from "./questionService.js";
 import { prepareObjectForLogs } from "../logger.js";
-import { reorderDisplayOrder } from "../utils/helpers.js";
+import { reorderDisplayOrder, isNullOrUndefined } from "../utils/helpers.js";
 
 // Creates a new Version/Snapshot the specified Section (as a point in time snapshot)
 //    - Creates a new VersionedSection including all of the related Questions
@@ -43,11 +43,18 @@ export const generateSectionVersion = async (
 
   try {
     const created = await versionedSection.create(context);
+    if (!created || isNullOrUndefined(created.id)) {
+      return false;
+    }
 
     // Get tags associated with section so we can add it to versionedSectionTags table
     const addTagErrors = [];
     if (Array.isArray(section.tags) && section.tags.length > 0) {
       for (const item of section.tags) {
+        if (!item.id) {
+          addTagErrors.push(`Tag reference has no id`);
+          continue;
+        }
         const tag = await Tag.findById('generateSectionVersion', context, item.id);
 
         if (!tag) {
@@ -81,6 +88,10 @@ export const generateSectionVersion = async (
           ...question
         });
 
+        if (isNullOrUndefined(questionInstance.id)) {
+          return false;
+        }
+
         // Get current tags for the question so we can add it to versionedQuestionTags table
         const currentTags = await Tag.findByQuestionId(ref, context, questionInstance.id);
         questionInstance.tags = currentTags;
@@ -100,7 +111,7 @@ export const generateSectionVersion = async (
         if (updated && !updated.hasErrors()) return true;
 
         const msg = `Unable to set the isDirty flag for section: ${section.id}`;
-        context.logger.error(prepareObjectForLogs(updated.errors), msg);
+        context.logger.error(prepareObjectForLogs(updated?.errors), msg);
         throw new Error(msg);
       }
     } else {
@@ -123,7 +134,7 @@ export const cloneSection = (
   section: Section | VersionedSection
 ): Section => {
   // If the incoming is a VersionedSection, then use the sectionId (the section it was based off of)
-  const sourceId = Object.keys(section).includes('sectionId') ? section['sectionId'] : section.id;
+  const sourceId = 'sectionId' in section ? section.sectionId : section.id;
   const sectionCopy = new Section({
     sourceSectionId: sourceId,
     name: section.name,

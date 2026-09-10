@@ -7,16 +7,29 @@ export enum TemplateLinkType {
   SAMPLE_PLAN = 'SAMPLE_PLAN',
 }
 
+interface TemplateLinkOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  templateId: number;
+  linkType: TemplateLinkType;
+  url: string;
+  text?: string;
+}
+
 // A link that can be displayed for a template
 export class TemplateLink extends MySqlModel {
   public templateId!: number;
   public linkType!: TemplateLinkType;
   public url!: string;
-  public text: string;
+  public text?: string;
 
   private static tableName = 'templateLinks';
 
-  constructor(options) {
+  constructor(options: TemplateLinkOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
@@ -37,7 +50,7 @@ export class TemplateLink extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<TemplateLink> {
+  async create(context: MyContext): Promise<TemplateLink | null> {
     const reference = 'TemplateLink.create';
     // First make sure the record doesn't already exist
     const current = await TemplateLink.findByTemplateAndURL(
@@ -67,7 +80,7 @@ export class TemplateLink extends MySqlModel {
   }
 
   // Archive this record
-  async delete(context: MyContext): Promise<TemplateLink> {
+  async delete(context: MyContext): Promise<TemplateLink | null> {
     if (this.id) {
       const result = await TemplateLink.delete(
         context,
@@ -83,14 +96,14 @@ export class TemplateLink extends MySqlModel {
   }
 
   // Return the specified TemplateLink
-  static async findById(reference: string, context: MyContext, id: number): Promise<TemplateLink> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<TemplateLink | null> {
     const sql = `SELECT * FROM ${TemplateLink.tableName} WHERE id = ?`;
     const results = await TemplateLink.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new TemplateLink(results[0]) : null;
   }
 
   // Return the specified TemplateLink
-  static async findByTemplateAndURL(reference: string, context: MyContext, templateId: number, url: string): Promise<TemplateLink> {
+  static async findByTemplateAndURL(reference: string, context: MyContext, templateId: number, url: string): Promise<TemplateLink | null> {
     const sql = `SELECT * FROM ${TemplateLink.tableName} WHERE templateId = ? AND url = ?`;
     const results = await TemplateLink.query(context, sql, [templateId.toString(), url], reference);
     return Array.isArray(results) && results.length > 0 ? new TemplateLink(results[0]) : null;

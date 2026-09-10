@@ -1,4 +1,10 @@
-import { ReorderSectionsResult, Resolvers } from "../types.js";
+import {
+  Question as QuestionGql,
+  ReorderSectionsResult,
+  Resolvers,
+  Section as SectionGql,
+  Tag as TagGql,
+} from "../types.js";
 import { MyContext } from "../context.js";
 import { Section } from "../models/Section.js";
 import { VersionedSection } from "../models/VersionedSection.js";
@@ -11,16 +17,21 @@ import { isAdmin, isAuthorized, isSuperAdmin } from "../services/authService.js"
 import { prepareObjectForLogs } from "../logger.js";
 import { GraphQLError } from "graphql";
 import { VersionedQuestion } from "../models/VersionedQuestion.js";
-import { normaliseDateTime } from "../utils/helpers.js";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers.js";
 
 export const resolvers: Resolvers = {
   Query: {
+    // Cast needed on all Section-returning resolvers below: the Section model's `tags`
+    // field doesn't structurally match the generated Section type (e.g. nested Tag.slug
+    // is optional on the model but required in the schema), and there are no codegen
+    // mappers configured to reconcile this.
     // return all of the sections for the specified template
-    sections: async (_, { templateId }, context: MyContext): Promise<Section[]> => {
+    sections: async (_, { templateId }, context: MyContext) => {
       const reference = 'sections resolver';
       try {
         if (isAuthorized(context?.token)) {
-          return await Section.findByTemplateId(reference, context, templateId);
+          const sections = await Section.findByTemplateId(reference, context, templateId);
+          return sections as unknown as SectionGql[];
         }
 
         throw AuthenticationError();
@@ -33,11 +44,12 @@ export const resolvers: Resolvers = {
     },
 
     // return a specific section
-    section: async (_, { sectionId }, context: MyContext): Promise<Section> => {
+    section: async (_, { sectionId }, context: MyContext) => {
       const reference = 'section resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await Section.findById(reference, context, sectionId);
+          const section = await Section.findById(reference, context, sectionId);
+          return section as unknown as SectionGql | null;
         }
 
         throw AuthenticationError();
@@ -66,14 +78,23 @@ export const resolvers: Resolvers = {
         }
       },
       context: MyContext
-    ): Promise<Section> => {
+    ) => {
       const reference = 'addSection resolver';
       try {
         if (isAdmin(context?.token) && await hasPermissionOnSection(context, templateId)) {
-          let section = new Section({ name, templateId, introduction, requirements, guidance, displayOrder });
+          // Default to the next available display order when the caller doesn't specify one
+          const resolvedDisplayOrder = displayOrder ?? (await Section.findMaxDisplayOrder(reference, context, templateId)) + 1;
+          let section = new Section({
+            name,
+            templateId,
+            introduction: introduction ?? undefined,
+            requirements: requirements ?? undefined,
+            guidance: guidance ?? undefined,
+            displayOrder: resolvedDisplayOrder
+          });
 
           // if a copyFromVersionedSectionId is provided, clone the section
-          let original: VersionedSection;
+          let original: VersionedSection | null = null;
 
           if (copyFromVersionedSectionId) {
             original = await VersionedSection.findById(reference, context, copyFromVersionedSectionId);
@@ -96,11 +117,11 @@ export const resolvers: Resolvers = {
             if (!section.errors['general']) {
               section.addError('general', 'Unable to create the section');
             }
-            return section;
+            return section as unknown as SectionGql;
           }
 
           // if a copyFromVersionedSectionId is provided, clone all the questions
-          if (copyFromVersionedSectionId && original) {
+          if (copyFromVersionedSectionId && original && !isNullOrUndefined(original.id)) {
             const versionedQuestions = await VersionedQuestion.findByVersionedSectionId(
               reference,
               context,
@@ -125,7 +146,7 @@ export const resolvers: Resolvers = {
                 if (!newQuestion.errors['general']) {
                   newQuestion.addError('general', 'Unable to create the question');
                 }
-              } else {
+              } else if (!isNullOrUndefined(versionedQuestion.id)) {
                 // Copy the source versioned question's tags onto the newly cloned question
                 const sourceTags = await Tag.findByVersionedQuestionId(reference, context, versionedQuestion.id);
                 for (const tag of sourceTags) {
@@ -143,7 +164,11 @@ export const resolvers: Resolvers = {
           await Template.markTemplateAsDirty('Section resolver - addSection', context, templateId);
 
           // Return newly created section
-          return await Section.findById(reference, context, newSection.id);
+          const created = await Section.findById(reference, context, newSection.id);
+          if (!created) {
+            throw InternalServerError();
+          }
+          return created as unknown as SectionGql;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -169,7 +194,7 @@ export const resolvers: Resolvers = {
         }
       },
       context: MyContext
-    ): Promise<Section> => {
+    ) => {
       const reference = 'updateSection resolver';
       try {
         // Get Section based on provided sectionId
@@ -186,16 +211,16 @@ export const resolvers: Resolvers = {
             id: sectionData.id,
             templateId: sectionData.templateId,
             createdById: sectionData.createdById,
-            name: name,
-            introduction: introduction,
-            requirements: requirements,
-            guidance: guidance,
-            displayOrder: displayOrder,
+            name: name ?? sectionData.name,
+            introduction: introduction ?? undefined,
+            requirements: requirements ?? undefined,
+            guidance: guidance ?? undefined,
+            displayOrder: displayOrder ?? sectionData.displayOrder,
             isDirty: true  // Mark as dirty for update
           });
 
           // Only allow the bestPractice flag to be changed if the user is a Super admin!
-          section.bestPractice = isSuperAdmin(context.token) ? bestPractice : sectionData.bestPractice;
+          section.bestPractice = isSuperAdmin(context.token) ? (bestPractice ?? sectionData.bestPractice) : sectionData.bestPractice;
 
           const updatedSection = await section.update(context);
 
@@ -204,14 +229,18 @@ export const resolvers: Resolvers = {
             if (!section.errors['general']) {
               section.addError('general', 'Unable to update the section');
             }
-            return section;
+            return section as unknown as SectionGql;
           }
 
           // Update the associated template to set isDirty=1
           await Template.markTemplateAsDirty('Section resolver - updateSection', context, sectionData.templateId);
 
           // Return newly updated section
-          return await Section.findById(reference, context, updatedSection.id);
+          const reloaded = await Section.findById(reference, context, updatedSection.id);
+          if (!reloaded) {
+            throw InternalServerError();
+          }
+          return reloaded as unknown as SectionGql;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -256,11 +285,14 @@ export const resolvers: Resolvers = {
 
               await Template.markTemplateAsDirty(reference, context, section.templateId);
 
-              return { sections: reorderedSections ?? [] };
+              // Cast needed: the Section model doesn't structurally match the generated
+              // Section type (e.g. nested Tag.slug is optional on the model but required
+              // in the schema), and there are no codegen mappers configured to reconcile this.
+              return { sections: (reorderedSections ?? []) as unknown as SectionGql[] };
 
             } catch (err) {
               context.logger.error(prepareObjectForLogs(err), `${reference} failed: sectionId: ${sectionId}`);
-              return { sections: [], errors: { general: err.message } };
+              return { sections: [], errors: { general: err instanceof Error ? err.message : String(err) } };
             }
           }
         }
@@ -274,7 +306,7 @@ export const resolvers: Resolvers = {
     },
 
     // remove a section
-    removeSection: async (_, { sectionId }, context: MyContext): Promise<Section> => {
+    removeSection: async (_, { sectionId }, context: MyContext) => {
       const reference = 'removeSection resolver';
       try {
         // Retrieve existing Section
@@ -291,14 +323,15 @@ export const resolvers: Resolvers = {
 
           const deleted = await section.delete(context);
 
-          if (!deleted || deleted.hasErrors()) {
-            section.addError('general', 'Unable to delete the section');
-          }
-
           // Update the associated template to set isDirty=1
           await Template.markTemplateAsDirty('Section resolver - removeSection', context, sectionData.templateId);
 
-          return section.hasErrors() ? section : deleted;
+          if (!deleted || deleted.hasErrors()) {
+            section.addError('general', 'Unable to delete the section');
+            return section as unknown as SectionGql;
+          }
+
+          return deleted as unknown as SectionGql;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -312,19 +345,36 @@ export const resolvers: Resolvers = {
 
   Section: {
     // Chained resolver to fetch the Affiliation info for the user
-    tags: async (parent: Section, _, context: MyContext): Promise<Tag[]> => {
-      return await Tag.findBySectionId('Chained Section.tags', context, parent.id);
+    // Cast needed: the Tag model's `slug` is optional but required in the generated Tag
+    // type, and there are no codegen mappers configured to reconcile this.
+    tags: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.id)) {
+        return [];
+      }
+      const tags = await Tag.findBySectionId('Chained Section.tags', context, parent.id);
+      return tags as unknown as TagGql[];
     },
-    template: async (parent: Section, _, context: MyContext): Promise<Template> => {
-      return await Template.findById('Chained Section.template', context, parent.templateId);
+    template: async (parent, _, context: MyContext): Promise<Template | null> => {
+      // `parent` is actually the Section model instance at runtime (not just the generated
+      // shape), which is where `templateId` lives.
+      const { templateId } = parent as unknown as Section;
+      return await Template.findById('Chained Section.template', context, templateId);
     },
-    questions: async (parent: Section, _, context: MyContext): Promise<Question[]> => {
-      return await Question.findBySectionId('Chained Section.questions', context, parent.id)
+    // Cast needed: the Question model's `tags` field doesn't structurally match the
+    // generated Question type for the same reason as above.
+    questions: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.id)) {
+        return [];
+      }
+      const questions = await Question.findBySectionId('Chained Section.questions', context, parent.id);
+      return questions as unknown as QuestionGql[];
     },
-    created: (parent: Section) => {
+    // `parent` is contextually typed as the generated Section (not the model class) here,
+    // which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: Section) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

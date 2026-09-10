@@ -1,6 +1,18 @@
 import { MyContext } from "../context.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface GuidanceOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  guidanceGroupId: number;
+  guidanceText?: string;
+  tagId?: number;
+}
+
 export class Guidance extends MySqlModel {
   public guidanceGroupId: number;
   public guidanceText?: string;
@@ -8,7 +20,7 @@ export class Guidance extends MySqlModel {
 
   private static tableName = 'guidance';
 
-  constructor(options) {
+  constructor(options: GuidanceOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.guidanceGroupId = options.guidanceGroupId;
@@ -32,22 +44,23 @@ export class Guidance extends MySqlModel {
   }
 
   // Create a new Guidance
-  async create(context: MyContext): Promise<Guidance> {
+  async create(context: MyContext): Promise<Guidance | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
 
       // Save the record and then fetch it
       const newId = await Guidance.insert(context, Guidance.tableName, this, 'Guidance.create');
-      const response = await Guidance.findById('Guidance.create', context, newId);
-      return response;
+      if (newId) {
+        return await Guidance.findById('Guidance.create', context, newId);
+      }
     }
     // Otherwise return as-is with all the errors
     return new Guidance(this);
   }
 
   // Update an existing Guidance
-  async update(context: MyContext, noTouch = false): Promise<Guidance> {
+  async update(context: MyContext, noTouch = false): Promise<Guidance | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -64,7 +77,7 @@ export class Guidance extends MySqlModel {
   }
 
   // Delete Guidance based on the Guidance object's id
-  async delete(context: MyContext): Promise<Guidance> {
+  async delete(context: MyContext): Promise<Guidance | null> {
     if (this.id) {
       // First get the guidance to be deleted so we can return this info to the user
       const deletedGuidance = await Guidance.findById('Guidance.delete', context, this.id);
@@ -87,13 +100,25 @@ export class Guidance extends MySqlModel {
   }
 
   // Find a specific Guidance by id
-  static async findById(reference: string, context: MyContext, guidanceId: number): Promise<Guidance> {
+  static async findById(reference: string, context: MyContext, guidanceId: number): Promise<Guidance | null> {
     const sql = `SELECT * FROM ${Guidance.tableName} WHERE id = ?`;
     const result = await Guidance.query(context, sql, [guidanceId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new Guidance(result[0]) : null;
   }
 }
 
+
+interface PlanGuidanceOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  planId: number;
+  affiliationId: string;
+  userId: number;
+}
 
 // Represents guidance associated with a plan and user
 export class PlanGuidance extends MySqlModel {
@@ -102,7 +127,7 @@ export class PlanGuidance extends MySqlModel {
   public userId: number;
   public static tableName = 'planGuidance';
 
-  constructor(options) {
+  constructor(options: PlanGuidanceOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.planId = options.planId;
@@ -120,7 +145,7 @@ export class PlanGuidance extends MySqlModel {
   }
 
   //Create a new PlanGuidance
-  async create(context: MyContext): Promise<PlanGuidance> {
+  async create(context: MyContext): Promise<PlanGuidance | null> {
     const reference = 'PlanGuidance.create';
 
     // First make sure the record is valid
@@ -145,8 +170,9 @@ export class PlanGuidance extends MySqlModel {
           [],
         );
 
-        const response = await PlanGuidance.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await PlanGuidance.findById(reference, context, newId);
+        }
       }
     }
     // Otherwise return as-is with all the errors

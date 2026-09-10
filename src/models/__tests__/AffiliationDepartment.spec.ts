@@ -17,10 +17,11 @@ const { buildMockContextWithToken } = await import('../../__mocks__/context.js')
 const { logger } = await import('../../logger.js');
 const { getCurrentDate } = await import('../../utils/helpers.js');
 
+import type { MyContext } from '../../context.js';
 
 describe('AffiliationDepartment', () => {
-  let department;
-  let context;
+  let department: InstanceType<typeof AffiliationDepartment>;
+  let context: MyContext;
 
   const departmentData = {
     id: casual.integer(1, 999),

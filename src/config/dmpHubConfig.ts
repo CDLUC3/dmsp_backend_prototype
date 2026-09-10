@@ -1,9 +1,9 @@
 import { verifyCriticalEnvVariable } from "../utils/helpers.js";
 
 // Verify these critical variables on startup!
-verifyCriticalEnvVariable('DMPHUB_AUTH_URL');
-verifyCriticalEnvVariable('DMPHUB_API_CLIENT_ID');
-verifyCriticalEnvVariable('DMPHUB_API_CLIENT_SECRET');
+verifyCriticalEnvVariable(process.env.DMPHUB_AUTH_URL, 'DMPHUB_AUTH_URL');
+verifyCriticalEnvVariable(process.env.DMPHUB_API_CLIENT_ID, 'DMPHUB_API_CLIENT_ID');
+verifyCriticalEnvVariable(process.env.DMPHUB_API_CLIENT_SECRET, 'DMPHUB_API_CLIENT_SECRET');
 
 export const DMPHubConfig = {
   dmpHubAuthURL: process.env.DMPHUB_AUTH_URL,
@@ -13,5 +13,5 @@ export const DMPHubConfig = {
   dmpHubClientId: process.env.DMPHUB_API_CLIENT_ID,
   dmpHubClientSecret: process.env.DMPHUB_API_CLIENT_SECRET,
 
-  dmpHubCacheTTL: Number.parseInt(process.env.DMP_CACHE_TTL) ?? 86400, // Default is 24 hours (in seconds)
+  dmpHubCacheTTL: Number.parseInt(process.env.DMP_CACHE_TTL || '86400'), // Default is 24 hours (in seconds)
 }

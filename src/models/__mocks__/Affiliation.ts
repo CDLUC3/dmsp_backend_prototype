@@ -50,7 +50,7 @@ export const mockAffiliation = (
     funder: options.funder ?? casual.boolean,
     types: options.types ?? [getRandomEnumValue(AffiliationType)],
     displayName: `${name} (${domain})`,
-    searchName,
+    searchName: searchName.join(' | '),
     provenance: options.provenance ?? AffiliationProvenance.ROR,
     homepage: options.homepage ?? homepage,
     acronyms: options.acronyms ?? acronyms,
@@ -67,14 +67,14 @@ export const persistAffiliation = async (
 ): Promise<Affiliation | null> => {
   try {
     const created = await affiliation.create(context);
-    if (!isNullOrUndefined(created)) {
+    if (!isNullOrUndefined(created) && !isNullOrUndefined(created.id)) {
       // Keep track of the id so we can clean up afterward
       addedAffiliationIds.push(created.id);
       return created;
     }
     console.error(`Unable to persist affiliation: ${affiliation.uri}`);
   } catch (e) {
-    console.error(`Error persisting affiliation ${affiliation.uri}: ${e.message}`);
+    console.error(`Error persisting affiliation ${affiliation.uri}: ${e instanceof Error ? e.message : String(e)}`);
   }
   return null;
 }
@@ -91,7 +91,7 @@ export const cleanUpAddedAffiliations = async (
         await affiliation.delete(context);
       }
     } catch (e) {
-      console.error(`Error cleaning up affiliation id ${id}: ${e.message}`);
+      console.error(`Error cleaning up affiliation id ${id}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 }
@@ -102,12 +102,12 @@ export const randomAffiliation = async (
 ): Promise<Affiliation | null> => {
   const sql = 'SELECT * FROM affiliations WHERE active = 1 ORDER BY RAND() LIMIT 1';
   try {
-    const results = Affiliation.query(context, sql, [], 'randomAffiliation');
+    const results = await Affiliation.query(context, sql, [], 'randomAffiliation');
     if (Array.isArray(results) && results.length > 0) {
-      return new Affiliation([0]);
+      return new Affiliation(results[0]);
     }
   } catch (e) {
-    console.error(`Error getting random affiliation: ${e.message}`);
+    console.error(`Error getting random affiliation: ${e instanceof Error ? e.message : String(e)}`);
   }
   return null;
 }

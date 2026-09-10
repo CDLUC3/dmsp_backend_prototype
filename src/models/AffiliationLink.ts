@@ -2,15 +2,27 @@ import { MyContext } from "../context.js";
 import { validateURL } from "../utils/helpers.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface AffiliationLinkOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  affiliationId: string;
+  url: string;
+  text?: string;
+}
+
 // A link that can be displayed to the affiliation's users within the context of the DMPTool
 export class AffiliationLink extends MySqlModel {
   public affiliationId!: string;
   public url!: string;
-  public text: string;
+  public text?: string;
 
   private static tableName = 'affiliationLinks';
 
-  constructor(options) {
+  constructor(options: AffiliationLinkOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.affiliationId = options.affiliationId;
@@ -29,7 +41,7 @@ export class AffiliationLink extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<AffiliationLink> {
+  async create(context: MyContext): Promise<AffiliationLink | null> {
     // First make sure the record doesn't already exist
     const currentDomain = await AffiliationLink.findByAffiliationAndURL(
       'AffiliationLink.create',
@@ -54,7 +66,7 @@ export class AffiliationLink extends MySqlModel {
   }
 
   // Update the link
-  async update(context: MyContext): Promise<AffiliationLink> {
+  async update(context: MyContext): Promise<AffiliationLink | null> {
     const reference = 'AffiliationLink.update';
     if (!this.id) {
       this.addError('general', 'The link does not exist');
@@ -81,7 +93,7 @@ export class AffiliationLink extends MySqlModel {
   }
 
   // Archive this record
-  async delete(context: MyContext): Promise<AffiliationLink> {
+  async delete(context: MyContext): Promise<AffiliationLink | null> {
     if (this.id) {
       const result = await AffiliationLink.delete(context, AffiliationLink.tableName, this.id, 'AffiliationLink.delete');
       if (result) {
@@ -92,14 +104,14 @@ export class AffiliationLink extends MySqlModel {
   }
 
   // Return the specified AffiliationLink
-  static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationLink> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationLink | null> {
     const sql = `SELECT * FROM ${AffiliationLink.tableName} WHERE id = ?`;
     const results = await AffiliationLink.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new AffiliationLink(results[0]) : null;
   }
 
   // Return the specified AffiliationLink
-  static async findByAffiliationAndURL(reference: string, context: MyContext, affiliationId: string, url: string): Promise<AffiliationLink> {
+  static async findByAffiliationAndURL(reference: string, context: MyContext, affiliationId: string, url: string): Promise<AffiliationLink | null> {
     const sql = `SELECT * FROM ${AffiliationLink.tableName} WHERE affiliationId = ? AND url = ?`;
     const results = await AffiliationLink.query(context, sql, [affiliationId, url], reference);
     return Array.isArray(results) && results.length > 0 ? new AffiliationLink(results[0]) : null;

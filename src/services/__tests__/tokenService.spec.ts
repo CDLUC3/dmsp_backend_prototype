@@ -3,7 +3,7 @@
 import { jest } from '@jest/globals';
 import casual from 'casual';
 import { createHash } from 'crypto';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import type { Jwt } from 'jsonwebtoken';
 
 import { mockAppConfigs, mockAppLogger } from '../../__tests__/mockConfigs.js';

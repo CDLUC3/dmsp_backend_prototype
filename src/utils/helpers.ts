@@ -13,7 +13,7 @@ export function hashToken(token: string): string {
 }
 
 // Ensure that the ORCID is in the correct format (https://orcid.org/0000-0000-0000-0000)
-export function formatORCID(orcidIn: string): string {
+export function formatORCID(orcidIn: string): string | null {
   // If it is blank or already in the correct format, return it
   if (!valueIsEmpty(orcidIn) && (orcidIn.match(ORCID_REGEX) && orcidIn.startsWith('http'))) return normaliseHttpProtocol(orcidIn);
 
@@ -62,13 +62,13 @@ export function capitalizeFirstLetter(str: string): string {
 export function stripIdentifierBaseURL(str: string): string {
   if (!str) return '';
 
-  const normalisedStr = normaliseHttpProtocol(str);
+  const normalisedStr = normaliseHttpProtocol(str) as string;
   for (const baseUrl of [
     generalConfig.dmpIdBaseURL,
     generalConfig.orcidBaseURL,
     generalConfig.rorBaseURL,
   ]) {
-    const normalisedBase = normaliseHttpProtocol(baseUrl);
+    const normalisedBase = normaliseHttpProtocol(baseUrl) as string;
     if (normalisedStr.startsWith(normalisedBase)) {
       return normalisedStr
         .slice(normalisedBase.length)
@@ -93,12 +93,12 @@ export function stripORCIDIdentifierBaseURL(str: string): string {
 }
 
 // Verify that a string is a valid identifier
-export function isNullOrUndefined(value: unknown): boolean {
+export function isNullOrUndefined(value: unknown): value is null | undefined {
   return value === null || value === undefined;
 }
 
 // Verify that a string is a valid identifier
-export function valueIsEmpty(value: string | number | boolean): boolean {
+export function valueIsEmpty(value: string | number | boolean | null | undefined): boolean {
   // Check if the value is null or undefined
   if (isNullOrUndefined(value)) {
     return true;
@@ -127,7 +127,7 @@ export function removeNullAndUndefinedFromJSON(json: string): string {
     return JSON.stringify(parsedJSON);
   } catch (e) {
     // eslint-disable-next-line preserve-caught-error
-    throw new Error(`Invalid JSON format: ${e.message}`);
+    throw new Error(`Invalid JSON format: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -152,10 +152,11 @@ export function validateURL(url: string): boolean {
   return true;
 }
 
-// Helper that will log and error and terminate the Node process if a critical env variable is missing.
-export function verifyCriticalEnvVariable(variable: string): void {
-  if (process.env[variable] === undefined) {
-    console.log(Error(`FATAL ERROR: No ${variable} defined in the environment!`));
+// Helper that will log an error and terminate the Node process if a critical env variable is missing.
+export function verifyCriticalEnvVariable(value: string | undefined, name: string): asserts value is string {
+  if (value === undefined) {
+    console.log(Error(`FATAL ERROR: No ${name} defined in the environment!`));
+    process.exit(1);
   }
 }
 
@@ -200,7 +201,7 @@ export function randomIntInRange(min: number, max: number): number {
 }
 
 // Normalises a date and time value
-export function normaliseDateTime(date: string | null): string {
+export function normaliseDateTime(date: string | null | undefined): string | null {
   try {
     return isNullOrUndefined(date) ? null : formatISO9075(new Date(date));
   } catch {
@@ -210,7 +211,7 @@ export function normaliseDateTime(date: string | null): string {
 }
 
 // Normalises dates
-export function normaliseDate(date: string | null): string {
+export function normaliseDate(date: string | null | undefined): string | null {
   // If its null or undefined return null
   if (date === null || date === undefined) {
     return null;
@@ -263,7 +264,7 @@ export function reorderDisplayOrder<T extends { id?: number, displayOrder?: numb
 
   // First remove the item we are moving and then sort the remaining sections by display order
   const ordered = clonedList.filter((obj) => obj.id !== objectBeingMovedId)
-    .sort((a, b) => a.displayOrder - b.displayOrder);
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
   // Splice the object being moved into the correct position
   const index = Math.max(0, Math.min(newDisplayOrder - 1, ordered.length));

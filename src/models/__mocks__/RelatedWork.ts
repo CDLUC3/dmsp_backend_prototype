@@ -99,7 +99,7 @@ export function getMockRelatedWorkSearchResult() {
   };
 }
 
-export function getMockList(maxLength: number, generatorFn) {
+export function getMockList<T>(maxLength: number, generatorFn: () => T): T[] {
   const length = casual.integer(0, maxLength);
   return Array.from({ length }, () => generatorFn());
 }
@@ -189,7 +189,7 @@ export function getMockAwardMatch(): ItemMatch {
   };
 }
 
-export function getMockPaginatedSearchResults(options) {
+export function getMockPaginatedSearchResults(options: { items: unknown[] }) {
   return {
     items: options.items,
     limit: 20,

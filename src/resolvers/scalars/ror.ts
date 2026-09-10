@@ -4,7 +4,7 @@ import { generalConfig } from '../../config/generalConfig.js';
 const ROR_ID_REGEX = /^[0-9a-zA-Z]+$/;
 const ROR_URL_REGEX = /^https?:\/\/ror.org\/[0-9a-zA-Z]+/
 
-export function validateRor(val) {
+export function validateRor(val: string) {
   const match = val.startsWith('http') ? val.match(ROR_URL_REGEX) : val.match(ROR_ID_REGEX);
   if (match && match.length > 0) {
     // Prepend the ROR URL to the id if it doesn't have it
@@ -18,12 +18,12 @@ export const rorScalar = new GraphQLScalarType({
   name: 'Ror',
   description: 'An organization ROR ID',
 
-  serialize(ror) {
-    return validateRor(ror.toString())
+  serialize(ror: unknown) {
+    return validateRor(String(ror))
   },
 
-  parseValue(value) {
-    return validateRor(value.toString());
+  parseValue(value: unknown) {
+    return validateRor(String(value));
   },
 
   parseLiteral(ast) {

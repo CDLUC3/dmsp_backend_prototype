@@ -63,6 +63,7 @@ jest.unstable_mockModule('../datasources/dmphubAPI.js', () => ({
 
 import casual from "casual";
 import { Logger } from "pino";
+import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { JWTAccessToken } from "../services/tokenService.js";
 import { MyContext } from "../context.js";
 const { DMPHubAPI } = await import('../datasources/dmphubAPI.js');
@@ -83,26 +84,18 @@ let mockCacheStore: Record<string, string> = {};
 // eslint-disable-next-line  @typescript-eslint/no-extraneous-class
 export class MockCache {
   public static getInstance() {
+    const adapterMock = Object.create(KeyvAdapter.prototype);
+
+    adapterMock.set = async (key: string, val: string): Promise<void> => { mockCacheStore[key] = val; };
+    adapterMock.get = async (key: string): Promise<string> => mockCacheStore[key];
+    adapterMock.delete = async (key: string): Promise<void> => { delete mockCacheStore[key]; };
+
+
     return {
-      adapter: {
-        async set(key: string, val: string): Promise<void> {
-          mockCacheStore[key] = val;
-        },
-        async get(key: string): Promise<string> {
-          return mockCacheStore[key];
-        },
-        async delete(key: string): Promise<void> {
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete mockCacheStore[key];
-        },
-      },
-      getStore() {
-        return mockCacheStore
-      },
-      resetStore(): void {
-        mockCacheStore = {};
-      },
-    }
+      adapter: adapterMock, // TS accepts this natively as a KeyvAdapter instance
+      getStore() { return mockCacheStore; },
+      resetStore(): void { mockCacheStore = {}; },
+    };
   }
 }
 
@@ -136,7 +129,14 @@ export const mockUser = (
   affiliationId = casual.url,
   userRole = UserRole.RESEARCHER,
 ): User => {
-  const user = new User({ id, givenName, surName, affiliationId, role: userRole });
+  const user = new User({
+    id,
+    password: casual.password,
+    givenName,
+    surName,
+    affiliationId,
+    role: userRole
+  });
 
   // Mock getEmail to avoid real DB calls
   user.getEmail = jest.fn<typeof user.getEmail>().mockResolvedValue(casual.email);
@@ -149,13 +149,16 @@ export const mockToken = async (
   user: User = mockUser(),
   context?: MyContext,
 ): Promise<JWTAccessToken> => {
-  const email = await user.getEmail(context);
+  const email = await user.getEmail(context as MyContext);
+  if (!user.id) {
+    throw new Error('mockToken requires a User with an id');
+  }
   return {
     id: user.id,
-    email,
-    givenName: user.givenName,
-    surName: user.surName,
-    affiliationId: user.affiliationId,
+    email: email ?? '',
+    givenName: user.givenName ?? '',
+    surName: user.surName ?? '',
+    affiliationId: user.affiliationId ?? '',
     role: user.role,
     languageId: defaultLanguageId,
     jti: casual.integer(1, 999999).toString(),
@@ -188,8 +191,10 @@ let cachedDataSources: MockDataSources | null = null;
 export const getMockDataSources = () => {
   if (!cachedDataSources) {
     cachedDataSources = {
-      dmphubAPIDataSource: new DMPHubAPI({ cache: null, token: null }),
-      ezidAPIDataSource: new EZIDAPI({ cache: null }),
+      // dmphubAPI.js is jest-mocked above, so the real constructor never runs — these args
+      // just need to satisfy its declared parameter type, not be real instances.
+      dmphubAPIDataSource: new DMPHubAPI({ cache: null, token: null } as unknown as { cache: KeyvAdapter<string>; token: JWTAccessToken }),
+      ezidAPIDataSource: new EZIDAPI({ cache: undefined }),
       sqlDataSource: getMockedMysqlInstance(),
       openSearchServerlessDataSource: new OpenSearch(awsConfig.opensearchServerless),
     };
@@ -199,17 +204,19 @@ export const getMockDataSources = () => {
 
 // Backward compatibility
 export const mockDataSources = new Proxy({}, {
-  get(target, prop) {
-    return getMockDataSources()[prop];
+  get(_target, prop) {
+    return getMockDataSources()[prop as keyof MockDataSources];
   }
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildContext(logger: Logger, token: JWTAccessToken = null, cache: any = null): MyContext {
+export function buildContext(logger: Logger, token: JWTAccessToken | null = null, cache: any = null): MyContext {
 
   return {
     cache: cache,
-    token: token,
+    // `token` is null pre-authentication in real usage; MyContext.token stays non-nullable
+    // to match the production context.ts contract (see src/context.ts for the full rationale).
+    token: token as JWTAccessToken,
     logger: logger,
     requestId: casual.rgb_hex,
     dataSources: getMockDataSources(),

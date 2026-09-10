@@ -167,7 +167,7 @@ beforeEach(async () => {
 
   // Spy on chained resolver model methods — use spyOn to keep real constructors intact
   jest.spyOn(Plan, 'findById').mockResolvedValue(null);
-  jest.spyOn(Template, 'findById').mockResolvedValue(null);
+  jest.spyOn(Template, 'findById').mockResolvedValue(null as unknown as Template);
   jest.spyOn(TemplateCustomization, 'findByIdWithTemplateName').mockResolvedValue(null);
   jest.spyOn(PlanFeedback, 'findByPlanId').mockResolvedValue([]);
   jest.spyOn(User, 'findById').mockResolvedValue(null);

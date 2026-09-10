@@ -1,6 +1,17 @@
 import { MyContext } from "../context.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface AffiliationEmailDomainOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  affiliationId: string;
+  emailDomain: string;
+}
+
 // An email domain associated with this affiliation. For use with SSO
 export class AffiliationEmailDomain extends MySqlModel {
   public affiliationId!: string;
@@ -8,7 +19,7 @@ export class AffiliationEmailDomain extends MySqlModel {
 
   private tableName = 'affiliationEmailDomains';
 
-  constructor(options) {
+  constructor(options: AffiliationEmailDomainOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.affiliationId = options.affiliationId
@@ -26,7 +37,7 @@ export class AffiliationEmailDomain extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<AffiliationEmailDomain> {
+  async create(context: MyContext): Promise<AffiliationEmailDomain | null> {
     // First make sure the record doesn't already exist
     const currentDomain = await AffiliationEmailDomain.findByDomain(
       'AffiliationEmailDomain.create',
@@ -49,7 +60,7 @@ export class AffiliationEmailDomain extends MySqlModel {
   }
 
   // Archive this record
-  async delete(context: MyContext): Promise<AffiliationEmailDomain> {
+  async delete(context: MyContext): Promise<AffiliationEmailDomain | null> {
     if (this.id) {
       const result = await AffiliationEmailDomain.delete(context, this.tableName, this.id, 'AffiliationEmailDomain.delete');
       if (result) {
@@ -60,14 +71,14 @@ export class AffiliationEmailDomain extends MySqlModel {
   }
 
   // Return the specified AffiliationEmailDomain
-  static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationEmailDomain> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<AffiliationEmailDomain | null> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE id = ?`;
     const results = await AffiliationEmailDomain.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new AffiliationEmailDomain(results[0]) : null;
   }
 
   // Search by the domain
-  static async findByDomain(reference: string, context: MyContext, domain: string): Promise<AffiliationEmailDomain> {
+  static async findByDomain(reference: string, context: MyContext, domain: string): Promise<AffiliationEmailDomain | null> {
     const sql = `SELECT * FROM affiliationEmailDomains WHERE emailDomain LIKE ?`;
     const results = await AffiliationEmailDomain.query(context, sql, [domain], reference);
     return Array.isArray(results) && results.length > 0 ? new AffiliationEmailDomain(results[0]) : null;

@@ -22,6 +22,23 @@ export const REPOSITORY_TYPE = {
 
 export type RepositoryTypeValue = typeof REPOSITORY_TYPE[keyof typeof REPOSITORY_TYPE];
 
+interface RepositoryOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  name: string;
+  uri: string;
+  description?: string;
+  website?: string;
+  re3dataId?: string;
+  researchDomains?: ResearchDomain[];
+  repositoryTypes?: string[];
+  keywords?: string[];
+}
+
 export class Repository extends MySqlModel {
   public name: string;
   public uri: string;
@@ -34,7 +51,7 @@ export class Repository extends MySqlModel {
 
   private tableName = 'repositories';
 
-  constructor(options) {
+  constructor(options: RepositoryOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
@@ -96,7 +113,7 @@ export class Repository extends MySqlModel {
   }
 
   //Create a new Repository
-  async create(context: MyContext): Promise<Repository> {
+  async create(context: MyContext): Promise<Repository | null> {
     const reference = 'Repository.create';
 
     // If no URI is present, then use the DMP Tool's default URI
@@ -118,8 +135,9 @@ export class Repository extends MySqlModel {
       } else {
         // Save the record and then fetch it
         const newId = await Repository.insert(context, this.tableName, this, reference, ['researchDomains']);
-        const response = await Repository.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await Repository.findById(reference, context, newId);
+        }
       }
     }
     // Otherwise return as-is with all the errors
@@ -127,7 +145,7 @@ export class Repository extends MySqlModel {
   }
 
   //Update an existing Repository
-  async update(context: MyContext, noTouch = false): Promise<Repository> {
+  async update(context: MyContext, noTouch = false): Promise<Repository | null> {
     const id = this.id;
 
     this.prepForSave();
@@ -143,7 +161,7 @@ export class Repository extends MySqlModel {
   }
 
   //Delete the Repository
-  async delete(context: MyContext): Promise<Repository> {
+  async delete(context: MyContext): Promise<Repository | null> {
     if (this.id) {
       const deleted = await Repository.findById('Repository.delete', context, this.id);
 
@@ -235,7 +253,7 @@ export class Repository extends MySqlModel {
   }
 
   // Fetch a Repository by it's id
-  static async findById(reference: string, context: MyContext, repositoryId: number): Promise<Repository> {
+  static async findById(reference: string, context: MyContext, repositoryId: number): Promise<Repository | null> {
     const sql = `SELECT * FROM repositories WHERE id = ?`;
     const results = await Repository.query(context, sql, [repositoryId?.toString()], reference);
     if (Array.isArray(results) && results.length !== 0) {
@@ -244,7 +262,7 @@ export class Repository extends MySqlModel {
     return null;
   }
 
-  static async findByURI(reference: string, context: MyContext, uri: string): Promise<Repository> {
+  static async findByURI(reference: string, context: MyContext, uri: string): Promise<Repository | null> {
     const sql = `SELECT * FROM repositories WHERE uri = ?`;
     const results = await Repository.query(context, sql, [uri], reference);
     if (Array.isArray(results) && results.length !== 0) {
@@ -267,7 +285,7 @@ export class Repository extends MySqlModel {
     return [];
   }
 
-  static async findByName(reference: string, context: MyContext, name: string): Promise<Repository> {
+  static async findByName(reference: string, context: MyContext, name: string): Promise<Repository | null> {
     const sql = `SELECT * FROM repositories WHERE LOWER(name) = ?`;
     const searchTerm = (name ?? '');
     const results = await Repository.query(context, sql, [searchTerm?.toLowerCase()?.trim()], reference);

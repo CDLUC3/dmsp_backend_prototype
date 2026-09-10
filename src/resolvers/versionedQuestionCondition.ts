@@ -6,7 +6,7 @@ import { AuthenticationError, ForbiddenError, InternalServerError } from "../uti
 import { prepareObjectForLogs } from "../logger.js";
 import { isAuthorized } from "../services/authService.js";
 import { GraphQLError } from "graphql";
-import { normaliseDateTime } from "../utils/helpers.js";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers.js";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -30,26 +30,31 @@ export const resolvers: Resolvers = {
   },
 
   VersionedQuestionConditionGroup: {
-    conditions: async (parent: VersionedQuestionConditionGroup, _, context: MyContext) => {
+    conditions: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.id)) {
+        throw InternalServerError();
+      }
       return await VersionedQuestionCondition.findByVersionedQuestionConditionGroupId(
         'VersionedQuestionConditionGroup.conditions resolver',
         context,
         parent.id
       );
     },
-    created: (parent: VersionedQuestionConditionGroup) => {
+    // `parent` is contextually typed as the generated type (not the model class) here,
+    // which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedQuestionConditionGroup) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },
 
   VersionedQuestionCondition: {
-    created: (parent: VersionedQuestionCondition) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedQuestionCondition) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },

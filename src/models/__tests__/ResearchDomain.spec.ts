@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import casual from "casual";
 
+import type { MyContext } from '../../context.js';
 import { mockAppConfigs, mockAppLogger } from '../../__tests__/mockConfigs.js';
 
 // Register config + logger mocks FIRST — before anything that transitively imports them
@@ -20,7 +21,7 @@ const { ResearchDomain } = await import("../ResearchDomain.js");
 const { generalConfig } = await import("../../config/generalConfig.js");
 
 
-let context;
+let context: MyContext;
 
 beforeEach(async () => {
   jest.resetAllMocks();
@@ -33,7 +34,7 @@ afterEach(() => {
 });
 
 describe('ResearchDomain', () => {
-  let domain;
+  let domain: InstanceType<typeof ResearchDomain>;
 
   const funderData = {
     name: casual.company_name,
@@ -55,14 +56,14 @@ describe('ResearchDomain', () => {
   });
 
   it('should return false when calling isValid if the name field is missing', async () => {
-    domain.name = null;
+    domain.name = null as unknown as string;
     expect(await domain.isValid()).toBe(false);
     expect(Object.keys(domain.errors).length).toBe(1);
     expect(domain.errors['name']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the uri field is missing', async () => {
-    domain.uri = null;
+    domain.uri = null as unknown as string;
     expect(await domain.isValid()).toBe(false);
     expect(Object.keys(domain.errors).length).toBe(1);
     expect(domain.errors['uri']).toBeTruthy();
@@ -78,7 +79,7 @@ describe('ResearchDomain', () => {
   it('should return false when specifying a parent research domain that is the same id', async () => {
     const id = casual.integer(1, 9999)
     domain.id = id;
-    domain.parentResearchDomain = { id };
+    domain.parentResearchDomain = { id } as InstanceType<typeof ResearchDomain>;
     expect(await domain.isValid()).toBe(false);
     expect(Object.keys(domain.errors).length).toBe(1);
     expect(domain.errors['parentResearchDomain']).toBeTruthy();
@@ -86,7 +87,7 @@ describe('ResearchDomain', () => {
 
   it('should return false when specifying a parent research domain that has a null id', async () => {
     domain.id = casual.integer(1, 9999);
-    domain.parentResearchDomain = { name: casual.sentence };
+    domain.parentResearchDomain = { name: casual.sentence } as InstanceType<typeof ResearchDomain>;
     expect(await domain.isValid()).toBe(false);
     expect(Object.keys(domain.errors).length).toBe(1);
     expect(domain.errors['parentResearchDomain']).toBeTruthy();
@@ -96,10 +97,10 @@ describe('ResearchDomain', () => {
 describe('findBy Queries', () => {
   const originalQuery = ResearchDomain.query;
 
-  let localQuery;
-  let localPaginationQuery
-  let context;
-  let domain;
+  let localQuery: jest.Mock<() => Promise<unknown[]>>;
+  let localPaginationQuery: jest.Mock<() => Promise<unknown[]>>;
+  let context: MyContext;
+  let domain: InstanceType<typeof ResearchDomain>;
 
   beforeEach(async () => {
     localQuery = jest.fn();
@@ -114,8 +115,6 @@ describe('findBy Queries', () => {
       name: casual.company_name,
       uri: casual.url,
       description: casual.sentences(3),
-      researchDomainIds: [casual.integer(1, 99)],
-      keywords: [casual.word, casual.word],
     });
   });
 
@@ -278,8 +277,8 @@ describe('findBy Queries', () => {
 });
 
 describe('update', () => {
-  let updateQuery;
-  let domain;
+  let updateQuery: jest.Mock<() => Promise<InstanceType<typeof ResearchDomain>>>;
+  let domain: InstanceType<typeof ResearchDomain>;
 
   beforeEach(() => {
     updateQuery = jest.fn();
@@ -290,8 +289,6 @@ describe('update', () => {
       name: casual.company_name,
       uri: casual.url,
       description: casual.sentences(3),
-      researchDomainIds: [casual.integer(1, 99)],
-      keywords: [casual.word, casual.word],
     })
   });
 
@@ -300,7 +297,7 @@ describe('update', () => {
     (domain.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    const result = await domain.update(context);
+    const result = (await domain.update(context))!;
     expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
@@ -310,8 +307,8 @@ describe('update', () => {
     (domain.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
 
-    domain.id = null;
-    const result = await domain.update(context);
+    domain.id = null as unknown as number;
+    const result = (await domain.update(context))!;
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
   });
@@ -327,7 +324,7 @@ describe('update', () => {
     (ResearchDomain.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(domain);
 
-    const result = await domain.update(context);
+    const result = (await domain.update(context))!;
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
@@ -337,8 +334,8 @@ describe('update', () => {
 
 describe('create', () => {
   const originalInsert = ResearchDomain.insert;
-  let insertQuery;
-  let domain;
+  let insertQuery: jest.Mock;
+  let domain: InstanceType<typeof ResearchDomain>;
 
   beforeEach(() => {
     insertQuery = jest.fn();
@@ -348,8 +345,6 @@ describe('create', () => {
       name: casual.company_name,
       uri: casual.url,
       description: casual.sentences(3),
-      researchDomainIds: [casual.integer(1, 99)],
-      keywords: [casual.word, casual.word],
     });
   });
 
@@ -362,14 +357,14 @@ describe('create', () => {
     (domain.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(false);
 
-    const result = await domain.create(context);
+    const result = (await domain.create(context))!;
     expect(result.errors).toEqual({});
     expect(localValidator).toHaveBeenCalledTimes(1);
   });
 
   it('returns the ResearchDomain with errors if it is invalid', async () => {
-    domain.name = undefined;
-    const response = await domain.create(context);
+    domain.name = undefined as unknown as string;
+    const response = (await domain.create(context))!;
     expect(response.errors['name']).toBe('Name can\'t be blank');
   });
 
@@ -378,7 +373,7 @@ describe('create', () => {
     (ResearchDomain.findByURI as jest.Mock) = mockFindBy;
     mockFindBy.mockResolvedValueOnce(domain);
 
-    const result = await domain.create(context);
+    const result = (await domain.create(context))!;
     expect(mockFindBy).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
@@ -397,7 +392,7 @@ describe('create', () => {
     (ResearchDomain.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(domain);
 
-    const result = await domain.create(context);
+    const result = (await domain.create(context))!;
     expect(mockFindbyURI).toHaveBeenCalledTimes(1);
     expect(mockFindByName).toHaveBeenCalledTimes(1);
     expect(mockFindById).toHaveBeenCalledTimes(1);
@@ -408,7 +403,7 @@ describe('create', () => {
 });
 
 describe('delete', () => {
-  let domain;
+  let domain: InstanceType<typeof ResearchDomain>;
 
   beforeEach(() => {
     domain = new ResearchDomain({
@@ -416,13 +411,11 @@ describe('delete', () => {
       name: casual.company_name,
       uri: casual.url,
       description: casual.sentences(3),
-      researchDomainIds: [casual.integer(1, 99)],
-      keywords: [casual.word, casual.word],
     });
   })
 
   it('returns null if the ResearchDomain has no id', async () => {
-    domain.id = null;
+    domain.id = null as unknown as number;
     expect(await domain.delete(context)).toBe(null);
   });
 
@@ -437,13 +430,13 @@ describe('delete', () => {
   it('returns the ResearchDomain if it was able to delete the record', async () => {
     const deleteQuery = jest.fn<() => Promise<boolean>>();
     (ResearchDomain.delete as jest.Mock) = deleteQuery;
-    deleteQuery.mockResolvedValueOnce(domain);
+    deleteQuery.mockResolvedValueOnce(true);
 
     const mockFindById = jest.fn<() => Promise<InstanceType<typeof ResearchDomain> | null>>();
     (ResearchDomain.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(domain);
 
-    const result = await domain.delete(context);
+    const result = (await domain.delete(context))!;
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result.errors).toEqual({});
     expect(result).toBeInstanceOf(ResearchDomain);
@@ -451,8 +444,8 @@ describe('delete', () => {
 });
 
 describe('addToRepository', () => {
-  let context;
-  let mockDomain;
+  let context: MyContext;
+  let mockDomain: InstanceType<typeof ResearchDomain>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -461,8 +454,8 @@ describe('addToRepository', () => {
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
-      label: casual.word,
-      url: casual.url
+      name: casual.word,
+      uri: casual.url
     });
   });
 
@@ -472,20 +465,20 @@ describe('addToRepository', () => {
 
   it('associates the ResearchDomain to the specified Repository', async () => {
     const repositoryId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce([mockDomain]);
     const result = await mockDomain.addToRepository(context, repositoryId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     let expectedSql = 'INSERT INTO repositoryResearchDomains (researchDomainId, repositoryId, createdById,';
     expectedSql += 'modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token.id.toString();
-    const vals = [mockDomain.id.toString(), repositoryId.toString(), userId, userId]
+    const vals = [mockDomain.id!.toString(), repositoryId.toString(), userId, userId]
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.addToRepository')
     expect(result).toBe(true);
   });
 
   it('returns null if the domain cannot be associated with the Repository', async () => {
     const repositoryId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null as unknown as unknown[]);
     const result = await mockDomain.addToRepository(context, repositoryId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(result).toBe(false);
@@ -493,8 +486,8 @@ describe('addToRepository', () => {
 });
 
 describe('addToMetadataStandard', () => {
-  let context;
-  let mockDomain;
+  let context: MyContext;
+  let mockDomain: InstanceType<typeof ResearchDomain>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -503,8 +496,8 @@ describe('addToMetadataStandard', () => {
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
-      label: casual.word,
-      url: casual.url
+      name: casual.word,
+      uri: casual.url
     });
   });
 
@@ -514,20 +507,20 @@ describe('addToMetadataStandard', () => {
 
   it('associates the ResearchDomain to the specified MetadataStandard', async () => {
     const standardId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce([mockDomain]);
     const result = await mockDomain.addToMetadataStandard(context, standardId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     let expectedSql = 'INSERT INTO metadataStandardResearchDomains (researchDomainId, metadataStandardId, '
     expectedSql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token.id.toString();
-    const vals = [mockDomain.id.toString(), standardId.toString(), userId, userId]
+    const vals = [mockDomain.id!.toString(), standardId.toString(), userId, userId]
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.addToMetadataStandard');
     expect(result).toBe(true);
   });
 
   it('returns null if the domain cannot be associated with the MetadataStandard', async () => {
     const standardId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null as unknown as unknown[]);
     const result = await mockDomain.addToMetadataStandard(context, standardId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(result).toBe(false);
@@ -535,8 +528,8 @@ describe('addToMetadataStandard', () => {
 });
 
 describe('removeFromRepository', () => {
-  let context;
-  let mockDomain;
+  let context: MyContext;
+  let mockDomain: InstanceType<typeof ResearchDomain>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -545,8 +538,8 @@ describe('removeFromRepository', () => {
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
-      label: casual.word,
-      url: casual.url
+      name: casual.word,
+      uri: casual.url
     });
   });
 
@@ -556,18 +549,18 @@ describe('removeFromRepository', () => {
 
   it('removes the ResearchDomain association with the specified Repository', async () => {
     const repositoryId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce([mockDomain]);
     const result = await mockDomain.removeFromRepository(context, repositoryId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     const expectedSql = 'DELETE FROM repositoryResearchDomains WHERE researchDomainId = ? AND repositoryId = ?';
-    const vals = [mockDomain.id.toString(), repositoryId.toString()]
+    const vals = [mockDomain.id!.toString(), repositoryId.toString()]
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.removeFromRepository');
     expect(result).toBe(true);
   });
 
   it('returns null if the domain cannot be removed from the Repository', async () => {
     const repositoryId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null as unknown as unknown[]);
     const result = await mockDomain.removeFromRepository(context, repositoryId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(result).toBe(false);
@@ -575,8 +568,8 @@ describe('removeFromRepository', () => {
 });
 
 describe('removeFromMetadataStandard', () => {
-  let context;
-  let mockDomain;
+  let context: MyContext;
+  let mockDomain: InstanceType<typeof ResearchDomain>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -585,8 +578,8 @@ describe('removeFromMetadataStandard', () => {
 
     mockDomain = new ResearchDomain({
       id: casual.integer(1, 99),
-      label: casual.word,
-      url: casual.url
+      name: casual.word,
+      uri: casual.url
     });
   });
 
@@ -596,18 +589,18 @@ describe('removeFromMetadataStandard', () => {
 
   it('removes the ResearchDomain association from the specified MetadataStandard', async () => {
     const standardId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(mockDomain);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce([mockDomain]);
     const result = await mockDomain.removeFromMetadataStandard(context, standardId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     const expectedSql = 'DELETE FROM metadataStandardResearchDomains WHERE researchDomainId = ? AND metadataStandardId = ?';
-    const vals = [mockDomain.id.toString(), standardId.toString()]
+    const vals = [mockDomain.id!.toString(), standardId.toString()]
     expect(querySpy).toHaveBeenLastCalledWith(context, expectedSql, vals, 'ResearchDomain.removeFromMetadataStandard')
     expect(result).toBe(true);
   });
 
   it('returns null if the domain cannot be removed from the MetadataStandard', async () => {
     const standardId = casual.integer(1, 999);
-    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null);
+    const querySpy = jest.spyOn(ResearchDomain, 'query').mockResolvedValueOnce(null as unknown as unknown[]);
     const result = await mockDomain.removeFromMetadataStandard(context, standardId);
     expect(querySpy).toHaveBeenCalledTimes(1);
     expect(result).toBe(false);

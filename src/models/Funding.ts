@@ -7,6 +7,21 @@ export enum ProjectFundingStatus {
   DENIED = 'DENIED', // The project did not receive the grant funding
 }
 
+interface ProjectFundingOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  projectId: number;
+  affiliationId: string;
+  status?: ProjectFundingStatus;
+  funderProjectNumber?: string;
+  grantId?: string;
+  funderOpportunityNumber?: string;
+}
+
 export class ProjectFunding extends MySqlModel {
   public projectId: number;
   public affiliationId: string;
@@ -17,7 +32,7 @@ export class ProjectFunding extends MySqlModel {
 
   private static tableName = 'projectFundings';
 
-  constructor(options) {
+  constructor(options: ProjectFundingOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
@@ -41,7 +56,7 @@ export class ProjectFunding extends MySqlModel {
   }
 
   //Create a new ProjectFunding
-  async create(context: MyContext, projectId: number): Promise<ProjectFunding> {
+  async create(context: MyContext, projectId: number): Promise<ProjectFunding | null> {
     const reference = 'ProjectFunding.create';
 
     // First make sure the record is valid
@@ -59,8 +74,10 @@ export class ProjectFunding extends MySqlModel {
       } else {
         // Save the record and then fetch it
         const newId = await ProjectFunding.insert(context, ProjectFunding.tableName, this, reference);
-        const response = await ProjectFunding.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await ProjectFunding.findById(reference, context, newId);
+        }
+        this.addError('general', 'ProjectFunding was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -68,7 +85,7 @@ export class ProjectFunding extends MySqlModel {
   }
 
   //Update an existing ProjectFunding
-  async update(context: MyContext, noTouch = false): Promise<ProjectFunding> {
+  async update(context: MyContext, noTouch = false): Promise<ProjectFunding | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -83,7 +100,7 @@ export class ProjectFunding extends MySqlModel {
   }
 
   //Delete the ProjectFunding
-  async delete(context: MyContext): Promise<ProjectFunding> {
+  async delete(context: MyContext): Promise<ProjectFunding | null> {
     if (this.id) {
       const ref = 'ProjectFunding.delete';
       const deleted = await ProjectFunding.findById(ref, context, this.id);
@@ -118,7 +135,7 @@ export class ProjectFunding extends MySqlModel {
     context: MyContext,
     projectId: number,
     affiliationId: string,
-  ): Promise<ProjectFunding> {
+  ): Promise<ProjectFunding | null> {
     const sql = `SELECT * FROM ${ProjectFunding.tableName} WHERE projectId = ? AND affiliationId = ?`;
     const results = await ProjectFunding.query(context, sql, [projectId?.toString(), affiliationId], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectFunding(results[0]) : null;
@@ -134,11 +151,22 @@ export class ProjectFunding extends MySqlModel {
   }
 
   // Fetch a project funding by its id
-  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<ProjectFunding> {
+  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<ProjectFunding | null> {
     const sql = `SELECT * FROM ${ProjectFunding.tableName} WHERE id = ?`;
     const results = await ProjectFunding.query(context, sql, [projectFundingId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectFunding(results[0]) : null;
   }
+}
+
+interface PlanFundingOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  planId: number;
+  projectFundingId: number;
 }
 
 // A funding for the plan
@@ -148,7 +176,7 @@ export class PlanFunding extends MySqlModel {
 
   private static tableName = 'planFundings';
 
-  constructor(options) {
+  constructor(options: PlanFundingOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.planId = options.planId;
@@ -166,7 +194,7 @@ export class PlanFunding extends MySqlModel {
   }
 
   //Create a new PlanFunding
-  async create(context: MyContext): Promise<PlanFunding> {
+  async create(context: MyContext): Promise<PlanFunding | null> {
     const reference = 'PlanFunding.create';
 
     // First make sure the record is valid
@@ -179,8 +207,10 @@ export class PlanFunding extends MySqlModel {
       } else {
         // Save the record and then fetch it
         const newId = await PlanFunding.insert(context, PlanFunding.tableName, this, reference);
-        const response = await PlanFunding.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await PlanFunding.findById(reference, context, newId);
+        }
+        this.addError('general', 'PlanFunding was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -188,7 +218,7 @@ export class PlanFunding extends MySqlModel {
   }
 
   //Update an existing PlanFunding
-  async update(context: MyContext, noTouch = false): Promise<PlanFunding> {
+  async update(context: MyContext, noTouch = false): Promise<PlanFunding | null> {
     if (await this.isValid()) {
       if (this.id) {
         await PlanFunding.update(context, PlanFunding.tableName, this, 'PlanFunding.update', [], noTouch);
@@ -201,7 +231,7 @@ export class PlanFunding extends MySqlModel {
   }
 
   //Delete the PlanFunding
-  async delete(context: MyContext): Promise<PlanFunding> {
+  async delete(context: MyContext): Promise<PlanFunding | null> {
     if (this.id) {
       const ref = 'PlanFunding.delete';
       const deleted = await PlanFunding.findById(ref, context, this.id);
@@ -217,7 +247,7 @@ export class PlanFunding extends MySqlModel {
   }
 
   // Find the project funding by its id
-  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<PlanFunding> {
+  static async findById(reference: string, context: MyContext, projectFundingId: number): Promise<PlanFunding | null> {
     const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`;
     const results = await PlanFunding.query(context, sql, [projectFundingId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new PlanFunding(results[0]) : null;
@@ -229,7 +259,7 @@ export class PlanFunding extends MySqlModel {
     context: MyContext,
     planId: number,
     projectFundingId: number
-  ): Promise<PlanFunding> {
+  ): Promise<PlanFunding | null> {
     const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? AND projectFundingId = ?`;
     const vals = [planId?.toString(), projectFundingId?.toString()];
     const results = await PlanFunding.query(context, sql, vals, reference);

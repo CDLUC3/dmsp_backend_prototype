@@ -4,6 +4,23 @@ import { capitalizeFirstLetter, formatORCID, validateEmail } from "../utils/help
 import { MemberRole } from "./MemberRole.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface ProjectMemberOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  projectId: number;
+  affiliationId?: string;
+  givenName?: string;
+  surName?: string;
+  orcid?: string;
+  email?: string;
+  isPrimaryContact?: boolean;
+  memberRoles?: MemberRole[];
+}
+
 export class ProjectMember extends MySqlModel {
   public projectId: number;
   public affiliationId?: string;
@@ -16,7 +33,7 @@ export class ProjectMember extends MySqlModel {
 
   public static tableName = 'projectMembers';
 
-  constructor(options) {
+  constructor(options: ProjectMemberOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
@@ -33,9 +50,9 @@ export class ProjectMember extends MySqlModel {
   // Determine whether the 2 ProjectMembers are the same based on their id, orcid, email or name
   static areEqual(memberA: ProjectMember, memberB: ProjectMember): boolean {
     return memberA.id === memberB.id
-      || (memberA.orcid && memberB.orcid && memberA.orcid.toLowerCase().trim() === memberB.orcid.toLowerCase().trim())
-      || (memberA.email && memberB.email && memberA.email.toLowerCase().trim() === memberB.email.toLowerCase().trim())
-      || (
+      || !!(memberA.orcid && memberB.orcid && memberA.orcid.toLowerCase().trim() === memberB.orcid.toLowerCase().trim())
+      || !!(memberA.email && memberB.email && memberA.email.toLowerCase().trim() === memberB.email.toLowerCase().trim())
+      || !!(
         memberA.givenName && memberB.givenName && memberA.givenName.toLowerCase().trim() === memberB.givenName.toLowerCase().trim()
         && memberA.surName && memberB.surName && memberA.surName.toLowerCase().trim() === memberB.surName.toLowerCase().trim()
       );
@@ -44,13 +61,14 @@ export class ProjectMember extends MySqlModel {
   // Ensure data integrity
   async prepForSave(context: MyContext, reference: string): Promise<void> {
     this.email = this.email?.trim()?.replace('%40', '@');
-    this.givenName = capitalizeFirstLetter(this.givenName);
-    this.surName = capitalizeFirstLetter(this.surName);
-    this.orcid = formatORCID(this.orcid);
+    this.givenName = this.givenName ? capitalizeFirstLetter(this.givenName) : this.givenName;
+    this.surName = this.surName ? capitalizeFirstLetter(this.surName) : this.surName;
+    this.orcid = this.orcid ? (formatORCID(this.orcid) ?? undefined) : this.orcid;
 
     // Ensure that memberRoles is always an array
     if (!Array.isArray(this.memberRoles)) {
-      this.memberRoles = [await MemberRole.defaultRole(context, reference)]
+      const defaultRole = await MemberRole.defaultRole(context, reference);
+      this.memberRoles = defaultRole ? [defaultRole] : [];
     }
   }
 
@@ -67,7 +85,7 @@ export class ProjectMember extends MySqlModel {
       try {
         validateOrcid(this.orcid);
       } catch (err) {
-        this.addError('orcid', err.message);
+        this.addError('orcid', err instanceof Error ? err.message : String(err));
       }
     }
     if (this.email && this.email.trim().length > 0 && !validateEmail(this.email)) {
@@ -78,15 +96,15 @@ export class ProjectMember extends MySqlModel {
   }
 
   //Create a new ProjectMember
-  async create(context: MyContext, projectId: number): Promise<ProjectMember> {
+  async create(context: MyContext, projectId: number): Promise<ProjectMember | null> {
     const reference = 'ProjectMember.create';
 
     // First make sure the record is valid
     if (await this.isValid()) {
-      let current: ProjectMember;
+      let current: ProjectMember | null = null;
 
       // Then try to find an existing entry for each of the identifiers
-      const orcid = formatORCID(this.orcid);
+      const orcid = this.orcid ? formatORCID(this.orcid) : null;
       if (orcid) {
         current = await ProjectMember.findByProjectAndORCID(reference, context, projectId, orcid);
       }
@@ -119,8 +137,10 @@ export class ProjectMember extends MySqlModel {
           ['memberRoles']
         );
 
-        const response = await ProjectMember.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await ProjectMember.findById(reference, context, newId);
+        }
+        this.addError('general', 'ProjectMember was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -128,7 +148,7 @@ export class ProjectMember extends MySqlModel {
   }
 
   //Update an existing ProjectMember
-  async update(context: MyContext, noTouch = false): Promise<ProjectMember> {
+  async update(context: MyContext, noTouch = false): Promise<ProjectMember | null> {
     const reference = 'ProjectMember.update';
     const id = this.id;
 
@@ -153,7 +173,7 @@ export class ProjectMember extends MySqlModel {
   }
 
   //Delete ProjectMember
-  async delete(context: MyContext): Promise<ProjectMember> {
+  async delete(context: MyContext): Promise<ProjectMember | null> {
     if (this.id) {
       const reference = 'ProjectMember.delete';
 
@@ -181,7 +201,9 @@ export class ProjectMember extends MySqlModel {
 
       // Delete all planMember records associated with this projectMember
       for (const planMember of planMembers) {
-        await PlanMember.delete(context, PlanMember.tableName, planMember.id, reference);
+        if (planMember.id) {
+          await PlanMember.delete(context, PlanMember.tableName, planMember.id, reference);
+        }
       }
 
       // Delete the projectMember itself
@@ -211,7 +233,7 @@ export class ProjectMember extends MySqlModel {
   }
 
   // Fetch a member by its id
-  static async findById(reference: string, context: MyContext, projectMemberId: number): Promise<ProjectMember> {
+  static async findById(reference: string, context: MyContext, projectMemberId: number): Promise<ProjectMember | null> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE id = ?`;
     const results = await ProjectMember.query(context, sql, [projectMemberId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
@@ -223,7 +245,7 @@ export class ProjectMember extends MySqlModel {
     context: MyContext,
     projectId: number,
     email: string
-  ): Promise<ProjectMember> {
+  ): Promise<ProjectMember | null> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE projectId = ? AND email = ?`;
     const results = await ProjectMember.query(context, sql, [projectId?.toString(), email], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
@@ -235,7 +257,7 @@ export class ProjectMember extends MySqlModel {
     context: MyContext,
     projectId: number,
     orcid: string
-  ): Promise<ProjectMember> {
+  ): Promise<ProjectMember | null> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE projectId = ? AND orcid = ?`;
     const results = await ProjectMember.query(context, sql, [projectId?.toString(), orcid], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
@@ -246,11 +268,11 @@ export class ProjectMember extends MySqlModel {
     reference: string,
     context: MyContext,
     projectId: number,
-    givenName: string,
-    surName: string
-  ): Promise<ProjectMember> {
+    givenName: string | undefined,
+    surName: string | undefined
+  ): Promise<ProjectMember | null> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE projectId = ? AND LOWER(givenName) = ? AND LOWER(surName) = ?`;
-    const vals = [projectId?.toString(), givenName?.trim()?.toLowerCase(), surName?.trim()?.toLowerCase()];
+    const vals = [projectId?.toString() ?? '', givenName?.trim()?.toLowerCase() ?? '', surName?.trim()?.toLowerCase() ?? ''];
     const results = await ProjectMember.query(context, sql, vals, reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
   }
@@ -264,7 +286,7 @@ export class ProjectMember extends MySqlModel {
     surName: string,
     orcid: string,
     email: string
-  ): Promise<ProjectMember> {
+  ): Promise<ProjectMember | null> {
     let sql = `SELECT * FROM ${ProjectMember.tableName}`;
     sql += ' WHERE projectId = ? AND ((LOWER(givenName) = ? AND LOWER(surName) = ?) OR (orcid = ?) OR (email = ?))';
     sql += ' ORDER BY orcid DESC, email DESC, surName, givenName';
@@ -275,11 +297,24 @@ export class ProjectMember extends MySqlModel {
   }
 
   // Get the primary contact for the specified project
-  static async findPrimaryContact(reference: string, context: MyContext, projectId: number): Promise<ProjectMember> {
+  static async findPrimaryContact(reference: string, context: MyContext, projectId: number): Promise<ProjectMember | null> {
     const sql = `SELECT * FROM ${ProjectMember.tableName} WHERE projectId = ? AND isPrimaryContact = 1`;
     const results = await ProjectMember.query(context, sql, [projectId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectMember(results[0]) : null;
   }
+}
+
+interface PlanMemberOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  planId: number;
+  projectMemberId: number;
+  isPrimaryContact?: boolean;
+  memberRoleIds?: number[];
 }
 
 // Represents members of a research project associated with a DMP
@@ -291,7 +326,7 @@ export class PlanMember extends MySqlModel {
 
   public static tableName = 'planMembers';
 
-  constructor(options) {
+  constructor(options: PlanMemberOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.planId = options.planId;
@@ -314,7 +349,7 @@ export class PlanMember extends MySqlModel {
   }
 
   //Create a new PlanMember
-  async create(context: MyContext): Promise<PlanMember> {
+  async create(context: MyContext): Promise<PlanMember | null> {
     const reference = 'PlanMember.create';
 
     // First make sure the record is valid
@@ -334,8 +369,10 @@ export class PlanMember extends MySqlModel {
           ['memberRoleIds']
         );
 
-        const response = await PlanMember.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await PlanMember.findById(reference, context, newId);
+        }
+        this.addError('general', 'PlanMember was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -343,7 +380,7 @@ export class PlanMember extends MySqlModel {
   }
 
   //Update an existing plan member
-  async update(context: MyContext, noTouch = false): Promise<PlanMember> {
+  async update(context: MyContext, noTouch = false): Promise<PlanMember | null> {
     if (await this.isValid()) {
       if (this.id) {
         await PlanMember.update(
@@ -363,7 +400,7 @@ export class PlanMember extends MySqlModel {
   }
 
   //Delete PlanMember
-  async delete(context: MyContext): Promise<PlanMember> {
+  async delete(context: MyContext): Promise<PlanMember | null> {
     if (this.id) {
       const reference = 'PlanMember.delete';
 
@@ -392,7 +429,7 @@ export class PlanMember extends MySqlModel {
   }
 
   // Find the project member by its id
-  static async findById(reference: string, context: MyContext, id: number): Promise<PlanMember> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<PlanMember | null> {
     const sql = `SELECT * FROM ${this.tableName} WHERE id = ?`;
     const results = await PlanMember.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new PlanMember(results[0]) : null;
@@ -404,7 +441,7 @@ export class PlanMember extends MySqlModel {
     context: MyContext,
     planId: number,
     projectMemberId: number
-  ): Promise<PlanMember> {
+  ): Promise<PlanMember | null> {
     const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? AND projectMemberId = ?`;
     const results = await PlanMember.query(context, sql, [planId?.toString(), projectMemberId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new PlanMember(results[0]) : null;
@@ -439,7 +476,7 @@ export class PlanMember extends MySqlModel {
   }
 
   // Get the primary contact for the specified plan
-  static async findPrimaryContact(reference: string, context: MyContext, planId: number): Promise<PlanMember> {
+  static async findPrimaryContact(reference: string, context: MyContext, planId: number): Promise<PlanMember | null> {
     const sql = `SELECT * FROM ${this.tableName} WHERE planId = ? AND isPrimaryContact = 1`;
     const results = await PlanMember.query(context, sql, [planId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new PlanMember(results[0]) : null;

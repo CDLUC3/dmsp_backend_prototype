@@ -2,6 +2,18 @@ import { MyContext } from "../context.js";
 import { MySqlModel } from "./MySqlModel.js";
 import { QuestionConditionCondition } from "./QuestionCondition.js";
 
+interface VersionedQuestionConditionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  versionedQuestionConditionGroupId: number;
+  conditionType: QuestionConditionCondition;
+  conditionMatch?: string;
+}
+
 export class VersionedQuestionCondition extends MySqlModel {
   public versionedQuestionConditionGroupId: number;
   public conditionType: QuestionConditionCondition;
@@ -9,7 +21,7 @@ export class VersionedQuestionCondition extends MySqlModel {
 
   private tableName = 'versionedQuestionConditions';
 
-  constructor(options) {
+  constructor(options: VersionedQuestionConditionOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.versionedQuestionConditionGroupId = options.versionedQuestionConditionGroupId;
@@ -25,7 +37,7 @@ export class VersionedQuestionCondition extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
 
-  async create(context: MyContext): Promise<VersionedQuestionCondition> {
+  async create(context: MyContext): Promise<VersionedQuestionCondition | null> {
     if (await this.isValid()) {
       const newId = await VersionedQuestionCondition.insert(
         context,
@@ -33,12 +45,14 @@ export class VersionedQuestionCondition extends MySqlModel {
         this,
         'VersionedQuestionCondition.create'
       );
-      return await VersionedQuestionCondition.findById('VersionedQuestion.create', context, newId);
+      if (newId) {
+        return await VersionedQuestionCondition.findById('VersionedQuestion.create', context, newId);
+      }
     }
     return new VersionedQuestionCondition(this);
   }
 
-  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedQuestionCondition> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedQuestionCondition | null> {
     const sql = 'SELECT * FROM versionedQuestionConditions WHERE id = ?';
     const results = await VersionedQuestionCondition.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedQuestionCondition(results[0]) : null;

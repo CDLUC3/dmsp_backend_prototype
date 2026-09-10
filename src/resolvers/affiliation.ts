@@ -1,4 +1,5 @@
 import {
+  Affiliation as AffiliationGQL,
   AffiliationInput,
   AffiliationLinkInput,
   AffiliationLogoUpload,
@@ -48,6 +49,39 @@ import {
 } from "../services/affiliationService.js";
 import { AffiliationLink } from "../models/AffiliationLink.js";
 import { AffiliationEmailDomain } from "../models/AffiliationEmailDomain.js";
+
+// Build a model Affiliation from an AffiliationInput. GraphQL input fields are typed
+// `InputMaybe<T>` (`T | null | undefined`) while the model constructor wants plain
+// `T | undefined` (it rejects `null`), so each nullable field is translated with `?? undefined`.
+const buildAffiliationFromInput = (input: AffiliationInput): Affiliation => {
+  return new Affiliation({
+    id: input.id ?? undefined,
+    active: input.active ?? undefined,
+    displayName: input.displayName,
+    displayAbbreviation: input.displayAbbreviation ?? undefined,
+    homepage: input.homepage ?? undefined,
+    displayDomain: input.displayDomain ?? undefined,
+    funder: input.funder ?? undefined,
+    fundrefId: input.fundrefId ?? undefined,
+    // The GraphQL AffiliationType is a separate (structurally identical) type from the
+    // model's own AffiliationType enum, so it needs to be bridged here.
+    types: input.types ? (input.types as unknown as AffiliationType[]) : undefined,
+    managed: input.managed ?? undefined,
+    logoName: input.logoName ?? undefined,
+    contactEmail: input.contactEmail ?? undefined,
+    contactName: input.contactName ?? undefined,
+    ssoEntityId: input.ssoEntityId ?? undefined,
+    feedbackEnabled: input.feedbackEnabled ?? undefined,
+    feedbackMessage: input.feedbackMessage ?? undefined,
+    feedbackEmails: input.feedbackEmails
+      ? input.feedbackEmails.filter((e): e is string => !isNullOrUndefined(e))
+      : undefined,
+    apiTarget: input.apiTarget ?? undefined,
+    name: input.name ?? undefined,
+    acronyms: input.acronyms ?? undefined,
+    aliases: input.aliases ?? undefined,
+  });
+};
 
 export const resolvers: Resolvers = {
   Query: {
@@ -112,22 +146,34 @@ export const resolvers: Resolvers = {
       }
     },
     // Returns the specified Affiliation by id
-    affiliationById: async (_, { affiliationId }, context: MyContext): Promise<Affiliation> => {
+    affiliationById: async (_, { affiliationId }, context: MyContext) => {
       const reference = 'affiliationById resolver';
       try {
-        return await Affiliation.findById(reference, context, affiliationId);
+        const affiliation = await Affiliation.findById(reference, context, affiliationId);
+        if (isNullOrUndefined(affiliation)) {
+          throw NotFoundError();
+        }
+        return affiliation as unknown as AffiliationGQL;
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
     },
 
     // Returns the specified Affiliation by URI
-    affiliationByURI: async (_, { uri }, context: MyContext): Promise<Affiliation> => {
+    affiliationByURI: async (_, { uri }, context: MyContext) => {
       const reference = 'affiliationByURI resolver';
       try {
-        return await Affiliation.findByURI(reference, context, uri);
+        const affiliation = await Affiliation.findByURI(reference, context, uri);
+        if (isNullOrUndefined(affiliation)) {
+          throw NotFoundError();
+        }
+        return affiliation as unknown as AffiliationGQL;
       } catch (err) {
+        if (err instanceof GraphQLError) throw err;
+
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
       }
@@ -165,16 +211,16 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { input }: { input: AffiliationInput },
         context: MyContext
-      ): Promise<Affiliation> => {
+      ) => {
         const reference = 'addAffiliation resolver';
         try {
-          const affiliation = new Affiliation(input);
+          const affiliation = buildAffiliationFromInput(input);
 
           const superAdmin = isSuperAdmin(context.token);
 
           // Set the URI to the rorId if the user is a super admin and they provided one
           if (superAdmin && input.rorId) {
-            const usedRor: Affiliation = await Affiliation.findByURI(reference, context, input.rorId);
+            const usedRor = await Affiliation.findByURI(reference, context, input.rorId);
             if (usedRor) {
               affiliation.addError('rorId', 'This ROR id is already in use by another affiliation.');
             }
@@ -187,9 +233,9 @@ export const resolvers: Resolvers = {
             affiliation.name = input.displayName;
             affiliation.managed = false;
             affiliation.active = true;
-            affiliation.types = null;
-            affiliation.fundrefId = null;
-            affiliation.ssoEntityId = null;
+            affiliation.types = [];
+            affiliation.fundrefId = '';
+            affiliation.ssoEntityId = '';
             // @ts-expect-error transient input-only field used by resolver logic
             affiliation.ssoEmailDomains = [];
           }
@@ -199,23 +245,23 @@ export const resolvers: Resolvers = {
 
             if (created?.id) {
               // If the creation was successful reconcile any AffiliationLinks
-              const links: AffiliationLink[] = input.subHeaderLinks.map((shl: AffiliationLinkInput): AffiliationLink => {
-                return new AffiliationLink(shl);
+              const links: AffiliationLink[] = (input.subHeaderLinks ?? []).map((shl: AffiliationLinkInput): AffiliationLink => {
+                return new AffiliationLink({ ...shl, id: shl.id ?? undefined, text: shl.text ?? undefined, affiliationId: created.uri ?? '' });
               })
               await reconcileAffiliationLinks(context, reference, created, links);
 
               // If the user is a superAdmin, also reconcile any AffiliationEmailDomains
               if (superAdmin) {
-                const domains: AffiliationEmailDomain[] = input.ssoEmailDomains.map((ed: string): AffiliationEmailDomain => {
+                const domains: AffiliationEmailDomain[] = (input.ssoEmailDomains ?? []).map((ed: string): AffiliationEmailDomain => {
                   return new AffiliationEmailDomain({
-                    affiliationId: created.uri,
+                    affiliationId: created.uri ?? '',
                     emailDomain: ed
                   });
                 })
                 await reconcileAffiliationEmailDomains(context, reference, created, domains);
               }
 
-              return created;
+              return created as unknown as AffiliationGQL;
             }
           }
 
@@ -223,7 +269,7 @@ export const resolvers: Resolvers = {
           if (!affiliation.errors['general']) {
             affiliation.addError('general', 'Unable to create Affiliation');
           }
-          return affiliation;
+          return affiliation as unknown as AffiliationGQL;
         } catch (err) {
           if (err instanceof GraphQLError) throw err;
 
@@ -252,10 +298,10 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { input }: { input: AffiliationInput },
         context: MyContext
-      ): Promise<Affiliation> => {
+      ) => {
         const reference = 'updateAffiliation resolver';
         try {
-          const existing: Affiliation = input.id ? await Affiliation.findById(reference, context, input.id) : null;
+          const existing: Affiliation | null = input.id ? await Affiliation.findById(reference, context, input.id) : null;
           // If the record doesn't exist
           if (!existing) {
             throw NotFoundError();
@@ -272,7 +318,7 @@ export const resolvers: Resolvers = {
           }
 
           if (superAdmin || (isAdmin(context.token) && context.token.affiliationId === existing.uri)) {
-            const affiliation = new Affiliation(input);
+            const affiliation = buildAffiliationFromInput(input);
 
             // Since we pass around the URI for affiliations instead of the id we need to set it here
             if (!affiliation.id) {
@@ -301,12 +347,12 @@ export const resolvers: Resolvers = {
               }
             }
 
-            const updated: Affiliation = await affiliation.update(context);
+            const updated = await affiliation.update(context);
             if (updated && !updated.hasErrors()) {
               if (input.subHeaderLinks) {
                 // If the update was successful reconcile any AffiliationLinks
                 const links: AffiliationLink[] = input.subHeaderLinks.map((shl: AffiliationLinkInput): AffiliationLink => {
-                  return new AffiliationLink(shl);
+                  return new AffiliationLink({ ...shl, id: shl.id ?? undefined, text: shl.text ?? undefined, affiliationId: updated.uri ?? '' });
                 })
                 await reconcileAffiliationLinks(context, reference, updated, links);
               }
@@ -315,7 +361,7 @@ export const resolvers: Resolvers = {
                 if (input.ssoEmailDomains) {
                   const domains: AffiliationEmailDomain[] = input.ssoEmailDomains.map((ed: string): AffiliationEmailDomain => {
                     return new AffiliationEmailDomain({
-                      affiliationId: updated.uri,
+                      affiliationId: updated.uri ?? '',
                       emailDomain: ed
                     });
                   })
@@ -324,7 +370,10 @@ export const resolvers: Resolvers = {
               }
             }
 
-            return updated;
+            if (isNullOrUndefined(updated)) {
+              throw NotFoundError();
+            }
+            return updated as unknown as AffiliationGQL;
           }
           throw context?.token ? ForbiddenError() : AuthenticationError();
         } catch (err) {
@@ -354,7 +403,7 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { affiliationId }: { affiliationId: number },
         context: MyContext
-      ): Promise<Affiliation> => {
+      ) => {
         const reference = 'removeAffiliation resolver';
 
         const affiliation = await Affiliation.findById(reference, context, affiliationId);
@@ -375,7 +424,11 @@ export const resolvers: Resolvers = {
         }
 
         // If the affiliation is managed by the DMP Tool then we can delete it
-        return await affiliation.delete(context);
+        const deleted = await affiliation.delete(context);
+        if (isNullOrUndefined(deleted)) {
+          throw NotFoundError();
+        }
+        return deleted as unknown as AffiliationGQL;
       }),
 
     /**
@@ -405,14 +458,18 @@ export const resolvers: Resolvers = {
       ): Promise<AffiliationLogoUpload> => {
         // Make sure the current user's affiliation matches the one specified if they are an ADMIN
         if (context.token.role === UserRole.SUPERADMIN || context.token.affiliationId === affiliationURI) {
-          return await getPresignedURLForAffiliationLogo(context.logger, affiliationURI, fileName, contentType);
+          const presigned = await getPresignedURLForAffiliationLogo(context.logger, affiliationURI, fileName, contentType);
+          if (!presigned) {
+            throw InternalServerError();
+          }
+          return presigned;
         }
         throw ForbiddenError();
       }),
   },
 
   Affiliation: {
-    logoURI: (parent: Affiliation): string => {
+    logoURI: (parent: ResolversParentTypes['Affiliation']): string => {
       return `${CDN_BASE_URL}${parent.logoName}`;
     },
     subHeaderLinks: async (parent: ResolversParentTypes['Affiliation'], _, context: MyContext): Promise<AffiliationLink[]> => {

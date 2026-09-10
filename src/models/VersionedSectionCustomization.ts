@@ -6,6 +6,19 @@ import { isNullOrUndefined } from "../utils/helpers.js";
  * This object represents a versioned snapshot of custom guidance text an
  * organization has added to an existing published template section.
  */
+interface VersionedSectionCustomizationOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  versionedTemplateCustomizationId: number;
+  sectionCustomizationId: number;
+  versionedSectionId: number;
+  guidance?: string;
+}
+
 export class VersionedSectionCustomization extends MySqlModel {
   public versionedTemplateCustomizationId: number;
   public sectionCustomizationId: number;
@@ -14,7 +27,7 @@ export class VersionedSectionCustomization extends MySqlModel {
 
   static tableName = 'versionedSectionCustomizations';
 
-  constructor(options) {
+  constructor(options: VersionedSectionCustomizationOptions) {
     super(options.id, options.created, options.createdById, options.modified,
       options.modifiedById, options.errors);
 
@@ -63,11 +76,11 @@ export class VersionedSectionCustomization extends MySqlModel {
    * @param context The Apollo context.
    * @returns The newly created versioned section customization.
    */
-  async create(context: MyContext): Promise<VersionedSectionCustomization> {
+  async create(context: MyContext): Promise<VersionedSectionCustomization | undefined> {
     const ref = 'VersionedSectionCustomization.create';
     // Make sure the record is valid
     if (await this.isValid()) {
-      const current: VersionedSectionCustomization =
+      const current: VersionedSectionCustomization | undefined =
         await VersionedSectionCustomization.findByVersionedCustomizationAndVersionedSection(
           ref,
           context,
@@ -81,13 +94,15 @@ export class VersionedSectionCustomization extends MySqlModel {
       } else {
         this.prepForSave();
         // Save the record and then fetch it
-        const newId: number = await VersionedSectionCustomization.insert(
+        const newId = await VersionedSectionCustomization.insert(
           context,
           VersionedSectionCustomization.tableName,
           this,
           ref
         );
-        return await VersionedSectionCustomization.findById(ref, context, newId);
+        if (newId) {
+          return await VersionedSectionCustomization.findById(ref, context, newId);
+        }
       }
     }
     // Otherwise return as-is with all the errors
@@ -101,7 +116,7 @@ export class VersionedSectionCustomization extends MySqlModel {
    * @param noTouch Whether or not the modification timestamp should be updated
    * @returns The updated versioned section customization.
    */
-  async update(context: MyContext, noTouch = false): Promise<VersionedSectionCustomization> {
+  async update(context: MyContext, noTouch = false): Promise<VersionedSectionCustomization | undefined> {
     const ref = 'VersionedSectionCustomization.update';
 
     if (!this.id) {
@@ -133,13 +148,13 @@ export class VersionedSectionCustomization extends MySqlModel {
    * @param context The Apollo context
    * @returns The archived Section customization.
    */
-  async delete(context: MyContext): Promise<VersionedSectionCustomization> {
+  async delete(context: MyContext): Promise<VersionedSectionCustomization | undefined> {
     const ref = 'VersionedSectionCustomization.delete';
     if (!this.id) {
       // Cannot delete it if it hasn't been saved yet!
       this.addError('general', 'Versioned customization has never been saved');
     } else {
-      const original: VersionedSectionCustomization = await VersionedSectionCustomization.findById(
+      const original: VersionedSectionCustomization | undefined = await VersionedSectionCustomization.findById(
         ref,
         context,
         this.id
@@ -174,7 +189,7 @@ export class VersionedSectionCustomization extends MySqlModel {
     reference: string,
     context: MyContext,
     versionedSectionCustomizationId: number
-  ): Promise<VersionedSectionCustomization> {
+  ): Promise<VersionedSectionCustomization | undefined> {
     const results = await VersionedSectionCustomization.query(
       context,
       `SELECT * FROM ${VersionedSectionCustomization.tableName} WHERE id = ?`,
@@ -198,7 +213,7 @@ export class VersionedSectionCustomization extends MySqlModel {
     context: MyContext,
     versionedTemplateCustomizatonId: number,
     versionedSectionId: number
-  ): Promise<VersionedSectionCustomization> {
+  ): Promise<VersionedSectionCustomization | undefined> {
     const results = await VersionedSectionCustomization.query(
       context,
       `SELECT * FROM ${VersionedSectionCustomization.tableName}

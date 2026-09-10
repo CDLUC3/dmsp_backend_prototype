@@ -26,7 +26,7 @@ export const resolvers: Resolvers = {
     },
 
     // returns a member role that matches the specified ID
-    memberRoleById: async (_, { memberRoleId }, context: MyContext): Promise<MemberRole> => {
+    memberRoleById: async (_, { memberRoleId }, context: MyContext): Promise<MemberRole | null> => {
       const reference = 'memberRoleById resolver';
       try {
         return await MemberRole.findById(reference, context, memberRoleId);
@@ -37,7 +37,7 @@ export const resolvers: Resolvers = {
     },
 
     // returns the member role that matches the specified URL
-    memberRoleByURL: async (_, { memberRoleURL }, context: MyContext): Promise<MemberRole> => {
+    memberRoleByURL: async (_, { memberRoleURL }, context: MyContext): Promise<MemberRole | null> => {
       const reference = 'memberRoleByURL resolver';
       try {
         return await MemberRole.findByURL(reference, context, memberRoleURL);
@@ -56,7 +56,9 @@ export const resolvers: Resolvers = {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
           const sql = 'INSERT INTO memberRoles (url, label, description, displayOrder) VALUES (?, ?, ?)';
-          const resp = await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder.toString()]);
+          const resp = await context.dataSources.sqlDataSource.query<{ insertId: number }[]>(
+            context, sql, [url, label, description ?? '', displayOrder.toString()]
+          );
           const created = await MemberRole.findById(reference, context, resp[0].insertId);
 
           if (created?.id) {
@@ -64,7 +66,7 @@ export const resolvers: Resolvers = {
           }
 
           // A null was returned so add a generic error and return it
-          const newRole = new MemberRole({ url, label, description, displayOrder });
+          const newRole = new MemberRole({ uri: url, label, description: description ?? undefined, displayOrder });
           if (!newRole.errors['general']) {
             newRole.addError('general', 'Unable to create MemberRole');
           }
@@ -86,7 +88,7 @@ export const resolvers: Resolvers = {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
           const sql = 'UPDATE memberRoles SET url = ?, label = ?, description = ?, displayOrder = ?) WHERE id = ?';
-          await context.dataSources.sqlDataSource.query(context, sql, [url, label, description, displayOrder.toString(), id.toString()]);
+          await context.dataSources.sqlDataSource.query(context, sql, [url, label, description ?? '', displayOrder.toString(), id.toString()]);
           return await MemberRole.findById(reference, context, id);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -120,10 +122,12 @@ export const resolvers: Resolvers = {
   },
 
   MemberRole: {
-    created: (parent: MemberRole) => {
+    // `parent` is contextually typed as the generated MemberRole (not the model class) here,
+    // which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: MemberRole) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

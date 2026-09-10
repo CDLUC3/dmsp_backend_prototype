@@ -9,7 +9,7 @@ import { ForbiddenError, NotFoundError, AuthenticationError, InternalServerError
 import { isAdmin, isSuperAdmin } from "../services/authService.js";
 import { prepareObjectForLogs } from "../logger.js";
 import { GraphQLError } from "graphql";
-import { normaliseDateTime } from "../utils/helpers.js";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers.js";
 
 // Add a small helper to avoid `any` casts when checking published state
 export const hasPublishedFlag = (obj: unknown): boolean => {
@@ -30,13 +30,19 @@ export const resolvers: Resolvers = {
           throw AuthenticationError();
         }
 
+        // Fall back to the requester's own affiliation when none was specified
+        const resolvedAffiliationId = affiliationId ?? requester.affiliationId;
+        if (!resolvedAffiliationId) {
+          throw new Error("affiliationId is required");
+        }
+
         // Fetch all guidance groups for the affiliation
-        const groups = await GuidanceGroup.findByAffiliationId(reference, context, affiliationId);
+        const groups = await GuidanceGroup.findByAffiliationId(reference, context, resolvedAffiliationId);
 
         // Determine once whether the requester can see ALL groups for this affiliation:
         // - Super-admin can see everything
         // - Admin for the target affiliation can see everything for that affiliation
-        const canSeeAll = isSuperAdmin(requester) || (isAdmin(requester) && requester.affiliationId === affiliationId);
+        const canSeeAll = isSuperAdmin(requester) || (isAdmin(requester) && requester.affiliationId === resolvedAffiliationId);
 
         if (canSeeAll) {
           return groups;
@@ -119,7 +125,7 @@ export const resolvers: Resolvers = {
         const guidanceGroup = new GuidanceGroup({
           affiliationId,
           name,
-          description,
+          description: description ?? undefined,
           bestPractice: bestPractice ?? false,
           optionalSubset: optionalSubset ?? false,
           createdById: requester.id,
@@ -162,10 +168,10 @@ export const resolvers: Resolvers = {
           }
 
           // Update the fields
-          if (name !== undefined) guidanceGroup.name = name;
-          if (description !== undefined) guidanceGroup.description = description;
-          if (bestPractice !== undefined) guidanceGroup.bestPractice = bestPractice;
-          if (optionalSubset !== undefined) guidanceGroup.optionalSubset = optionalSubset;
+          if (!isNullOrUndefined(name)) guidanceGroup.name = name;
+          if (!isNullOrUndefined(description)) guidanceGroup.description = description;
+          if (!isNullOrUndefined(bestPractice)) guidanceGroup.bestPractice = bestPractice;
+          if (!isNullOrUndefined(optionalSubset)) guidanceGroup.optionalSubset = optionalSubset;
 
           guidanceGroup.modifiedById = context.token.id;
 
@@ -251,7 +257,11 @@ export const resolvers: Resolvers = {
           }
 
           // Return the updated guidance group
-          return await GuidanceGroup.findById(reference, context, guidanceGroupId);
+          const reloaded = await GuidanceGroup.findById(reference, context, guidanceGroupId);
+          if (!reloaded) {
+            throw InternalServerError();
+          }
+          return reloaded;
         }
 
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -300,27 +310,35 @@ export const resolvers: Resolvers = {
 
   GuidanceGroup: {
     // Chained resolver to fetch the Guidance items for this GuidanceGroup
-    guidance: async (parent: GuidanceGroup, _, context: MyContext): Promise<Guidance[]> => {
+    guidance: async (parent, _, context: MyContext): Promise<Guidance[]> => {
+      if (isNullOrUndefined(parent.id)) {
+        return [];
+      }
       return await Guidance.findByGuidanceGroupId('Chained GuidanceGroup.guidance', context, parent.id);
     },
-    created: (parent: GuidanceGroup) => {
+    // `parent` is contextually typed as the generated GuidanceGroup (not the model class)
+    // here, which is all `created`/`modified`/`latestPublishedDate` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: GuidanceGroup) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     },
-    latestPublishedDate: (parent: GuidanceGroup) => {
+    latestPublishedDate: (parent) => {
       return normaliseDateTime(parent.latestPublishedDate);
     },
     // Resolver to get the user who last modified this guidance
-    modifiedBy: async (parent: GuidanceGroup, _, context: MyContext): Promise<User | null> => {
+    modifiedBy: async (parent, _, context: MyContext): Promise<User | null> => {
       if (parent?.modifiedById) {
         return await User.findById('GuidanceGroup user resolver', context, parent.modifiedById);
       }
       return null;
     },
     // Get the VersionedGuidanceGroups for this GuidanceGroup
-    versionedGuidanceGroup: async (parent: GuidanceGroup, _, context: MyContext): Promise<VersionedGuidanceGroup[] | null> => {
+    versionedGuidanceGroup: async (parent, _, context: MyContext): Promise<VersionedGuidanceGroup[]> => {
+      if (isNullOrUndefined(parent.id)) {
+        return [];
+      }
       return await VersionedGuidanceGroup.findByGuidanceGroupId('Chained GuidanceGroupversionedGuidanceGroup', context, parent.id);
     },
   }

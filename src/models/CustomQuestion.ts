@@ -32,16 +32,40 @@ export enum PinnedQuestionTypeEnum {
  *     - "STALE" The pinned section has moved position in the latest version.
  *     - "ORPHANED" The pinned section is no longer available in the latest version.
  */
+interface CustomQuestionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  templateCustomizationId: number;
+  // Raw DB rows (and GraphQL inputs) carry these as the enums' string keys/values.
+  sectionType?: keyof typeof PinnedSectionTypeEnum;
+  sectionId: number;
+  pinnedQuestionType?: keyof typeof PinnedQuestionTypeEnum;
+  pinnedQuestionId?: number;
+  migrationStatus?: TemplateCustomizationMigrationStatus;
+  questionText?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  json?: any;
+  requirementText?: string;
+  guidanceText?: string;
+  sampleText?: string;
+  useSampleTextAsDefault?: boolean;
+  required?: boolean;
+}
+
 export class CustomQuestion extends MySqlModel {
   public templateCustomizationId: number;
-  public sectionType: PinnedSectionTypeEnum;
+  public sectionType?: PinnedSectionTypeEnum;
   public sectionId: number;
   public pinnedQuestionType?: PinnedQuestionTypeEnum;
   public pinnedQuestionId?: number;
   public migrationStatus: TemplateCustomizationMigrationStatus;
 
   public questionText: string;
-  public json: string;
+  public json: string = '';
   public requirementText?: string;
   public guidanceText?: string;
   public sampleText?: string;
@@ -50,7 +74,7 @@ export class CustomQuestion extends MySqlModel {
 
   static tableName = 'customQuestions';
 
-  constructor(options) {
+  constructor(options: CustomQuestionOptions) {
     super(options.id, options.created, options.createdById, options.modified,
       options.modifiedById, options.errors);
 
@@ -65,7 +89,7 @@ export class CustomQuestion extends MySqlModel {
     try {
       this.json = removeNullAndUndefinedFromJSON(options.json ?? DefaultTextAreaQuestion);
     } catch (e) {
-      this.addError('json', e.message);
+      this.addError('json', e instanceof Error ? e.message : String(e));
     }
     this.questionText = options.questionText ?? 'New question';
     this.requirementText = options.requirementText;
@@ -98,16 +122,17 @@ export class CustomQuestion extends MySqlModel {
       // If JSON is not null and the type is in the schema map
       if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
         const parsedJSON = JSON.parse(this.json);
-        if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
+        const questionType = parsedJSON['type'] as keyof typeof QuestionSchemaMap;
+        if (Object.keys(QuestionSchemaMap).includes(questionType)) {
           // Validate the JSON against the Zod schema and if valid, set the questionType
           try {
-            const result = QuestionSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+            const result = QuestionSchemaMap[questionType]?.safeParse(parsedJSON);
             if (result && !result.success) {
               // If there are validation errors, add them to the errors object
               this.addError('json', result.error?.issues?.map(e => `${e.path.join('.')} - ${e.message}`)?.join('; '));
             }
           } catch (e) {
-            this.addError('json', e.message);
+            this.addError('json', e instanceof Error ? e.message : String(e));
           }
         } else {
           // If the type is not in the schema map, add an error
@@ -142,11 +167,11 @@ export class CustomQuestion extends MySqlModel {
    * @param context The Apollo context.
    * @returns The newly created custom question.
    */
-  async create(context: MyContext): Promise<CustomQuestion> {
+  async create(context: MyContext): Promise<CustomQuestion | undefined> {
     const ref = 'CustomQuestion.create';
     // Make sure the record is valid
     if (await this.isValid()) {
-      const current: CustomQuestion = await CustomQuestion.findByCustomizationSectionAndQuestion(
+      const current: CustomQuestion | undefined = await CustomQuestion.findByCustomizationSectionAndQuestion(
         ref,
         context,
         this.templateCustomizationId,
@@ -163,13 +188,16 @@ export class CustomQuestion extends MySqlModel {
         this.prepForSave();
 
         // Save the record and then fetch it
-        const newId: number = await CustomQuestion.insert(
+        const newId = await CustomQuestion.insert(
           context,
           CustomQuestion.tableName,
           this,
           ref
         );
-        return await CustomQuestion.findById(ref, context, newId);
+        if (newId) {
+          return await CustomQuestion.findById(ref, context, newId);
+        }
+        this.addError('general', 'Custom question was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -183,7 +211,7 @@ export class CustomQuestion extends MySqlModel {
    * @param noTouch Whether or not the modification timestamp should be updated
    * @returns The updated custom question.
    */
-  async update(context: MyContext, noTouch = false): Promise<CustomQuestion> {
+  async update(context: MyContext, noTouch = false): Promise<CustomQuestion | undefined> {
     const ref = 'CustomQuestion.update';
 
     if (isNullOrUndefined(this.id)) {
@@ -215,13 +243,13 @@ export class CustomQuestion extends MySqlModel {
    * @param context The Apollo context
    * @returns The archived custom section.
    */
-  async delete(context: MyContext): Promise<CustomQuestion> {
+  async delete(context: MyContext): Promise<CustomQuestion | undefined> {
     const ref = 'CustomQuestion.delete';
     if (!this.id) {
       // Cannot delete it if it hasn't been saved yet!
       this.addError('general', 'Custom question has never been saved');
     } else {
-      const original: CustomQuestion = await CustomQuestion.findById(
+      const original: CustomQuestion | undefined = await CustomQuestion.findById(
         ref,
         context,
         this.id
@@ -255,7 +283,7 @@ export class CustomQuestion extends MySqlModel {
     reference: string,
     context: MyContext,
     customQuestionId: number
-  ): Promise<CustomQuestion> {
+  ): Promise<CustomQuestion | undefined> {
     const results = await CustomQuestion.query(
       context,
       `SELECT * FROM ${CustomQuestion.tableName} WHERE id = ?`,
@@ -303,11 +331,11 @@ export class CustomQuestion extends MySqlModel {
     reference: string,
     context: MyContext,
     templateCustomizatonId: number,
-    sectionType: PinnedSectionTypeEnum,
+    sectionType: PinnedSectionTypeEnum | undefined,
     sectionId: number,
     pinnedQuestionType?: PinnedQuestionTypeEnum,
     pinnedQuestionId?: number
-  ): Promise<CustomQuestion> {
+  ): Promise<CustomQuestion | undefined> {
     const results = await CustomQuestion.query(
       context,
       `SELECT * FROM ${CustomQuestion.tableName}
@@ -315,10 +343,10 @@ export class CustomQuestion extends MySqlModel {
            AND pinnedQuestionType = ? AND pinnedQuestionId = ?`,
       [
         templateCustomizatonId.toString(),
-        sectionType,
+        sectionType ?? '',
         sectionId?.toString(),
-        pinnedQuestionType ? pinnedQuestionType : null,
-        pinnedQuestionId ? pinnedQuestionId?.toString() : null
+        pinnedQuestionType ? pinnedQuestionType : '',
+        pinnedQuestionId ? pinnedQuestionId?.toString() : ''
       ],
       reference
     );
@@ -414,13 +442,16 @@ export class CustomQuestion extends MySqlModel {
   `;
     // <=> is MySQL's NULL-safe equality operator.  It correctly handles the case where pinnedQuestionId is null,
     // since null = null is false in SQL but null <=> null is true.
+    // Cast needed: `query`'s declared values type doesn't include `null`, but its `prepareValue` helper
+    // treats null like undefined (binds SQL NULL), and the NULL-safe comparison above depends on the
+    // literal null being sent rather than an empty string.
     const results = await CustomQuestion.query(context, sql, [
       templateCustomizationId.toString(),
       sectionType,
       sectionId.toString(),
       pinnedQuestionType,
       pinnedQuestionId?.toString() ?? null,
-    ], reference);
+    ] as (string | boolean | Buffer)[], reference);
 
     return Array.isArray(results) && results.length > 0 ? new CustomQuestion(results[0]) : null;
 

@@ -5,13 +5,24 @@ import { MySqlModel } from "./MySqlModel.js";
 // together the conditions (option checks) that apply to a single
 // prior options question. 
 // Belongs to a QuestionDisplayLogic; owns QuestionConditions.
+interface QuestionConditionGroupOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  questionId: number;
+  triggerQuestionId: number;
+}
+
 export class QuestionConditionGroup extends MySqlModel {
   public questionId: number;
   public triggerQuestionId: number;
 
   private tableName = 'questionConditionGroups';
 
-  constructor(options) {
+  constructor(options: QuestionConditionGroupOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.questionId = options.questionId;
@@ -30,7 +41,9 @@ export class QuestionConditionGroup extends MySqlModel {
   async create(context: MyContext): Promise<QuestionConditionGroup> {
     if (await this.isValid()) {
       const newId = await QuestionConditionGroup.insert(context, this.tableName, this, 'QuestionConditionGroup.create');
-      const created = await QuestionConditionGroup.findById('QuestionConditionGroup.create', context, newId);
+      const created = newId
+        ? await QuestionConditionGroup.findById('QuestionConditionGroup.create', context, newId)
+        : null;
       if (created) return new QuestionConditionGroup(created);
     }
     return new QuestionConditionGroup(this);
@@ -50,16 +63,17 @@ export class QuestionConditionGroup extends MySqlModel {
   }
 
   // Deletes cascade to questionConditions via FK.
-  async delete(context: MyContext): Promise<QuestionConditionGroup> {
+  async delete(context: MyContext): Promise<QuestionConditionGroup | null> {
     if (this.id) {
       const deleted = await QuestionConditionGroup.findById('QuestionConditionGroup.delete', context, this.id);
+      if (!deleted) return null;
       const successfullyDeleted = await QuestionConditionGroup.delete(context, this.tableName, this.id, 'QuestionConditionGroup.delete');
       return successfullyDeleted ? new QuestionConditionGroup(deleted) : null;
     }
     return null;
   }
 
-  static async findById(reference: string, context: MyContext, id: number): Promise<QuestionConditionGroup> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<QuestionConditionGroup | null> {
     const sql = 'SELECT * FROM questionConditionGroups WHERE id = ?';
     const results = await QuestionConditionGroup.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new QuestionConditionGroup(results[0]) : null;

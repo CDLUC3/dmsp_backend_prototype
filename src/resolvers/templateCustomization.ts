@@ -13,7 +13,7 @@ import {
   TemplateCustomizationStatus
 } from "../models/TemplateCustomization.js";
 import { getValidatedCustomization } from "../services/templateCustomizationService.js";
-import { NotFoundError } from "../utils/graphQLErrors.js";
+import { InternalServerError, NotFoundError } from "../utils/graphQLErrors.js";
 import { UserRole } from "../models/User.js";
 import { Affiliation } from "../models/Affiliation.js";
 
@@ -42,7 +42,7 @@ export const resolvers: Resolvers = {
       ): Promise<TemplateCustomizationOverview | null> => {
         const reference = 'templateCustomization resolver';
 
-        const customization: TemplateCustomizationOverview = await TemplateCustomizationOverview.generateOverview(
+        const customization = await TemplateCustomizationOverview.generateOverview(
           reference,
           context,
           templateCustomizationId
@@ -81,41 +81,42 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { input }: { input: AddTemplateCustomizationInput },
         context: MyContext
-      ): Promise<TemplateCustomizationOverview | null> => {
+      ): Promise<TemplateCustomizationOverview> => {
         const reference = 'addTemplateCustomization resolver';
         const { versionedTemplateId, status } = input;
 
         // Fetch the versioned funder template
-        const versionedTemplate: VersionedTemplate = await VersionedTemplate.findById(
+        const versionedTemplate = await VersionedTemplate.findById(
           reference,
           context,
           versionedTemplateId
         );
-        if (!versionedTemplate) throw NotFoundError();
+        if (!versionedTemplate || isNullOrUndefined(versionedTemplate.id)) throw NotFoundError();
 
         const customization = new TemplateCustomization({
           affiliationId: context.token.affiliationId,
           templateId: versionedTemplate.templateId,
           currentVersionedTemplateId: versionedTemplate.id,
-          status
+          status: status as unknown as TemplateCustomizationStatus
         });
 
         // Save the new template customization
-        const created: TemplateCustomization = await customization.create(context);
+        const created = await customization.create(context);
 
         // If there were no problems, then generate the overview and return it
-        if (!isNullOrUndefined(created)) {
-          const overview: TemplateCustomizationOverview = await TemplateCustomizationOverview.generateOverview(
+        if (!isNullOrUndefined(created) && !isNullOrUndefined(created.id)) {
+          const overview = await TemplateCustomizationOverview.generateOverview(
             reference,
             context,
             created.id
           );
+          if (isNullOrUndefined(overview)) throw InternalServerError();
 
           // Transfer any errors encountered during the creation to the Overview
           overview.errors = created.errors;
           return overview;
         }
-        return undefined;
+        throw InternalServerError();
       }),
 
     /**
@@ -137,33 +138,36 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { input }: { input: UpdateTemplateCustomizationInput },
         context: MyContext
-      ): Promise<TemplateCustomizationOverview | null> => {
+      ): Promise<TemplateCustomizationOverview> => {
         const reference = 'updateTemplateCustomization resolver';
         const { templateCustomizationId, status } = input;
 
-        const customization: TemplateCustomization = await getValidatedCustomization(
+        const customization = await getValidatedCustomization(
           reference,
           context,
           templateCustomizationId
         );
         if (!customization) throw NotFoundError();
 
-        // Update the customization
-        customization.status = TemplateCustomizationStatus[status];
-        const updated: TemplateCustomization = await customization.update(context);
+        // Update the customization (leave the status unchanged if none was provided)
+        if (!isNullOrUndefined(status)) {
+          customization.status = TemplateCustomizationStatus[status];
+        }
+        const updated = await customization.update(context);
 
-        if (!isNullOrUndefined(updated)) {
-          const overview: TemplateCustomizationOverview = await TemplateCustomizationOverview.generateOverview(
+        if (!isNullOrUndefined(updated) && !isNullOrUndefined(updated.id)) {
+          const overview = await TemplateCustomizationOverview.generateOverview(
             reference,
             context,
             updated.id
           );
+          if (isNullOrUndefined(overview)) throw InternalServerError();
 
           // Transfer any errors encountered during the update to the Overview
           overview.errors = updated.errors;
           return overview;
         }
-        return undefined;
+        throw InternalServerError();
       }),
 
     /**
@@ -188,14 +192,15 @@ export const resolvers: Resolvers = {
       ): Promise<TemplateCustomization> => {
         const reference = 'removeTemplateCustomization resolver';
 
-        const customization: TemplateCustomization = await getValidatedCustomization(
+        const customization = await getValidatedCustomization(
           reference,
           context,
           templateCustomizationId
         );
         if (!customization) throw NotFoundError();
 
-        return await customization.delete(context);
+        const deleted = await customization.delete(context);
+        return deleted ?? customization;
       }),
 
     /**
@@ -217,24 +222,25 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { templateCustomizationId }: { templateCustomizationId: number },
         context: MyContext
-      ): Promise<TemplateCustomizationOverview | null> => {
+      ): Promise<TemplateCustomizationOverview> => {
         const reference = 'publishTemplateCustomization resolver';
 
-        const customization: TemplateCustomization = await getValidatedCustomization(
+        const customization = await getValidatedCustomization(
           reference,
           context,
           templateCustomizationId
         );
         if (!customization) throw NotFoundError();
 
-        const published: TemplateCustomization = await customization.publish(context);
+        const published = await customization.publish(context);
 
-        if (!isNullOrUndefined(published)) {
-          const overview: TemplateCustomizationOverview = await TemplateCustomizationOverview.generateOverview(
+        if (!isNullOrUndefined(published) && !isNullOrUndefined(published.id)) {
+          const overview = await TemplateCustomizationOverview.generateOverview(
             reference,
             context,
             published.id
           );
+          if (isNullOrUndefined(overview)) throw InternalServerError();
 
           const affiliationId = context.token.affiliationId;
           if (!affiliationId) {
@@ -244,7 +250,7 @@ export const resolvers: Resolvers = {
           const affiliation = await Affiliation.findByURI(reference, context, affiliationId);
 
           // Notify all org admins when customization changes are published
-          if (published?.id) {
+          if (published?.id && !isNullOrUndefined(affiliation) && !isNullOrUndefined(affiliation.uri)) {
             await AdminNotification.addNotificationForAffiliation(
               reference,
               context,
@@ -258,7 +264,7 @@ export const resolvers: Resolvers = {
           overview.errors = published.errors;
           return overview;
         }
-        return undefined;
+        throw InternalServerError();
       }),
 
     /**
@@ -280,28 +286,30 @@ export const resolvers: Resolvers = {
         _: Record<PropertyKey, never>,
         { templateCustomizationId }: { templateCustomizationId: number },
         context: MyContext
-      ): Promise<TemplateCustomizationOverview | null> => {
+      ): Promise<TemplateCustomizationOverview> => {
         const reference = 'unpublishTemplateCustomization resolver';
-        const customization: TemplateCustomization = await getValidatedCustomization(
+        const customization = await getValidatedCustomization(
           reference,
           context,
           templateCustomizationId
         );
         if (!customization) throw NotFoundError();
 
-        const unpublished: TemplateCustomization = await customization.unpublish(context);
+        const unpublished = await customization.unpublish(context);
 
-        if (!isNullOrUndefined(unpublished)) {
-          const overview: TemplateCustomizationOverview = await TemplateCustomizationOverview.generateOverview(
+        if (!isNullOrUndefined(unpublished) && !isNullOrUndefined(unpublished.id)) {
+          const overview = await TemplateCustomizationOverview.generateOverview(
             reference,
             context,
             unpublished.id
           );
+          if (isNullOrUndefined(overview)) throw InternalServerError();
+
           // Transfer any errors
           overview.errors = unpublished.errors;
           return overview;
         }
-        return undefined;
+        throw InternalServerError();
       }),
   },
 
@@ -311,7 +319,7 @@ export const resolvers: Resolvers = {
      * @param parent The TemplateCustomization
      * @returns the formatted date
      */
-    latestPublishedDate: (parent: TemplateCustomization): string => {
+    latestPublishedDate: (parent) => {
       return normaliseDateTime(parent.latestPublishedDate);
     },
     /**
@@ -319,7 +327,7 @@ export const resolvers: Resolvers = {
      * @param parent The TemplateCustomization
      * @returns the formatted date
      */
-    created: (parent: TemplateCustomization): string => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
     /**
@@ -327,7 +335,7 @@ export const resolvers: Resolvers = {
      * @param parent The TemplateCustomization
      * @returns the formatted date
      */
-    modified: (parent: TemplateCustomization): string => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

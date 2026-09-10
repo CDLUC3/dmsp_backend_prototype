@@ -1,6 +1,17 @@
 import { MyContext } from "../context.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface AlternateIdentifierOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  planId: number;
+  alternateIdentifier: string;
+}
+
 // Identifiers defined outside the DMP Tool that help identify a DMP/Plan
 export class AlternateIdentifier extends MySqlModel {
   public planId!: number;
@@ -8,7 +19,7 @@ export class AlternateIdentifier extends MySqlModel {
 
   private static tableName = 'alternateIdentifiers';
 
-  constructor(options) {
+  constructor(options: AlternateIdentifierOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.planId = options.planId;
@@ -26,7 +37,7 @@ export class AlternateIdentifier extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<AlternateIdentifier> {
+  async create(context: MyContext): Promise<AlternateIdentifier | null> {
     if (await this.isValid()) {
       // First make sure the record doesn't already exist
       const current = await AlternateIdentifier.findByAlternateIdentifier(
@@ -56,7 +67,7 @@ export class AlternateIdentifier extends MySqlModel {
   }
 
   // Delete this record
-  async delete(context: MyContext): Promise<AlternateIdentifier> {
+  async delete(context: MyContext): Promise<AlternateIdentifier | null> {
     if (this.id) {
       const result = await AlternateIdentifier.delete(context, AlternateIdentifier.tableName, this.id, 'AlternateIdentifier.delete');
       if (result) {

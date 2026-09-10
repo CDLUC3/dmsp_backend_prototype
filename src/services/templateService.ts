@@ -19,6 +19,10 @@ import {
 export const hasPermissionOnTemplate = async (context: MyContext, template: Template): Promise<boolean> => {
   if (!context || !context.token) return false;
 
+  if (!template.id) {
+    return false;
+  }
+
   // If the user is a super admin they have access
   if (isSuperAdmin(context.token)) return true;
 
@@ -55,7 +59,7 @@ export const generateTemplateVersion = async (
   comment = '',
   latestPublishVisibility = TemplateVisibility.ORGANIZATION,
   versionType = TemplateVersionType.DRAFT,
-): Promise<VersionedTemplate> => {
+): Promise<VersionedTemplate | null> => {
   const ref = 'generateTemplateVersion';
 
   // If the template has no id then it has not yet been saved so throw an error
@@ -81,10 +85,10 @@ export const generateTemplateVersion = async (
     templateId: template.id,
     name: template.name,
     description: template.description,
-    ownerId: template.ownerId,
+    ownerId: template.ownerId ?? '',
     versionedById: versionerId,
     visibility: latestPublishVisibility || template.latestPublishVisibility,
-    bestPactice: template.bestPractice,
+    bestPractice: template.bestPractice,
     isDefault: template.isDefault || false,
     languageId: template.languageId,
     versionType,
@@ -98,7 +102,7 @@ export const generateTemplateVersion = async (
   const created = await versionedTemplate.create(context);
 
   // If the version was successfully created and there are no errors
-  if (created && !created.hasErrors()) {
+  if (created && !created.hasErrors() && created.id) {
     // Deactivate previous versions only *after* successful creation
     for (const v of versions) {
       if (v.active) {
@@ -117,6 +121,10 @@ export const generateTemplateVersion = async (
         const sectionInstance = new Section({
           ...section
         });
+
+        if (!sectionInstance.id) {
+          continue;
+        }
 
         // Get current tags for the section so we can add it to versionedSectionTags table
         const currentTags = await Tag.findBySectionId(ref, context, sectionInstance.id);
@@ -142,7 +150,7 @@ export const generateTemplateVersion = async (
         if (updated && !updated.hasErrors()) return created;
 
         const msg = `Unable to update template: ${template.id}`;
-        context.logger.error(prepareObjectForLogs(updated.errors), msg);
+        context.logger.error(prepareObjectForLogs(updated?.errors), msg);
         throw new Error(msg);
       }
     } catch (err) {
@@ -156,6 +164,10 @@ export const generateTemplateVersion = async (
     // of the old published version of the template
     if (created && !created.hasErrors() && created.versionType === TemplateVersionType.PUBLISHED) {
       for (const v of versions) {
+        if (!v.id) {
+          continue;
+        }
+
         const nbrAffected = await handleFunderTemplateRepublication(
           ref,
           context,
@@ -170,7 +182,7 @@ export const generateTemplateVersion = async (
     }
   } else {
     const msg = `Unable to generate a new version of template ${template.id}`;
-    context.logger.error(prepareObjectForLogs(created.errors), msg);
+    context.logger.error(prepareObjectForLogs(created?.errors), msg);
     throw new Error(msg);
   }
   // Something went wrong, so return a null instead
@@ -184,7 +196,7 @@ export const cloneTemplate = (
   template: Template | VersionedTemplate
 ): Template => {
   // If the incoming is a VersionedTemplate, then use the templateId (the template it was based off of)
-  const sourceId = Object.keys(template).includes('templateId') ? template['templateId'] : template.id;
+  const sourceId = 'templateId' in template ? template.templateId : template.id;
   const templateCopy = new Template({
     name: template.name,
     description: template.description,
@@ -215,10 +227,15 @@ export const setDefaultTemplate = async (
   context: MyContext,
   template: Template
 ): Promise<boolean> => {
+
+  if (!template.id) {
+    context.logger.debug({ template: template }, 'Default template cannot be set because we are missing the template id');
+    return false;
+  }
   const tSQL = `UPDATE templates SET isDefault = ? WHERE id = ?;`;
   const vtSQL = `UPDATE versionedTemplates SET isDefault = ? WHERE templateId = ?;`;
 
-  const currentDefault: VersionedTemplate = await VersionedTemplate.defaultTemplate(reference, context);
+  const currentDefault: VersionedTemplate | undefined = await VersionedTemplate.defaultTemplate(reference, context);
 
   const newId = template.id.toString();
   const oldId = currentDefault?.templateId?.toString();

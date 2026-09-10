@@ -2,7 +2,7 @@ import { GraphQLScalarType, Kind } from 'graphql';
 import { formatORCID } from "../../utils/helpers.js";
 
 // Function to ensure the ORCID is properly formatted
-export function validateOrcid(val) {
+export function validateOrcid(val: string) {
   const orcid = formatORCID(val);
   if (orcid !== null) {
     return orcid
@@ -15,12 +15,12 @@ export const orcidScalar = new GraphQLScalarType({
   name: 'Orcid',
   description: 'A researcher ORCID',
 
-  serialize(orcid) {
-    return validateOrcid(orcid.toString())
+  serialize(orcid: unknown) {
+    return validateOrcid(String(orcid))
   },
 
-  parseValue(value) {
-    return validateOrcid(value.toString());
+  parseValue(value: unknown) {
+    return validateOrcid(String(value));
   },
 
   parseLiteral(ast) {

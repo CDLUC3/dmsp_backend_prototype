@@ -62,7 +62,7 @@ describe('MySqlModel abstract class', () => {
   it('constructor should initialize as expected if it is a new record', () => {
     const createdById = casual.integer(1, 999);
     const formattedDate = getCurrentDate();
-    const model = new MySqlModel(null, formattedDate, createdById);
+    const model = new MySqlModel(null as unknown as number, formattedDate, createdById);
 
     expect(model.id).toBeFalsy();
     expect(model.createdById).toEqual(createdById);
@@ -91,7 +91,7 @@ describe('MySqlModel abstract class', () => {
   it('isValid should return false when the modified date is not a Date', async () => {
     const createdById = casual.integer(1, 999);
     const formattedDate = getCurrentDate();
-    const model = new MySqlModel(null, formattedDate, createdById);
+    const model = new MySqlModel(null as unknown as number, formattedDate, createdById);
 
     model.modified = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
@@ -102,7 +102,7 @@ describe('MySqlModel abstract class', () => {
   it('isValid should return false when the created date is not a Date', async () => {
     const createdById = casual.integer(1, 999);
     const formattedDate = getCurrentDate();
-    const model = new MySqlModel(null, formattedDate, createdById);
+    const model = new MySqlModel(null as unknown as number, formattedDate, createdById);
 
     model.created = '2456247dgerg';
     expect(await model.isValid()).toBe(false);
@@ -113,7 +113,7 @@ describe('MySqlModel abstract class', () => {
   it('isValid should return false when the createdById is null', async () => {
     const createdById = casual.integer(1, 999);
     const formattedDate = getCurrentDate();
-    const model = new MySqlModel(null, formattedDate, createdById);
+    const model = new MySqlModel(null as unknown as number, formattedDate, createdById);
 
     model.createdById = null;
     expect(await model.isValid()).toBe(false);
@@ -124,7 +124,7 @@ describe('MySqlModel abstract class', () => {
   it('isValid should return false when the modifiedById is null', async () => {
     const createdById = casual.integer(1, 999);
     const formattedDate = getCurrentDate();
-    const model = new MySqlModel(null, formattedDate, createdById);
+    const model = new MySqlModel(null as unknown as number, formattedDate, createdById);
 
     model.modifiedById = null;
     expect(await model.isValid()).toBe(false);
@@ -135,7 +135,7 @@ describe('MySqlModel abstract class', () => {
   it('isValid should return true when the id is null', async () => {
     const createdById = casual.integer(1, 999);
     const formattedDate = getCurrentDate();
-    const model = new MySqlModel(null, formattedDate, createdById);
+    const model = new MySqlModel(null as unknown as number, formattedDate, createdById);
 
     model.id = null;
     expect(await model.isValid()).toBe(true);
@@ -156,7 +156,7 @@ describe('MySqlModel abstract class', () => {
 
   describe('error helpers', () => {
     it('hasErrors returns false when no errors are present and true after addError', () => {
-      const model = new MySqlModel(null, getCurrentDate(), casual.integer(1, 999));
+      const model = new MySqlModel(null as unknown as number, getCurrentDate(), casual.integer(1, 999));
 
       expect(model.hasErrors()).toBe(false);
 
@@ -167,7 +167,7 @@ describe('MySqlModel abstract class', () => {
     });
 
     it('errorsToString excludes __typename and empty values', () => {
-      const model = new MySqlModel(null, getCurrentDate(), casual.integer(1, 999));
+      const model = new MySqlModel(null as unknown as number, getCurrentDate(), casual.integer(1, 999));
       model.errors = {
         __typename: 'Error',
         name: 'Name is required',

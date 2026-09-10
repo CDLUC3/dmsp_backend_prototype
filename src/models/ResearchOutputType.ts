@@ -6,6 +6,18 @@ import { MySqlModel } from "./MySqlModel.js";
 // the DataCite resourceType definitions.
 // See: https://datacite-metadata-schema.readthedocs.io/en/4.5/properties/resourcetype/
 
+interface ResearchOutputTypeOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  name: string;
+  value: string;
+  description?: string;
+}
+
 export class ResearchOutputType extends MySqlModel {
   public value: string;
   public name: string;
@@ -13,7 +25,7 @@ export class ResearchOutputType extends MySqlModel {
 
   public static tableName = 'researchOutputTypes';
 
-  constructor(options) {
+  constructor(options: ResearchOutputTypeOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.name = options.name;
@@ -39,11 +51,11 @@ export class ResearchOutputType extends MySqlModel {
   prepForSave(): void {
     this.name = this.name.trim();
     this.value = ResearchOutputType.nameToValue(this.name);
-    this.description = this.description.trim();
+    this.description = this.description?.trim();
   }
 
   //Create a new License
-  async create(context: MyContext): Promise<ResearchOutputType> {
+  async create(context: MyContext): Promise<ResearchOutputType | null> {
     const reference = 'ResearchOutputType.create';
 
     this.prepForSave();
@@ -66,7 +78,10 @@ export class ResearchOutputType extends MySqlModel {
           this,
           reference
         );
-        return await ResearchOutputType.findById(reference, context, newId);
+        if (newId) {
+          return await ResearchOutputType.findById(reference, context, newId);
+        }
+        this.addError('general', 'Research output type was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -74,7 +89,7 @@ export class ResearchOutputType extends MySqlModel {
   }
 
   //Update an existing License
-  async update(context: MyContext, noTouch = false): Promise<ResearchOutputType> {
+  async update(context: MyContext, noTouch = false): Promise<ResearchOutputType | null> {
     const id = this.id;
     const ref = 'ResearchOutputType.update';
 
@@ -90,7 +105,7 @@ export class ResearchOutputType extends MySqlModel {
   }
 
   //Delete the License
-  async delete(context: MyContext): Promise<ResearchOutputType> {
+  async delete(context: MyContext): Promise<ResearchOutputType | null> {
     const ref = 'ResearchOutputType.delete';
     if (this.id) {
       const deleted = await ResearchOutputType.findById(ref, context, this.id);
@@ -118,14 +133,14 @@ export class ResearchOutputType extends MySqlModel {
   }
 
   // Fetch a member role by it's id
-  static async findById(reference: string, context: MyContext, id: number): Promise<ResearchOutputType> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<ResearchOutputType | null> {
     const sql = `SELECT * FROM ${ResearchOutputType.tableName} WHERE id = ?`;
     const results = await ResearchOutputType.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ResearchOutputType(results[0]) : null;
   }
 
   // Fetch a member role by it's value
-  static async findByValue(reference: string, context: MyContext, value: string): Promise<ResearchOutputType> {
+  static async findByValue(reference: string, context: MyContext, value: string): Promise<ResearchOutputType | null> {
     const sql = `SELECT * FROM ${ResearchOutputType.tableName} WHERE value = ?`;
     const results = await ResearchOutputType.query(context, sql, [value], reference);
     return Array.isArray(results) && results.length > 0 ? new ResearchOutputType(results[0]) : null;

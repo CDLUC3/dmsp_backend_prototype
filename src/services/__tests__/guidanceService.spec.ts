@@ -50,7 +50,7 @@ const mockVersionedGuidanceGroupFindByGuidanceGroupId = jest.fn<(...args: any[])
 const mockVersionedGuidanceGroupFindActiveByGuidanceGroupId = jest.fn<(...args: any[]) => Promise<any>>();
 const mockVersionedGuidanceGroupDeactivateAll = jest.fn<(...args: any[]) => Promise<any>>();
 
-const VersionedGuidanceGroupCtor: any = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
+const VersionedGuidanceGroupCtor: any = jest.fn<(...args: any[]) => any>().mockImplementation((data: Record<string, unknown>) => ({
   create: jest.fn<(...args: any[]) => Promise<any>>(),
   update: jest.fn<(...args: any[]) => Promise<any>>(),
   hasErrors: jest.fn<() => boolean>().mockReturnValue(false),
@@ -70,12 +70,12 @@ const mockGuidanceFindByGuidanceGroupId = jest.fn<(...args: any[]) => Promise<an
 const mockPlanGuidanceQuery = jest.fn<(...args: any[]) => Promise<any>>();
 const mockPlanGuidanceFindByPlanAndUserId = jest.fn<(...args: any[]) => Promise<any>>();
 
-const GuidanceCtor: any = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
+const GuidanceCtor: any = jest.fn<(...args: any[]) => any>().mockImplementation((data: Record<string, unknown>) => ({
   ...data,
 }));
 GuidanceCtor.findByGuidanceGroupId = mockGuidanceFindByGuidanceGroupId;
 
-const PlanGuidanceCtor: any = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
+const PlanGuidanceCtor: any = jest.fn<(...args: any[]) => any>().mockImplementation((data: Record<string, unknown>) => ({
   create: jest.fn<(...args: any[]) => Promise<any>>(),
   ...data,
 }));
@@ -91,7 +91,7 @@ jest.unstable_mockModule('../../models/Guidance.js', () => ({
 const mockVersionedGuidanceFindBestPracticeByTagIds = jest.fn<(...args: any[]) => Promise<any>>();
 const mockVersionedGuidanceFindByAffiliationAndTagIds = jest.fn<(...args: any[]) => Promise<any>>();
 
-const VersionedGuidanceCtor: any = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
+const VersionedGuidanceCtor: any = jest.fn<(...args: any[]) => any>().mockImplementation((data: Record<string, unknown>) => ({
   create: jest.fn<(...args: any[]) => Promise<any>>(),
   hasErrors: jest.fn<() => boolean>().mockReturnValue(false),
   ...data,
@@ -802,8 +802,8 @@ describe("getGuidanceSourcesForPlan", () => {
 
     const userSource = result.find((s: any) => s.id === `affiliation-${userAffiliationUri}`);
     expect(userSource).toBeDefined();
-    expect(userSource.type).toEqual("USER_AFFILIATION");
-    expect(userSource.items[0].guidanceText).toEqual("Customized section guidance");
+    expect(userSource!.type).toEqual("USER_AFFILIATION");
+    expect(userSource!.items[0].guidanceText).toEqual("Customized section guidance");
   });
 
   it("should not prepend guidanceText to template owner items when customSectionId is used", async () => {
@@ -830,8 +830,8 @@ describe("getGuidanceSourcesForPlan", () => {
 
     const templateOwnerSource = result.find((s: any) => s.type === "TEMPLATE_OWNER");
     expect(templateOwnerSource).toBeDefined();
-    expect(templateOwnerSource.items).toHaveLength(1);
-    expect(templateOwnerSource.items[0].guidanceText).toEqual("NSF tag guidance");
+    expect(templateOwnerSource!.items).toHaveLength(1);
+    expect(templateOwnerSource!.items[0].guidanceText).toEqual("NSF tag guidance");
   });
 
   it("should return [] if customQuestionId is provided but custom question not found", async () => {
@@ -960,7 +960,7 @@ describe("getGuidanceSourcesForPlan", () => {
 
     const templateOwnerSource = result.find((s: any) => s.type === "TEMPLATE_OWNER");
     expect(templateOwnerSource).toBeDefined();
-    expect(templateOwnerSource.items).toHaveLength(1);
-    expect(templateOwnerSource.items[0].guidanceText).toEqual("NSF tag guidance");
+    expect(templateOwnerSource!.items).toHaveLength(1);
+    expect(templateOwnerSource!.items[0].guidanceText).toEqual("NSF tag guidance");
   });
 });

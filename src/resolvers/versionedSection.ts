@@ -1,4 +1,13 @@
-import { Resolvers, VersionedSectionSearchResults } from "../types.js";
+import {
+  Resolvers,
+  VersionedSectionSearchResults,
+  VersionedSection as VersionedSectionGql,
+  VersionedCustomSection as VersionedCustomSectionGql,
+  Section as SectionGql,
+  VersionedTemplate as VersionedTemplateGql,
+  Tag as TagGql,
+  VersionedCustomQuestion as VersionedCustomQuestionGql,
+} from "../types.js";
 import { MyContext } from "../context.js";
 import { VersionedSection, VersionedSectionSearchResult } from "../models/VersionedSection.js";
 import { VersionedCustomSection } from "../models/VersionedCustomSection.js";
@@ -19,14 +28,19 @@ import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers.js";
 import { isAuthorized } from "../services/authService.js";
 import { VersionedCustomQuestion } from "../models/VersionedCustomQuestion.js";
 
+// The model classes below (VersionedSection, Section, VersionedTemplate, Tag, VersionedCustomQuestion, etc.)
+// don't structurally match their generated GraphQL-facing counterparts (e.g. some model fields such as
+// Tag.slug are optional while the schema declares them non-null, and models expose raw FK ids instead of
+// the nested objects the schema exposes). There are no codegen "mappers" configured to reconcile this, so
+// we cast the model instances returned here to their generated-type equivalents at the resolver boundary.
 export const resolvers: Resolvers = {
   Query: {
     // Get all of the versionedSection records for the given sectionId
-    sectionVersions: async (_, { sectionId }, context: MyContext): Promise<VersionedSection[]> => {
+    sectionVersions: async (_, { sectionId }, context: MyContext) => {
       const reference = 'sectionVersions resolver';
       try {
         // Find versionedSections with matching sectionId
-        return await VersionedSection.findBySectionId(reference, context, sectionId);
+        return await VersionedSection.findBySectionId(reference, context, sectionId) as unknown as VersionedSectionGql[];
       } catch (err) {
         if (err instanceof GraphQLError) throw err;
 
@@ -52,11 +66,11 @@ export const resolvers: Resolvers = {
       }
     },
     // Get a specific VersionedSection
-    publishedSection: async (_, { versionedSectionId }, context: MyContext): Promise<VersionedSection> => {
+    publishedSection: async (_, { versionedSectionId }, context: MyContext) => {
       const reference = 'publishedSection resolver';
       try {
         if (isAuthorized(context.token)) {
-          return await VersionedSection.findById(reference, context, versionedSectionId);
+          return await VersionedSection.findById(reference, context, versionedSectionId) as unknown as VersionedSectionGql | null;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -105,44 +119,56 @@ export const resolvers: Resolvers = {
 
   VersionedSection: {
     // Chained resolver to fetch the Section related to VersionedSection
-    section: async (parent: VersionedSection, _, context: MyContext): Promise<Section> => {
-      return await Section.findById('VersionedSection resolver', context, parent.sectionId);
+    // `parent` is typed to the GraphQL-facing shape (no raw FK fields), but at runtime it is
+    // actually the VersionedSection model instance returned by the parent resolver.
+    section: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as VersionedSection;
+      return await Section.findById('VersionedSection resolver', context, model.sectionId) as unknown as SectionGql | null;
     },
     // Chained resolver to fetch the versionedTemplate that the VersionedSection belongs to
-    versionedTemplate: async (parent: VersionedSection, _, context: MyContext): Promise<VersionedTemplate> => {
-      return await VersionedTemplate.findVersionedTemplateById('VersionSection resolver', context, parent.versionedTemplateId);
+    // (this field is non-nullable in the schema, so a missing VersionedTemplate is an error, not a null)
+    versionedTemplate: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as VersionedSection;
+      const versionedTemplate = await VersionedTemplate.findVersionedTemplateById('VersionSection resolver', context, model.versionedTemplateId);
+      if (!versionedTemplate) {
+        throw NotFoundError(`VersionedTemplate with ID ${model.versionedTemplateId} not found`);
+      }
+      return versionedTemplate as unknown as VersionedTemplateGql;
     },
     // Chained resolver to fetch the Tags belonging to VersionedSection
-    tags: async (parent: VersionedSection, _, context: MyContext): Promise<Tag[]> => {
-      return await Tag.findBySectionId('updateSection resolver', context, parent.sectionId);
+    tags: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as VersionedSection;
+      return await Tag.findBySectionId('updateSection resolver', context, model.sectionId) as unknown as TagGql[];
     },
     // Chained resolver to return the VersionedQuestions associated with this VersionedSection
-    versionedQuestions: async (parent: VersionedSection, _, context: MyContext): Promise<VersionedQuestion[]> => {
+    versionedQuestions: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.id)) return [];
       return await VersionedQuestion.findByVersionedSectionId(
         'Chained VersionedSection.versionedQuestions',
         context,
         parent.id
       );
     },
-    created: (parent: VersionedSection) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedSection) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },
   VersionedCustomSection: {
-    questions: async (parent: VersionedCustomSection, _, context: MyContext): Promise<VersionedCustomQuestion[]> => {
+    questions: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.id)) return [];
       return await VersionedCustomQuestion.findByVersionedCustomSectionId(
         'Chained VersionedCustomSection.questions',
         context,
         parent.id
-      );
+      ) as unknown as VersionedCustomQuestionGql[];
     },
-    created: (parent: VersionedCustomSection) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedCustomSection) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

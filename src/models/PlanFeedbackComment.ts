@@ -2,6 +2,18 @@ import { MyContext } from "../context.js";
 import { valueIsEmpty } from "../utils/helpers.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface PlanFeedbackCommentOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  answerId: number;
+  feedbackId: number;
+  commentText: string;
+}
+
 export class PlanFeedbackComment extends MySqlModel {
   public answerId: number;
   public feedbackId: number;
@@ -9,7 +21,7 @@ export class PlanFeedbackComment extends MySqlModel {
 
   private static tableName = 'feedbackComments';
 
-  constructor(options) {
+  constructor(options: PlanFeedbackCommentOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.answerId = options.answerId;
@@ -34,7 +46,7 @@ export class PlanFeedbackComment extends MySqlModel {
   }
 
   //Create a new PlanFeedbackComment
-  async create(context: MyContext): Promise<PlanFeedbackComment> {
+  async create(context: MyContext): Promise<PlanFeedbackComment | null> {
     const reference = 'PlanFeedbackComment.create';
 
     // First make sure the record is valid
@@ -42,15 +54,17 @@ export class PlanFeedbackComment extends MySqlModel {
       this.prepForSave();
       // Save the record and then fetch it
       const newId = await PlanFeedbackComment.insert(context, PlanFeedbackComment.tableName, this, reference);
-      const response = await PlanFeedbackComment.findById(reference, context, newId);
-      return response;
+      if (newId) {
+        return await PlanFeedbackComment.findById(reference, context, newId);
+      }
+      this.addError('general', 'PlanFeedbackComment was not created successfully');
     }
     // Otherwise return as-is with all the errors
     return new PlanFeedbackComment(this);
   }
 
   //Update an existing PlanFeedbackComment
-  async update(context: MyContext, noTouch = false): Promise<PlanFeedbackComment> {
+  async update(context: MyContext, noTouch = false): Promise<PlanFeedbackComment | null> {
     if (await this.isValid()) {
       if (this.id) {
         this.prepForSave();
@@ -64,7 +78,7 @@ export class PlanFeedbackComment extends MySqlModel {
   }
 
   //Delete the PlanFeedbackComment
-  async delete(context: MyContext): Promise<PlanFeedbackComment> {
+  async delete(context: MyContext): Promise<PlanFeedbackComment | null> {
     if (this.id) {
       const deleted = await PlanFeedbackComment.findById('PlanFeedbackComment.delete', context, this.id);
 
@@ -84,7 +98,7 @@ export class PlanFeedbackComment extends MySqlModel {
   }
 
   // Fetch a PlanFeedbackComment by it's id
-  static async findById(reference: string, context: MyContext, feedbackCommentsId: number): Promise<PlanFeedbackComment> {
+  static async findById(reference: string, context: MyContext, feedbackCommentsId: number): Promise<PlanFeedbackComment | null> {
     const sql = `SELECT * FROM ${PlanFeedbackComment.tableName} WHERE id = ?`;
     const results = await PlanFeedbackComment.query(context, sql, [feedbackCommentsId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new PlanFeedbackComment(results[0]) : null;

@@ -4,6 +4,7 @@ import { jest } from '@jest/globals';
 import casual from "casual";
 import { CURRENT_SCHEMA_VERSION } from "@dmptool/types";
 import type { MySqlModel as MySqlModelType } from '../../models/MySqlModel.js';
+import type { MyContext } from '../../context.js';
 
 import { mockAppConfigs, mockAppLogger } from '../../__tests__/mockConfigs.js';
 
@@ -55,35 +56,35 @@ function mockAsyncFn() {
   return jest.fn<(...args: any[]) => Promise<any>>();
 }
 
-let context;
+let context: MyContext;
 
-let mockInsert;
-let mockUpdate;
-let mockFindTemplateById;
-let mockFindSections;
-let mockFindSectionById;
-let mockFindQuestions;
-let mockFindQuestionById;
-let mockFindQuestionConditions;
-let mockFindQuestionConditionById;
-let mockFindQuestionConditionGroupsByQuestionId;
-let mockFindQuestionConditionGroupById;
-let mockFindVersionedTemplatebyId;
-let mockFindVersionedSectionbyId;
-let mockFindVersionedQuestionById;
-let mockFindVersionedQuestionConditionById
+let mockInsert: ReturnType<typeof mockAsyncFn>;
+let mockUpdate: ReturnType<typeof mockAsyncFn>;
+let mockFindTemplateById: ReturnType<typeof mockAsyncFn>;
+let mockFindSections: ReturnType<typeof mockAsyncFn>;
+let mockFindSectionById: ReturnType<typeof mockAsyncFn>;
+let mockFindQuestions: ReturnType<typeof mockAsyncFn>;
+let mockFindQuestionById: ReturnType<typeof mockAsyncFn>;
+let mockFindQuestionConditions: ReturnType<typeof mockAsyncFn>;
+let mockFindQuestionConditionById: ReturnType<typeof mockAsyncFn>;
+let mockFindQuestionConditionGroupsByQuestionId: ReturnType<typeof mockAsyncFn>;
+let mockFindQuestionConditionGroupById: ReturnType<typeof mockAsyncFn>;
+let mockFindVersionedTemplatebyId: ReturnType<typeof mockAsyncFn>;
+let mockFindVersionedSectionbyId: ReturnType<typeof mockAsyncFn>;
+let mockFindVersionedQuestionById: ReturnType<typeof mockAsyncFn>;
+let mockFindVersionedQuestionConditionById: ReturnType<typeof mockAsyncFn>
 
-let templateStore;
-let sectionStore;
-let questionStore;
-let questionConditionStore;
-let questionConditionGroupStore;
-let versionedTemplateStore;
-let versionedSectionStore;
-let versionedQuestionStore;
-let versionedQuestionConditionStore;
-let versionedQuestionConditionGroupStore;
-let tagStore; // <-- add tag store
+let templateStore: InstanceType<typeof Template>[];
+let sectionStore: InstanceType<typeof Section>[];
+let questionStore: InstanceType<typeof Question>[];
+let questionConditionStore: InstanceType<typeof QuestionCondition>[];
+let questionConditionGroupStore: InstanceType<typeof QuestionConditionGroup>[];
+let versionedTemplateStore: InstanceType<typeof VersionedTemplate>[];
+let versionedSectionStore: InstanceType<typeof VersionedSection>[];
+let versionedQuestionStore: InstanceType<typeof VersionedQuestion>[];
+let versionedQuestionConditionStore: InstanceType<typeof VersionedQuestionCondition>[];
+let versionedQuestionConditionGroupStore: InstanceType<typeof VersionedQuestionConditionGroup>[];
+let tagStore: InstanceType<typeof Tag>[]; // <-- add tag store
 
 // Update an entry in one of the stores
 function updateStore(store: any[], tableName: string, obj: MySqlModelInstance) {

@@ -28,16 +28,16 @@ jest.unstable_mockModule('../../services/openSearchService.js', () => ({
 
 jest.unstable_mockModule('../../services/authService.js', () => ({
   authenticatedResolver: jest.fn((ref, level, resolver) => resolver),
-  isAuthorized: (token) => {
+  isAuthorized: (token: any) => {
     return token != null && token.id != null;
   },
-  isAdmin: (token) => {
+  isAdmin: (token: any) => {
     if (token != null && token.id != null && token.affiliationId) {
       return ['ADMIN', 'SUPERADMIN'].includes(token?.role);
     }
     return false;
   },
-  isSuperAdmin: (token) => {
+  isSuperAdmin: (token: any) => {
     return token != null && token.id != null && token?.role === 'SUPERADMIN';
   },
 }));
@@ -221,7 +221,7 @@ describe('templateCustomization resolvers', () => {
     });
 
     it('should throw NotFoundError when customization does not exist', async () => {
-      jest.spyOn(TemplateCustomizationOverview, 'generateOverview').mockResolvedValue(null);
+      jest.spyOn(TemplateCustomizationOverview, 'generateOverview').mockResolvedValue(undefined);
 
       const vars = { templateCustomizationId: mockCustomizationOverview.customizationId };
       const result = await executeQuery(query, vars, adminToken);
@@ -285,7 +285,7 @@ describe('templateCustomization resolvers', () => {
     });
 
     it('should throw NotFoundError when versioned template does not exist', async () => {
-      jest.spyOn(VersionedTemplate, 'findById').mockResolvedValue(null);
+      jest.spyOn(VersionedTemplate, 'findById').mockResolvedValue(asVersionedTemplate(null));
 
       const result = await executeQuery(query, input, adminToken);
 

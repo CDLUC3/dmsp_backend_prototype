@@ -139,12 +139,12 @@ beforeEach(async () => {
   // implementation but doesn't restore the real method), so later tests
   // that don't re-spy it would otherwise silently get `undefined` instead
   // of real behavior.
-  jest.spyOn(Guidance, 'findById').mockResolvedValue(null);
+  jest.spyOn(Guidance, 'findById').mockResolvedValue(asGuidance(null));
   jest.spyOn(Guidance, 'findByGuidanceGroupId').mockResolvedValue([]);
   jest.spyOn(Guidance.prototype, 'create').mockResolvedValue(asGuidance({}));
-  jest.spyOn(GuidanceGroup, 'findById').mockResolvedValue(null);
+  jest.spyOn(GuidanceGroup, 'findById').mockResolvedValue(asGuidanceGroup(null));
   jest.spyOn(Plan, 'findById').mockResolvedValue(null);
-  jest.spyOn(Project, 'findById').mockResolvedValue(null);
+  jest.spyOn(Project, 'findById').mockResolvedValue(asProject(null));
 
   mockHasPermissionOnGuidanceGroup.mockResolvedValue(false);
   mockMarkGuidanceGroupAsDirty.mockResolvedValue(undefined);
@@ -277,7 +277,7 @@ describe('guidance resolvers', () => {
     });
 
     it('should return NotFound when admin has permission but guidance does not exist', async () => {
-      jest.spyOn(Guidance, 'findById').mockResolvedValue(null);
+      jest.spyOn(Guidance, 'findById').mockResolvedValue(asGuidance(null));
       mockHasPermissionOnGuidanceGroup.mockResolvedValue(true);
       jest.spyOn(GuidanceGroup, 'findById').mockResolvedValue(asGuidanceGroup({ id: 10, affiliationId }));
 
@@ -570,7 +570,7 @@ describe('guidance resolvers', () => {
     });
 
     it('should return NotFound when guidance does not exist', async () => {
-      jest.spyOn(Guidance, 'findById').mockResolvedValue(null);
+      jest.spyOn(Guidance, 'findById').mockResolvedValue(asGuidance(null));
       mockHasPermissionOnGuidanceGroup.mockResolvedValue(true);
 
       const vars = { input: { guidanceId: 999, guidanceText: 'Updated', tagId: 1 } };
@@ -636,7 +636,7 @@ describe('guidance resolvers', () => {
     });
 
     it('should return NotFound when guidance does not exist', async () => {
-      jest.spyOn(Guidance, 'findById').mockResolvedValue(null);
+      jest.spyOn(Guidance, 'findById').mockResolvedValue(asGuidance(null));
       mockHasPermissionOnGuidanceGroup.mockResolvedValue(true);
 
       const result = await executeQuery(query, { guidanceId: 999 }, adminToken);

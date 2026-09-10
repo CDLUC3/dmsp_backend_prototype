@@ -74,11 +74,30 @@ export class PlanSearchResult {
   public templateOwnerAffiliationName: string;
 
   // The following fields will only be set when the plan is published!
-  public dmpId: string;
-  public registeredBy: string;
-  public registered: string;
+  public dmpId?: string;
+  public registeredBy?: string;
+  public registered?: string;
 
-  constructor(options) {
+  constructor(options: {
+    id: number;
+    createdBy: string;
+    created: string;
+    createdById: number;
+    modifiedBy: string;
+    modified: string;
+    title: string;
+    status?: PlanStatus;
+    visibility?: PlanVisibility;
+    featured?: boolean;
+    funding: string;
+    members: string;
+    templateTitle: string;
+    versionedTemplateId: number;
+    templateOwnerAffiliationName: string;
+    dmpId?: string;
+    registeredBy?: string;
+    registered?: string;
+  }) {
     this.id = options.id;
     this.createdBy = options.createdBy;
     this.created = options.created;
@@ -253,7 +272,18 @@ export class PlanSectionProgress {
   public answeredRequiredQuestions: number;
   public tags?: Tag[];
 
-  constructor(options) {
+  constructor(options: {
+    sectionType?: PlanSectionType;
+    versionedSectionId?: number | null;
+    customSectionId?: number | null;
+    title: string;
+    displayOrder: number;
+    totalQuestions: number;
+    answeredQuestions: number;
+    totalRequiredQuestions?: number;
+    answeredRequiredQuestions?: number;
+    tags?: Tag[];
+  }) {
     this.sectionType = options.sectionType ?? PlanSectionType.BASE;
     this.versionedSectionId = options.versionedSectionId ?? null;
     this.customSectionId = options.customSectionId ?? null;
@@ -483,6 +513,9 @@ export class PlanSectionProgress {
     const affiliationId = context.token?.affiliationId;
     if (!affiliationId) return baseSections;
 
+    // No versionedTemplateId means we can't look up a customization
+    if (!versionedTemplateId) return baseSections;
+
     const templateCustomizationId = await this.findTemplateCustomizationId(
       reference,
       context,
@@ -526,6 +559,9 @@ export class PlanSectionProgress {
         baseCustomQuestionTotals.map((r) => [r.versionedSectionId, Number(r.requiredCount)])
       );
       for (const section of baseSections) {
+        // versionedSectionId is only null for CUSTOM sections; baseSections are always BASE
+        if (section.versionedSectionId === null) continue;
+
         const extra = extraBySection.get(section.versionedSectionId) ?? 0;
         if (extra > 0) {
           section.totalQuestions += extra;
@@ -568,7 +604,9 @@ export class PlanSectionProgress {
       orderedSections.push(new PlanSectionProgress({ ...base, displayOrder: displayOrder++ }));
 
       const chain: typeof customSectionTotals = [];
-      collectAfter(base.versionedSectionId, chain);
+      if (base.versionedSectionId !== null) {
+        collectAfter(base.versionedSectionId, chain);
+      }
 
       for (const cs of chain) {
         orderedSections.push(new PlanSectionProgress({
@@ -600,7 +638,7 @@ export class PlanProgress {
   public answeredQuestions: number;
   public percentComplete: number;
 
-  constructor(options) {
+  constructor(options: { totalQuestions: number; answeredQuestions: number }) {
     this.totalQuestions = options.totalQuestions;
     this.answeredQuestions = options.answeredQuestions;
     this.percentComplete = this.totalQuestions > 0
@@ -621,7 +659,7 @@ export class PlanProgress {
     context: MyContext,
     planId: number,
     versionedTemplateId?: number
-  ): Promise<PlanProgress> {
+  ): Promise<PlanProgress | null> {
     // Reuse PlanSectionProgress which already handles custom questions correctly
     const sections = await PlanSectionProgress.findByPlanId(
       reference,
@@ -644,7 +682,7 @@ export class PlanProgress {
  */
 export class Plan extends MySqlModel {
   public projectId: number;
-  public dmpId: string;
+  public dmpId?: string;
   public versionedTemplateId: number;
   public title: string;
   public status: PlanStatus;
@@ -653,12 +691,29 @@ export class Plan extends MySqlModel {
   public featured: boolean;
 
   // The following fields should only be set when the plan is published!
-  public registeredById: number;
-  public registered: string;
+  public registeredById?: number;
+  public registered?: string;
 
   private static tableName = 'plans';
 
-  constructor(options) {
+  constructor(options: {
+    id?: number;
+    created?: string;
+    createdById?: number;
+    modified?: string;
+    modifiedById?: number;
+    errors?: Record<string, string>;
+    projectId: number;
+    versionedTemplateId: number;
+    title: string;
+    status?: PlanStatus;
+    visibility?: PlanVisibility;
+    languageId?: string;
+    featured?: boolean;
+    dmpId?: string;
+    registeredById?: number;
+    registered?: string;
+  }) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.projectId = options.projectId;
@@ -683,7 +738,7 @@ export class Plan extends MySqlModel {
    */
   async generateDMPId(context: MyContext): Promise<string> {
     // If the Plan already has a DMP ID, just return it
-    if (!valueIsEmpty(this.dmpId)) return this.dmpId;
+    if (this.dmpId && !valueIsEmpty(this.dmpId)) return this.dmpId;
 
     const dmpIdPrefix = `${generalConfig.dmpIdBaseURL}${generalConfig.dmpIdShoulder}`;
     let id = randomHex(8);
@@ -747,8 +802,8 @@ export class Plan extends MySqlModel {
    * @param plan The Plan object to process
    * @returns The processed Plan object
    */
-  static async processResult(context: MyContext, plan: Plan): Promise<Plan> {
-    if (isNullOrUndefined(plan)) return undefined;
+  static async processResult(context: MyContext, plan: Plan): Promise<Plan | null> {
+    if (isNullOrUndefined(plan)) return null;
 
     // Check to see it the plan has a `dmpId`. If not, it was probably recently
     // migrated, so we need to assign a `dmpId` and send a request to generate the
@@ -780,6 +835,11 @@ export class Plan extends MySqlModel {
       if (await this.isValid()) {
         if (!this.isPublished()) {
 
+          if (!this.dmpId) {
+            this.addError('dmpId', 'Plan does not have a valid DMP ID');
+            return new Plan(this);
+          }
+
           // Refuse to register a temporary placeholder DMP ID
           if (this.dmpId.startsWith(DEFAULT_TEMPORARY_DMP_ID_PREFIX)) {
             this.addError('dmpId', 'Plan does not have a valid DMP ID');
@@ -810,6 +870,9 @@ export class Plan extends MySqlModel {
           };
 
           try {
+            if (isNullOrUndefined(context.dataSources.ezidAPIDataSource)) {
+              throw new Error('EZID data source is not configured');
+            }
             await context.dataSources.ezidAPIDataSource.registerIdentifier(
               context, ezidIdentifier, metadata, 'Plan.publish'
             );
@@ -979,7 +1042,8 @@ export class Plan extends MySqlModel {
         // The result of the update function is just a boolean indicating whether the update query succeeded or not,
         // so if it succeeded we need to re-query to get the updated plan with all the new values
         if (result) {
-          return await Plan.findById(reference, context, this.id);
+          const updated = await Plan.findById(reference, context, this.id);
+          if (updated) return updated;
         }
         this.addError('general', 'Unable to update the plan');
       }
@@ -1052,11 +1116,11 @@ export class Plan extends MySqlModel {
     const sql = `SELECT * FROM ${this.tableName} WHERE projectId = ?`;
     const results = await Plan.query(context, sql, [projectId?.toString()], reference);
 
-    return Array.isArray(results)
-      ? await Promise.all(results.map(async (result) =>
-        await Plan.processResult(context, result)
-      ))
-      : [];
+    if (!Array.isArray(results)) return [];
+    const plans = await Promise.all(results.map(async (result) =>
+      await Plan.processResult(context, result)
+    ));
+    return plans.filter((plan): plan is Plan => !isNullOrUndefined(plan));
   }
 
   /**
@@ -1071,11 +1135,11 @@ export class Plan extends MySqlModel {
     const sql = `SELECT * FROM ${this.tableName} WHERE createdById = ?`;
     const results = await Plan.query(context, sql, [userId?.toString()], reference);
 
-    return Array.isArray(results)
-      ? await Promise.all(results.map(async (result) =>
-        await Plan.processResult(context, result)
-      ))
-      : [];
+    if (!Array.isArray(results)) return [];
+    const plans = await Promise.all(results.map(async (result) =>
+      await Plan.processResult(context, result)
+    ));
+    return plans.filter((plan): plan is Plan => !isNullOrUndefined(plan));
   }
 
   /**

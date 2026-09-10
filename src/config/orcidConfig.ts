@@ -1,8 +1,8 @@
 import { verifyCriticalEnvVariable } from "../utils/helpers.js";
 
 // Verify these critical variables on startup!
-verifyCriticalEnvVariable('ORCID_CLIENT_ID');
-verifyCriticalEnvVariable('ORCID_CLIENT_SECRET');
+verifyCriticalEnvVariable(process.env.ORCID_CLIENT_ID, 'ORCID_CLIENT_ID');
+verifyCriticalEnvVariable(process.env.ORCID_CLIENT_SECRET, 'ORCID_CLIENT_SECRET');
 
 export const OrcidConfig = {
   clientId: process.env.ORCID_CLIENT_ID,

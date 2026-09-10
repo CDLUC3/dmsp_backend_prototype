@@ -29,16 +29,16 @@ jest.unstable_mockModule('../../services/openSearchService.js', () => ({
 
 jest.unstable_mockModule('../../services/authService.js', () => ({
   authenticatedResolver: jest.fn((ref, level, resolver) => resolver),
-  isAuthorized: (token) => {
+  isAuthorized: (token: any) => {
     return token != null && token.id != null;
   },
-  isAdmin: (token) => {
+  isAdmin: (token: any) => {
     if (token != null && token.id != null && token.affiliationId) {
       return ['ADMIN', 'SUPERADMIN'].includes(token?.role);
     }
     return false;
   },
-  isSuperAdmin: (token) => {
+  isSuperAdmin: (token: any) => {
     return token != null && token.id != null && token?.role === 'SUPERADMIN';
   },
 }));
@@ -190,7 +190,7 @@ describe('sectionCustomization resolver', () => {
     });
 
     it('should return NotFound error when section customization is not found', async () => {
-      jest.spyOn(SectionCustomization, 'findById').mockResolvedValue(null);
+      jest.spyOn(SectionCustomization, 'findById').mockResolvedValue(asSectionCustomization(null));
 
       const vars = { sectionCustomizationId: 999 };
       const result = await executeQuery(query, vars, adminToken);
@@ -270,7 +270,7 @@ describe('sectionCustomization resolver', () => {
     });
 
     it('should return NotFound error when section customization is not found', async () => {
-      jest.spyOn(SectionCustomization, 'findByCustomizationAndVersionedSection').mockResolvedValue(null);
+      jest.spyOn(SectionCustomization, 'findByCustomizationAndVersionedSection').mockResolvedValue(asSectionCustomization(null));
 
       const vars = { templateCustomizationId: 10, versionedSectionId: 999 };
       const result = await executeQuery(query, vars, adminToken);
@@ -345,7 +345,7 @@ describe('sectionCustomization resolver', () => {
     });
 
     it('should return NotFound when custom section is not found', async () => {
-      jest.spyOn(CustomSection, 'findById').mockResolvedValue(null);
+      jest.spyOn(CustomSection, 'findById').mockResolvedValue(asCustomSection(null));
 
       const vars = { customSectionId: 999 };
       const result = await executeQuery(query, vars, adminToken);
@@ -512,7 +512,7 @@ describe('sectionCustomization resolver', () => {
         guidance: 'New guidance'
       };
 
-      jest.spyOn(SectionCustomization, 'findById').mockResolvedValue(null);
+      jest.spyOn(SectionCustomization, 'findById').mockResolvedValue(asSectionCustomization(null));
 
       const result = await executeQuery(query, { input }, adminToken);
 
@@ -586,7 +586,7 @@ describe('sectionCustomization resolver', () => {
     });
 
     it('should throw NotFoundError when section customization is not found', async () => {
-      jest.spyOn(SectionCustomization, 'findById').mockResolvedValue(null);
+      jest.spyOn(SectionCustomization, 'findById').mockResolvedValue(asSectionCustomization(null));
 
       const args = { sectionCustomizationId: 999 };
       const result = await executeQuery(query, args, adminToken);
@@ -743,7 +743,7 @@ describe('sectionCustomization resolver', () => {
         guidance: 'Guide'
       };
 
-      jest.spyOn(CustomSection, 'findById').mockResolvedValue(null);
+      jest.spyOn(CustomSection, 'findById').mockResolvedValue(asCustomSection(null));
 
       const result = await executeQuery(query, { input }, adminToken);
 
@@ -868,7 +868,7 @@ describe('sectionCustomization resolver', () => {
         newSectionId: 10
       };
 
-      jest.spyOn(CustomSection, 'findById').mockResolvedValue(null);
+      jest.spyOn(CustomSection, 'findById').mockResolvedValue(asCustomSection(null));
 
       const result = await executeQuery(query, { input }, adminToken);
 

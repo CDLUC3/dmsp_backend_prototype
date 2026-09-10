@@ -4,6 +4,19 @@ import { MySqlModel } from "./MySqlModel.js";
 
 export const DEFAULT_DMPTOOL_LICENSE_URL = 'https://dmptool.org/licenses/';
 
+interface LicenseOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  name: string;
+  uri: string;
+  description?: string;
+  recommended?: boolean;
+}
+
 export class License extends MySqlModel {
   public name: string;
   public uri: string;
@@ -12,7 +25,7 @@ export class License extends MySqlModel {
 
   private static tableName = 'licenses';
 
-  constructor(options) {
+  constructor(options: LicenseOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
@@ -40,7 +53,7 @@ export class License extends MySqlModel {
   }
 
   //Create a new License
-  async create(context: MyContext): Promise<License> {
+  async create(context: MyContext): Promise<License | null> {
     const reference = 'License.create';
 
     // If no URI is present, then use the DMPTool's default URI
@@ -62,8 +75,9 @@ export class License extends MySqlModel {
       } else {
         // Save the record and then fetch it
         const newId = await License.insert(context, License.tableName, this, reference);
-        const response = await License.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await License.findById(reference, context, newId);
+        }
       }
     }
     // Otherwise return as-is with all the errors
@@ -71,7 +85,7 @@ export class License extends MySqlModel {
   }
 
   //Update an existing License
-  async update(context: MyContext, noTouch = false): Promise<License> {
+  async update(context: MyContext, noTouch = false): Promise<License | null> {
     const id = this.id;
 
     this.prepForSave();
@@ -87,7 +101,7 @@ export class License extends MySqlModel {
   }
 
   //Delete the License
-  async delete(context: MyContext): Promise<License> {
+  async delete(context: MyContext): Promise<License | null> {
     if (this.id) {
       const deleted = await License.findById('License.delete', context, this.id);
 
@@ -107,21 +121,21 @@ export class License extends MySqlModel {
   }
 
   // Fetch a License by it's id
-  static async findById(reference: string, context: MyContext, licenseId: number): Promise<License> {
+  static async findById(reference: string, context: MyContext, licenseId: number): Promise<License | null> {
     const sql = `SELECT * FROM ${License.tableName} WHERE id = ?`;
     const results = await License.query(context, sql, [licenseId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new License(results[0]) : null;
   }
 
   // Find a License by its URI. The URI is case insensitive.
-  static async findByURI(reference: string, context: MyContext, uri: string): Promise<License> {
+  static async findByURI(reference: string, context: MyContext, uri: string): Promise<License | null> {
     const sql = `SELECT * FROM ${License.tableName} WHERE uri = ?`;
     const results = await License.query(context, sql, [uri], reference);
     return Array.isArray(results) && results.length > 0 ? new License(results[0]) : null;
   }
 
   // Find a License by its name. The name is case insensitive.
-  static async findByName(reference: string, context: MyContext, name: string): Promise<License> {
+  static async findByName(reference: string, context: MyContext, name: string): Promise<License | null> {
     const sql = `SELECT * FROM ${License.tableName} WHERE LOWER(name) = ?`;
     const results = await License.query(context, sql, [name?.toLowerCase()?.trim()], reference);
     return Array.isArray(results) && results.length > 0 ? new License(results[0]) : null;

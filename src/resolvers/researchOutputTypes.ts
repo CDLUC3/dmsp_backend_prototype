@@ -27,7 +27,7 @@ export const resolvers: Resolvers = {
     },
 
     // returns a research output type that matches the specified ID
-    researchOutputType: async (_, { id }, context: MyContext): Promise<ResearchOutputType> => {
+    researchOutputType: async (_, { id }, context: MyContext) => {
       const reference = 'ResearchOutputTypeById resolver';
       try {
         return await ResearchOutputType.findById(reference, context, id);
@@ -38,7 +38,7 @@ export const resolvers: Resolvers = {
     },
 
     // returns the research output type that matches the specified name
-    researchOutputTypeByName: async (_, { name }, context: MyContext): Promise<ResearchOutputType> => {
+    researchOutputTypeByName: async (_, { name }, context: MyContext) => {
       const reference = 'ResearchOutputTypeByURL resolver';
       try {
         const value = ResearchOutputType.nameToValue(name);
@@ -57,7 +57,11 @@ export const resolvers: Resolvers = {
       try {
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
-          const outputType = new ResearchOutputType({ name, description });
+          const outputType = new ResearchOutputType({
+            name,
+            value: ResearchOutputType.nameToValue(name),
+            description: description ?? undefined
+          });
           return await outputType.create(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -82,7 +86,7 @@ export const resolvers: Resolvers = {
           }
 
           outputType.name = name;
-          outputType.description = description;
+          outputType.description = description ?? undefined;
           return outputType.update(context);
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -99,6 +103,9 @@ export const resolvers: Resolvers = {
       const reference = 'removeResearchOutputType resolver';
       const original = await ResearchOutputType.findById(reference, context, id);
       try {
+        if (isNullOrUndefined(original)) {
+          throw NotFoundError();
+        }
         // If the current user is a superAdmin or an Admin and this is their Affiliation
         if (isSuperAdmin(context.token)) {
           await original.delete(context);
@@ -115,10 +122,10 @@ export const resolvers: Resolvers = {
   },
 
   ResearchOutputType: {
-    created: (parent: ResearchOutputType) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: ResearchOutputType) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

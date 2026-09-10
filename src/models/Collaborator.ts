@@ -28,19 +28,31 @@ export interface ProjectCollaboratorSearchResult {
   affiliationURL?: string;
 }
 
+interface CollaboratorOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  email: string;
+  invitedById?: number;
+  userId?: number;
+}
+
 // An abstract class that represents a User who has been invited to Collaborate on another
 // entity (e.g. Template or Plan)
 export class Collaborator extends MySqlModel {
   public email: string;
-  public invitedById: number;
-  public userId: number;
+  public invitedById?: number;
+  public userId?: number;
 
-  constructor(options) {
+  constructor(options: CollaboratorOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.email = options.email;
     this.invitedById = options.invitedById;
-    this.userId = options.userId ?? null;
+    this.userId = options.userId;
   }
 
   // Validation to be used prior to saving the record
@@ -57,29 +69,33 @@ export class Collaborator extends MySqlModel {
   }
 }
 
+interface TemplateCollaboratorOptions extends CollaboratorOptions {
+  templateId: number;
+}
+
 // An individual that belongs to another affiliation that has been invited to work on a Template
 export class TemplateCollaborator extends Collaborator {
   public templateId: number;
 
   private tableName = 'templateCollaborators';
 
-  constructor(options) {
+  constructor(options: TemplateCollaboratorOptions) {
     super(options);
 
-    this.templateId = options.templateId ?? null;
+    this.templateId = options.templateId;
   }
 
   // Verify that the templateId is present
   async isValid(): Promise<boolean> {
     await super.isValid()
 
-    if (this.templateId === null) this.addError('templateId', 'Template Id can\'t be blank');
+    if (isNullOrUndefined(this.templateId)) this.addError('templateId', 'Template Id can\'t be blank');
 
     return Object.keys(this.errors).length === 0;
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<TemplateCollaborator> {
+  async create(context: MyContext): Promise<TemplateCollaborator | null> {
     const reference = 'TemplateCollaborator.create';
 
     const currentCollaborator = await TemplateCollaborator.findByTemplateIdAndEmail(
@@ -105,11 +121,13 @@ export class TemplateCollaborator extends Collaborator {
         // Save the record and then fetch it
         const newId = await TemplateCollaborator.insert(context, this.tableName, this, reference);
         if (newId) {
-          const inviter = await User.findById(reference, context, this.invitedById);
+          const inviter = this.invitedById ? await User.findById(reference, context, this.invitedById) : null;
           const template = await Template.findById(reference, context, this.templateId);
 
-          // Send out the invitation notification (no async here, can happen in the background)
-          await sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId)
+          if (inviter && template) {
+            // Send out the invitation notification (no async here, can happen in the background)
+            await sendTemplateCollaborationEmail(context, template.name, inviter.getName(), this.email, this.userId);
+          }
 
           return await TemplateCollaborator.findById(reference, context, newId);
         }
@@ -121,7 +139,7 @@ export class TemplateCollaborator extends Collaborator {
   }
 
   // Update the record
-  async update(context: MyContext): Promise<TemplateCollaborator> {
+  async update(context: MyContext): Promise<TemplateCollaborator | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       if (this.id) {
@@ -152,14 +170,16 @@ export class TemplateCollaborator extends Collaborator {
   }
 
   // Remove this record
-  async delete(context: MyContext): Promise<TemplateCollaborator> {
-    const existing = await TemplateCollaborator.findById('TemplateCollaborator.delete', context, this.id);
-    if (existing) {
-      const result = await TemplateCollaborator.delete(context, this.tableName, this.id, 'TemplateCollaborator.delete');
-      if (!result) {
-        existing.addError('general', 'Unable to delete the collaborator');
+  async delete(context: MyContext): Promise<TemplateCollaborator | null> {
+    if (this.id) {
+      const existing = await TemplateCollaborator.findById('TemplateCollaborator.delete', context, this.id);
+      if (existing) {
+        const result = await TemplateCollaborator.delete(context, this.tableName, this.id, 'TemplateCollaborator.delete');
+        if (!result) {
+          existing.addError('general', 'Unable to delete the collaborator');
+        }
+        return new TemplateCollaborator(existing);
       }
-      return new TemplateCollaborator(existing);
     }
     return null;
   }
@@ -180,7 +200,7 @@ export class TemplateCollaborator extends Collaborator {
     reference: string,
     context: MyContext,
     id: number,
-  ): Promise<TemplateCollaborator> {
+  ): Promise<TemplateCollaborator | null> {
     const sql = 'SELECT * FROM templateCollaborators WHERE id = ?';
     const results = await TemplateCollaborator.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new TemplateCollaborator(results[0]) : null;
@@ -213,7 +233,7 @@ export class TemplateCollaborator extends Collaborator {
     context: MyContext,
     templateId: number,
     email: string,
-  ): Promise<TemplateCollaborator> {
+  ): Promise<TemplateCollaborator | null> {
     const sql = 'SELECT * FROM templateCollaborators WHERE templateId = ? AND email = ?';
     const vals = [templateId?.toString(), email];
     const results = await TemplateCollaborator.query(context, sql, vals, reference);
@@ -238,16 +258,21 @@ export interface ProjectCollaboratorWithUser extends ProjectCollaborator {
   affiliationId: string | null;
 }
 
+interface ProjectCollaboratorOptions extends CollaboratorOptions {
+  projectId: number;
+  accessLevel?: ProjectCollaboratorAccessLevel;
+}
+
 export class ProjectCollaborator extends Collaborator {
   public projectId: number;
   public accessLevel: ProjectCollaboratorAccessLevel;
 
   private tableName = 'projectCollaborators';
 
-  constructor(options) {
+  constructor(options: ProjectCollaboratorOptions) {
     super(options);
 
-    this.projectId = options.projectId ?? null;
+    this.projectId = options.projectId;
     this.accessLevel = options.accessLevel ?? ProjectCollaboratorAccessLevel.COMMENT;
   }
 
@@ -262,7 +287,7 @@ export class ProjectCollaborator extends Collaborator {
   }
 
   // Save the current record
-  async create(context: MyContext, sendEmailNotification = true): Promise<ProjectCollaborator> {
+  async create(context: MyContext, sendEmailNotification = true): Promise<ProjectCollaborator | null> {
     const reference = 'ProjectCollaborator.create';
 
     const currentCollaborator = await ProjectCollaborator.findByProjectIdAndEmail(
@@ -288,10 +313,10 @@ export class ProjectCollaborator extends Collaborator {
         // Save the record and then fetch it
         const newId = await ProjectCollaborator.insert(context, this.tableName, this, reference);
         if (newId) {
-          const inviter = await User.findById(reference, context, this.invitedById);
+          const inviter = this.invitedById ? await User.findById(reference, context, this.invitedById) : null;
           const project = await Project.findById(reference, context, this.projectId);
 
-          if (sendEmailNotification) {
+          if (sendEmailNotification && inviter && project) {
             // Send out the invitation notification (no async here, can happen in the background)
             await sendProjectCollaborationEmail(context, project.title, inviter.getName(), this.email, this.userId)
           }
@@ -306,7 +331,7 @@ export class ProjectCollaborator extends Collaborator {
   }
 
   // Update the record
-  async update(context: MyContext): Promise<ProjectCollaborator> {
+  async update(context: MyContext): Promise<ProjectCollaborator | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       if (this.id) {
@@ -337,14 +362,16 @@ export class ProjectCollaborator extends Collaborator {
   }
 
   // Remove this record
-  async delete(context: MyContext): Promise<ProjectCollaborator> {
-    const existing = await ProjectCollaborator.findById('ProjectCollaborator.delete', context, this.id);
-    if (existing) {
-      const result = await ProjectCollaborator.delete(context, this.tableName, this.id, 'ProjectCollaborator.delete');
-      if (!result) {
-        existing.addError('general', 'Unable to delete the collaborator');
+  async delete(context: MyContext): Promise<ProjectCollaborator | null> {
+    if (this.id) {
+      const existing = await ProjectCollaborator.findById('ProjectCollaborator.delete', context, this.id);
+      if (existing) {
+        const result = await ProjectCollaborator.delete(context, this.tableName, this.id, 'ProjectCollaborator.delete');
+        if (!result) {
+          existing.addError('general', 'Unable to delete the collaborator');
+        }
+        return new ProjectCollaborator(existing);
       }
-      return new ProjectCollaborator(existing);
     }
     return null;
   }
@@ -365,7 +392,7 @@ export class ProjectCollaborator extends Collaborator {
     reference: string,
     context: MyContext,
     id: number,
-  ): Promise<ProjectCollaborator> {
+  ): Promise<ProjectCollaborator | null> {
     const sql = 'SELECT * FROM projectCollaborators WHERE id = ?';
     const results = await ProjectCollaborator.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;
@@ -399,7 +426,7 @@ export class ProjectCollaborator extends Collaborator {
     context: MyContext,
     userId: number,
     projectId: number
-  ): Promise<ProjectCollaborator> {
+  ): Promise<ProjectCollaborator | null> {
     const sql = 'SELECT * FROM projectCollaborators WHERE userId = ? AND projectId = ?';
     const results = await ProjectCollaborator.query(context, sql, [userId?.toString(), projectId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new ProjectCollaborator(results[0]) : null;
@@ -411,7 +438,7 @@ export class ProjectCollaborator extends Collaborator {
     context: MyContext,
     projectId: number,
     email: string,
-  ): Promise<ProjectCollaborator> {
+  ): Promise<ProjectCollaborator | null> {
     const sql = 'SELECT * FROM projectCollaborators WHERE projectId = ? AND email = ?';
     const vals = [projectId?.toString(), email];
     const results = await ProjectCollaborator.query(context, sql, vals, reference);
@@ -423,7 +450,7 @@ export class ProjectCollaborator extends Collaborator {
     reference: string,
     context: MyContext,
     orcid: string
-  ): Promise<CollaboratorSearchResult> {
+  ): Promise<CollaboratorSearchResult | null> {
     // Get the fully formatted ORCID
     const fullOrcid = formatORCID(orcid);
     // Get the ORCID without the base URL
@@ -431,13 +458,13 @@ export class ProjectCollaborator extends Collaborator {
 
     if (!isNullOrUndefined(fullOrcid) && !isNullOrUndefined(orcid)) {
       // First try to find the user in the User table
-      const user: User = await User.findByOrcid(reference, context, fullOrcid);
+      const user: User | null = await User.findByOrcid(reference, context, fullOrcid);
       if (!isNullOrUndefined(user)) {
         // We found the person in our users table, so just return the info we have
         const affiliation = await Affiliation.findByURI(
           reference,
           context,
-          user.affiliationId
+          user.affiliationId ?? ''
         );
 
         return {
@@ -454,7 +481,7 @@ export class ProjectCollaborator extends Collaborator {
       } else {
         // Finally, call the ORCID API to get the person's details
         const orcidAPI: OrcidAPI = new OrcidAPI({ cache: context.cache });
-        const orcidData: OrcidPerson = await orcidAPI.getPerson(context, orcidId, reference);
+        const orcidData: OrcidPerson | null = await orcidAPI.getPerson(context, orcidId, reference);
 
         if (isNullOrUndefined(orcidData)) {
           return null;
@@ -485,7 +512,7 @@ export class ProjectCollaborator extends Collaborator {
     let results: ProjectCollaboratorSearchResult[] = [];
     let totalCount = 0;
     let hasNextPage = false;
-    let nextCursor: string = null;
+    let nextCursor: string | undefined = undefined;
     const limit = ProjectCollaborator.getPaginationLimit(options?.limit);
 
     // Gather all the projects associated with the current user's affiliation
@@ -539,7 +566,7 @@ export class ProjectCollaborator extends Collaborator {
       const baseValues = [
         context.token?.affiliationId ? context.token.affiliationId : 'NULL',
         ...Array.from({ length: 3 }, () => `%${term.toLowerCase()}%`),
-        ...projects.map(p => p.id.toString()),
+        ...projects.map(p => p.id?.toString() ?? ''),
         ...Array.from({ length: 3 }, () => `%${term.toLowerCase()}%`),
       ].flat().filter(v => v !== undefined);
 
@@ -576,7 +603,7 @@ export class ProjectCollaborator extends Collaborator {
       items: results.slice(0, limit), // Return only the first 'limit' items
       limit,
       totalCount,
-      nextCursor: hasNextPage ? nextCursor : null,
+      nextCursor: hasNextPage ? nextCursor : undefined,
       hasNextPage,
       availableSortFields: ['u.surName', 'u.givenName', 'ue.email'],
     };

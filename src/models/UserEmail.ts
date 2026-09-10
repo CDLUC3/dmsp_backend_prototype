@@ -7,6 +7,19 @@ import {
 import { TemplateCollaborator } from "./Collaborator.js";
 import { MySqlModel } from "./MySqlModel.js";
 
+interface UserEmailOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  userId: number;
+  email: string;
+  isPrimary?: boolean;
+  isConfirmed?: boolean;
+}
+
 // Reepresents one of the user's email addresses
 export class UserEmail extends MySqlModel {
   public userId: number;
@@ -17,7 +30,7 @@ export class UserEmail extends MySqlModel {
   private tableName = 'userEmails';
 
   // Initialize a new User
-  constructor(options) {
+  constructor(options: UserEmailOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.userId = options.userId;
@@ -37,7 +50,7 @@ export class UserEmail extends MySqlModel {
   }
 
   // Confirm the user owns the email
-  static async confirmEmail(context: MyContext, userId: number, email: string): Promise<UserEmail> {
+  static async confirmEmail(context: MyContext, userId: number, email: string): Promise<UserEmail | null> {
     const ref = 'UserEmail.confirmEmail';
     // Fetch all of the existing records with the current email
     const userEmail = await UserEmail.findByUserIdAndEmail(ref, context, userId, email);
@@ -82,7 +95,7 @@ export class UserEmail extends MySqlModel {
     obj: UserEmail,
     reference = 'undefined caller',
     skipKeys?: string[]
-  ): Promise<number> {
+  ): Promise<number | null> {
     // Update the creator/modifier info
     const currentDate = getCurrentDate();
     obj.createdById = obj.userId;
@@ -103,7 +116,7 @@ export class UserEmail extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<UserEmail> {
+  async create(context: MyContext): Promise<UserEmail | null> {
     const ref = 'UserEmail.create';
     // First make sure the record is valid
     if (await this.isValid()) {
@@ -125,7 +138,7 @@ export class UserEmail extends MySqlModel {
       if (Object.keys(this.errors).length === 0) {
         // Save the record and then fetch it
         const newId = await UserEmail.insert(context, this.tableName, this, ref);
-        const created = await UserEmail.findById(ref, context, newId);
+        const created = newId ? await UserEmail.findById(ref, context, newId) : null;
 
         if (created) {
           // Send out an email confirmation notification. No async, can happen in background
@@ -139,7 +152,7 @@ export class UserEmail extends MySqlModel {
   }
 
   // Save the changes made to the UserEmail
-  async update(context: MyContext): Promise<UserEmail> {
+  async update(context: MyContext): Promise<UserEmail | null> {
     if (this.id) {
       // First make sure the record is valid
       if (await this.isValid()) {
@@ -162,7 +175,7 @@ export class UserEmail extends MySqlModel {
   }
 
   //Delete this UserEmail
-  async delete(context: MyContext): Promise<UserEmail> {
+  async delete(context: MyContext): Promise<UserEmail | null> {
     if (this.id) {
       const deleted = await UserEmail.findById('UserEmail.delete', context, this.id);
 
@@ -180,7 +193,7 @@ export class UserEmail extends MySqlModel {
   }
 
   // Return the specified UserEmail
-  static async findById(reference: string, context: MyContext, id: number): Promise<UserEmail> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<UserEmail | null> {
     const sql = 'SELECT * FROM userEmails WHERE id = ?';
     const results = await UserEmail.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new UserEmail(results[0]) : null;
@@ -192,7 +205,7 @@ export class UserEmail extends MySqlModel {
     context: MyContext,
     userId: number,
     email: string
-  ): Promise<UserEmail> {
+  ): Promise<UserEmail | null> {
     const sql = 'SELECT * FROM userEmails WHERE userId = ? AND email = ?';
     const results = await UserEmail.query(context, sql, [userId?.toString(), email], reference);
     return Array.isArray(results) && results.length > 0 ? new UserEmail(results[0]) : null;
@@ -243,7 +256,7 @@ export class UserEmail extends MySqlModel {
     userId: number,
     email: string,
     isConfirmed = false
-  ): Promise<UserEmail> {
+  ): Promise<UserEmail | null> {
     const ref = 'UserEmail.createOrUpdatePrimary';
     // Find current primary email for user
     const currentPrimary = await UserEmail.findPrimaryByUserId(ref, context, userId);

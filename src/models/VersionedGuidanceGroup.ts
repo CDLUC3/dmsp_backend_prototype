@@ -2,6 +2,23 @@ import { MyContext } from "../context.js";
 import { MySqlModel } from "./MySqlModel.js";
 import { VersionedGuidance } from "./VersionedGuidance.js";
 
+interface VersionedGuidanceGroupOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  guidanceGroupId: number;
+  version?: number;
+  bestPractice?: boolean;
+  optionalSubset?: boolean;
+  active?: boolean;
+  name: string;
+  description?: string;
+  versionedGuidance?: VersionedGuidance[];
+}
+
 export class VersionedGuidanceGroup extends MySqlModel {
   public guidanceGroupId: number;
   public version?: number;
@@ -14,7 +31,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
 
   private static tableName = 'versionedGuidanceGroups';
 
-  constructor(options) {
+  constructor(options: VersionedGuidanceGroupOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.guidanceGroupId = options.guidanceGroupId;
@@ -44,21 +61,23 @@ export class VersionedGuidanceGroup extends MySqlModel {
   }
 
   // Insert the new record
-  async create(context: MyContext): Promise<VersionedGuidanceGroup> {
+  async create(context: MyContext): Promise<VersionedGuidanceGroup | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       this.prepForSave();
 
       // Save the record and then fetch it
       const newId = await VersionedGuidanceGroup.insert(context, VersionedGuidanceGroup.tableName, this, 'VersionedGuidanceGroup.create', ['versionedGuidance']);
-      return await VersionedGuidanceGroup.findById('VersionedGuidanceGroup.create', context, newId);
+      if (newId) {
+        return await VersionedGuidanceGroup.findById('VersionedGuidanceGroup.create', context, newId);
+      }
     }
     // Otherwise return as-is with all the errors
     return new VersionedGuidanceGroup(this);
   }
 
   // Update an existing VersionedGuidanceGroup (mainly for setting active flag)
-  async update(context: MyContext, noTouch = false): Promise<VersionedGuidanceGroup> {
+  async update(context: MyContext, noTouch = false): Promise<VersionedGuidanceGroup | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -74,7 +93,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
   }
 
   // Find the VersionedGuidanceGroup by id
-  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedGuidanceGroup> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedGuidanceGroup | null> {
     const sql = `SELECT * FROM ${VersionedGuidanceGroup.tableName} WHERE id = ?`;
     const results = await VersionedGuidanceGroup.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedGuidanceGroup(results[0]) : null;
@@ -88,7 +107,7 @@ export class VersionedGuidanceGroup extends MySqlModel {
   }
 
   // Find the active VersionedGuidanceGroup for a given guidanceGroupId
-  static async findActiveByGuidanceGroupId(reference: string, context: MyContext, guidanceGroupId: number): Promise<VersionedGuidanceGroup> {
+  static async findActiveByGuidanceGroupId(reference: string, context: MyContext, guidanceGroupId: number): Promise<VersionedGuidanceGroup | null> {
     const sql = `SELECT * FROM ${VersionedGuidanceGroup.tableName} WHERE guidanceGroupId = ? AND active = 1 LIMIT 1`;
     const results = await VersionedGuidanceGroup.query(context, sql, [guidanceGroupId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedGuidanceGroup(results[0]) : null;

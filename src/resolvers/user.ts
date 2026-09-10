@@ -1,4 +1,4 @@
-import { Resolvers, UserSearchResults } from "../types.js";
+import { Affiliation as AffiliationGQL, Resolvers, UpdateUserInfoInput, UpdateUserRoleInput, UserSearchResults } from "../types.js";
 import { MyContext } from '../context.js';
 import { User, UserRole } from '../models/User.js';
 import { UserEmail } from "../models/UserEmail.js";
@@ -28,7 +28,11 @@ export const resolvers: Resolvers = {
       const reference = 'me resolver';
       try {
         if (isAuthorized(context?.token)) {
-          return await User.findById(reference, context, context.token.id);
+          const user = await User.findById(reference, context, context.token.id);
+          if (isNullOrUndefined(user)) {
+            throw NotFoundError();
+          }
+          return user;
         }
         throw AuthenticationError();
       } catch (err) {
@@ -50,10 +54,10 @@ export const resolvers: Resolvers = {
           : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
         if (isSuperAdmin(context.token)) {
-          return await User.search(reference, context, term, opts, role as unknown as UserRole, affiliationId);
+          return await User.search(reference, context, term ?? '', opts, role as unknown as UserRole, affiliationId ?? undefined);
 
         } else if (isAdmin(context.token)) {
-          return await User.findByAffiliationId(reference, context, context.token.affiliationId, term, opts, role as unknown as UserRole);
+          return await User.findByAffiliationId(reference, context, context.token.affiliationId, term ?? '', opts, role as unknown as UserRole);
         }
 
         // Unauthorized!
@@ -113,24 +117,30 @@ export const resolvers: Resolvers = {
           // Either use the affiliationId provided or create one
           if (otherAffiliationName) {
             const affiliation = await processOtherAffiliationName(context, otherAffiliationName);
-            if (affiliation.hasErrors()) {
-              const err = affiliation.errors?.general ?? 'Unable to save the affiliation at this time';
+            if (isNullOrUndefined(affiliation) || affiliation.hasErrors()) {
+              const err = affiliation?.errors?.general ?? 'Unable to save the affiliation at this time';
               user.addError('otherAffiliationName', err);
               return user;
             }
             user.affiliationId = affiliation.uri;
           } else {
-            user.affiliationId = affiliationId;
+            user.affiliationId = affiliationId ?? undefined;
           }
 
           user.givenName = givenName;
           user.surName = surName;
           user.languageId = languageId || defaultLanguageId;
           const updated = await new User(user).update(context);
-          if (!updated || updated.hasErrors()) {
+          if (isNullOrUndefined(updated) || updated.hasErrors()) {
             user.addError('general', 'Unable to save the profile changes at this time');
           }
-          return user.hasErrors() ? user : updated;
+          if (user.hasErrors()) {
+            return user;
+          }
+          if (isNullOrUndefined(updated)) {
+            throw NotFoundError();
+          }
+          return updated;
         }
         // Unauthenticated
         throw AuthenticationError();
@@ -147,15 +157,7 @@ export const resolvers: Resolvers = {
       async (
         _: Record<PropertyKey, never>,
         { input: { userId, email, givenName, surName, affiliationId, otherAffiliationName, languageId } }: {
-          input: {
-            userId: number;
-            email: string;
-            givenName: string;
-            surName: string;
-            affiliationId: string;
-            otherAffiliationName?: string;
-            languageId: string;
-          }
+          input: UpdateUserInfoInput
         },
         context: MyContext
       ): Promise<User> => {
@@ -165,17 +167,20 @@ export const resolvers: Resolvers = {
           if (!user || !user.active || user.locked) {
             throw ForbiddenError();
           }
+          if (isNullOrUndefined(user.id)) {
+            throw NotFoundError();
+          }
 
           if (otherAffiliationName) {
             const affiliation = await processOtherAffiliationName(context, otherAffiliationName);
-            if (affiliation.hasErrors()) {
-              const err = affiliation.errors?.general ?? 'Unable to save the affiliation at this time';
+            if (isNullOrUndefined(affiliation) || affiliation.hasErrors()) {
+              const err = affiliation?.errors?.general ?? 'Unable to save the affiliation at this time';
               user.addError('otherAffiliationName', err);
               return user;
             }
             user.affiliationId = affiliation.uri;
           } else {
-            user.affiliationId = affiliationId;
+            user.affiliationId = affiliationId ?? undefined;
           }
 
           // Update the email
@@ -203,10 +208,17 @@ export const resolvers: Resolvers = {
           user.languageId = languageId || defaultLanguageId;
           const updated = await new User(user).update(context);
 
-          if (!updated || updated.hasErrors()) {
+          if (isNullOrUndefined(updated) || updated.hasErrors()) {
             user.addError('general', 'Unable to save the profile changes at this time');
           }
-          return user.hasErrors() ? user : await User.findById(reference, context, user.id);
+          if (user.hasErrors()) {
+            return user;
+          }
+          const refetched = await User.findById(reference, context, user.id);
+          if (isNullOrUndefined(refetched)) {
+            throw NotFoundError();
+          }
+          return refetched;
 
         } catch (err) {
           if (err instanceof GraphQLError) throw err;
@@ -222,10 +234,7 @@ export const resolvers: Resolvers = {
       async (
         _: Record<PropertyKey, never>,
         { input: { userId, role } }: {
-          input: {
-            userId: number;
-            role: UserRole;
-          }
+          input: UpdateUserRoleInput
         },
         context: MyContext
       ): Promise<User> => {
@@ -236,6 +245,9 @@ export const resolvers: Resolvers = {
 
           if (!targetUser || !targetUser.active || targetUser.locked) {
             throw ForbiddenError();
+          }
+          if (isNullOrUndefined(currentUser)) {
+            throw NotFoundError();
           }
 
           // Org Admins cannot assign SUPERADMIN role
@@ -248,7 +260,7 @@ export const resolvers: Resolvers = {
             throw ForbiddenError();
           }
 
-          targetUser.role = role;
+          targetUser.role = role as unknown as UserRole;
           const updated = await new User(targetUser).update(context);
 
           if (!updated || updated.hasErrors()) {
@@ -256,7 +268,11 @@ export const resolvers: Resolvers = {
             return targetUser;
           }
 
-          return await User.findById(reference, context, userId);
+          const refetched = await User.findById(reference, context, userId);
+          if (isNullOrUndefined(refetched)) {
+            throw NotFoundError();
+          }
+          return refetched;
 
         } catch (err) {
           if (err instanceof GraphQLError) throw err;
@@ -288,10 +304,16 @@ export const resolvers: Resolvers = {
           user.notify_on_plan_shared = notify_on_plan_shared || true;
           user.notify_on_plan_visibility_change = notify_on_plan_visibility_change || true;
           const updated = await new User(user).update(context);
-          if (!updated || updated.hasErrors()) {
+          if (isNullOrUndefined(updated) || updated.hasErrors()) {
             user.addError('general', 'Unable to save the notification settings at this time');
           }
-          return user.hasErrors() ? user : updated;
+          if (user.hasErrors()) {
+            return user;
+          }
+          if (isNullOrUndefined(updated)) {
+            throw NotFoundError();
+          }
+          return updated;
         }
         // Unauthenticated
         throw AuthenticationError();
@@ -314,10 +336,16 @@ export const resolvers: Resolvers = {
 
           user.orcid = orcid;
           const updated = await new User(user).update(context);
-          if (!updated || updated.hasErrors()) {
+          if (isNullOrUndefined(updated) || updated.hasErrors()) {
             user.addError('general', 'Unable to save the ORCID at this time');
           }
-          return user.hasErrors() ? user : updated;
+          if (user.hasErrors()) {
+            return user;
+          }
+          if (isNullOrUndefined(updated)) {
+            throw NotFoundError();
+          }
+          return updated;
         }
         // Unauthenticated
         throw AuthenticationError();
@@ -339,10 +367,16 @@ export const resolvers: Resolvers = {
           }
           const userEmail = new UserEmail({ userId: context.token.id, email: email, isPrimary: isPrimary || false });
           const created = await userEmail.create(context);
-          if (!created || created.hasErrors()) {
+          if (isNullOrUndefined(created) || created.hasErrors()) {
             userEmail.addError('general', 'Unable to add the email at this time');
           }
-          return userEmail.hasErrors() ? userEmail : created;
+          if (userEmail.hasErrors()) {
+            return userEmail;
+          }
+          if (isNullOrUndefined(created)) {
+            throw NotFoundError();
+          }
+          return created;
         }
         // Unauthenticated
         throw AuthenticationError();
@@ -369,10 +403,16 @@ export const resolvers: Resolvers = {
           }
 
           const deleted = await new UserEmail(userEmail).delete(context);
-          if (!deleted || deleted.hasErrors()) {
+          if (isNullOrUndefined(deleted) || deleted.hasErrors()) {
             userEmail.addError('general', 'Unable to remove the email at this time');
           }
-          return userEmail.hasErrors() ? userEmail : deleted;
+          if (userEmail.hasErrors()) {
+            return userEmail;
+          }
+          if (isNullOrUndefined(deleted)) {
+            throw NotFoundError();
+          }
+          return deleted;
         }
         // Unauthenticated
         throw AuthenticationError();
@@ -391,6 +431,9 @@ export const resolvers: Resolvers = {
           // Only continue if the user is active and not locked
           if (!user || !user.active || user.locked) {
             throw ForbiddenError();
+          }
+          if (isNullOrUndefined(user.id)) {
+            throw NotFoundError();
           }
 
           const userEmails = await UserEmail.findByUserId(ref, context, context.token.id);
@@ -416,11 +459,11 @@ export const resolvers: Resolvers = {
             }
           } else {
             // On error, revert to the original state
-            const mergedData = { ...existing, ...originalState, errors: updated.errors };
+            const mergedData = { ...existing, ...originalState, errors: updated?.errors };
             const originalWithErrors = new UserEmail(mergedData);
 
             // Set errors explicitly to avoid being overwritten by the UserEmail instance initialization
-            originalWithErrors.errors = updated.errors || {};
+            originalWithErrors.errors = updated?.errors || {};
 
             return [originalWithErrors];
           }
@@ -450,7 +493,14 @@ export const resolvers: Resolvers = {
           if (!updated || updated.hasErrors()) {
             user.addError('general', 'Unable to update the password at this time');
           }
-          return user.hasErrors() ? user : User.findById(reference, context, context.token.id);
+          if (user.hasErrors()) {
+            return user;
+          }
+          const refetched = await User.findById(reference, context, context.token.id);
+          if (isNullOrUndefined(refetched)) {
+            throw NotFoundError();
+          }
+          return refetched;
         }
         // Unauthenticated
         throw AuthenticationError();
@@ -481,8 +531,15 @@ export const resolvers: Resolvers = {
             if (!updated || updated.hasErrors()) {
               user.addError('general', 'Unable to deactivate the user at this time');
             }
+            if (user.hasErrors()) {
+              return user;
+            }
             // Return the result, because updated will not return a User since they are now inactive
-            return user.hasErrors() ? user : await User.findById(reference, context, userId);
+            const refetched = await User.findById(reference, context, userId);
+            if (isNullOrUndefined(refetched)) {
+              throw NotFoundError();
+            }
+            return refetched;
           }
         }
         // Unauthorized!
@@ -514,7 +571,14 @@ export const resolvers: Resolvers = {
             if (!updated || updated.hasErrors()) {
               user.addError('general', 'Unable to activate the user at this time');
             }
-            return user.hasErrors() ? user : await User.findById(reference, context, userId);
+            if (user.hasErrors()) {
+              return user;
+            }
+            const refetched = await User.findById(reference, context, userId);
+            if (isNullOrUndefined(refetched)) {
+              throw NotFoundError();
+            }
+            return refetched;
           }
         }
         // Unauthorized!
@@ -584,32 +648,54 @@ export const resolvers: Resolvers = {
     },
   },
 
+  // NOTE: `parent` below is typed to the GraphQL-facing shape, but at runtime it is actually
+  // the model instance returned by the parent resolver, so it's cast back via `as unknown as X`.
   User: {
     // Chained resolver to fetch the Affiliation info for the user
-    affiliation: async (parent: User, _, context): Promise<Affiliation> => {
-      return await Affiliation.findByURI('Chained User.affiliation', context, parent.affiliationId);
+    affiliation: async (parent, _, context) => {
+      const model = parent as unknown as User;
+      if (isNullOrUndefined(model.affiliationId)) {
+        return null;
+      }
+      const affiliation = await Affiliation.findByURI('Chained User.affiliation', context, model.affiliationId);
+      return affiliation ? (affiliation as unknown as AffiliationGQL) : null;
     },
     // Chained resolver to fetch the secondary email addresses
-    emails: async (parent: User, _, context): Promise<UserEmail[]> => {
-      return await UserEmail.findByUserId('Chained User.emails', context, parent.id);
+    emails: async (parent, _, context): Promise<UserEmail[]> => {
+      const model = parent as unknown as User;
+      if (isNullOrUndefined(model.id)) {
+        return [];
+      }
+      return await UserEmail.findByUserId('Chained User.emails', context, model.id);
     },
     // Chained resolver to fetch the primary email address
-    email: async (parent: User, _, context): Promise<string | null> => {
-      const primaryEmail = await UserEmail.findPrimaryByUserId('Chained User.email', context, parent.id);
+    email: async (parent, _, context) => {
+      const model = parent as unknown as User;
+      if (isNullOrUndefined(model.id)) {
+        return null;
+      }
+      const primaryEmail = await UserEmail.findPrimaryByUserId('Chained User.email', context, model.id);
       return primaryEmail ? primaryEmail.email : null;
     },
     // Chained resolver to fetch plans associated with the user
-    plans: async (parent: User, _, context): Promise<Plan[]> => {
-      return await Plan.findByUserId('Chained User.plans', context, parent.id);
+    plans: async (parent, _, context): Promise<Plan[]> => {
+      const model = parent as unknown as User;
+      if (isNullOrUndefined(model.id)) {
+        return [];
+      }
+      return await Plan.findByUserId('Chained User.plans', context, model.id);
     },
-    last_sign_in: (parent: User) => {
-      return normaliseDateTime(parent.last_sign_in);
+    last_sign_in: (parent) => {
+      const model = parent as unknown as User;
+      return normaliseDateTime(model.last_sign_in);
     },
-    created: (parent: User) => {
-      return normaliseDateTime(parent.created);
+    created: (parent) => {
+      const model = parent as unknown as User;
+      return normaliseDateTime(model.created);
     },
-    modified: (parent: User) => {
-      return normaliseDateTime(parent.modified);
+    modified: (parent) => {
+      const model = parent as unknown as User;
+      return normaliseDateTime(model.modified);
     }
   },
 };

@@ -4,6 +4,28 @@ import { MySqlModel } from "./MySqlModel.js";
 import { QuestionConditionActionType, QuestionConditionMatchType } from "./QuestionCondition.js";
 import { isNullOrUndefined, removeNullAndUndefinedFromJSON } from "../utils/helpers.js";
 
+interface VersionedQuestionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  versionedTemplateId: number;
+  versionedSectionId: number;
+  questionId: number;
+  json: string;
+  questionText: string;
+  requirementText?: string;
+  guidanceText?: string;
+  sampleText?: string;
+  useSampleTextAsDefault?: boolean;
+  required?: boolean;
+  displayOrder: number;
+  displayLogicAction?: QuestionConditionActionType;
+  displayLogicMatchType?: QuestionConditionMatchType;
+}
+
 export class VersionedQuestion extends MySqlModel {
   public versionedTemplateId: number;
   public versionedSectionId: number;
@@ -21,17 +43,18 @@ export class VersionedQuestion extends MySqlModel {
 
   private tableName = 'versionedQuestions';
 
-  constructor(options) {
+  constructor(options: VersionedQuestionOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.versionedTemplateId = options.versionedTemplateId;
     this.versionedSectionId = options.versionedSectionId;
     this.questionId = options.questionId;
+    this.json = options.json;
     // Ensure json is stored as a string
     try {
       this.json = removeNullAndUndefinedFromJSON(options.json);
     } catch (e) {
-      this.addError('json', e.message);
+      this.addError('json', e instanceof Error ? e.message : String(e));
     }
     this.questionText = options.questionText;
     this.requirementText = options.requirementText;
@@ -56,16 +79,17 @@ export class VersionedQuestion extends MySqlModel {
     // If json is not null or undefined and the type is in the schema map
     if (!isNullOrUndefined(this.json) && this.errors['json'] === undefined) {
       const parsedJSON = JSON.parse(this.json);
-      if (Object.keys(QuestionSchemaMap).includes(parsedJSON['type'])) {
+      const questionType = parsedJSON['type'] as keyof typeof QuestionSchemaMap;
+      if (Object.keys(QuestionSchemaMap).includes(questionType)) {
         // Validate the json against the Zod schema and if valid, set the questionType
         try {
-          const result = QuestionSchemaMap[parsedJSON['type']]?.safeParse(parsedJSON);
+          const result = QuestionSchemaMap[questionType]?.safeParse(parsedJSON);
           if (result && !result.success) {
             // If there are validation errors, add them to the errors object
-            this.addError('json', result.error?.issues?.map(e => `${e.path.join('.')} - ${e.message}`)?.join('; '));
+            this.addError('json', result.error?.issues?.map((e) => `${e.path.join('.')} - ${e.message}`)?.join('; '));
           }
         } catch (e) {
-          this.addError('json', e.message);
+          this.addError('json', e instanceof Error ? e.message : String(e));
         }
       } else {
         // If the type is not in the schema map, add an error
@@ -81,19 +105,22 @@ export class VersionedQuestion extends MySqlModel {
   }
 
   // Insert the new record
-  async create(context: MyContext): Promise<VersionedQuestion> {
+  async create(context: MyContext): Promise<VersionedQuestion | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
       const newId = await VersionedQuestion.insert(context, this.tableName, this, 'VersionedQuestion.create');
-      return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
+      if (newId) {
+        return await VersionedQuestion.findById('VersionedQuestion.create', context, newId);
+      }
+      this.addError('general', 'VersionedQuestion was not created successfully');
     }
     // Otherwise return as-is with all the errors
     return new VersionedQuestion(this);
   }
 
   // Find the VersionedQuestion by id
-  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedQuestion> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedQuestion | null> {
     const sql = 'SELECT * FROM versionedQuestions WHERE id = ?';
     const results = await VersionedQuestion.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedQuestion(results[0]) : null;
@@ -121,7 +148,7 @@ export class VersionedQuestion extends MySqlModel {
     context: MyContext,
     versionedTemplateId: number,
     questionId: number
-  ): Promise<VersionedQuestion> {
+  ): Promise<VersionedQuestion | undefined> {
     const sql = `SELECT * FROM versionedQuestions
       WHERE versionedTemplateId = ? AND questionId = ? ORDER BY modified DESC`;
     const vals = [versionedTemplateId.toString(), questionId.toString()];

@@ -5,6 +5,20 @@ import { MySqlModel } from "./MySqlModel.js";
 
 export const DEFAULT_DMPTOOL_MEMBER_ROLE_URL = 'https://dmptool.org/contributor_roles/';
 
+interface MemberRoleOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  displayOrder: number;
+  uri: string;
+  label: string;
+  description?: string;
+  isDefault?: boolean;
+}
+
 export class MemberRole extends MySqlModel {
   public displayOrder: number;
   public uri: string;
@@ -12,7 +26,7 @@ export class MemberRole extends MySqlModel {
   public description?: string;
   public isDefault: boolean
 
-  constructor(options) {
+  constructor(options: MemberRoleOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
@@ -35,19 +49,23 @@ export class MemberRole extends MySqlModel {
   }
 
   // Return the default role
-  static async defaultRole(context: MyContext, reference = 'MemberRole.defaultRole'): Promise<MemberRole> {
+  static async defaultRole(context: MyContext, reference = 'MemberRole.defaultRole'): Promise<MemberRole | null> {
     const sql = 'SELECT * FROM memberRoles WHERE isDefault = 1';
     const results = await MemberRole.query(context, sql, [], reference);
-    return Array.isArray(results) ? new MemberRole(results[0]) : null;
+    return Array.isArray(results) && results.length > 0 ? new MemberRole(results[0]) : null;
   }
 
   // Add an association for a MemberRole with a ProjectMember
   async addToProjectMember(context: MyContext, projectMemberId: number): Promise<boolean> {
     const reference = 'MemberRole.addToProjectMember';
+    if (!this.id) {
+      context.logger.error(`${reference} - MemberRole has never been saved`);
+      return false;
+    }
     let sql = 'INSERT INTO projectMemberRoles (memberRoleId, projectMemberId, createdById, ';
     sql += 'modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), projectMemberId?.toString(), userId, userId];
+    const vals = [this.id.toString(), projectMemberId?.toString(), userId, userId];
     const results = await MemberRole.query(context, sql, vals, reference);
 
     if (!results) {
@@ -62,10 +80,14 @@ export class MemberRole extends MySqlModel {
   // Add an association for a MemberRole with a PlanMember
   async addToPlanMember(context: MyContext, planMemberId: number): Promise<boolean> {
     const reference = 'MemberRole.addToPlanMember';
+    if (!this.id) {
+      context.logger.error(`${reference} - MemberRole has never been saved`);
+      return false;
+    }
     let sql = 'INSERT INTO planMemberRoles (memberRoleId, planMemberId, createdById, ';
     sql += 'modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), planMemberId?.toString(), userId, userId];
+    const vals = [this.id.toString(), planMemberId?.toString(), userId, userId];
     const results = await MemberRole.query(context, sql, vals, reference);
 
     if (!results) {
@@ -80,8 +102,12 @@ export class MemberRole extends MySqlModel {
   // Remove an association of a MemberRole from a ProjectMember
   async removeFromProjectMember(context: MyContext, projectMemberId: number): Promise<boolean> {
     const reference = 'MemberRole.removeFromProjectMember';
+    if (!this.id) {
+      context.logger.error(`${reference} - MemberRole has never been saved`);
+      return false;
+    }
     const sql = 'DELETE FROM projectMemberRoles WHERE memberRoleId = ? AND projectMemberId = ?';
-    const vals = [this.id?.toString(), projectMemberId?.toString()];
+    const vals = [this.id.toString(), projectMemberId?.toString()];
     const results = await MemberRole.query(context, sql, vals, reference);
 
     if (!results) {
@@ -96,8 +122,12 @@ export class MemberRole extends MySqlModel {
   // Remove an association of a MemberRole from a PlanMember
   async removeFromPlanMember(context: MyContext, planMemberId: number): Promise<boolean> {
     const reference = 'MemberRole.removeFromPlanMember';
+    if (!this.id) {
+      context.logger.error(`${reference} - MemberRole has never been saved`);
+      return false;
+    }
     const sql = 'DELETE FROM planMemberRoles WHERE memberRoleId = ? AND planMemberId = ?';
-    const vals = [this.id?.toString(), planMemberId?.toString()];
+    const vals = [this.id.toString(), planMemberId?.toString()];
     const results = await MemberRole.query(context, sql, vals, reference);
 
     if (!results) {
@@ -117,14 +147,14 @@ export class MemberRole extends MySqlModel {
   }
 
   // Fetch a member role by it's id
-  static async findById(reference: string, context: MyContext, memberRoleById: number): Promise<MemberRole> {
+  static async findById(reference: string, context: MyContext, memberRoleById: number): Promise<MemberRole | null> {
     const sql = 'SELECT * FROM memberRoles WHERE id = ?';
     const results = await MemberRole.query(context, sql, [memberRoleById?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new MemberRole(results[0]) : null;
   }
 
   // Fetch a member role by it's URL
-  static async findByURL(reference: string, context: MyContext, memberRoleByURL: string): Promise<MemberRole> {
+  static async findByURL(reference: string, context: MyContext, memberRoleByURL: string): Promise<MemberRole | null> {
     const sql = 'SELECT * FROM memberRoles WHERE uri = ?';
     const results = await MemberRole.query(context, sql, [memberRoleByURL], reference);
     return Array.isArray(results) && results.length > 0 ? new MemberRole(results[0]) : null;

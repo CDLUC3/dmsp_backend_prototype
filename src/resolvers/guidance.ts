@@ -1,4 +1,4 @@
-import { Resolvers } from "../types.js";
+import { Resolvers, Affiliation as AffiliationGQL, Tag as TagGQL } from "../types.js";
 import { MyContext } from "../context.js";
 import { Guidance, PlanGuidance } from "../models/Guidance.js";
 import { GuidanceGroup } from "../models/GuidanceGroup.js";
@@ -65,7 +65,7 @@ export const resolvers: Resolvers = {
         }
 
         // Admins with permission: full access
-        if (isAdmin(requester) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
+        if (isAdmin(requester) && !isNullOrUndefined(guidanceGroupId) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
@@ -73,7 +73,9 @@ export const resolvers: Resolvers = {
         }
 
         // For other users: check if guidanceGroup is published
-        const guidanceGroup = await GuidanceGroup.findById(reference, context, guidanceGroupId);
+        const guidanceGroup = !isNullOrUndefined(guidanceGroupId)
+          ? await GuidanceGroup.findById(reference, context, guidanceGroupId)
+          : null;
         const isPublished = Boolean(guidanceGroup?.latestPublishedDate || hasPublishedFlag(guidanceGroup));
         if (isPublished) {
           if (!guidance) {
@@ -108,14 +110,14 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
+          if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             const sources = await getGuidanceSourcesForPlan(
               context,
               planId,
-              versionedSectionId,
-              versionedQuestionId,
-              customSectionId,
-              customQuestionId
+              versionedSectionId ?? undefined,
+              versionedQuestionId ?? undefined,
+              customSectionId ?? undefined,
+              customQuestionId ?? undefined
             );
 
             return sources;
@@ -142,8 +144,8 @@ export const resolvers: Resolvers = {
         if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           const guidance = new Guidance({
             guidanceGroupId,
-            guidanceText,
-            tagId,
+            guidanceText: guidanceText ?? undefined,
+            tagId: tagId ?? undefined,
             createdById: context.token.id,
             modifiedById: context.token.id,
           });
@@ -162,7 +164,11 @@ export const resolvers: Resolvers = {
           // Mark the guidance group as dirty
           await markGuidanceGroupAsDirty(context, guidanceGroupId);
 
-          return await Guidance.findById(reference, context, newGuidance.id);
+          const saved = await Guidance.findById(reference, context, newGuidance.id);
+          if (!saved) {
+            throw InternalServerError();
+          }
+          return saved;
         }
 
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -184,14 +190,14 @@ export const resolvers: Resolvers = {
       const guidance = await Guidance.findById(reference, context, guidanceId);
       const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
+        if (isAdmin(context?.token) && !isNullOrUndefined(guidanceGroupId) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
 
           // Update the fields
-          if (guidanceText !== undefined) guidance.guidanceText = guidanceText;
-          guidance.tagId = tagId; // the schema requires tagId to be provided so it will never be undefined
+          if (!isNullOrUndefined(guidanceText)) guidance.guidanceText = guidanceText;
+          guidance.tagId = tagId ?? undefined; // the schema requires tagId to be provided so it will never be undefined
           guidance.modifiedById = context.token.id;
 
           // Save the updates
@@ -207,7 +213,11 @@ export const resolvers: Resolvers = {
           // Mark the guidance group as dirty
           await markGuidanceGroupAsDirty(context, guidance.guidanceGroupId);
 
-          return await Guidance.findById(reference, context, guidanceId);
+          const saved = await Guidance.findById(reference, context, guidanceId);
+          if (!saved) {
+            throw InternalServerError();
+          }
+          return saved;
         }
 
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -229,12 +239,11 @@ export const resolvers: Resolvers = {
       const guidance = await Guidance.findById(reference, context, guidanceId);
       const guidanceGroupId = guidance?.guidanceGroupId;
       try {
-        if (isAdmin(context?.token) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
+        if (isAdmin(context?.token) && !isNullOrUndefined(guidanceGroupId) && await hasPermissionOnGuidanceGroup(context, guidanceGroupId)) {
           if (!guidance) {
             throw NotFoundError('Guidance not found');
           }
 
-          const guidanceGroupId = guidance.guidanceGroupId;
           const deleted = await guidance.delete(context);
 
           if (!deleted) {
@@ -274,7 +283,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             const affiliation = await Affiliation.findByURI(reference, context, affiliationId.toString());
             if (!affiliation) {
               throw NotFoundError(`Affiliation with URI ${affiliationId} not found`);
@@ -294,11 +303,13 @@ export const resolvers: Resolvers = {
             const created = await planGuidanceAffiliation.create(context);
             if (created && !created.hasErrors()) {
               return created; // Successfully created
-            } else {
-              if (!created?.errors?.general) {
+            } else if (created) {
+              if (!created.errors?.general) {
                 created.addError("general", "Unable to add plan guidance affiliation");
               }
               return created;
+            } else {
+              throw InternalServerError();
             }
           }
         }
@@ -331,7 +342,7 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (await hasPermissionOnProject(context, project)) {
+          if (project && await hasPermissionOnProject(context, project)) {
             const toRemove = await PlanGuidance.findByPlanUserAndAffiliation(
               reference,
               context,
@@ -370,21 +381,25 @@ export const resolvers: Resolvers = {
 
   Guidance: {
     // Chained resolver to fetch the GuidanceGroup for this Guidance
-    guidanceGroup: async (parent: Guidance, _, context: MyContext): Promise<GuidanceGroup> => {
+    guidanceGroup: async (parent, _, context: MyContext) => {
       return await GuidanceGroup.findById('Chained Guidance.guidanceGroup', context, parent.guidanceGroupId);
     },
     // Chained resolver to fetch the Tag info for guidance's tagId
-    tag: async (parent: Guidance, _, context: MyContext): Promise<Tag> => {
-      return await Tag.findById('Chained Guidance.tags', context, parent.tagId);
+    tag: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.tagId)) {
+        return null;
+      }
+      const tag = await Tag.findById('Chained Guidance.tags', context, parent.tagId);
+      return (tag ?? null) as unknown as TagGQL | null;
     },
-    created: (parent: Guidance) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: Guidance) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     },
     // Resolver to get the user who last modified this guidance
-    modifiedBy: async (parent: Guidance, _, context: MyContext): Promise<User | null> => {
+    modifiedBy: async (parent, _, context: MyContext) => {
       if (parent?.modifiedById) {
         return await User.findById('Guidance user resolver', context, parent.modifiedById);
       }
@@ -392,22 +407,23 @@ export const resolvers: Resolvers = {
     },
   },
   PlanGuidance: {
-    plan: async (parent: PlanGuidance, _, context: MyContext): Promise<Plan> => {
+    plan: async (parent, _, context: MyContext) => {
       if (parent?.planId) {
         return await Plan.findById('Chained PlanGuidance.plan', context, parent.planId);
       }
       return null;
     },
-    affiliation: async (parent: PlanGuidance, _, context: MyContext): Promise<Affiliation> => {
+    affiliation: async (parent, _, context: MyContext) => {
       if (parent?.affiliationId) {
-        return await Affiliation.findByURI('Chained PlanGuidance.affiliation', context, parent.affiliationId);
+        const affiliation = await Affiliation.findByURI('Chained PlanGuidance.affiliation', context, parent.affiliationId);
+        return affiliation as unknown as AffiliationGQL;
       }
       return null;
     },
-    created: (parent: PlanGuidance) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: PlanGuidance) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

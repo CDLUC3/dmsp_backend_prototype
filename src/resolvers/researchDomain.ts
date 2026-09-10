@@ -44,7 +44,7 @@ export const resolvers: Resolvers = {
     },
 
     // search for research domains by the specified URI
-    researchDomainByURI: async (_, { uri }, context: MyContext): Promise<ResearchDomain> => {
+    researchDomainByURI: async (_, { uri }, context: MyContext) => {
       const reference = 'researchDomains resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -61,16 +61,16 @@ export const resolvers: Resolvers = {
     }
   },
   ResearchDomain: {
-    parentResearchDomain: async (parent: ResearchDomain, _, context: MyContext): Promise<ResearchDomain | null> => {
+    parentResearchDomain: async (parent, _, context: MyContext) => {
       if (parent.parentResearchDomainId) {
         return await ResearchDomain.findById('ResearchDomain.parentResearchDomain', context, parent.parentResearchDomainId);
       }
       return null;
     },
-    created: (parent: ResearchDomain) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: ResearchDomain) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },

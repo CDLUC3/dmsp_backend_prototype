@@ -8,9 +8,9 @@ dotenv.config();
 const isTest = process.env.NODE_ENV === 'test';
 
 if (process.env.NODE_ENV === 'production') {
-  verifyCriticalEnvVariable('MYSQL_HOST');
-  verifyCriticalEnvVariable('MYSQL_USER');
-  verifyCriticalEnvVariable('MYSQL_PASSWORD');
+  verifyCriticalEnvVariable(process.env.MYSQL_HOST, 'MYSQL_HOST');
+  verifyCriticalEnvVariable(process.env.MYSQL_USER, 'MYSQL_USER');
+  verifyCriticalEnvVariable(process.env.MYSQL_PASSWORD, 'MYSQL_PASSWORD');
 }
 
 export const mysqlGeneralConfig = {
@@ -19,11 +19,11 @@ export const mysqlGeneralConfig = {
 }
 
 export const mysqlPoolConfig = {
-  host: isTest ? 'localhost' : process.env.MYSQL_HOST,
+  host: (isTest ? 'localhost' : process.env.MYSQL_HOST) ?? 'localhost',
   port: isTest ? Number(process.env.MYSQL_TEST_PORT) : Number(process.env.MYSQL_PORT) || 3306,
-  database: isTest ? process.env.MYSQL_TEST_DATABASE : process.env.MYSQL_DATABASE || 'dmsp',
-  user: isTest ? process.env.MYSQL_TEST_USER : process.env.MYSQL_USER,
-  password: isTest ? process.env.MYSQL_TEST_PASSWORD : process.env.MYSQL_PASSWORD,
+  database: (isTest ? process.env.MYSQL_TEST_DATABASE : process.env.MYSQL_DATABASE || 'dmsp') ?? 'dmsp',
+  user: (isTest ? process.env.MYSQL_TEST_USER : process.env.MYSQL_USER) ?? '',
+  password: (isTest ? process.env.MYSQL_TEST_PASSWORD : process.env.MYSQL_PASSWORD) ?? '',
   connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT) || 5,
 };
 

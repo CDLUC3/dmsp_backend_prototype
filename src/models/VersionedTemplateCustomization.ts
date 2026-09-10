@@ -8,6 +8,19 @@ import { isNullOrUndefined } from "../utils/helpers.js";
  * The `active` field indicates whether this version is currently published. There
  * can be only one published version at a time.
  */
+interface VersionedTemplateCustomizationOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  affiliationId: string;
+  templateCustomizationId: number;
+  currentVersionedTemplateId: number;
+  active?: boolean;
+}
+
 export class VersionedTemplateCustomization extends MySqlModel {
   // Pointer to the affiliation that owns this customization
   public affiliationId: string;
@@ -20,7 +33,7 @@ export class VersionedTemplateCustomization extends MySqlModel {
 
   static tableName = 'versionedTemplateCustomizations';
 
-  constructor(options) {
+  constructor(options: VersionedTemplateCustomizationOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.affiliationId = options.affiliationId;
@@ -57,7 +70,7 @@ export class VersionedTemplateCustomization extends MySqlModel {
    * @param context The Apollo context.
    * @returns The newly created version of the customization.
    */
-  async create(context: MyContext): Promise<VersionedTemplateCustomization> {
+  async create(context: MyContext): Promise<VersionedTemplateCustomization | undefined> {
     const ref = 'VersionedTemplateCustomization.create';
 
     // Make sure the record is valid
@@ -66,7 +79,7 @@ export class VersionedTemplateCustomization extends MySqlModel {
       this.active = true;
 
       // Save the record and then fetch it
-      const newId: number = await VersionedTemplateCustomization.insert(
+      const newId = await VersionedTemplateCustomization.insert(
         context,
         VersionedTemplateCustomization.tableName,
         this,
@@ -74,7 +87,7 @@ export class VersionedTemplateCustomization extends MySqlModel {
       );
 
       if (newId) {
-        const created: VersionedTemplateCustomization = await VersionedTemplateCustomization.findById(
+        const created: VersionedTemplateCustomization | undefined = await VersionedTemplateCustomization.findById(
           ref,
           context,
           newId
@@ -104,7 +117,7 @@ export class VersionedTemplateCustomization extends MySqlModel {
    * @param noTouch Whether or not the modification timestamp should be updated
    * @returns The updated version of the customization.
    */
-  async update(context: MyContext, noTouch = false): Promise<VersionedTemplateCustomization> {
+  async update(context: MyContext, noTouch = false): Promise<VersionedTemplateCustomization | undefined> {
     const ref = 'VersionedTemplateCustomization.update';
 
     if (!this.id) {
@@ -143,6 +156,8 @@ export class VersionedTemplateCustomization extends MySqlModel {
     reference: string,
     context: MyContext
   ): Promise<boolean> {
+    if (!this.id) return false;
+
     const results = await VersionedTemplateCustomization.query(
       context,
       `UPDATE ${VersionedTemplateCustomization.tableName} SET active = 0
@@ -168,7 +183,7 @@ export class VersionedTemplateCustomization extends MySqlModel {
     reference: string,
     context: MyContext,
     versionedTemplateCustomizationId: number
-  ): Promise<VersionedTemplateCustomization> {
+  ): Promise<VersionedTemplateCustomization | undefined> {
     const results = await VersionedTemplateCustomization.query(
       context,
       `SELECT * FROM ${VersionedTemplateCustomization.tableName} WHERE id = ?`,
@@ -194,7 +209,7 @@ export class VersionedTemplateCustomization extends MySqlModel {
     context: MyContext,
     templateCustomizationId: number,
     versionedTemplateId: number
-  ): Promise<VersionedTemplateCustomization> {
+  ): Promise<VersionedTemplateCustomization | undefined> {
     const results = await VersionedTemplateCustomization.query(
       context,
       `SELECT * FROM ${VersionedTemplateCustomization.tableName}

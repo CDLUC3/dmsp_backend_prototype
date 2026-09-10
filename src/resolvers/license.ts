@@ -33,7 +33,7 @@ export const resolvers: Resolvers = {
     },
 
     // return a single license
-    license: async (_, { uri }, context: MyContext): Promise<License> => {
+    license: async (_, { uri }, context: MyContext): Promise<License | null> => {
       const reference = 'license resolver';
       try {
         return await License.findByURI(reference, context, uri);
@@ -50,7 +50,12 @@ export const resolvers: Resolvers = {
       const reference = 'addLicense resolver';
       try {
         if (isAdmin(context.token)) {
-          const newLicense = new License({ name, uri, description, recommended });
+          const newLicense = new License({
+            name,
+            uri: uri ?? '',
+            description: description ?? undefined,
+            recommended: recommended ?? undefined
+          });
 
           // Only a SuperAdmin can define a default recommended license
           if (!isSuperAdmin(context.token)) {
@@ -89,7 +94,13 @@ export const resolvers: Resolvers = {
             throw NotFoundError();
           }
 
-          const toUpdate = new License({ id: license.id, uri: license.uri, name, description, recommended });
+          const toUpdate = new License({
+            id: license.id,
+            uri: license.uri,
+            name,
+            description: description ?? undefined,
+            recommended: recommended ?? undefined
+          });
 
           // Only a SuperAdmin can define a default recommended license, so leave as-is
           if (!isSuperAdmin(context.token)) {
@@ -177,10 +188,12 @@ export const resolvers: Resolvers = {
   },
 
   License: {
-    created: (parent: License) => {
+    // `parent` is contextually typed as the generated License (not the model class) here,
+    // which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: License) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

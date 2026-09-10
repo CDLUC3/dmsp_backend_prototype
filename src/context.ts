@@ -25,7 +25,7 @@ export interface MyContext extends BaseContext {
   // Instances of the data sources the system uses to access information
   dataSources: {
     dmphubAPIDataSource: DMPHubAPI;
-    ezidAPIDataSource: EZIDAPI;
+    ezidAPIDataSource: EZIDAPI | null;
     sqlDataSource: MySQLConnection;
     openSearchServerlessDataSource: OpenSearch | null;
   };
@@ -50,8 +50,10 @@ export function buildContext(
 
   try {
     const requestId: string = randomHex(32);
+    // `logger` is only null when the caller is running outside the normal Apollo/Express
+    // request lifecycle (e.g. a script); initLogger always falls back to a default logger.
     const requestLogger: Logger = initLogger(
-      logger,                                 // Base logger
+      logger as Logger,                       // Base logger
       {
         app: generalConfig.applicationName,   // Help identify entries for this application
         env: generalConfig.env,               // The current environment (not necessarily the Node env)
@@ -63,18 +65,20 @@ export function buildContext(
 
     return {
       cache,
-      token,
+      // `token` is legitimately null for unauthenticated flows (signin/signup/signout);
+      // MyContext.token stays non-nullable to avoid a codebase-wide nullability refactor.
+      token: token as JWTAccessToken,
       logger: requestLogger,
       requestId,
       dataSources: {
-        dmphubAPIDataSource: dmphubAPIDataSource,
+        dmphubAPIDataSource: dmphubAPIDataSource as DMPHubAPI,
         ezidAPIDataSource: ezidAPIDataSource,
-        sqlDataSource: sqlDataSource,
+        sqlDataSource: sqlDataSource as MySQLConnection,
         openSearchServerlessDataSource: openSearchServerlessDataSource,
       }
     }
   } catch (err) {
-    const msg = `Unable to buildContext - ${err.message}`;
+    const msg = `Unable to buildContext - ${err instanceof Error ? err.message : String(err)}`;
     if (logger) {
       logger.error(prepareObjectForLogs({
         err,
@@ -88,6 +92,6 @@ export function buildContext(
     } else {
       console.log(msg);
     }
-    return null;
+    throw new Error(msg);
   }
 }

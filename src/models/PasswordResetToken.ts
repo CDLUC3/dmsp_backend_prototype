@@ -6,6 +6,19 @@ import { prepareObjectForLogs } from '../logger.js';
 import { hashToken, getFutureDate } from '../utils/helpers.js';
 import { generalConfig } from '../config/generalConfig.js';
 
+interface PasswordResetTokenOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  userId: number;
+  resetPasswordToken?: string;
+  resetPasswordExpiresAt?: string;
+  usedAt?: string;
+}
+
 export class PasswordResetToken extends MySqlModel {
   public userId: number;
   public resetPasswordToken?: string;
@@ -14,8 +27,9 @@ export class PasswordResetToken extends MySqlModel {
 
   public tableName = 'passwordResetTokens';
 
-  constructor(options) {
-    super(options.id, options.createdAt, options.createdById, options.modified, options.modifiedById, options.errors);
+  constructor(options: PasswordResetTokenOptions) {
+    // Note: DB column is `created` (see MySqlModel base); `options.createdAt` was a dead field
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
     this.userId = options.userId;
     this.resetPasswordToken = options.resetPasswordToken;
     this.resetPasswordExpiresAt = options.resetPasswordExpiresAt;
@@ -40,11 +54,16 @@ export class PasswordResetToken extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
   // Save this new reset token record
-  async create(context: MyContext): Promise<PasswordResetToken> {
+  async create(context: MyContext): Promise<PasswordResetToken | null> {
     const reference = 'PasswordResetToken.create';
 
     if (await this.isValid()) {
       const newId = await PasswordResetToken.insert(context, this.tableName, this, reference);
+      if (!newId) {
+        context.logger.error(`${reference}, ERROR: Failed to create PasswordResetToken.`);
+        this.addError('general', 'PasswordResetToken was not created successfully');
+        return this;
+      }
       const created = await PasswordResetToken.findById(reference, context, newId);
       context.logger.debug(prepareObjectForLogs({ id: created?.id, userId: this.userId }), reference);
       return created;

@@ -6,6 +6,20 @@ import { isNullOrUndefined } from "../utils/helpers.js";
  * This object represents a snapshot of custom requirements, guidance, and
  * sample text an organization has added to an existing published template question
  */
+interface VersionedQuestionCustomizationOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  versionedTemplateCustomizationId: number;
+  questionCustomizationId: number;
+  versionedQuestionId: number;
+  guidanceText?: string;
+  sampleText?: string;
+}
+
 export class VersionedQuestionCustomization extends MySqlModel {
   public versionedTemplateCustomizationId: number;
   public questionCustomizationId: number;
@@ -15,7 +29,7 @@ export class VersionedQuestionCustomization extends MySqlModel {
 
   static tableName = 'versionedQuestionCustomizations';
 
-  constructor(options) {
+  constructor(options: VersionedQuestionCustomizationOptions) {
     super(options.id, options.created, options.createdById, options.modified,
       options.modifiedById, options.errors);
 
@@ -66,11 +80,11 @@ export class VersionedQuestionCustomization extends MySqlModel {
    * @param context The Apollo context.
    * @returns The newly created versioned question customization.
    */
-  async create(context: MyContext): Promise<VersionedQuestionCustomization> {
+  async create(context: MyContext): Promise<VersionedQuestionCustomization | undefined> {
     const ref = 'VersionedQuestionCustomization.create';
     // Make sure the record is valid
     if (await this.isValid()) {
-      const current: VersionedQuestionCustomization =
+      const current: VersionedQuestionCustomization | undefined =
         await VersionedQuestionCustomization.findByVersionedCustomizationAndVersionedQuestion(
           ref,
           context,
@@ -85,13 +99,16 @@ export class VersionedQuestionCustomization extends MySqlModel {
         this.prepForSave();
 
         // Save the record and then fetch it
-        const newId: number = await VersionedQuestionCustomization.insert(
+        const newId = await VersionedQuestionCustomization.insert(
           context,
           VersionedQuestionCustomization.tableName,
           this,
           ref
         );
-        return await VersionedQuestionCustomization.findById(ref, context, newId);
+        if (newId) {
+          return await VersionedQuestionCustomization.findById(ref, context, newId);
+        }
+        this.addError('general', 'Versioned question customization was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -105,7 +122,7 @@ export class VersionedQuestionCustomization extends MySqlModel {
    * @param noTouch Whether or not the modification timestamp should be updated
    * @returns The updated versioned question customization.
    */
-  async update(context: MyContext, noTouch = false): Promise<VersionedQuestionCustomization> {
+  async update(context: MyContext, noTouch = false): Promise<VersionedQuestionCustomization | undefined> {
     const ref = 'VersionedQuestionCustomization.update';
 
     if (!this.id) {
@@ -137,13 +154,13 @@ export class VersionedQuestionCustomization extends MySqlModel {
    * @param context The Apollo context
    * @returns The archived versioned question customization.
    */
-  async delete(context: MyContext): Promise<VersionedQuestionCustomization> {
+  async delete(context: MyContext): Promise<VersionedQuestionCustomization | undefined> {
     const ref = 'VersionedQuestionCustomization.delete';
     if (!this.id) {
       // Cannot delete it if it hasn't been saved yet!
       this.addError('general', 'Versioned question customization has never been saved');
     } else {
-      const original: VersionedQuestionCustomization = await VersionedQuestionCustomization.findById(
+      const original: VersionedQuestionCustomization | undefined = await VersionedQuestionCustomization.findById(
         ref,
         context,
         this.id
@@ -177,7 +194,7 @@ export class VersionedQuestionCustomization extends MySqlModel {
     reference: string,
     context: MyContext,
     versionedQuestionCustomizationId: number
-  ): Promise<VersionedQuestionCustomization> {
+  ): Promise<VersionedQuestionCustomization | undefined> {
     const results = await VersionedQuestionCustomization.query(
       context,
       `SELECT * FROM ${VersionedQuestionCustomization.tableName} WHERE id = ?`,
@@ -201,7 +218,7 @@ export class VersionedQuestionCustomization extends MySqlModel {
     context: MyContext,
     versionedTemplateCustomizatonId: number,
     versionedQuestionId: number
-  ): Promise<VersionedQuestionCustomization> {
+  ): Promise<VersionedQuestionCustomization | undefined> {
     const results = await VersionedQuestionCustomization.query(
       context,
       `SELECT * FROM ${VersionedQuestionCustomization.tableName}

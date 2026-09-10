@@ -33,16 +33,50 @@ export enum LogInType {
   SSO = 'SSO',
 }
 
+interface UserOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  password: string;
+  oldPasswordHash?: string;
+  role?: UserRole;
+  givenName?: string;
+  surName?: string;
+  affiliationId?: string;
+  acceptedTerms?: boolean;
+  orcid?: string | null;
+  ssoId?: string | null;
+  languageId?: string;
+
+  last_sign_in?: string;
+  last_sign_in_via?: LogInType;
+  failed_sign_in_attempts?: number;
+
+  notify_on_comment_added?: boolean;
+  notify_on_template_shared?: boolean;
+  notify_on_feedback_complete?: boolean;
+  notify_on_plan_shared?: boolean;
+  notify_on_plan_visibility_change?: boolean;
+
+  locked?: boolean;
+  active?: boolean;
+  isArchived?: boolean;
+  passwordChangedAt?: string;
+}
+
 export class User extends MySqlModel {
   public password: string;
   public oldPasswordHash?: string;
   public role: UserRole;
   public givenName?: string;
   public surName?: string;
-  public affiliationId: string;
+  public affiliationId?: string;
   public acceptedTerms: boolean;
-  public orcid?: string;
-  public ssoId?: string;
+  public orcid?: string | null;
+  public ssoId?: string | null;
   public languageId: string;
 
   public last_sign_in?: string;
@@ -63,18 +97,18 @@ export class User extends MySqlModel {
   public tableName = 'users';
 
   // Initialize a new User
-  constructor(options) {
+  constructor(options: UserOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.password = options.password;
     this.oldPasswordHash = options.oldPasswordHash;
-    this.role = options.role;
+    this.role = options.role ?? UserRole.RESEARCHER;
     this.givenName = options.givenName;
     this.surName = options.surName;
     this.orcid = options.orcid;
     this.ssoId = options.ssoId;
     this.affiliationId = options.affiliationId;
-    this.acceptedTerms = options.acceptedTerms;
+    this.acceptedTerms = options.acceptedTerms ?? false;
     this.languageId = options.languageId ?? defaultLanguageId;
     this.failed_sign_in_attempts = options.failed_sign_in_attempts ?? 0;
     this.locked = options.locked ?? false;
@@ -92,6 +126,7 @@ export class User extends MySqlModel {
 
   // Async getter for primary email
   public async getEmail(context: MyContext): Promise<string | null> {
+    if (!this.id) return null;
     const primaryEmail = await UserEmail.findPrimaryByUserId('User.getEmail', context, this.id);
     return primaryEmail ? primaryEmail.email : null;
   }
@@ -100,8 +135,8 @@ export class User extends MySqlModel {
   // Ensure data integrity
   prepForSave() {
     this.role = this.role ?? UserRole.RESEARCHER;
-    this.givenName = capitalizeFirstLetter(this.givenName);
-    this.surName = capitalizeFirstLetter(this.surName);
+    this.givenName = capitalizeFirstLetter(this.givenName ?? '');
+    this.surName = capitalizeFirstLetter(this.surName ?? '');
     // Set the languageId to the default if it is not a supported language
     if (!supportedLanguages.map((l) => l.id).includes(this.languageId)) {
       this.languageId = defaultLanguageId;
@@ -182,7 +217,7 @@ export class User extends MySqlModel {
     // Otherwise check the password
     if (user && await bcrypt.compare(password, user.password)) {
       context.logger.debug(prepareObjectForLogs({ id: user.id }), "Successful authCheck");
-      return user.id;
+      return user.id ?? null;
     }
 
     context.logger.debug("Failed authCheck");
@@ -400,7 +435,7 @@ export class User extends MySqlModel {
   }
 
   // Login making sure that the passwords match
-  async login(context: MyContext, email: string): Promise<User> {
+  async login(context: MyContext, email: string): Promise<User | null> {
     this.prepForSave();
 
     // Validate the email and password
@@ -415,7 +450,7 @@ export class User extends MySqlModel {
         const existing = await User.findById('User.login', context, userId);
 
         // Update the User's last_sign_in fields
-        if (await new User(existing).recordLogIn(context, LogInType.PASSWORD)) {
+        if (existing && await new User(existing).recordLogIn(context, LogInType.PASSWORD)) {
           // return existing;
           return existing;
         }
@@ -428,7 +463,7 @@ export class User extends MySqlModel {
   }
 
   // Register the User if the data is valid
-  async register(context: MyContext, email: string): Promise<User> {
+  async register(context: MyContext, email: string): Promise<User | null> {
     const reference = 'User.register';
 
     this.prepForSave();
@@ -462,7 +497,14 @@ export class User extends MySqlModel {
         const sql = `INSERT INTO users \
                       (password, role, givenName, surName, affiliationId, acceptedTerms) \
                      VALUES(?, ?, ?, ?, ?, ?)`;
-        const vals = [this.password, this.role, this.givenName, this.surName, this.affiliationId, this.acceptedTerms];
+        const vals = [
+          this.password,
+          this.role,
+          this.givenName ?? '',
+          this.surName ?? '',
+          this.affiliationId ?? '',
+          this.acceptedTerms,
+        ];
         context.logger.debug(prepareObjectForLogs({ email }), reference);
         const result = await User.query(context, sql, vals, reference);
 
@@ -477,6 +519,10 @@ export class User extends MySqlModel {
 
         // Fetch the new record
         const user = await User.findById(reference, context, result[0].insertId);
+        if (!user || !user.id) {
+          this.addError('general', 'Unable to register your account');
+          return this;
+        }
 
         // Update the user's createdById and modifiedById to indicate themselves
         const sqlUpdate = `UPDATE users SET createdById = ?, modifiedById = ? WHERE id = ?`;
@@ -516,12 +562,12 @@ export class User extends MySqlModel {
   }
 
   // Save the changes made to the User
-  async update(context: MyContext): Promise<User> {
+  async update(context: MyContext): Promise<User | null> {
     if (await this.isValid()) {
       if (this.id) {
         const original = await User.findById('User.update', context, this.id);
         // If the user changed their affiliationId
-        if (original.affiliationId !== this.affiliationId) {
+        if (original && original.affiliationId !== this.affiliationId) {
           // If the user is an ADMIN then demote them to RESEARCHER
           if (this.role === UserRole.ADMIN) {
             const msg = `User.update Admin changed affiliation so their role must change to Researcher`;
@@ -551,7 +597,7 @@ export class User extends MySqlModel {
     oldPassword: string,
     newPassword: string,
     email: string
-  ): Promise<User> {
+  ): Promise<User | null> {
     const ref = 'User.updatePassword';
     // First make sure the current password is valid
     const validPassword = await User.authCheck(ref, context, email, oldPassword);
@@ -561,7 +607,7 @@ export class User extends MySqlModel {
         this.password = await this.hashPassword(newPassword);
 
         const updated = await User.update(context, this.tableName, this, 'User.updatePassword', []);
-        if (updated) {
+        if (updated && this.id) {
           return await User.findById('updatePassword resolver', context, this.id);
         }
       }

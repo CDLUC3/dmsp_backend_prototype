@@ -14,11 +14,12 @@ import { verifyCriticalEnvVariable } from './utils/helpers.js';
 import corsConfig from './config/corsConfig.js';
 import { authMiddleware } from './middleware/auth.js';
 import { DMPHubAPI } from "./datasources/dmphubAPI.js";
+import { JWTAccessToken } from "./services/tokenService.js";
 import { EZIDAPI } from "./datasources/EZIDAPI.js";
 import { OpenSearch } from "./datasources/openSearch.js";
 import { awsConfig } from "./config/awsConfig.js";
 
-verifyCriticalEnvVariable('NODE_ENV');
+verifyCriticalEnvVariable(process.env.NODE_ENV, 'NODE_ENV');
 console.log(`DMPTool Apollo server backend starting in ${process.env.NODE_ENV} mode.`)
 
 // TODO: Make this configurable and pass in as ENV variable
@@ -27,7 +28,9 @@ const PORT = 4000;
 // Establish the MySQL connection pool
 const cache = Cache.getInstance().adapter;
 const sqlDataSource = new MySQLConnection();
-const dmphubAPIDataSource = new DMPHubAPI({ cache, token: null })
+// `token` is legitimately null at server startup, before any request context exists;
+// see the matching comment on MyContext.token in src/context.ts.
+const dmphubAPIDataSource = new DMPHubAPI({ cache, token: null as unknown as JWTAccessToken })
 const ezidAPIDataSource = new EZIDAPI({ cache })
 const openSearchServerlessDataSource = new OpenSearch(awsConfig.opensearchServerless);
 

@@ -19,8 +19,19 @@ import {
 import { prepareObjectForLogs } from "../logger.js";
 import { GraphQLError } from "graphql";
 import { UserRole } from "../models/User.js";
-import { PaginatedQueryResults, PaginationOptions } from "../types/general.js";
+import {
+  PaginatedQueryResults,
+  PaginationOptionsForCursors,
+  PaginationOptionsForOffsets,
+  PaginationType,
+} from "../types/general.js";
 import { TemplateCustomization } from "../models/TemplateCustomization.js";
+import {
+  QueryAdminNotificationsArgs,
+  QueryAdminNotificationsReadArgs,
+  QueryAdminNotificationsUnreadArgs,
+} from "../types.js";
+import { isNullOrUndefined } from "../utils/helpers.js";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -29,12 +40,15 @@ export const resolvers: Resolvers = {
       UserRole.ADMIN,
       async (
         _: Record<PropertyKey, never>,
-        { paginationOptions }: { paginationOptions: PaginationOptions },
+        { paginationOptions }: Partial<QueryAdminNotificationsReadArgs>,
         context: MyContext
       ): Promise<PaginatedQueryResults<AdminNotificationResults>> => {
         const reference = 'adminNotifications resolver';
         const userId = context.token.id;
-        return await AdminNotificationResults.findReadByUserId(reference, context, userId, paginationOptions)
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+          ? (paginationOptions as PaginationOptionsForOffsets)
+          : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
+        return await AdminNotificationResults.findReadByUserId(reference, context, userId, opts)
       }
     ),
 
@@ -43,17 +57,20 @@ export const resolvers: Resolvers = {
       UserRole.ADMIN,
       async (
         _: Record<PropertyKey, never>,
-        { paginationOptions }: { paginationOptions: PaginationOptions },
+        { paginationOptions }: Partial<QueryAdminNotificationsUnreadArgs>,
         context: MyContext
       ): Promise<PaginatedQueryResults<AdminNotificationResults>> => {
         const reference = 'unreadAdminNotifications resolver';
         const userId = context.token.id;
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+          ? (paginationOptions as PaginationOptionsForOffsets)
+          : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
         return await AdminNotificationResults.findUnreadByUserId(
           reference,
           context,
           userId,
-          paginationOptions
+          opts
         );
       }
     ),
@@ -62,17 +79,20 @@ export const resolvers: Resolvers = {
       UserRole.ADMIN,
       async (
         _: Record<PropertyKey, never>,
-        { paginationOptions }: { paginationOptions: PaginationOptions },
+        { paginationOptions }: Partial<QueryAdminNotificationsArgs>,
         context: MyContext
       ): Promise<PaginatedQueryResults<AdminNotificationResults>> => {
         const reference = 'unreadAdminNotifications resolver';
         const userId = context.token.id;
+        const opts = !isNullOrUndefined(paginationOptions) && paginationOptions.type === PaginationType.OFFSET
+          ? (paginationOptions as PaginationOptionsForOffsets)
+          : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
         return await AdminNotificationResults.findByUserId(
           reference,
           context,
           userId,
-          paginationOptions
+          opts
         );
       }
     ),
@@ -139,7 +159,7 @@ export const resolvers: Resolvers = {
   },
   AdminNotificationResults: {
     // Fetch the plan associated with the notification if metadata contains a planId
-    plan: async (parent: AdminNotificationResults, _, context: MyContext): Promise<Plan | null> => {
+    plan: async (parent, _, context: MyContext) => {
       if (parent.metadata?.planId) {
         return await Plan.findById('Chained AdminNotificationResults.plan', context, parent.metadata.planId);
       }
@@ -147,7 +167,7 @@ export const resolvers: Resolvers = {
     },
 
     // Fetch the template associated with the notification if metadata contains a templateId
-    template: async (parent: AdminNotificationResults, _, context: MyContext): Promise<Template | null> => {
+    template: async (parent, _, context: MyContext) => {
       if (parent.metadata?.templateId) {
         return await Template.findById('Chained AdminNotificationResults.template', context, parent.metadata.templateId);
       }
@@ -155,7 +175,7 @@ export const resolvers: Resolvers = {
     },
 
     // Fetch the templateCustomization associated with the notification if metadata contains a templateCustomizationId
-    templateCustomization: async (parent: AdminNotificationResults, _, context: MyContext): Promise<TemplateCustomization | null> => {
+    templateCustomization: async (parent, _, context: MyContext) => {
       if (parent.metadata?.templateCustomizationId) {
         return await TemplateCustomization.findByIdWithTemplateName('Chained AdminNotificationResults.templateCustomization', context, parent.metadata.templateCustomizationId);
       }
@@ -163,7 +183,7 @@ export const resolvers: Resolvers = {
     },
 
     // Fetch the feedback associated with the plan if metadata contains a planId
-    feedback: async (parent: AdminNotificationResults, _, context: MyContext): Promise<PlanFeedback | null> => {
+    feedback: async (parent, _, context: MyContext) => {
       if (parent.metadata?.planId) {
         const feedbackList = await PlanFeedback.findByPlanId('Chained AdminNotificationResults.feedback', context, parent.metadata.planId);
         // Return the most recent open feedback round
@@ -173,7 +193,7 @@ export const resolvers: Resolvers = {
     },
 
     // Fetch the user who created the notification
-    createdBy: async (parent: AdminNotificationResults, _, context: MyContext): Promise<User | null> => {
+    createdBy: async (parent, _, context: MyContext) => {
       if (parent.createdById) {
         return await User.findById('Chained AdminNotificationResults.createdBy', context, parent.createdById);
       }

@@ -6,6 +6,21 @@ import { MySqlModel } from "./MySqlModel.js";
 import { ResearchDomain } from "./ResearchDomain.js";
 
 export const DEFAULT_DMPTOOL_METADATA_STANDARD_URL = 'https://dmptool.org/metadata-standards/';;
+
+interface MetadataStandardOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  name: string;
+  uri: string;
+  description?: string;
+  researchDomains?: ResearchDomain[];
+  keywords?: string[];
+}
+
 export class MetadataStandard extends MySqlModel {
   public name: string;
   public uri: string;
@@ -15,7 +30,7 @@ export class MetadataStandard extends MySqlModel {
 
   private tableName = 'metadataStandards';
 
-  constructor(options) {
+  constructor(options: MetadataStandardOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
@@ -62,7 +77,7 @@ export class MetadataStandard extends MySqlModel {
   }
 
   //Create a new MetadataStandard
-  async create(context: MyContext): Promise<MetadataStandard> {
+  async create(context: MyContext): Promise<MetadataStandard | null> {
     const reference = 'MetadataStandard.create';
 
     // If no URI is present, then use the DMPTool's default URI
@@ -84,8 +99,10 @@ export class MetadataStandard extends MySqlModel {
       } else {
         // Save the record and then fetch it
         const newId = await MetadataStandard.insert(context, this.tableName, this, reference, ['researchDomains']);
-        const response = await MetadataStandard.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await MetadataStandard.findById(reference, context, newId);
+        }
+        this.addError('general', 'MetadataStandard was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -93,7 +110,7 @@ export class MetadataStandard extends MySqlModel {
   }
 
   //Update an existing MetadataStandard
-  async update(context: MyContext, noTouch = false): Promise<MetadataStandard> {
+  async update(context: MyContext, noTouch = false): Promise<MetadataStandard | null> {
     const id = this.id;
 
     this.prepForSave();
@@ -117,7 +134,7 @@ export class MetadataStandard extends MySqlModel {
   }
 
   //Delete the MetadataStandard
-  async delete(context: MyContext): Promise<MetadataStandard> {
+  async delete(context: MyContext): Promise<MetadataStandard | null> {
     if (this.id) {
       const deleted = await MetadataStandard.findById('MetadataStandard.delete', context, this.id);
 
@@ -194,7 +211,7 @@ export class MetadataStandard extends MySqlModel {
   }
 
   // Fetch a MetadataStandard by it's id
-  static async findById(reference: string, context: MyContext, metadataStandardId: number): Promise<MetadataStandard> {
+  static async findById(reference: string, context: MyContext, metadataStandardId: number): Promise<MetadataStandard | null> {
     const sql = `SELECT * FROM metadataStandards WHERE id = ?`;
     const results = await MetadataStandard.query(context, sql, [metadataStandardId?.toString()], reference);
     if (Array.isArray(results) && results.length !== 0) {
@@ -203,7 +220,7 @@ export class MetadataStandard extends MySqlModel {
     return null;
   }
 
-  static async findByURI(reference: string, context: MyContext, uri: string): Promise<MetadataStandard> {
+  static async findByURI(reference: string, context: MyContext, uri: string): Promise<MetadataStandard | null> {
     const sql = `SELECT * FROM metadataStandards WHERE uri = ?`;
     const results = await MetadataStandard.query(context, sql, [uri], reference);
     if (Array.isArray(results) && results.length !== 0) {
@@ -226,7 +243,7 @@ export class MetadataStandard extends MySqlModel {
     return [];
   }
 
-  static async findByName(reference: string, context: MyContext, name: string): Promise<MetadataStandard> {
+  static async findByName(reference: string, context: MyContext, name: string): Promise<MetadataStandard | null> {
     const sql = `SELECT * FROM metadataStandards WHERE LOWER(name) = ?`;
     const results = await MetadataStandard.query(context, sql, [name?.toLowerCase()?.trim()], reference);
     if (Array.isArray(results) && results.length !== 0) {

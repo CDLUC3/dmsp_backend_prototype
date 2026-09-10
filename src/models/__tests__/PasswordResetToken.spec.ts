@@ -68,10 +68,10 @@ const { logger } = await import('../../logger.js');
 const helpers = await import('../../utils/helpers.js');
 
 
-let context;
+let context: MyContext;
 
 describe('PasswordResetToken', () => {
-  let token;
+  let token: InstanceType<typeof PasswordResetToken>;
 
   const tokenData = {
     id: casual.integer(1, 999),
@@ -98,8 +98,8 @@ describe('create', () => {
   const originalInsert = PasswordResetToken.insert;
   const originalFindById = PasswordResetToken.findById;
 
-  let insertMock;
-  let token;
+  let insertMock: jest.Mock;
+  let token: InstanceType<typeof PasswordResetToken>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -212,7 +212,7 @@ describe('findById', () => {
       }
     ]);
 
-    (PasswordResetToken.query as jest.Mock) = queryMock;
+    (PasswordResetToken.query as jest.Mock) = queryMock as unknown as jest.Mock;
 
     const result = await PasswordResetToken.findById('Test', context, 1);
 
@@ -232,7 +232,7 @@ describe('findById', () => {
     expect(calledParams).toEqual(['1']);
     expect(calledReference).toEqual('Test');
 
-    expect(result.id).toEqual(1);
+    expect(result?.id).toEqual(1);
   });
 
   it('should return null when not found', async () => {
@@ -269,7 +269,7 @@ describe('findValidByToken', () => {
     const result = await PasswordResetToken.findValidByToken(context, 'abc');
 
     expect(queryMock).toHaveBeenCalledTimes(1);
-    expect(result.resetPasswordToken).toEqual('abc');
+    expect(result?.resetPasswordToken).toEqual('abc');
   });
 
   it('should return null when none found', async () => {

@@ -108,6 +108,12 @@ export const publishGuidanceGroup = async (
 
     // If the creation was successful
     if (created && !created.hasErrors()) {
+      // A successfully created record always has an id; this guard just lets TS narrow
+      // `created.id` from `number | undefined` to `number` for generateGuidanceVersion below.
+      if (!created.id) {
+        throw new Error('Cannot publish unsaved VersionedGuidanceGroup');
+      }
+
       // Deactivate all previous versions
       await VersionedGuidanceGroup.deactivateAll(reference, context, guidanceGroup.id);
 
@@ -391,6 +397,10 @@ export async function getGuidanceSourcesForPlan(
 
       // Same template-wide fallback pattern as the CUSTOM customQuestion branch above
       tagsMap = await resolveTagsMap(getQuestionTagsMap(context, versionedTemplateId), () => getSectionTagsMap(context, versionedTemplateId));
+    } else {
+      // No section/question filter was provided (plan-wide guidance), so fall back to
+      // the same template-wide tags used by the CUSTOM branches above.
+      tagsMap = await resolveTagsMap(getQuestionTagsMap(context, versionedTemplateId), () => getSectionTagsMap(context, versionedTemplateId));
     }
 
 
@@ -435,9 +445,9 @@ export async function getGuidanceSourcesForPlan(
             result.push({
               id: `customization-${userAffiliationUri}`,
               type: GuidanceSourceType.USER_AFFILIATION,
-              label: affiliation.displayName || affiliation.name,
+              label: affiliation.displayName || affiliation.name || '',
               shortName: (affiliation.acronyms && affiliation.acronyms[0]) ||
-                affiliation.displayName || affiliation.name,
+                affiliation.displayName || affiliation.name || '',
               orgURI: userAffiliationUri,
               items: [{ guidanceText }],
               hasGuidance: true
@@ -450,9 +460,9 @@ export async function getGuidanceSourcesForPlan(
             result.push({
               id: `affiliation-${templateOwnerUri}`,
               type: GuidanceSourceType.TEMPLATE_OWNER,
-              label: affiliation.displayName || affiliation.name,
+              label: affiliation.displayName || affiliation.name || '',
               shortName: (affiliation.acronyms && affiliation.acronyms[0]) ||
-                affiliation.displayName || affiliation.name,
+                affiliation.displayName || affiliation.name || '',
               orgURI: templateOwnerUri,
               items: [{ title: affiliation.displayName || affiliation.name, guidanceText }],
               hasGuidance: true
@@ -478,9 +488,9 @@ export async function getGuidanceSourcesForPlan(
         result.push({
           id: `affiliation-${affiliationUri}`,
           type: GuidanceSourceType.USER_SELECTED,
-          label: affiliation.displayName || affiliation.name,
+          label: affiliation.displayName || affiliation.name || '',
           shortName: (affiliation.acronyms && affiliation.acronyms[0]) ||
-            affiliation.displayName || affiliation.name,
+            affiliation.displayName || affiliation.name || '',
           orgURI: affiliationUri,
           items: [],
           hasGuidance: false
@@ -568,10 +578,10 @@ export async function getGuidanceSourcesForPlan(
             guidanceSources.push({
               id: `affiliation-${userAffiliationUri}`,
               type: GuidanceSourceType.USER_AFFILIATION,
-              label: affiliation.displayName || affiliation.name,
+              label: affiliation.displayName || affiliation.name || '',
               shortName: (affiliation.acronyms && affiliation.acronyms[0]) ||
                 affiliation.displayName ||
-                affiliation.name,
+                affiliation.name || '',
               orgURI: userAffiliationUri,
               items,
               hasGuidance: true
@@ -626,10 +636,10 @@ export async function getGuidanceSourcesForPlan(
           guidanceSources.push({
             id: `affiliation-${templateOwnerUri}`,
             type: GuidanceSourceType.TEMPLATE_OWNER,
-            label: affiliation.displayName || affiliation.name,
+            label: affiliation.displayName || affiliation.name || '',
             shortName: (affiliation.acronyms && affiliation.acronyms[0]) ||
               affiliation.displayName ||
-              affiliation.name,
+              affiliation.name || '',
             orgURI: templateOwnerUri,
             items,
             hasGuidance: true
@@ -669,10 +679,10 @@ export async function getGuidanceSourcesForPlan(
         guidanceSources.push({
           id: `affiliation-${affiliationUri}`,
           type: GuidanceSourceType.USER_SELECTED,
-          label: affiliation.displayName || affiliation.name,
+          label: affiliation.displayName || affiliation.name || '',
           shortName: (affiliation.acronyms && affiliation.acronyms[0]) ||
             affiliation.displayName ||
-            affiliation.name,
+            affiliation.name || '',
           orgURI: affiliationUri,
           items,
           hasGuidance: true
@@ -903,7 +913,7 @@ export async function addPlanGuidance(
   try {
     const planGuidance = new PlanGuidance({
       planId,
-      affiliationId,
+      affiliationId: affiliationId.toString(),
       userId
     });
     const created = await planGuidance.create(context);

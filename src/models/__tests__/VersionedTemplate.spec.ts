@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import casual from "casual";
 
 import { mockAppConfigs, mockAppLogger } from '../../__tests__/mockConfigs.js';
+import type { MyContext } from '../../context.js';
 
 import {
   PaginationOptions,
@@ -38,7 +39,7 @@ const {
   TemplateCustomizationMigrationStatus
 } = await import('../TemplateCustomization.js');
 
-let context;
+let context: MyContext;
 
 beforeEach(async () => {
   jest.resetAllMocks();
@@ -53,10 +54,10 @@ afterEach(() => {
 describe('VersionedTemplateSearchResult', () => {
   const originalQuery = VersionedTemplate.query;
 
-  let localQuery;
-  let localPaginationQuery;
-  let context;
-  let versionedTemplateSearchResult;
+  let localQuery: jest.Mock<() => Promise<unknown[]>>;
+  let localPaginationQuery: jest.Mock<() => Promise<unknown[]>>;
+  let context: MyContext;
+  let versionedTemplateSearchResult: InstanceType<typeof VersionedTemplateSearchResult>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -79,7 +80,7 @@ describe('VersionedTemplateSearchResult', () => {
       isDefault: casual.boolean,
       ownerId: casual.integer(1, 99),
       ownerURI: casual.url,
-      ownerSearchName: casual.name,
+      ownerName: casual.name,
       ownerDisplayName: casual.name,
       modifiedById: casual.integer(1, 999),
       modifiedByName: casual.name,
@@ -96,7 +97,7 @@ describe('VersionedTemplateSearchResult', () => {
     it('returns the matching VersionedTemplateSearchResults', async () => {
       localPaginationQuery.mockResolvedValueOnce([versionedTemplateSearchResult]);
 
-      const term = versionedTemplateSearchResult.name.split(0, 5)[0];
+      const term = versionedTemplateSearchResult.name.split('0', 5)[0];
       const result = await VersionedTemplateSearchResult.search('Test', context, term);
       const affiliationId = context.token.affiliationId;
       const sql =
@@ -135,7 +136,7 @@ describe('VersionedTemplateSearchResult', () => {
     it('returns an empty array if there are no matching VersionedTemplateSearchResults', async () => {
       localPaginationQuery.mockResolvedValueOnce([]);
 
-      const term = versionedTemplateSearchResult.name.split(0, 5)[0];
+      const term = versionedTemplateSearchResult.name.split('0', 5)[0];
       const result = await VersionedTemplateSearchResult.search('Test', context, term);
       expect(localPaginationQuery).toHaveBeenCalledTimes(1);
       expect(result).toEqual([]);
@@ -178,11 +179,11 @@ describe('CustomizableTemplateSearchResult', () => {
   const originalQuery = VersionedTemplate.queryWithPagination;
   const originalGetDefaultPaginationOptions = VersionedTemplate.getDefaultPaginationOptions;
 
-  let localPaginationQuery;
-  let localCountQuery;
-  let localGetDefaultPaginationOptions;
-  let context;
-  let customizableTemplateSearchResult;
+  let localPaginationQuery: jest.Mock<(...args: unknown[]) => Promise<PaginatedQueryResults<InstanceType<typeof CustomizableTemplateSearchResult>>>>;
+  let localCountQuery: jest.Mock;
+  let localGetDefaultPaginationOptions: jest.Mock<() => PaginationOptions>;
+  let context: MyContext;
+  let customizableTemplateSearchResult: InstanceType<typeof CustomizableTemplateSearchResult>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -207,6 +208,8 @@ describe('CustomizableTemplateSearchResult', () => {
       name: casual.sentence,
       version: `v${casual.integer(1, 9)}`,
       description: casual.sentences(3),
+      bestPractice: casual.boolean,
+      lastModified: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
       status: TemplateCustomizationStatus.DRAFT,
       migrationStatus: TemplateCustomizationMigrationStatus.OK,
       lastCustomizedById: casual.integer(1, 999),
@@ -407,8 +410,8 @@ describe('CustomizableTemplateSearchResult', () => {
     it('uses cursor-based pagination when type is CURSOR', async () => {
       const mockOptions: PaginationOptionsForCursors = {
         type: PaginationType.CURSOR,
-        sortField: null,
-        sortDir: null,
+        sortField: undefined,
+        sortDir: undefined,
         cursor: 'test-cursor',
       };
       localGetDefaultPaginationOptions.mockReturnValue(mockOptions);
@@ -499,14 +502,14 @@ describe('CustomizableTemplateSearchResult', () => {
 
 
 describe('VersionedTemplate', () => {
-  let templateId;
-  let ownerId;
-  let version;
-  let name;
-  let versionedById;
-  let versioned;
-  let bestPractice;
-  let isDefault;
+  let templateId: number;
+  let ownerId: string;
+  let version: string;
+  let name: string;
+  let versionedById: number;
+  let versioned: InstanceType<typeof VersionedTemplate>;
+  let bestPractice: boolean;
+  let isDefault: boolean;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -555,14 +558,14 @@ describe('VersionedTemplate', () => {
   });
 
   it('isValid returns false if the templateId is null', async () => {
-    versioned.templateId = null;
+    versioned.templateId = null as unknown as number;
     expect(await versioned.isValid()).toBe(false);
     expect(Object.keys(versioned.errors).length).toBe(1);
     expect(versioned.errors['templateId'].includes('Template')).toBe(true);
   });
 
   it('isValid returns false if the versionedById is null', async () => {
-    versioned.versionedById = null;
+    versioned.versionedById = null as unknown as number;
     expect(await versioned.isValid()).toBe(false);
     expect(Object.keys(versioned.errors).length).toBe(1);
     expect(versioned.errors['versionedById'].includes('Versioned by')).toBe(true);
@@ -583,7 +586,7 @@ describe('VersionedTemplate', () => {
   });
 
   it('isValid returns false if the ownerId is null', async () => {
-    versioned.ownerId = null;
+    versioned.ownerId = null as unknown as string;
     expect(await versioned.isValid()).toBe(false);
     expect(Object.keys(versioned.errors).length).toBe(1);
     expect(versioned.errors['ownerId'].includes('Owner')).toBe(true);
@@ -592,9 +595,9 @@ describe('VersionedTemplate', () => {
   describe('findBy queries', () => {
     const originalQuery = VersionedTemplate.query;
 
-    let localQuery;
-    let context;
-    let versionedTemplate;
+    let localQuery: jest.Mock<() => Promise<unknown[]>>;
+    let context: MyContext;
+    let versionedTemplate: InstanceType<typeof VersionedTemplate>;
 
     beforeEach(async () => {
       jest.resetAllMocks();
@@ -611,6 +614,7 @@ describe('VersionedTemplate', () => {
         name: casual.sentence,
         ownerId: casual.url,
         version: `v${casual.integer(1, 9)}`,
+        versionedById: casual.integer(1, 999),
       })
     });
 
@@ -621,19 +625,20 @@ describe('VersionedTemplate', () => {
 
     it('findById returns the VersionedTemplate', async () => {
       localQuery.mockResolvedValueOnce([versionedTemplate]);
-      const id = versionedTemplate.id;
+      const id = versionedTemplate.id as number;
       const result = await VersionedTemplate.findById('Test', context, id);
       const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
       expect(localQuery).toHaveBeenCalledTimes(1);
       expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test');
       expect(result).toEqual(versionedTemplate);
       expect(result).toBeInstanceOf(VersionedTemplate);
+      if (!result) throw new Error('test setup failed');
       expect(Object.keys(result.errors).length).toBe(0);
     });
 
     it('findById returns null if there is no VersionedTemplate', async () => {
       localQuery.mockResolvedValueOnce([]);
-      const id = versionedTemplate.id;
+      const id = versionedTemplate.id as number;
       const result = await VersionedTemplate.findById('Test', context, id);
       const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
       expect(localQuery).toHaveBeenCalledTimes(1);
@@ -686,7 +691,7 @@ describe('VersionedTemplate', () => {
     it('findVersionedTemplateById returns the VersionedTemplate', async () => {
       localQuery.mockResolvedValueOnce([versionedTemplate]);
 
-      const id = versionedTemplate.id;
+      const id = versionedTemplate.id as number;
       const result = await VersionedTemplate.findVersionedTemplateById('Test', context, id);
       const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
       expect(localQuery).toHaveBeenCalledTimes(1);
@@ -696,19 +701,20 @@ describe('VersionedTemplate', () => {
 
     it('findActiveByTemplateId returns the VersionedTemplate', async () => {
       localQuery.mockResolvedValueOnce([versionedTemplate]);
-      const id = versionedTemplate.id;
+      const id = versionedTemplate.id as number;
       const result = await VersionedTemplate.findActiveByTemplateId('Test', context, id);
       const expectedSql = 'SELECT * FROM versionedTemplates WHERE templateId = ? AND active = 1 ORDER BY modified DESC';
       expect(localQuery).toHaveBeenCalledTimes(1);
       expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [id.toString()], 'Test');
       expect(result).toEqual(versionedTemplate);
       expect(result).toBeInstanceOf(VersionedTemplate);
+      if (!result) throw new Error('test setup failed');
       expect(Object.keys(result.errors).length).toBe(0);
     });
 
     it('findActiveByTemplateId returns undefined if there is no VersionedTemplate', async () => {
       localQuery.mockResolvedValueOnce([]);
-      const id = versionedTemplate.id;
+      const id = versionedTemplate.id as number;
       const result = await VersionedTemplate.findActiveByTemplateId('Test', context, id);
       expect(localQuery).toHaveBeenCalledTimes(1);
       expect(result).toEqual(undefined);
@@ -717,7 +723,7 @@ describe('VersionedTemplate', () => {
     it('findVersionedTemplateById returns null if there is no VersionedTemplate', async () => {
       localQuery.mockResolvedValueOnce([]);
 
-      const id = versionedTemplate.id;
+      const id = versionedTemplate.id as number;
       const result = await VersionedTemplate.findVersionedTemplateById('Test', context, id);
       const expectedSql = 'SELECT * FROM versionedTemplates WHERE id = ?';
       expect(localQuery).toHaveBeenCalledTimes(1);
@@ -733,6 +739,7 @@ describe('VersionedTemplate', () => {
       expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [], 'Test');
       expect(result).toEqual(versionedTemplate);
       expect(result).toBeInstanceOf(VersionedTemplate);
+      if (!result) throw new Error('test setup failed');
       expect(Object.keys(result.errors).length).toBe(0);
     });
 
@@ -745,8 +752,8 @@ describe('VersionedTemplate', () => {
   });
 
   describe('create', () => {
-    let insertQuery;
-    let versionedTemplate;
+    let insertQuery: jest.Mock;
+    let versionedTemplate: InstanceType<typeof VersionedTemplate>;
 
     beforeEach(() => {
       insertQuery = jest.fn();
@@ -792,8 +799,8 @@ describe('VersionedTemplate', () => {
   });
 
   describe('update', () => {
-    let updateQuery;
-    let versionedTemplate;
+    let updateQuery: jest.Mock<() => Promise<InstanceType<typeof VersionedTemplate>>>;
+    let versionedTemplate: InstanceType<typeof VersionedTemplate>;
 
     beforeEach(() => {
       updateQuery = jest.fn();
@@ -804,6 +811,9 @@ describe('VersionedTemplate', () => {
         createdById: casual.integer(1, 999),
         ownerId: casual.url,
         name: casual.sentence,
+        templateId: casual.integer(1, 999),
+        version: `v${casual.integer(1, 9)}`,
+        versionedById: casual.integer(1, 999),
       })
     });
 
@@ -822,7 +832,7 @@ describe('VersionedTemplate', () => {
       (versionedTemplate.isValid as jest.Mock) = localValidator;
       localValidator.mockResolvedValueOnce(true);
 
-      versionedTemplate.id = null;
+      versionedTemplate.id = undefined;
       const result = await versionedTemplate.update(context);
       expect(Object.keys(result.errors).length).toBe(1);
       expect(result.errors['general']).toBeTruthy();
@@ -846,9 +856,9 @@ describe('VersionedTemplate', () => {
   describe('hasAssociatedPlans', () => {
     const originalQuery = VersionedTemplate.query;
 
-    let localQuery;
-    let context;
-    let templateId;
+    let localQuery: jest.Mock<() => Promise<unknown[] | null>>;
+    let context: MyContext;
+    let templateId: number;
 
     beforeEach(async () => {
       jest.resetAllMocks();
@@ -900,9 +910,9 @@ describe('VersionedTemplate', () => {
   describe('deactivateByTemplateId', () => {
     const originalQuery = VersionedTemplate.query;
 
-    let localQuery;
-    let context;
-    let templateId;
+    let localQuery: jest.Mock<() => Promise<unknown[]>>;
+    let context: MyContext;
+    let templateId: number;
 
     beforeEach(async () => {
       jest.resetAllMocks();

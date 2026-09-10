@@ -2,27 +2,35 @@ import casual from "casual";
 import { getCurrentDate, isNullOrUndefined } from "../../utils/helpers.js";
 import { PaginationOptionsForOffsets, PaginationOptionsForCursors } from '../../types/general.js';
 
-const mockTableStores = {};
+// A generic shape for entries stored in a mock table. Mocks store arbitrary
+// model-like objects, all of which are expected to have a numeric id. Callers
+// can supply a more specific type parameter (e.g. the real model's
+// constructor options type) to get properly typed results back out.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type MockEntry = { id?: number; [key: string]: any };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockTableStores: Record<string, any[]> = {};
 
 // Add a new mock table
-export const addMockTableStore = (tableName, store): void => {
+export const addMockTableStore = <T extends MockEntry = MockEntry>(tableName: string, store: T[]): void => {
   mockTableStores[tableName] = store;
 }
 
 // Clear a mock table
-export const clearMockTableStore = (tableName): void => {
+export const clearMockTableStore = (tableName: string): void => {
   mockTableStores[tableName] = [];
 }
 
 // Get a mock table
 
-export const getMockTableStore = (tableName) => {
+export const getMockTableStore = <T extends MockEntry = MockEntry>(tableName: string): T[] => {
   return mockTableStores[tableName];
 }
 
 // Get a random entry from a mock table
-export const getRandomEntryFromMockTable = (tableName) => {
-  const store = mockTableStores[tableName];
+export const getRandomEntryFromMockTable = <T extends MockEntry = MockEntry>(tableName: string): T | null => {
+  const store: T[] = mockTableStores[tableName];
   if (!store || store.length === 0) {
     return null;
   }
@@ -30,17 +38,17 @@ export const getRandomEntryFromMockTable = (tableName) => {
 }
 
 // Get the next logical id for an entry in a mock table
-const getNextId = (store): number => {
+const getNextId = (store: MockEntry[]): number => {
   if (store.length === 0) {
     return 1;
   }
-  const maxId = store.reduce((max, entry) => Math.max(max, entry.id), 0);
+  const maxId = store.reduce((max, entry) => Math.max(max, entry.id ?? 0), 0);
   return maxId + 1;
 }
 
 // Add an entry to a mock table
-export const addEntryToMockTable = (tableName, entry): { insertId: number } => {
-  const store = mockTableStores[tableName];
+export const addEntryToMockTable = <T extends MockEntry = MockEntry>(tableName: string, entry: T): { insertId: number } => {
+  const store: T[] = mockTableStores[tableName];
   if (!store) {
     throw new Error(`Table ${tableName} does not exist.`);
   }
@@ -61,8 +69,8 @@ export const addEntryToMockTable = (tableName, entry): { insertId: number } => {
 }
 
 // Update an entry in a mock table
-export const updateEntryInMockTable = (tableName, entry) => {
-  const store = mockTableStores[tableName];
+export const updateEntryInMockTable = <T extends MockEntry = MockEntry>(tableName: string, entry: T): T | null => {
+  const store: T[] = mockTableStores[tableName];
   if (!store) {
     throw new Error(`Table ${tableName} does not exist.`);
   }
@@ -80,8 +88,8 @@ export const updateEntryInMockTable = (tableName, entry) => {
 }
 
 // Delete an entry from a mock table
-export const deleteEntryFromMockTable = (tableName, id): boolean => {
-  const store = mockTableStores[tableName];
+export const deleteEntryFromMockTable = (tableName: string, id: number): boolean => {
+  const store: MockEntry[] = mockTableStores[tableName];
   if (!store) {
     throw new Error(`Table ${tableName} does not exist.`);
   }
@@ -94,8 +102,8 @@ export const deleteEntryFromMockTable = (tableName, id): boolean => {
 }
 
 // Find an entry in a mock table by id
-export const findEntryInMockTableById = (tableName, id) => {
-  const store = mockTableStores[tableName];
+export const findEntryInMockTableById = <T extends MockEntry = MockEntry>(tableName: string, id: number): T | undefined => {
+  const store: T[] = mockTableStores[tableName];
   if (!store) {
     throw new Error(`Table ${tableName} does not exist.`);
   }
@@ -103,8 +111,11 @@ export const findEntryInMockTableById = (tableName, id) => {
 }
 
 // Find an entry in a mock table by the filter in the callback
-export const findEntryInMockTableByFilter = (tableName, criteria) => {
-  const store = mockTableStores[tableName];
+export const findEntryInMockTableByFilter = <T extends MockEntry = MockEntry>(
+  tableName: string,
+  criteria: (entry: T) => boolean
+): T | undefined => {
+  const store: T[] = mockTableStores[tableName];
   if (!store) {
     throw new Error(`Table ${tableName} does not exist.`);
   }
@@ -112,8 +123,11 @@ export const findEntryInMockTableByFilter = (tableName, criteria) => {
 }
 
 // Find all entries in a mock table that match a filter
-export const findEntriesInMockTableByFilter = (tableName, criteria) => {
-  const store = mockTableStores[tableName];
+export const findEntriesInMockTableByFilter = <T extends MockEntry = MockEntry>(
+  tableName: string,
+  criteria: (entry: T) => boolean
+): T[] => {
+  const store: T[] = mockTableStores[tableName];
   if (!store) {
     throw new Error(`Table ${tableName} does not exist.`);
   }
@@ -121,7 +135,10 @@ export const findEntriesInMockTableByFilter = (tableName, criteria) => {
 }
 
 // Simulate pagination of the results returned from a query
-export const paginate = (results, paginationOptions: PaginationOptionsForCursors | PaginationOptionsForOffsets) => {
+export const paginate = <T extends MockEntry = MockEntry>(
+  results: T[],
+  paginationOptions: PaginationOptionsForCursors | PaginationOptionsForOffsets
+) => {
   const totalCount = results.length;
   const finalId = results.length > 0 ? results[results.length - 1].id : null;
 
@@ -130,19 +147,20 @@ export const paginate = (results, paginationOptions: PaginationOptionsForCursors
     : paginateByCursor(results, paginationOptions as PaginationOptionsForCursors);
 
   const lastId = paginatedResults.length > 0 ? paginatedResults[paginatedResults.length - 1].id : null;
+  const limit = paginationOptions.limit ?? results.length;
 
   let hasPreviousPage = false;
   if ('offset' in paginationOptions && !isNullOrUndefined(paginationOptions.offset)) {
-    hasPreviousPage = totalCount > paginationOptions.limit && paginationOptions.offset > 0;
+    hasPreviousPage = totalCount > limit && paginationOptions.offset > 0;
 
   }
 
   return {
     totalCount,
-    limit: paginationOptions.limit,
+    limit,
     currentOffset: ('offset' in paginationOptions) ? paginationOptions.offset : null,
-    nextCursor: ('cursor' in paginationOptions) && finalId !== lastId ? lastId.toString() : null,
-    hasNextPage: paginatedResults.length === paginationOptions.limit,
+    nextCursor: ('cursor' in paginationOptions) && finalId !== lastId ? lastId?.toString() : null,
+    hasNextPage: paginatedResults.length === limit,
     hasPreviousPage,
     availableSortFields: [],
     items: paginatedResults,
@@ -150,18 +168,19 @@ export const paginate = (results, paginationOptions: PaginationOptionsForCursors
 }
 
 // Paginate the results by offset
-const paginateByOffset = (results, paginationOptions: PaginationOptionsForOffsets) => {
+const paginateByOffset = <T extends MockEntry>(results: T[], paginationOptions: PaginationOptionsForOffsets): T[] => {
   if (Array.isArray(results)) {
-    const { offset, limit } = paginationOptions;
+    const { offset = 0, limit = results.length } = paginationOptions;
     return results.slice(offset, offset + limit);
   }
+  return [];
 }
 
 // Paginate the results by cursor
-const paginateByCursor = (results, paginationOptions: PaginationOptionsForCursors) => {
+const paginateByCursor = <T extends MockEntry>(results: T[], paginationOptions: PaginationOptionsForCursors): T[] => {
   if (Array.isArray(results)) {
-    const { cursor, limit } = paginationOptions;
-    const index = results.findIndex((entry) => entry.id.toString() === cursor);
+    const { cursor, limit = results.length } = paginationOptions;
+    const index = results.findIndex((entry) => entry.id?.toString() === cursor);
     if (index === -1) {
       return results.slice(0, limit);
     }

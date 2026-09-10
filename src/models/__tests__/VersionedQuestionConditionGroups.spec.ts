@@ -11,12 +11,14 @@ jest.unstable_mockModule('../../context.js', () => ({
   buildContext: jest.fn(),
 }));
 
+import type { MyContext } from '../../context.js';
+
 //Dynamic imports AFTER all mocks are registered
 const { buildMockContextWithToken } = await import('../../__mocks__/context.js');
 const { logger } = await import('../../logger.js');
 const { VersionedQuestionConditionGroup } = await import('../VersionedQuestionConditionGroups.js');
 
-let context;
+let context: MyContext;
 
 beforeEach(async () => {
   jest.resetAllMocks();

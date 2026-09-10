@@ -27,47 +27,78 @@ export enum AffiliationType {
   OTHER = 'OTHER',
 }
 
+interface AffiliationOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  uri?: string;
+  active?: boolean;
+  provenance?: string;
+  displayName: string;
+  displayAbbreviation?: string;
+  homepage?: string;
+  displayDomain?: string;
+  funder?: boolean;
+  fundrefId?: string;
+  types?: AffiliationType[];
+  managed?: boolean;
+  logoName?: string;
+  contactEmail?: string;
+  contactName?: string;
+  ssoEntityId?: string;
+  feedbackEnabled?: boolean;
+  feedbackMessage?: string;
+  feedbackEmails?: string[];
+  apiTarget?: string;
+  name?: string;
+  searchName?: string;
+  acronyms?: string[];
+  aliases?: string[];
+}
+
 // Represents an Institution, Organization or Company
 export class Affiliation extends MySqlModel {
   // These fields can only be modified if the record is managed by the DMPTool
-  public uri: string;
+  public uri?: string;
   public active: boolean;
   public provenance: AffiliationProvenance;
   public displayName: string;
-  public displayAbbreviation: string;
-  public homepage: string;
-  public displayDomain: string;
+  public displayAbbreviation?: string;
+  public homepage?: string;
+  public displayDomain?: string;
   public funder: boolean;
-  public fundrefId: string;
+  public fundrefId?: string;
   public types: AffiliationType[];
 
   public managed: boolean;
-  public logoName: string;
-  public contactEmail: string;
-  public contactName: string;
-  public ssoEntityId: string;
+  public logoName?: string;
+  public contactEmail?: string;
+  public contactName?: string;
+  public ssoEntityId?: string;
   public feedbackEnabled: boolean;
-  public feedbackMessage: string;
-  public feedbackEmails: string[];
-  public apiTarget: string;
+  public feedbackMessage?: string;
+  public feedbackEmails?: string[];
+  public apiTarget?: string;
 
   // TODO: Remove these once we've migrated ROR data to OpenSearch. They will
   //       instead be referenced via chained resolvers that look at OS
-  public name!: string;
-  public searchName: string;
+  public name?: string;
+  public searchName?: string;
   public acronyms: string[];
   public aliases: string[];
 
   private tableName = 'affiliations';
 
   // Initialize a new Affiliation
-  constructor(options) {
-    super(options.id, options.created, options.createdById, options.modified, options.modifiedById);
+  constructor(options: AffiliationOptions) {
+    super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     // These fields can only be modified if the record is managed by the DMPTool
     this.uri = options.uri;
     this.active = options.active ?? true;
-    this.provenance = options.provenance ?? AffiliationProvenance.DMPTOOL;
     this.displayName = options.displayName;
     this.displayAbbreviation = options.displayAbbreviation;
     this.homepage = options.homepage;
@@ -77,7 +108,7 @@ export class Affiliation extends MySqlModel {
     this.types = options.types ?? [AffiliationType.OTHER];
 
     // Properties specific to the DMPTool. These can be modified regardless of the record's provenance
-    this.managed = options.managed;
+    this.managed = options.managed ?? false;
     this.logoName = options.logoName;
     this.contactEmail = options.contactEmail;
     this.contactName = options.contactName;
@@ -98,7 +129,7 @@ export class Affiliation extends MySqlModel {
 
     // Use the specified provenance (if it is a known provenance) OR set it based on the URI
     this.provenance = options.provenance
-      ? AffiliationProvenance[options.provenance] || AffiliationProvenance.DMPTOOL
+      ? AffiliationProvenance[options.provenance as keyof typeof AffiliationProvenance] || AffiliationProvenance.DMPTOOL
       : this.uri?.includes(DEFAULT_ROR_AFFILIATION_URL) ? AffiliationProvenance.ROR : AffiliationProvenance.DMPTOOL;
   }
 
@@ -106,7 +137,7 @@ export class Affiliation extends MySqlModel {
   async isValid(): Promise<boolean> {
     await super.isValid();
 
-    if (!validateURL(this.uri)) this.addError('uri', 'Invalid URL');
+    if (!validateURL(this.uri ?? '')) this.addError('uri', 'Invalid URL');
     if (!this.displayName) this.addError('displayName', 'Display name can\'t be blank');
     if (!this.displayAbbreviation) this.addError('displayAbbreviation', 'Abbreviation can\'t be blank');
     if (!this.provenance) this.addError('provenance', 'Provenance can\'t be blank');
@@ -147,11 +178,11 @@ export class Affiliation extends MySqlModel {
   // Get the domain from the homepage
   getDomain(): string {
     try {
-      const url = new URL(this.homepage);
+      const url = new URL(this.homepage ?? '');
       return url.hostname;
     } catch {
       // It's not a URL so just return as is
-      return this.homepage;
+      return this.homepage ?? '';
     }
   }
 
@@ -175,9 +206,9 @@ export class Affiliation extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<Affiliation> {
+  async create(context: MyContext): Promise<Affiliation | null> {
     const reference = 'Affiliation.create';
-    let current;
+    let current: Affiliation | null = null;
 
     // First make sure the record doesn't already exist based on the URI
     if (this.uri) {
@@ -190,7 +221,7 @@ export class Affiliation extends MySqlModel {
     current = current ?? await Affiliation.findByName(
       reference,
       context,
-      this.displayName || this.name
+      (this.displayName || this.name) ?? ''
     );
 
     // Then make sure it doesn't already exist
@@ -208,7 +239,10 @@ export class Affiliation extends MySqlModel {
           this,
           reference
         );
-        return await Affiliation.findById(reference, context, newId);
+        if (newId) {
+          return await Affiliation.findById(reference, context, newId);
+        }
+        this.addError('general', 'Affiliation was not created successfully');
       }
     }
 
@@ -217,10 +251,14 @@ export class Affiliation extends MySqlModel {
   }
 
   // Save the changes made to the affiliation
-  async update(context: MyContext): Promise<Affiliation> {
+  async update(context: MyContext): Promise<Affiliation | null> {
     const reference = 'Affiliation.update';
     if (this.id) {
       const existing = await Affiliation.findById(reference, context, this.id);
+      if (!existing) {
+        this.addError('general', 'Affiliation does not exist');
+        return this;
+      }
       this.prepForSave();
 
       // TODO: We need to figure out how to handle changing the ROR id once OS is in place.
@@ -253,8 +291,8 @@ export class Affiliation extends MySqlModel {
   }
 
   // Delete this record (will cascade delate all associated AffiliationLinks and AffiliaitonEmailDomains)
-  async delete(context: MyContext): Promise<Affiliation> {
-    if (this.uri) {
+  async delete(context: MyContext): Promise<Affiliation | null> {
+    if (this.id) {
       const result = await Affiliation.delete(context, this.tableName, this.id, 'Affiliation.delete');
       if (result) {
         return this;
@@ -282,13 +320,14 @@ export class Affiliation extends MySqlModel {
       affiliation.types = [];
 
       for (const typ of types) {
-        if (AffiliationType[typ.toLocaleUpperCase()] !== undefined) {
-          affiliation.types.push(AffiliationType[typ.toLocaleUpperCase()]);
+        const key = typ.toLocaleUpperCase() as keyof typeof AffiliationType;
+        if (AffiliationType[key] !== undefined) {
+          affiliation.types.push(AffiliationType[key]);
         }
       }
     } else {
       // It's already an array so just filter out any invalid types
-      const typs = affiliation.types.map(typ => typ.toUpperCase())
+      const typs = affiliation.types.map(typ => typ.toUpperCase() as keyof typeof AffiliationType)
         .filter((typ) => AffiliationType[typ] !== undefined);
       affiliation.types = typs.map(typ => AffiliationType[typ]);
     }
@@ -302,21 +341,21 @@ export class Affiliation extends MySqlModel {
   }
 
   // Return the specified Affiliation  based on the DB id
-  static async findById(reference: string, context: MyContext, id: number): Promise<Affiliation> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<Affiliation | null> {
     const sql = 'SELECT * FROM affiliations WHERE id = ?';
     const results = await Affiliation.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 
   // Return the specified Affiliation based on the URI
-  static async findByURI(reference: string, context: MyContext, uri: string): Promise<Affiliation> {
+  static async findByURI(reference: string, context: MyContext, uri: string): Promise<Affiliation | null> {
     const sql = 'SELECT * FROM affiliations WHERE uri = ?';
     const results = await Affiliation.query(context, sql, [uri], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
 
   // Return the specified Affiliation based on it's name
-  static async findByName(reference: string, context: MyContext, name: string): Promise<Affiliation> {
+  static async findByName(reference: string, context: MyContext, name: string): Promise<Affiliation | null> {
     const sql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(name)) = ? OR TRIM(LOWER(displayName)) = ?';
     const trimmed = name?.toLowerCase()?.trim()
     const results = await Affiliation.query(context, sql, [trimmed, trimmed], reference);
@@ -324,11 +363,25 @@ export class Affiliation extends MySqlModel {
   }
 
   // Return the specified Affiliation based on it's SSO entity id
-  static async findByEntityId(reference: string, context: MyContext, entityId: string): Promise<Affiliation> {
+  static async findByEntityId(reference: string, context: MyContext, entityId: string): Promise<Affiliation | null> {
     const sql = 'SELECT * FROM affiliations WHERE TRIM(LOWER(ssoEntityId)) = ?';
     const results = await Affiliation.query(context, sql, [entityId?.toLowerCase()?.trim()], reference);
     return Array.isArray(results) && results.length > 0 ? this.processResult(results[0]) : null;
   }
+}
+
+interface AffiliationSearchOptions {
+  id: number;
+  uri: string;
+  name: string;
+  displayName: string;
+  displayAbbreviation?: string;
+  displayDomain?: string;
+  funder?: boolean;
+  types?: AffiliationType[];
+  aliases?: string[];
+  acronyms?: string[];
+  apiTarget: string;
 }
 
 // A pared down version of the full Affiliation object. This type is returned by
@@ -338,8 +391,8 @@ export class AffiliationSearch {
   public uri!: string;
   public name!: string;
   public displayName!: string;
-  public displayAbbreviation: string;
-  public displayDomain: string;
+  public displayAbbreviation?: string;
+  public displayDomain?: string;
   public funder!: boolean;
   public types: AffiliationType[];
   public aliases: string[];
@@ -347,7 +400,7 @@ export class AffiliationSearch {
   public apiTarget!: string;
 
   // Initialize a new AffiliationSearch result
-  constructor(options) {
+  constructor(options: AffiliationSearchOptions) {
     this.id = options.id;
     this.uri = options.uri;
     this.name = options.name;
@@ -372,8 +425,9 @@ export class AffiliationSearch {
       affiliation.types = [];
 
       for (const typ of types) {
-        if (AffiliationType[typ.toLocaleUpperCase()] !== undefined) {
-          affiliation.types.push(AffiliationType[typ.toLocaleUpperCase()]);
+        const key = typ.toLocaleUpperCase() as keyof typeof AffiliationType;
+        if (AffiliationType[key] !== undefined) {
+          affiliation.types.push(AffiliationType[key]);
         }
       }
     }
@@ -520,6 +574,14 @@ export class AffiliationSearch {
 
 
 // Funder popularity result based on the number of plans associated with the funder over the past year
+interface PopularFunderOptions {
+  id: number;
+  uri: string;
+  displayName: string;
+  apiTarget: string;
+  nbrPlans: number;
+}
+
 export class PopularFunder {
   public id: number;
   public uri: string;
@@ -527,7 +589,7 @@ export class PopularFunder {
   public apiTarget: string;
   public nbrPlans: number;
 
-  constructor(options) {
+  constructor(options: PopularFunderOptions) {
     this.id = options.id;
     this.uri = options.uri;
     this.displayName = options.displayName;

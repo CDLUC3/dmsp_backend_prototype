@@ -23,6 +23,11 @@ enum MockTemplateVersionType {
 }
 
 interface VersionedTemplateInterface {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
   templateId: number;
   version: string;
   versionedById: number;
@@ -35,14 +40,20 @@ interface VersionedTemplateInterface {
   visibility: TemplateVisibility;
   bestPractice: boolean;
   languageId: string;
+  // Not actual VersionedTemplate fields (this local interface predates/diverges from the real
+  // model), but referenced by the unused mockFindVersionedTemplateByDMPId/
+  // mockFindVersionedTemplatesByVersionedTemplateId helpers below - kept optional here so those
+  // helpers keep type-checking without changing their (dead) behavior.
+  dmpId?: string;
+  projectId?: number;
 }
 
-export const getVersionedTemplateStore = () => {
-  return getMockTableStore('versionedTemplates');
+export const getVersionedTemplateStore = (): VersionedTemplateInterface[] => {
+  return getMockTableStore<VersionedTemplateInterface>('versionedTemplates');
 }
 
-export const getRandomVersionedTemplate = (): VersionedTemplateInterface => {
-  const store = getMockTableStore('versionedTemplates');
+export const getRandomVersionedTemplate = (): VersionedTemplateInterface | null => {
+  const store = getMockTableStore<VersionedTemplateInterface>('versionedTemplates');
   if (!store || store.length === 0) {
     return null;
   }
@@ -53,7 +64,7 @@ export const clearVersionedTemplateStore = () => {
   clearMockTableStore('versionedTemplates');
 }
 
-export const generateNewVersionedTemplate = (options) => {
+export const generateNewVersionedTemplate = (options: Partial<VersionedTemplateInterface>): VersionedTemplateInterface => {
   return {
     templateId: options.templateId ?? casual.integer(1, 9999),
     version: options.version ?? `v${casual.integer(1, 10)}`,
@@ -72,7 +83,7 @@ export const generateNewVersionedTemplate = (options) => {
 
 // Initialize the table
 export const initVersionedTemplateStore = (count = 10): VersionedTemplateInterface[] => {
-  addMockTableStore('versionedTemplates', []);
+  addMockTableStore<VersionedTemplateInterface>('versionedTemplates', []);
 
   for (let i = 0; i < count; i++) {
     addEntryToMockTable('versionedTemplates', generateNewVersionedTemplate({}));
@@ -82,22 +93,25 @@ export const initVersionedTemplateStore = (count = 10): VersionedTemplateInterfa
 }
 
 // Mock the queries
-export const mockFindVersionedTemplateById = async (_, __, id: number): Promise<VersionedTemplateInterface> => {
-  const result = findEntryInMockTableById('versionedTemplates', id);
+export const mockFindVersionedTemplateById = async (_: string, __: MyContext, id: number): Promise<VersionedTemplateInterface | null> => {
+  const result = findEntryInMockTableById<VersionedTemplateInterface>('versionedTemplates', id);
   return result ? result : null;
 };
 
-export const mockFindVersionedTemplateByDMPId = async (_, __, dmpId: string): Promise<VersionedTemplateInterface> => {
-  const result = findEntryInMockTableByFilter(
+export const mockFindVersionedTemplateByDMPId = async (_: string, __: MyContext, dmpId: string): Promise<VersionedTemplateInterface | null> => {
+  const result = findEntryInMockTableByFilter<VersionedTemplateInterface>(
     'versionedTemplates',
-    (entry) => { return entry.dmpId.toLowerCase().trim() === dmpId.toLowerCase().trim() }
+    (entry) => { return entry.dmpId?.toLowerCase()?.trim() === dmpId.toLowerCase().trim() }
   );
   return result ? result : null;
 };
 
-export const mockFindVersionedTemplatesByVersionedTemplateId = async (_, { projectId }: { projectId: number }): Promise<VersionedTemplateInterface[]> => {
+export const mockFindVersionedTemplatesByVersionedTemplateId = async (
+  _: string,
+  { projectId }: { projectId: number }
+): Promise<VersionedTemplateInterface[]> => {
   // Filter the versionedTemplates based on the search term
-  const results = findEntriesInMockTableByFilter(
+  const results = findEntriesInMockTableByFilter<VersionedTemplateInterface>(
     'versionedTemplates',
     (entry) => { return entry.projectId === projectId }
   );
@@ -105,7 +119,7 @@ export const mockFindVersionedTemplatesByVersionedTemplateId = async (_, { proje
 };
 
 // Mock the mutations
-export const mockInsertVersionedTemplate = async (context: MyContext, _, obj: VersionedTemplateInterface): Promise<number> => {
+export const mockInsertVersionedTemplate = async (context: MyContext, _: string, obj: VersionedTemplateInterface): Promise<number> => {
   const { insertId } = addEntryToMockTable('versionedTemplates', {
     ...obj,
     createdById: context.token.id,
@@ -116,7 +130,7 @@ export const mockInsertVersionedTemplate = async (context: MyContext, _, obj: Ve
   return insertId;
 };
 
-export const mockUpdateVersionedTemplate = async (context: MyContext, _, obj: VersionedTemplateInterface): Promise<VersionedTemplateInterface> => {
+export const mockUpdateVersionedTemplate = async (context: MyContext, _: string, obj: VersionedTemplateInterface): Promise<VersionedTemplateInterface | null> => {
   const result = updateEntryInMockTable('versionedTemplates', {
     ...obj,
     modifiedById: context.token.id,
@@ -125,7 +139,7 @@ export const mockUpdateVersionedTemplate = async (context: MyContext, _, obj: Ve
   return result ? result : null;
 };
 
-export const mockDeleteVersionedTemplate = async (_, __, id: number): Promise<boolean> => {
+export const mockDeleteVersionedTemplate = async (_: MyContext, __: string, id: number): Promise<boolean> => {
   const result = deleteEntryFromMockTable('versionedTemplates', id);
   return result ? true : false;
 };

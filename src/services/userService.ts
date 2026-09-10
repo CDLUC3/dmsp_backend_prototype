@@ -52,6 +52,10 @@ export const anonymizeUser = async (context: MyContext, user: User): Promise<Use
   }
 
   const userBefore = await User.findById(ref, context, user.id);
+  if (!userBefore) {
+    user.addError('general', 'This user could not be found so can not anonymize their information');
+    return user;
+  }
 
   // Anonymize the user's information
   await UserEmail.createOrUpdatePrimary(context,
@@ -60,9 +64,12 @@ export const anonymizeUser = async (context: MyContext, user: User): Promise<Use
   user.password = await user.hashPassword(generateRandomPassword());
   user.givenName = 'Deleted';
   user.surName = 'Account';
-  user.affiliationId = null;
-  user.orcid = null;
-  user.ssoId = null;
+  // affiliationId/orcid/ssoId are typed as (optional) strings, but the User model itself
+  // treats them as nullable in practice (e.g. User.prepForSave sets `this.orcid = ... : null`),
+  // so these narrow casts match existing real-world semantics rather than the declared types.
+  user.affiliationId = null as unknown as string;
+  user.orcid = null as unknown as string;
+  user.ssoId = null as unknown as string;
   user.isArchived = true;
   user.role = UserRole.RESEARCHER;
   user.languageId = defaultLanguageId;
@@ -108,16 +115,32 @@ export const mergeUsers = async (
   userToKeep: User,
 ): Promise<User> => {
   const ref = 'UserService.mergeUsers';
-  const original = await User.findById(ref, context, userToKeep.id);
+
+  // The resolver (see resolvers/user.ts's mergeUsers) always looks both users up by id and
+  // bails with a NotFoundError before calling this, so both are already-saved records; this
+  // guard just lets TS narrow their `id` (typed optional on the model) to `number` below.
+  if (!userToMerge.id || !userToKeep.id) {
+    throw new Error('Cannot merge users: both users must already be saved');
+  }
+  const userToMergeId = userToMerge.id;
+  const userToKeepId = userToKeep.id;
+
+  const original = await User.findById(ref, context, userToKeepId);
+  if (!original) {
+    userToKeep.addError('general', 'Unable to merge the user at this time');
+    return userToKeep;
+  }
 
   const toBeMerged = new User(userToMerge);
   const toBeKept = new User(userToKeep);
 
   // Only replace these properties if the one we are keeping does not have them defined
-  const propsToMergeIfEmpty = ['givenName', 'surName', 'affiliationId', 'orcid', 'ssoId', 'languageId', 'active'];
+  const propsToMergeIfEmpty: (keyof User)[] = ['givenName', 'surName', 'affiliationId', 'orcid', 'ssoId', 'languageId', 'active'];
   for (const prop of propsToMergeIfEmpty) {
     if (toBeMerged[prop] && toBeMerged[prop] !== '' && !toBeKept[prop] || toBeKept[prop] === '') {
-      toBeKept[prop] = toBeMerged[prop];
+      // `prop` is a `keyof User` chosen from a fixed, mutually-compatible list above, but TS
+      // can't correlate the read and write of two different generic key accesses here.
+      (toBeKept[prop] as User[keyof User]) = toBeMerged[prop];
     }
   }
 
@@ -132,13 +155,13 @@ export const mergeUsers = async (
     return original;
 
   } else {
-    const mergingEmails = await UserEmail.findByUserId(ref, context, toBeMerged.id);
-    const keepingEmails = await UserEmail.findByUserId(ref, context, toBeKept.id);
+    const mergingEmails = await UserEmail.findByUserId(ref, context, userToMergeId);
+    const keepingEmails = await UserEmail.findByUserId(ref, context, userToKeepId);
 
     // Update any Collaboration invites
-    const invites = await TemplateCollaborator.findByInvitedById(ref, context, toBeMerged.id);
+    const invites = await TemplateCollaborator.findByInvitedById(ref, context, userToMergeId);
     for (const collab of invites) {
-      collab.invitedById = toBeKept.id;
+      collab.invitedById = userToKeepId;
       await collab.update(context);
     }
 
@@ -147,13 +170,13 @@ export const mergeUsers = async (
       const matched = keepingEmails.find((entry) => { return entry.email === mergeEmail.email; });
       // If the User we are keeping doesn't have the email then update the UserId
       if (!matched) {
-        mergeEmail.userId = toBeKept.id;
+        mergeEmail.userId = userToKeepId;
         await mergeEmail.update(context);
 
         // See if there are any collaborations for the email and attach it to the user to keep
         const tmpltCollaborators = await TemplateCollaborator.findByEmail(ref, context, mergeEmail.email);
         for (const collab of tmpltCollaborators) {
-          collab.userId = toBeKept.id;
+          collab.userId = userToKeepId;
           await collab.update(context);
         }
 

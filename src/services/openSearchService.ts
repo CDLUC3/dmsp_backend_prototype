@@ -334,12 +334,16 @@ export class OpenSearchService {
     try {
       const records = allHits.map((hit) => convertRe3DataToCamelCase(hit._source));
 
-      // Deduplicate by URI, keeping the most recently modified record
+      // Deduplicate by URI, keeping the most recently modified record. `uri` is optional
+      // on Re3DataRepositoryRecord, so records without one fall back to a key derived from
+      // their (always-present) `id` -- that way they're kept rather than silently dropped
+      // or collapsed together.
       const byUri = new Map<string, Re3DataRepositoryRecord>();
       for (const record of records) {
-        const existing = byUri.get(record.uri);
-        if (!existing || record.modified > existing.modified) {
-          byUri.set(record.uri, record);
+        const key = record.uri ?? `__id:${record.id}`;
+        const existing = byUri.get(key);
+        if (!existing || (record.modified ?? '') > (existing.modified ?? '')) {
+          byUri.set(key, record);
         }
       }
 

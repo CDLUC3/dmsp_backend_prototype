@@ -72,10 +72,10 @@ export const RepositoryService = {
       const customResults = await Repository.search(
         reference,
         context,
-        term,
+        term ?? '',
         subjects || [],
-        keyword,
-        repositoryType,
+        keyword ?? '',
+        repositoryType ?? '',
         {
           ...options,
           offset: 0, // Always fetch from beginning for custom results

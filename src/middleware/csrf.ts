@@ -1,7 +1,12 @@
 import { Response, Request, NextFunction } from "express";
 import { generateCSRFToken, verifyCSRFToken } from '../services/tokenService.js';
+import { isNullOrUndefined } from "../utils/helpers.js";
 
 export async function csrfMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (isNullOrUndefined(req.cache)) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+
   // Only worry about the CSRF token if the caller is performing a POST, PUT, PATCH, DELETE
   if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
     const token = req.headers['x-csrf-token'] as string;

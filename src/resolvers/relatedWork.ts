@@ -16,7 +16,10 @@ import {
   RelatedWork,
   RelatedWorkSearchResult,
   RelatedWorkSearchResults,
+  RelatedWorkSourceType,
+  RelatedWorkStatus,
   Work,
+  WorkType,
   WorkVersion
 } from '../models/RelatedWork.js';
 import { GraphQLError } from 'graphql';
@@ -85,7 +88,7 @@ export const resolvers: Resolvers = {
           projectId,
           planId,
           undefined,
-          filterOptions,
+          filterOptions ?? undefined,
           pagOpts,
         );
       } catch (err) {
@@ -106,6 +109,9 @@ export const resolvers: Resolvers = {
 
       try {
         if (isAuthorized(context.token)) {
+          if (isNullOrUndefined(planId)) {
+            throw context?.token ? ForbiddenError() : AuthenticationError();
+          }
           const plan = await Plan.findById(reference, context, planId);
           if (plan) {
             const pagOpts =
@@ -175,7 +181,9 @@ export const resolvers: Resolvers = {
                     sourceType: "USER_ADDED",
                     status: "PENDING",
                     modified: null,
-                  } as RelatedWorkSearchResult
+                    // This is a synthetic result built from an OpenSearch hit (not yet persisted),
+                    // so it only has a subset of RelatedWorkSearchResult's shape.
+                  } as unknown as RelatedWorkSearchResult
                 }),
                 limit: limit,
                 totalCount: openSearchWorks.length,
@@ -262,11 +270,15 @@ export const resolvers: Resolvers = {
 
   Mutation: {
     // Add a related work to a research project
-    async upsertRelatedWork(_, { input }, context: MyContext): Promise<RelatedWorkSearchResult> {
+    async upsertRelatedWork(_, { input }, context: MyContext): Promise<RelatedWorkSearchResult | null> {
       const reference = 'addRelatedWork resolver';
       try {
         if (isAuthorized(context.token)) {
-          let relatedWorkId;
+          let relatedWorkId: number | undefined;
+
+          if (isNullOrUndefined(input.planId)) {
+            throw NotFoundError('Plan not found');
+          }
 
           // Check if user has permission to modify project
           const plan = await Plan.findById(reference, context, input.planId);
@@ -276,15 +288,23 @@ export const resolvers: Resolvers = {
               // Check if user has already added a related work with this DOI, and just update status
               let relatedWork = await RelatedWork.findByDOI(reference, context, input.planId, input.doi);
               if (relatedWork) {
-                let toUpdate = new RelatedWork({ ...relatedWork, status: input.status });
-                toUpdate = await toUpdate.update(context);
-                relatedWorkId = toUpdate.id;
+                // The GraphQL RelatedWorkStatus shape mirrors the model's enum member-for-member,
+                // but codegen emits it as a plain string union, so it needs a cast.
+                const toUpdate = new RelatedWork({ ...relatedWork, status: input.status as unknown as RelatedWorkStatus });
+                const updated = await toUpdate.update(context);
+                if (isNullOrUndefined(updated)) {
+                  throw InternalServerError('Unable to update related work');
+                }
+                relatedWorkId = updated.id;
               } else {
                 // Fetch or create work
                 let work = await Work.findByDoi(reference, context, input.doi);
                 if (!work) {
                   work = new Work({ doi: input.doi });
                   work = await work.create(context);
+                }
+                if (isNullOrUndefined(work) || isNullOrUndefined(work.id)) {
+                  throw InternalServerError('Unable to create or find work');
                 }
 
                 // Fetch or create work version
@@ -308,23 +328,26 @@ export const resolvers: Resolvers = {
                   const os = openSearchWorks[0];
                   const osHash: string = os.hash ? os.hash.toString() : "";
                   workVersion = new WorkVersion({
+                    workId: work.id,
                     hash: Buffer.from(osHash, 'hex'),
-                    workType: os.workType,
-                    publicationDate: os.publicationDate,
-                    title: os.title,
-                    abstractText: os.abstractText,
+                    // The GraphQL WorkType/OpenSearchWork shape mirrors the model's WorkType enum
+                    // member-for-member, but codegen emits it as a plain string union, so it needs
+                    // a cast to the model's enum type.
+                    workType: os.workType as unknown as WorkType,
+                    publicationDate: os.publicationDate ?? '',
+                    title: os.title ?? '',
+                    abstractText: os.abstractText ?? '',
                     authors: os.authors,
                     institutions: os.institutions,
                     funders: os.funders,
                     awards: os.awards,
-                    publicationVenue: os.publicationVenue,
+                    publicationVenue: os.publicationVenue ?? '',
                     sourceName: os.source.name,
-                    sourceUrl: os.source.url,
+                    sourceUrl: os.source.url ?? '',
                   });
-                  workVersion.workId = work.id;
                   workVersion = await workVersion.create(context, work.doi);
                 }
-                if (isNullOrUndefined(workVersion) || workVersion.hasErrors()) {
+                if (isNullOrUndefined(workVersion) || workVersion.hasErrors() || isNullOrUndefined(workVersion.id)) {
                   throw InternalServerError('Unable to create or find workVersion');
                 }
 
@@ -332,10 +355,12 @@ export const resolvers: Resolvers = {
                 relatedWork = new RelatedWork({
                   planId: input.planId,
                   workVersionId: workVersion.id,
-                  sourceType: 'USER_ADDED',
+                  sourceType: RelatedWorkSourceType.USER_ADDED,
                   score: 1.0,
                   scoreMax: 1.0,
-                  status: input.status,
+                  // The GraphQL RelatedWorkStatus shape mirrors the model's enum member-for-member,
+                  // but codegen emits it as a plain string union, so it needs a cast.
+                  status: input.status as unknown as RelatedWorkStatus,
                   doiMatch: { found: false, score: 0.0, sources: [] },
                   contentMatch: { score: 0.0, titleHighlight: null, abstractHighlights: [] },
                   authorMatches: [],
@@ -344,7 +369,7 @@ export const resolvers: Resolvers = {
                   awardMatches: [],
                 });
                 relatedWork = await relatedWork.create(context);
-                if (isNullOrUndefined(relatedWork.id)) {
+                if (isNullOrUndefined(relatedWork) || isNullOrUndefined(relatedWork.id)) {
                   throw InternalServerError('Unable to create related work');
                 }
                 relatedWorkId = relatedWork.id
@@ -356,6 +381,9 @@ export const resolvers: Resolvers = {
               }
 
               // Fetch and return RelatedWorkSearchResult
+              if (isNullOrUndefined(relatedWorkId)) {
+                throw InternalServerError('Unable to determine related work id');
+              }
               return await RelatedWorkSearchResult.findById(reference, context, relatedWorkId);
             }
           }
@@ -370,16 +398,20 @@ export const resolvers: Resolvers = {
     },
 
     // Add a related work to a research project
-    async addRelatedWorkManual(_, { input }, context: MyContext): Promise<RelatedWorkSearchResult> {
+    async addRelatedWorkManual(_, { input }, context: MyContext): Promise<RelatedWorkSearchResult | null> {
       const reference = 'addRelatedWorkManual resolver';
       try {
         if (isAuthorized(context.token)) {
+          if (isNullOrUndefined(input.planId)) {
+            throw NotFoundError('Plan not found');
+          }
+
           // Check if user has permission to modify project
-          const plan: Plan = await Plan.findById(reference, context, input.planId);
+          const plan = await Plan.findById(reference, context, input.planId);
           if (plan) {
-            const project: Project = await Project.findById(reference, context, plan.projectId);
+            const project = await Project.findById(reference, context, plan.projectId);
             if (project && (await hasPermissionOnProject(context, project))) {
-              return await context.dataSources.sqlDataSource.withTransaction(context, async (): Promise<RelatedWorkSearchResult> => {
+              return await context.dataSources.sqlDataSource.withTransaction(context, async (): Promise<RelatedWorkSearchResult | null> => {
                 const acceptedWork: AcceptedWork = await addAcceptedWork(
                   reference,
                   context,
@@ -389,6 +421,9 @@ export const resolvers: Resolvers = {
                 if (acceptedWork && !acceptedWork.hasErrors()) {
                   // If successful, update the OpenSearch index in the background
                   await handleAsyncUpdates(reference, context, plan, project);
+                }
+                if (isNullOrUndefined(acceptedWork.relatedWorkId)) {
+                  throw InternalServerError('Unable to determine related work id');
                 }
                 return await RelatedWorkSearchResult.findById(
                   reference,
@@ -409,7 +444,7 @@ export const resolvers: Resolvers = {
     },
 
     // Update a related work status on the research project
-    async updateRelatedWorkStatus(_, { input }, context: MyContext): Promise<RelatedWorkSearchResult> {
+    async updateRelatedWorkStatus(_, { input }, context: MyContext): Promise<RelatedWorkSearchResult | null> {
       const reference = 'updateRelatedWorkStatus resolver';
       try {
         if (isAuthorized(context.token)) {
@@ -425,16 +460,26 @@ export const resolvers: Resolvers = {
 
           const project = await Project.findById(reference, context, plan.projectId);
           if (project && (await hasPermissionOnProject(context, project))) {
-            let toUpdate = new RelatedWork({ ...relatedWork, ...input });
-            toUpdate = await toUpdate.update(context);
+            const toUpdate = new RelatedWork({
+              ...relatedWork,
+              ...input,
+              // The GraphQL RelatedWorkStatus shape mirrors the model's enum member-for-member,
+              // but codegen emits it as a plain string union, so it needs a cast.
+              status: (input.status ?? relatedWork.status) as unknown as RelatedWorkStatus,
+            });
+            const updated = await toUpdate.update(context);
 
-            if (toUpdate && !toUpdate.hasErrors()) {
+            if (isNullOrUndefined(updated) || isNullOrUndefined(updated.id)) {
+              throw InternalServerError('Unable to update related work');
+            }
+
+            if (!updated.hasErrors()) {
               // Handle OpenSearch index update and maDMP JSON versioning in Dynamo
               await handleAsyncUpdates(reference, context, plan, project);
             }
 
             // Fetch and return RelatedWorkSearchResult
-            return await RelatedWorkSearchResult.findById(reference, context, toUpdate.id);
+            return await RelatedWorkSearchResult.findById(reference, context, updated.id);
           }
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -447,10 +492,10 @@ export const resolvers: Resolvers = {
     },
   },
   RelatedWorkSearchResult: {
-    created: (parent: RelatedWorkSearchResult) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: RelatedWorkSearchResult) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     },
   },

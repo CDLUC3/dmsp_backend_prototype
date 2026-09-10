@@ -1,4 +1,5 @@
 import { AugmentedRequest, RESTDataSource } from "@apollo/datasource-rest";
+import { GraphQLError } from "graphql";
 import { logger, prepareObjectForLogs } from '../logger.js';
 import { MyContext } from "../context.js";
 import { isNullOrUndefined } from "../utils/helpers.js";
@@ -109,10 +110,16 @@ export class OrcidAPI extends RESTDataSource {
       );
       return null;
     } catch (err) {
-      // Handle 404 responses gracefully - person not found in ORCID
-      if (err?.extensions?.response?.status === 404) {
-        context.logger.debug(`ORCID ${orcid} not found in ORCID API (404)`);
-        return null;
+      // Handle 404 responses gracefully - person not found in ORCID.
+      // RESTDataSource (see @apollo/datasource-rest's throwIfResponseIsError) throws a
+      // GraphQLError with extensions.response.status set from the HTTP response; that
+      // nested `response` field is typed `unknown` on GraphQLError, hence the narrow cast.
+      if (err instanceof GraphQLError) {
+        const status = (err.extensions?.response as { status?: number } | undefined)?.status;
+        if (status === 404) {
+          context.logger.debug(`ORCID ${orcid} not found in ORCID API (404)`);
+          return null;
+        }
       }
 
       context.logger.error(prepareObjectForLogs({ orcid, err }), 'Error calling OrcidAPI getPerson');
@@ -134,9 +141,10 @@ export class OrcidAPI extends RESTDataSource {
       const response = await this.get(path);
       const jsonResponse = JSON.parse(response);
 
-      const employments = jsonResponse['affiliation-group']?.map(e => e.summaries);
+      const affiliationGroups = jsonResponse['affiliation-group'] as OrcidAffiliationGroup[] | undefined;
+      const employments = affiliationGroups?.map((e: OrcidAffiliationGroup) => e.summaries);
       if (Array.isArray(employments) && employments.length > 0) {
-        const current: OrcidSchemaEmployment = employments?.flat()?.find((e: OrcidSchemaEmployment) => {
+        const current: OrcidSchemaEmployment | undefined = employments?.flat()?.find((e: OrcidSchemaEmploymentSummary) => {
           const summary = e['employment-summary'];
           return summary?.['display-index'] === "0"
         })?.['employment-summary'];
@@ -145,7 +153,10 @@ export class OrcidAPI extends RESTDataSource {
           const currentROR = current.organization?.['disambiguated-organization'];
 
           return {
-            name: current?.organization?.name,
+            // ORCID data doesn't guarantee an organization is present on an employment
+            // record; OrcidEmployment.name is non-optional, so default to '' rather than
+            // widening that field to `string | undefined` across all its consumers.
+            name: current?.organization?.name ?? '',
             url: current?.url?.value ?? '',
             rorId: isNullOrUndefined(currentROR) ? null : currentROR['disambiguated-organization-identifier']
           }
@@ -176,7 +187,8 @@ export interface OrcidPerson {
 export interface OrcidEmployment {
   name: string,
   url?: string,
-  rorId?: string
+  // GraphQL's `rorId` field is `Maybe<String>` (see src/types.ts), i.e. string | null | undefined
+  rorId?: string | null
 }
 
 interface OrcidSchemaPerson {
@@ -203,10 +215,26 @@ interface OrcidSchemaEmployment {
   'role-title'?: string,
   'start-date'?: { value: number },
   'end-date'?: { value: number },
-  organization?: { name: string },
+  organization?: {
+    name: string,
+    'disambiguated-organization'?: {
+      'disambiguated-organization-identifier'?: string,
+      'disambiguation-source'?: string
+    }
+  },
   url?: { value: string },
   'external-ids'?: { value: number }[],
   'display-index': string,
   visibility: string,
   path: string
+}
+
+// ORCID's `/employments` response nests each employment under a `summaries` array of
+// wrapper objects keyed by `employment-summary` (rather than being the summary directly).
+interface OrcidSchemaEmploymentSummary {
+  'employment-summary': OrcidSchemaEmployment
+}
+
+interface OrcidAffiliationGroup {
+  summaries: OrcidSchemaEmploymentSummary[]
 }

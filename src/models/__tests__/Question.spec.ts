@@ -6,6 +6,7 @@ import {
   DefaultTextAreaQuestion
 } from "@dmptool/types";
 
+import type { MyContext } from '../../context.js';
 import { mockAppConfigs, mockAppLogger } from '../../__tests__/mockConfigs.js';
 
 // Register config + logger mocks FIRST — before anything that transitively imports them
@@ -22,7 +23,7 @@ const { logger } = await import('../../logger.js');
 const { Question } = await import('../Question.js');
 const { removeNullAndUndefinedFromJSON } = await import("../../utils/helpers.js");
 
-let context;
+let context: MyContext;
 
 beforeEach(async () => {
   jest.resetAllMocks();
@@ -35,12 +36,12 @@ afterEach(() => {
 });
 
 describe('Question', () => {
-  let question;
+  let question: InstanceType<typeof Question>;
 
   const questionData = {
     templateId: casual.integer(1, 9),
     sectionId: casual.integer(1, 9),
-    json: DefaultTextAreaQuestion,
+    json: DefaultTextAreaQuestion as unknown as string,
     questionText: casual.sentences(5),
     requirementText: casual.sentences(3),
     guidanceText: casual.sentences(10),
@@ -54,11 +55,11 @@ describe('Question', () => {
         description: casual.sentences(3),
       }
     ],
-    displayLogicAction: "SHOW_QUESTION",
-    displayLogicMatchType: "ANY"
+    displayLogicAction: "SHOW_QUESTION" as const,
+    displayLogicMatchType: "ANY" as const
   }
   beforeEach(() => {
-    question = new Question(questionData);
+    question = new Question(questionData as unknown as ConstructorParameters<typeof Question>[0]);
   });
 
   it('should initialize options as expected', () => {
@@ -82,7 +83,7 @@ describe('Question', () => {
 
   it('should add an error if removeNullAndUndefinedFromJSON fails', () => {
     const invalidJSON = '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"invalidVersion"';
-    const q = new Question({ ...questionData, json: invalidJSON });
+    const q = new Question({ ...questionData, json: invalidJSON } as unknown as ConstructorParameters<typeof Question>[0]);
     expect(q.errors['json']).toBeTruthy();
     expect(q.errors['json'].includes('Invalid JSON format')).toBe(true);
   });
@@ -149,7 +150,7 @@ describe('Question', () => {
 });
 
 describe('ResearchOutputTable Question', () => {
-  let question;
+  let question: InstanceType<typeof Question>;
 
   const questionData = {
     templateId: casual.integer(1, 9),
@@ -168,11 +169,11 @@ describe('ResearchOutputTable Question', () => {
         description: casual.sentences(3),
       }
     ],
-    displayLogicAction: "SHOW_QUESTION",
-    displayLogicMatchType: "ANY"
+    displayLogicAction: "SHOW_QUESTION" as const,
+    displayLogicMatchType: "ANY" as const
   }
   beforeEach(() => {
-    question = new Question(questionData);
+    question = new Question(questionData as unknown as ConstructorParameters<typeof Question>[0]);
   });
 
   it('should initialize options as expected', () => {
@@ -195,7 +196,7 @@ describe('ResearchOutputTable Question', () => {
 
   it('should add an error if removeNullAndUndefinedFromJSON fails', () => {
     const invalidJSON = '{"type":"textArea","meta":{"asRichText":true,"schemaVersion":"invalidVersion"';
-    const q = new Question({ ...questionData, json: invalidJSON });
+    const q = new Question({ ...questionData, json: invalidJSON } as unknown as ConstructorParameters<typeof Question>[0]);
     expect(q.errors['json']).toBeTruthy();
     expect(q.errors['json'].includes('Invalid JSON format')).toBe(true);
   });
@@ -264,9 +265,9 @@ describe('ResearchOutputTable Question', () => {
 describe('findBy Queries', () => {
   const originalQuery = Question.query;
 
-  let localQuery;
-  let context;
-  let question;
+  let localQuery: jest.Mock;
+  let context: MyContext;
+  let question: InstanceType<typeof Question>;
 
   beforeEach(async () => {
     // jest.resetAllMocks();
@@ -282,7 +283,7 @@ describe('findBy Queries', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
-      json: DefaultTextAreaQuestion,
+      json: DefaultTextAreaQuestion as unknown as string,
     })
   });
 
@@ -357,8 +358,8 @@ describe('findBy Queries', () => {
 });
 
 describe('update', () => {
-  let updateQuery;
-  let question;
+  let updateQuery: jest.Mock;
+  let question: InstanceType<typeof Question>;
 
   beforeEach(() => {
     updateQuery = jest.fn();
@@ -370,7 +371,7 @@ describe('update', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
-      json: DefaultTextAreaQuestion,
+      json: DefaultTextAreaQuestion as unknown as string,
     })
   });
 
@@ -389,8 +390,9 @@ describe('update', () => {
     (question.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
 
-    question.id = null;
+    question.id = undefined;
     const result = await question.update(context);
+    if (!result) throw new Error('question.update unexpectedly returned null');
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
   });
@@ -407,6 +409,7 @@ describe('update', () => {
     mockFindById.mockResolvedValueOnce(question);
 
     const result = await question.update(context);
+    if (!result) throw new Error('question.update unexpectedly returned null');
     expect(localValidator).toHaveBeenCalledTimes(1);
     expect(updateQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
@@ -416,8 +419,8 @@ describe('update', () => {
 
 describe('create', () => {
   const originalInsert = Question.insert;
-  let insertQuery;
-  let question;
+  let insertQuery: jest.Mock;
+  let question: InstanceType<typeof Question>;
 
   beforeEach(() => {
     // jest.resetAllMocks();
@@ -438,8 +441,8 @@ describe('create', () => {
       },
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
-      json: DefaultTextAreaQuestion,
-    })
+      json: DefaultTextAreaQuestion as unknown as string,
+    } as unknown as ConstructorParameters<typeof Question>[0])
   });
 
   afterEach(() => {
@@ -458,20 +461,23 @@ describe('create', () => {
   });
 
   it('returns the Question with an error if templateId is undefined', async () => {
-    question.templateId = undefined;
+    question.templateId = undefined as unknown as number;
     const response = await question.create(context);
+    if (!response) throw new Error('question.create unexpectedly returned null');
     expect(response.errors['templateId']).toBe('Template can\'t be blank');
   });
 
   it('returns the Question with an error if sectionId is undefined', async () => {
-    question.sectionId = undefined;
+    question.sectionId = undefined as unknown as number;
     const response = await question.create(context);
+    if (!response) throw new Error('question.create unexpectedly returned null');
     expect(response.errors['sectionId']).toBe('Section can\'t be blank');
   });
 
   it('returns the Question with an error if questionText is undefined', async () => {
-    question.questionText = undefined;
+    question.questionText = undefined as unknown as string;
     const response = await question.create(context);
+    if (!response) throw new Error('question.create unexpectedly returned null');
     expect(response.errors['questionText']).toBe('Question text can\'t be blank');
   });
 
@@ -481,6 +487,7 @@ describe('create', () => {
     mockFindById.mockResolvedValueOnce(question);
 
     const result = await question.create(context);
+    if (!result) throw new Error('question.create unexpectedly returned null');
     expect(mockFindById).toHaveBeenCalledTimes(1);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(Object.keys(result.errors).length).toBe(0);
@@ -489,7 +496,7 @@ describe('create', () => {
 });
 
 describe('delete', () => {
-  let question;
+  let question: InstanceType<typeof Question>;
 
   beforeEach(() => {
     question = new Question({
@@ -498,12 +505,12 @@ describe('delete', () => {
       id: casual.integer(1, 9),
       questionText: casual.sentences(5),
       displayOrder: casual.integer(1, 9),
-      json: DefaultTextAreaQuestion,
+      json: DefaultTextAreaQuestion as unknown as string,
     })
   })
 
   it('returns null if the Question has no id', async () => {
-    question.id = null;
+    question.id = undefined;
     expect(await question.delete(context)).toBe(null);
   });
 
@@ -525,6 +532,7 @@ describe('delete', () => {
     mockFindById.mockResolvedValueOnce(question);
 
     const result = await question.delete(context);
+    if (!result) throw new Error('question.delete unexpectedly returned null');
     expect(Object.keys(result.errors).length).toBe(0);
     expect(result).toBeInstanceOf(Question);
   });

@@ -89,7 +89,7 @@ export const resolvers: Resolvers = {
 
           // If the incoming term is an ORCID then search by that
           if (term.match(ORCID_REGEX)) {
-            const person: CollaboratorSearchResult = await ProjectCollaborator.findPotentialCollaboratorByORCID(
+            const person: CollaboratorSearchResult | null = await ProjectCollaborator.findPotentialCollaboratorByORCID(
               reference,
               context,
               term
@@ -114,13 +114,15 @@ export const resolvers: Resolvers = {
             );
 
             // Transform user data to CollaboratorSearchResult format
+            // User.search() joins in the affiliation name as `name`, which isn't a typed
+            // field on the User model since it only exists on this query's raw result rows.
             const transformedItems = userSearchResults.items.map(user => ({
               id: user.id,
               givenName: user.givenName,
               surName: user.surName,
               orcid: user.orcid,
               affiliationId: user.affiliationId,
-              affiliationName: user['name']
+              affiliationName: (user as User & { name?: string }).name
             }));
 
             return {
@@ -191,7 +193,7 @@ export const resolvers: Resolvers = {
 
     // Remove a TemplateCollaborator from a Template
     //     - called from the Template options page
-    removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext): Promise<TemplateCollaborator> => {
+    removeTemplateCollaborator: async (_, { templateId, email }, context: MyContext) => {
       const reference = 'removeTemplateCollaborator resolver';
       try {
         // if the user is an admin
@@ -233,7 +235,12 @@ export const resolvers: Resolvers = {
         // If the user has permission on the Project
         if (await hasPermissionOnProject(context, project)) {
           const invitedById = context.token?.id;
-          const projectCollaborator = new ProjectCollaborator({ projectId, email, accessLevel, invitedById });
+          const projectCollaborator = new ProjectCollaborator({
+            projectId,
+            email,
+            accessLevel: accessLevel as ProjectCollaboratorAccessLevel,
+            invitedById
+          });
           const created = await projectCollaborator.create(context);
 
           if (created?.id) {
@@ -257,7 +264,7 @@ export const resolvers: Resolvers = {
       }
     },
     // Update a collaborator on a Project
-    updateProjectCollaborator: async (_, { projectCollaboratorId, accessLevel }, context: MyContext): Promise<ProjectCollaborator> => {
+    updateProjectCollaborator: async (_, { projectCollaboratorId, accessLevel }, context: MyContext) => {
       const reference = 'updateProjectCollaborator resolver';
 
       try {
@@ -270,6 +277,9 @@ export const resolvers: Resolvers = {
 
         // Get project info to check permissions
         const project = await Project.findById(reference, context, projectCollaborator.projectId);
+        if (!project || isNullOrUndefined(project.id)) {
+          throw NotFoundError();
+        }
 
         // Validate that an access level change is allowed:
         await validateProjectCollaboratorAccessChange(
@@ -288,7 +298,7 @@ export const resolvers: Resolvers = {
 
           const newProjectCollaborator = new ProjectCollaborator({
             ...projectCollaborator,
-            accessLevel: accessLevel
+            accessLevel: accessLevel as ProjectCollaboratorAccessLevel
           });
 
           const updatedProjectCollaborator = await newProjectCollaborator.update(context);
@@ -314,7 +324,7 @@ export const resolvers: Resolvers = {
       }
     },
     // Remove a ProjectCollaborator from a Project
-    removeProjectCollaborator: async (_, { projectCollaboratorId }, context: MyContext): Promise<ProjectCollaborator> => {
+    removeProjectCollaborator: async (_, { projectCollaboratorId }, context: MyContext) => {
       const reference = 'removeProjectCollaborator resolver';
       try {
 
@@ -327,6 +337,9 @@ export const resolvers: Resolvers = {
 
         // Get project info to check permissions
         const project = await Project.findById(reference, context, projectCollaborator.projectId);
+        if (!project) {
+          throw NotFoundError();
+        }
 
         // If the user has permission on the Project
         if (await hasPermissionOnProject(context, project)) {
@@ -363,10 +376,16 @@ export const resolvers: Resolvers = {
 
         // Get project info to check permissions
         const project = await Project.findById(reference, context, projectCollaborator.projectId);
+        if (!project) {
+          throw NotFoundError();
+        }
 
         // If the user has permission on the Project
         if (await hasPermissionOnProject(context, project)) {
           const inviter = await User.findById(reference, context, context.token?.id);
+          if (!inviter) {
+            throw NotFoundError();
+          }
 
           // Send out the invitation notification (no async here, can happen in the background)
           await sendProjectCollaborationEmail(context, project.title, inviter.getName(), projectCollaborator.email, projectCollaborator.userId);
@@ -387,58 +406,74 @@ export const resolvers: Resolvers = {
 
   ProjectCollaborator: {
     // Chained resolver to fetch the User record
-    user: async (parent: ProjectCollaborator, _, context: MyContext): Promise<User> => {
-      if (!isNullOrUndefined(parent?.userId)) {
-        return await User.findById('Chained TemplateController.user', context, parent.userId);
+    // `parent` is typed to the GraphQL-facing shape (no raw FK fields), but at runtime it is
+    // actually the ProjectCollaborator model instance returned by the parent resolver.
+    user: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as ProjectCollaborator;
+      if (!isNullOrUndefined(model?.userId)) {
+        return await User.findById('Chained TemplateController.user', context, model.userId);
       }
+      return null;
     },
 
-    invitedBy: async (parent: ProjectCollaborator, _, context: MyContext): Promise<User> => {
-      if (!isNullOrUndefined(parent?.invitedById)) {
+    invitedBy: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as ProjectCollaborator;
+      if (!isNullOrUndefined(model?.invitedById)) {
         return await User.findById(
           'Chained ProjectCollaborator.invitedBy',
           context,
-          parent.invitedById
+          model.invitedById
         );
       }
+      return null;
     },
 
-    created: (parent: ProjectCollaborator) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: ProjectCollaborator) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },
 
   TemplateCollaborator: {
     // Chained resolver to fetch the Template info
-    template: async (parent: TemplateCollaborator, _, context: MyContext): Promise<Template> => {
-      if (!isNullOrUndefined(parent?.templateId)) {
+    // `parent` is typed to the GraphQL-facing shape (no raw FK fields), but at runtime it is
+    // actually the TemplateCollaborator model instance returned by the parent resolver.
+    template: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as TemplateCollaborator;
+      if (!isNullOrUndefined(model?.templateId)) {
         return await Template.findById(
           'Chained TemplateCollaborator.template',
           context,
-          parent.templateId
+          model.templateId
         );
       }
+      return null;
     },
 
     // Chained resolver to fetch the Affiliation info for the user
-    invitedBy: async (parent: TemplateCollaborator, _, context: MyContext): Promise<User> => {
-      return await User.findById('Chained TemplateCollaborator.invitedBy', context, parent.invitedById);
+    invitedBy: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as TemplateCollaborator;
+      if (!isNullOrUndefined(model?.invitedById)) {
+        return await User.findById('Chained TemplateCollaborator.invitedBy', context, model.invitedById);
+      }
+      return null;
     },
 
     // Chained resolver to fetch the User record
-    user: async (parent: TemplateCollaborator, _, context: MyContext): Promise<User> => {
-      if (!isNullOrUndefined(parent?.userId)) {
-        return await User.findById('Chained TemplateController.user', context, parent.userId);
+    user: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as TemplateCollaborator;
+      if (!isNullOrUndefined(model?.userId)) {
+        return await User.findById('Chained TemplateController.user', context, model.userId);
       }
+      return null;
     },
 
-    created: (parent: TemplateCollaborator) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: TemplateCollaborator) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },

@@ -6,16 +6,30 @@ import { MySqlModel } from "./MySqlModel.js";
 
 export const DEFAULT_DMPTOOL_RESEARCH_DOMAIN_URL = 'https://dmptool.org/research-domains/';;
 
+interface ResearchDomainOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  name: string;
+  uri: string;
+  description?: string;
+  parentResearchDomainId?: number;
+  parentResearchDomain?: ResearchDomain;
+}
+
 export class ResearchDomain extends MySqlModel {
   public name: string;
   public uri: string;
   public description?: string;
   public parentResearchDomainId?: number;
-  public parentResearchDomain: ResearchDomain;
+  public parentResearchDomain?: ResearchDomain;
 
   private tableName = 'researchDomains';
 
-  constructor(options) {
+  constructor(options: ResearchDomainOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.id = options.id;
@@ -52,7 +66,7 @@ export class ResearchDomain extends MySqlModel {
   }
 
   //Create a new ResearchDomain
-  async create(context: MyContext): Promise<ResearchDomain> {
+  async create(context: MyContext): Promise<ResearchDomain | null> {
     const reference = 'ResearchDomain.create';
 
     // If no URI is present, then use the DMPTool's default URI
@@ -79,8 +93,10 @@ export class ResearchDomain extends MySqlModel {
           reference,
           ['parentResearchDomain']
         );
-        const response = await ResearchDomain.findById(reference, context, newId);
-        return response;
+        if (newId) {
+          return await ResearchDomain.findById(reference, context, newId);
+        }
+        this.addError('general', 'ResearchDomain was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -88,7 +104,7 @@ export class ResearchDomain extends MySqlModel {
   }
 
   //Update an existing ResearchDomain
-  async update(context: MyContext, noTouch = false): Promise<ResearchDomain> {
+  async update(context: MyContext, noTouch = false): Promise<ResearchDomain | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -110,7 +126,7 @@ export class ResearchDomain extends MySqlModel {
   }
 
   //Delete the ResearchDomain
-  async delete(context: MyContext): Promise<ResearchDomain> {
+  async delete(context: MyContext): Promise<ResearchDomain | null> {
     if (this.id) {
       const deleted = await ResearchDomain.findById('ResearchDomain.delete', context, this.id);
 
@@ -134,8 +150,8 @@ export class ResearchDomain extends MySqlModel {
     const reference = 'ResearchDomain.addToMetadataStandard';
     let sql = 'INSERT INTO metadataStandardResearchDomains (researchDomainId, metadataStandardId, ';
     sql += 'createdById, modifiedById) VALUES (?, ?, ?, ?)';
-    const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), metadataStandardId?.toString(), userId, userId];
+    const userId = context.token?.id?.toString() ?? '';
+    const vals = [this.id?.toString() ?? '', metadataStandardId?.toString() ?? '', userId, userId];
     const results = await ResearchDomain.query(context, sql, vals, reference);
 
     if (!results) {
@@ -152,8 +168,8 @@ export class ResearchDomain extends MySqlModel {
     const reference = 'ResearchDomain.addToRepository';
     let sql = 'INSERT INTO repositoryResearchDomains (researchDomainId, repositoryId, createdById,';
     sql += 'modifiedById) VALUES (?, ?, ?, ?)';
-    const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), repositoryId?.toString(), userId, userId];
+    const userId = context.token?.id?.toString() ?? '';
+    const vals = [this.id?.toString() ?? '', repositoryId?.toString() ?? '', userId, userId];
     const results = await ResearchDomain.query(context, sql, vals, reference);
 
     if (!results) {
@@ -169,7 +185,7 @@ export class ResearchDomain extends MySqlModel {
   async removeFromMetadataStandard(context: MyContext, metadataStandardId: number): Promise<boolean> {
     const reference = 'ResearchDomain.removeFromMetadataStandard';
     const sql = 'DELETE FROM metadataStandardResearchDomains WHERE researchDomainId = ? AND metadataStandardId = ?';
-    const vals = [this.id?.toString(), metadataStandardId?.toString()];
+    const vals = [this.id?.toString() ?? '', metadataStandardId?.toString() ?? ''];
     const results = await ResearchDomain.query(context, sql, vals, reference);
 
     if (!results) {
@@ -185,7 +201,7 @@ export class ResearchDomain extends MySqlModel {
   async removeFromRepository(context: MyContext, repositoryId: number): Promise<boolean> {
     const reference = 'ResearchDomain.removeFromRepository';
     const sql = 'DELETE FROM repositoryResearchDomains WHERE researchDomainId = ? AND repositoryId = ?';
-    const vals = [this.id?.toString(), repositoryId?.toString()];
+    const vals = [this.id?.toString() ?? '', repositoryId?.toString() ?? ''];
     const results = await ResearchDomain.query(context, sql, vals, reference);
 
     if (!results) {
@@ -299,13 +315,13 @@ export class ResearchDomain extends MySqlModel {
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;
   }
 
-  static async findByURI(reference: string, context: MyContext, uri: string): Promise<ResearchDomain> {
+  static async findByURI(reference: string, context: MyContext, uri: string): Promise<ResearchDomain | null> {
     const sql = `SELECT * FROM researchDomains WHERE uri = ?`;
     const results = await ResearchDomain.query(context, sql, [uri], reference);
     return Array.isArray(results) && results.length > 0 ? new ResearchDomain(results[0]) : null;
   }
 
-  static async findByName(reference: string, context: MyContext, name: string): Promise<ResearchDomain> {
+  static async findByName(reference: string, context: MyContext, name: string): Promise<ResearchDomain | null> {
     const sql = `SELECT * FROM researchDomains WHERE LOWER(name) = ?`;
     const searchTerm = (name ?? '');
     const results = await ResearchDomain.query(context, sql, [searchTerm?.toLowerCase()?.trim()], reference);

@@ -70,10 +70,13 @@ interface ReconciliationHandlerContext {
   context: MyContext;
   project: Project;
   plan: Plan;
-  input: AssociationInputType;
-  affiliation: Affiliation;
-  currentProjectObj: ProjectAssociationType;
-  currentPlanObj: PlanAssociationType;
+  // These are all genuinely absent in some reconciliation states: `input` is undefined for
+  // 'remove' actions, `currentProjectObj`/`currentPlanObj` are undefined for 'add' actions,
+  // and `affiliation` is undefined when the input has no affiliation/funder URI to resolve.
+  input?: AssociationInputType;
+  affiliation?: Affiliation;
+  currentProjectObj?: ProjectAssociationType;
+  currentPlanObj?: PlanAssociationType;
   isShared: boolean;
   logName: string;
   errors: Set<string>;
@@ -111,8 +114,12 @@ const reconcileAssociations = (
   incomingObjs: ProjectAssociationType[],
   inputsMapByProjectObj: Map<ProjectAssociationType, AssociationInputType>
 ): ReconciledAssociation<AssociationInputType, ProjectAssociationType>[] => {
-  const currentIds: number[] = currentProjectObjs.map((m: ProjectAssociationType): number => m.id);
-  const idsToBeSaved: number[] = incomingObjs.filter(Boolean).map((m: ProjectAssociationType): number => m.id);
+  // `id` is optional on these models (unsaved incoming records legitimately have none yet),
+  // so ids are filtered down to the ones that are actually defined before comparing them.
+  const currentIds: number[] = currentProjectObjs.map((m: ProjectAssociationType): number | undefined => m.id)
+    .filter((id: number | undefined): id is number => id !== undefined);
+  const idsToBeSaved: number[] = incomingObjs.filter(Boolean).map((m: ProjectAssociationType): number | undefined => m.id)
+    .filter((id: number | undefined): id is number => id !== undefined);
   const idsToBeRemoved: number[] = currentIds.filter((id: number): boolean => !idsToBeSaved.includes(id));
 
   const reconciled: ReconciledAssociation<AssociationInputType, ProjectAssociationType>[] = incomingObjs.map((obj: ProjectAssociationType) => {
@@ -151,6 +158,13 @@ const processAssociations = async (
   const { reference, context, project, plan } = processingContext;
   const errors = new Set<string>();
 
+  // Callers (processMemberAssociations/processFundingAssociations below) already guard
+  // that the Project/Plan are saved before reaching here, but `id` is typed optional on
+  // MySqlModel, so this lets TS narrow it to `number` for the fetch calls below.
+  if (!plan.id || !project.id) {
+    throw new Error('Cannot process associations for a Project or Plan that has not been saved');
+  }
+
   const [currentPlanObjs, currentProjectObjs] = await Promise.all([
     config.fetchPlanObjs(plan.id),
     config.fetchProjectObjs(project.id)
@@ -173,16 +187,18 @@ const processAssociations = async (
   );
 
   for (const item of items) {
-    const input: AssociationInputType = item.input;
-    const currentProjectObj: ProjectAssociationType = item.existingProjectObj || (item.existingProjectObj as ProjectAssociationType);
+    const input: AssociationInputType | undefined = item.input;
+    const currentProjectObj: ProjectAssociationType | undefined = item.existingProjectObj;
 
-    const currentPlanObj: PlanAssociationType = currentPlanObjs.find(
+    const currentPlanObj: PlanAssociationType | undefined = currentPlanObjs.find(
       (m: PlanAssociationType): boolean => config.getPlanObjProjectObjId(m) === item.id
     );
 
-    const affiliation: Affiliation = input && ('affiliation' in input)
-      ? await Affiliation.findByURI(reference, context, input.affiliation)
-      : (input && 'funder' in input ? await Affiliation.findByURI(reference, context, input.funder) : undefined);
+    // `input.affiliation` is nullable on the GraphQL input (InputMaybe<string>), but
+    // Affiliation.findByURI requires a plain string; an empty/missing URI simply won't match.
+    const affiliation: Affiliation | undefined = (input && ('affiliation' in input)
+      ? await Affiliation.findByURI(reference, context, input.affiliation ?? '')
+      : (input && 'funder' in input ? await Affiliation.findByURI(reference, context, input.funder) : undefined)) ?? undefined;
 
     const logName = input
       ? config.getLogIdentifier(input, affiliation?.uri)
@@ -231,6 +247,13 @@ export const processMemberAssociations = async (
   plan: Plan,
   members: EntirePlanMemberFragment[]
 ): Promise<string | undefined> => {
+  // Callers (addEntirePlan/replaceEntirePlan) always pass an already-saved Project/Plan, but
+  // `id` is typed optional on MySqlModel, so this guard lets TS narrow it to `number` below.
+  if (!project.id || !plan.id) {
+    throw new Error('Cannot process member associations for an unsaved Project or Plan');
+  }
+  const projectId = project.id;
+
   return processAssociations(
     // Define the context needed to process the associations
     {
@@ -249,36 +272,55 @@ export const processMemberAssociations = async (
       fetchProjectObjs: (id: number): Promise<ProjectMember[]> => {
         return ProjectMember.findByProjectId(reference, context, id);
       },
-      findOrCreateProjectObj: async (m: EntirePlanMemberFragment): Promise<ProjectMember> => {
-        let member: ProjectMember = m.projectMemberId
+      // Typed to the broader AssociationInputType/ProjectAssociationType (like the other
+      // handlers below) so this satisfies AssociationReconcilerConfig's signature, then
+      // narrowed internally -- this config is always used with EntirePlanMemberFragment inputs.
+      findOrCreateProjectObj: async (input: AssociationInputType): Promise<ProjectAssociationType> => {
+        const m = input as EntirePlanMemberFragment;
+        let member: ProjectMember | null = m.projectMemberId
           ? await ProjectMember.findById(reference, context, m.projectMemberId)
           : await ProjectMember.findByProjectAndNameOrORCIDOrEmail(
             reference,
             context,
-            project.id,
-            m.givenName,
-            m.surname,
-            m.orcid,
-            m.email
+            projectId,
+            m.givenName ?? '',
+            m.surname ?? '',
+            m.orcid ?? '',
+            m.email ?? ''
           );
-        if (!member) member = new ProjectMember(m);
+        if (!member) {
+          // This is just a placeholder used for reconciliation (it has no `id`, which is
+          // what signals the 'add' action below); handleAdd is what actually persists the
+          // real new ProjectMember, with the affiliation URI resolved via Affiliation lookup.
+          member = new ProjectMember({
+            projectId,
+            affiliationId: m.affiliation ?? undefined,
+            givenName: m.givenName ?? undefined,
+            surName: m.surname ?? undefined,
+            orcid: m.orcid ?? undefined,
+            email: m.email ?? undefined,
+          });
+        }
 
         // The MemberRoles are not loaded with the MemberRole, so we need to load them here
         // if the member already exists, otherwise we will just use the default role
-        member.memberRoles = member.id
-          ? await MemberRole.findByProjectMemberId(reference, context, member.id)
-          : [await MemberRole.defaultRole(context)];
+        if (member.id) {
+          member.memberRoles = await MemberRole.findByProjectMemberId(reference, context, member.id);
+        } else {
+          const defaultRole = await MemberRole.defaultRole(context);
+          member.memberRoles = defaultRole ? [defaultRole] : [];
+        }
 
         return member;
       },
-      getPlanObjProjectObjId: (pm: PlanMember): number => pm.projectMemberId,
+      getPlanObjProjectObjId: (planObj: PlanAssociationType): number => (planObj as PlanMember).projectMemberId,
       isUsedByOtherPlans: async (id: number): Promise<boolean> => {
         return (await PlanMember.findByProjectMemberId(reference, context, id)).length > 0;
       },
       getLogIdentifier: (a: AssociationInputType): string => {
         return 'surname' in a && 'givenName' in a
           ? [a?.surname, a?.givenName].filter(Boolean).join(' ').trim()
-          : 'affiliation' in a ? a.affiliation : '';
+          : 'affiliation' in a ? (a.affiliation ?? '') : '';
       },
 
       // Define all the functions to handle the association
@@ -291,82 +333,94 @@ export const processMemberAssociations = async (
         logName,
         errors
       }: ReconciliationHandlerContext): Promise<void> => {
+        // processAssociations (the caller) already guards that Project/Plan are saved, but
+        // that narrowing doesn't cross this object literal's boundary, so it's re-checked here.
+        if (!project.id || !plan.id) {
+          errors.add(`Unable to add ${logName}: the Project or Plan has not been saved`);
+          return;
+        }
+
         const pMemberIn = input as EntirePlanMemberFragment;
         // Add the project member first
-        const newProjMember: ProjectMember = await new ProjectMember({
+        const newProjMember: ProjectMember | null = await new ProjectMember({
           projectId: project.id,
           affiliationId: affiliation?.uri,
-          givenName: pMemberIn.givenName,
-          surName: pMemberIn.surname,
-          orcid: pMemberIn.orcid,
-          email: pMemberIn.email,
+          givenName: pMemberIn.givenName ?? undefined,
+          surName: pMemberIn.surname ?? undefined,
+          orcid: pMemberIn.orcid ?? undefined,
+          email: pMemberIn.email ?? undefined,
         }).create(context, project.id);
 
-        if (!newProjMember || newProjMember.hasErrors()) {
+        if (!newProjMember || newProjMember.hasErrors() || !newProjMember.id) {
           context.logger.error(
-            { errors: newProjMember.errors, projectMember: newProjMember },
+            { errors: newProjMember?.errors, projectMember: newProjMember },
             `Failed to add new project member: ${logName}`
           );
           errors.add(`Unable to add new project member: ${logName}`);
           return;
+        }
+        const newProjMemberId = newProjMember.id;
 
-        } else {
-          const roles: MemberRole[] = (
-            await Promise.all(
-              (pMemberIn.memberRoles || []).map(async (id: string): Promise<MemberRole> => {
-                return await MemberRole.findByURL(reference, context, id);
-              })
-            )
-          ).filter((role): role is MemberRole => Boolean(role)) || [];
+        const roles: MemberRole[] = (
+          await Promise.all(
+            (pMemberIn.memberRoles || []).map(async (id: string): Promise<MemberRole | null> => {
+              return await MemberRole.findByURL(reference, context, id);
+            })
+          )
+        ).filter((role): role is MemberRole => Boolean(role));
 
-          // If there are no roles available, or the ones provided had no match then
-          // use the default role!
-          if (roles.length === 0) {
-            roles.push((await MemberRole.defaultRole(context)));
+        // If there are no roles available, or the ones provided had no match then
+        // use the default role!
+        if (roles.length === 0) {
+          const defaultRole = await MemberRole.defaultRole(context);
+          if (defaultRole) {
+            roles.push(defaultRole);
           }
+        }
 
-          // Add the roles to the new project member
-          for (const role of roles) {
-            if (role) {
-              const addedRole: boolean = await role.addToProjectMember(context, newProjMember.id);
-              if (!addedRole) {
-                context.logger.error(
-                  { errors: role.errors, memberRole: role },
-                  `Failed to add new role ${role.label} to project member: ${logName}`
-                );
-                errors.add(`Unable to add new role ${role.label} to project member: ${logName}`);
-              }
+        // Add the roles to the new project member
+        for (const role of roles) {
+          if (role) {
+            const addedRole: boolean = await role.addToProjectMember(context, newProjMemberId);
+            if (!addedRole) {
+              context.logger.error(
+                { errors: role.errors, memberRole: role },
+                `Failed to add new role ${role.label} to project member: ${logName}`
+              );
+              errors.add(`Unable to add new role ${role.label} to project member: ${logName}`);
             }
           }
+        }
 
-          // Add the plan member
-          const newPlanMember = new PlanMember({
-            projectMemberId: newProjMember.id,
-            planId: plan.id,
-            isPrimaryContact: newProjMember.isPrimaryContact,
-            memberRoleIds: roles.map((role: MemberRole): number => role.id)
-          });
-          const created: PlanMember = await newPlanMember.create(context);
-          if (created.hasErrors()) {
-            context.logger.error(
-              { errors: created.errors, planMember: created },
-              `Failed to add new plan member: ${logName}`
-            );
-            errors.add(`Unable to add new plan member: ${logName}`);
+        // Add the plan member
+        const newPlanMember = new PlanMember({
+          projectMemberId: newProjMemberId,
+          planId: plan.id,
+          isPrimaryContact: newProjMember.isPrimaryContact,
+          memberRoleIds: roles
+            .map((role: MemberRole): number | undefined => role.id)
+            .filter((id: number | undefined): id is number => id !== undefined)
+        });
+        const created: PlanMember | null = await newPlanMember.create(context);
+        if (!created || created.hasErrors() || !created.id) {
+          context.logger.error(
+            { errors: created?.errors, planMember: created },
+            `Failed to add new plan member: ${logName}`
+          );
+          errors.add(`Unable to add new plan member: ${logName}`);
+          return;
+        }
 
-          } else {
-            // Add the roles to the new plan member
-            for (const role of roles) {
-              if (role) {
-                const addedRole: boolean = await role.addToPlanMember(context, created.id);
-                if (!addedRole) {
-                  context.logger.error(
-                    { errors: role.errors, memberRole: role },
-                    `Failed to add new role ${role.label} to plan member: ${logName}`
-                  );
-                  errors.add(`Unable to add new role ${role.label} to plan member: ${logName}`);
-                }
-              }
+        // Add the roles to the new plan member
+        for (const role of roles) {
+          if (role) {
+            const addedRole: boolean = await role.addToPlanMember(context, created.id);
+            if (!addedRole) {
+              context.logger.error(
+                { errors: role.errors, memberRole: role },
+                `Failed to add new role ${role.label} to plan member: ${logName}`
+              );
+              errors.add(`Unable to add new role ${role.label} to plan member: ${logName}`);
             }
           }
         }
@@ -382,10 +436,10 @@ export const processMemberAssociations = async (
       }: ReconciliationHandlerContext) => {
         // Remove the plan member
         const cPlanObj = currentPlanObj as PlanMember;
-        const removedPlan: PlanMember = await cPlanObj.delete(context);
-        if (removedPlan.hasErrors()) {
+        const removedPlan: PlanMember | null = await cPlanObj.delete(context);
+        if (!removedPlan || removedPlan.hasErrors()) {
           context.logger.error(
-            { errors: removedPlan.errors, planMember: removedPlan },
+            { errors: removedPlan?.errors, planMember: removedPlan },
             `Failed to delete plan member: ${logName}`
           );
           errors.add(`Unable to delete plan member ${logName}`);
@@ -394,10 +448,10 @@ export const processMemberAssociations = async (
           // Remove the project member if it is NOT shared with other plans
           if (!isShared) {
             const cProjObj = currentProjectObj as ProjectMember;
-            const removedProj: ProjectMember = await cProjObj.delete(context);
-            if (removedProj.hasErrors()) {
+            const removedProj: ProjectMember | null = await cProjObj.delete(context);
+            if (!removedProj || removedProj.hasErrors()) {
               context.logger.error(
-                { errors: removedProj.errors, projectMember: removedProj },
+                { errors: removedProj?.errors, projectMember: removedProj },
                 `Failed to delete project member: ${logName}`
               );
               errors.add(`Unable to delete project member ${logName}`);
@@ -408,6 +462,7 @@ export const processMemberAssociations = async (
 
       handleUpdate: async ({
         context,
+        plan,
         currentPlanObj,
         currentProjectObj,
         input,
@@ -418,43 +473,59 @@ export const processMemberAssociations = async (
       }: ReconciliationHandlerContext) => {
         const inObj = input as EntirePlanMemberFragment;
 
+        // processAssociations (the caller) already guards that Project/Plan are saved and
+        // that an existing ProjectMember is present for an 'update' action, but that
+        // narrowing doesn't cross this object literal's boundary, so it's re-checked here.
+        if (!plan.id || !currentProjectObj || !currentProjectObj.id) {
+          errors.add(`Unable to update ${logName}: the Plan or ProjectMember has not been saved`);
+          return;
+        }
+        const projectMemberId = currentProjectObj.id;
+
         // It's possible for the ProjectMember to exist, but the PlanMember does not
         const cPlanObj: PlanMember = currentPlanObj
           ? currentPlanObj as PlanMember
           : new PlanMember({
             planId: plan.id,
-            projectMemberId: currentProjectObj?.id,
+            projectMemberId: projectMemberId,
             memberRoleIds: []
           });
 
         // The PlanMembers do not load with their MemberRoles, so we need to load them here
-        const planMemberRoles: MemberRole[] = await MemberRole.findByPlanMemberId(
-          reference,
-          context,
-          cPlanObj.id
-        );
-        cPlanObj.memberRoleIds = planMemberRoles.map((role: MemberRole): number => role.id);
+        // (a brand new, not-yet-saved PlanMember from above has no roles yet)
+        const planMemberRoles: MemberRole[] = cPlanObj.id
+          ? await MemberRole.findByPlanMemberId(reference, context, cPlanObj.id)
+          : [];
+        cPlanObj.memberRoleIds = planMemberRoles
+          .map((role: MemberRole): number | undefined => role.id)
+          .filter((id: number | undefined): id is number => id !== undefined);
 
         const cProjObj = currentProjectObj as ProjectMember;
 
         const incomingRoles: MemberRole[] = (
           await Promise.all(
-            (inObj.memberRoles || []).map(async (id: string): Promise<MemberRole> => {
+            (inObj.memberRoles || []).map(async (id: string): Promise<MemberRole | null> => {
               return await MemberRole.findByURL(reference, context, id);
             })
           )
         ).filter((role): role is MemberRole => Boolean(role));
-        const incomingRoleIds: number[] = incomingRoles.map((role: MemberRole) => role.id);
-        const projRoleIds: number[] = cProjObj.memberRoles.map((role: MemberRole) => role.id);
+        const incomingRoleIds: number[] = incomingRoles
+          .map((role: MemberRole): number | undefined => role.id)
+          .filter((id: number | undefined): id is number => id !== undefined);
+        const projRoleIds: number[] = cProjObj.memberRoles
+          .map((role: MemberRole): number | undefined => role.id)
+          .filter((id: number | undefined): id is number => id !== undefined);
 
         // The only thing to update for a plan member are roles
         cPlanObj.memberRoleIds = incomingRoleIds;
 
         // Update the project members
         for (const role of incomingRoles) {
+          if (!role.id) continue;
+
           // If the project member doesn't have this role then add it there first
           if (!projRoleIds.includes(role.id)) {
-            const addedToProj: boolean = await role.addToProjectMember(context, cProjObj.id);
+            const addedToProj: boolean = await role.addToProjectMember(context, projectMemberId);
             if (!addedToProj) {
               context.logger.error(
                 { errors: role.errors, memberRole: role },
@@ -465,30 +536,32 @@ export const processMemberAssociations = async (
           }
 
           // Consolidate the MemberRoles for the PlanMember
-          const { errors: roleUpdateErrors } = await updateMemberRoles(
-            reference,
-            context,
-            cPlanObj.id,
-            cPlanObj.memberRoleIds,
-            incomingRoleIds
-          );
-          if (Array.isArray(roleUpdateErrors) && roleUpdateErrors.length > 0) {
-            for (const roleUpdateError of roleUpdateErrors) {
-              errors.add(roleUpdateError);
+          if (cPlanObj.id) {
+            const { errors: roleUpdateErrors } = await updateMemberRoles(
+              reference,
+              context,
+              cPlanObj.id,
+              cPlanObj.memberRoleIds,
+              incomingRoleIds
+            );
+            if (Array.isArray(roleUpdateErrors) && roleUpdateErrors.length > 0) {
+              for (const roleUpdateError of roleUpdateErrors) {
+                errors.add(roleUpdateError);
+              }
             }
           }
         }
 
         // Update the project member
         cProjObj.affiliationId = affiliation?.uri;
-        cProjObj.givenName = inObj.givenName;
-        cProjObj.surName = inObj.surname;
-        cProjObj.orcid = inObj.orcid;
-        cProjObj.email = inObj.email;
-        const updProj: ProjectMember = await cProjObj.update(context, true);
-        if (updProj.hasErrors()) {
+        cProjObj.givenName = inObj.givenName ?? undefined;
+        cProjObj.surName = inObj.surname ?? undefined;
+        cProjObj.orcid = inObj.orcid ?? undefined;
+        cProjObj.email = inObj.email ?? undefined;
+        const updProj: ProjectMember | null = await cProjObj.update(context, true);
+        if (!updProj || updProj.hasErrors()) {
           context.logger.error(
-            { errors: updProj.errors, projectMember: updProj },
+            { errors: updProj?.errors, projectMember: updProj },
             `Failed to update project member: ${logName}`
           );
           errors.add(`Unable to update project member ${logName}`);
@@ -498,8 +571,8 @@ export const processMemberAssociations = async (
         // that are no longer there
         if (!isShared) {
           for (const role of cProjObj.memberRoles) {
-            if (!incomingRoleIds.includes(role.id)) {
-              const wasRemoved: boolean = await role.removeFromProjectMember(context, cProjObj.id);
+            if (role.id && !incomingRoleIds.includes(role.id)) {
+              const wasRemoved: boolean = await role.removeFromProjectMember(context, projectMemberId);
               if (!wasRemoved) {
                 errors.add(`Unable to remove role ${role.label} from project member ${logName}`);
               }
@@ -528,6 +601,13 @@ export const processFundingAssociations = async (
   plan: Plan,
   funding: EntirePlanFundingFragment[]
 ): Promise<string | undefined> => {
+  // Callers (addEntirePlan/replaceEntirePlan) always pass an already-saved Project/Plan, but
+  // `id` is typed optional on MySqlModel, so this guard lets TS narrow it to `number` below.
+  if (!project.id || !plan.id) {
+    throw new Error('Cannot process funding associations for an unsaved Project or Plan');
+  }
+  const projectId = project.id;
+
   return processAssociations(
     // Define the context needed to process the associations
     {
@@ -546,25 +626,39 @@ export const processFundingAssociations = async (
       fetchProjectObjs: (id: number): Promise<ProjectFunding[]> => {
         return ProjectFunding.findByProjectId(reference, context, id);
       },
-      findOrCreateProjectObj: async (m: EntirePlanFundingFragment): Promise<ProjectFunding> => {
-        const funding: ProjectFunding = m.projectFundingId
+      // Typed to the broader AssociationInputType/ProjectAssociationType (like the members
+      // config above) so this satisfies AssociationReconcilerConfig's signature, then
+      // narrowed internally -- this config is always used with EntirePlanFundingFragment inputs.
+      findOrCreateProjectObj: async (input: AssociationInputType): Promise<ProjectAssociationType> => {
+        const m = input as EntirePlanFundingFragment;
+        const fundingObj: ProjectFunding | null = m.projectFundingId
           ? await ProjectFunding.findById(reference, context, m.projectFundingId)
           : await ProjectFunding.findByProjectAndAffiliation(
             reference,
             context,
-            project.id,
+            projectId,
             m.funder
           );
-        return funding || new ProjectFunding(m);
+        // This is just a placeholder used for reconciliation (it has no `id`, which is
+        // what signals the 'add' action below); handleAdd is what actually persists the
+        // real new ProjectFunding, with the affiliation URI resolved via Affiliation lookup.
+        return fundingObj || new ProjectFunding({
+          projectId,
+          affiliationId: m.funder,
+          status: ProjectFundingStatus[m.status as keyof typeof ProjectFundingStatus],
+          funderOpportunityNumber: m.funderOpportunityNumber ?? undefined,
+          funderProjectNumber: m.funderProjectNumber ?? undefined,
+          grantId: m.grantId ?? undefined,
+        });
       },
-      getPlanObjProjectObjId: (pm: PlanFunding): number => pm.projectFundingId,
+      getPlanObjProjectObjId: (planObj: PlanAssociationType): number => (planObj as PlanFunding).projectFundingId,
       isUsedByOtherPlans: async (id: number): Promise<boolean> => {
         return (await PlanFunding.findByProjectFundingId(reference, context, id)).length > 0;
       },
       getLogIdentifier: (a: AssociationInputType): string => {
-        return 'funder' in a
-          ? a.funder
-          : ('projectFundingId' in a ? a.projectFundingId.toString() : '?');
+        if ('funder' in a) return a.funder;
+        const fundingInput = a as EntirePlanFundingFragment;
+        return fundingInput.projectFundingId ? fundingInput.projectFundingId.toString() : '?';
       },
 
       // Define all the functions to handle the association
@@ -577,21 +671,28 @@ export const processFundingAssociations = async (
         logName,
         errors
       }: ReconciliationHandlerContext): Promise<void> => {
+        // processAssociations (the caller) already guards that Project/Plan are saved, but
+        // that narrowing doesn't cross this object literal's boundary, so it's re-checked here.
+        if (!project.id || !plan.id) {
+          errors.add(`Unable to add ${logName}: the Project or Plan has not been saved`);
+          return;
+        }
+
         const pFundingIn = input as EntirePlanFundingFragment;
 
         // Add the project funding
-        const newProjFunding: ProjectFunding = await new ProjectFunding({
+        const newProjFunding: ProjectFunding | null = await new ProjectFunding({
           projectId: project.id,
-          affiliationId: affiliation?.uri,
-          status: ProjectFundingStatus[pFundingIn.status as keyof ProjectFundingStatus],
-          funderOpportunityNumber: pFundingIn?.funderOpportunityNumber,
-          funderProjectNumber: pFundingIn?.funderProjectNumber,
-          grantId: pFundingIn?.grantId,
+          affiliationId: affiliation?.uri ?? '',
+          status: ProjectFundingStatus[pFundingIn.status as keyof typeof ProjectFundingStatus],
+          funderOpportunityNumber: pFundingIn?.funderOpportunityNumber ?? undefined,
+          funderProjectNumber: pFundingIn?.funderProjectNumber ?? undefined,
+          grantId: pFundingIn?.grantId ?? undefined,
         }).create(context, project.id);
 
-        if (!newProjFunding || newProjFunding.hasErrors()) {
+        if (!newProjFunding || newProjFunding.hasErrors() || !newProjFunding.id) {
           context.logger.error(
-            { errors: newProjFunding.errors, projectFunding: newProjFunding },
+            { errors: newProjFunding?.errors, projectFunding: newProjFunding },
             `Failed to add new project funding: ${logName}`
           );
           errors.add(`Unable to add new project funding: ${logName}`);
@@ -623,10 +724,10 @@ export const processFundingAssociations = async (
       }: ReconciliationHandlerContext) => {
         // Remove the plan funding
         const cPlanObj = currentPlanObj as PlanFunding;
-        const removedPlan: PlanFunding = await cPlanObj.delete(context);
-        if (removedPlan.hasErrors()) {
+        const removedPlan: PlanFunding | null = await cPlanObj.delete(context);
+        if (!removedPlan || removedPlan.hasErrors()) {
           context.logger.error(
-            { errors: removedPlan.errors, planFunding: removedPlan },
+            { errors: removedPlan?.errors, planFunding: removedPlan },
             `Failed to delete plan funding: ${logName}`
           );
           errors.add(`Unable to delete plan funding for: ${logName}`);
@@ -635,10 +736,10 @@ export const processFundingAssociations = async (
         // Only remove the project funding if it isn't being used by another plan
         if (!isShared) {
           const cProjObj = currentProjectObj as ProjectFunding;
-          const removedProj: ProjectFunding = await cProjObj.delete(context);
-          if (removedProj.hasErrors()) {
+          const removedProj: ProjectFunding | null = await cProjObj.delete(context);
+          if (!removedProj || removedProj.hasErrors()) {
             context.logger.error(
-              { errors: removedProj.errors, projectFunding: removedProj },
+              { errors: removedProj?.errors, projectFunding: removedProj },
               `Failed to delete project funding: ${logName}`
             );
             errors.add(`Unable to delete project funding for: ${logName}`);
@@ -660,15 +761,15 @@ export const processFundingAssociations = async (
 
         // Update the project funding
         const cProjObj = currentProjectObj as ProjectFunding;
-        cProjObj.affiliationId = affiliation?.uri;
-        cProjObj.status = ProjectFundingStatus[inObj.status as keyof ProjectFundingStatus];
-        cProjObj.funderOpportunityNumber = inObj.funderOpportunityNumber;
-        cProjObj.funderProjectNumber = inObj.funderProjectNumber;
-        cProjObj.grantId = inObj.grantId;
-        const updProj: ProjectFunding = await cProjObj.update(context, true);
-        if (updProj.hasErrors()) {
+        cProjObj.affiliationId = affiliation?.uri ?? '';
+        cProjObj.status = ProjectFundingStatus[inObj.status as keyof typeof ProjectFundingStatus];
+        cProjObj.funderOpportunityNumber = inObj.funderOpportunityNumber ?? undefined;
+        cProjObj.funderProjectNumber = inObj.funderProjectNumber ?? undefined;
+        cProjObj.grantId = inObj.grantId ?? undefined;
+        const updProj: ProjectFunding | null = await cProjObj.update(context, true);
+        if (!updProj || updProj.hasErrors()) {
           context.logger.error(
-            { errors: updProj.errors, projectFunding: updProj },
+            { errors: updProj?.errors, projectFunding: updProj },
             `Failed to update project funding: ${logName}`
           );
           errors.add(`Unable to update project funding for: ${logName}`);
@@ -693,6 +794,12 @@ const processAlternateIdentifiers = async (
   plan: Plan,
   alternateIdentifiers: string[]
 ): Promise<string | undefined> => {
+  // Callers (processAssociatedObjectForEntirePlan) always pass an already-saved Plan, but
+  // `id` is typed optional on MySqlModel, so this guard lets TS narrow it to `number` below.
+  if (!plan.id) {
+    return 'Cannot process alternate identifiers for a Plan that has not been saved';
+  }
+
   const errs: string[] = [];
   const currentEntries: AlternateIdentifier[] = await AlternateIdentifier.findByPlanId(
     ref,
@@ -722,7 +829,7 @@ const processAlternateIdentifiers = async (
 
   // Delete any that are no longer there
   for (const id of idsToBeRemoved) {
-    const idToRemove: AlternateIdentifier = currentEntries.find((entry: AlternateIdentifier) => {
+    const idToRemove: AlternateIdentifier | undefined = currentEntries.find((entry: AlternateIdentifier) => {
       return entry.alternateIdentifier === id;
     });
     if (idToRemove) {
@@ -756,6 +863,12 @@ const processAcceptedWorks = async (
 ): Promise<string | undefined> => {
   if (!acceptedWorks || acceptedWorks.length === 0) return undefined;
 
+  // Callers (processAssociatedObjectForEntirePlan) always pass an already-saved Plan, but
+  // `id` is typed optional on MySqlModel, so this guard lets TS narrow it to `number` below.
+  if (!plan.id) {
+    return 'Cannot process accepted works for a Plan that has not been saved';
+  }
+
   const errs: string[] = [];
   const currentEntries: AcceptedWork[] = await AcceptedWork.findByPlanId(
     ref,
@@ -776,9 +889,12 @@ const processAcceptedWorks = async (
 
   // Add any new ones
   for (const id of idsToAdd) {
-    const toSave: EntirePlanAcceptedWorkFragment = acceptedWorks.find((work: EntirePlanAcceptedWorkFragment): boolean => {
+    const toSave: EntirePlanAcceptedWorkFragment | undefined = acceptedWorks.find((work: EntirePlanAcceptedWorkFragment): boolean => {
       return work.doi.replace(generalConfig.dmpIdBaseURL, '') === id.toString();
     });
+    // `id` was derived from `idsIn`, which was itself mapped from `acceptedWorks`, so a
+    // match should always exist here; this just satisfies TS's strict null checks.
+    if (!toSave) continue;
 
     // Attempt to find the DOI in the dmp works OpenSearch index
     let openSearchWorks: OpenSearchWork[] = [];
@@ -861,7 +977,7 @@ const processAssociatedObjectForEntirePlan = async (
   input: AddEntirePlanInput | UpdateEntirePlanInput,
 ): Promise<void> => {
   // 1st: Save associated alternate identifiers (used by external services)
-  const altIdErrors: string = await processAlternateIdentifiers(
+  const altIdErrors: string | undefined = await processAlternateIdentifiers(
     reference,
     context,
     plan,
@@ -873,7 +989,7 @@ const processAssociatedObjectForEntirePlan = async (
 
   // 2nd: Save associated members (The project/plan owner and primary contact
   //      are set prior to this function being called)
-  const memberErrors: string = await processMemberAssociations(
+  const memberErrors: string | undefined = await processMemberAssociations(
     reference,
     context,
     project,
@@ -885,7 +1001,7 @@ const processAssociatedObjectForEntirePlan = async (
   }
 
   // 3rd: Save associated funding
-  const fundingErrors: string = await processFundingAssociations(
+  const fundingErrors: string | undefined = await processFundingAssociations(
     reference,
     context,
     project,
@@ -897,7 +1013,7 @@ const processAssociatedObjectForEntirePlan = async (
   }
 
   // 4th: Save any related works
-  const workErrors: string = await processAcceptedWorks(
+  const workErrors: string | undefined = await processAcceptedWorks(
     reference,
     context,
     plan,
@@ -928,22 +1044,22 @@ const findOrInitializeProject = async (
   if (!input || !input.title) return undefined;
 
   // Attempt to find it by the owner and title
-  project = await Project.findByOwnerAndTitle(ref, context, input.title, context.token.id);
+  project = (await Project.findByOwnerAndTitle(ref, context, input.title, context.token.id)) ?? undefined;
 
   // Attempt to find the specified ResearchDomain
   const researchDomain: ResearchDomain | undefined = input.researchDomainUrl
-    ? await ResearchDomain.findByURI(ref, context, input.researchDomainUrl)
+    ? (await ResearchDomain.findByURI(ref, context, input.researchDomainUrl)) ?? undefined
     : undefined;
 
   // If no project was found, initialize one
   if (!project) {
-    project = new Project({});
+    project = new Project({ title: input.title });
   }
 
   project.title = input.title?.trim();
   project.abstractText = input.abstractText?.trim();
-  project.startDate = input.startDate;
-  project.endDate = input.endDate;
+  project.startDate = input.startDate ?? undefined;
+  project.endDate = input.endDate ?? undefined;
   project.researchDomainId = researchDomain?.id;
   project.isTestProject = input.isTestProject || false;
   return project;
@@ -965,7 +1081,7 @@ const findVersionedTemplateForEntirePlan = async (
 
 
   if (versionedTemplateId) {
-    versionedTemplate = await VersionedTemplate.findVersionedTemplateById(reference, context, versionedTemplateId);
+    versionedTemplate = (await VersionedTemplate.findVersionedTemplateById(reference, context, versionedTemplateId)) ?? undefined;
     if (!versionedTemplate) {
       context.logger.error({ ref: reference, versionedTemplateId }, 'Unable to find the specified versioned template!');
       throw BadRequestError('Unable to find the specified versioned template!');
@@ -1040,9 +1156,9 @@ export const addEntirePlan = async (
     const versionedTemplate: VersionedTemplate | undefined = await findVersionedTemplateForEntirePlan(
       reference,
       context,
-      input.versionedTemplateId
+      input.versionedTemplateId ?? undefined
     );
-    if (!versionedTemplate.id) {
+    if (!versionedTemplate || !versionedTemplate.id) {
       context.logger.fatal(prepareObjectForLogs(logBase), 'No Versioned Template available!');
       throw InternalServerError('Unable to find a suitable versioned template!');
     }
@@ -1057,18 +1173,22 @@ export const addEntirePlan = async (
     }
 
     // 3rd: Save the project
-    let savedProject: Project;
+    let savedProject: Project | null;
     if (project.id) {
       savedProject = await project.update(context, false);
     } else {
       savedProject = await project.create(context);
     }
-    if (savedProject.hasErrors()) {
+    if (!savedProject || savedProject.hasErrors()) {
       context.logger.warn(
-        prepareObjectForLogs({ ...logBase, errors: savedProject.errors }),
+        prepareObjectForLogs({ ...logBase, errors: savedProject?.errors }),
         'Project creation errors'
       );
-      throw BadRequestError(savedProject.errorsToString());
+      throw BadRequestError(savedProject?.errorsToString());
+    }
+    if (!savedProject.id) {
+      context.logger.fatal(prepareObjectForLogs(logBase), 'Project was saved but has no id!');
+      throw InternalServerError('Unable to save the Project!');
     }
 
     logBase.projectId = savedProject.id;
@@ -1083,8 +1203,8 @@ export const addEntirePlan = async (
       projectId: savedProject.id,
       versionedTemplateId: versionedTemplate.id,
       title: input.title,
-      status: input.status || PlanStatus.DRAFT,
-      visibility: input.visibility || PlanVisibility.PRIVATE,
+      status: PlanStatus[input.status as keyof typeof PlanStatus] || PlanStatus.DRAFT,
+      visibility: PlanVisibility[input.visibility as keyof typeof PlanVisibility] || PlanVisibility.PRIVATE,
       languageId: input.languageId || defaultLanguageId
     });
     const savedPlan: Plan = await plan.create(context);
@@ -1165,11 +1285,11 @@ export const replaceEntirePlan = async (
 
     // Process the standard project level information
     project.title = input.project?.title || input.title;
-    project.abstractText = input.project?.abstractText;
-    project.startDate = input.project?.startDate;
-    project.endDate = input.project?.endDate;
+    project.abstractText = input.project?.abstractText ?? undefined;
+    project.startDate = input.project?.startDate ?? undefined;
+    project.endDate = input.project?.endDate ?? undefined;
     project.isTestProject = input.project?.isTestProject || false;
-    project.researchDomainId = researchDomain?.id || null;
+    project.researchDomainId = researchDomain?.id ?? undefined;
 
     if (!(await project.update(context))) {
       context.logger.error(
@@ -1184,8 +1304,8 @@ export const replaceEntirePlan = async (
 
     plan.title = input.title;
     plan.languageId = input.languageId || defaultLanguageId;
-    plan.status = PlanStatus[input.status as keyof PlanStatus];
-    plan.visibility = PlanVisibility[input.visibility as keyof PlanVisibility];
+    plan.status = PlanStatus[input.status as keyof typeof PlanStatus];
+    plan.visibility = PlanVisibility[input.visibility as keyof typeof PlanVisibility];
     if (!(await plan.update(context))) {
       context.logger.error(
         prepareObjectForLogs({ ...logBase, errors: plan.errors }),
@@ -1278,6 +1398,10 @@ export const removeEntirePlan = async (
       }
 
       // 2nd: Remove the Project if it is not associated with other Plans
+      if (!project.id) {
+        context.logger.fatal(prepareObjectForLogs(logBase), 'Cannot check for other Plans: the Project has no id');
+        throw InternalServerError();
+      }
       const plans: Plan[] = await Plan.findByProjectId(reference, context, project.id);
       if (plans.length <= 0) {
         if (!(await project.delete(context))) {

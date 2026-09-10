@@ -27,12 +27,22 @@ export const isDOI = (value: string): boolean => {
     || value?.toLowerCase()?.includes('doi.org');
 }
 
+interface WorkOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  doi: string;
+}
+
 export class Work extends MySqlModel {
   public doi: string;
 
   private static tableName = 'works';
 
-  constructor(options) {
+  constructor(options: WorkOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
     this.doi = options.doi;
   }
@@ -47,10 +57,10 @@ export class Work extends MySqlModel {
 
   prepForSave(): void {
     // Only store the DOI identifier not full URL if it's a DOI
-    this.doi = isDOI(this.doi) ? parseDOI(this.doi) : this.doi?.trim();
+    this.doi = (isDOI(this.doi) ? parseDOI(this.doi) : this.doi?.trim()) ?? this.doi;
   }
 
-  async create(context: MyContext): Promise<Work> {
+  async create(context: MyContext): Promise<Work | null> {
     const reference = 'Work.create';
 
     // First make sure the record is valid
@@ -64,7 +74,10 @@ export class Work extends MySqlModel {
       } else {
         // Save the record and then fetch it
         const newId = await Work.insert(context, Work.tableName, this, reference);
-        return await Work.findById(reference, context, newId);
+        if (newId) {
+          return await Work.findById(reference, context, newId);
+        }
+        this.addError('general', 'Work was not created successfully');
       }
     }
 
@@ -72,7 +85,7 @@ export class Work extends MySqlModel {
     return new Work(this);
   }
 
-  async update(context: MyContext, noTouch = false): Promise<Work> {
+  async update(context: MyContext, noTouch = false): Promise<Work | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -85,7 +98,7 @@ export class Work extends MySqlModel {
     return new Work(this);
   }
 
-  async delete(context: MyContext): Promise<Work> {
+  async delete(context: MyContext): Promise<Work | null> {
     if (this.id) {
       const deleted = await Work.findById('Work.delete', context, this.id);
 
@@ -100,21 +113,21 @@ export class Work extends MySqlModel {
   }
 
   // Fetch a Work by its id
-  static async findById(reference: string, context: MyContext, workId: number): Promise<Work> {
+  static async findById(reference: string, context: MyContext, workId: number): Promise<Work | null> {
     const sql = `SELECT * FROM works WHERE id = ?`;
     const results = await Work.query(context, sql, [workId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new Work(results[0]) : null;
   }
 
   // Fetch a Work by its DOI
-  static async findByDoi(reference: string, context: MyContext, doi: string): Promise<Work> {
+  static async findByDoi(reference: string, context: MyContext, doi: string): Promise<Work | null> {
     const sql = `SELECT * FROM works WHERE doi = ?`;
     const results = await Work.query(context, sql, [doi], reference);
     return Array.isArray(results) && results.length > 0 ? new Work(results[0]) : null;
   }
 }
 
-export const parseDOI = (doi: string | undefined | null): string => {
+export const parseDOI = (doi: string | undefined | null): string | null => {
   if (isNullOrUndefined(doi)) return null;
 
   const trimmed = doi.trim();
@@ -133,6 +146,28 @@ export const parseDOI = (doi: string | undefined | null): string => {
   }
 };
 
+interface WorkVersionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  workId: number;
+  hash: Buffer;
+  workType: WorkType;
+  publicationDate: string;
+  title: string;
+  abstractText: string;
+  authors: Author[];
+  institutions: Institution[];
+  funders: Funder[];
+  awards: Award[];
+  publicationVenue: string;
+  sourceName: string;
+  sourceUrl: string;
+}
+
 export class WorkVersion extends MySqlModel {
   public workId: number;
   public hash: Buffer;
@@ -150,7 +185,7 @@ export class WorkVersion extends MySqlModel {
 
   private static tableName = 'workVersions';
 
-  constructor(options) {
+  constructor(options: WorkVersionOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
     this.workId = options.workId;
     this.hash = options.hash;
@@ -186,7 +221,7 @@ export class WorkVersion extends MySqlModel {
     return Object.keys(this.errors).length === 0;
   }
 
-  async create(context: MyContext, doi: string): Promise<WorkVersion> {
+  async create(context: MyContext, doi: string): Promise<WorkVersion | null> {
     const reference = 'WorkVersion.create';
 
     // First make sure the record is valid
@@ -198,7 +233,10 @@ export class WorkVersion extends MySqlModel {
       } else {
         // Save the record and then fetch it
         const newId = await WorkVersion.insert(context, WorkVersion.tableName, this, reference);
-        return await WorkVersion.findById(reference, context, newId);
+        if (newId) {
+          return await WorkVersion.findById(reference, context, newId);
+        }
+        this.addError('general', 'WorkVersion was not created successfully');
       }
     }
 
@@ -206,7 +244,7 @@ export class WorkVersion extends MySqlModel {
     return new WorkVersion(this);
   }
 
-  async update(context: MyContext, noTouch = false): Promise<WorkVersion> {
+  async update(context: MyContext, noTouch = false): Promise<WorkVersion | null> {
     const id = this.id;
 
     if (await this.isValid()) {
@@ -219,7 +257,7 @@ export class WorkVersion extends MySqlModel {
     return new WorkVersion(this);
   }
 
-  async delete(context: MyContext): Promise<WorkVersion> {
+  async delete(context: MyContext): Promise<WorkVersion | null> {
     if (this.id) {
       const deleted = await WorkVersion.findById('WorkVersion.delete', context, this.id);
 
@@ -239,7 +277,7 @@ export class WorkVersion extends MySqlModel {
   }
 
   // Fetch a Work by its id
-  static async findById(reference: string, context: MyContext, workVersionId: number): Promise<WorkVersion> {
+  static async findById(reference: string, context: MyContext, workVersionId: number): Promise<WorkVersion | null> {
     const sql = `SELECT * FROM workVersions WHERE id = ?`;
     const results = await WorkVersion.query(context, sql, [workVersionId?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new WorkVersion(results[0]) : null;
@@ -251,18 +289,40 @@ export class WorkVersion extends MySqlModel {
     context: MyContext,
     doi: string,
     hash: Buffer,
-  ): Promise<WorkVersion> {
+  ): Promise<WorkVersion | null> {
     const sql = `SELECT wv.* FROM workVersions wv LEFT JOIN works w ON wv.workId = w.id WHERE wv.hash = ? AND w.doi = ?`;
     const results = await WorkVersion.query(context, sql, [hash, doi?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new WorkVersion(results[0]) : null;
   }
 
   // Fetch the latest WorkVersion for a DOI
-  static async findLatestByDoi(reference: string, context: MyContext, doi: string): Promise<WorkVersion> {
+  static async findLatestByDoi(reference: string, context: MyContext, doi: string): Promise<WorkVersion | null> {
     const sql = `SELECT wv.* FROM workVersions wv LEFT JOIN works w ON wv.workId = w.id WHERE w.doi = ? ORDER BY wv.created DESC LIMIT 1`;
     const results = await WorkVersion.query(context, sql, [doi?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new WorkVersion(results[0]) : null;
   }
+}
+
+interface RelatedWorkOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  planId: number;
+  workVersionId: number;
+  relationType?: RelationType;
+  sourceType: RelatedWorkSourceType;
+  score: number;
+  scoreMax: number;
+  status: RelatedWorkStatus;
+  doiMatch: DoiMatch;
+  contentMatch: ContentMatch;
+  authorMatches: ItemMatch[];
+  institutionMatches: ItemMatch[];
+  funderMatches: ItemMatch[];
+  awardMatches: ItemMatch[];
 }
 
 export class RelatedWork extends MySqlModel {
@@ -282,7 +342,7 @@ export class RelatedWork extends MySqlModel {
 
   private static tableName = 'relatedWorks';
 
-  constructor(options) {
+  constructor(options: RelatedWorkOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.planId = options.planId;
@@ -313,7 +373,7 @@ export class RelatedWork extends MySqlModel {
   }
 
   // Create a new RelatedWork
-  async create(context: MyContext): Promise<RelatedWork> {
+  async create(context: MyContext): Promise<RelatedWork | null> {
     const reference = 'RelatedWork.create';
 
     // First make sure the record is valid
@@ -339,7 +399,10 @@ export class RelatedWork extends MySqlModel {
       if (Object.keys(this.errors).length == 0) {
         // Insert related work
         const newId = await RelatedWork.insert(context, RelatedWork.tableName, this, reference, []);
-        return await RelatedWork.findById(reference, context, newId);
+        if (newId) {
+          return await RelatedWork.findById(reference, context, newId);
+        }
+        this.addError('general', 'RelatedWork was not created successfully');
       }
     }
 
@@ -348,7 +411,7 @@ export class RelatedWork extends MySqlModel {
   }
 
   // Update an existing RelatedWork
-  async update(context: MyContext, noTouch = false): Promise<RelatedWork> {
+  async update(context: MyContext, noTouch = false): Promise<RelatedWork | null> {
     if (await this.isValid()) {
       if (this.id) {
         await RelatedWork.update(context, RelatedWork.tableName, this, 'RelatedWork.update', [], noTouch);
@@ -362,7 +425,7 @@ export class RelatedWork extends MySqlModel {
   }
 
   // Delete the RelatedWork
-  async delete(context: MyContext): Promise<RelatedWork> {
+  async delete(context: MyContext): Promise<RelatedWork | null> {
     if (this.id) {
       const deleted = await RelatedWork.findById('RelatedWork.delete', context, this.id);
 
@@ -382,7 +445,7 @@ export class RelatedWork extends MySqlModel {
   }
 
   // Find a RelatedWork by its identifier
-  static async findById(reference: string, context: MyContext, id: number): Promise<RelatedWork> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<RelatedWork | null> {
     const sql = `SELECT * FROM ${RelatedWork.tableName} WHERE id = ?`;
     const result = await RelatedWork.query(context, sql, [id.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new RelatedWork(result[0]) : null;
@@ -394,14 +457,14 @@ export class RelatedWork extends MySqlModel {
     context: MyContext,
     planId: number,
     workVersionId: number,
-  ): Promise<RelatedWork> {
+  ): Promise<RelatedWork | null> {
     const sql = `SELECT * FROM ${RelatedWork.tableName} WHERE planId = ? AND workVersionId = ?`;
     const result = await RelatedWork.query(context, sql, [planId.toString(), workVersionId.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new RelatedWork(result[0]) : null;
   }
 
   // Find a RelatedWork by planID and DOI
-  static async findByDOI(reference: string, context: MyContext, planId: number, doi: string): Promise<RelatedWork> {
+  static async findByDOI(reference: string, context: MyContext, planId: number, doi: string): Promise<RelatedWork | null> {
     const sql = `SELECT rw.* FROM ${RelatedWork.tableName} AS rw LEFT JOIN plans p ON rw.planId = p.id LEFT JOIN workVersions wv ON rw.workVersionId = wv.id LEFT JOIN works w ON wv.workId = w.id WHERE rw.planId = ? AND w.doi = ?`;
     const result = await RelatedWork.query(context, sql, [planId.toString(), doi], reference);
     return Array.isArray(result) && result.length > 0 ? new RelatedWork(result[0]) : null;
@@ -458,37 +521,64 @@ export interface RelatedWorkSearchResults<T> extends PaginatedQueryResults<T> {
   confidenceCounts: { count: number; typeId: string }[];
 }
 
-export class RelatedWorkSearchResult extends MySqlModel {
-  public projectId: number;
-  public planId: number;
-  public planTitle: string;
-  public workVersion: {
+interface RelatedWorkSearchResultWorkVersion {
+  id: number;
+  work: {
     id: number;
-    work: {
-      id: number;
-      doi: string;
-      created: string;
-      createdById: number;
-      modified: string;
-      modifiedById: number;
-    };
-    hash: Buffer;
-    workType: WorkType;
-    publicationDate: string;
-    title: string;
-    abstractText: string;
-    authors: Author[];
-    institutions: Institution[];
-    funders: Funder[];
-    awards: Award[];
-    publicationVenue: string;
-    sourceName: string;
-    sourceUrl: string;
+    doi: string;
     created: string;
     createdById: number;
     modified: string;
     modifiedById: number;
   };
+  hash: Buffer;
+  workType: WorkType;
+  publicationDate: string;
+  title: string;
+  abstractText: string;
+  authors: Author[];
+  institutions: Institution[];
+  funders: Funder[];
+  awards: Award[];
+  publicationVenue: string;
+  sourceName: string;
+  sourceUrl: string;
+  created: string;
+  createdById: number;
+  modified: string;
+  modifiedById: number;
+}
+
+interface RelatedWorkSearchResultOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  planId: number;
+  planTitle: string;
+  workVersion: RelatedWorkSearchResultWorkVersion;
+  sourceType: RelatedWorkSourceType;
+  score: number;
+  scoreMax: number;
+  scoreNorm: number;
+  status: RelatedWorkStatus;
+  doiMatch: DoiMatch;
+  contentMatch: ContentMatch;
+  authorMatches: ItemMatch[];
+  institutionMatches: ItemMatch[];
+  funderMatches: ItemMatch[];
+  awardMatches: ItemMatch[];
+}
+
+export class RelatedWorkSearchResult extends MySqlModel {
+  // Not populated by the search SQL (see sqlStatement below, which selects rw.planId but not
+  // a projectId); the GraphQL schema also declares this field nullable.
+  public projectId?: number;
+  public planId: number;
+  public planTitle: string;
+  public workVersion: RelatedWorkSearchResultWorkVersion;
   public sourceType: RelatedWorkSourceType;
   public score: number;
   public scoreMax: number;
@@ -558,7 +648,7 @@ export class RelatedWorkSearchResult extends MySqlModel {
     LEFT JOIN works w ON wv.workId = w.id
   `;
 
-  constructor(options) {
+  constructor(options: RelatedWorkSearchResultOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.planId = options.planId;
@@ -586,8 +676,8 @@ export class RelatedWorkSearchResult extends MySqlModel {
     filterOptions: RelatedWorksFilterOptions = {},
     options: PaginationOptions = RelatedWorkSearchResult.getDefaultPaginationOptions(),
   ): Promise<RelatedWorkSearchResults<RelatedWorkSearchResult>> {
-    const whereFilters = [];
-    const values = [];
+    const whereFilters: string[] = [];
+    const values: string[] = [];
 
     // Configure sorting
     const sortMapping = new Map<string, string>();
@@ -631,12 +721,12 @@ export class RelatedWorkSearchResult extends MySqlModel {
 
     // Where clauses
     whereFilters.push('p.projectId = ?');
-    values.push(projectId);
+    values.push(projectId.toString());
 
     // Set planId with planId or fall back to filterOptions.planId (which is used on project level page)
     if (!isNullOrUndefined(planId) || !isNullOrUndefined(filterOptions.planId)) {
       whereFilters.push('rw.planId = ?');
-      values.push(planId ?? filterOptions.planId);
+      values.push((planId ?? filterOptions.planId)?.toString() ?? '');
     }
 
     if (!isNullOrUndefined(doi)) {
@@ -686,12 +776,12 @@ export class RelatedWorkSearchResult extends MySqlModel {
        LEFT JOIN workVersions wv ON rw.workVersionId = wv.id
        LEFT JOIN works w ON wv.workId = w.id`,
     ];
-    const aggValues = [];
+    const aggValues: string[] = [];
     aggSql.push('WHERE p.projectId = ?');
-    aggValues.push(projectId);
+    aggValues.push(projectId.toString());
     if (!isNullOrUndefined(planId)) {
       aggSql.push('AND rw.planId = ?');
-      aggValues.push(planId);
+      aggValues.push(planId.toString());
     }
     if (!isNullOrUndefined(filterOptions.status)) {
       aggSql.push('AND rw.status = ?');
@@ -752,11 +842,38 @@ export class RelatedWorkSearchResult extends MySqlModel {
   }
 
   // Find a RelatedWorkSearchResult by its identifier
-  static async findById(reference: string, context: MyContext, id: number): Promise<RelatedWorkSearchResult> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<RelatedWorkSearchResult | null> {
     const sql = `${this.sqlStatement} WHERE rw.id = ?`;
     const result = await RelatedWorkSearchResult.query(context, sql, [id.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new RelatedWorkSearchResult(result[0]) : null;
   }
+}
+
+interface AcceptedWorkOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  planId: number;
+  doi: string;
+  workId: number;
+  workVersionId: number;
+  relatedWorkId: number;
+  workType?: WorkType;
+  relationType?: RelationType;
+  sourceType?: RelatedWorkSourceType;
+  publicationDate?: string;
+  title?: string;
+  abstractText?: string;
+  authors?: Author[];
+  institutions?: Institution[];
+  funders?: Funder[];
+  awards?: Award[];
+  publicationVenue?: string;
+  sourceName?: string;
+  sourceUrl?: string;
 }
 
 // A RelatedWork that has been accepted for a Plan
@@ -781,7 +898,7 @@ export class AcceptedWork extends MySqlModel {
   public sourceName?: string;
   public sourceUrl?: string;
 
-  constructor(options) {
+  constructor(options: AcceptedWorkOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.planId = options.planId;
@@ -806,14 +923,14 @@ export class AcceptedWork extends MySqlModel {
   }
 
   // Find a specific AcceptedWork by Plan and DOI
-  static async findByPlanIdAndDoi(reference: string, context: MyContext, planId: number, doi: string): Promise<AcceptedWork> {
+  static async findByPlanIdAndDoi(reference: string, context: MyContext, planId: number, doi: string): Promise<AcceptedWork | null> {
     const sql = `SELECT rw.planId, w.doi, w.id AS workId, wv.id AS workVersionId,
                    rw.id AS relatedWorkId, rw.relationType, wv.*
                  FROM relatedWorks rw
                    INNER JOIN workVersions wv ON rw.workVersionId = wv.id
                    INNER JOIN works w ON wv.workId = w.id
                  WHERE rw.status = ? AND rw.planId = ? AND w.doi = ?`;
-    const parsedDoi: string = isDOI(doi) ? parseDOI(doi) : doi;
+    const parsedDoi: string = (isDOI(doi) ? parseDOI(doi) : doi) ?? doi;
     const vals: string[] = [RelatedWorkStatus.ACCEPTED, planId.toString(), parsedDoi];
     const result = await AcceptedWork.query(context, sql, vals, reference);
     return Array.isArray(result) && result.length > 0 ? new AcceptedWork(result[0]) : null;

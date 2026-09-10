@@ -3,7 +3,8 @@ import {
   AddSectionCustomizationInput,
   MoveCustomSectionInput,
   Resolvers,
-  UpdateCustomSectionInput, UpdateSectionCustomizationInput
+  UpdateCustomSectionInput, UpdateSectionCustomizationInput,
+  VersionedSection as VersionedSectionGql
 } from "../types.js";
 import { MyContext } from "../context.js";
 import {
@@ -11,7 +12,7 @@ import {
   TemplateCustomizationMigrationStatus
 } from "../models/TemplateCustomization.js";
 import { authenticatedResolver } from "../services/authService.js";
-import { NotFoundError } from "../utils/graphQLErrors.js";
+import { InternalServerError, NotFoundError } from "../utils/graphQLErrors.js";
 import {
   getValidatedCustomization,
   markTemplateCustomizationAsDirty
@@ -47,7 +48,7 @@ export const resolvers: Resolvers = {
       ): Promise<SectionCustomization> => {
         const ref = 'sectionCustomization resolver';
 
-        const customization: SectionCustomization = await SectionCustomization.findById(
+        const customization = await SectionCustomization.findById(
           ref,
           context,
           sectionCustomizationId
@@ -106,7 +107,7 @@ export const resolvers: Resolvers = {
       ): Promise<CustomSection> => {
         const ref = 'customSection resolver'
         // Fetch the CustomSection
-        const customization: CustomSection = await CustomSection.findById(
+        const customization = await CustomSection.findById(
           ref,
           context,
           customSectionId
@@ -152,7 +153,7 @@ export const resolvers: Resolvers = {
         const { templateCustomizationId, versionedSectionId } = input;
 
         // Fetch the versioned section
-        const section: VersionedSection = await VersionedSection.findById(
+        const section = await VersionedSection.findById(
           ref,
           context,
           versionedSectionId
@@ -160,7 +161,7 @@ export const resolvers: Resolvers = {
         if (!section) throw NotFoundError();
 
         // Fetch the parent template customization and verify that the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           templateCustomizationId
@@ -173,10 +174,12 @@ export const resolvers: Resolvers = {
         });
 
         // Save the new section customization
-        const created: SectionCustomization = await customization.create(context);
+        const created = await customization.create(context);
+        if (isNullOrUndefined(created)) throw InternalServerError();
 
         // If it was successfully created, update the parent's isDirty flag
-        if (created && !created.hasErrors() && !parent.isDirty) {
+        if (!created.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, created);
         }
         return created;
@@ -207,7 +210,7 @@ export const resolvers: Resolvers = {
         const ref = 'updateSectionCustomization resolver';
 
         // Fetch the specified SectionCustomization
-        const customization: SectionCustomization = await SectionCustomization.findById(
+        const customization = await SectionCustomization.findById(
           ref,
           context,
           sectionCustomizationId
@@ -222,11 +225,13 @@ export const resolvers: Resolvers = {
         );
 
         // Update the guidance
-        customization.guidance = guidance;
-        const updated: SectionCustomization = await customization.update(context);
+        customization.guidance = guidance ?? undefined;
+        const updated = await customization.update(context);
+        if (isNullOrUndefined(updated)) throw InternalServerError();
 
         // If it was successfully updated, update the parent's isDirty flag
-        if (updated && !updated.hasErrors() && !parent.isDirty) {
+        if (!updated.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, updated);
         }
         return updated;
@@ -255,7 +260,7 @@ export const resolvers: Resolvers = {
         context: MyContext
       ): Promise<SectionCustomization> => {
         const ref = 'removeSectionCustomization resolver';
-        const customization: SectionCustomization = await SectionCustomization.findById(
+        const customization = await SectionCustomization.findById(
           ref,
           context,
           sectionCustomizationId
@@ -263,15 +268,17 @@ export const resolvers: Resolvers = {
         if (!customization) throw NotFoundError();
 
         // Fetch the parent template customization and verify the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           customization.templateCustomizationId
         );
 
-        const deleted: SectionCustomization = await customization.delete(context);
+        const deleted = await customization.delete(context);
+        if (isNullOrUndefined(deleted)) throw InternalServerError();
         // If it was successfully deleted, update the parent's isDirty flag
-        if (deleted && !deleted.hasErrors() && !parent.isDirty) {
+        if (!deleted.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, deleted);
         }
         return deleted;
@@ -304,7 +311,7 @@ export const resolvers: Resolvers = {
         const { name, introduction, requirements, guidance, templateCustomizationId, pinnedSectionType, pinnedSectionId } = input;
 
         // Fetch the parent template customization and verify the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           templateCustomizationId
@@ -312,20 +319,22 @@ export const resolvers: Resolvers = {
 
         const customSection = new CustomSection({
           name,
-          introduction,
-          requirements,
-          guidance,
+          introduction: introduction ?? undefined,
+          requirements: requirements ?? undefined,
+          guidance: guidance ?? undefined,
           templateCustomizationId,
-          pinnedSectionType,
-          pinnedSectionId,
+          pinnedSectionType: pinnedSectionType ?? undefined,
+          pinnedSectionId: pinnedSectionId ?? undefined,
           migrationStatus: TemplateCustomizationMigrationStatus.OK,
         });
 
         // Save the new custom section
-        const created: CustomSection = await customSection.create(context);
+        const created = await customSection.create(context);
+        if (isNullOrUndefined(created)) throw InternalServerError();
 
         // If it was successfully created, update the parent's isDirty flag
-        if (created && !created.hasErrors() && !parent.isDirty) {
+        if (!created.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, created);
         }
         return created;
@@ -356,7 +365,7 @@ export const resolvers: Resolvers = {
         const ref = 'updateCustomSection resolver';
         const { customSectionId, name, introduction, requirements, guidance } = input;
 
-        const customization: CustomSection = await CustomSection.findById(
+        const customization = await CustomSection.findById(
           ref,
           context,
           customSectionId
@@ -364,7 +373,7 @@ export const resolvers: Resolvers = {
         if (!customization) throw NotFoundError();
 
         // Fetch the parent template customization and verify that the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           customization.templateCustomizationId
@@ -372,13 +381,15 @@ export const resolvers: Resolvers = {
 
         // Update the section
         customization.name = name;
-        customization.introduction = introduction;
-        customization.requirements = requirements;
-        customization.guidance = guidance;
-        const updated: CustomSection = await customization.update(context);
+        customization.introduction = introduction ?? undefined;
+        customization.requirements = requirements ?? undefined;
+        customization.guidance = guidance ?? undefined;
+        const updated = await customization.update(context);
+        if (isNullOrUndefined(updated)) throw InternalServerError();
 
         // If it was successfully updated, update the parent's isDirty flag
-        if (updated && !updated.hasErrors() && !parent.isDirty) {
+        if (!updated.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, updated);
         }
         return updated;
@@ -406,7 +417,7 @@ export const resolvers: Resolvers = {
         context: MyContext
       ): Promise<CustomSection> => {
         const ref = 'removeCustomSection resolver';
-        const customization: CustomSection = await CustomSection.findById(
+        const customization = await CustomSection.findById(
           ref,
           context,
           customSectionId
@@ -414,15 +425,17 @@ export const resolvers: Resolvers = {
         if (!customization) throw NotFoundError();
 
         // Fetch the parent template customization and verify that the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           customization.templateCustomizationId
         );
 
-        const deleted: CustomSection = await customization.delete(context);
+        const deleted = await customization.delete(context);
+        if (isNullOrUndefined(deleted)) throw InternalServerError();
         // If it was successfully deleted, update the parent's isDirty flag
-        if (deleted && !deleted.hasErrors() && !parent.isDirty) {
+        if (!deleted.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, deleted);
         }
         return deleted;
@@ -453,7 +466,7 @@ export const resolvers: Resolvers = {
         const ref = 'moveCustomSection resolver';
         const { customSectionId, newSectionType, newSectionId } = input;
 
-        const customization: CustomSection = await CustomSection.findById(
+        const customization = await CustomSection.findById(
           ref,
           context,
           customSectionId
@@ -461,19 +474,21 @@ export const resolvers: Resolvers = {
         if (!customization) throw NotFoundError();
 
         // Fetch the parent template customization and verify the user has access
-        const parent: TemplateCustomization = await getValidatedCustomization(
+        const parent = await getValidatedCustomization(
           ref,
           context,
           customization.templateCustomizationId
         );
 
-        const newPinType: PinnedSectionTypeEnum = PinnedSectionTypeEnum[newSectionType];
-        customization.pinnedSectionType = isNullOrUndefined(newPinType) ? null : newPinType;
-        customization.pinnedSectionId = isNullOrUndefined(newSectionId) ? null : newSectionId;
-        const moved: CustomSection = await customization.update(context);
+        const newPinType = newSectionType ? PinnedSectionTypeEnum[newSectionType] : undefined;
+        customization.pinnedSectionType = newPinType ?? undefined;
+        customization.pinnedSectionId = newSectionId ?? undefined;
+        const moved = await customization.update(context);
+        if (isNullOrUndefined(moved)) throw InternalServerError();
 
         // If it was successfully moved, update the parent's isDirty flag
-        if (moved && !moved.hasErrors() && !parent.isDirty) {
+        if (!moved.hasErrors() && !parent.isDirty) {
+          if (isNullOrUndefined(parent.id)) throw NotFoundError();
           await markTemplateCustomizationAsDirty(ref, context, parent.id, moved);
         }
 
@@ -490,29 +505,32 @@ export const resolvers: Resolvers = {
      * @returns The VersionedSection
      */
     versionedSection: async (
-      parent: SectionCustomization,
+      parent,
       _: Record<PropertyKey, never>,
       context: MyContext
-    ): Promise<VersionedSection> => {
+    ) => {
       const ref = 'SectionCustomization.versionedSection chained resolver';
       if (isNullOrUndefined(parent?.sectionId)) return null;
 
       const customization = await TemplateCustomization.findById(ref, context, parent.templateCustomizationId);
-      return isNullOrUndefined(customization)
-        ? null
-        : await VersionedSection.findByVersionedTemplateIdAndSectionId(
-          ref,
-          context,
-          customization.currentVersionedTemplateId,
-          parent.sectionId
-        );
+      if (isNullOrUndefined(customization)) return null;
+      const versionedSection = await VersionedSection.findByVersionedTemplateIdAndSectionId(
+        ref,
+        context,
+        customization.currentVersionedTemplateId,
+        parent.sectionId
+      );
+      // Cast needed: the VersionedSection model doesn't structurally match the generated
+      // VersionedSection type (e.g. nested Tag.slug is optional on the model but required
+      // in the schema), and there are no codegen mappers configured to reconcile this.
+      return (versionedSection ?? null) as unknown as VersionedSectionGql | null;
     },
     /**
      * Format the created date time
      * @param parent The SectionCustomization
      * @returns the formatted date
      */
-    created: (parent: SectionCustomization): string => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
     /**
@@ -520,7 +538,7 @@ export const resolvers: Resolvers = {
      * @param parent The SectionCustomization
      * @returns the formatted date time
      */
-    modified: (parent: SectionCustomization): string => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },
@@ -531,7 +549,7 @@ export const resolvers: Resolvers = {
      * @param parent The CustomSection
      * @returns the formatted date time
      */
-    created: (parent: CustomSection): string => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
     /**
@@ -539,7 +557,7 @@ export const resolvers: Resolvers = {
      * @param parent The CustomSection
      * @returns the formatted date time
      */
-    modified: (parent: CustomSection): string => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },

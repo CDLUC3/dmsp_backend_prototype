@@ -51,6 +51,7 @@ export const resolveAffiliation = async (
       const newAffiliation = new Affiliation({
         uri: input.affiliationId,
         name: input.affiliationName,
+        displayName: input.affiliationName,
       });
 
       const createdAffiliation = await newAffiliation.create(context);
@@ -59,7 +60,7 @@ export const resolveAffiliation = async (
         return { affiliationId: null, error: 'Unable to create required affiliation' };
       }
 
-      return { affiliationId: createdAffiliation.uri };
+      return { affiliationId: createdAffiliation.uri ?? null };
     }
     return { affiliationId: input.affiliationId };
   } else if (input.affiliationName) {
@@ -75,7 +76,7 @@ export const processOtherAffiliationName = async (
   context: MyContext,
   name: string,
   userId?: number,
-): Promise<Affiliation> => {
+): Promise<Affiliation | null> => {
   // First look to see if the affiliation name already exists
   const existing = await Affiliation.findByName('processOtherAffiliation', context, name);
   if (existing) {
@@ -90,6 +91,9 @@ export const processOtherAffiliationName = async (
       newAffiliation.modifiedById = userId;
     }
     const result = await newAffiliation.create(context);
+    if (!result) {
+      return null;
+    }
 
     // Reinit the Affiliation to ensure it has access to functions like hasErrors()
     return new Affiliation(result);
@@ -114,7 +118,7 @@ export const reconcileAffiliationEmailDomains = async (
 ): Promise<boolean> => {
   // If the Affiliation has an id then it already exists so we need to fetch the
   // current email domains so we can compare them to the new ones
-  const currentEmailDomains: AffiliationEmailDomain[] = !isNullOrUndefined(affiliation.id)
+  const currentEmailDomains: AffiliationEmailDomain[] = !isNullOrUndefined(affiliation.id) && affiliation.uri
     ? await AffiliationEmailDomain.findByAffiliationId(reference, context, affiliation.uri)
     : [];
 
@@ -130,7 +134,7 @@ export const reconcileAffiliationEmailDomains = async (
   for (const id of idsToBeRemoved) {
     const domain = currentEmailDomains.find((domain: AffiliationEmailDomain) => domain.emailDomain === id);
     if (domain) {
-      const wasRemoved: AffiliationEmailDomain = await domain.delete(context);
+      const wasRemoved: AffiliationEmailDomain | null = await domain.delete(context);
       if (!wasRemoved) {
         removeErrors.push(domain.emailDomain);
       }
@@ -147,13 +151,13 @@ export const reconcileAffiliationEmailDomains = async (
     // Since there's nothing on the EmailDomain record beside the email domain, we
     // don't need to worry about updating. We just add it if it's not already there.
     if (!domain) {
-      const desired: AffiliationEmailDomain = desiredEmailDomainIds.find((ded: AffiliationEmailDomain): boolean => {
+      const desired: AffiliationEmailDomain | undefined = desiredEmailDomainIds.find((ded: AffiliationEmailDomain): boolean => {
         return ded.emailDomain === id;
       });
 
       if (desired) {
-        desired.affiliationId = affiliation.uri;
-        const wasAdded: AffiliationEmailDomain = await desired.create(context);
+        desired.affiliationId = affiliation.uri ?? '';
+        const wasAdded: AffiliationEmailDomain | null = await desired.create(context);
         if (!wasAdded) {
           addErrors.push(desired.emailDomain);
         }
@@ -190,7 +194,7 @@ export const reconcileAffiliationLinks = async (
 ): Promise<boolean> => {
   // If the Affiliation has an id then it already exists so we need to fetch the
   // current links so we can compare them to the new ones
-  const currentLinks: AffiliationLink[] = !isNullOrUndefined(affiliation.id)
+  const currentLinks: AffiliationLink[] = !isNullOrUndefined(affiliation.id) && affiliation.uri
     ? await AffiliationLink.findByAffiliationId(reference, context, affiliation.uri)
     : [];
 
@@ -204,14 +208,18 @@ export const reconcileAffiliationLinks = async (
   // Remove links that are no longer there
   const removeErrors: string[] = [];
   for (const url of idsToBeRemoved) {
-    const link: AffiliationLink = currentLinks.find((cl: AffiliationLink): boolean => cl.url === url);
+    const link: AffiliationLink | undefined = currentLinks.find((cl: AffiliationLink): boolean => cl.url === url);
     if (link) {
-      const wasRemoved: AffiliationLink = await link.delete(context);
+      const wasRemoved: AffiliationLink | null = await link.delete(context);
       if (!wasRemoved) {
         removeErrors.push(link.url);
       }
     } else {
-      removeErrors.push(link.url);
+      // `link` is undefined here (not found in currentLinks), so use the loop's `url`
+      // instead of `link.url` -- the previous code dereferenced the undefined `link`.
+      // (`url` is typed `string | number` by reconcileAssociationIds' generic signature,
+      // but AffiliationLink.url is always a string, hence the String() conversion.)
+      removeErrors.push(String(url));
     }
   }
   if (removeErrors.length > 0) {
@@ -223,27 +231,29 @@ export const reconcileAffiliationLinks = async (
   const updateErrors: string[] = [];
   for (const url of idsToBeSaved) {
     // Get the current link
-    const link: AffiliationLink = currentLinks.find((cl: AffiliationLink): boolean => cl.url === url);
-    const desiredLink: AffiliationLink = desiredLinks.find((dl: AffiliationLink): boolean => {
+    const link: AffiliationLink | undefined = currentLinks.find((cl: AffiliationLink): boolean => cl.url === url);
+    const desiredLink: AffiliationLink | undefined = desiredLinks.find((dl: AffiliationLink): boolean => {
       return dl.url === url;
     });
 
     // If the link exists, update it otherwise add a new one
     if (link) {
       const newLink = new AffiliationLink({ ...link, ...desiredLinks });
-      const wasUpdated: AffiliationLink = await newLink.update(context);
+      const wasUpdated: AffiliationLink | null = await newLink.update(context);
       if (!wasUpdated || wasUpdated.hasErrors()) {
         updateErrors.push(link.url);
       }
     } else {
       if (desiredLink) {
-        desiredLink.affiliationId = affiliation.uri
-        const wasAdded: AffiliationLink = await desiredLink.create(context);
+        desiredLink.affiliationId = affiliation.uri ?? ''
+        const wasAdded: AffiliationLink | null = await desiredLink.create(context);
         if (!wasAdded || wasAdded.hasErrors()) {
           addErrors.push(desiredLink.url);
         }
       } else {
-        updateErrors.push(link.url);
+        // Neither `link` nor `desiredLink` was found, so use the loop's `url` instead
+        // of dereferencing the undefined `link` (as the previous code did).
+        updateErrors.push(String(url));
       }
     }
   }

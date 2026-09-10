@@ -164,10 +164,12 @@ export class MySqlModel {
 
   // Get the default pagination options
   static getDefaultPaginationOptions(): PaginationOptionsForCursors {
+    // Cast needed: this intentionally omits `type` and uses `cursor: null` (rather than a
+    // real PaginationOptionsForCursors shape) to match existing caller/test expectations.
     return {
       limit: generalConfig.defaultSearchLimit,
       cursor: null,
-    } as PaginationOptionsForCursors;
+    } as unknown as PaginationOptionsForCursors;
   }
 
   // Determine the pagination limit base on the provided limit or the default
@@ -433,7 +435,7 @@ export class MySqlModel {
       apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return {
         limit: generalConfig.defaultSearchLimit,
-        currentOffset: null,
+        currentOffset: undefined,
         totalCount: 0,
         hasNextPage: false,
         hasPreviousPage: false,
@@ -521,7 +523,7 @@ export class MySqlModel {
       apolloContext.logger.error(prepareObjectForLogs(err), msg);
       return {
         limit: generalConfig.defaultSearchLimit,
-        nextCursor: null,
+        nextCursor: undefined,
         totalCount: 0,
         hasNextPage: false,
         items: []
@@ -642,7 +644,7 @@ export class MySqlModel {
   static reconcileAssociationIds(
     idsOnCurrentRecord: (number | string)[],
     idsOnNewRecord?: (number | string)[]
-  ): { idsToBeRemoved: (number | string)[], idsToBeSaved: (number | string)[] | undefined } {
+  ): { idsToBeRemoved: (number | string)[], idsToBeSaved: (number | string)[] } {
     const current = new Set<number | string>(idsOnCurrentRecord);
     const wanted = new Set<number | string>(idsOnNewRecord);
 

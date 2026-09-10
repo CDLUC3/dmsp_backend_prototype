@@ -8,7 +8,7 @@ import { AuthenticationError, InternalServerError } from "../utils/graphQLErrors
 import { isAuthorized } from "../services/authService.js";
 import { prepareObjectForLogs } from "../logger.js";
 import { GraphQLError } from "graphql";
-import { normaliseDateTime } from "../utils/helpers.js";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers.js";
 
 export const resolvers: Resolvers = {
   Query: {
@@ -49,28 +49,39 @@ export const resolvers: Resolvers = {
 
   VersionedGuidanceGroup: {
     // Chained resolver to fetch the GuidanceGroup this is a snapshot of
-    guidanceGroup: async (parent: VersionedGuidanceGroup, _, context: MyContext): Promise<GuidanceGroup> => {
+    guidanceGroup: async (parent, _, context: MyContext): Promise<GuidanceGroup | null> => {
+      if (isNullOrUndefined(parent.guidanceGroupId)) {
+        return null;
+      }
       return await GuidanceGroup.findById('Chained VersionedGuidanceGroup.guidanceGroup', context, parent.guidanceGroupId);
     },
     // Chained resolver to fetch the VersionedGuidance items in this group
-    versionedGuidance: async (parent: VersionedGuidanceGroup, _, context: MyContext): Promise<VersionedGuidance[]> => {
+    versionedGuidance: async (parent, _, context: MyContext): Promise<VersionedGuidance[]> => {
+      if (isNullOrUndefined(parent.id)) {
+        return [];
+      }
       return await VersionedGuidance.findByVersionedGuidanceGroupId(
         'Chained VersionedGuidanceGroup.versionedGuidance',
         context,
         parent.id
       );
     },
-    created: (parent: VersionedGuidanceGroup) => {
+    // `parent` is contextually typed as the generated type (not the model class) here,
+    // which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedGuidanceGroup) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     },
   },
 
   VersionedGuidance: {
     // Chained resolver to fetch the VersionedGuidanceGroup this belongs to
-    versionedGuidanceGroup: async (parent: VersionedGuidance, _, context: MyContext): Promise<VersionedGuidanceGroup> => {
+    versionedGuidanceGroup: async (parent, _, context: MyContext): Promise<VersionedGuidanceGroup | null> => {
+      if (isNullOrUndefined(parent.versionedGuidanceGroupId)) {
+        return null;
+      }
       return await VersionedGuidanceGroup.findById(
         'Chained VersionedGuidance.versionedGuidanceGroup',
         context,
@@ -78,16 +89,16 @@ export const resolvers: Resolvers = {
       );
     },
     // Chained resolver to fetch the Guidance this is a snapshot of
-    guidance: async (parent: VersionedGuidance, _, context: MyContext): Promise<Guidance> => {
+    guidance: async (parent, _, context: MyContext): Promise<Guidance | null> => {
       if (parent.guidanceId) {
         return await Guidance.findById('Chained VersionedGuidance.guidance', context, parent.guidanceId);
       }
       return null;
     },
-    created: (parent: VersionedGuidance) => {
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: VersionedGuidance) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     },
   }

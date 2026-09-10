@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import casual from "casual";
 
 import { mockAppConfigs, mockAppLogger } from '../../__tests__/mockConfigs.js';
+import type { MyContext } from '../../context.js';
 
 // Register config + logger mocks FIRST — before anything that transitively imports them
 mockAppConfigs();
@@ -18,7 +19,7 @@ const { VersionedSection, VersionedSectionSearchResult } = await import("../Vers
 const { generalConfig } = await import("../../config/generalConfig.js");
 const { TemplateVersionType } = await import("../VersionedTemplate.js");
 
-let context;
+let context: MyContext;
 
 beforeEach(async () => {
   jest.resetAllMocks();
@@ -27,8 +28,11 @@ beforeEach(async () => {
 });
 
 describe('VersionedSectionSearchResult', () => {
-  let versionedSectionSearchResult;
+  let versionedSectionSearchResult: InstanceType<typeof VersionedSectionSearchResult>;
   const versionedSectionSearchResultData = {
+    id: casual.integer(1, 9),
+    modified: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
+    created: casual.date('YYYY-MM-DDTHH:mm:ssZ'),
     name: casual.sentence,
     introduction: casual.sentence,
     displayOrder: casual.integer(1, 20),
@@ -52,7 +56,9 @@ describe('VersionedSectionSearchResult', () => {
   });
 
   it('should initialize with default values', () => {
-    const defaultVersionedSectionSearchResult = new VersionedSectionSearchResult({});
+    const defaultVersionedSectionSearchResult = new VersionedSectionSearchResult(
+      {} as ConstructorParameters<typeof VersionedSectionSearchResult>[0]
+    );
     expect(defaultVersionedSectionSearchResult.name).toEqual(undefined);
     expect(defaultVersionedSectionSearchResult.introduction).toEqual(undefined);
     expect(defaultVersionedSectionSearchResult.displayOrder).toEqual(0);
@@ -65,9 +71,9 @@ describe('VersionedSectionSearchResult', () => {
   describe('search', () => {
     const originalQuery = VersionedSection.query;
 
-    let localPaginationQuery;
-    let versionedSectionSearchResult;
-    let context;
+    let localPaginationQuery: jest.Mock<() => Promise<unknown[]>>;
+    let versionedSectionSearchResult: InstanceType<typeof VersionedSectionSearchResult>;
+    let context: MyContext;
 
     beforeEach(async () => {
       jest.resetAllMocks();
@@ -99,7 +105,7 @@ describe('VersionedSectionSearchResult', () => {
     it('should call query with correct params and return the default', async () => {
       localPaginationQuery.mockResolvedValueOnce([versionedSectionSearchResult]);
 
-      const term = versionedSectionSearchResult.name.split(0, 5)[0];
+      const term = versionedSectionSearchResult.name.split(0 as unknown as string, 5)[0];
       const result = await VersionedSectionSearchResult.search('Test', context, term);
       const sql = 'SELECT vs.id, vs.modified, vs.created, vs.name, vs.introduction, vs.displayOrder, vt.bestPractice, ' +
         'vt.id as versionedTemplateId, vt.name as versionedTemplateName, ' +
@@ -139,7 +145,7 @@ describe('VersionedSectionSearchResult', () => {
 
 
 describe('VersionedSection', () => {
-  let versionedSection;
+  let versionedSection: InstanceType<typeof VersionedSection>;
 
   const versionedSectionData = {
     name: casual.sentence,
@@ -147,6 +153,8 @@ describe('VersionedSection', () => {
     requirements: casual.sentence,
     guidance: casual.sentence,
     displayOrder: casual.integer(1, 20),
+    versionedTemplateId: casual.integer(1, 20),
+    sectionId: casual.integer(1, 20),
   }
   beforeEach(() => {
     versionedSection = new VersionedSection(versionedSectionData);
@@ -164,10 +172,10 @@ describe('VersionedSection', () => {
 describe('findByName', () => {
   const originalQuery = VersionedSection.query;
 
-  let localQuery;
-  let localPaginationQuery
-  let context;
-  let versionedSection;
+  let localQuery: jest.Mock<() => Promise<unknown[]>>;
+  let localPaginationQuery: jest.Mock<() => Promise<unknown[]>>;
+  let context: MyContext;
+  let versionedSection: InstanceType<typeof VersionedSection>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -186,6 +194,8 @@ describe('findByName', () => {
       requirements: casual.sentence,
       guidance: casual.sentence,
       displayOrder: casual.integer(1, 20),
+      versionedTemplateId: casual.integer(1, 20),
+      sectionId: casual.integer(1, 20),
     })
   });
 
@@ -230,9 +240,9 @@ the getVersionedSectionsBySectionId method returns an empty array for tags, and 
 describe('findByTemplateId', () => {
   const originalQuery = VersionedSection.query;
 
-  let localQuery;
-  let context;
-  let versionedSection;
+  let localQuery: jest.Mock<() => Promise<unknown[]>>;
+  let context: MyContext;
+  let versionedSection: InstanceType<typeof VersionedSection>;
 
   beforeEach(async () => {
     jest.resetAllMocks();
@@ -248,6 +258,8 @@ describe('findByTemplateId', () => {
       requirements: casual.sentence,
       guidance: casual.sentence,
       displayOrder: casual.integer(1, 20),
+      versionedTemplateId: casual.integer(1, 20),
+      sectionId: casual.integer(1, 20),
     })
   });
 
@@ -279,8 +291,8 @@ the getVersionedSectionsBySectionId method returns an empty array for tags, and 
 describe('create', () => {
   const originalInsert = VersionedSection.insert;
   const originalFindById = VersionedSection.findById;
-  let insertQuery;
-  let versionedSection;
+  let insertQuery: jest.Mock<() => Promise<unknown>>;
+  let versionedSection: InstanceType<typeof VersionedSection>;
 
   beforeEach(() => {
     // jest.resetAllMocks();
@@ -316,26 +328,30 @@ describe('create', () => {
   });
 
   it('returns the VersionedSection with an error if versionedTemplateId is undefined', async () => {
-    versionedSection.versionedTemplateId = undefined;
+    versionedSection.versionedTemplateId = undefined as unknown as number;
     const response = await versionedSection.create(context);
+    if (!response) throw new Error('test setup failed');
     expect(response.errors['versionedTemplateId']).toBeTruthy();
   });
 
   it('returns the VersionedSection with an error if sectionId is undefined', async () => {
-    versionedSection.sectionId = undefined;
+    versionedSection.sectionId = undefined as unknown as number;
     const response = await versionedSection.create(context);
+    if (!response) throw new Error('test setup failed');
     expect(response.errors['sectionId']).toBeTruthy();
   });
 
   it('returns the VersionedSection with an error if name is undefined', async () => {
-    versionedSection.name = undefined;
+    versionedSection.name = undefined as unknown as string;
     const response = await versionedSection.create(context);
+    if (!response) throw new Error('test setup failed');
     expect(response.errors['name']).toBeTruthy();
   });
 
   it('returns the VersionedSection with an error if displayOrder is undefined', async () => {
-    versionedSection.displayOrder = undefined;
+    versionedSection.displayOrder = undefined as unknown as number;
     const response = await versionedSection.create(context);
+    if (!response) throw new Error('test setup failed');
     expect(response.errors['displayOrder']).toBeTruthy();
   });
 
@@ -343,19 +359,21 @@ describe('create', () => {
     const mockFindById = jest.fn<() => Promise<InstanceType<typeof VersionedSection> | null>>();
     (VersionedSection.findById as jest.Mock) = mockFindById;
     mockFindById.mockResolvedValueOnce(versionedSection);
+    insertQuery.mockResolvedValueOnce(casual.integer(1, 999));
 
     const result = await versionedSection.create(context);
     expect(insertQuery).toHaveBeenCalledTimes(1);
     expect(result).toBeInstanceOf(VersionedSection);
+    if (!result) throw new Error('test setup failed');
     expect(Object.keys(result.errors).length).toBe(0);
   });
 });
 describe('finders', () => {
   const originalQuery = VersionedSection.query;
 
-  let localQuery;
-  let context;
-  let versionedSection;
+  let localQuery: jest.Mock<() => Promise<unknown[]>>;
+  let context: MyContext;
+  let versionedSection: InstanceType<typeof VersionedSection>;
 
   beforeEach(async () => {
     // jest.resetAllMocks();
@@ -394,7 +412,7 @@ describe('finders', () => {
 
   it('findByVersionedTemplateIdAndSectionId returns the VersionedSection', async () => {
     localQuery.mockResolvedValueOnce([versionedSection]);
-    const id = versionedSection.id;
+    const id = versionedSection.id as number;
     const result = await VersionedSection.findByVersionedTemplateIdAndSectionId('Test', context, versionedSection.versionedTemplateId, id);
     const expectedSql = `SELECT * FROM versionedSections
          WHERE versionedTemplateId = ? AND sectionId = ? ORDER BY modified DESC`;
@@ -402,12 +420,13 @@ describe('finders', () => {
     expect(localQuery).toHaveBeenLastCalledWith(context, expectedSql, [versionedSection.versionedTemplateId.toString(), id.toString()], 'Test');
     expect(result).toEqual(versionedSection);
     expect(result).toBeInstanceOf(VersionedSection);
+    if (!result) throw new Error('test setup failed');
     expect(Object.keys(result.errors).length).toBe(0);
   });
 
   it('findByVersionedTemplateIdAndSectionId returns undefined if there is no VersionedSection', async () => {
     localQuery.mockResolvedValueOnce([]);
-    const id = versionedSection.id;
+    const id = versionedSection.id as number;
     const result = await VersionedSection.findByVersionedTemplateIdAndSectionId('Test', context, versionedSection.versionedTemplateId, id);
     expect(localQuery).toHaveBeenCalledTimes(1);
     expect(result).toEqual(undefined);

@@ -21,7 +21,7 @@ export const resolvers: Resolvers = {
           ? paginationOptions as PaginationOptionsForOffsets
           : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
-        return await MetadataStandard.search(reference, context, term, researchDomainId, opts);
+        return await MetadataStandard.search(reference, context, term ?? '', researchDomainId ?? 0, opts);
       } catch (err) {
         context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
         throw InternalServerError();
@@ -29,7 +29,7 @@ export const resolvers: Resolvers = {
     },
 
     // return a single metadata standard
-    metadataStandard: async (_, { uri }, context: MyContext): Promise<MetadataStandard> => {
+    metadataStandard: async (_, { uri }, context: MyContext) => {
       const reference = 'metadataStandard resolver';
       try {
         return await MetadataStandard.findByURI(reference, context, uri);
@@ -60,7 +60,12 @@ export const resolvers: Resolvers = {
       const reference = 'addMetadataStandard resolver';
       try {
         if (isAuthorized(context.token)) {
-          const newStandard = new MetadataStandard(input);
+          const newStandard = new MetadataStandard({
+            name: input.name,
+            uri: input.uri ?? '',
+            description: input.description ?? undefined,
+            keywords: input.keywords ?? undefined,
+          });
           const created = await newStandard.create(context);
 
           if (!created?.id) {
@@ -106,25 +111,36 @@ export const resolvers: Resolvers = {
     updateMetadataStandard: async (_, { input }, context) => {
       const reference = 'updateMetadataStandard resolver';
       try {
+        if (isNullOrUndefined(input.uri)) {
+          throw NotFoundError();
+        }
         // If the user is a an admin and its a DMPTool added standard (no updates to standards managed elsewhere!)
         if (isAdmin(context.token) && input.uri.startsWith(DEFAULT_DMPTOOL_METADATA_STANDARD_URL)) {
           const standard = await MetadataStandard.findByURI(reference, context, input.uri);
-          if (!standard) {
+          if (!standard || isNullOrUndefined(standard.id)) {
             throw NotFoundError();
           }
 
-          const toUpdate = new MetadataStandard(input);
+          const toUpdate = new MetadataStandard({
+            id: input.id,
+            name: input.name,
+            uri: input.uri,
+            description: input.description ?? undefined,
+            keywords: input.keywords ?? undefined,
+          });
           const updated = await toUpdate.update(context);
 
-          if (updated && !updated.hasErrors()) {
+          if (updated && !updated.hasErrors() && !isNullOrUndefined(updated.id)) {
             // Fetch all of the current ResearchDomains associated with this MetadataStandard
             const researchDomains = await ResearchDomain.findByMetadataStandardId(reference, context, standard.id);
-            const currentDomainIds = researchDomains ? researchDomains.map((d) => d.id) : [];
+            const currentDomainIds = researchDomains
+              ? researchDomains.map((d) => d.id).filter((id): id is number => !isNullOrUndefined(id))
+              : [];
 
             // Use the helper function to determine which ResearchDomains to keep
             const { idsToBeRemoved, idsToBeSaved } = MetadataStandard.reconcileAssociationIds(
               currentDomainIds,
-              input.researchDomainIds
+              input.researchDomainIds ?? undefined
             );
 
             const associationErrors = [];
@@ -258,7 +274,7 @@ export const resolvers: Resolvers = {
   },
 
   MetadataStandard: {
-    researchDomains: async (parent: MetadataStandard, _, context: MyContext): Promise<ResearchDomain[]> => {
+    researchDomains: async (parent, _, context: MyContext): Promise<ResearchDomain[]> => {
       if (parent.id) {
         return await ResearchDomain.findByMetadataStandardId(
           'Chained MetadataStandard.researchDomains',
@@ -268,10 +284,12 @@ export const resolvers: Resolvers = {
       }
       return [];
     },
-    created: (parent: MetadataStandard) => {
+    // `parent` is contextually typed as the generated MetadataStandard (not the model class)
+    // here, which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: MetadataStandard) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },

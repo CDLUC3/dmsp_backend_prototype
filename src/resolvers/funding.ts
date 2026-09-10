@@ -1,8 +1,8 @@
 import { prepareObjectForLogs } from '../logger.js';
-import { Resolvers } from "../types.js";
+import { Resolvers, Affiliation as AffiliationGQL } from "../types.js";
 import { Affiliation } from '../models/Affiliation.js';
 import { Project } from '../models/Project.js';
-import { PlanFunding, ProjectFunding } from "../models/Funding.js";
+import { PlanFunding, ProjectFunding, ProjectFundingStatus } from "../models/Funding.js";
 import { MyContext } from '../context.js';
 import { isAuthorized } from '../services/authService.js';
 import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors.js';
@@ -64,12 +64,12 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)) {
+          if (isNullOrUndefined(plan) || isNullOrUndefined(plan.id)) {
             throw NotFoundError();
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
-          if (plan && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
+          if (project && await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await PlanFunding.findByPlanId(reference, context, plan.id);
           }
         }
@@ -89,13 +89,26 @@ export const resolvers: Resolvers = {
       const reference = 'addProjectFunding resolver';
       try {
         if (isAuthorized(context.token)) {
+          if (isNullOrUndefined(input.projectId)) {
+            throw NotFoundError();
+          }
+
           const project = await Project.findById(reference, context, input.projectId);
-          if (isNullOrUndefined(project)) {
+          if (isNullOrUndefined(project) || isNullOrUndefined(project.id)) {
             throw NotFoundError();
           }
 
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
-            const newFunding = new ProjectFunding(input);
+            // The generated GraphQL enum and the model enum share the same string values;
+            // cast is safe since both are backed by identical 'PLANNED'/'GRANTED'/'DENIED' literals.
+            const newFunding = new ProjectFunding({
+              ...input,
+              projectId: input.projectId,
+              status: (input.status ?? undefined) as ProjectFundingStatus | undefined,
+              funderOpportunityNumber: input.funderOpportunityNumber ?? undefined,
+              funderProjectNumber: input.funderProjectNumber ?? undefined,
+              grantId: input.grantId ?? undefined
+            });
             const created = await newFunding.create(context, project.id);
 
             if (created?.id) {
@@ -130,10 +143,23 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to edit it
           const project = await Project.findById(reference, context, funding.projectId);
+          if (!project) {
+            throw NotFoundError();
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
-            const toUpdate = new ProjectFunding(input);
-            toUpdate.projectId = funding?.projectId;
-            toUpdate.id = funding?.id;
+            // The generated GraphQL enum and the model enum share the same string values;
+            // cast is safe since both are backed by identical 'PLANNED'/'GRANTED'/'DENIED' literals.
+            const toUpdate = new ProjectFunding({
+              ...input,
+              projectId: funding.projectId,
+              affiliationId: funding.affiliationId,
+              status: (input.status ?? undefined) as ProjectFundingStatus | undefined,
+              funderOpportunityNumber: input.funderOpportunityNumber ?? undefined,
+              funderProjectNumber: input.funderProjectNumber ?? undefined,
+              grantId: input.grantId ?? undefined
+            });
+            toUpdate.projectId = funding.projectId;
+            toUpdate.id = funding.id;
             toUpdate.affiliationId = funding.affiliationId;
 
             const updated = await toUpdate.update(context);
@@ -168,6 +194,9 @@ export const resolvers: Resolvers = {
 
           // Only allow the owner of the project to delete it
           const project = await Project.findById(reference, context, funding.projectId);
+          if (!project) {
+            throw NotFoundError();
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
 
             const plans = await Plan.findByProjectId(reference, context, funding.projectId);
@@ -175,6 +204,7 @@ export const resolvers: Resolvers = {
             // Delete the planFundings record(s) for this projectFundingId first, or the
             // FK constraint (planfundings_ibfk_4) will block deleting the projectFunding below
             for (const plan of plans) {
+              if (isNullOrUndefined(plan.id)) continue;
               const planFunding = await PlanFunding.findByPlanAndProjectFundingId(reference, context, plan.id, projectFundingId);
               if (planFunding) {
                 const wasRemoved = await planFunding.delete(context);
@@ -215,11 +245,14 @@ export const resolvers: Resolvers = {
       try {
         if (isAuthorized(context.token)) {
           const plan = await Plan.findById(reference, context, planId);
-          if (isNullOrUndefined(plan)) {
+          if (isNullOrUndefined(plan) || isNullOrUndefined(plan.id)) {
             throw NotFoundError();
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError();
+          }
           if (await hasPermissionOnProject(context, project)) {
 
             // Fetch all of the current Funders associated with this Plan
@@ -237,7 +270,7 @@ export const resolvers: Resolvers = {
 
             // Add new records for projectFundingIds that are not already in planFundings table
             for (const id of idsToBeSaved) {
-              const funding = new PlanFunding({ planId, projectFundingId: id });
+              const funding = new PlanFunding({ planId, projectFundingId: id as number });
               const wasAdded = await funding.create(context);
               if (!wasAdded) {
                 // Get errors from the failed object creation
@@ -251,6 +284,9 @@ export const resolvers: Resolvers = {
 
             // Get plan with new fundings
             const returnedPlan = await Plan.findById(reference, context, plan.id);
+            if (!returnedPlan) {
+              throw InternalServerError();
+            }
 
             // Merge in the failed ids so the client can see their errors
             for (const failed of failedFundings) {
@@ -283,11 +319,14 @@ export const resolvers: Resolvers = {
         }
 
         const plan = await Plan.findById(reference, context, planId);
-        if (isNullOrUndefined(plan)) {
+        if (isNullOrUndefined(plan) || isNullOrUndefined(plan.id)) {
           throw NotFoundError();
         }
 
         const project = await Project.findById(reference, context, plan.projectId);
+        if (!project) {
+          throw NotFoundError();
+        }
         if (await hasPermissionOnProject(context, project)) {
 
           const associationErrors = [];
@@ -363,11 +402,21 @@ export const resolvers: Resolvers = {
           }
 
           const plan = await Plan.findById(reference, context, funding.planId);
+          if (!plan) {
+            throw NotFoundError();
+          }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError();
+          }
           if (await hasPermissionOnProject(context, project)) {
             const deletedFunding = await funding.delete(context);
 
-            if (deletedFunding && !deletedFunding.hasErrors()) {
+            if (!deletedFunding) {
+              throw InternalServerError();
+            }
+
+            if (!deletedFunding.hasErrors()) {
               // Handle OpenSearch index update and maDMP JSON versioning in Dynamo
               await handleAsyncUpdates(reference, context, plan, project);
             }
@@ -387,9 +436,12 @@ export const resolvers: Resolvers = {
   },
 
   ProjectFunding: {
-    project: async (parent: ProjectFunding, _, context: MyContext): Promise<Project> => {
-      if (parent?.projectId) {
-        const project = await Project.findById('Chained ProjectFunding.project', context, parent.projectId);
+    project: async (parent, _, context: MyContext): Promise<Project | null> => {
+      // `parent` is actually the ProjectFunding model instance at runtime (not just the
+      // generated shape), which is where `projectId` lives.
+      const { projectId } = parent as unknown as ProjectFunding;
+      if (projectId) {
+        const project = await Project.findById('Chained ProjectFunding.project', context, projectId);
         if (project) {
           const readOnly = await isProjectReadOnlyForCurrentUser('Chained ProjectFunding.project', context, project);
           return Object.assign(project, { readOnly }) as Project & { readOnly: boolean };
@@ -398,36 +450,51 @@ export const resolvers: Resolvers = {
       }
       return null;
     },
-    affiliation: async (parent: ProjectFunding, _, context: MyContext): Promise<Affiliation> => {
-      if (parent?.affiliationId) {
-        return await Affiliation.findByURI('Chained ProjectFunding.affiliation', context, parent.affiliationId);
+    affiliation: async (parent, _, context: MyContext) => {
+      // `parent` is actually the ProjectFunding model instance at runtime (not just the
+      // generated shape), which is where `affiliationId` lives.
+      const { affiliationId } = parent as unknown as ProjectFunding;
+      if (affiliationId) {
+        const affiliation = await Affiliation.findByURI('Chained ProjectFunding.affiliation', context, affiliationId);
+        return affiliation as unknown as AffiliationGQL;
       }
       return null;
     },
-    created: (parent: ProjectFunding) => {
+    // `parent` is contextually typed as the generated ProjectFunding (not the model class)
+    // here, which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: ProjectFunding) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   },
 
   PlanFunding: {
-    plan: async (parent: PlanFunding, _, context: MyContext): Promise<Plan> => {
-      if (parent?.planId) {
-        return await Plan.findById('Chained PlanFunding.plan', context, parent.planId);
-      }
-    },
-    projectFunding: async (parent: PlanFunding, _, context: MyContext): Promise<ProjectFunding> => {
-      if (parent?.projectFundingId) {
-        return await ProjectFunding.findById('Chained PlanFunding.projectFunding', context, parent.projectFundingId);
+    plan: async (parent, _, context: MyContext): Promise<Plan | null> => {
+      // `parent` is actually the PlanFunding model instance at runtime (not just the
+      // generated shape), which is where `planId` lives.
+      const { planId } = parent as unknown as PlanFunding;
+      if (planId) {
+        return await Plan.findById('Chained PlanFunding.plan', context, planId);
       }
       return null;
     },
-    created: (parent: PlanFunding) => {
+    projectFunding: async (parent, _, context: MyContext): Promise<ProjectFunding | null> => {
+      // `parent` is actually the PlanFunding model instance at runtime (not just the
+      // generated shape), which is where `projectFundingId` lives.
+      const { projectFundingId } = parent as unknown as PlanFunding;
+      if (projectFundingId) {
+        return await ProjectFunding.findById('Chained PlanFunding.projectFunding', context, projectFundingId);
+      }
+      return null;
+    },
+    // `parent` is contextually typed as the generated PlanFunding (not the model class)
+    // here, which is all `created`/`modified` need.
+    created: (parent) => {
       return normaliseDateTime(parent.created);
     },
-    modified: (parent: PlanFunding) => {
+    modified: (parent) => {
       return normaliseDateTime(parent.modified);
     }
   }

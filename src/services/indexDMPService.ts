@@ -253,8 +253,8 @@ const getInstitutionNameVariants = (
  * @returns an array of name variations
  */
 const getContributorNameVariants = (givenName?: string, familyName?: string): string[] => {
-  const given = cleanString(givenName).toLowerCase();
-  const family = cleanString(familyName).toLowerCase();
+  const given = cleanString(givenName)?.toLowerCase() ?? '';
+  const family = cleanString(familyName)?.toLowerCase() ?? '';
   const firstInit = given.charAt(0);
 
   const variants = new Set<string>();
@@ -321,37 +321,49 @@ const fetchAssociatedObjects = async (
   context: MyContext,
   plan: Plan,
 ): Promise<AssociatedObjectInterface> => {
+  // Callers (see planService.ts's handleAsyncUpdates) already verify the Plan has been saved
+  // before calling into this, but `id` is typed optional on MySqlModel, so this guard just
+  // lets TS narrow it to `number` for the findByPlanId calls below.
+  if (!plan.id) {
+    throw new Error('Cannot fetch associated objects for a Plan that has not been saved');
+  }
+  const planId = plan.id;
+
   // Fetch alternate identifiers
-  const alternateIdentifiers: AlternateIdentifier[] = await AlternateIdentifier.findByPlanId(reference, context, plan.id) || [];
+  const alternateIdentifiers: AlternateIdentifier[] = await AlternateIdentifier.findByPlanId(reference, context, planId) || [];
   const alternateIds: string[] = alternateIdentifiers?.map((i: AlternateIdentifier) => {
     return i.alternateIdentifier;
   }).filter(Boolean) ?? [];
 
   // Fetch the related work DOIs
-  const relatedWorks: AcceptedWork[] = await AcceptedWork.findByPlanId(reference, context, plan.id) || [];
+  const relatedWorks: AcceptedWork[] = await AcceptedWork.findByPlanId(reference, context, planId) || [];
   const relatedWorkIds: string[] = relatedWorks.map((work: AcceptedWork): string => work.doi) ?? []
 
   // Fetch answers
-  const answers: Answer[] = await Answer.findByPlanId(reference, context, plan.id) || [];
+  const answers: Answer[] = await Answer.findByPlanId(reference, context, planId) || [];
 
   // Fetch members and funding
   const projectMembers: ProjectMember[] = await ProjectMember.findByProjectId(reference, context, plan.projectId) || [];
   const projectFunding: ProjectFunding[] = await ProjectFunding.findByProjectId(reference, context, plan.projectId) || [];
-  const planMembers: PlanMember[] = await PlanMember.findByPlanId(reference, context, plan.id) || [];
-  const planFunding: PlanFunding[] = await PlanFunding.findByPlanId(reference, context, plan.id) || [];
+  const planMembers: PlanMember[] = await PlanMember.findByPlanId(reference, context, planId) || [];
+  const planFunding: PlanFunding[] = await PlanFunding.findByPlanId(reference, context, planId) || [];
 
   // Build Affiliation Lookup Map from member and funder information
   const affiliations = new Map<string, Affiliation>();
   for (const m of projectMembers) {
     if (m.affiliationId && !affiliations.has(m.affiliationId)) {
-      const affiliation: Affiliation = await Affiliation.findByURI(reference, context, m.affiliationId);
-      affiliations.set(m.affiliationId, affiliation);
+      const affiliation: Affiliation | null = await Affiliation.findByURI(reference, context, m.affiliationId);
+      if (affiliation) {
+        affiliations.set(m.affiliationId, affiliation);
+      }
     }
   }
   for (const f of projectFunding) {
     if (f.affiliationId && !affiliations.has(f.affiliationId)) {
-      const affiliation: Affiliation = await Affiliation.findByURI(reference, context, f.affiliationId);
-      affiliations.set(f.affiliationId, affiliation);
+      const affiliation: Affiliation | null = await Affiliation.findByURI(reference, context, f.affiliationId);
+      if (affiliation) {
+        affiliations.set(f.affiliationId, affiliation);
+      }
     }
   }
 
@@ -376,7 +388,7 @@ const fetchAssociatedObjects = async (
 const convertMember = (member: ProjectMember): ConversionOutput<ContributorDocumentFragment> | undefined => {
   if (!member?.id) return undefined;
 
-  const orcid = stripIdentifierBaseURL(member.orcid)?.trim();
+  const orcid = stripIdentifierBaseURL(member.orcid ?? '')?.trim();
   const given = cleanString(member.givenName);
   const sur = cleanString(member.surName);
 
@@ -402,7 +414,7 @@ const convertMember = (member: ProjectMember): ConversionOutput<ContributorDocum
 const convertAffiliation = (affiliation: Affiliation): ConversionOutput<InstitutionDocumentFragment> | undefined => {
   if (!affiliation?.id) return undefined;
 
-  const ror = stripIdentifierBaseURL(affiliation.uri)?.trim();
+  const ror = stripIdentifierBaseURL(affiliation.uri ?? '')?.trim();
   return {
     ids: ror ? [ror] : [],
     facet_value: affiliation.displayName,
@@ -467,7 +479,7 @@ const convertDataset = (
       case 'data_flags':
         displayObject.data_flags = column.answer
           ? (column as ResearchOutputDataFlagsColumnAnswerType).answer.map((entry: string): string => {
-            return cleanString(entry);
+            return cleanString(entry) ?? '';
           })
           : undefined;
         break;
@@ -478,7 +490,7 @@ const convertDataset = (
         displayObject.metadata_standard_ids = Array.isArray(column.answer)
           ? (column as ResearchOutputMetadataStandardColumnAnswerType).answer
             .map((entry: MetadataStandardSearchAnswerType['answer'][0]): string => {
-              return cleanString(entry.metadataStandardId) || undefined;
+              return cleanString(entry.metadataStandardId) ?? '';
             })
           : [];
         break;
@@ -486,7 +498,7 @@ const convertDataset = (
         displayObject.repository_ids = Array.isArray(column.answer)
           ? (column as ResearchOutputRepositoryColumnAnswerType).answer
             .map((entry: ResearchOutputRepositoryColumnAnswerType['answer'][0]): string => {
-              return cleanString(entry.repositoryId) || undefined;
+              return cleanString(entry.repositoryId) ?? '';
             })
           : [];
         displayObject.repositories_display = Array.isArray(column.answer)
@@ -494,13 +506,16 @@ const convertDataset = (
             .map((entry: ResearchOutputRepositoryColumnAnswerType['answer'][0]): RepositoryDocumentFragment => {
               return {
                 id: cleanString(entry.repositoryId) || undefined,
-                name: cleanString(entry.repositoryName) || undefined,
+                name: cleanString(entry.repositoryName) ?? '',
               };
             })
           : [];
         break;
       default:
-        displayObject[column.commonStandardId] = cleanString(column.answer.toString()) || undefined;
+        // `commonStandardId` can be 'custom' here, which isn't one of DatasetDocumentFragment's
+        // fixed fields -- this default case aggregates arbitrary/custom research-output
+        // columns into the display object dynamically, so a Record cast is needed to index it.
+        (displayObject as unknown as Record<string, unknown>)[column.commonStandardId] = cleanString(column.answer.toString()) ?? '';
         break;
     }
   }
@@ -557,9 +572,9 @@ const reconcileAssociatedObjects = (
 
   // Process Members
   for (const member of projectMembers) {
-    if (!planMemberIds.has(member.id)) continue;
+    if (!member.id || !planMemberIds.has(member.id)) continue;
 
-    const converted: ConversionOutput<ContributorDocumentFragment> = convertMember(member as ProjectMember);
+    const converted: ConversionOutput<ContributorDocumentFragment> | undefined = convertMember(member as ProjectMember);
     if (!converted) continue;
 
     membersResult.ids.push(...converted.ids);
@@ -569,7 +584,7 @@ const reconcileAssociatedObjects = (
 
   // Process Affiliations
   for (const affiliation of affiliations.values()) {
-    const converted: ConversionOutput<InstitutionDocumentFragment> = convertAffiliation(affiliation);
+    const converted: ConversionOutput<InstitutionDocumentFragment> | undefined = convertAffiliation(affiliation);
     if (!converted) continue;
 
     instResult.ids.push(...converted.ids);
@@ -583,7 +598,7 @@ const reconcileAssociatedObjects = (
     if (!('status' in funding)) continue;
 
     const fund: ProjectFunding = funding as ProjectFunding;
-    if (!planFundingIds.has(funding.id) || !fund.affiliationId) continue;
+    if (!fund.id || !planFundingIds.has(fund.id) || !fund.affiliationId) continue;
     const affiliation = affiliations.get(fund.affiliationId);
     if (!affiliation) continue;
 
@@ -601,7 +616,7 @@ const reconcileAssociatedObjects = (
   }
 
   // Process Datasets
-  const roAnswer: Answer = planAnswers.find((answer: Answer): boolean => {
+  const roAnswer: Answer | undefined = planAnswers.find((answer: Answer): boolean => {
     return answer.json.includes('"researchOutputTable"');
   });
   if (roAnswer && roAnswer.json) {
@@ -609,7 +624,7 @@ const reconcileAssociatedObjects = (
     for (const row of json.answer) {
       if (!('commonStandardId' in row)) continue;
 
-      const dataset: ConversionOutput<DatasetDocumentFragment> = convertDataset(row);
+      const dataset: ConversionOutput<DatasetDocumentFragment> | undefined = convertDataset(row);
       if (!dataset) continue;
 
       datasetResult.ids.push(...dataset.ids);
@@ -640,7 +655,12 @@ export const getIndexItem = async (
   context: MyContext,
   dmpId: string,
 ): Promise<PlanIndexDocumentInterface | undefined> => {
-  const openSearch: OpenSearch = context.dataSources.openSearchServerlessDataSource;
+  // openSearchServerlessDataSource is null when OpenSearch isn't configured for this
+  // environment; every function here genuinely requires it to do its job.
+  const openSearch = context.dataSources.openSearchServerlessDataSource;
+  if (!openSearch) {
+    throw new Error('OpenSearch data source is not configured');
+  }
 
   context.logger.debug({ reference, index: INDEX_NAME, dmpId }, "Fetching Plan from index");
   const response = await openSearch.getIndexItem<PlanIndexDocumentInterface>(
@@ -672,7 +692,12 @@ export const searchIndex = async (
   sort: Record<string, unknown>[] = [],
   maxResults: number = DEFAULT_MAX_RESULTS,
 ): Promise<PlanIndexDocumentInterface[]> => {
-  const openSearch: OpenSearch = context.dataSources.openSearchServerlessDataSource;
+  // openSearchServerlessDataSource is null when OpenSearch isn't configured for this
+  // environment; every function here genuinely requires it to do its job.
+  const openSearch = context.dataSources.openSearchServerlessDataSource;
+  if (!openSearch) {
+    throw new Error('OpenSearch data source is not configured');
+  }
 
   context.logger.debug(
     { reference, INDEX_NAME, query, sort, maxResults },
@@ -708,10 +733,34 @@ export const updateIndexItem = async (
   plan: Plan,
   project?: Project,
 ): Promise<void> => {
+  // Callers (see planService.ts's handleAsyncUpdates) already verify the Plan has been
+  // saved before calling into this, but `id` is typed optional on MySqlModel, so this
+  // guard just lets TS narrow it to `number` for the `plan_id` field below.
+  if (!plan.id) {
+    throw new Error('Cannot index a Plan that has not been saved');
+  }
+  if (!plan.dmpId) {
+    throw new Error(`Cannot index Plan ${plan.id}: it does not have a DMP ID`);
+  }
+
   const dmpId: string = stripIdentifierBaseURL(plan.dmpId).trim();
-  const openSearch: OpenSearch = context.dataSources.openSearchServerlessDataSource;
+  // openSearchServerlessDataSource is null when OpenSearch isn't configured for this
+  // environment; every function here genuinely requires it to do its job.
+  const openSearch = context.dataSources.openSearchServerlessDataSource;
+  if (!openSearch) {
+    throw new Error('OpenSearch data source is not configured');
+  }
   // If no project was passed in, look it up
-  if (!project) project = await Project.findById(reference, context, plan.projectId);
+  if (!project) {
+    const fetchedProject = await Project.findById(reference, context, plan.projectId);
+    if (!fetchedProject) {
+      throw new Error(`Failed to find Project ${plan.projectId} for Plan ${plan.id}`);
+    }
+    project = fetchedProject;
+  }
+  if (!project.id) {
+    throw new Error(`Cannot index Plan ${plan.id}: its Project has not been saved`);
+  }
 
   const associatedObjects: AssociatedObjectInterface = await fetchAssociatedObjects(reference, context, plan);
 
@@ -757,14 +806,17 @@ export const updateIndexItem = async (
     project_id: project.id,
     plan_id: plan.id,
     created: new Date(plan.created).toISOString(),
-    modified: new Date(plan.modified).toISOString(),
+    // `modified` is optional on MySqlModel, but its constructor always default-fills it
+    // (falling back to `created` when unset), so this mirrors that same fallback rather
+    // than assuming it's always present.
+    modified: new Date(plan.modified ?? plan.created).toISOString(),
     title: plan.title?.trim().slice(0, 256),
 
     project_title: project.title?.trim().slice(0, 256) || undefined,
     abstract: project.abstractText?.trim().slice(0, 512) || undefined,
-    project_start: validateDate(project.startDate) ? new Date(project.startDate).toISOString() : undefined,
-    project_end: validateDate(project.endDate) ? new Date(project.endDate).toISOString() : undefined,
-    registered: validateDate(plan.registered) ? new Date(plan.registered).toISOString() : undefined,
+    project_start: project.startDate && validateDate(project.startDate) ? new Date(project.startDate).toISOString() : undefined,
+    project_end: project.endDate && validateDate(project.endDate) ? new Date(project.endDate).toISOString() : undefined,
+    registered: plan.registered && validateDate(plan.registered) ? new Date(plan.registered).toISOString() : undefined,
 
     visibility: plan.visibility || PlanVisibility.PRIVATE.toLowerCase(),
     is_test: !!project.isTestProject,
@@ -811,8 +863,17 @@ export const removeIndexItem = async (
   context: MyContext,
   plan: Plan
 ): Promise<void> => {
+  if (!plan.dmpId) {
+    throw new Error(`Cannot remove Plan ${plan.id} from the index: it does not have a DMP ID`);
+  }
+
   const dmpId: string = stripIdentifierBaseURL(plan.dmpId).trim();
-  const openSearch: OpenSearch = context.dataSources.openSearchServerlessDataSource;
+  // openSearchServerlessDataSource is null when OpenSearch isn't configured for this
+  // environment; every function here genuinely requires it to do its job.
+  const openSearch = context.dataSources.openSearchServerlessDataSource;
+  if (!openSearch) {
+    throw new Error('OpenSearch data source is not configured');
+  }
 
   context.logger.debug({ reference, INDEX_NAME, dmpId }, 'Removing Plan from index');
   await openSearch.removeIndexItem(INDEX_NAME, dmpId);

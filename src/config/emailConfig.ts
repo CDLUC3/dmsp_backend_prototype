@@ -3,7 +3,7 @@ import { verifyCriticalEnvVariable } from '../utils/helpers.js';
 
 dotenv.config();
 
-verifyCriticalEnvVariable('HELPDESK_EMAIL_ADDRESS');
+verifyCriticalEnvVariable(process.env.HELPDESK_EMAIL_ADDRESS, 'HELPDESK_EMAIL_ADDRESS');
 
 export const emailConfig = {
   helpDeskAddress: process.env.HELPDESK_EMAIL_ADDRESS,

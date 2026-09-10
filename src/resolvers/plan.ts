@@ -34,8 +34,11 @@ import {
 } from "../types/general.js";
 import {
   AddEntirePlanInput,
+  Affiliation as AffiliationGQL,
   PaginatedPlanResults,
   PlanFeedbackStatus,
+  PlanSectionProgress as PlanSectionProgressGQL,
+  QueryPlansArgs,
   Resolvers,
   UpdateEntirePlanInput,
   PlanVersionSnapshot
@@ -77,7 +80,7 @@ export const resolvers: Resolvers = {
       UserRole.ADMIN,
       async (
         _: Record<PropertyKey, never>,
-        { userId, term, paginationOptions }: { userId: number; term?: string; paginationOptions?: PaginationOptions },
+        { userId, term, paginationOptions }: QueryPlansArgs,
         context: MyContext
       ): Promise<PaginatedPlanResults> => {
         const reference = 'plansWithPagination resolver';
@@ -99,7 +102,7 @@ export const resolvers: Resolvers = {
             ? paginationOptions as PaginationOptionsForOffsets
             : { ...paginationOptions, type: PaginationType.CURSOR } as PaginationOptionsForCursors;
 
-          return await PlanSearchResult.findByUserIdWithPagination(reference, context, userId, opts, term);
+          return await PlanSearchResult.findByUserIdWithPagination(reference, context, userId, opts, term ?? undefined);
         } catch (err) {
           if (err instanceof GraphQLError) throw err;
           context.logger.error(prepareObjectForLogs(err), `Failure in ${reference}`);
@@ -118,10 +121,10 @@ export const resolvers: Resolvers = {
       ): Promise<Plan[]> => {
         const reference = 'plansByProjectId resolver';
         try {
-          const project: Project = await Project.findById(reference, context, projectId);
+          const project = await Project.findById(reference, context, projectId);
           if (!project) throw NotFoundError(`Project with ID ${projectId} not found`);
 
-          if (hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
+          if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT)) {
             return await Plan.findByProjectId(reference, context, projectId);
           }
 
@@ -208,7 +211,7 @@ export const resolvers: Resolvers = {
     planByAlternateIdentifier: async (_, { alternateIdentifier }, context: MyContext): Promise<Plan> => {
       const reference = 'planByAlternateIdentifier resolver';
       try {
-        const identifier: AlternateIdentifier = await AlternateIdentifier.findByAlternateIdentifier(
+        const identifier = await AlternateIdentifier.findByAlternateIdentifier(
           reference,
           context,
           alternateIdentifier
@@ -257,7 +260,9 @@ export const resolvers: Resolvers = {
           }
 
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
-            const plan = new Plan({ projectId, versionedTemplateId });
+            // No title is collected by this mutation; leave it blank so Plan.isValid() flags
+            // it the same way an undefined title would have prior to strict null checks.
+            const plan = new Plan({ projectId, versionedTemplateId, title: '' });
             const created = await plan.create(context);
 
             if (!isNullOrUndefined(created.id) && !created.hasErrors()) {
@@ -298,6 +303,9 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
             if (!plan.hasErrors()) {
               const deleted = await plan.delete(context);
@@ -330,7 +338,9 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Project with ID ${projectId} not found`);
           }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.EDIT)) {
-            const plan = new Plan({ projectId, fileName, fileContent });
+            // `fileName`/`fileContent` are not persisted Plan fields (this mutation is not yet
+            // implemented), so only the fields the Plan model actually accepts are passed through.
+            const plan = new Plan({ projectId, versionedTemplateId: 0, title: fileName ?? '' });
 
             // TODO: Figure out what would be passed in from the client and how we'd get the actual
             //       file content and push it into an S3 bucket
@@ -361,6 +371,9 @@ export const resolvers: Resolvers = {
           }
 
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
             if (!plan.hasErrors()) {
               if (project.isTestProject) {
@@ -415,11 +428,17 @@ export const resolvers: Resolvers = {
       const reference = 'update plan resolver';
       try {
         if (isAuthorized(context.token)) {
+          if (isNullOrUndefined(input.id)) {
+            throw NotFoundError(`Plan with id ${input.id} not found`);
+          }
           const plan = await Plan.findById(reference, context, input.id);
           if (!plan) {
             throw NotFoundError(`Plan with id ${input.id} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
 
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
             plan.title = input.title ?? plan.title;
@@ -455,6 +474,9 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
 
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
             plan.status = status as PlanStatus;
@@ -485,6 +507,9 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
             plan.title = title;
             const updated = await plan.update(context);
@@ -515,11 +540,14 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
 
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
-            const identifier: AlternateIdentifier = new AlternateIdentifier({ planId, alternateIdentifier });
+            const identifier = new AlternateIdentifier({ planId, alternateIdentifier });
 
-            const created: AlternateIdentifier = await identifier.create(context);
+            const created = await identifier.create(context);
             if (created && !created.hasErrors()) {
               // Handle OpenSearch index update and maDMP JSON versioning in Dynamo
               await handleAsyncUpdates(reference, context, plan);
@@ -546,8 +574,11 @@ export const resolvers: Resolvers = {
             throw NotFoundError(`Plan with id ${planId} not found`);
           }
           const project = await Project.findById(reference, context, plan.projectId);
+          if (!project) {
+            throw NotFoundError(`Project with ID ${plan.projectId} not found`);
+          }
           if (await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.OWN)) {
-            const identifier: AlternateIdentifier = await AlternateIdentifier.findByAlternateIdentifier(
+            const identifier = await AlternateIdentifier.findByAlternateIdentifier(
               reference,
               context,
               alternateIdentifier
@@ -598,12 +629,14 @@ export const resolvers: Resolvers = {
         context: MyContext
       ): Promise<Plan> => {
         const ref = 'addEntirePlan';
-        const plan: Plan = new Plan({});
+        // Placeholder used only to carry validation errors if something fails below;
+        // the real Plan is created by `addEntirePlan` further down.
+        const plan = new Plan({ projectId: 0, versionedTemplateId: 0, title: '' });
 
         try {
           // 1st: Check any alternate identifiers to make sure the Plan doesn't already exist
           if (input.alternateIdentifiers) {
-            const altId: AlternateIdentifier | undefined = await AlternateIdentifier.findByAlternateIdentifiers(
+            const altId = await AlternateIdentifier.findByAlternateIdentifiers(
               ref,
               context,
               input.alternateIdentifiers
@@ -670,11 +703,14 @@ export const resolvers: Resolvers = {
         const ref = 'updateEntirePlan';
 
         // 1st: Find the Plan and Project
-        const plan: Plan = await Plan.findById(ref, context, input.id);
+        if (isNullOrUndefined(input.id)) {
+          throw NotFoundError();
+        }
+        const plan = await Plan.findById(ref, context, input.id);
         if (!plan) {
           throw NotFoundError();
         }
-        const project: Project = await Project.findById(ref, context, plan.projectId);
+        const project = await Project.findById(ref, context, plan.projectId);
         if (!project) {
           throw NotFoundError();
         }
@@ -741,11 +777,11 @@ export const resolvers: Resolvers = {
         const ref = 'updateEntirePlan';
 
         // 1st: Find the Plan and Project
-        const plan: Plan = await Plan.findByDMPId(ref, context, dmpId);
+        const plan = await Plan.findByDMPId(ref, context, dmpId);
         if (!plan) {
           throw NotFoundError();
         }
-        const project: Project = await Project.findById(ref, context, plan.projectId);
+        const project = await Project.findById(ref, context, plan.projectId);
         if (!project) {
           throw NotFoundError();
         }
@@ -775,38 +811,46 @@ export const resolvers: Resolvers = {
     ),
   },
 
+  // NOTE: `parent` below is typed to the GraphQL-facing shape (no raw FK fields like
+  // projectId/versionedTemplateId/createdById), but at runtime it is actually the model
+  // instance returned by the parent resolver, so it's cast back via `as unknown as X`.
   Plan: {
     // The user who owns/created the plan
-    planCreator: async (parent: Plan, _, context: MyContext): Promise<User> => {
-      if (parent?.createdById) {
-        return await User.findById('plan.createdBy resolver', context, parent.createdById);
+    planCreator: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Plan;
+      if (model?.createdById) {
+        return await User.findById('plan.createdBy resolver', context, model.createdById);
       }
       return null;
     },
-    owner: async (parent: Plan, _, context: MyContext): Promise<Affiliation> => {
-      if (!parent?.id) return null;
+    owner: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Plan;
+      if (!model?.id) return null;
       const reference = 'Chained Plan.owner';
 
       // First, try to get the project owner (collaborator with OWN access level)
       const projectOwner = await ProjectCollaborator.findOwnerByProjectId(
         reference,
         context,
-        parent.projectId
+        model.projectId
       );
 
       if (projectOwner?.userId) {
         const user = await User.findById(reference, context, projectOwner.userId);
         if (user?.affiliationId) {
           const affiliation = await Affiliation.findByURI(reference, context, user.affiliationId);
-          if (affiliation) return affiliation;
+          // The Affiliation model has a few fields (e.g. `name`, `uri`) typed optional that
+          // the generated GraphQL type marks as required, so bridge it like the parent cast above.
+          if (affiliation) return affiliation as unknown as AffiliationGQL;
         }
       }
 
       // Fall back to the plan creator's affiliation
-      if (parent?.createdById) {
-        const user = await User.findById(reference, context, parent.createdById);
+      if (model?.createdById) {
+        const user = await User.findById(reference, context, model.createdById);
         if (user?.affiliationId) {
-          return await Affiliation.findByURI(reference, context, user.affiliationId);
+          const affiliation = await Affiliation.findByURI(reference, context, user.affiliationId);
+          return affiliation as unknown as AffiliationGQL;
         }
       }
 
@@ -814,111 +858,133 @@ export const resolvers: Resolvers = {
     },
 
     // The project the plan is associated with
-    project: async (parent: Plan, _, context: MyContext): Promise<Project> => {
-      if (parent?.projectId) {
-        return await Project.findById('project resolver', context, parent.projectId);
+    project: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Plan;
+      if (model?.projectId) {
+        return await Project.findById('project resolver', context, model.projectId);
       }
       return null;
     },
     // The template the plan is based on
-    versionedTemplate: async (parent: Plan, _, context: MyContext): Promise<VersionedTemplate> => {
-      if (parent?.versionedTemplateId) {
-        return await VersionedTemplate.findById('versioned template resolver', context, parent.versionedTemplateId);
+    versionedTemplate: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Plan;
+      if (model?.versionedTemplateId) {
+        return await VersionedTemplate.findById('versioned template resolver', context, model.versionedTemplateId);
       }
       return null;
     },
     // The members to the plan
-    members: async (parent: Plan, _, context: MyContext): Promise<PlanMember[]> => {
-      if (parent?.id) {
-        return await PlanMember.findByPlanId('plan members resolver', context, parent.id);
+    members: async (parent, _, context: MyContext): Promise<PlanMember[]> => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
+        return await PlanMember.findByPlanId('plan members resolver', context, model.id);
       }
       return [];
     },
     // The funding sources for the plan
-    fundings: async (parent: Plan, _, context: MyContext): Promise<PlanFunding[]> => {
-      if (parent?.id) {
-        return await PlanFunding.findByPlanId('plan fundings resolver', context, parent.id);
+    fundings: async (parent, _, context: MyContext): Promise<PlanFunding[]> => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
+        return await PlanFunding.findByPlanId('plan fundings resolver', context, model.id);
       }
       return [];
     },
     // The feedback associated with the plan
-    feedback: async (parent: Plan, _, context: MyContext): Promise<PlanFeedback[]> => {
-      if (parent?.id) {
-        return await PlanFeedback.findByPlanId('plan feedback resolver', context, parent.id);
+    feedback: async (parent, _, context: MyContext): Promise<PlanFeedback[]> => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
+        return await PlanFeedback.findByPlanId('plan feedback resolver', context, model.id);
       }
       return [];
     },
-    feedbackStatus: async (parent: Plan, _, context: MyContext): Promise<PlanFeedbackStatus> => {
-      if (parent?.id) {
+    feedbackStatus: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
         // Use the same logic as in planFeedbackStatus query
-        return await PlanFeedback.statusForPlan('plan.feedbackStatus resolver', context, parent.id);
+        return await PlanFeedback.statusForPlan('plan.feedbackStatus resolver', context, model.id);
       }
       return null;
     },
-    answers: async (parent: Plan, _, context: MyContext): Promise<Answer[]> => {
-      if (parent?.id) {
-        return await Answer.findByPlanId('plan answers resolver', context, parent.id);
+    answers: async (parent, _, context: MyContext): Promise<Answer[]> => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
+        return await Answer.findByPlanId('plan answers resolver', context, model.id);
       }
       return [];
     },
-    versionedSections: async (parent: Plan, _, context: MyContext): Promise<PlanSectionProgress[]> => {
-      if (parent?.id) {
-        return await PlanSectionProgress.findByPlanId('plan versionedSections resolver', context, parent.id, parent?.versionedTemplateId);
+    versionedSections: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
+        // The model's `tags` field (via models/Tag.js) isn't perfectly structurally
+        // identical to the generated GraphQL `Tag` type (e.g. `slug` is required there),
+        // so bridge it the same way the parent cast above does.
+        return await PlanSectionProgress.findByPlanId(
+          'plan versionedSections resolver', context, model.id, model?.versionedTemplateId
+        ) as unknown as PlanSectionProgressGQL[];
       }
       return [];
     },
-    progress: async (parent: Plan, _, context: MyContext): Promise<PlanProgress> => {
-      if (parent?.id) {
-        return await PlanProgress.findByPlanId('plan progress resolver', context, parent.id, parent?.versionedTemplateId);
+    progress: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
+        return await PlanProgress.findByPlanId('plan progress resolver', context, model.id, model?.versionedTemplateId);
       }
       return null;
     },
-    alternateIdentifiers: async (parent: Plan, _, context: MyContext): Promise<AlternateIdentifier[]> => {
-      if (parent?.id) {
-        return await AlternateIdentifier.findByPlanId('plan alternateIdentifiers chained resolver', context, parent.id);
+    alternateIdentifiers: async (parent, _, context: MyContext): Promise<AlternateIdentifier[]> => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
+        return await AlternateIdentifier.findByPlanId('plan alternateIdentifiers chained resolver', context, model.id);
       }
       return [];
     },
-    acceptedWorks: async (parent: Plan, _, context: MyContext): Promise<AcceptedWork[]> => {
-      if (parent?.id) {
-        return await AcceptedWork.findByPlanId('plan acceptedWorks chained resolver', context, parent.id);
+    acceptedWorks: async (parent, _, context: MyContext): Promise<AcceptedWork[]> => {
+      const model = parent as unknown as Plan;
+      if (model?.id) {
+        return await AcceptedWork.findByPlanId('plan acceptedWorks chained resolver', context, model.id);
       }
       return [];
     },
-    registered: (parent: Plan) => {
-      return normaliseDateTime(parent.registered);
+    registered: (parent) => {
+      const model = parent as unknown as Plan;
+      return normaliseDateTime(model.registered);
     },
-    versions: async (parent: Plan, _, context: MyContext) => {
-      if (!parent?.dmpId) return [];
-      return await getPlanVersions('Chained Plan.versions', context, parent.dmpId);
+    versions: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as Plan;
+      if (!model?.dmpId) return [];
+      return await getPlanVersions('Chained Plan.versions', context, model.dmpId);
     },
-    created: (parent: Plan) => {
-      return normaliseDateTime(parent.created);
+    created: (parent) => {
+      const model = parent as unknown as Plan;
+      return normaliseDateTime(model.created);
     },
-    modified: (parent: Plan) => {
-      return normaliseDateTime(parent.modified);
+    modified: (parent) => {
+      const model = parent as unknown as Plan;
+      return normaliseDateTime(model.modified);
     }
   },
 
   PlanSearchResult: {
-    versionedSections: async (parent, _, context: MyContext): Promise<PlanSectionProgress[]> => {
-      if (parent?.id) {
+    versionedSections: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as PlanSearchResult;
+      if (model?.id) {
         return await PlanSectionProgress.findByPlanId(
           'planSearchresult versionedSections resolver',
           context,
-          parent.id,
-          parent?.versionedTemplateId
-        );
+          model.id,
+          model?.versionedTemplateId
+        ) as unknown as PlanSectionProgressGQL[];
       }
       return [];
     },
-    templateOwnerAffiliationName: async (parent: PlanSearchResult, _, context: MyContext): Promise<string | null> => {
-      if (!parent?.versionedTemplateId) return null;
+    templateOwnerAffiliationName: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as PlanSearchResult;
+      if (!model?.versionedTemplateId) return null;
 
       const versionedTemplate = await VersionedTemplate.findById(
         'planSearchResult.templateOwnerAffiliationName resolver',
         context,
-        parent.versionedTemplateId
+        model.versionedTemplateId
       );
       if (!versionedTemplate?.ownerId) return null;
 
@@ -929,23 +995,26 @@ export const resolvers: Resolvers = {
       );
       return affiliation?.displayName || null;
     },
-    planCreator: async (parent: PlanSearchResult, _, context: MyContext): Promise<User> => {
-      if (parent?.createdById) {
-        return await User.findById('planSearchResult.planCreator resolver', context, parent.createdById);
+    planCreator: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as PlanSearchResult;
+      if (model?.createdById) {
+        return await User.findById('planSearchResult.planCreator resolver', context, model.createdById);
       }
       return null;
     }
   },
   PlanMember: {
-    projectMember: async (parent: PlanMember, _, context: MyContext): Promise<ProjectMember> => {
-      if (parent?.projectMemberId) {
-        return await ProjectMember.findById('planMember.projectMember resolver', context, parent.projectMemberId);
+    projectMember: async (parent, _, context: MyContext) => {
+      const model = parent as unknown as PlanMember;
+      if (model?.projectMemberId) {
+        return await ProjectMember.findById('planMember.projectMember resolver', context, model.projectMemberId);
       }
       return null;
     },
-    memberRoles: async (parent: PlanMember, _, context: MyContext): Promise<MemberRole[]> => {
-      if (parent?.id) {
-        return await MemberRole.findByPlanMemberId('planMember.memberRoles resolver', context, parent.id);
+    memberRoles: async (parent, _, context: MyContext): Promise<MemberRole[]> => {
+      const model = parent as unknown as PlanMember;
+      if (model?.id) {
+        return await MemberRole.findByPlanMemberId('planMember.memberRoles resolver', context, model.id);
       }
       return [];
     },

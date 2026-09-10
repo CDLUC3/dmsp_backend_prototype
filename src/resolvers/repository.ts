@@ -3,7 +3,7 @@ import { RepositorySearchResults, Resolvers } from "../types.js";
 import { DEFAULT_DMPTOOL_REPOSITORY_URL, Repository } from "../models/Repository.js";
 import { MyContext } from '../context.js';
 import { isAdmin, isAuthorized, isSuperAdmin } from '../services/authService.js';
-import { AuthenticationError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors.js';
+import { AuthenticationError, BadRequestError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/graphQLErrors.js';
 import { ResearchDomain } from '../models/ResearchDomain.js';
 import {
   isNullOrUndefined,
@@ -238,8 +238,19 @@ export const resolvers: Resolvers = {
     addRepository: async (_, { input }, context: MyContext) => {
       const reference = 'addRepository resolver';
       try {
+        if (isNullOrUndefined(input)) {
+          throw BadRequestError();
+        }
         if (isAuthorized(context.token)) {
-          const newRepo = new Repository(input);
+          const newRepo = new Repository({
+            name: input.name,
+            uri: input.uri ?? '',
+            description: input.description ?? undefined,
+            website: input.website ?? undefined,
+            re3dataId: input.re3dataId ?? undefined,
+            repositoryTypes: input.repositoryTypes ?? undefined,
+            keywords: input.keywords ?? undefined,
+          });
           const created = await newRepo.create(context);
 
           if (!created?.id) {
@@ -302,12 +313,15 @@ export const resolvers: Resolvers = {
     updateRepository: async (_, { input }, context) => {
       const reference = 'updateRepository resolver';
       try {
+        if (isNullOrUndefined(input)) {
+          throw BadRequestError();
+        }
         const repo = await Repository.findById(
           reference,
           context,
           input.id,
         );
-        if (!repo) {
+        if (!repo || isNullOrUndefined(repo.id)) {
           throw NotFoundError();
         }
 
@@ -316,11 +330,21 @@ export const resolvers: Resolvers = {
           isAdmin(context.token) &&
           repo.uri.startsWith(DEFAULT_DMPTOOL_REPOSITORY_URL)
         ) {
-          const toUpdate = new Repository(input);
+          const toUpdate = new Repository({
+            id: input.id,
+            name: input.name,
+            uri: repo.uri,
+            description: input.description ?? undefined,
+            website: input.website ?? undefined,
+            re3dataId: input.re3dataId ?? undefined,
+            repositoryTypes: input.repositoryTypes ?? undefined,
+            keywords: input.keywords ?? undefined,
+          });
           const updated = await toUpdate.update(context);
 
           // If there were no errors creating the record
-          if (updated && !updated.hasErrors()) {
+          if (updated && !updated.hasErrors() && !isNullOrUndefined(updated.id)) {
+            const updatedId = updated.id;
             // Fetch all of the current ResearchDomains associated with this MetadataStandard
             const researchDomains =
               await ResearchDomain.findByRepositoryId(
@@ -329,14 +353,14 @@ export const resolvers: Resolvers = {
                 repo.id,
               );
             const currentDomainIds = researchDomains
-              ? researchDomains.map((d) => d.id)
+              ? researchDomains.map((d) => d.id).filter((id): id is number => !isNullOrUndefined(id))
               : [];
 
             // Use the helper function to determine which ResearchDomains to keep
             const { idsToBeRemoved, idsToBeSaved } =
               Repository.reconcileAssociationIds(
                 currentDomainIds,
-                input.researchDomainIds,
+                input.researchDomainIds ?? undefined,
               );
 
             const associationErrors = [];
@@ -351,7 +375,7 @@ export const resolvers: Resolvers = {
               if (dom) {
                 const wasRemoved = dom.removeFromRepository(
                   context,
-                  updated.id,
+                  updatedId,
                 );
                 if (!wasRemoved) {
                   removeErrors.push(dom.name);
@@ -374,7 +398,7 @@ export const resolvers: Resolvers = {
                 id as number,
               );
               if (dom) {
-                const wasAdded = dom.addToRepository(context, updated.id);
+                const wasAdded = dom.addToRepository(context, updatedId);
                 if (!wasAdded) {
                   addErrors.push(dom.name);
                 }

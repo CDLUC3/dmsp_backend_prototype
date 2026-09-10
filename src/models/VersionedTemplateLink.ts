@@ -3,16 +3,29 @@ import { isNullOrUndefined, validateURL } from "../utils/helpers.js";
 import { MySqlModel } from "./MySqlModel.js";
 import { TemplateLinkType } from "./TemplateLink.js";
 
+interface VersionedTemplateLinkOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  templateId: number;
+  linkType: TemplateLinkType;
+  url: string;
+  text?: string;
+}
+
 // A link that can be displayed for a template
 export class VersionedTemplateLink extends MySqlModel {
   public templateId!: number;
   public linkType!: TemplateLinkType;
   public url!: string;
-  public text: string;
+  public text?: string;
 
   private static tableName = 'versionedTemplateLinks';
 
-  constructor(options) {
+  constructor(options: VersionedTemplateLinkOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.templateId = options.templateId;
@@ -33,7 +46,7 @@ export class VersionedTemplateLink extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<VersionedTemplateLink> {
+  async create(context: MyContext): Promise<VersionedTemplateLink | null> {
     const reference = 'VersionedTemplateLink.create';
     // First make sure the record doesn't already exist
     const current = await VersionedTemplateLink.findByTemplateAndURL(
@@ -63,7 +76,7 @@ export class VersionedTemplateLink extends MySqlModel {
   }
 
   // Archive this record
-  async delete(context: MyContext): Promise<VersionedTemplateLink> {
+  async delete(context: MyContext): Promise<VersionedTemplateLink | null> {
     if (this.id) {
       const result = await VersionedTemplateLink.delete(
         context,
@@ -79,14 +92,14 @@ export class VersionedTemplateLink extends MySqlModel {
   }
 
   // Return the specified VersionedTemplateLink
-  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedTemplateLink> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedTemplateLink | null> {
     const sql = `SELECT * FROM ${VersionedTemplateLink.tableName} WHERE id = ?`;
     const results = await VersionedTemplateLink.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedTemplateLink(results[0]) : null;
   }
 
   // Return the specified VersionedTemplateLink
-  static async findByTemplateAndURL(reference: string, context: MyContext, templateId: number, url: string): Promise<VersionedTemplateLink> {
+  static async findByTemplateAndURL(reference: string, context: MyContext, templateId: number, url: string): Promise<VersionedTemplateLink | null> {
     const sql = `SELECT * FROM ${VersionedTemplateLink.tableName} WHERE templateId = ? AND url = ?`;
     const results = await VersionedTemplateLink.query(context, sql, [templateId.toString(), url], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedTemplateLink(results[0]) : null;

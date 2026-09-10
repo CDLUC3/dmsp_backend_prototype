@@ -7,6 +7,24 @@ import { PinnedSectionTypeEnum } from "./CustomSection.js";
  * This object represents a versioned snapshot of a custom section that an
  * organization wants to include as part of an existing published template
  */
+interface VersionedCustomSectionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  versionedTemplateCustomizationId: number;
+  customSectionId: number;
+  // Raw DB rows (and GraphQL inputs) carry this as the enum's string key/value.
+  pinnedVersionedSectionType?: keyof typeof PinnedSectionTypeEnum;
+  pinnedVersionedSectionId?: number;
+  name: string;
+  introduction?: string;
+  requirements?: string;
+  guidance?: string;
+}
+
 export class VersionedCustomSection extends MySqlModel {
   public versionedTemplateCustomizationId: number;
   public customSectionId: number;
@@ -20,7 +38,7 @@ export class VersionedCustomSection extends MySqlModel {
 
   static tableName = 'versionedCustomSections';
 
-  constructor(options) {
+  constructor(options: VersionedCustomSectionOptions) {
     super(options.id, options.created, options.createdById, options.modified,
       options.modifiedById, options.errors);
 
@@ -74,11 +92,11 @@ export class VersionedCustomSection extends MySqlModel {
    * @param context The Apollo context.
    * @returns The newly created custom section version.
    */
-  async create(context: MyContext): Promise<VersionedCustomSection> {
+  async create(context: MyContext): Promise<VersionedCustomSection | undefined> {
     const ref = 'VersionedCustomSection.create';
     // Make sure the record is valid
     if (await this.isValid()) {
-      const current: VersionedCustomSection = await VersionedCustomSection.findByCustomizationAndPinnedSection(
+      const current: VersionedCustomSection | undefined = await VersionedCustomSection.findByCustomizationAndPinnedSection(
         ref,
         context,
         this.versionedTemplateCustomizationId,
@@ -94,13 +112,16 @@ export class VersionedCustomSection extends MySqlModel {
         this.prepForSave();
 
         // Save the record and then fetch it
-        const newId: number = await VersionedCustomSection.insert(
+        const newId = await VersionedCustomSection.insert(
           context,
           VersionedCustomSection.tableName,
           this,
           ref
         );
-        return await VersionedCustomSection.findById(ref, context, newId);
+        if (newId) {
+          return await VersionedCustomSection.findById(ref, context, newId);
+        }
+        this.addError('general', 'Custom section version was not created successfully');
       }
     }
     // Otherwise return as-is with all the errors
@@ -114,7 +135,7 @@ export class VersionedCustomSection extends MySqlModel {
    * @param noTouch Whether or not the modification timestamp should be updated
    * @returns The updated custom section version.
    */
-  async update(context: MyContext, noTouch = false): Promise<VersionedCustomSection> {
+  async update(context: MyContext, noTouch = false): Promise<VersionedCustomSection | undefined> {
     const ref = 'VersionedCustomSection.update';
 
     if (isNullOrUndefined(this.id)) {
@@ -146,13 +167,13 @@ export class VersionedCustomSection extends MySqlModel {
    * @param context The Apollo context
    * @returns The deleted custom section version.
    */
-  async delete(context: MyContext): Promise<VersionedCustomSection> {
+  async delete(context: MyContext): Promise<VersionedCustomSection | undefined> {
     const ref = 'VersionedCustomSection.delete';
     if (!this.id) {
       // Cannot delete it if it hasn't been saved yet!
       this.addError('general', 'Custom section has never been saved');
     } else {
-      const original: VersionedCustomSection = await VersionedCustomSection.findById(
+      const original: VersionedCustomSection | undefined = await VersionedCustomSection.findById(
         ref,
         context,
         this.id
@@ -186,7 +207,7 @@ export class VersionedCustomSection extends MySqlModel {
     reference: string,
     context: MyContext,
     versionedCustomSectionId: number
-  ): Promise<VersionedCustomSection> {
+  ): Promise<VersionedCustomSection | undefined> {
     const results = await VersionedCustomSection.query(
       context,
       `SELECT * FROM ${VersionedCustomSection.tableName} WHERE id = ?`,
@@ -212,9 +233,9 @@ export class VersionedCustomSection extends MySqlModel {
     context: MyContext,
     versionedTemplateCustomizatonId: number,
     customSectionId: number,
-    pinnedVersionedSectionType: PinnedSectionTypeEnum,
-    pinnedVersionedSectionId: number
-  ): Promise<VersionedCustomSection> {
+    pinnedVersionedSectionType: PinnedSectionTypeEnum | undefined,
+    pinnedVersionedSectionId: number | undefined
+  ): Promise<VersionedCustomSection | undefined> {
     const results = await VersionedCustomSection.query(
       context,
       `SELECT * FROM ${VersionedCustomSection.tableName}
@@ -223,8 +244,8 @@ export class VersionedCustomSection extends MySqlModel {
       [
         versionedTemplateCustomizatonId.toString(),
         customSectionId?.toString(),
-        pinnedVersionedSectionType,
-        pinnedVersionedSectionId?.toString()
+        pinnedVersionedSectionType ?? '',
+        pinnedVersionedSectionId?.toString() ?? ''
       ],
       reference
     );
@@ -238,7 +259,7 @@ export class VersionedCustomSection extends MySqlModel {
     planId: number,
     customSectionId: number,
     affiliationId: string
-  ): Promise<VersionedCustomSection> {
+  ): Promise<VersionedCustomSection | undefined> {
     const sql = `
     SELECT vcs.*
     FROM versionedCustomSections vcs

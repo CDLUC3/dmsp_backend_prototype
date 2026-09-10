@@ -1,4 +1,4 @@
-import { Resolvers } from "../types.js";
+import { Resolvers, Question as QuestionGQL } from "../types.js";
 import { MyContext } from "../context.js";
 import { QuestionCondition } from "../models/QuestionCondition.js";
 import {
@@ -16,7 +16,7 @@ import { Question } from "../models/Question.js";
 import { Template } from "../models/Template.js";
 import { prepareObjectForLogs } from "../logger.js";
 import { GraphQLError } from "graphql";
-import { normaliseDateTime } from "../utils/helpers.js";
+import { isNullOrUndefined, normaliseDateTime } from "../utils/helpers.js";
 
 
 export const resolvers: Resolvers = {
@@ -39,7 +39,7 @@ export const resolvers: Resolvers = {
       questionId,
       action,
       matchType,
-      groups } }, context: MyContext): Promise<Question> => {
+      groups } }, context: MyContext) => {
 
       const reference = 'saveQuestionDisplayLogic resolver';
 
@@ -58,7 +58,9 @@ export const resolvers: Resolvers = {
         questionId
       );
       const priorQuestionMap = new Map<number, Question>(
-        priorQuestions.map((entry) => [entry.id, entry])
+        priorQuestions
+          .filter((entry): entry is Question & { id: number } => !isNullOrUndefined(entry.id))
+          .map((entry) => [entry.id, entry])
       );
 
       const addGeneralValidationError = (message: string): void => {
@@ -110,18 +112,18 @@ export const resolvers: Resolvers = {
       });
 
       if (question.hasErrors()) {
-        return question;
+        return question as unknown as QuestionGQL;
       }
 
       let updatedQuestion: Question = question;
 
       // Wrap the entire operation in a transaction so that either all changes are persisted or none are.
       try {
-        return await context.dataSources.sqlDataSource.withTransaction(context, async (): Promise<Question> => {
+        const result = await context.dataSources.sqlDataSource.withTransaction(context, async (): Promise<Question> => {
           question.displayLogicAction = action;
           question.displayLogicMatchType = matchType;
           question.isDirty = true;
-          updatedQuestion = await question.update(context);
+          updatedQuestion = await question.update(context) ?? question;
           if (updatedQuestion.hasErrors()) {
             throw BadRequestError();
           }
@@ -140,15 +142,16 @@ export const resolvers: Resolvers = {
               triggerQuestionId: groupInput.triggerQuestionId,
             });
             const createdGroup = await group.create(context);
+            const groupId = createdGroup.id;
 
-            if (createdGroup.hasErrors()) {
+            if (createdGroup.hasErrors() || isNullOrUndefined(groupId)) {
               updatedQuestion.addError('general', 'Unable to save one or more display logic groups');
               throw BadRequestError();
             }
 
             for (const conditionInput of groupInput.conditions) {
               const condition = new QuestionCondition({
-                groupId: createdGroup.id,
+                groupId,
                 conditionType: conditionInput.conditionType,
                 conditionMatch: conditionInput.conditionMatch,
               });
@@ -163,15 +166,17 @@ export const resolvers: Resolvers = {
           }
 
           await Template.markTemplateAsDirty(reference, context, question.templateId);
-          return await Question.findById(reference, context, questionId);
+          const finalQuestion = await Question.findById(reference, context, questionId);
+          return finalQuestion ?? updatedQuestion;
         });
+        return result as unknown as QuestionGQL;
       } catch (error) {
         if (error instanceof GraphQLError) {
           if (error.extensions?.code === BAD_REQUEST_ERROR_CODE) {
             if (updatedQuestion.hasErrors() && !updatedQuestion.errors['general']) {
               updatedQuestion.addError('general', 'Unable to process your request.');
             }
-            return updatedQuestion;
+            return updatedQuestion as unknown as QuestionGQL;
           }
           throw error;
         }
@@ -211,7 +216,7 @@ export const resolvers: Resolvers = {
           question.displayLogicMatchType = 'ANY';
           question.isDirty = true;
           const updated = await question.update(context);
-          if (updated.hasErrors()) {
+          if (!updated || updated.hasErrors()) {
             throw InternalServerError();
           }
 
@@ -226,18 +231,22 @@ export const resolvers: Resolvers = {
     },
   },
   QuestionConditionGroup: {
-    triggerQuestion: async (parent: QuestionConditionGroup, _, context: MyContext) => {
-      return await Question.findById('QuestionConditionGroup.triggerQuestion resolver', context, parent.triggerQuestionId);
+    triggerQuestion: async (parent, _, context: MyContext) => {
+      const question = await Question.findById(
+        'QuestionConditionGroup.triggerQuestion resolver', context, parent.triggerQuestionId
+      );
+      return question as unknown as QuestionGQL;
     },
-    conditions: async (parent: QuestionConditionGroup, _, context: MyContext) => {
+    conditions: async (parent, _, context: MyContext) => {
+      if (isNullOrUndefined(parent.id)) return [];
       return await QuestionCondition.findByGroupId('QuestionConditionGroup.conditions resolver', context, parent.id);
     },
-    created: (parent: QuestionConditionGroup) => normaliseDateTime(parent.created),
-    modified: (parent: QuestionConditionGroup) => normaliseDateTime(parent.modified),
+    created: (parent) => normaliseDateTime(parent.created),
+    modified: (parent) => normaliseDateTime(parent.modified),
   },
   QuestionCondition: {
-    created: (parent: QuestionCondition) => normaliseDateTime(parent.created),
-    modified: (parent: QuestionCondition) => normaliseDateTime(parent.modified),
+    created: (parent) => normaliseDateTime(parent.created),
+    modified: (parent) => normaliseDateTime(parent.modified),
   }
 
 };

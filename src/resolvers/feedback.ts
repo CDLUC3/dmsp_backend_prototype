@@ -52,6 +52,9 @@ export const resolvers: Resolvers = {
 
           // Get versionedTemplate associated with the plan
           const versionedTemplate = await VersionedTemplate.findById(reference, context, plan.versionedTemplateId);
+          if (!versionedTemplate) {
+            throw NotFoundError(`VersionedTemplate with ID ${plan.versionedTemplateId} not found`);
+          }
 
           // If the user is a superAdmin or an admin for the same affiliation
           if (isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.affiliationId === versionedTemplate.ownerId)) {
@@ -179,12 +182,15 @@ export const resolvers: Resolvers = {
             }
 
             const affiliation = await Affiliation.findByURI(reference, context, affiliationId);
+            if (!affiliation) {
+              throw NotFoundError(`Affiliation with URI ${affiliationId} not found`);
+            }
 
             const planURL = `/projects/${project.id}/dmp/${planId}`;
             const planOwnerName = [context.token.givenName, context.token.surname].filter(Boolean).join(' ');
             const planTitle = plan.title || 'Untitled Plan';
 
-            await sendFeedbackRequestEmail(context, planOwnerName, planURL, planTitle, affiliation.feedbackEmails, messageToOrg ?? '');
+            await sendFeedbackRequestEmail(context, planOwnerName, planURL, planTitle, affiliation.feedbackEmails ?? [], messageToOrg ?? '');
             context.logger.info(`${reference}: feedback request email sent`);
 
             const feedbackComment = new PlanFeedback({
@@ -200,7 +206,7 @@ export const resolvers: Resolvers = {
               await AdminNotification.addNotificationForAffiliation(
                 reference,
                 context,
-                affiliation.uri,
+                affiliationId,
                 'FEEDBACK_REQUESTED',
                 { planId },
               );
@@ -293,7 +299,7 @@ export const resolvers: Resolvers = {
           const primaryCollaborator = await ProjectCollaborator.findPrimaryUserByProjectId(reference, context, project.id);
 
           const isCollaborator = await hasPermissionOnProject(context, project, ProjectCollaboratorAccessLevel.COMMENT);
-          const isAdminOfSameOrg = isSuperAdmin(context.token) || (isAdmin(context.token) && context.token.affiliationId === primaryCollaborator.affiliationId);
+          const isAdminOfSameOrg = isSuperAdmin(context.token) || (isAdmin(context.token) && !!primaryCollaborator && context.token.affiliationId === primaryCollaborator.affiliationId);
 
           if (!isCollaborator && !isAdminOfSameOrg) {
             throw context?.token ? ForbiddenError() : AuthenticationError();
@@ -315,7 +321,11 @@ export const resolvers: Resolvers = {
           await sendProjectCollaboratorsCommentsAddedEmail(context, collaboratorEmails);
 
           const feedbackComment = new PlanFeedbackComment({ answerId, feedbackId: planFeedbackId, commentText });
-          return await feedbackComment.create(context);
+          const createdComment = await feedbackComment.create(context);
+          if (!createdComment) {
+            throw NotFoundError('Unable to create feedback comment');
+          }
+          return createdComment;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -343,7 +353,11 @@ export const resolvers: Resolvers = {
           }
 
           feedbackComment.commentText = commentText;
-          return await feedbackComment.update(context);
+          const updatedComment = await feedbackComment.update(context);
+          if (!updatedComment) {
+            throw NotFoundError('Unable to update feedback comment');
+          }
+          return updatedComment;
         }
         throw context?.token ? ForbiddenError() : AuthenticationError();
       } catch (err) {
@@ -374,7 +388,11 @@ export const resolvers: Resolvers = {
             userId: context.token.id,
             primaryCollaborator
           })) {
-            return await feedbackComment.delete(context);
+            const deletedComment = await feedbackComment.delete(context);
+            if (!deletedComment) {
+              throw NotFoundError('Unable to delete feedback comment');
+            }
+            return deletedComment;
           }
 
           throw ForbiddenError(`Inadequate permission to delete feedback comment ${feedbackComment.id}`);

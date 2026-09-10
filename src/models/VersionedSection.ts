@@ -14,6 +14,19 @@ import { prepareObjectForLogs } from "../logger.js";
 import { isNullOrUndefined } from "../utils/helpers.js";
 import { TemplateVersionType } from "./VersionedTemplate.js";
 
+interface VersionedSectionSearchResultOptions {
+  id: number;
+  modified: string;
+  created: string;
+  name: string;
+  introduction?: string;
+  displayOrder?: number;
+  bestPractice?: boolean;
+  versionedTemplateId: number;
+  versionedTemplateName: string;
+  versionedQuestionCount?: number;
+}
+
 // Search result for VersionedTemplates
 export class VersionedSectionSearchResult {
   public id: number;
@@ -27,7 +40,7 @@ export class VersionedSectionSearchResult {
   public versionedTemplateName: string;
   public versionedQuestionCount: number;
 
-  constructor(options) {
+  constructor(options: VersionedSectionSearchResultOptions) {
     this.id = options.id;
     this.modified = options.modified;
     this.created = options.created;
@@ -117,6 +130,24 @@ export class VersionedSectionSearchResult {
   }
 }
 
+interface VersionedSectionOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  versionedTemplateId: number;
+  name: string;
+  introduction?: string;
+  requirements?: string;
+  guidance?: string;
+  displayOrder: number;
+  tags?: Tag[];
+  versionedTemplate?: VersionedTemplate;
+  sectionId: number;
+}
+
 export class VersionedSection extends MySqlModel {
   public versionedTemplateId: number;
   public name: string;
@@ -125,14 +156,16 @@ export class VersionedSection extends MySqlModel {
   public guidance?: string;
   public displayOrder: number;
   public tags?: Tag[];
-  public versionedTemplate: VersionedTemplate;
+  // Not populated from the DB row; only used to hold an in-memory reference to the parent
+  // VersionedTemplate (see `create`'s skipKeys, which excludes it from persistence).
+  public versionedTemplate?: VersionedTemplate;
   public sectionId: number;
   // TODO: Think about whether we need to add bestPractice here, or whether it will inherit from associated VersionedTemplate
   //public bestPractice: boolean;
 
   private tableName = 'versionedSections';
 
-  constructor(options) {
+  constructor(options: VersionedSectionOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.versionedTemplateId = options.versionedTemplateId;
@@ -160,19 +193,22 @@ export class VersionedSection extends MySqlModel {
   }
 
   // Insert the new record
-  async create(context: MyContext): Promise<VersionedSection> {
+  async create(context: MyContext): Promise<VersionedSection | null> {
     // First make sure the record is valid
     if (await this.isValid()) {
       // Save the record and then fetch it
       const newId = await VersionedSection.insert(context, this.tableName, this, 'VersionedSection.create', ['tags', 'versionedTemplate']);
-      return await VersionedSection.findById('VersionedSection.create', context, newId);
+      if (newId) {
+        return await VersionedSection.findById('VersionedSection.create', context, newId);
+      }
+      this.addError('general', 'VersionedSection was not created successfully');
     }
     // Otherwise return as-is with all the errors
     return new VersionedSection(this);
   }
 
   // Find the VersionedSection by id
-  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedSection> {
+  static async findById(reference: string, context: MyContext, id: number): Promise<VersionedSection | null> {
     const sql = 'SELECT * FROM versionedSections WHERE id= ?';
     const results = await VersionedSection.query(context, sql, [id?.toString()], reference);
     return Array.isArray(results) && results.length > 0 ? new VersionedSection(results[0]) : null;
@@ -206,7 +242,7 @@ export class VersionedSection extends MySqlModel {
     context: MyContext,
     versionedTemplateId: number,
     sectionId: number
-  ): Promise<VersionedSection> {
+  ): Promise<VersionedSection | undefined> {
     const sql = `SELECT * FROM versionedSections
          WHERE versionedTemplateId = ? AND sectionId = ? ORDER BY modified DESC`;
     const vals = [versionedTemplateId.toString(), sectionId.toString()];

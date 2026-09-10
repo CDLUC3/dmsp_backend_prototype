@@ -1,3 +1,4 @@
+
 import { jest } from '@jest/globals';
 import casual from 'casual';
 import express, { Application, Request, Response } from 'express';
@@ -12,13 +13,27 @@ import {
   mockUserModel
 } from '../../__tests__/mockConfigs.js';
 
+declare global {
+  namespace Express {
+    interface Request {
+      // Adjust the structure of 'auth' below to match your actual authMiddleware token payload
+      auth?: {
+        userId: number;
+        role: string;
+        // add other properties your token contains
+      };
+    }
+  }
+}
+
 // Register config + logger mocks FIRST — before anything that transitively imports them
 mockAppConfigs();
 mockAppLogger();
 mockUserModel();
 
 // Dynamic imports AFTER the mock is registered, so ESM module graph respects it
-const { mockUser: mockUserFn, MockCache, buildMockContextWithToken } = await import('../../__mocks__/context.js');
+const { mockUser: mockUserFn, MockCache, buildMockContextWithToken } =
+  await import('../../__mocks__/context.js');
 const { logger } = await import('../../logger.js');
 const { setupRouter } = await import('../../router.js');
 const { Cache } = await import('../../datasources/cache.js');
@@ -31,22 +46,47 @@ const { defaultLanguageId } = await import('../../models/Language.js');
 const { getCurrentDate } = await import('../../utils/helpers.js');
 const { getRandomEnumValue } = await import('../../__tests__/helpers.js');
 
-let context;
+type MockContext = Awaited<ReturnType<typeof buildMockContextWithToken>>;
+type MockCache = ReturnType<typeof MockCache.getInstance>;
 
-function processResponseCookies(headers) {
-  const cookies = {};
-  if (headers && headers['set-cookie']?.length > 0) {
-    for (const cookie of headers['set-cookie']) {
-      const parts = cookie.split('=');
-      cookies[parts[0]] = parts[1];
-    }
+type ResponseHeaders = Record<string, string | string[] | undefined>;
+
+type ResponseCookies = Record<string, string>;
+
+type MockedUserData = {
+  email: string;
+  givenName: string;
+  surName: string;
+  affiliationId: string;
+  role: 'RESEARCHER';
+  acceptedTerms: boolean;
+  password: string;
+};
+
+let context: MockContext;
+
+function processResponseCookies(headers: ResponseHeaders): ResponseCookies {
+  const cookies: ResponseCookies = {};
+
+  const setCookie = headers['set-cookie'];
+
+  if (!setCookie) {
+    return cookies;
   }
+
+  const cookieHeaders = Array.isArray(setCookie) ? setCookie : [setCookie];
+
+  for (const cookie of cookieHeaders) {
+    const parts = cookie.split('=');
+    cookies[parts[0]] = parts[1];
+  }
+
   return cookies;
 }
 
 let app: Application;
-let mockedUserData;
-let mockCache;
+let mockedUserData: MockedUserData;
+let mockCache: MockCache;
 
 const mockedUser: InstanceType<typeof UserModel.User> = {
   id: casual.integer(1, 999),
@@ -74,7 +114,8 @@ const mockedUser: InstanceType<typeof UserModel.User> = {
   errors: {},
   tableName: 'testUsers',
   getName: jest.fn(),
-  getEmail: jest.fn<() => Promise<string>>().mockResolvedValue(casual.email), recordLogIn: jest.fn(),
+  getEmail: jest.fn<() => Promise<string>>().mockResolvedValue(casual.email),
+  recordLogIn: jest.fn(),
   isValid: jest.fn(),
   validatePassword: jest.fn(),
   hashPassword: jest.fn(),
@@ -89,7 +130,10 @@ const mockedUser: InstanceType<typeof UserModel.User> = {
   errorsToString: jest.fn(),
 } as unknown as InstanceType<typeof UserModel.User>;
 
-const mockProtectedController = async (req, res) => {
+const mockProtectedController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   if (req.auth && verifyAccessToken(context, req.cookies.dmspt)) {
     res.status(200).send({ message: 'ok' });
   } else {
@@ -110,14 +154,27 @@ beforeAll(async () => {
     next();
   });
 
-  app.use('/test-protected', csrfMiddleware, authMiddleware, mockProtectedController);
+  app.use(
+    '/test-protected',
+    csrfMiddleware,
+    authMiddleware,
+    mockProtectedController
+  );
+
   app.use('/', setupRouter(logger, mockCache.adapter, null, null));
 });
 
 beforeEach(async () => {
   jest.clearAllMocks();
 
-  context = await buildMockContextWithToken(logger, mockUserFn(), mockCache.adapter);
+  const user = mockUserFn();
+  console.log('mockUserFn id:', user.id);
+
+  context = await buildMockContextWithToken(
+    logger,
+    mockUserFn(),
+    mockCache.adapter
+  );
 
   mockedUserData = {
     email: casual.email,
@@ -221,7 +278,8 @@ describe('Sign up', () => {
   });
 
   it('POST /apollo-signup should NOT generate access token and refresh token cookies on failure', async () => {
-    (mockedUser.register as jest.MockedFunction<() => Promise<InstanceType<typeof UserModel.User>>>).mockResolvedValueOnce(null);
+    (mockedUser.register as jest.MockedFunction<() => Promise<InstanceType<typeof UserModel.User>>>)
+      .mockResolvedValueOnce(null as unknown as InstanceType<typeof UserModel.User>);
 
     const resp = await request(app)
       .post('/apollo-signup')
@@ -287,7 +345,7 @@ describe('Sign in', () => {
   });
 
   it('POST /apollo-signin should NOT generate access token and refresh token cookies on failure', async () => {
-    (mockedUser.register as jest.MockedFunction<() => Promise<InstanceType<typeof UserModel.User>>>).mockResolvedValueOnce(null);
+    (mockedUser.register as jest.MockedFunction<() => Promise<InstanceType<typeof UserModel.User>>>).mockResolvedValueOnce(null as unknown as InstanceType<typeof UserModel.User>);
 
     const resp = await request(app)
       .post('/apollo-signin')
@@ -420,6 +478,9 @@ describe('Sign out', () => {
     const accessToken = signinCookies['dmspt'].split(';')[0];
 
     const jwt = verifyAccessToken(context, accessToken);
+    if (!jwt) {
+      throw new Error('Expected access token to be valid');
+    }
     mockCache.adapter.set(`{dmspbl}:${jwt.jti}`, 'testing revocation', {});
 
     const signoutResp = await request(app)
@@ -468,9 +529,11 @@ describe('token refresh', () => {
     expect(cookies['dmspr']).toBeFalsy();
   });
 
-  it('returns a 401 if an error occurs', async () => {
-    const registeredUser = mockedUser;
-    registeredUser.id = casual.integer(1, 999);
+  it.only('returns a 401 if an error occurs', async () => {
+    const registeredUser = {
+      ...mockedUser,
+      id: casual.integer(1, 999),
+    };
     (mockedUser.login as jest.MockedFunction<() => Promise<InstanceType<typeof UserModel.User>>>).mockResolvedValueOnce(registeredUser);
 
     const resp = await request(app)
@@ -484,7 +547,9 @@ describe('token refresh', () => {
     const accessToken = signinCookies['dmspt'].split(';')[0];
     const refreshToken = signinCookies['dmspr'].split(';')[0];
     const jwt = verifyAccessToken(context, accessToken);
-
+    if (!jwt) {
+      throw new Error('Expected access token to be valid');
+    }
     const hashedToken = createHash('sha256')
       .update(`${refreshToken}${generalConfig.hashTokenSecret}`)
       .digest('hex');

@@ -29,6 +29,13 @@ type QueryWithPaginationFn = (
   currentOffset: number;
 }>;
 
+type QueryFn = (
+  context: MyContext,
+  sql: string,
+  values: string[],
+  reference?: string
+) => Promise<unknown[] | undefined>;
+
 //Dynamic imports AFTER all mocks are registered
 const { buildMockContextWithToken } = await import('../../__mocks__/context.js');
 const { logger } = await import('../../logger.js');
@@ -51,7 +58,7 @@ const { Project } = await import("../Project.js");
 const { VersionedTemplate } = await import("../VersionedTemplate.js");
 const { PaginationType } = await import("../../types/general.js");
 
-let context;
+let context: MyContext;
 
 const normalizeSQL = (sql: string) => sql.replace(/\s+/g, ' ').trim();
 
@@ -66,7 +73,7 @@ afterEach(() => {
 });
 
 describe('PlanSearchResult', () => {
-  let searchResult;
+  let searchResult: InstanceType<typeof PlanSearchResult>;
 
   const searchResultData = {
     id: casual.integer(1, 99),
@@ -76,13 +83,14 @@ describe('PlanSearchResult', () => {
     registeredBy: casual.full_name,
     registered: casual.date('YYYY-MM-DD'),
     funding: casual.company_name,
-    members: [casual.full_name, casual.full_name],
+    members: [casual.full_name, casual.full_name].join(', '),
     createdBy: casual.full_name,
     createdById: casual.integer(1, 99),
     created: casual.date('YYYY-MM-DD'),
     modifiedBy: casual.full_name,
     modified: casual.date('YYYY-MM-DD'),
-    templateOwnerAffiliationId: casual.company_name
+    templateTitle: casual.sentence,
+    templateOwnerAffiliationName: casual.company_name
   }
   beforeEach(() => {
     searchResult = new PlanSearchResult(searchResultData);
@@ -109,8 +117,8 @@ describe('PlanSearchResult', () => {
 describe('PlanSearchResult.findByProjectId', () => {
   const originalQuery = Plan.query;
 
-  let localQuery;
-  let planSearchResult;
+  let localQuery: jest.Mock<() => Promise<unknown>>;
+  let planSearchResult: InstanceType<typeof PlanSearchResult>;
 
   beforeEach(() => {
     localQuery = jest.fn();
@@ -118,19 +126,23 @@ describe('PlanSearchResult.findByProjectId', () => {
 
     planSearchResult = new PlanSearchResult({
       id: casual.integer(1, 99),
+      versionedTemplateId: casual.integer(1, 99),
       title: casual.sentence,
       dmpId: casual.uuid,
       registeredBy: casual.full_name,
       registered: casual.date('YYYY-MM-DD'),
       funding: casual.company_name,
       createdBy: casual.full_name,
+      createdById: casual.integer(1, 99),
       created: casual.date('YYYY-MM-DD'),
       modifiedBy: casual.full_name,
       modified: casual.date('YYYY-MM-DD'),
       featured: casual.boolean,
-      members: [casual.full_name, casual.full_name],
+      members: [casual.full_name, casual.full_name].join(', '),
       status: getRandomEnumValue(PlanStatus),
       visibility: getRandomEnumValue(PlanVisibility),
+      templateTitle: casual.sentence,
+      templateOwnerAffiliationName: casual.company_name,
     });
   });
 
@@ -192,7 +204,7 @@ describe('PlanSearchResult.findByProjectIdWithPagination', () => {
     localQueryWithPagination = jest.fn<QueryWithPaginationFn>();
 
     (Plan.query as jest.Mock) = localQuery;
-    (Plan.queryWithPagination as jest.Mock) = localQueryWithPagination;
+    (Plan.queryWithPagination as unknown) = localQueryWithPagination;
   });
 
   afterEach(() => {
@@ -288,6 +300,9 @@ describe('PlanSearchResult.findByProjectIdWithPagination', () => {
       status: PlanStatus.DRAFT,
       visibility: PlanVisibility.PRIVATE,
       dmpId: casual.uuid,
+      versionedTemplateId: casual.integer(1, 99),
+      funding: casual.company_name,
+      members: [casual.full_name, casual.full_name].join(', '),
       templateTitle: casual.sentence,
       templateOwnerAffiliationName: casual.company_name,
     });
@@ -316,7 +331,7 @@ describe('PlanSearchResult.findByProjectIdWithPagination', () => {
 });
 
 describe('PlanSectionProgress', () => {
-  let progress;
+  let progress: InstanceType<typeof PlanSectionProgress>;
 
   const progressData = {
     versionedSectionId: casual.integer(1, 99),
@@ -343,16 +358,16 @@ describe('PlanSectionProgress', () => {
 describe('PlanSectionProgress.findByPlanId', () => {
   const originalQuery = Plan.query;
 
-  let localQuery;
-  let progress;
+  let localQuery: jest.Mock<QueryFn>;
+  let progress: InstanceType<typeof PlanSectionProgress>;
 
   beforeEach(() => {
-    localQuery = jest.fn();
-    (Plan.query as jest.Mock) = localQuery;
+    localQuery = jest.fn<QueryFn>();
+    (Plan.query as unknown) = localQuery;
 
     progress = new PlanSectionProgress({
-      sectionId: casual.integer(1, 99),
-      sectionTitle: casual.sentence,
+      versionedSectionId: casual.integer(1, 99),
+      title: casual.sentence,
       displayOrder: casual.integer(1, 9),
       totalQuestions: casual.integer(1, 9),
       answeredQuestions: casual.integer(1, 9),
@@ -635,6 +650,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
 
     const result = await PlanSectionProgress.findByPlanId('ref', context, 123, 456);
     const customResult = result.find(s => s.customSectionId === 10);
+    if (!customResult) throw new Error('test setup failed: customResult not found');
     expect(customResult.answeredQuestions).toBe(2);
     expect(customResult.answeredRequiredQuestions).toBe(1);
     expect(customResult.totalRequiredQuestions).toBe(2);
@@ -671,6 +687,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
 
     const result = await PlanSectionProgress.findByPlanId('ref', context, 123, 456);
     const baseResult = result.find(s => s.versionedSectionId === 1);
+    if (!baseResult) throw new Error('test setup failed: baseResult not found');
     expect(baseResult.answeredQuestions).toBe(1); // unchanged — credits belong to the custom section
     expect(baseResult.answeredRequiredQuestions).toBe(1); // unchanged — required credits belong to the custom section
   });
@@ -713,7 +730,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
     localQuery.mockResolvedValueOnce([baseSection]);
     const result = await PlanSectionProgress.findByPlanId('ref', context, 123, 456);
     expect(Array.isArray(result[0].tags)).toBe(true);
-    expect(result[0].tags[0].slug).toBe('foo');
+    expect(result[0].tags?.[0].slug).toBe('foo');
   });
 
   it('should handle empty or malformed tags gracefully', async () => {
@@ -730,7 +747,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
     localQuery.mockResolvedValueOnce([baseSection]);
     const result = await PlanSectionProgress.findByPlanId('ref', context, 123, 456);
     expect(Array.isArray(result[0].tags)).toBe(true);
-    expect(result[0].tags.length).toBe(0);
+    expect(result[0].tags?.length).toBe(0);
   });
 
   it('should return an empty array if no base sections are found', async () => {
@@ -821,7 +838,7 @@ describe('PlanSectionProgress.findByPlanId', () => {
 
 
 describe('PlanProgress', () => {
-  let progress;
+  let progress: InstanceType<typeof PlanProgress>;
 
   const progressData = {
     totalQuestions: 10,
@@ -878,6 +895,7 @@ describe('PlanProgress.findByPlanId', () => {
     const result = await PlanProgress.findByPlanId('testing', context, casual.integer(1, 99));
 
     expect(result).toBeInstanceOf(PlanProgress);
+    if (!result) throw new Error('test setup failed: result is null');
     expect(result.totalQuestions).toBe(15);
     expect(result.answeredQuestions).toBe(10);
   });
@@ -891,6 +909,7 @@ describe('PlanProgress.findByPlanId', () => {
 
     const result = await PlanProgress.findByPlanId('testing', context, casual.integer(1, 99));
 
+    if (!result) throw new Error('test setup failed: result is null');
     expect(result.percentComplete).toBe(50.0); // 5/10 * 100
   });
 
@@ -903,12 +922,13 @@ describe('PlanProgress.findByPlanId', () => {
     const result = await PlanProgress.findByPlanId('testing', context, casual.integer(1, 99));
 
     expect(result).toBeInstanceOf(PlanProgress);
+    if (!result) throw new Error('test setup failed: result is null');
     expect(result.percentComplete).toBe(0);
   });
 });
 
 describe('Plan', () => {
-  let plan;
+  let plan: InstanceType<typeof Plan>;
 
   const planData = {
     projectId: casual.integer(1, 99),
@@ -941,28 +961,28 @@ describe('Plan', () => {
   });
 
   it('should return false when calling isValid if the projectId field is missing', async () => {
-    plan.projectId = null;
+    plan.projectId = null as unknown as number;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['projectId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the versionedTemplateId field is missing', async () => {
-    plan.versionedTemplateId = null;
+    plan.versionedTemplateId = null as unknown as number;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['versionedTemplateId']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the title field is missing', async () => {
-    plan.title = null;
+    plan.title = null as unknown as string;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
     expect(plan.errors['title']).toBeTruthy();
   });
 
   it('should return false when calling isValid if the dmpId field is missing but registered is present', async () => {
-    plan.dmpId = null;
+    plan.dmpId = null as unknown as string;
     plan.registered = casual.date('YYYY-MM-DD');
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
@@ -970,7 +990,7 @@ describe('Plan', () => {
   });
 
   it('should return false when calling isValid if the Plan is published but the registered field is missing', async () => {
-    plan.registered = null;
+    plan.registered = null as unknown as string;
     plan.dmpId = casual.uuid;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
@@ -978,7 +998,7 @@ describe('Plan', () => {
   });
 
   it('should return false when calling isValid if the Plan is published but a registeredById field is missing', async () => {
-    plan.registeredById = null;
+    plan.registeredById = null as unknown as number;
     plan.dmpId = casual.uuid;
     expect(await plan.isValid()).toBe(false);
     expect(Object.keys(plan.errors).length).toBe(1);
@@ -993,7 +1013,7 @@ describe('Plan', () => {
   });
 
   it('generateDMPId should generate a new DMP Id', async () => {
-    plan.dmpId = null;
+    plan.dmpId = null as unknown as string;
     jest.spyOn(Plan, 'query').mockResolvedValue([]);
 
     const dmpId = await plan.generateDMPId(context);
@@ -1002,7 +1022,7 @@ describe('Plan', () => {
   });
 
   it('generateDMPId should generate a DMP Id with the temporary prefix if unable to generate a unique DMP Id', async () => {
-    plan.dmpId = null;
+    plan.dmpId = null as unknown as string;
     jest.spyOn(Plan, 'query').mockResolvedValue([plan]);
 
     const dmpId = await plan.generateDMPId(context);
@@ -1017,9 +1037,9 @@ describe('Plan', () => {
 });
 
 describe('Plan.processResult', () => {
-  let plan;
-  let mockGenerateDMPId;
-  let mockUpdate;
+  let plan: InstanceType<typeof Plan>;
+  let mockGenerateDMPId: jest.Mock<() => Promise<string>>;
+  let mockUpdate: jest.Mock<() => Promise<InstanceType<typeof Plan>>>;
 
   beforeEach(() => {
     plan = new Plan({
@@ -1042,7 +1062,7 @@ describe('Plan.processResult', () => {
   });
 
   it('should generate a dmpId and update the plan if dmpId is null', async () => {
-    plan.dmpId = null;
+    plan.dmpId = null as unknown as string;
     plan.generateDMPId = mockGenerateDMPId;
     plan.update = mockUpdate;
 
@@ -1091,6 +1111,7 @@ describe('Plan.processResult', () => {
     expect(mockGenerateDMPId).not.toHaveBeenCalled();
     expect(mockUpdate).not.toHaveBeenCalled();
     expect(result).toBeInstanceOf(Plan);
+    if (!result) throw new Error('test setup failed: result is null');
     expect(result.dmpId).toEqual(plan.dmpId);
   });
 
@@ -1100,8 +1121,8 @@ describe('Plan.processResult', () => {
 describe('findBy Queries', () => {
   const originalQuery = Plan.query;
 
-  let localQuery;
-  let plan;
+  let localQuery: jest.Mock<() => Promise<unknown>>;
+  let plan: InstanceType<typeof Plan>;
 
   beforeEach(() => {
     localQuery = jest.fn();
@@ -1110,6 +1131,7 @@ describe('findBy Queries', () => {
     plan = new Plan({
       projectId: casual.integer(1, 99),
       versionedTemplateId: casual.integer(1, 99),
+      title: casual.sentence,
       dmpId: casual.uuid,
       registeredById: casual.integer(1, 99),
       registered: casual.date('YYYY-MM-DD'),
@@ -1200,12 +1222,12 @@ describe('findBy Queries', () => {
 });
 
 describe('publish', () => {
-  let plan;
-  let mockFindById;
-  let updateQuery;
+  let plan: InstanceType<typeof Plan>;
+  let mockFindById: jest.Mock;
+  let updateQuery: jest.Mock<() => Promise<unknown>>;
 
   const mockDataciteXML = '<?xml version="1.0" encoding="UTF-8"?><resource>mock</resource>';
-  let mockRegisterIdentifier: jest.Mock<(context: MyContext, identifier: string, metadata: Record<string, unknown>) => Promise<unknown>>;
+  let mockRegisterIdentifier: jest.Mock<(context: MyContext, identifier: string, metadata: Record<string, string>, reference?: string) => Promise<string>>;
 
   beforeEach(async () => {
     mockFindById = jest.fn();
@@ -1231,11 +1253,11 @@ describe('publish', () => {
     // Mock the EZID registerIdentifier call on the context datasource
     context = await buildMockContextWithToken(logger);
 
-    mockRegisterIdentifier = jest.fn<(context: MyContext, identifier: string, metadata: Record<string, unknown>) => Promise<unknown>>();
+    mockRegisterIdentifier = jest.fn<(context: MyContext, identifier: string, metadata: Record<string, string>, reference?: string) => Promise<string>>();
     // Create a mock datasource with the query function
     context.dataSources.ezidAPIDataSource = {
       registerIdentifier: mockRegisterIdentifier
-    };
+    } as unknown as MyContext['dataSources']['ezidAPIDataSource'];
   });
 
   it('returns the newly published Plan', async () => {
@@ -1320,8 +1342,8 @@ describe('publish', () => {
 
 describe('create', () => {
   const originalInsert = Plan.insert;
-  let insertQuery;
-  let plan;
+  let insertQuery: jest.Mock<() => Promise<unknown>>;
+  let plan: InstanceType<typeof Plan>;
   // Add planData definition here
   const planData = {
     projectId: casual.integer(1, 99),
@@ -1347,7 +1369,7 @@ describe('create', () => {
   });
 
   it('returns the Plan with errors if it is invalid', async () => {
-    plan.projectId = undefined;
+    plan.projectId = undefined as unknown as number;
     const response = await plan.create(context);
     expect(response.errors['projectId']).toBe('Project can\'t be blank');
   });
@@ -1367,7 +1389,7 @@ describe('create', () => {
   });
 
   it('should add PlanGuidance entries for template owner and user affiliation', async () => {
-    const planGuidanceCreate = jest.spyOn(PlanGuidance.prototype, 'create').mockResolvedValue(undefined);
+    const planGuidanceCreate = jest.spyOn(PlanGuidance.prototype, 'create').mockResolvedValue(null);
 
     // Mock VersionedTemplate to return an owner
     const mockVersionedTemplate = { ownerId: 'https://ror.org/template-owner' };
@@ -1389,7 +1411,7 @@ describe('create', () => {
   it('Properly adds a numeric suffix to the title if it already exists', async () => {
     const planGuidanceCreate = jest
       .spyOn(PlanGuidance.prototype, 'create')
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(null);
     const projectFindById = jest
       .spyOn(Project, 'findById')
       .mockResolvedValue({ title: 'My Project' } as InstanceType<typeof Project>);
@@ -1401,13 +1423,13 @@ describe('create', () => {
         new Plan({ ...planData, id: 3, title: 'My Project 3' }),
       ]);
     const planFindById = jest.spyOn(Plan, 'findById');
-    jest.spyOn(VersionedTemplate, 'findById').mockResolvedValue(undefined);
+    jest.spyOn(VersionedTemplate, 'findById').mockResolvedValue(null);
 
     insertQuery.mockResolvedValueOnce(123);
     const createdPlan = new Plan({ ...planData, id: 123, title: 'My Project 4' });
     planFindById.mockResolvedValueOnce(createdPlan);
 
-    const collisionPlan = new Plan({ ...planData, title: null });
+    const collisionPlan = new Plan({ ...planData, title: null as unknown as string });
     jest.spyOn(collisionPlan, 'generateDMPId').mockResolvedValue(getMockDMPId());
 
     const result = await collisionPlan.create(context);
@@ -1438,8 +1460,8 @@ describe('create', () => {
 });
 
 describe('update', () => {
-  let updateQuery;
-  let plan;
+  let updateQuery: jest.Mock<() => Promise<unknown>>;
+  let plan: InstanceType<typeof Plan>;
 
   beforeEach(() => {
     updateQuery = jest.fn();
@@ -1475,7 +1497,7 @@ describe('update', () => {
     (plan.isValid as jest.Mock) = localValidator;
     localValidator.mockResolvedValueOnce(true);
 
-    plan.id = null;
+    plan.id = undefined;
     const result = await plan.update(context);
     expect(Object.keys(result.errors).length).toBe(1);
     expect(result.errors['general']).toBeTruthy();
@@ -1530,7 +1552,7 @@ describe('update', () => {
 });
 
 describe('delete', () => {
-  let plan;
+  let plan: InstanceType<typeof Plan>;
 
   beforeEach(() => {
     plan = new Plan({
@@ -1544,7 +1566,7 @@ describe('delete', () => {
   })
 
   it('returns null if the Plan has no id', async () => {
-    plan.id = null;
+    plan.id = undefined;
     expect(await plan.delete(context)).toBe(null);
   });
 

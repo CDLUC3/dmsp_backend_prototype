@@ -2,13 +2,25 @@ import { MySqlModel } from "./MySqlModel.js";
 import { MyContext } from "../context.js";
 import { prepareObjectForLogs } from "../logger.js";
 
+interface TagOptions {
+  id?: number;
+  created?: string;
+  createdById?: number;
+  modified?: string;
+  modifiedById?: number;
+  errors?: Record<string, string>;
+  slug?: string;
+  name: string;
+  description?: string;
+}
+
 const tableName = 'tags';
 export class Tag extends MySqlModel {
-  public slug: string;
+  public slug?: string;
   public name: string;
   public description?: string;
 
-  constructor(options) {
+  constructor(options: TagOptions) {
     super(options.id, options.created, options.createdById, options.modified, options.modifiedById, options.errors);
 
     this.slug = options.slug;
@@ -34,7 +46,7 @@ export class Tag extends MySqlModel {
   }
 
   // Save the current record
-  async create(context: MyContext): Promise<Tag> {
+  async create(context: MyContext): Promise<Tag | null> {
     this.slug = Tag.slugifyName(this.name);
     const current = await Tag.findBySlug(
       'Section.create',
@@ -43,29 +55,29 @@ export class Tag extends MySqlModel {
     );
 
     // Then make sure it doesn't already exist
-    if (current) {
+    if (current.length > 0) {
       this.addError('general', 'Tag already exists');
     } else {
       if (await this.isValid()) {
         const newId = await Tag.insert(context, tableName, this, 'Tag.create');
-        const response = await Tag.findById('Tag.create', context, newId);
-        return response
+        if (newId) {
+          return await Tag.findById('Tag.create', context, newId);
+        }
       }
     }
     return new Tag(this);
   }
 
-  async update(context: MyContext): Promise<Tag> {
+  async update(context: MyContext): Promise<Tag | null> {
     const id = this.id;
     if (await this.isValid()) {
       await Tag.update(context, tableName, this, 'Tag.update');
-      const updatedTag = await Tag.findById('Tag.update', context, id);
-      return updatedTag as Tag;
+      return id ? await Tag.findById('Tag.update', context, id) : null;
     }
     return new Tag(this);
   }
 
-  async delete(context: MyContext): Promise<Tag> {
+  async delete(context: MyContext): Promise<Tag | null> {
     if (this.id) {
       /*Get tag info to be deleted so we can return this info to the user
       since calling 'delete' doesn't return anything*/
@@ -80,9 +92,13 @@ export class Tag extends MySqlModel {
   // Add this Tag to a Question
   async addToQuestion(context: MyContext, questionId: number): Promise<boolean> {
     const reference = 'Tag.addToQuestion';
+    if (!this.id) {
+      context.logger.error(`${reference} - Tag has never been saved`);
+      return false;
+    }
     const sql = 'INSERT INTO questionTags (tagId, questionId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), questionId?.toString(), userId, userId];
+    const vals = [this.id.toString(), questionId?.toString(), userId, userId];
     const results = await Tag.query(context, sql, vals, reference);
 
     if (!results) {
@@ -97,8 +113,12 @@ export class Tag extends MySqlModel {
   // Remove this Tag from a Question
   async removeFromQuestion(context: MyContext, questionId: number): Promise<boolean> {
     const reference = 'Tag.removeFromQuestion';
+    if (!this.id) {
+      context.logger.error(`${reference} - Tag has never been saved`);
+      return false;
+    }
     const sql = 'DELETE FROM questionTags WHERE tagId = ? AND questionId = ?';
-    const vals = [this.id?.toString(), questionId?.toString()];
+    const vals = [this.id.toString(), questionId?.toString()];
     const results = await Tag.query(context, sql, vals, reference);
 
     if (!results) {
@@ -113,9 +133,13 @@ export class Tag extends MySqlModel {
   // Add this Tag to a VersionedSectionTags
   async addToVersionedSectionTags(context: MyContext, versionedSectionId: number): Promise<boolean> {
     const reference = 'Tag.addToVersionedSectionTags';
+    if (!this.id) {
+      context.logger.error(`${reference} - Tag has never been saved`);
+      return false;
+    }
     const sql = 'INSERT INTO versionedSectionTags (tagId, versionedSectionId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), versionedSectionId?.toString(), userId, userId];
+    const vals = [this.id.toString(), versionedSectionId?.toString(), userId, userId];
     const results = await Tag.query(context, sql, vals, reference);
 
     if (!results) {
@@ -130,9 +154,13 @@ export class Tag extends MySqlModel {
   // Add this Tag to a VersionedQuestionTags
   async addToVersionedQuestionTags(context: MyContext, versionedQuestionId: number): Promise<boolean> {
     const reference = 'Tag.addToVersionedQuestionTags';
+    if (!this.id) {
+      context.logger.error(`${reference} - Tag has never been saved`);
+      return false;
+    }
     const sql = 'INSERT INTO versionedQuestionTags (tagId, versionedQuestionId, createdById, modifiedById) VALUES (?, ?, ?, ?)';
     const userId = context.token?.id?.toString();
-    const vals = [this.id?.toString(), versionedQuestionId?.toString(), userId, userId];
+    const vals = [this.id.toString(), versionedQuestionId?.toString(), userId, userId];
     const results = await Tag.query(context, sql, vals, reference);
 
     if (!results) {
@@ -147,7 +175,7 @@ export class Tag extends MySqlModel {
   static async findAll(reference: string, context: MyContext): Promise<Tag[]> {
     const sql = 'SELECT * FROM tags';
     const results = await Tag.query(context, sql, [], reference);
-    return Array.isArray(results) && results.length > 0 ? results : null;
+    return Array.isArray(results) ? results.map((entry) => new Tag(entry)) : [];
   }
 
   static async findBySectionId(reference: string, context: MyContext, sectionId: number): Promise<Tag[]> {
@@ -168,7 +196,7 @@ export class Tag extends MySqlModel {
     return Array.isArray(result) ? result.map(item => new Tag(item)) : [];
   }
 
-  static async findById(reference: string, context: MyContext, tagId: number): Promise<Tag> {
+  static async findById(reference: string, context: MyContext, tagId: number): Promise<Tag | null> {
     const sql = 'SELECT * FROM tags where id = ?';
     const result = await Tag.query(context, sql, [tagId?.toString()], reference);
     return Array.isArray(result) && result.length > 0 ? new Tag(result[0]) : null;
@@ -180,6 +208,6 @@ export class Tag extends MySqlModel {
     const searchTerm = (slug ?? '');
     const vals = [searchTerm];
     const results = await Tag.query(context, sql, vals, reference);
-    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new Tag(entry)) : null;
+    return Array.isArray(results) && results.length > 0 ? results.map((entry) => new Tag(entry)) : [];
   }
 }
